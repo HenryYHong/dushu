@@ -91,5 +91,6 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     environment: 'node',
     testTimeout: 30000,
+    setupFiles: ['tests/setup/wait.ts'],
   },
 });
