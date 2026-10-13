@@ -1,0 +1,12 @@
+node_modules
+dist
+.cache
+qa-out
+*.local
+.DS_Store
+__pycache__/
+*.pyc
+.env
+.env.*
+*.log
+.dushu-local/

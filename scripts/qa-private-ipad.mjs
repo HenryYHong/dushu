@@ -1,0 +1,78 @@
+// Production HTTPS smoke test in isolated WebKit iPad storage, not physical iPadOS.
+import { createRequire } from 'node:module';
+import { mkdirSync, readFileSync } from 'node:fs';
+const root = new URL('../', import.meta.url).pathname;
+const require = createRequire(`${root}.cache/qa-webkit/package.json`);
+const { webkit, devices } = require('playwright');
+const { host } = JSON.parse(readFileSync(`${root}.dushu-local/ipad.json`, 'utf8'));
+const base = `https://${host}/`;
+const out = `${root}qa-out/ipad/`;
+mkdirSync(out, { recursive: true });
+const browser = await webkit.launch({ headless: true });
+const ctx = await browser.newContext({ ...devices['iPad Pro 11'] });
+const page = await ctx.newPage();
+const errors = [];
+page.on('response', response => { if (response.url().includes('/api/')) console.log('api', new URL(response.url()).pathname, response.status()); });
+page.on('requestfailed', request => { if (request.url().includes('/api/')) console.log('api failure', new URL(request.url()).pathname, request.failure()?.errorText); });
+page.on('pageerror', error => errors.push(error.message));
+const assert = (condition, message) => { if (!condition) throw new Error(message); console.log('ok  ', message); };
+try {
+  await page.goto(`${base}#/`, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Add books from Mac', exact: true }).tap();
+  await page.locator('.lib-card').filter({ hasText: '活着' }).waitFor({ timeout: 60000 });
+  await page.locator('.lib-card').filter({ hasText: '射雕英雄传' }).waitFor({ timeout: 60000 });
+  assert(true, 'both owner-requested EPUBs import through actual private HTTPS');
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent === 'Add books from Mac' && !b.disabled));
+  await page.getByRole('button', { name: 'Add books from Mac', exact: true }).tap();
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent === 'Add books from Mac' && !b.disabled));
+  assert(await page.locator('.lib-card').filter({ hasText: '活着' }).count() === 1 && await page.locator('.lib-card').filter({ hasText: '射雕英雄传' }).count() === 1, 'repeat Mac import does not duplicate either novel');
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'iPad library actions fit without horizontal overflow');
+  const tags = await ctx.request.get(`${base}api/local-model/api/tags`);
+  assert(tags.ok() && (await tags.json()).models.some(m => m.name === 'qwen3.5:9b-q4_K_M'), 'private AI available over authenticated HTTPS');
+  const answer = await ctx.request.post(`${base}api/local-model/api/generate`, { data: {
+    model: 'qwen3.5:9b-q4_K_M', prompt: 'Translate into English, only the translation: 今天我们一起读书。', stream: false,
+  }, timeout: 180000 });
+  assert(answer.ok() && /read/i.test((await answer.json()).response), 'actual Mac model answers through HTTPS bridge');
+  const denied = await ctx.request.post(`${base}api/local-model/api/generate`, { data: { model: 'arbitrary', prompt: 'test', stream: false } });
+  assert(denied.status() === 400, 'arbitrary model requests are rejected');
+  await page.locator('.lib-sample').filter({ hasText: '唐詩八首' }).getByRole('button', { name: 'Add and read' }).tap();
+  await page.locator('.rd-p .rd-w').first().waitFor({ timeout: 30000 });
+  await page.locator('.rd-p .rd-w').first().tap();
+  await page.getByRole('button', { name: 'Read from here', exact: true }).tap();
+  await page.waitForFunction(() => document.querySelector('.rd-audio-status')?.textContent === 'Reading aloud', { timeout: 30000 });
+  assert(true, 'Premium Mac audio plays after an iPad touch gesture over HTTPS');
+  await page.getByRole('button', { name: 'Pause audio', exact: true }).tap();
+  await page.waitForFunction(() => document.querySelectorAll('.app-toast').length === 0);
+  await page.screenshot({ path: `${out}private-ipad-reader.png` });
+  await page.getByRole('button', { name: 'Stop audio', exact: true }).tap();
+  await page.locator('.rd-p .rd-w').first().tap();
+  await page.getByRole('button', { name: 'Translate sentence', exact: true }).tap();
+  await page.getByRole('button', { name: 'Copy translation', exact: true }).waitFor({ timeout: 180000 });
+  assert((await page.locator('.pp-tr-provider').textContent()).includes('Private Mac AI'), 'Safari automatically chooses the private Mac model');
+  assert((await page.locator('.pp-tr-text').innerText()).trim().length > 10, 'streamed translation appears in the production reader');
+  await page.getByRole('button', { name: 'Close', exact: true }).tap();
+  const floating = page.locator('.rd-w').filter({ hasText: '浮' }).first();
+  await floating.tap();
+  await page.getByRole('button', { name: 'Translate sentence', exact: true }).tap();
+  const startingGloss = async word => page.locator('.pp-wbw').filter({ has: page.locator('.pp-wbw-word', { hasText: word }) }).locator('.pp-wbw-gloss').innerText();
+  assert(/red/i.test(await startingGloss('红')), 'poem gloss shows red, not surname Hong');
+  assert(/clear/i.test(await startingGloss('清')), 'poem gloss shows clear, not Qing dynasty');
+  assert(/wave/i.test(await startingGloss('波')), 'poem gloss shows wave, not Poland');
+  await page.getByRole('button', { name: 'Copy translation', exact: true }).waitFor({ timeout: 180000 });
+  await page.screenshot({ path: `${out}private-poem-translation.png` });
+  await page.getByRole('button', { name: 'Close', exact: true }).tap();
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller, { timeout: 30000 });
+  await ctx.setOffline(true);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('.rd-p .rd-w').first().waitFor({ timeout: 30000 });
+  await page.locator('.rd-p .rd-w').first().tap();
+  await page.locator('.pp-pop').waitFor();
+  assert((await page.locator('.pp-pop').innerText()).includes('Read from here'), 'downloaded book and dictionary popup reopen offline');
+  assert(errors.length === 0, `no uncaught browser errors: ${errors.join('; ')}`);
+  console.log('Private HTTPS iPad WebKit smoke test passed; physical iPadOS/Home Screen/lock-screen remain unverified.');
+} catch (error) {
+  console.log((await page.locator('body').innerText()).slice(0, 2000));
+  await page.screenshot({ path: `${out}private-failure.png` });
+  throw error;
+} finally { await ctx.close(); await browser.close(); }

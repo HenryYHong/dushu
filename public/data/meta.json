@@ -1,0 +1,64 @@
+{
+  "built": "2026-10-11T08:29:27Z",
+  "unicode": "18.0.0",
+  "counts": {
+    "cedict": 125262,
+    "hskOnly": 30,
+    "unihanChars": 102999,
+    "unifiedIdeographs": 101997,
+    "withReading": 44362,
+    "withDefinition": 23310,
+    "segWords": 292026,
+    "noJigmoGlyph": 1
+  },
+  "noJigmoGlyphSample": [
+    "𫠞"
+  ],
+  "sources": [
+    {
+      "name": "CC-CEDICT",
+      "license": "CC BY-SA 4.0",
+      "url": "https://cc-cedict.org/wiki/"
+    },
+    {
+      "name": "Unihan / UCD",
+      "license": "Unicode License v3",
+      "url": "https://www.unicode.org/terms_of_use.html"
+    },
+    {
+      "name": "jieba dict.txt.big",
+      "license": "MIT",
+      "url": "https://github.com/fxsjy/jieba"
+    },
+    {
+      "name": "complete-hsk-vocabulary",
+      "license": "MIT",
+      "url": "https://github.com/drkameleon/complete-hsk-vocabulary"
+    },
+    {
+      "name": "OpenCC",
+      "license": "Apache-2.0",
+      "url": "https://github.com/BYVoid/OpenCC"
+    },
+    {
+      "name": "Jigmo fonts (GlyphWiki)",
+      "license": "CC0 1.0",
+      "url": "https://kamichikoichi.github.io/jigmo/"
+    },
+    {
+      "name": "Wiktionary (via kaikki.org)",
+      "license": "CC BY-SA 4.0",
+      "url": "https://kaikki.org/"
+    },
+    {
+      "name": "hanzi-writer",
+      "license": "MIT",
+      "url": "https://hanziwriter.org/"
+    },
+    {
+      "name": "hanzi-writer-data (Make Me a Hanzi)",
+      "license": "Arphic Public License",
+      "url": "https://github.com/chanind/hanzi-writer-data"
+    }
+  ]
+}

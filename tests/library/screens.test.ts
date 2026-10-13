@@ -1,0 +1,404 @@
+// @vitest-environment jsdom
+import 'fake-indexeddb/auto';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createSettingsStore } from '../../src/store/settings';
+import { openStore, type DushuStore } from '../../src/store';
+import type { AppContext, ImportedBook } from '../../src/types';
+import { loadTestDictionary, readDataFile } from '../helpers/data';
+import { mount as mountLibrary } from '../../src/ui/library/library';
+import { mount as mountSettings } from '../../src/ui/settings/settings';
+import { mount as mountAbout } from '../../src/ui/about/about';
+import { showsPinyin } from '../../src/ui/settings/preview';
+import { autoPick, statusText } from '../../src/ui/settings/translation';
+import { backupFileName, describeReport } from '../../src/ui/settings/data';
+import { coverageStats } from '../../src/ui/about/about';
+
+let n = 0;
+// jsdom's Blob has no text(); browsers do.
+if (typeof Blob.prototype.text !== 'function') {
+  Blob.prototype.text = function text(this: Blob) {
+    return new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsText(this);
+    });
+  };
+}
+const flush = async (ms = 30) => { await new Promise((r) => setTimeout(r, ms)); };
+async function until(fn: () => boolean, ms = 3000) {
+  const t = Date.now();
+  while (!fn()) { if (Date.now() - t > ms) throw new Error('timed out waiting'); await flush(10); }
+}
+
+function book(title: string, author = '作者'): ImportedBook {
+  return {
+    title, author, format: 'txt', script: 'simplified',
+    chapters: [{ title: '一', blocks: [{ t: 'p', text: '今天天气很好，我们去公园玩。' }] }],
+    assets: new Map(),
+  };
+}
+
+let store: DushuStore;
+let root: HTMLElement;
+let toasts: string[];
+let navigated: string[];
+let ctx: AppContext;
+let cleanup: void | (() => void);
+
+beforeEach(async () => {
+  localStorage.clear();
+  store = await openStore(`screens-${++n}-${Math.random().toString(36).slice(2)}`);
+  root = document.createElement('div');
+  document.body.appendChild(root);
+  toasts = [];
+  navigated = [];
+  const dict = await loadTestDictionary();
+  ctx = {
+    dict: () => Promise.resolve(dict),
+    dictSync: () => dict,
+    settings: createSettingsStore(),
+    store,
+    navigate: (h) => navigated.push(h),
+    toast: (m) => toasts.push(m),
+  };
+  // Samples absent by default; meta.json served from disk.
+  vi.stubGlobal('fetch', async (url: string) => {
+    if (String(url).endsWith('data/meta.json')) return { ok: true, text: async () => readDataFile('meta.json') };
+    return { ok: false, text: async () => '' };
+  });
+});
+
+afterEach(() => {
+  if (typeof cleanup === 'function') cleanup();
+  cleanup = undefined;
+  root.remove();
+  document.querySelectorAll('dialog,.lib-menu').forEach((e) => e.remove());
+  vi.unstubAllGlobals();
+});
+
+describe('library screen', () => {
+  it('offers private Mac book import even when the iPad library is empty', async () => {
+    vi.stubGlobal('location', { hostname: 'my-mac.private.ts.net', protocol: 'https:', search: '' });
+    vi.stubGlobal('fetch', async (url: string) => url === '/api/local-books'
+      ? { ok: true, json: async () => [{ id: 'huozhe', name: '活着.epub' }] }
+      : { ok: false, text: async () => '' });
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-empty'));
+    const button = [...root.querySelectorAll('button')].find(b => b.textContent === 'Add books from Mac')!;
+    await until(() => !button.hidden);
+    expect(button.closest('.lib-empty')).not.toBeNull();
+    expect(button.closest('[hidden]')).toBeNull();
+  });
+  it('shows the empty state, with no classics section when the index is missing', async () => {
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-empty'));
+    expect(root.querySelector('.lib-empty-title')?.textContent).toMatch(/Read real Chinese books/);
+    await flush(50);
+    expect(root.querySelector('.lib-samples')?.children.length).toBe(0);
+  });
+
+  it('lists books, marks the most recent as Continue, and shows progress', async () => {
+    const a = await store.books.add(book('孔乙己'));
+    const b = await store.books.add(book('故乡'));
+    await store.books.update(b.id, { lastOpenedAt: Date.now() });
+    await store.progress.set({ bookId: b.id, chapter: 0, block: 0, percent: 0.42, updatedAt: Date.now() });
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => root.querySelectorAll('.lib-card').length === 2);
+    expect(root.querySelector('.lib-continue-title')?.textContent).toBe('故乡');
+    expect(root.querySelector('.lib-continue-go')?.getAttribute('href')).toBe(`#/read/${b.id}`);
+    const cards = [...root.querySelectorAll('.lib-card')];
+    const forB = cards.find((c) => c.getAttribute('data-id') === b.id)!;
+    expect(forB.textContent).toContain('42%');
+    expect(cards.find((c) => c.getAttribute('data-id') === a.id)!.textContent).toContain('Not started');
+    expect((root.querySelector('.lib-empty') as HTMLElement | null)).toBeNull();
+  });
+
+  it('renames through the menu and dialog', async () => {
+    const a = await store.books.add(book('旧名'));
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-card-menu'));
+    (root.querySelector('.lib-card-menu') as HTMLElement).click();
+    const rename = [...document.querySelectorAll<HTMLElement>('.lib-menu-item')].find((b) => b.textContent === 'Rename')!;
+    rename.click();
+    await until(() => !!document.querySelector('dialog input[name=title]'));
+    const input = document.querySelector<HTMLInputElement>('dialog input[name=title]')!;
+    input.value = '新名';
+    document.querySelector('dialog form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    await until(() => root.querySelector('.lib-card-title')?.textContent === '新名');
+    expect((await store.books.get(a.id))?.title).toBe('新名');
+    expect(document.querySelector('dialog')).toBeNull();
+  });
+
+  it('filters by author or title and clears an empty search without changing the library', async () => {
+    await store.books.add(book('活着', '余华'));
+    await store.books.add(book('射雕英雄传', '金庸'));
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => root.querySelectorAll('.lib-card').length === 2);
+    const search = root.querySelector<HTMLInputElement>('input[type="search"]')!;
+    search.value = '金庸';
+    search.dispatchEvent(new Event('input'));
+    expect(root.querySelectorAll('.lib-card')).toHaveLength(1);
+    expect(root.querySelector('.lib-card-title')?.textContent).toBe('射雕英雄传');
+    search.value = 'no match';
+    search.dispatchEvent(new Event('input'));
+    expect(root.querySelectorAll('.lib-card')).toHaveLength(0);
+    expect(root.querySelector('.lib-no-results')?.textContent).toContain('No books match');
+    root.querySelector<HTMLButtonElement>('.lib-no-results button')!.click();
+    expect(search.value).toBe('');
+    expect(root.querySelectorAll('.lib-card')).toHaveLength(2);
+    expect(await store.books.list()).toHaveLength(2);
+  });
+
+  it('asks before deleting and keeps the book on cancel', async () => {
+    const a = await store.books.add(book('要删'));
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-card-menu'));
+    const del = async () => {
+      (root.querySelector('.lib-card-menu') as HTMLElement).click();
+      [...document.querySelectorAll<HTMLElement>('.lib-menu-item')].find((b) => b.textContent === 'Delete')!.click();
+      await until(() => !!document.querySelector('dialog'));
+    };
+    await del();
+    [...document.querySelectorAll<HTMLElement>('dialog .btn')].find((b) => b.textContent === 'Cancel')!.click();
+    await flush();
+    expect(await store.books.get(a.id)).toBeTruthy();
+    await del();
+    [...document.querySelectorAll<HTMLElement>('dialog .btn')].find((b) => b.textContent === 'Delete')!.click();
+    await until(() => !root.querySelector('.lib-card'));
+    expect(await store.books.get(a.id)).toBeUndefined();
+  });
+
+  it('imports pasted text through the dialog and opens the reader', async () => {
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-empty'));
+    [...root.querySelectorAll<HTMLElement>('.lib-empty .btn')].find((b) => b.textContent!.includes('Paste'))!.click();
+    await until(() => !!document.querySelector('.lib-paste-text'));
+    const go = document.querySelector<HTMLButtonElement>('dialog .btn-primary')!;
+    expect(go.disabled).toBe(true);
+    const ta = document.querySelector<HTMLTextAreaElement>('.lib-paste-text')!;
+    ta.value = 'hello only';
+    ta.dispatchEvent(new Event('input'));
+    expect(go.disabled).toBe(true);
+    ta.value = '第一章 开始\n今天天气很好，我们一起去公园玩。花开了。\n第二章 回家\n天黑了，我们走路回家。';
+    ta.dispatchEvent(new Event('input'));
+    expect(go.disabled).toBe(false);
+    document.querySelector<HTMLInputElement>('.lib-paste input[aria-label=Title]')!.value = '短文';
+    go.click();
+    await until(() => navigated.length > 0, 8000);
+    const [added] = await store.books.list();
+    expect(added.title).toBe('短文');
+    expect(added.format).toBe('paste');
+    expect(navigated[0]).toBe(`#/read/${added.id}`);
+  });
+
+  it('turns a bad file into a toast that names it', async () => {
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('input[type=file]'));
+    const input = root.querySelector<HTMLInputElement>('input[type=file]')!;
+    const file = new File(['just english'], 'notes.txt', { type: 'text/plain' });
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    input.dispatchEvent(new Event('change'));
+    await until(() => toasts.length > 0, 8000);
+    expect(toasts[0]).toContain('notes.txt');
+    expect(await store.books.list()).toEqual([]);
+  });
+
+  it('adds and opens a sample with one click, then shows it as in the library', async () => {
+    const index = [{ id: 'x1', title: '小故事', author: '某人', script: 'simplified', file: 'x1.txt', level: 'Beginner', blurb: 'Short.', source: 'https://example.org/x', note: 'Public domain.' }];
+    vi.stubGlobal('fetch', async (url: string) => {
+      const u = String(url);
+      if (u.endsWith('samples/index.json')) return { ok: true, text: async () => JSON.stringify(index) };
+      if (u.endsWith('samples/x1.txt')) return { ok: true, text: async () => '从前有一座山，山里有一座庙。庙里有一个老和尚，他每天都给小和尚讲故事。' };
+      return { ok: false, text: async () => '' };
+    });
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-sample .btn-primary'));
+    (root.querySelector('.lib-sample .btn-primary') as HTMLElement).click();
+    await until(() => navigated.length > 0, 8000);
+    const [added] = await store.books.list();
+    expect(added).toMatchObject({ title: '小故事', author: '某人', format: 'sample', sourceName: 'sample:x1' });
+    await until(() => root.querySelector('.lib-sample .btn-primary') === null);
+    expect(root.querySelector('.lib-sample')?.textContent).toContain('In your library');
+  });
+});
+
+describe('settings screen', () => {
+  it('renders every group and a live preview that follows the settings', async () => {
+    cleanup = await mountSettings(root, {}, ctx);
+    for (const t of ['Reading', 'Pinyin', 'Lookup', 'Translation', 'Speech', 'Data']) {
+      expect([...root.querySelectorAll('.section-title')].some((e) => e.textContent === t)).toBe(true);
+    }
+    const rts = () => [...root.querySelectorAll('.set-sample rt')].map((e) => e.textContent).filter(Boolean);
+    await until(() => rts().length > 3);
+    expect(rts()).toContain('wǒ');
+    // 不大 shows the sandhi reading; turning sandhi off restores the dictionary tone.
+    expect(rts()).toContain('bú');
+    ctx.settings.set({ sandhi: false });
+    expect(rts()).toContain('bù');
+    ctx.settings.set({ pinyinStyle: 'numbers' });
+    expect(rts()).toContain('wo3');
+    ctx.settings.set({ pinyin: 'off' });
+    expect(rts()).toEqual([]);
+    ctx.settings.set({ pinyin: 'all', script: 'traditional' });
+    expect(root.querySelector('.set-sample')?.textContent).toContain('們');
+    ctx.settings.set({ scrollFontSize: 30, toneColors: false });
+    expect((root.querySelector('.set-sample') as HTMLElement).style.fontSize).toBe('30px');
+    expect(root.querySelector('.set-sample rt.tone-3')).toBeNull();
+  });
+
+  it('writes control changes to the settings store', async () => {
+    cleanup = await mountSettings(root, {}, ctx);
+    [...root.querySelectorAll<HTMLElement>('.set-seg-btn')].find((b) => b.textContent === 'Dark')!.click();
+    expect(ctx.settings.get().theme).toBe('dark');
+    const sw = root.querySelector<HTMLInputElement>('.set-switch-input')!;
+    sw.checked = !sw.checked;
+    sw.dispatchEvent(new Event('change'));
+    expect(ctx.settings.get().toneColors).toBe(false);
+    const range = root.querySelector<HTMLInputElement>('.set-range')!;
+    range.value = '28';
+    range.dispatchEvent(new Event('input'));
+    expect(ctx.settings.get().scrollFontSize).toBe(28);
+    // A change from elsewhere (another tab) shows up in the controls.
+    ctx.settings.set({ theme: 'sepia', scrollFontSize: 18 });
+    expect(root.querySelector('.set-seg-btn[aria-checked=true]')?.textContent).toBe('Sepia');
+    expect(range.value).toBe('18');
+  });
+
+  it('uses independent text sizes when switching between Scroll and Pages', async () => {
+    cleanup = await mountSettings(root, {}, ctx);
+    const size = root.querySelector<HTMLInputElement>('input[aria-label="Text size"]')!;
+    const preview = root.querySelector<HTMLElement>('.set-sample')!;
+    const choose = (name: string) => [...root.querySelectorAll<HTMLElement>('.set-seg-btn')].find((b) => b.textContent === name)!.click();
+    choose('Scroll');
+    expect(size.value).toBe('28');
+    expect(preview.style.fontSize).toBe('28px');
+    size.value = '32';
+    size.dispatchEvent(new Event('input'));
+    expect(ctx.settings.get()).toMatchObject({ scrollFontSize: 32, fontSize: 22 });
+    choose('Pages');
+    expect(size.value).toBe('22');
+    expect(preview.style.fontSize).toBe('22px');
+    choose('Scroll');
+    expect(size.value).toBe('32');
+    expect(preview.style.fontSize).toBe('32px');
+  });
+
+  it('only enables the HSK slider in HSK mode', async () => {
+    cleanup = await mountSettings(root, {}, ctx);
+    const sliders = [...root.querySelectorAll<HTMLInputElement>('.set-range')];
+    const hsk = sliders.find((s) => s.max === '7')!;
+    expect(hsk.disabled).toBe(true);
+    ctx.settings.set({ pinyin: 'hsk' });
+    expect(hsk.disabled).toBe(false);
+  });
+
+  it('lists all providers with live status and the Claude model choices', async () => {
+    ctx.settings.set({ claudeApiKey: 'sk-ant-xyz' });
+    cleanup = await mountSettings(root, {}, ctx);
+    await until(() => [...root.querySelectorAll('.set-prov .set-chip')].every((c) => c.textContent !== '…'));
+    const rows = [...root.querySelectorAll('.set-prov')];
+    expect(rows).toHaveLength(6);
+    const claude = rows.find((r) => r.querySelector('.set-prov-name')?.textContent?.startsWith('Claude'))!;
+    expect(claude.querySelector('.set-chip')?.textContent).toBe('Ready');
+    expect(claude.querySelector('.set-chip-ok')).toBeTruthy();
+    const key = root.querySelector<HTMLInputElement>('.set-key')!;
+    expect(key.type).toBe('password');
+    expect(key.value).toBe('sk-ant-xyz');
+    const models = [...root.querySelectorAll<HTMLOptionElement>('select[aria-label="Claude model"] option')].map((o) => o.value);
+    expect(models).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']);
+    // choosing a provider sets it
+    rows.find((r) => r.querySelector('.set-prov-name')?.textContent?.startsWith('Chrome'))!
+      .querySelector<HTMLInputElement>('input')!.click();
+    expect(ctx.settings.get().translator).toBe('chrome');
+  });
+
+  it('refuses to test an empty key', async () => {
+    cleanup = await mountSettings(root, {}, ctx);
+    [...root.querySelectorAll<HTMLElement>('.btn')].find((b) => b.textContent === 'Test key')!.click();
+    await flush();
+    expect(root.querySelector('.set-test-out')?.textContent).toBe('Enter a key first.');
+  });
+
+  it('exports a backup file without the API key and imports one back with a summary', async () => {
+    ctx.settings.set({ claudeApiKey: 'sk-secret' });
+    await store.known.add(['你好']);
+    cleanup = await mountSettings(root, {}, ctx);
+    const json = await store.exportBackup();
+    expect(json).not.toContain('sk-secret');
+
+    const input = root.querySelector<HTMLInputElement>('input[type=file]')!;
+    const other = await openStore(`screens-other-${Math.random()}`);
+    await other.known.add(['再见', '谢谢']);
+    const backup = await other.exportBackup();
+    Object.defineProperty(input, 'files', { value: [new File([backup], 'b.json')], configurable: true });
+    input.dispatchEvent(new Event('change'));
+    await until(() => !!root.querySelector('.set-backup .set-good'));
+    expect(store.known.has('谢谢')).toBe(true);
+    expect(root.querySelector('.set-backup .set-good')?.textContent).toMatch(/Added 2 known words/);
+
+    Object.defineProperty(input, 'files', { value: [new File(['not json'], 'bad.json')], configurable: true });
+    input.dispatchEvent(new Event('change'));
+    await until(() => !!root.querySelector('.set-backup .set-bad'));
+  });
+});
+
+describe('settings helpers', () => {
+  it('decides which words carry pinyin', async () => {
+    const dict = await loadTestDictionary();
+    const known = (w: string) => w === '朋友';
+    expect(showsPinyin('朋友', { pinyin: 'off', hskThreshold: 3 }, dict, known)).toBe(false);
+    expect(showsPinyin('朋友', { pinyin: 'all', hskThreshold: 3 }, dict, known)).toBe(true);
+    expect(showsPinyin('朋友', { pinyin: 'unknown', hskThreshold: 3 }, dict, known)).toBe(false);
+    expect(showsPinyin('学生', { pinyin: 'unknown', hskThreshold: 3 }, dict, known)).toBe(true);
+    expect(showsPinyin('学生', { pinyin: 'hsk', hskThreshold: 3 }, dict, () => false)).toBe(false); // HSK 1
+    expect(showsPinyin('阿姨', { pinyin: 'hsk', hskThreshold: 3 }, dict, () => false)).toBe(true); // HSK 4
+    expect(showsPinyin('阿姨', { pinyin: 'hsk', hskThreshold: 4 }, dict, () => false)).toBe(false);
+    expect(showsPinyin('𠀀', { pinyin: 'hsk', hskThreshold: 7 }, dict, known)).toBe(true);
+  });
+
+  it('describes availability and what Automatic picks', () => {
+    expect(statusText('claude', 'no').text).toBe('Needs an API key');
+    expect(statusText('chrome', 'download').kind).toBe('warn');
+    expect(statusText('gloss', 'yes').kind).toBe('ok');
+    expect(autoPick({ local: 'yes', chrome: 'download', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('local');
+    expect(autoPick({ local: 'yes', chrome: 'yes', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('chrome');
+    expect(autoPick({ local: 'no', chrome: 'download', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('chrome');
+    expect(autoPick({ local: 'no', chrome: 'no', claude: 'yes', mymemory: 'yes', gloss: 'yes' })).toBe('claude');
+    expect(autoPick({ local: 'no', chrome: 'no', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('gloss');
+  });
+
+  it('summarizes backup imports and names the file by date', () => {
+    expect(backupFileName(new Date(2026, 9, 5))).toBe('dushu-backup-2026-10-05.json');
+    const empty = { vocab: { added: 0, updated: 0, skipped: 0 }, known: { added: 0 }, progress: { added: 0, updated: 0, skipped: 0 }, reviews: { added: 0 } };
+    expect(describeReport(empty)).toMatch(/Nothing new/);
+    expect(describeReport({ ...empty, vocab: { added: 12, updated: 3, skipped: 0 } })).toBe('Added 12 saved words, updated 3 saved words.');
+    expect(describeReport({ ...empty, known: { added: 1 }, settings: {} })).toBe('Added 1 known word, restored your settings.');
+  });
+});
+
+describe('about screen', () => {
+  it('shows coverage from meta.json, every source, and the CC-CEDICT attribution', async () => {
+    cleanup = await mountAbout(root, {}, { ...ctx, dictSync: () => null, dict: () => new Promise(() => {}) });
+    await until(() => !!root.querySelector('.ab-stat'));
+    expect(root.textContent).toContain('101,997');
+    expect(root.textContent).toContain('CC-CEDICT');
+    expect(root.textContent).toContain('Creative Commons Attribution-ShareAlike 4.0');
+    const names = [...root.querySelectorAll('.ab-source-name')].map((e) => e.textContent);
+    for (const want of ['CC-CEDICT', 'Unihan / UCD', 'jieba dict.txt.big', 'OpenCC', 'Wiktionary (via kaikki.org)']) expect(names).toContain(want);
+    expect(root.querySelectorAll('.ab-keys-group').length).toBeGreaterThan(1);
+  });
+
+  it('still renders when meta.json cannot be loaded', async () => {
+    vi.stubGlobal('fetch', async () => { throw new Error('offline'); });
+    cleanup = await mountAbout(root, {}, { ...ctx, dictSync: () => null, dict: () => Promise.reject(new Error('no data')) });
+    await until(() => !!root.querySelector('.ab-source'));
+    expect(root.textContent).toContain('not available right now');
+    expect(root.textContent).toContain('How to use it');
+  });
+
+  it('formats coverage tiles and drops the ones it has no number for', () => {
+    expect(coverageStats({ counts: { unifiedIdeographs: 101997, withReading: 44362, extraLoaded: 5132 } }).map((s) => s.value)).toEqual(['101,997', '44,362']);
+    expect(coverageStats({ counts: {} })).toEqual([]);
+  });
+});

@@ -1,0 +1,39 @@
+{
+  "name": "dushu",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Dushu (读书) — read real Chinese books with tap-to-look-up pinyin, definitions and translation.",
+  "scripts": {
+    "start": "node scripts/start-local.mjs",
+    "ipad": "node scripts/setup-ipad.mjs",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4317",
+    "qa": "node scripts/qa.mjs",
+    "qa:ipad": "node scripts/qa-ipad.mjs",
+    "qa:ipad:private": "node scripts/qa-private-ipad.mjs",
+    "qa:reader": "node scripts/qa-reader.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "data": "python3 scripts/build_data.py"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.133.0",
+    "@fontsource/noto-serif-sc": "5.3.1",
+    "@fontsource/noto-serif-tc": "5.3.1",
+    "fflate": "0.8.3",
+    "hanzi-writer": "3.7.3",
+    "lxgw-wenkai-webfont": "1.7.0",
+    "pdfjs-dist": "4.10.38"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.5",
+    "jsdom": "25.0.1",
+    "puppeteer-core": "23.11.1",
+    "typescript": "5.9.3",
+    "vite": "6.4.4",
+    "vitest": "3.2.7"
+  }
+}

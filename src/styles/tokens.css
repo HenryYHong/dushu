@@ -1,0 +1,111 @@
+/* Design tokens. Every stylesheet uses these variables, never raw colors. */
+
+/* The Jigmo @font-face rules (full CJK coverage, CC0) are injected by src/main.ts so the URLs follow the base path.
+   Noto Serif SC/TC and LXGW WenKai are bundled in slices (see main.ts): a page downloads only the slices it draws.
+   On a Mac the system Songti is used first, so nothing is downloaded there unless Songti lacks a character. */
+
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Serif SC', 'Jigmo', 'Jigmo2', 'Jigmo3', sans-serif;
+  --font-serif: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', 'Songti TC', 'Noto Serif TC', 'SimSun', 'Jigmo', 'Jigmo2', 'Jigmo3', serif;
+  --font-serif-hant: 'Songti TC', 'Noto Serif TC', 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif TC', 'PMingLiU', 'Jigmo', 'Jigmo2', 'Jigmo3', serif;
+  --font-sans: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Source Han Sans SC', 'PingFang TC', 'Microsoft YaHei', 'Noto Serif SC', 'Jigmo', 'Jigmo2', 'Jigmo3', sans-serif;
+  --font-sans-hant: 'PingFang TC', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans TC', 'Microsoft JhengHei', 'Noto Serif TC', 'Jigmo', 'Jigmo2', 'Jigmo3', sans-serif;
+  --font-kai: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', 'Kaiti TC', 'BiauKai', 'Noto Serif SC', 'Jigmo', 'Jigmo2', 'Jigmo3', serif;
+  --font-kai-hant: 'LXGW WenKai', 'Kaiti TC', 'BiauKai', 'Kaiti SC', 'STKaiti', 'KaiTi', 'Noto Serif TC', 'Jigmo', 'Jigmo2', 'Jigmo3', serif;
+  --font-pinyin: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --radius-s: 6px;
+  --radius: 10px;
+  --radius-l: 16px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --nav-h: 56px;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* light (default) */
+  --bg: #f6f2ea;
+  --surface: #fffdf8;
+  --surface-2: #efe9dd;
+  --surface-3: #e6dfd0;
+  --text: #22201c;
+  --text-2: #5d574d;
+  --text-3: #8d8578;
+  --border: #ddd5c5;
+  --accent: #b8402e;        /* cinnabar seal red */
+  --accent-soft: #f3dcd4;
+  --accent-text: #fffaf3;
+  --ink: #2d4a6b;           /* ink blue, links and secondary accent */
+  --ok: #3f7d4e;
+  --warn: #a8701c;
+  --hl: rgba(232, 178, 64, 0.32);       /* active word highlight */
+  --hl-select: rgba(184, 64, 46, 0.16); /* phrase selection */
+  --saved: #ead9a6;                      /* underline for saved words */
+  --shadow: 0 1px 2px rgba(40, 30, 10, 0.06), 0 8px 28px rgba(40, 30, 10, 0.14);
+  --shadow-s: 0 1px 2px rgba(40, 30, 10, 0.08);
+  --tone-1: #d13b2f;
+  --tone-2: #2f8a3e;
+  --tone-3: #2f62c4;
+  --tone-4: #8a3fb5;
+  --tone-5: #7c766c;
+  color-scheme: light;
+}
+
+:root[data-theme='sepia'] {
+  --bg: #f1e7d0;
+  --surface: #f8f0dc;
+  --surface-2: #e9dcbf;
+  --surface-3: #dfd0ad;
+  --text: #3b2f20;
+  --text-2: #6a5a43;
+  --text-3: #93826a;
+  --border: #d6c6a2;
+  --accent-soft: #ecd3bf;
+  --shadow: 0 1px 2px rgba(60, 40, 10, 0.08), 0 8px 28px rgba(60, 40, 10, 0.16);
+}
+
+:root[data-theme='dark'] {
+  --bg: #161513;
+  --surface: #1f1e1b;
+  --surface-2: #2a2825;
+  --surface-3: #35322e;
+  --text: #ebe5d9;
+  --text-2: #b5ad9f;
+  --text-3: #857e72;
+  --border: #3a3732;
+  --accent: #e0705c;
+  --accent-soft: #48261f;
+  --accent-text: #1a1210;
+  --ink: #8fb3dc;
+  --ok: #79b788;
+  --warn: #d7a456;
+  --hl: rgba(232, 178, 64, 0.26);
+  --hl-select: rgba(224, 112, 92, 0.22);
+  --saved: #6b5a2c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-s: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --tone-1: #ff7b6e;
+  --tone-2: #6cc97b;
+  --tone-3: #77a4ff;
+  --tone-4: #c48af0;
+  --tone-5: #9b948a;
+  color-scheme: dark;
+}
+
+/* A traditional-Chinese book (the reader sets lang="zh-Hant" on the text) prefers the TC glyph shapes.
+   Elements that read var(--font-serif) from inside such a container get the Hant stacks automatically.
+   The reader can also point its own --rd-font at --font-serif-hant, --font-sans-hant or --font-kai-hant. */
+:lang(zh-Hant), :lang(zh-TW), :lang(zh-HK) {
+  --font-serif: var(--font-serif-hant);
+  --font-sans: var(--font-sans-hant);
+  --font-kai: var(--font-kai-hant);
+}

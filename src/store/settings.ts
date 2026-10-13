@@ -1,0 +1,149 @@
+// Settings in localStorage. Unknown keys are dropped, bad types reset, numbers clamped.
+import type { Settings, SettingsStore } from '../types';
+
+export const SETTINGS_KEY = 'dushu.settings.v1';
+
+export const DEFAULT_SETTINGS: Settings = {
+  theme: 'system',
+  fontFamily: 'serif',
+  fontSize: 22,
+  scrollFontSize: 28,
+  lineHeight: 2.1,
+  pageWidth: 760,
+  pinyin: 'unknown',
+  hskThreshold: 3,
+  pinyinStyle: 'marks',
+  toneColors: true,
+  sandhi: true,
+  script: 'original',
+  lookupTrigger: 'click',
+  paragraphTranslate: true,
+  translator: 'auto',
+  claudeApiKey: '',
+  claudeModel: 'claude-opus-5-5',
+  ttsVoice: '',
+  ttsRate: 0.9,
+  layout: 'scroll',
+  spread: 'auto',
+  pageTurn: 'flip',
+};
+
+type Rule = (v: unknown) => unknown | undefined; // returns the clean value, or undefined if unusable
+
+const oneOf = (...allowed: string[]): Rule => (v) => (typeof v === 'string' && allowed.includes(v) ? v : undefined);
+const bool: Rule = (v) => (typeof v === 'boolean' ? v : undefined);
+const num = (min: number, max: number, digits: number): Rule => (v) => {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
+  const f = 10 ** digits;
+  return Math.round(Math.min(max, Math.max(min, v)) * f) / f;
+};
+const text = (maxLen: number, allowEmpty: boolean): Rule => (v) => {
+  if (typeof v !== 'string') return undefined;
+  const t = v.trim().slice(0, maxLen);
+  return t || allowEmpty ? t : undefined;
+};
+
+const RULES: { [K in keyof Settings]: Rule } = {
+  theme: oneOf('system', 'light', 'sepia', 'dark'),
+  fontFamily: oneOf('serif', 'sans', 'kai'),
+  fontSize: num(14, 44, 0),
+  scrollFontSize: num(14, 44, 0),
+  lineHeight: num(1.4, 3, 2),
+  pageWidth: num(480, 1200, 0),
+  pinyin: oneOf('off', 'all', 'unknown', 'hsk'),
+  hskThreshold: num(1, 7, 0),
+  pinyinStyle: oneOf('marks', 'numbers', 'zhuyin'),
+  toneColors: bool,
+  sandhi: bool,
+  script: oneOf('original', 'simplified', 'traditional'),
+  lookupTrigger: oneOf('click', 'hover'),
+  paragraphTranslate: bool,
+  translator: oneOf('auto', 'local', 'chrome', 'claude', 'mymemory', 'gloss'),
+  claudeApiKey: text(400, true),
+  claudeModel: text(100, false),
+  ttsVoice: text(200, true),
+  ttsRate: num(0.5, 2, 2),
+  layout: oneOf('scroll', 'pages'),
+  spread: oneOf('auto', 'single', 'double'),
+  pageTurn: oneOf('flip', 'slide', 'none'),
+};
+
+const KEYS = Object.keys(RULES) as (keyof Settings)[];
+
+/** Text-size controls and rendering always use the current layout's saved size. */
+export function readingFontSizeKey(s: Settings): 'fontSize' | 'scrollFontSize' {
+  return s.layout === 'scroll' ? 'scrollFontSize' : 'fontSize';
+}
+
+/** A complete, valid Settings from untrusted input: bad or missing fields fall back to defaults. */
+export function sanitizeSettings(raw: unknown): Settings {
+  const out: Record<string, unknown> = { ...DEFAULT_SETTINGS };
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const src = raw as Record<string, unknown>;
+    for (const k of KEYS) {
+      const clean = RULES[k](Object.prototype.hasOwnProperty.call(src, k) ? src[k] : undefined);
+      if (clean !== undefined) out[k] = clean;
+    }
+  }
+  return out as unknown as Settings;
+}
+
+/** Only the valid fields of a partial update; invalid values and unknown keys are left out. */
+export function sanitizePatch(raw: unknown): Partial<Settings> {
+  const out: Record<string, unknown> = {};
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const src = raw as Record<string, unknown>;
+    for (const k of KEYS) {
+      if (!Object.prototype.hasOwnProperty.call(src, k)) continue;
+      const clean = RULES[k](src[k]);
+      if (clean !== undefined) out[k] = clean;
+    }
+  }
+  return out as Partial<Settings>;
+}
+
+function defaultStorage(): Storage | undefined {
+  try { return globalThis.localStorage; } catch { return undefined; } // access can throw when site data is blocked
+}
+
+function load(storage: Storage | undefined): Settings {
+  try {
+    const raw = storage?.getItem(SETTINGS_KEY);
+    if (raw) return sanitizeSettings(JSON.parse(raw));
+  } catch { /* corrupt JSON or blocked storage: use defaults */ }
+  return { ...DEFAULT_SETTINGS };
+}
+
+export function createSettingsStore(storage: Storage | undefined = defaultStorage()): SettingsStore {
+  let s = load(storage);
+  const subs = new Set<(s: Settings, changed: (keyof Settings)[]) => void>();
+  const notify = (changed: (keyof Settings)[]) => {
+    for (const fn of [...subs]) {
+      try { fn(s, changed); } catch (e) { console.error('settings subscriber failed', e); }
+    }
+  };
+
+  // Another tab changed settings: pick them up.
+  if (storage && typeof globalThis.addEventListener === 'function') {
+    globalThis.addEventListener('storage', (e: Event) => {
+      const ev = e as StorageEvent;
+      if (ev.storageArea !== storage || (ev.key !== SETTINGS_KEY && ev.key !== null)) return;
+      const next = load(storage);
+      const changed = KEYS.filter((k) => next[k] !== s[k]);
+      s = next;
+      if (changed.length) notify(changed);
+    });
+  }
+
+  return {
+    get: () => s,
+    set(patch) {
+      const clean = sanitizePatch(patch);
+      const changed = KEYS.filter((k) => k in clean && clean[k] !== s[k]);
+      s = { ...s, ...clean };
+      try { storage?.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch { /* private mode or quota: keep in memory */ }
+      notify(changed);
+    },
+    subscribe(fn) { subs.add(fn); return () => { subs.delete(fn); }; },
+  };
+}

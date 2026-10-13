@@ -1,0 +1,62 @@
+/* Flashcard review. Every class starts with rev-. */
+.rev-page { max-width: 640px; }
+.rev-top { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); font-size: 14px; }
+.rev-exit { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); text-decoration: none; margin-right: auto; }
+.rev-exit:hover { color: var(--text); }
+.rev-counter { font-weight: 600; }
+.rev-progress { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; margin-bottom: var(--space-5); }
+.rev-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.25s var(--ease); }
+
+.rev-card { padding: var(--space-6) var(--space-5); min-height: 280px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: center; }
+.rev-card-revealed { cursor: default; }
+.rev-word { font-size: 84px; line-height: 1.2; font-weight: 600; overflow-wrap: anywhere; }
+.rev-word-mid { font-size: 64px; }
+.rev-word-long { font-size: 40px; }
+.rev-ctx { margin: var(--space-4) auto 0; max-width: 480px; color: var(--text-2); font-size: 18px; line-height: 1.8; text-align: left; overflow-wrap: anywhere; }
+.rev-ctx mark { background: var(--hl); color: var(--text); font-weight: 700; padding: 0 2px; border-radius: 3px; }
+.rev-back { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.rev-answer { display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
+.rev-py { font-family: var(--font-pinyin); font-size: 28px; font-weight: 500; }
+.rev-gloss { margin: var(--space-2) 0 0; font-size: 18px; line-height: 1.5; }
+.rev-source { margin: var(--space-2) 0 0; font-size: 13px; }
+
+.rev-reveal { width: 100%; height: 48px; margin-top: var(--space-4); font-size: 16px; }
+.rev-reveal .kbd { margin-left: 6px; color: var(--text); background: var(--surface); }
+.rev-grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); margin-top: var(--space-4); }
+.rev-grade {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 4px 8px; border-radius: var(--radius); cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-s);
+  transition: background 0.12s, transform 0.06s;
+}
+.rev-grade:hover { background: var(--surface-2); }
+.rev-grade:active { transform: translateY(1px); }
+.rev-grade-label { font-weight: 700; font-size: 15px; }
+.rev-grade-iv { font-size: 13px; color: var(--text-2); }
+.rev-grade-key { margin-top: 4px; color: var(--text-3); }
+.rev-grade-again .rev-grade-label { color: var(--accent); }
+.rev-grade-good .rev-grade-label { color: var(--ok); }
+.rev-grade-easy .rev-grade-label { color: var(--ink); }
+
+.rev-empty, .rev-summary { padding: var(--space-7) var(--space-5); text-align: center; }
+.rev-empty-title, .rev-summary-title { margin: 0 0 var(--space-2); font-size: 24px; }
+.rev-empty p { color: var(--text-2); margin: 0 0 var(--space-4); }
+.rev-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); margin: var(--space-5) 0; }
+.rev-stat { padding: var(--space-3) 4px; border-radius: var(--radius); background: var(--surface-2); }
+.rev-stat-value { font-size: 24px; font-weight: 700; }
+.rev-stat-label { font-size: 12px; color: var(--text-3); }
+.rev-next { color: var(--text-2); margin: 0 0 var(--space-4); }
+.rev-summary-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; }
+
+@media (max-width: 640px) {
+  .rev-card { padding: var(--space-5) var(--space-4); min-height: 240px; }
+  .rev-word { font-size: 64px; }
+  .rev-word-mid { font-size: 52px; }
+  .rev-word-long { font-size: 34px; }
+  .rev-py { font-size: 24px; }
+  .rev-grades { gap: 6px; }
+  .rev-stats { grid-template-columns: repeat(3, 1fr); }
+  .rev-grade-key { display: none; }
+}
+
+.rev-page a.btn, .rev-page a.btn:hover { text-decoration: none; }
