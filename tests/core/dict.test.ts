@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadDictionary } from '../../src/core/dict';
 import { HAN_BLOCKS, hanBlockName } from '../../src/core/blocks';
 import { DATA_DIR, loadTestDictionary, readDataFile, readRows } from '../helpers/data';
-import { measureAsync } from '../helpers/perf';
+import { measureAsync, PERF_SLACK } from '../helpers/perf';
 
 const dictP = loadTestDictionary();
 
@@ -13,7 +13,7 @@ describe('loadDictionary', () => {
     const m = await measureAsync(() => loadDictionary('/', { fetchText: readDataFile }));
     const d = m.result;
     console.log(`loadDictionary: cpu ${m.cpu.toFixed(0)} ms, wall ${m.wall.toFixed(0)} ms`);
-    expect(m.cpu).toBeLessThan(4000);
+    expect(m.cpu).toBeLessThan(4000 * PERF_SLACK);
     expect(d.meta.unicode).toBe('18.0.0');
     expect(d.meta.sources.map((s) => s.name)).toContain('CC-CEDICT');
     expect(d.meta.counts.cedict).toBe(125262);

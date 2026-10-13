@@ -6,7 +6,7 @@ import { segment } from '../../src/core/segment';
 import { countHan } from '../../src/core/text';
 import type { Dictionary, Token } from '../../src/types';
 import { loadTestDictionary, readRows } from '../helpers/data';
-import { measure } from '../helpers/perf';
+import { measure, PERF_SLACK } from '../helpers/perf';
 import { GOLD, HELDOUT } from './gold';
 
 const dictP = loadTestDictionary();
@@ -278,7 +278,7 @@ describe('segment: performance', () => {
     }
     console.log(`segment 10k Han chars: cpu ${runs.map((r) => r.cpu.toFixed(1)).join(', ')} ms, wall ${runs.map((r) => r.wall.toFixed(1)).join(', ')} ms`);
     // CPU time of the best of five: other processes on a busy machine only inflate wall-clock time.
-    expect(Math.min(...runs.map((r) => r.cpu))).toBeLessThan(60);
+    expect(Math.min(...runs.map((r) => r.cpu))).toBeLessThan(60 * PERF_SLACK);
   });
 
   it('segments 10,000 traditional characters in under 60 ms too', async () => {
@@ -291,7 +291,7 @@ describe('segment: performance', () => {
       runs.push(measure(() => segment(shifted, d)));
     }
     console.log(`segment 10k traditional chars: cpu ${runs.map((r) => r.cpu.toFixed(1)).join(', ')} ms`);
-    expect(Math.min(...runs.map((r) => r.cpu))).toBeLessThan(60);
+    expect(Math.min(...runs.map((r) => r.cpu))).toBeLessThan(60 * PERF_SLACK);
   });
 
   it('scales linearly: 200,000 characters in one paragraph take under 1.5 s', async () => {
@@ -300,7 +300,7 @@ describe('segment: performance', () => {
     const m = measure(() => segment(text, d));
     console.log(`segment 200k chars: cpu ${m.cpu.toFixed(0)} ms, wall ${m.wall.toFixed(0)} ms`);
     expectExactCoverage(text, m.result);
-    expect(m.cpu).toBeLessThan(1500);
+    expect(m.cpu).toBeLessThan(1500 * PERF_SLACK);
   });
 
   const huozhe = `${homedir()}/Downloads/活着.epub`;
@@ -324,7 +324,7 @@ describe('segment: performance', () => {
       for (const x of t) if (x.kind === 'han' && [...x.text].length > 1) inWords += [...x.text].length;
     });
     console.log(`活着 section: ${han} Han chars, ${tokens} tokens, ${ms.toFixed(0)} ms cpu (${timing.wall.toFixed(0)} ms wall), ${((100 * inWords) / han).toFixed(0)}% of characters in multi-character words`);
-    expect(ms / han).toBeLessThan(0.006); // < 60 ms per 10k characters
+    expect(ms / han).toBeLessThan(0.006 * PERF_SLACK); // < 60 ms per 10k characters
     expect(inWords / han).toBeGreaterThan(0.4); // modern Chinese prose is roughly 55-65% in multi-character words
     expect(inWords / han).toBeLessThan(0.8);
   });

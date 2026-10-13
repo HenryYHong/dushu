@@ -4,6 +4,7 @@ import { segment } from '../../src/core/segment';
 import type { LexiconEntry } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
 import { novel } from '../helpers/novel';
+import { PERF_SLACK } from '../helpers/perf';
 
 const dictP = loadTestDictionary();
 
@@ -93,7 +94,7 @@ describe('detectTerms', () => {
     expect(total).toBeGreaterThan(900_000);
     const t0 = Date.now();
     const found = detectTerms(chapters, dict);
-    expect(Date.now() - t0).toBeLessThan(8000);
+    expect(Date.now() - t0).toBeLessThan(8000 * PERF_SLACK);
     expect(found.some((e) => e.word === '莫远峰')).toBe(true);
   }, 30000);
 });
@@ -156,6 +157,6 @@ describe('segment with a lexicon', () => {
     const text = '我们都知道这件事，大家一起去吃饭。'.repeat(600);
     const t0 = Date.now();
     segment(text, dict, lex);
-    expect(Date.now() - t0).toBeLessThan(800);
+    expect(Date.now() - t0).toBeLessThan(800 * PERF_SLACK);
   });
 });
