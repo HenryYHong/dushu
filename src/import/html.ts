@@ -1,13 +1,13 @@
 // HTML pages and Markdown files.
 import type { Block, ImportedBook } from '../types';
-import { AssetStore } from './assets';
+import { AssetStore, dropAssets } from './assets';
 import { extractBlocks, normalizeInline } from './blocks';
 import { chaptersFromBlocks, detectWrapWidth, linesToParagraphs, paragraphsToBlocks, trimLine } from './chapters';
 import { decodeText, normalizeNewlines, sniffMarkupCharset } from './encoding';
 import { parseXhtml } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
 
-export function importHtml(bytes: Uint8Array, sourceName: string): ImportedBook {
+export async function importHtml(bytes: Uint8Array, sourceName: string): Promise<ImportedBook> {
   const text = decodeText(bytes, sniffMarkupCharset(bytes)).text;
   const doc = parseXhtml(text);
   const store = new AssetStore();
@@ -25,12 +25,13 @@ export function importHtml(bytes: Uint8Array, sourceName: string): ImportedBook 
   const title = cleanTitle(meta('og:title') || pageTitle || firstH1?.text || '') || fromFile.title || 'Untitled';
   const author = cleanAuthors([meta('author') || meta('article:author')]);
 
+  const dropped = await store.finalize(); // SVG images become PNG; any that cannot are removed
   return {
     title,
     author,
     format: 'html',
     script: 'unknown',
-    chapters: chaptersFromBlocks(blocks, { title }),
+    chapters: dropAssets(chaptersFromBlocks(blocks, { title }), undefined, dropped).chapters,
     assets: store.assets,
     sourceName,
   };

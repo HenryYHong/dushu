@@ -1,7 +1,7 @@
 // "In this book" card and the "Add as a word" form: names and terms the dictionary lacks. Contract: ARCHITECTURE.md §4.9.
 import type { AppContext, Lexicon, LexiconEntry } from '../../types';
 import { parseEntryPinyin, USER_SCOPE } from '../../core/lexicon';
-import { formatSyllable, toneOf } from '../../core/pinyin';
+import { pinyinSpans } from './pinyinText';
 import { h } from '../dom';
 import { icon } from '../icons';
 
@@ -19,17 +19,9 @@ export interface BookCardEnv {
 
 const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: 'Person', place: 'Place', term: 'Term', user: 'Your word' };
 
-/** Numbered pinyin as colored spans in the user's style. */
-function pinyinLine(ctx: AppContext, numbered: string): HTMLElement {
-  const { pinyinStyle, toneColors } = ctx.settings.get();
-  const box = h('span.pp-py');
-  numbered.split(/\s+/).filter(Boolean).forEach((s, i) => {
-    const span = h('span.pp-syl', null, formatSyllable(s.toLowerCase(), pinyinStyle));
-    if (toneColors) span.classList.add(`tone-${toneOf(s.toLowerCase())}`);
-    if (i) box.appendChild(document.createTextNode(' '));
-    box.appendChild(span);
-  });
-  return box;
+/** Numbered pinyin as colored spans in the user's style (a name or a place with capitals). */
+function pinyinLine(ctx: AppContext, entry: LexiconEntry): HTMLElement {
+  return pinyinSpans(ctx, entry.pinyin.split(/\s+/).filter(Boolean), { kind: entry.kind, word: entry.word });
 }
 
 const field = (label: string, input: HTMLElement, hint?: string) =>
@@ -49,7 +41,7 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
         current.count ? h('span.pp-muted', null, `${current.count.toLocaleString('en-US')} times`) : null,
       ),
       h('div.pp-book-main', null,
-        current.pinyin ? pinyinLine(ctx, current.pinyin) : null,
+        current.pinyin ? pinyinLine(ctx, current) : null,
         current.gloss ? h('span.pp-book-gloss', null, current.gloss) : null,
       ),
       h('div.pp-book-actions', null,

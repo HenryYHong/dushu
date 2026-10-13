@@ -2,7 +2,8 @@
 import type { BookFormat, ImportedBook } from '../types';
 import { stripBoilerplate } from './boilerplate';
 import { chaptersFromBlocks, cpLen, stripGutenbergBlocks, detectHeadingLine, isRuleLine, textToBlocks, trimLine } from './chapters';
-import { decodeText, normalizeNewlines } from './encoding';
+import { NOT_TEXT_MESSAGE, decodeText, normalizeNewlines, plausibleText } from './encoding';
+import { ImportError } from './errors';
 import { authorFromLine, isGenericName, parseFilename } from './meta';
 import { countHan } from './han';
 
@@ -69,5 +70,7 @@ export function bookFromText(text: string, opts: TextBookOptions): ImportedBook 
 }
 
 export function importTxt(bytes: Uint8Array, sourceName: string): ImportedBook {
-  return bookFromText(decodeText(bytes).text, { format: 'txt', sourceName });
+  const decoded = decodeText(bytes);
+  if (!plausibleText(bytes, decoded)) throw new ImportError(NOT_TEXT_MESSAGE);
+  return bookFromText(decoded.text, { format: 'txt', sourceName });
 }

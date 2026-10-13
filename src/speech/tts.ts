@@ -1,6 +1,6 @@
 // Text to speech with the Web Speech API. Contract: ARCHITECTURE.md §4.8.
 import { detectScript } from '../core/text';
-import { hasMacBridge } from '../core/macBridge';
+import { bridgeFetch, hasMacBridge } from '../core/macBridge';
 
 export interface SpeechOptions {
   rate?: number;
@@ -58,7 +58,7 @@ function nativeVoices(): Promise<SpeechSynthesisVoice[]> {
   }
   if (Date.now() - nativeVoiceCheckedAt > 30000) nativeVoiceCache = null;
   if (!nativeVoiceCache) nativeVoiceCheckedAt = Date.now();
-  return nativeVoiceCache ??= fetch('/api/native-voices', { signal: AbortSignal.timeout(2000) }).then(async response => {
+  return nativeVoiceCache ??= bridgeFetch('/api/native-voices', { signal: AbortSignal.timeout(2000) }).then(async response => {
     if (!response.ok) { nativeVoiceCache = null; return []; }
     const data = await response.json() as { voiceURI: string; name: string; lang: string }[];
     return Array.isArray(data) ? data.filter(v => typeof v.voiceURI === 'string' && v.voiceURI.startsWith('dushu-mac:') && typeof v.name === 'string' && typeof v.lang === 'string')
@@ -157,7 +157,7 @@ export function resumeSpeaking(): void {
 
 async function renderNative(text: string, voice: SpeechSynthesisVoice, signal: AbortSignal): Promise<Blob> {
   try {
-    const response = await fetch('/api/native-speech', { method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(35000)]),
+    const response = await bridgeFetch('/api/native-speech', { method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(35000)]),
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voice: voice.voiceURI }) });
     if (!response.ok) throw new Error('Could not prepare audio.');
     return await response.blob();

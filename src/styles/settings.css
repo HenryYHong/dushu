@@ -1,28 +1,69 @@
 /* Settings screen. Every class starts with set-. */
 
 .set-page { max-width: 820px; }
+/* On a wide screen the sections are listed at the left and stay in view while the page scrolls. */
+.set-layout { display: block; }
+.set-nav { display: none; }
+/* 1080 and up: the list (168) + gap + a column that shrinks to what is left of the 1040 page, so an iPad mini in landscape (1133) has it too. */
+@media (min-width: 1080px) {
+  .set-page { max-width: 1040px; }
+  .set-layout { display: grid; grid-template-columns: 168px minmax(0, 820px); column-gap: var(--space-6); align-items: start; }
+  .set-nav {
+    display: flex; flex-direction: column; gap: 2px; position: sticky; top: calc(var(--nav-h) + 24px); padding-top: var(--space-2);
+  }
+  .set-nav-link {
+    height: 34px; padding: 0 12px; border: 0; border-radius: var(--radius-s); background: transparent; color: var(--text-2);
+    font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer;
+  }
+  .set-nav-link:hover { background: var(--surface-2); color: var(--text); }
+  .set-nav-link[aria-current='true'] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-s), inset 0 0 0 1px var(--border); }
+}
+.set-group { scroll-margin-top: calc(var(--nav-h) + 16px + var(--set-stick, 0px)); }
+/* A heading the section list moves focus to is not a control: no ring (it showed as stray corners behind the preview). */
+.set-group-title[tabindex='-1']:focus, .set-group-title[tabindex='-1']:focus-visible { outline: none; }
 
 /* ---------- preview ---------- */
+
 .set-preview {
   position: sticky; top: calc(var(--nav-h) + 8px); z-index: 6;
   padding: var(--space-3) var(--space-5) var(--space-4); margin-bottom: var(--space-2);
   background: var(--surface); overflow: hidden;
 }
+/* On a short window the preview would take a quarter or more of the screen (30% at 800 px tall): it scrolls with the page instead of sticking. */
+@media (max-height: 860px) { .set-preview { position: static; } }
 .set-preview-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 2px; }
 .set-sample { margin: 0 auto; padding-top: 0.55em; overflow-wrap: anywhere; color: var(--text); }
 /* The even pinyin grid, as in the reader: pinyin hangs over a plain inline character and never moves its neighbors. */
-.set-sample { --set-pad: 0.2; --set-rt: 0.46; --set-cell: 1.4; }
+.set-sample { --set-pad: 0.125; --set-rt: 0.477; --set-cell: 1.25; --set-sq: 0.12; }
 .set-ruby { display: inline; position: relative; }
 .set-ruby rt {
   display: inline; padding: 0; letter-spacing: 0; text-indent: 0;
   font-family: var(--font-pinyin); font-size: calc(var(--set-rt) * 1em); line-height: 1; font-weight: 500; user-select: none; -webkit-user-select: none;
   color: var(--text-2);
 }
-.set-rtx { position: absolute; left: 50%; bottom: calc(100% - 0.28em); transform: translateX(-50%); white-space: nowrap; }
+.set-zy .set-ruby rt { font-family: 'PingFang TC', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans TC', 'Noto Sans SC', 'Microsoft JhengHei', sans-serif; font-weight: 400; }
+/* Tone colors, as in the reader: pulled a little toward the text color. (These beat the grey above.) */
+.set-ruby rt.tone-1 { color: color-mix(in srgb, var(--tone-1) 74%, var(--text)); }
+.set-ruby rt.tone-2 { color: color-mix(in srgb, var(--tone-2) 74%, var(--text)); }
+.set-ruby rt.tone-3 { color: color-mix(in srgb, var(--tone-3) 74%, var(--text)); }
+.set-ruby rt.tone-4 { color: color-mix(in srgb, var(--tone-4) 74%, var(--text)); }
+.set-ruby rt.tone-5 { color: color-mix(in srgb, var(--tone-5) 60%, var(--text)); }
+.set-rtx {
+  position: absolute; left: 50%; bottom: calc(100% - 0.28em); white-space: nowrap;
+  transform: translateX(-50%) scaleX(max(0.72, min(1, calc((var(--set-cell) - var(--set-sq, 0.12)) / (var(--set-w, 0.01) * var(--set-rt))))));
+}
 .set-ruby rt:empty { display: none; }
 .set-grid .set-ruby { padding: 0 calc(var(--set-pad) * 1em); white-space: nowrap; }
-.set-grid .set-pu-c { padding-right: calc(var(--set-pad) * 2em); }
-.set-grid .set-pu-o { padding-left: calc(var(--set-pad) * 2em); }
+.set-grid .set-pu-c { letter-spacing: -0.5em; margin-left: calc(var(--set-pad) * -0.9em); }
+.set-grid .set-pu-o { margin-left: -0.5em; margin-right: calc(var(--set-pad) * -0.9em); }
+/* Curly quotes are narrow glyphs, not full-width marks: a half-cell box from the measured advance (see reader.css, .rd-pu-qo). */
+.set-pq-lsq { --set-qw: var(--set-q-lsq, 1); }
+.set-pq-rsq { --set-qw: var(--set-q-rsq, 1); }
+.set-pq-ldq { --set-qw: var(--set-q-ldq, 1); }
+.set-pq-rdq { --set-qw: var(--set-q-rdq, 1); }
+.set-grid .set-pu-qo { margin-left: calc((0.5 - var(--set-qw)) * 1em); margin-right: calc(var(--set-pad) * -0.9em); }
+.set-grid .set-pu-qc { margin-left: calc(var(--set-pad) * -0.9em); margin-right: calc((0.5 - var(--set-qw)) * 1em); }
+.set-grid .set-pu + .set-pu-qc { margin-left: 0; }
 
 /* ---------- groups and rows ---------- */
 .set-group { margin-top: var(--space-5); }
@@ -38,7 +79,7 @@
 .set-label { font-weight: 600; }
 .set-help { margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--text-3); }
 .set-row-ctrl { flex: 0 1 auto; min-width: 0; display: flex; justify-content: flex-end; }
-.set-row-off { opacity: 0.55; }
+.set-row[hidden] { display: none; }
 
 /* ---------- segmented control ---------- */
 .set-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--radius); background: var(--surface-2); max-width: 100%; }
@@ -87,9 +128,12 @@
 .set-chip { flex: none; display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 11px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--surface-2); color: var(--text-3); }
 .set-chip-ok { background: color-mix(in srgb, var(--ok) 16%, var(--surface)); color: var(--ok); }
 .set-chip-warn { background: color-mix(in srgb, var(--warn) 16%, var(--surface)); color: var(--warn); }
-.set-claude { border-top: 1px solid var(--border); }
-.set-key-row { display: flex; align-items: center; gap: 4px; width: 320px; max-width: 100%; }
-.set-key { font-family: var(--font-mono); font-size: 13px; }
+.set-claude {
+  margin: var(--space-2) calc(var(--space-5) * -1) 0; padding: var(--space-3) var(--space-5) 0;
+  background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); border-top: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius);
+}
+.set-claude-title { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+.set-claude-note { margin: 2px 0 0; font-size: 13px; color: var(--text-3); }
 .set-model-row { width: 320px; max-width: 100%; }
 .set-test { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); max-width: 100%; }
 .set-test-out { font-size: 13px; color: var(--text-2); text-align: right; overflow-wrap: anywhere; }
@@ -108,17 +152,36 @@
 /* ---------- small screens ---------- */
 @media (max-width: 640px) {
   .set-card { padding: 0 var(--space-4); }
+  .set-claude { margin-inline: calc(var(--space-4) * -1); padding-inline: var(--space-4); }
   .set-row { flex-direction: column; align-items: stretch; gap: var(--space-2); }
   .set-row-text { flex: none; }
   .set-row-ctrl { justify-content: flex-start; }
   .set-seg { width: 100%; }
   .set-seg-btn { flex: 1; padding: 0 6px; }
   .set-range-wrap { width: 100%; }
-  .set-key-row, .set-model-row, .set-voice { width: 100%; }
+  .set-model-row, .set-voice { width: 100%; }
   .set-test, .set-backup { align-items: flex-start; }
   .set-test-out { text-align: left; }
   .set-btn-row { justify-content: flex-start; }
   .set-preview { position: static; padding: var(--space-3) var(--space-4) var(--space-4); }
   .set-prov { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: var(--space-3); row-gap: 6px; }
   .set-chip { grid-column: 2; justify-self: start; }
+}
+
+/* ---------- Claude status and the Mac connection ---------- */
+.set-status-wrap { display: flex; flex-direction: column; gap: var(--space-3); width: 420px; max-width: 100%; }
+.set-status { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px var(--space-3); margin: 0; font-size: 13px; }
+.set-status dt { color: var(--text-3); font-weight: 600; }
+.set-status dd { margin: 0; color: var(--text-2); overflow-wrap: anywhere; }
+.set-status .set-status-ok { color: var(--ok); }
+.set-status .set-status-warn { color: var(--warn); }
+.set-link-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); width: 420px; max-width: 100%; }
+.set-link-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; width: 100%; }
+.set-link, .set-address { flex: 1 1 200px; min-width: 0; font-family: var(--font-mono); font-size: 13px; }
+.set-pending { padding: var(--space-4) 0; border-top: 1px solid var(--border); }
+.set-pending[hidden] { display: none; }
+.set-pending .set-btn-row { justify-content: flex-start; margin-top: var(--space-3); }
+@media (max-width: 640px) {
+  .set-status-wrap, .set-link-wrap { width: 100%; align-items: flex-start; }
+  .set-link-row { justify-content: flex-start; }
 }

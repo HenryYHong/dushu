@@ -91,7 +91,9 @@ await page.select('.voc-sort', 'added'); await settle(200);
 // known panel
 const kc = await page.$eval('.voc-known-count', (e) => e.textContent);
 check(kc === '10 words', `known count shows 10 words (got ${kc})`);
-await page.$eval('.voc-known', (e) => e.scrollIntoView({ block: 'center' }));
+// The known-words card is closed until opened.
+await page.$eval('.voc-known', (e) => { e.open = true; e.scrollIntoView({ block: 'center' }); });
+await settle(150);
 await page.select('.voc-level', '2');
 await shot('vocab-known');
 const markBtn = (await page.$$('.voc-known-actions .btn'))[0];
@@ -175,7 +177,7 @@ await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('dushu.set
 await page.reload({ waitUntil: 'networkidle0' }); await settle(600);
 check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'vocab has no horizontal scroll at 390');
 await shot('vocab-list-mobile');
-await page.$eval('.voc-known', (e) => e.scrollIntoView({ block: 'start' })); await settle(200);
+await page.$eval('.voc-known', (e) => { e.open = true; e.scrollIntoView({ block: 'start' }); }); await settle(200);
 await shot('vocab-known-mobile');
 await go('#/review'); await settle(600);
 await shot('review-front-mobile');

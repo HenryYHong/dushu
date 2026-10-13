@@ -3,6 +3,7 @@ import { formatPinyin } from '../core/pinyin';
 import { segment } from '../core/segment';
 import type { Dictionary, Token, Translator } from '../types';
 import { entriesForReading } from '../core/reading';
+import { wordSenseHint } from './contextSense';
 
 export interface GlossDeps {
   segment: (text: string, dict: Dictionary) => Token[];
@@ -20,11 +21,13 @@ function shortGloss(defs: string[]): string {
   return real.replace(/\s*\(.*?\)\s*$/, '').trim() || real;
 }
 
-function glossOne(token: Token, dict: Dictionary, deps: GlossDeps): { word: string; pinyin: string; gloss: string } | null {
+function glossOne(token: Token, dict: Dictionary, deps: GlossDeps, context = ''): { word: string; pinyin: string; gloss: string } | null {
   const entry = entriesForReading(dict.lookup(token.text), token.pinyin ?? [])[0];
   if (entry) {
     const syllables = token.pinyin?.filter(Boolean).join(' ') || entry.pinyin;
-    return { word: token.text, pinyin: deps.format(syllables), gloss: shortGloss(entry.defs) };
+    // The paragraph settles one word the dictionary leaves open: 酒店 is a tavern where wine is warmed, a hotel where rooms are booked.
+    const hint = context ? wordSenseHint(token.text, context) : null;
+    return { word: token.text, pinyin: deps.format(syllables), gloss: hint ? hint.kind === 'tavern' ? 'wine shop or tavern (older usage)' : 'hotel' : shortGloss(entry.defs) };
   }
   return null;
 }
@@ -43,7 +46,7 @@ function glossChars(token: Token, dict: Dictionary, deps: GlossDeps) {
   return out;
 }
 
-export function glossText(text: string, dict: Dictionary, deps: GlossDeps = defaultDeps): string {
+export function glossText(text: string, dict: Dictionary, deps: GlossDeps = defaultDeps, context = ''): string {
   const seen = new Set<string>();
   const items: string[] = [];
   const push = (g: { word: string; pinyin: string; gloss: string }) => {
@@ -54,7 +57,7 @@ export function glossText(text: string, dict: Dictionary, deps: GlossDeps = defa
   };
   for (const token of deps.segment(text, dict)) {
     if (token.kind !== 'han') continue;
-    const whole = glossOne(token, dict, deps);
+    const whole = glossOne(token, dict, deps, context);
     if (whole) push(whole);
     else glossChars(token, dict, deps).forEach(push);
   }
@@ -69,7 +72,7 @@ export function createGlossTranslator(dict: Dictionary | null, deps: GlossDeps =
     async translate(req, opts) {
       if (!dict) throw new Error('The dictionary is still loading. Try again in a moment.');
       if (opts?.signal?.aborted) throw new DOMException('Translation canceled', 'AbortError');
-      const out = glossText(req.text, dict, deps);
+      const out = glossText(req.text, dict, deps, req.context);
       if (!out) throw new Error('There are no Chinese words to gloss here.');
       opts?.onDelta?.(out);
       return out;

@@ -2,6 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      A second layer of defense, not the first: books are cleaned when they are imported (SVG never reaches the library).
+      Own scripts only, no plugins, no forms, and a short list of places the app may talk to: the owner's Mac (the same
+      origin, or a Tailscale address on the public copy; scripts/bridge-csp.ts adds that at build time), MyMemory (only if you choose it),
+      and jsDelivr (stroke-order data). Claude is reached through the Mac, never from the browser. frame-ancestors cannot be set from a meta tag;
+      the private gateway sends X-Frame-Options: DENY, and any other host should send the same header.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' data:; media-src 'self' blob: data:; connect-src 'self' https://api.mymemory.translated.net https://cdn.jsdelivr.net; worker-src 'self' blob:; object-src 'none'; form-action 'none'; base-uri 'self'; manifest-src 'self'"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f6f2ea" />
     <meta name="color-scheme" content="light dark" />

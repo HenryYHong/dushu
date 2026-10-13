@@ -19,6 +19,35 @@ export function newSrs(now: number): SrsState {
   return { due: now, interval: 0, ease: 2.5, reps: 0, lapses: 0 };
 }
 
+const MAX_EASE = 5;
+const MAX_COUNT = 1_000_000;
+const MAX_TIME = 8.64e15; // the largest value a JavaScript Date can hold
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * A usable scheduling state from untrusted input (a backup file): every field a finite number in a sane range,
+ * anything missing or broken replaced by the new-card value. `now` is the fallback for a missing due time. A due
+ * time can be at most one maximum interval after the card's last review (or after `now`), so a forged date does
+ * not hide a card forever.
+ */
+export function sanitizeSrs(v: unknown, now: number): SrsState {
+  const base = newSrs(now);
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return base;
+  const r = v as Record<string, unknown>;
+  const last = isNum(r.last) && r.last >= 0 && r.last <= MAX_TIME ? Math.round(r.last) : undefined;
+  const latest = Math.max(last ?? 0, now) + MAX_INTERVAL_DAYS * DAY;
+  const due = isNum(r.due) ? Math.min(Math.max(0, Math.round(r.due)), latest) : base.due;
+  const out: SrsState = {
+    due,
+    interval: isNum(r.interval) ? Math.min(MAX_INTERVAL_DAYS, Math.max(0, r.interval)) : 0,
+    ease: isNum(r.ease) ? Math.min(MAX_EASE, Math.max(MIN_EASE, r.ease)) : base.ease,
+    reps: isNum(r.reps) ? Math.min(MAX_COUNT, Math.max(0, Math.round(r.reps))) : 0,
+    lapses: isNum(r.lapses) ? Math.min(MAX_COUNT, Math.max(0, Math.round(r.lapses))) : 0,
+  };
+  if (last !== undefined) out.last = last;
+  return out;
+}
+
 /** True while the card is new or relearning (still on minute steps). */
 export function isLearning(s: SrsState): boolean { return s.interval <= 0; }
 

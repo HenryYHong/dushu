@@ -1,0 +1,1186 @@
+{
+ "id": "qwen.rules",
+ "label": "qwen: new instructions only",
+ "model": "qwen3.5:9b-q4_K_M",
+ "ranAt": "2026-10-13T17:34:28.589Z",
+ "note": "Lever 1. The new instruction set with the old JSON message (and the old 酒店 hint).",
+ "items": [
+  {
+   "id": "hlm-daiyu-leftovers",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "dialogue",
+   "text": "黛玉冷笑道：「我就知道，別人不挑剩下的也不給我。」",
+   "answer": "Daiyu sneered, \"I knew it. Others won't give me what they've rejected.\"",
+   "firstMs": 21650,
+   "totalMs": 25265,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "negation-modality",
+      "severity": "major",
+      "evidence": "Others won't give me what they've rejected.",
+      "why": "This reverses the meaning: Daiyu says she gets only what others have picked over and left, not that others refuse to give her their rejects."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-xifeng-soft",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "function-words",
+   "text": "鳳姐道：「我成日家說你太軟弱了，縱的家裡人這樣還了得了。」",
+   "answer": "Feng Jie said, \"I've been telling you all along that you're too soft; how can you possibly manage the household if people like this get away with it?\"",
+   "firstMs": 19975,
+   "totalMs": 26358,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "how can you possibly manage the household if people like this get away with it?",
+      "why": "The idiom 還了得了 means 'this is intolerable'; the candidate recasts it as a question about managing the household, which shifts the sense slightly."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "people like this",
+      "why": "家裡人 means household servants, but the candidate renders it as vague 'people like this', which loses the servant sense."
+     },
+     {
+      "type": "name-mangled",
+      "severity": "minor",
+      "evidence": "Feng Jie",
+      "why": "鳳姐 is rendered as 'Feng Jie' rather than the reader's known name Xifeng, though it is a pinyin form of the nickname."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-monk-daoist",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "names",
+   "text": "寶玉未及回言，只見舡頭上來了兩人，一僧一道，夾住寶玉說道：「俗緣已畢，還不快走。」",
+   "answer": "Baoyu had not yet replied when suddenly two figures appeared at the bow of the boat: a monk and a Taoist. They flanked Baoyu and said, \"Your mortal ties are now complete; why do you not hurry away?\"",
+   "firstMs": 9052,
+   "totalMs": 18170,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-pinger-forgive",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "proverb",
+   "text": "平兒笑道：「『得饒人處且饒人』，得省的將就些事也罷了。",
+   "answer": "Ping'er smiled and said, \"Where one can let a person off, one should; better to be easygoing with matters where it is possible.\"",
+   "firstMs": 7368,
+   "totalMs": 13079,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "better to be easygoing with matters where it is possible",
+      "why": "The idea of saving trouble (得省的) is lost, and the proverb is not marked as a quoted saying; the sense of tolerating matters is still conveyed."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-daiyu-school",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "numbers",
+   "text": "黛玉道：「不曾讀，只上了一年學，些須認得幾個字。」",
+   "answer": "Daiyu said, \"I have never studied; I attended school for only one year and can barely recognize a few characters.\"",
+   "firstMs": 18406,
+   "totalMs": 22784,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-liu-laolao-advise",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "narration",
+   "text": "因此劉姥姥看不過，乃勸道：「姑爺，你別嗔著我多嘴。",
+   "answer": "Therefore, Liu Laolao could not bear to see this and advised him: \"Young master, do not be angry with me for speaking out of turn.",
+   "firstMs": 16680,
+   "totalMs": 23414,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "Young master",
+      "why": "姑爺 here means son-in-law, spoken by his mother-in-law; \"young master\" misses the family relation, though the advice and speaker are still clear."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-li-gui",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "negation",
+   "text": "李貴笑道：“不怕你老人家惱我，素日你老人家到底有些不正經，所以這些兄弟才不聽。",
+   "answer": "Li Gui smiled and said, \"I dare not worry about your lordship being angry with me. You have always been a bit undisciplined in the past, which is why these brothers do not listen to you.\"",
+   "firstMs": 8102,
+   "totalMs": 15714,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "negation-modality",
+      "severity": "major",
+      "evidence": "I dare not worry about your lordship being angry with me.",
+      "why": "The polite preface 'don't be angry with me for saying so' is turned into a statement that Li Gui dares not worry, which loses the apology sense."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "a bit undisciplined in the past",
+      "why": "不正經 means improper or undignified conduct, and 'undisciplined' shifts that meaning slightly."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "these brothers do not listen to you",
+      "why": "'Brothers' could be read as literal siblings, where the source means the young schoolmates; 'your lordship' is also an odd rendering of 你老人家."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-opening-zhen",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "names-pun",
+   "text": "作者自云：因曾歷過一番夢幻之後，故將真事隱去，而借通靈之說，撰此《石頭記》一書也。",
+   "answer": "The author himself says: Having once experienced a dream and an illusion, he has concealed the true events and, by means of the tale of the Spirit of the Stone, composed this book, The Story of the Stone. Hence it is said that \"Zhen Shiyin recognizes the Spirit of the Stone in his dream.\" But what events are recorded in the book, and why was this book written? He then says again: Now, lost in the dust and turmoil of life, having accomplished nothing, he suddenly thinks of the women of those days. One by one, he carefully examines them and finds that their conduct and insight were all superior to his own. How could I, with my堂堂 beard and eyebrows, be no better than those women in skirts! There is indeed much shame, yet regret is useless; there are only days of helplessness. At this time, he wishes to recount the past: relying on heaven's grace above and ancestral virtue below, during times of fine clothes and silk robes, days of feasting on delicacies, he turned his back on his parents' education and betrayed his senior brother's teachings, thus incurring the sin of having accomplished nothing and fallen into misfortune for half his life. He composes this record to inform all under heaven. His own sin cannot be avoided, yet among women there have always been many who were remarkable; one must not, because of his own unworthiness, protect their shortcomings by letting them all fade away. Even though today he lives in a thatched hut with a straw window, cooking over a clay stove and sleeping on a rope bed, the morning breeze and evening moon, the willow by the steps and the flowers in the courtyard have not harmed his spirit or his pen. Though he is unlearned and writes without literary grace, why should he not use fictional words and rustic speech to weave a story that delights the eyes and ears of others? Hence it is said that \"the dust and turmoil hold the elegance of women,\" which is the true meaning of the outline for the first chapter. The opening line says \"the dust and turmoil hold the elegance of women\"; thus we know the author's original intention was to record the feelings and friendships of those women of his day, not a book of resentment against the world or blame of the times. Though at times it touches on worldly conditions, this must be narrated, but it is not its main purpose; readers are urged to remember this. The poem says:",
+   "firstMs": 12420,
+   "totalMs": 161147,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "with my堂堂 beard and eyebrows",
+      "why": "Chinese characters are left untranslated in the English text; 堂堂 should be rendered (e.g. 'a proper man')."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "by means of the tale of the Spirit of the Stone",
+      "why": "通靈 refers to the magic jade that has spiritual intelligence; 'Spirit of the Stone' blurs this and the 'Zhen Shiyin recognizes the Spirit of the Stone' title is a distorted reading."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "Hence it is said that \"Zhen Shiyin recognizes the Spirit of the Stone in his dream.\"",
+      "why": "甄士隱 is a pun on 'true events hidden', and the name is given without conveying that; 夢幻識通靈 also loosely rendered."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "there are only days of helplessness",
+      "why": "The source says it is a day of great helplessness where shame is ample and regret useless, not 'only days of helplessness'."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "among women there have always been many who were remarkable; one must not, because of his own unworthiness, protect their shortcomings by letting them all fade ",
+      "why": "The source says he must not, because of his own unworthiness, shield his own shortcomings and let the women be obliterated as well; the candidate misattributes the shortcomings to the women."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "Hence it is said that \"the dust and turmoil hold the elegance of women,\"",
+      "why": "Pronoun/person shifts (he/I) are inconsistent, and 風塵懷閨秀 is better 'in worldly dust, thinking of talented women'."
+     }
+    ]
+   },
+   "screens": [
+    "chinese-left"
+   ]
+  },
+  {
+   "id": "xyj-wukong-delight",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "idiom",
+   "text": "孫悟空在傍聞講，喜得他抓耳撓腮，眉花眼笑，忍不住手之舞之，足之蹈之。",
+   "answer": "Sun Wukong heard the discourse from beside him; so delighted was he that he tweaked his ears and scratched his cheeks, smiled with joy in his brows and eyes, and could not help dancing with his hands and stamping with his feet.",
+   "firstMs": 2268,
+   "totalMs": 4596,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "heard the discourse from beside him",
+      "why": "\"beside him\" has no clear referent and is awkward; 在傍 means he stood to the side."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-transformations",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "numbers",
+   "text": "有一般天罡數，該三十六般變化；有一般地煞數，該七十二般變化。",
+   "answer": "There is a class of heavenly numbers, capable of thirty-six transformations; there is a class of earthly numbers, capable of seventy-two transformations.",
+   "firstMs": 1901,
+   "totalMs": 3392,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "There is a class of heavenly numbers ... a class of earthly numbers",
+      "why": "天罡 and 地煞 are reduced to 'heavenly' and 'earthly', dropping the Dipper-star and Fiend sense; the 36/72 pairing is still right."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "capable of thirty-six transformations",
+      "why": "該 means 'comprises/corresponds to', not 'capable of', though the meaning stays close."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-cloud-somersault",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "terms",
+   "text": "悟空道：「我自聞道之後，有七十二般地煞變化之功，觔斗雲有莫大的神通；善能隱身遯身，起法攝法。",
+   "answer": "Wu Kong said: \"Since I attained the Way, I have mastered the power of seventy-two earth-shattering transformations and the tremendous spiritual ability of the Somersault Cloud; I am skilled in concealing my body and vanishing from sight, as well as invoking spells and controlling the laws.\"",
+   "firstMs": 1906,
+   "totalMs": 5045,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "seventy-two earth-shattering transformations",
+      "why": "地煞 (Disha, 'earthly' set) is rendered as 'earth-shattering', which is inaccurate, though the 72 transformations are conveyed."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "invoking spells and controlling the laws",
+      "why": "起法攝法 means raising and drawing in magic; 'controlling the laws' wrongly suggests a legal or abstract sense of 法."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "Since I attained the Way",
+      "why": "聞道 is 'heard/learned the Way'; 'attained' shifts the sense slightly but the meaning is close."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-que-shuo-temple",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "function-words",
+   "text": "卻說他師徒兩個策馬前來，直至山門首觀看，果然是一座寺院。",
+   "answer": "Now, he and his disciple rode their horses forward until they reached the mountain gate and looked on; indeed, it was a temple.",
+   "firstMs": 928,
+   "totalMs": 2326,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "he and his disciple rode their horses forward",
+      "why": "他師徒兩個 means 'master and disciple, the two of them'; the candidate makes 'he' someone else's companion, which misidentifies the referent (one master, one disciple, with no separate 'he')."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "until they reached the mountain gate",
+      "why": "山門 is the temple's main gate; 'mountain gate' without clarification may mislead, though the following 'temple' softens it."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-demon-king",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "idiom",
+   "text": "卻說那個妖王在洞裡歡喜道：「小的們，孫行者吃了虧去了。",
+   "answer": "Now the demon king, inside his cave, rejoiced and said to his minions: \"Look at that! Sun Wukong has taken a beating and gone off.\"",
+   "firstMs": 925,
+   "totalMs": 2586,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "Look at that! Sun Wukong has taken a beating and gone off.",
+      "why": "\"Look at that!\" is an unneeded addition, and \"taken a beating\" is slightly stronger than 吃了虧 (got the worst of it), though the meaning is largely intact."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-sanzang-date",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "dates",
+   "text": "卻說三藏自貞觀十三年九月望前三日，蒙唐王與多官送出長安關外。",
+   "answer": "Now, Tripitaka, since three days before the full moon in the ninth month of the thirteenth year of Zhenguan, was escorted out of Chang'an Pass by King Tang and his officials.",
+   "firstMs": 1364,
+   "totalMs": 3333,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "was escorted out of Chang'an Pass",
+      "why": "關外 means beyond the pass, and 'out of the pass' blurs this; the 'since' of 自 also does not fit with the simple past."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "since three days before the full moon in the ninth month",
+      "why": "'Since' with a simple past tense is awkward; 'on the 12th' or 'on the day three days before the full moon' would read naturally."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-three-visits",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "double-negation",
+   "text": "孔明囑付曰：「吾受劉皇叔三顧之恩，不容不出。",
+   "answer": "Kongming said with a charge: \"I have received the grace of Liu Huangshu's three visits and cannot refuse to go.",
+   "firstMs": 1375,
+   "totalMs": 2763,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "Kongming said with a charge",
+      "why": "Awkward, unnatural phrasing for 囑付; 'instructed' or 'charged' would be natural."
+     },
+     {
+      "type": "name-mangled",
+      "severity": "minor",
+      "evidence": "Liu Huangshu's",
+      "why": "The title 劉皇叔 is rendered as a pinyin name, so the reader does not see the title 'Imperial Uncle Liu'; the meaning is still recoverable as Liu Bei."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-xuande-lineage",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "numbers",
+   "text": "玄德曰：「備乃中山靖王之後；自涿郡剿戮黃巾，大小三十餘戰，頗有微功，因得除今職。」",
+   "answer": "Xuan De said, \"I am a descendant of Prince Jing of Zhongshan; since I led the charge against the Yellow Turbans in Zhuo Commandery and fought more than thirty battles, large and small, I have achieved some merit and thus obtained my current post.\"",
+   "firstMs": 3189,
+   "totalMs": 6463,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "addition",
+      "severity": "minor",
+      "evidence": "since I led the charge against the Yellow Turbans",
+      "why": "The source says he campaigned against the Yellow Turbans starting from Zhuo; it does not say he 'led the charge'."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "I have achieved some merit",
+      "why": "The modesty of 微功 ('slight merit') is weakened, since 'some merit' loses 'slight'."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-no-plunder",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "idiom",
+   "text": "玄德曰：「我與民秋毫無犯，那得財物與他？」",
+   "answer": "Liu Bei said: \"I have never harmed even a blade of grass or a grain of rice among the people; how could I have taken any property from them?\"",
+   "firstMs": 2629,
+   "totalMs": 4864,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "how could I have taken any property from them?",
+      "why": "The question is 'where would I get wealth to give him (the inspector)'; the candidate turns it into a question about taking property from the people, losing the bribe point and the inspector."
+     },
+     {
+      "type": "idiom-literal",
+      "severity": "minor",
+      "evidence": "never harmed even a blade of grass or a grain of rice among the people",
+      "why": "秋毫 (autumn down, a tiny hair) is replaced by an invented 'blade of grass or grain of rice'; the idiom's sense is kept but the imagery is changed."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-ma-su",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "conditional",
+   "text": "馬謖在山上見之，大笑曰：「彼若有命，不來圍山。」",
+   "answer": "Ma Su, seeing them from the mountain, laughed aloud: \"If they truly had a mandate, they would not come to besiege the mountain.\"",
+   "firstMs": 2024,
+   "totalMs": 3996,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "If they truly had a mandate, they would not come to besiege the mountain.",
+      "why": "有命 here means 'value their lives / have life in them'. 'Mandate' is the trap reading and loses the mocking point that a sensible enemy would not besiege the mountain."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "seeing them from the mountain",
+      "why": "之 refers to Sima Yi, who rode out with about a hundred horsemen; the plural 'them' is acceptable, but the sentence loses the singular 'him'."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-zhang-fei-vow",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "vow",
+   "text": "張飛性起，向玄德換了坐下馬，搶出陣來，叫曰：「我捉你不得，誓不上關！」",
+   "answer": "Zhang Fei, overcome with rage, exchanged his seat horse with Xuan De and charged out of the formation, shouting: \"If I cannot catch you, I swear never to return to the pass!\"",
+   "firstMs": 2500,
+   "totalMs": 5249,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "overcome with rage",
+      "why": "性起 means his fighting spirit or blood was roused, not specifically rage, though the sense is close."
+     },
+     {
+      "type": "name-mangled",
+      "severity": "minor",
+      "evidence": "Xuan De",
+      "why": "Xuande is a single courtesy name; splitting it into 'Xuan De' is a nonstandard romanization."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "exchanged his seat horse with Xuan De",
+      "why": "'Seat horse' is an awkward literal rendering of 坐下馬 and should be 'the horse he was riding' or 'steed'."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-sima-yi-wrong",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "classical",
+   "text": "行到赤岸坡，見蜀兵已去遠，乃引還，顧謂眾將曰：「孔明已死，我等皆高枕無憂矣！」",
+   "answer": "Arriving at Chi'an Slope, seeing the Shu troops had already moved far away, he turned back and addressed his generals: \"Kongming is dead; we may all rest easy now!\"",
+   "firstMs": 1858,
+   "totalMs": 5153,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-only-so",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "vernacular",
+   "text": "武松道：「只好恁地，卻又來望哥哥。」",
+   "answer": "Wu Song said, \"That will do; I shall come to visit my brother again.\"",
+   "firstMs": 3944,
+   "totalMs": 5467,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-temple-ruin",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "vernacular",
+   "text": "智深尋思道：「這個大寺，如何敗落的恁地？」",
+   "answer": "Zhi Shen pondered, \"How has this great temple fallen into such ruin?\"",
+   "firstMs": 9544,
+   "totalMs": 11131,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-luda-go",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "function-words",
+   "text": "魯達道：「恁地時，洒家自去便了。」",
+   "answer": "Lu Da said, \"In that case, I'll just go on my own.\"",
+   "firstMs": 5260,
+   "totalMs": 6463,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-song-jiang-bow",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "kinship",
+   "text": "宋江道：「兄弟，卻是你殺了小衙內，雖是軍師嚴令，論齒序他也是你哥哥，且看我面，與他伏個禮，我卻自拜你便了。」",
+   "answer": "Song Jiang said, \"Brother, it was you who killed the young master. Although it was Master Ruyi's strict order, by age he is your elder brother; please do him a courtesy for my sake, and I will bow to you myself.\"",
+   "firstMs": 4595,
+   "totalMs": 9286,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "name-mangled",
+      "severity": "major",
+      "evidence": "Master Ruyi's strict order",
+      "why": "軍師 (the strategist, Wu Yong) is rendered as an invented 'Master Ruyi', so the reader cannot tell who gave the order."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-sign-three-bowls",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "sense-tavern",
+   "text": "酒家道：「客官，你須見我門前招旗上面明明寫道：『三碗不過岡』。」",
+   "answer": "The innkeeper said, \"Guest, you must see the banner above my door which clearly states: 'Three bowls and one cannot cross the pass.'\"",
+   "firstMs": 3859,
+   "totalMs": 6449,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "you must see the banner above my door",
+      "why": "你須見 means 'you surely must have seen', a mild reproach; 'must see' reads like an instruction to look."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-dai-zong",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "vernacular",
+   "text": "戴宗連忙回轉身來問道：「壯士素不曾拜識，如何呼喚賤名？」",
+   "answer": "Dai Zong immediately turned around and asked, \"Sir, I have never had the honor of meeting you. How do you address me?\"",
+   "firstMs": 14107,
+   "totalMs": 17384,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "How do you address me?",
+      "why": "如何呼喚賤名 asks 'how is it that you call out my name?' (why do you know it); 'how do you address me' shifts it to a question about the form of address."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "How do you address me?",
+      "why": "The self-deprecating 賤名 ('my humble name') is dropped, losing the humble register."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-rice",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "numbers",
+   "text": "見我管待客人在此喫酒，你便與他三五升米便了，何須直來問我！」",
+   "answer": "Seeing that I am entertaining guests here and drinking wine, just give him three or five sheng of rice; why must he come directly to ask me!\"",
+   "firstMs": 5287,
+   "totalMs": 9659,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "why must he come directly to ask me!",
+      "why": "The one who came to ask is the retainer (you), not the priest (he), so the rebuke is misdirected."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ky-shop-layout",
+   "rep": 0,
+   "split": "dev",
+   "book": "kong-yiji",
+   "cat": "sense-tavern",
+   "text": "鲁镇的酒店的格局，是和别处不同的：都是当街一个曲尺形的大柜台，柜里面豫备着热水，可以随时温酒。",
+   "answer": "The layout of the wine shops in Lu Town differs from those elsewhere: each features a large L-shaped counter facing the street, with hot water kept inside to warm the wine at any moment.",
+   "firstMs": 6392,
+   "totalMs": 12281,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "ky-debt",
+   "rep": 0,
+   "split": "dev",
+   "book": "kong-yiji",
+   "cat": "numbers",
+   "text": "到了年关，掌柜取下粉板说：『孔乙己还欠十九个钱呢！』",
+   "answer": "When the New Year approached, the shopkeeper took down the blackboard and said, \"Kong Yiji still owes nineteen qian!\"",
+   "firstMs": 2868,
+   "totalMs": 7184,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "When the New Year approached",
+      "why": "This loses the sense of 年关 as the year-end debt-settling time, though the timing is roughly right."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "took down the blackboard",
+      "why": "粉板 is a lime/chalk board for recording debts; 'blackboard' is slightly inaccurate but conveys a similar object."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "nineteen qian",
+      "why": "The untranslated unit 'qian' is unexplained for an English reader; 'coins' or 'cash' would be clearer."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ky-steal-books",
+   "rep": 0,
+   "split": "dev",
+   "book": "kong-yiji",
+   "cat": "dialogue",
+   "text": "孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：『窃书不能算偸……窃书！……读书人的事，能算偸么？』",
+   "answer": "Kong Yiji's face turned red, and the veins on his forehead bulged as he argued: \"Stealing books cannot be called stealing... Stealing! ... Matters of scholars—how can they be considered stealing?\"",
+   "firstMs": 6837,
+   "totalMs": 13801,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "\"Stealing books cannot be called stealing... Stealing!\"",
+      "why": "窃 and 偷 are rendered with the same word, so the point of Kong Yiji's argument (a refined word versus the plain one) is lost and the sentence reads as a contradiction."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "Matters of scholars—how can they be considered stealing?",
+      "why": "The phrasing is slightly awkward, and it does not read naturally as 'the business of a scholar'."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "the veins on his forehead bulged",
+      "why": "The detail that the veins stood out 'one by one' (条条) is dropped; this is minor."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ky-hui-character",
+   "rep": 0,
+   "split": "dev",
+   "book": "kong-yiji",
+   "cat": "language",
+   "text": "又好笑，又不耐烦，懒懒的答他道：『谁要你教，不是草头底下一个来回的回字么？』",
+   "answer": "It was amusing yet I grew impatient, so I answered him lazily: \"Who needs your teaching? Isn't it simply a character with 'grass' on top and two 'return' strokes underneath?\"",
+   "firstMs": 1650,
+   "totalMs": 3520,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "two 'return' strokes underneath",
+      "why": "The source has one 回 character under the grass radical, not two strokes, so the spelling of 茴 is garbled."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "It was amusing yet I grew impatient, so I answered him",
+      "why": "The simultaneous feelings (又…又…) are rendered as a contrast and a cause-and-effect chain."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "gx-runtu-name",
+   "rep": 0,
+   "split": "dev",
+   "book": "guxiang",
+   "cat": "names-pun",
+   "text": "我的父亲允许了；我也很高兴，因为我早听到闰土这名字，而且知道他和我仿佛年纪，闰月生的，五行缺土，所以他的父亲叫他闰土。",
+   "answer": "My father gave his consent; I was also very happy, for I had long heard the name Runtu and knew that he was about my own age, born in a leap month, lacking earth among the five elements, so his father named him Runtu.",
+   "firstMs": 803,
+   "totalMs": 3141,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "gx-hope",
+   "rep": 0,
+   "split": "dev",
+   "book": "guxiang",
+   "cat": "abstract",
+   "text": "现在我所谓希望，不也是我自己手制的偶像么？",
+   "answer": "Is not the hope I speak of now also an idol fashioned by my own hands?",
+   "firstMs": 781,
+   "totalMs": 1527,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "kr-teeth",
+   "rep": 0,
+   "split": "dev",
+   "book": "kuangren-riji",
+   "cat": "figurative",
+   "text": "我看出他话中全是毒，笑中全是刀，他们的牙齿，全是白厉厉的排着，这就是吃人的家伙。",
+   "answer": "I saw that his words were all poison, his smile held all knives; their teeth stood in a row, stark and menacing white—these were the men who eat people.",
+   "firstMs": 786,
+   "totalMs": 2382,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "I saw that his words were all poison, his smile held all knives",
+      "why": "Past tense and the changed structure of the second clause weaken the narrator's present-tense certainty and the parallelism, though the meaning is intact."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "these were the men who eat people",
+      "why": "家伙 here carries both 'creature' and 'instrument' senses; the candidate keeps only 'men', so the teeth-as-tools sense is lost."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "kr-brave",
+   "rep": 0,
+   "split": "dev",
+   "book": "kuangren-riji",
+   "cat": "negation",
+   "text": "我也不怕；虽然不吃人，胆子却比他们还壮。",
+   "answer": "I am not afraid; even though I do not eat people, my courage is greater than theirs.",
+   "firstMs": 1182,
+   "totalMs": 2103,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "I am not afraid;",
+      "why": "The 也 ('also/for my part') is dropped, losing a slight link to his earlier calm."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "even though I do not eat people, my courage is greater than theirs",
+      "why": "'Even though' and the plain comparative miss the concessive 虽然...却 and the intensifying 还 ('even bolder'); 'although ... even bolder' is more natural."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ly-learning",
+   "rep": 0,
+   "split": "dev",
+   "book": "lunyu-xue-er",
+   "cat": "classical",
+   "text": "子曰：「學而時習之，不亦說乎？有朋自遠方來，不亦樂乎？人不知而不慍，不亦君子乎？」",
+   "answer": "The Master said, \"Is it not delightful to study and then review it from time to time? Is it not joyful when friends come from afar? Is it not the mark of a gentleman to be free of resentment when others do not know him?\"",
+   "firstMs": 683,
+   "totalMs": 2933,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "to study and then review it from time to time",
+      "why": "\"From time to time\" slightly blurs 時 (at due times, regularly) toward \"occasionally\", and \"review\" narrows 習, though the meaning is largely intact."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ly-clever-words",
+   "rep": 0,
+   "split": "dev",
+   "book": "lunyu-xue-er",
+   "cat": "classical",
+   "text": "子曰：「巧言令色，鮮矣仁。」",
+   "answer": "The Master said, \"He who is glib in his words and wears an ingratiating expression has little of benevolence.\"",
+   "firstMs": 670,
+   "totalMs": 1871,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "ly-gentleman-eats",
+   "rep": 0,
+   "split": "dev",
+   "book": "lunyu-xue-er",
+   "cat": "classical",
+   "text": "子曰：「君子食無求飽，居無求安，敏於事而愼於言，就有道而正焉：可謂好學也已。」",
+   "answer": "The Master said, \"A superior man does not seek to be satisfied in his eating, nor to be comfortable in his dwelling. He is diligent in his work and cautious in his speech; he approaches those who have the Way to correct himself: this may be called true love of learning.\"",
+   "firstMs": 665,
+   "totalMs": 3242,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "ly-poor-flatter",
+   "rep": 0,
+   "split": "dev",
+   "book": "lunyu-xue-er",
+   "cat": "classical-dialogue",
+   "text": "子貢曰：「貧而無諂，富而無驕，何如？」子曰：「可也。未若貧而樂，富而好禮者也」。",
+   "answer": "Zigong said, \"Is it good to be poor without being obsequious and rich without being arrogant?\" The Master replied, \"That is acceptable. But it is not as good as being poor yet happy and rich yet fond of ritual.\"",
+   "firstMs": 1050,
+   "totalMs": 3315,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "tang-moonlight",
+   "rep": 0,
+   "split": "dev",
+   "book": "tang-poems",
+   "cat": "poem",
+   "text": "牀前明月光，疑是地上霜。\n舉頭望明月，低頭思故鄉。",
+   "answer": "Before my bed, the bright moon's light gleams; I wonder if it is frost on the ground.  \nI raise my head to gaze at the bright moon; I lower my head and think of my hometown.",
+   "firstMs": 515,
+   "totalMs": 2431,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "the bright moon's light gleams; I wonder if it is frost on the ground",
+      "why": "\"I wonder if it is frost\" weakens 疑是 (suspect/mistake it for), and \"gleams\" is a slight addition, but the sense of mistaken impression is mostly kept."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "tang-red-beans",
+   "rep": 0,
+   "split": "dev",
+   "book": "tang-poems",
+   "cat": "poem",
+   "text": "紅豆生南國，春來發幾枝。\n願君多采擷，此物最相思。",
+   "answer": "Red beans grow in the southern land; how many sprigs bloom when spring comes?  \nI wish you would gather them more, for this thing is most full of longing.",
+   "firstMs": 518,
+   "totalMs": 2078,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "I wish you would gather them more, for this thing is most full of longing.",
+      "why": "\"gather them more\" is unidiomatic (should be \"gather plenty\"), and \"most full of longing\" is awkward for what the beans evoke."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "how many sprigs bloom when spring comes?",
+      "why": "發枝 means sprouting or putting forth branches, not blooming, though the question sense is kept."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "tang-river-snow",
+   "rep": 0,
+   "split": "dev",
+   "book": "tang-poems",
+   "cat": "poem",
+   "text": "千山鳥飛絕，萬徑人蹤滅。\n孤舟簑笠翁，獨釣寒江雪。",
+   "answer": "Thousands of peaks see no bird in flight;  \nTen thousand paths bear no trace of human footfall.  \nA lone boat holds an old man in a straw hat and rain cape,  \nAlone he fishes the cold river's snow-covered waves.",
+   "firstMs": 791,
+   "totalMs": 2974,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  }
+ ]
+}

@@ -3,22 +3,39 @@
 .pp-pop {
   position: fixed;
   z-index: 80;
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   font-family: var(--font-ui);
   font-size: 14px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
+.pp-pop:focus, .pp-pop:focus-visible { outline: none; } /* the dialog takes focus for screen readers; it is not a control */
+/* The card itself clips nothing, so the caret can stick out; the scroll box inside it is what scrolls. */
+.pp-scroll {
+  flex: 1 1 auto; min-height: 0;
+  overflow-x: hidden; overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border-radius: inherit;
+}
 .pp-float { animation: pp-pop-in 0.14s var(--ease); }
 .pp-float[data-side='above'] { transform-origin: bottom center; }
 .pp-float[data-side='below'] { transform-origin: top center; }
+/* A 10 px caret under (or over) the middle of the word the popup belongs to. */
+.pp-float::before {
+  content: ''; position: absolute; z-index: 1; left: var(--pp-caret, 50%); width: 10px; height: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
+}
+.pp-float[data-side='below']::before { top: -6px; border-right: 0; border-bottom: 0; border-radius: 2px 0 0 0; }
+.pp-float[data-side='above']::before { bottom: -6px; border-left: 0; border-top: 0; border-radius: 0 0 2px 0; }
+.pp-float[data-caret='off']::before { display: none; }
 .pp-sheet {
   left: 0; right: 0; bottom: 0; top: auto;
   border-radius: var(--radius-l) var(--radius-l) 0 0;
@@ -26,16 +43,23 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
   animation: pp-sheet-in 0.2s var(--ease);
 }
-.pp-sheet::before {
-  content: ''; display: block; width: 36px; height: 4px; border-radius: 2px;
-  background: var(--border); margin: 8px auto 0;
+/* A tablet sheet is a centered panel, not the full width. */
+.pp-sheet-tablet { box-shadow: 0 -2px 24px rgba(40, 30, 10, 0.18); border-left: 0; border-right: 0; }
+/* The sheet covers the full width so nothing of the pages shows beside it; its content stays one readable column. */
+.pp-sheet-tablet .pp-content {
+  max-width: 632px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.pp-sheet::after {
+  content: ''; position: absolute; z-index: 2; top: 7px; left: 50%; width: 36px; height: 4px; margin-left: -18px;
+  border-radius: 2px; background: var(--border); pointer-events: none;
 }
 @keyframes pp-pop-in { from { opacity: 0; transform: translateY(4px) scale(0.98); } }
 @keyframes pp-sheet-in { from { transform: translateY(24px); opacity: 0.6; } }
 @media (prefers-reduced-motion: reduce) { .pp-float, .pp-sheet { animation: none; } }
 
 .pp-content { padding: 14px 16px 12px; }
-.pp-sheet .pp-content { padding-top: 8px; }
+.pp-sheet .pp-content { padding-top: 14px; }
 .pp-loading { display: flex; align-items: center; gap: 10px; color: var(--text-3); padding: 12px 0; }
 
 /* header */
@@ -68,6 +92,10 @@
 .pp-defs { margin: 0; padding-left: 1.3em; }
 .pp-defs li { margin: 2px 0; padding-left: 2px; }
 .pp-defs li::marker { color: var(--text-3); font-size: 12px; }
+.pp-more-btn {
+  margin: 2px 0 0 calc(1.3em + 2px); padding: 2px 0; border: 0; background: transparent; cursor: pointer;
+  color: var(--ink); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 2px;
+}
 .pp-cl { margin: 6px 0 0; color: var(--text-2); font-size: 13px; }
 .pp-cl-label { color: var(--text-3); margin-right: 2px; }
 
@@ -81,21 +109,17 @@
 .pp-xref .zh { font-size: 1.05em; }
 .pp-xref-py { font-family: var(--font-pinyin); font-size: 0.92em; }
 
-/* character cards */
-.pp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+/* character breakdown: one compact chip per character ("混 hùn to mix") */
+.pp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
 .pp-card {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left;
-  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
-  cursor: pointer; min-width: 0;
+  display: flex; align-items: center; gap: 8px; text-align: left; min-width: 0; height: 40px;
+  padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+  color: inherit; cursor: pointer; font: inherit;
 }
 .pp-card:hover { background: var(--surface-2); border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
-.pp-card-glyph { font-size: 30px; line-height: 1.15; }
-.pp-card .pp-py { font-size: 14px; }
-.pp-card-gloss {
-  font-size: 12.5px; color: var(--text-2); line-height: 1.3; margin-top: 2px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; width: 100%;
-}
-.pp-card-meta { font-size: 11px; color: var(--text-3); }
+.pp-card-glyph { flex: none; font-size: 22px; line-height: 1; }
+.pp-card .pp-py { flex: none; font-size: 14px; }
+.pp-card-gloss { flex: 1 1 auto; min-width: 0; font-size: 12.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* single-character facts */
 .pp-facts { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0; font-size: 13px; }
@@ -119,18 +143,45 @@
 .pp-links a { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; color: var(--ink); }
 .pp-links a:hover { text-decoration: underline; }
 .pp-links .icon { width: 12px; height: 12px; }
-.pp-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
-.pp-tools { display: flex; flex-wrap: wrap; gap: 2px; margin-left: -8px; }
+/* Stepping and resizing the selection. Sticky at the bottom of the scroll box so it is never clipped or scrolled away. */
+.pp-foot {
+  position: sticky; bottom: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 12px -16px -12px; padding: 10px 16px 12px;
+  background: var(--surface); border-top: 1px solid var(--border);
+}
+.pp-more .pp-foot::before {
+  content: ''; position: absolute; left: 0; right: 0; top: -25px; height: 24px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+}
+/* On a short sheet the stepping bar would cover a third of what is visible: it scrolls with the content instead. */
+.pp-short .pp-foot { position: static; }
+.pp-short.pp-more .pp-foot::before { display: none; }
+.pp-tools { display: flex; flex-wrap: wrap; gap: 2px; }
+.pp-seg {
+  display: inline-flex; flex-wrap: nowrap; gap: 0; width: 100%; max-width: 360px;
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface);
+}
+.pp-seg-btn {
+  flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-width: 0; height: 36px; padding: 0 8px; border: 0; border-left: 1px solid var(--border);
+  background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.pp-seg-btn:first-child { border-left: 0; }
+.pp-seg-btn:hover { background: var(--surface-2); }
+.pp-seg-btn:active { background: var(--surface-3); }
+.pp-seg-btn .icon { width: 14px; height: 14px; flex: none; }
 
 /* phrase */
-.pp-phrase-text { font-size: 24px; line-height: 2.1; margin-top: 4px; max-height: 38vh; overflow-y: auto; }
+.pp-phrase-text { font-size: 24px; line-height: 2.2; margin-top: 4px; max-height: 38vh; overflow-y: auto; }
 .pp-phrase-text .pp-line { margin: 0 0 0.3em; }
-.pp-phrase-text ruby { ruby-align: center; ruby-position: over; }
+/* Even grid, like the page: every character fills the same cell and its pinyin (12 px) hangs centered over it. */
+.pp-phrase-text ruby, .pp-phrase-text .rd-c { display: inline; position: relative; ruby-align: center; padding: 0 0.25em; white-space: nowrap; }
 .pp-phrase-text rt {
-  font-family: var(--font-pinyin); font-size: 0.45em; line-height: 1; font-weight: 500; letter-spacing: 0.01em;
-  padding: 0 0.14em;
-  -webkit-user-select: none; user-select: none;
+  display: inline; font-family: var(--font-pinyin); font-size: 12px; line-height: 1; font-weight: 500; letter-spacing: 0; padding: 0;
+  -webkit-user-select: none; user-select: none; pointer-events: none;
 }
+.pp-phrase-text .rd-rtx { position: absolute; left: 50%; bottom: calc(100% - 0.28em); transform: translateX(-50%); white-space: nowrap; }
 .pp-phrase-text rt:empty { display: none; }
 .pp-wbw-list { display: flex; flex-direction: column; }
 .pp-wbw-note { margin: 0 0 6px; font-size: 12px; line-height: 1.4; }
@@ -156,12 +207,12 @@
 .pp-tr-body { font-size: 15px; line-height: 1.55; min-height: 1.55em; }
 .pp-tr-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .pp-tr-loading { display: flex; align-items: center; gap: 8px; color: var(--text-3); }
-.pp-tr-error { margin: 0; color: var(--accent); }
+.pp-tr-error { margin: 0; color: var(--danger, #a3262a); }
 .pp-tr-note { margin: 0 0 8px; color: var(--text-2); font-size: 13px; }
 .pp-tr-dl { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .pp-tr-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .pp-tr-menuhost { margin-top: 6px; }
-.pp-menu { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface); overflow: hidden; }
+.pp-menu { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface); overflow: hidden; max-height: min(260px, 45vh); overflow-y: auto; }
 .pp-menu-item {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 7px 10px; border: 0; border-top: 1px solid var(--border);
   background: transparent; text-align: left; cursor: pointer;
@@ -192,7 +243,7 @@
 .pp-field { display: flex; flex-direction: column; gap: 3px; }
 .pp-field-label { font-size: 12px; font-weight: 600; color: var(--text-3); }
 .pp-field-hint { font-size: 12px; color: var(--text-3); }
-.pp-field-error { margin: 0; font-size: 13px; color: var(--accent); }
+.pp-field-error { margin: 0; font-size: 13px; color: var(--danger, #a3262a); }
 .pp-field-error:empty { display: none; }
 .pp-lex-form .input, .pp-lex-form .select { width: 100%; }
 .pp-context { padding: 12px 0; border-bottom: 1px solid var(--border); }
@@ -211,3 +262,29 @@
 .pp-tr-references { margin: 8px 0 0; }
 .pp-tr-references dt { margin-top: 8px; font-weight: 600; color: var(--text); }
 .pp-tr-references dd { margin: 2px 0 0; }
+
+/* A phrase with no real translation available: one quiet line, the word list is the content. */
+.pp-tr-quiet { padding: 0; background: transparent; }
+.pp-tr-quiet .pp-tr-head { display: none; }
+.pp-tr-quiet .pp-tr-body { font-size: 13px; line-height: 1.5; min-height: 0; color: var(--text-2); }
+.pp-tr-quiet .pp-tr-body p { margin: 0; }
+.pp-tr-quiet .pp-tr-actions { margin-top: 6px; }
+.pp-tr-link { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+
+/* Touch: every control in the popup is at least 44 px (Apple's minimum). */
+@media (pointer: coarse) {
+  .pp-seg-btn { height: 44px; font-size: 14px; }
+  .pp-card { height: 44px; }
+  .pp-tr-actions .btn, .pp-reading-actions .btn, .pp-book-actions .btn, .pp-wbw-more { min-height: 44px; }
+  .pp-menu-item { min-height: 44px; justify-content: center; }
+  .pp-wbw { min-height: 44px; align-items: center; }
+  .pp-more-btn { min-height: 44px; min-width: 44px; padding: 8px 0; display: inline-flex; align-items: center; }
+  /* A 44 px tall hit box on an inline chip: the negative block margin gives the extra height back,
+     so the definition lines keep their spacing. */
+  /* The padding is the extra height and the text stays on the line's baseline (an inline-block's baseline is its text). */
+  .pp-xref { display: inline-block; vertical-align: baseline; box-sizing: border-box; min-height: 44px; min-width: 44px; padding-block: 11.5px; text-align: center; white-space: nowrap; margin-block: -11.5px; }
+  .pp-glyph-link { min-width: 44px; height: 44px; }
+  .pp-links a { min-height: 44px; min-width: 44px; justify-content: center; }
+  .pp-head .icon-btn { width: 44px; height: 44px; }
+  .pp-head-actions { margin-right: -10px; }
+}

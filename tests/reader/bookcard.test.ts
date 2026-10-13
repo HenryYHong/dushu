@@ -37,9 +37,9 @@ describe('In this book card', () => {
     expect(text('.pp-book .pp-section')).toBe('In this book');
     expect(text('.pp-book .chip')).toBe('Person');
     expect(text('.pp-book')).toContain('4,999 times');
-    expect(text('.pp-book .pp-py')).toBe('guō jìng');
+    expect(text('.pp-book .pp-py')).toBe('Guō Jìng'); // a name is capitalized
     expect(text('.pp-book-gloss')).toBe('name (person)');
-    expect(text('.pp-pyline .pp-py')).toBe('guō jìng'); // the header reading comes from the entry too
+    expect(text('.pp-pyline .pp-py')).toBe('Guō Jìng'); // the header reading comes from the entry too
     expect(document.querySelectorAll('.pp-card')).toHaveLength(2); // the characters are still there
     expect(q('.pp-body')!.firstElementChild!.classList.contains('pp-book')).toBe(true);
   });
@@ -57,7 +57,7 @@ describe('In this book card', () => {
   it('finds an entry saved in the other script', async () => {
     const { ctx } = await makeCtx();
     openWordPopup({ ctx, word: '賈母', anchor: anchorRect(), lexicon: buildLexicon([entry('贾母', { pinyin: 'jia3 mu3' })]), bookId: 'b1' });
-    expect(text('.pp-book .pp-py')).toBe('jiǎ mǔ');
+    expect(text('.pp-book .pp-py')).toBe('Jiǎ Mǔ');
   });
 
   it('Edit saves the user pinyin and meaning, marks the row as the user\'s, and tells the reader', async () => {
@@ -79,7 +79,7 @@ describe('In this book card', () => {
     const rows = await ctx.store.lexicon.get('b1');
     expect(rows).toEqual([entry('郭靖', { pinyin: 'guo1 jing4', gloss: 'hero of the story', origin: 'user' })]);
     expect(onLexiconChange).toHaveBeenCalledTimes(1);
-    expect(text('.pp-book .pp-py')).toBe('guō jìng');
+    expect(text('.pp-book .pp-py')).toBe('Guō Jìng'); // a name is capitalized
     expect(text('.pp-book-gloss')).toBe('hero of the story');
   });
 

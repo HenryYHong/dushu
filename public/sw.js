@@ -15,6 +15,11 @@ const STATIC_CACHE = `dushu-static-${DATA_VERSION}`;
 const FONT_CACHE = 'dushu-fonts-v1';
 const SCOPE = new URL(self.registration.scope).pathname;
 
+// Every cache lookup ignores Vary. vite preview and many static hosts answer with "Vary: Origin", and Chrome sends an
+// Origin header on module requests (import() of a lazy chunk, a worker) but not on a plain navigation. Without this a
+// cache.match() for such a request misses a file that is in the cache, and the screen stays on "Loading…" offline.
+const MATCH = { ignoreVary: true };
+
 const relPath = (url) => decodeURIComponent(url.pathname.slice(SCOPE.length));
 const isFontSlice = (p) => p.startsWith('assets/') && p.endsWith('.woff2');
 const isStatic = (p) => p.startsWith('data/') || p.startsWith('fonts/') || p.startsWith('samples/');
@@ -45,26 +50,33 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-async function networkFirst(request, cacheName, timeoutMs) {
+// The app shell. Only a real HTML page for the app's own root is ever stored as the shell: a navigation to some other
+// same-origin file (the manifest, an icon, a data file opened in a tab) must not replace it.
+const isShellPath = (p) => p === '' || p === 'index.html';
+const isHtml = (res) => /text\/html/i.test(res.headers.get('content-type') || '');
+
+async function networkFirst(request, cacheName, timeoutMs, shell) {
   const cache = await caches.open(cacheName);
   try {
     const res = await Promise.race([
       fetch(request),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs)),
     ]);
-    if (res.ok) cache.put('./', res.clone()).catch(() => {});
+    if (shell && res.ok && res.status === 200 && isHtml(res)) cache.put('./', res.clone()).catch(() => {});
     return res;
   } catch {
-    return (await cache.match('./')) || (await cache.match(request, { ignoreSearch: true })) || Response.error();
+    if (shell) return (await cache.match('./', MATCH)) || Response.error();
+    return (await cache.match(request, { ...MATCH, ignoreSearch: true })) || Response.error();
   }
 }
 
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
-  const hit = await cache.match(request);
+  const hit = await cache.match(request, MATCH);
   if (hit) return hit;
   const res = await fetch(request);
-  // Partial and error responses are never stored.
+  // Partial and error responses are never stored. Files that were not downloaded ahead of time (a classic's text, a font
+  // slice) are stored the first time they are fetched, so they work offline afterwards.
   if (res.ok && res.status === 200) cache.put(request, res.clone()).catch(() => {});
   return res;
 }
@@ -79,8 +91,8 @@ self.addEventListener('fetch', (event) => {
   const path = relPath(url);
   if (path.startsWith('api/')) return; // Private model, books and audio must never be cached.
 
-  if (request.mode === 'navigate' || path === '' || path === 'index.html') {
-    event.respondWith(networkFirst(request, APP_CACHE, 4000));
+  if (request.mode === 'navigate' || isShellPath(path)) {
+    event.respondWith(networkFirst(request, APP_CACHE, 4000, isShellPath(path)));
   } else if (isFontSlice(path)) {
     // Hashed file names never change, so this cache outlives every app and data update.
     event.respondWith(cacheFirst(request, FONT_CACHE));
@@ -90,6 +102,6 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirst(request, APP_CACHE));
   } else {
     // The icon and manifest: fresh when online, the precached copy when not.
-    event.respondWith(fetch(request).catch(async () => (await caches.match(request)) || Response.error()));
+    event.respondWith(fetch(request).catch(async () => (await caches.match(request, MATCH)) || Response.error()));
   }
 });

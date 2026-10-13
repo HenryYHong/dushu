@@ -92,3 +92,48 @@ describe('settings', () => {
     expect(createSettingsStore(undefined).get()).toEqual(DEFAULT_SETTINGS);
   });
 });
+
+describe('translation settings', () => {
+  it('defaults to Sonnet 5.5 with Local only off, and holds no key', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({ claudeModel: 'claude-sonnet-5-5', localOnly: false, translator: 'auto', scrollFontSize: 28, layout: 'scroll' });
+    expect('claudeApiKey' in DEFAULT_SETTINGS).toBe(false);
+  });
+
+  it('offers Sonnet and Haiku only: an old Opus choice or any other name becomes Sonnet', () => {
+    const s = createSettingsStore(memStorage());
+    s.set({ claudeModel: 'claude-haiku-5-5' });
+    expect(s.get().claudeModel).toBe('claude-haiku-5-5');
+    s.set({ claudeModel: 'claude-opus-5-5' });
+    expect(s.get().claudeModel).toBe('claude-haiku-5-5');
+    for (const old of ['claude-opus-5-5', 'gpt-5', '', 7]) {
+      expect(sanitizeSettings({ claudeModel: old }).claudeModel).toBe('claude-sonnet-5-5');
+    }
+  });
+
+  it('keeps Local only as a true or false value only', () => {
+    const s = createSettingsStore(memStorage());
+    s.set({ localOnly: true });
+    expect(s.get().localOnly).toBe(true);
+    s.set({ localOnly: 'yes' } as never);
+    expect(s.get().localOnly).toBe(true);
+    expect(sanitizeSettings({ localOnly: 1 }).localOnly).toBe(false);
+  });
+
+  it('drops a key saved by an older version and rewrites the stored entry without it', () => {
+    const st = memStorage({ [SETTINGS_KEY]: JSON.stringify({ theme: 'sepia', claudeApiKey: 'sk-ant-api03-OLDKEY', claudeModel: 'claude-opus-5-5' }) });
+    const s = createSettingsStore(st);
+    expect(s.get()).toEqual({ ...DEFAULT_SETTINGS, theme: 'sepia' });
+    expect('claudeApiKey' in s.get()).toBe(false);
+    expect(st.getItem(SETTINGS_KEY)).not.toContain('claudeApiKey');
+    expect(st.getItem(SETTINGS_KEY)).not.toContain('OLDKEY');
+    expect(JSON.parse(st.getItem(SETTINGS_KEY)!)).toMatchObject({ theme: 'sepia', claudeModel: 'claude-sonnet-5-5' });
+  });
+
+  it('does not accept a key through a patch', () => {
+    const st = memStorage();
+    const s = createSettingsStore(st);
+    s.set({ claudeApiKey: 'sk-ant-api03-NEWKEY', theme: 'dark' } as never);
+    expect(s.get().theme).toBe('dark');
+    expect(st.getItem(SETTINGS_KEY)).not.toContain('NEWKEY');
+  });
+});

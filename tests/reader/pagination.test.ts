@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  blockOfPage, chapterFraction, computeGeometry, decideSpread, firstPageOfSpread, geometryKey, pageAtX, pageCount,
+  blockOfPage, chapterFraction, computeGeometry, decideSpread, edgeWidth, estimatePages, firstPageOfSpread, geometryKey, pageAtX, pageCount,
   pageOfBlock, pagesLeftLabel, settleDuration, spreadCount, spreadOfPage, swipeCompletes, tapZone, turnTarget,
   type BlockPages,
 } from '../../src/ui/reader/pagination';
@@ -41,6 +41,23 @@ describe('page geometry', () => {
     expect(g.per).toBe(1);
     expect(g.margin).toBeGreaterThanOrEqual(22);
     expect(g.cw).toBeLessThanOrEqual(390 - 2 * 22);
+  });
+  it('makes the column a whole number of cells wide and keeps it centered, so a line ends where the column does', () => {
+    for (const [w, h, cell] of [[390, 844, 27.5], [834, 1194, 27.5], [1194, 834, 27.5], [390, 844, 33], [1440, 900, 30.5]]) {
+      const g = computeGeometry({ ...base, width: w, height: h, cellPx: cell });
+      expect(g.cw / cell).toBeCloseTo(Math.round(g.cw / cell), 5);
+      expect(g.margin * 2 + g.cw).toBeCloseTo(g.paperW, 5);
+      // No more than one cell is given up to the snapping.
+      const loose = computeGeometry({ ...base, width: w, height: h });
+      expect(loose.cw - g.cw).toBeLessThan(cell + 1);
+      expect(g.cw).toBeLessThanOrEqual(loose.cw);
+    }
+  });
+  it('fits 10 or more cells on a phone at the default size', () => {
+    const g = computeGeometry({ ...base, width: 390, height: 844, cellPx: 22 * 1.25 });
+    expect(g.cw / (22 * 1.25)).toBeGreaterThanOrEqual(10);
+    // Margins left and right are the same.
+    expect(g.margin).toBeCloseTo((390 - g.cw) / 2, 5);
   });
   it('makes the text block a whole number of lines and centers it between header and footer', () => {
     const plain = computeGeometry({ ...base, width: 1440, height: 900 });
@@ -107,6 +124,13 @@ describe('blocks and pages', () => {
     expect(pagesLeftLabel(0, 10)).toBe('9 pages left in chapter');
     expect(pagesLeftLabel(8, 10)).toBe('1 page left in chapter');
     expect(pagesLeftLabel(9, 10)).toBe('Last page of chapter');
+    // While the chapter is still being paginated the count is only an estimate, and says so.
+    expect(pagesLeftLabel(0, 10, true)).toBe('About 9 pages left in chapter');
+    expect(pagesLeftLabel(9, 10, true)).toBe('About 1 page left in chapter');
+    expect(estimatePages(10, 1000, 4000)).toBe(40);
+    expect(estimatePages(10, 0, 4000)).toBe(10);
+    expect(estimatePages(10, 4000, 4000)).toBe(10);
+    expect(estimatePages(3, 100, 110)).toBeGreaterThan(3);
     expect(chapterFraction(0, 10)).toBe(0);
     expect(chapterFraction(9, 10)).toBe(1);
     expect(chapterFraction(0, 1)).toBe(0);
@@ -128,17 +152,26 @@ describe('turning', () => {
   it('treats a chapter whose length is not known yet as having a next spread', () => {
     expect(turnTarget(1, { chapter: 5, spread: 7 }, 9, count)).toEqual({ chapter: 5, spread: 8 });
   });
-  it('maps taps to the outer thirds of a page', () => {
-    // One page, 900 wide.
+  it('maps taps to the outer strips of the spread', () => {
+    // One page, 900 wide: strips are a fifth of it, at most 160 px.
+    expect(edgeWidth(900, 1)).toBe(160);
     expect(tapZone(100, 900, 1)).toBe('prev');
     expect(tapZone(450, 900, 1)).toBe('middle');
     expect(tapZone(800, 900, 1)).toBe('next');
-    // Two pages, 1200 wide: only the outer thirds of the outer pages turn; the rest toggles the bar.
-    expect(tapZone(150, 1200, 2)).toBe('prev');
-    expect(tapZone(300, 1200, 2)).toBe('middle');
-    expect(tapZone(600, 1200, 2)).toBe('middle');
-    expect(tapZone(900, 1200, 2)).toBe('middle');
-    expect(tapZone(1100, 1200, 2)).toBe('next');
+    // iPad Pro 11 in landscape, 1194 wide: the strips cover the page margins and the first characters of every line.
+    const w = 1194;
+    expect(edgeWidth(w, 2)).toBeGreaterThanOrEqual(0.15 * w);
+    expect(edgeWidth(w, 2)).toBeLessThanOrEqual(0.2 * w);
+    for (const x of [60, 90, 150]) expect(tapZone(x, w, 2)).toBe('prev');
+    for (const x of [250, 380, 597, 800]) expect(tapZone(x, w, 2)).toBe('middle');
+    for (const x of [1114, 1060, 1010]) expect(tapZone(x, w, 2)).toBe('next');
+  });
+  it('keeps the strips at least 56 px wide on a narrow screen', () => {
+    expect(edgeWidth(300, 1)).toBe(60);
+    expect(edgeWidth(200, 1)).toBe(56);
+    expect(tapZone(40, 390, 1)).toBe('prev');
+    expect(tapZone(195, 390, 1)).toBe('middle');
+    expect(tapZone(350, 390, 1)).toBe('next');
   });
   it('lets a flick finish a turn and a slow short drag fall back', () => {
     expect(swipeCompletes(0.1, 0.003)).toBe(true);

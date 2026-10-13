@@ -1,10 +1,21 @@
 // Title and author cleanup: site junk in EPUB metadata, file names, "作者：" lines.
+import { stripBidi } from './encoding';
 
 const JUNK_WORD = /epubw|z-?lib|1lib|calibre|anna.?s archive|libgen|www\.|\.com\b|\.net\b|\.org\b|\.cn\b|\.cc\b/i;
 const EMPTY_AUTHOR = /^(?:unknown|undefined|n\/a|none|null|anonymous|未知|不详|不詳|无|無|佚名\(?\)?)$/i;
 
+/** A title or an author longer than this is cut: it would fill a toast and a library card. */
+export const MAX_META_CHARS = 200;
+
 function squash(s: string): string {
-  return s.replace(/[\s\u3000]+/g, ' ').trim();
+  return stripBidi(s).replace(/[\s\u3000]+/g, ' ').trim();
+}
+
+/** At most `max` code points (never half a surrogate pair), trimmed. */
+export function capChars(s: string, max = MAX_META_CHARS): string {
+  const t = squash(s);
+  if (t.length <= max) return t;
+  return Array.from(t).slice(0, max).join('').trim();
 }
 
 /** Strip bracketed site tags and 《》 around a whole title. */
@@ -12,7 +23,7 @@ export function cleanTitle(raw: string): string {
   let t = squash(raw);
   t = t.replace(/[\(\[（【][^\)\]）】]*(?:epubw|z-?lib|1lib|anna|libgen|\.com|\.net|\.org|\.cn)[^\)\]）】]*[\)\]）】]/gi, '');
   t = t.replace(/^《(.+)》$/, '$1');
-  return squash(t);
+  return capChars(t);
 }
 
 const ROLE_PREFIX = /^(?:原著者?|原作者?|作\s*者|著\s*者|著|撰文|撰|编著|編著|续写|續寫|续作|續作|续|續|作|Author|By)\s*[:：]\s*/i;
@@ -41,17 +52,18 @@ export function cleanAuthors(list: string[]): string {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const item of list) {
-    const whole = squash(item).replace(/^(?:文|作者|著|原著)\s*[/／]\s*/, '');
+    // A name is text: whole tags are dropped, and a part that still holds < or > is not a name.
+    const whole = squash(item).replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ').replace(/<[^<>]*>/g, ' ').replace(/^(?:文|作者|著|原著)\s*[/／]\s*/, '');
     for (const part of whole.split(/\s*[,，;；、&＆|\/]\s*|\s+and\s+|\s+with\s+/i)) {
       const p = cleanAuthorName(part);
-      if (!p || JUNK_WORD.test(p) || EMPTY_AUTHOR.test(p)) continue;
+      if (!p || /[<>]/.test(p) || !/[\p{L}\p{N}]/u.test(p) || JUNK_WORD.test(p) || EMPTY_AUTHOR.test(p)) continue;
       if (!seen.has(p)) {
         seen.add(p);
         out.push(p);
       }
     }
   }
-  return out.join(', ');
+  return capChars(out.join(', '));
 }
 
 const TAG_WORDS = '精校|校对|校對|完结|完結|全本|全集|txt|epub|最新|版|整理|下载|下載|作者|修订|修訂|无删减|無刪減|新修|插图|插圖|附';

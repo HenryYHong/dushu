@@ -6,10 +6,11 @@ import { icon } from '../icons';
 import { bookCover, generatedCover } from './cover';
 import { confirmDialog, formDialog } from './dialogs';
 import { compactCount, plural, progressFraction, progressLabel } from './format';
-import { ACCEPT, createImporter, prefetchImporters, type Importer, type Job } from './importer';
+import { ACCEPT, createImporter, jobStage, prefetchImporters, type Importer, type Job } from './importer';
 import { pasteDialog } from './paste';
 import { fetchSamples, sampleSourceName, type Sample } from './samples';
-import { hasMacBridge } from '../../core/macBridge';
+import { BRIDGE_EVENT, isMacOrigin } from '../../core/macBridge';
+import { addedMessage, fetchMacBookFile, fetchMacBooks, forgetRemoval, isMacBook, rememberRemoval, removedMacBooks, syncMacBooks, type MacBook, type MacState } from './macBooks';
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
 
@@ -19,12 +20,20 @@ function progressBar(fraction: number, label?: string): HTMLElement {
   return bar;
 }
 
+/** The bar of a running import: it slides back and forth until the first real progress arrives. */
+function setJobBar(bar: HTMLElement, job: Job): void {
+  const waiting = job.fraction < 0.02;
+  bar.classList.toggle('lib-bar-wait', waiting);
+  if (waiting) bar.removeAttribute('aria-valuenow'); else bar.setAttribute('aria-valuenow', String(Math.round(job.fraction * 100)));
+  (bar.firstElementChild as HTMLElement).style.width = waiting ? '' : `${(job.fraction * 100).toFixed(1)}%`;
+}
+
 // ------------------------------------------------------------------ menu ---
 
 interface MenuItem { label: string; icon: string; danger?: boolean; run: () => void }
 
 /** One floating menu at a time, anchored under a button; closes on outside click, Esc, scroll or resize. */
-function openMenu(anchor: HTMLElement, items: MenuItem[]): void {
+function openMenu(anchor: HTMLElement, items: MenuItem[], within?: HTMLElement): void {
   closeMenu();
   const menu = h('div.lib-menu', { role: 'menu' },
     items.map((it) => h('button.lib-menu-item' + (it.danger ? '.lib-menu-danger' : ''), {
@@ -34,7 +43,11 @@ function openMenu(anchor: HTMLElement, items: MenuItem[]): void {
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
   const w = menu.offsetWidth;
-  const left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w));
+  // Inside the card it belongs to when there is one, so it never hangs over the next card; otherwise inside the window.
+  const box = within?.getBoundingClientRect();
+  const min = Math.max(8, box ? box.left : 0);
+  const max = Math.min(window.innerWidth - w - 8, box ? box.right - w : Infinity);
+  const left = Math.max(min, Math.min(max, r.right - w));
   const flip = r.bottom + menu.offsetHeight + 8 > window.innerHeight && r.top > menu.offsetHeight + 8;
   menu.style.left = `${left}px`;
   menu.style.top = `${flip ? r.top - menu.offsetHeight - 4 : r.bottom + 4}px`;
@@ -82,15 +95,16 @@ export const mount: MountFn = (root, _params, ctx) => {
   const headActions = h('div.lib-actions', null, pasteBtn(), importBtn());
   const macBooks = h('button.btn', { type: 'button', hidden: true, onclick: () => void addMacBooks() }, icon('download'), 'Add books from Mac') as HTMLButtonElement;
   headActions.appendChild(macBooks);
-  if (hasMacBridge()) void fetch('/api/local-books', { cache: 'no-store', signal: AbortSignal.timeout(3000) }).then(async response => {
-    if (!response.ok) return;
-    const available = await response.json();
-    if (alive && Array.isArray(available) && available.length) macBooks.hidden = false;
-  }).catch(() => {});
+  // What this device knows about the Mac: set by refreshMac(), which runs when the library opens and when the connection changes.
+  let macState: MacState = 'none';
+  let macItems: MacBook[] = [];
+  const macNote = h('div.lib-mac-note.card', { role: 'status', hidden: true });
+  const restoreEl = h('section.lib-restore', { 'aria-label': 'Books from your Mac you removed', hidden: true });
   const head = h('div.page-head', null,
     h('div', null, h('h1.page-title', null, 'Library'), h('p.page-sub', null, 'Your books stay on this device.')),
     headActions);
   const continueEl = h('div.lib-continue-slot');
+  const libraryTitle = h('h2', null, 'Your books');
   const libraryCount = h('span.lib-count', { role: 'status', 'aria-live': 'polite' });
   const search = h('input.input.lib-search', { type: 'search', placeholder: 'Search books or authors', 'aria-label': 'Search your library', autocomplete: 'off' }) as HTMLInputElement;
   search.addEventListener('input', () => { query = search.value.trim().toLocaleLowerCase(); renderGrid(); });
@@ -100,17 +114,26 @@ export const mount: MountFn = (root, _params, ctx) => {
     h('option', { value: 'added' }, 'Recently added')) as HTMLSelectElement;
   sort.addEventListener('change', () => { order = sort.value as typeof order; renderGrid(); });
   const libraryTools = h('section.lib-toolbar', { 'aria-label': 'Your library' },
-    h('div.lib-toolbar-head', null, h('h2', null, 'Your books'), libraryCount),
+    h('div.lib-toolbar-head', null, libraryTitle, libraryCount),
     h('div.lib-filters', null, search, sort));
   libraryTools.hidden = true;
   const gridEl = h('div.lib-body');
   const samplesEl = h('div.lib-samples');
   const drop = h('div.lib-drop', { hidden: true, 'aria-hidden': 'true' },
     h('div.lib-drop-box', null, icon('upload', 'icon lib-drop-icon'), h('div.lib-drop-title', null, 'Drop to add to your library'), h('div.muted', null, 'EPUB, Kindle (MOBI or AZW3), TXT, PDF, HTML or Markdown')));
-  const page = h('div.page.lib-page', null, head, continueEl, libraryTools, gridEl, samplesEl, fileInput);
+  const page = h('div.page.lib-page', null, head, macNote, restoreEl, continueEl, libraryTools, gridEl, samplesEl, fileInput);
   root.append(page, drop);
 
-  importer = createImporter(ctx, () => { if (alive) renderGrid(); });
+  // Progress ticks many times a second: update the running cards in place, and rebuild the grid only when the set of jobs
+  // (or a job's title) changes, so covers do not flash.
+  let jobsKey = '';
+  importer = createImporter(ctx, () => {
+    if (!alive) return;
+    const key = importer.jobs.map((j) => `${j.id}:${j.title}:${j.author}`).join('|');
+    if (key === jobsKey && gridEl.querySelector('.lib-card-pending')) { updatePending(); return; }
+    jobsKey = key;
+    renderGrid();
+  });
   prefetchImporters();
 
   async function openPaste(): Promise<void> {
@@ -136,6 +159,8 @@ export const mount: MountFn = (root, _params, ctx) => {
   function renderContinue(): void {
     clear(continueEl);
     const opened = books.filter((b) => b.lastOpenedAt).sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0))[0];
+    // The grid below lists every book, this one included, so its heading says "All books" while this card is up.
+    libraryTitle.textContent = opened ? 'All books' : 'Your books';
     if (!opened) return;
     const p = progress.get(opened.id);
     const frac = progressFraction(p);
@@ -184,12 +209,27 @@ export const mount: MountFn = (root, _params, ctx) => {
   }
 
   function pendingCard(job: Job): HTMLElement {
-    return h('article.lib-card.lib-card-pending', { 'aria-busy': 'true' },
-      h('div.lib-cover-wrap.lib-cover-wrap-md', null, h('div.lib-cover.lib-cover-md.lib-cover-blank', null, h('div.app-spinner'))),
+    const bar = progressBar(job.fraction, `Adding ${job.title}`);
+    setJobBar(bar, job);
+    return h('article.lib-card.lib-card-pending', { 'aria-busy': 'true', 'data-job': job.id },
+      h('div.lib-cover-wrap.lib-cover-wrap-md', null,
+        generatedCover(job.title, job.author, 'md'),
+        h('div.lib-cover-busy', null, h('div.app-spinner'))),
       h('div.lib-card-info', null,
-        h('div.lib-card-title', null, 'Adding…'),
-        h('div.lib-card-author', null, job.label),
-        progressBar(job.fraction, 'Import progress')));
+        h('div.lib-card-title.zh', null, job.title),
+        h('div.lib-card-author.lib-pending-stage', { role: 'status' }, jobStage(job)),
+        bar));
+  }
+
+  function updatePending(): void {
+    for (const job of importer.jobs) {
+      const card = gridEl.querySelector<HTMLElement>(`.lib-card-pending[data-job="${job.id}"]`);
+      if (!card) continue;
+      setJobBar(card.querySelector<HTMLElement>('.lib-bar')!, job);
+      const stage = card.querySelector('.lib-pending-stage');
+      const text = jobStage(job);
+      if (stage && stage.textContent !== text) stage.textContent = text;
+    }
   }
 
   function bookCard(b: BookMeta): HTMLElement {
@@ -201,10 +241,10 @@ export const mount: MountFn = (root, _params, ctx) => {
         openMenu(menuBtn, [
           { label: 'Rename', icon: 'pen', run: () => void rename(b) },
           { label: 'Delete', icon: 'trash', danger: true, run: () => void remove(b) },
-        ]);
+        ], card);
       },
-    }, icon('menu'));
-    return h('article.lib-card', { 'data-id': b.id },
+    }, icon('more'));
+    const card: HTMLElement = h('article.lib-card', { 'data-id': b.id },
       h('a.lib-card-main', { href: readHref(b.id), 'aria-label': `${b.title}${b.author ? ', ' + b.author : ''}. ${progressLabel(p)}` },
         bookCover(b, store, 'md'),
         h('div.lib-card-info', null,
@@ -213,6 +253,7 @@ export const mount: MountFn = (root, _params, ctx) => {
           progressBar(progressFraction(p)),
           h('div.lib-card-meta', null, h('span', null, progressLabel(p)), h('span', null, `${compactCount(b.charCount)} chars`)))),
       menuBtn);
+    return card;
   }
 
   async function rename(b: BookMeta): Promise<void> {
@@ -232,13 +273,15 @@ export const mount: MountFn = (root, _params, ctx) => {
   async function remove(b: BookMeta): Promise<void> {
     const ok = await confirmDialog({
       title: 'Delete this book?',
-      message: `“${b.title}” and your reading progress in it will be removed from this device. Your saved words stay.`,
+      message: `“${b.title}” and your reading progress in it will be removed from this device. Your saved words stay.${isMacBook(b) || macItems.some((m) => m.name === b.sourceName) ? ' It is not added again; Restore brings it back.' : ''}`,
       confirmLabel: 'Delete',
       danger: true,
     });
     if (!ok) return;
     try {
       await store.books.remove(b.id);
+      rememberRemoval(b, macItems);
+      if (alive) renderRestore();
       if (alive) ctx.toast(`Deleted “${b.title}”.`);
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not delete the book.');
@@ -254,7 +297,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const groups = new Map<string, Sample[]>();
     for (const s of samples) if (s.group) groups.set(s.group, [...(groups.get(s.group) ?? []), s]);
 
-    samplesEl.appendChild(h('h2.section-title', null, 'Start with a classic'));
+    samplesEl.appendChild(h('h2.lib-samples-title', null, 'Start with a classic'));
     samplesEl.appendChild(h('p.lib-samples-sub.muted', null, 'Free to read, all in the public domain. One click adds the book and opens it.'));
     if (loose.length) samplesEl.appendChild(h('div.lib-sample-grid', null, loose.map((s) => sampleCard(s, have.get(sampleSourceName(s.id))))));
     for (const [name, list] of groups) {
@@ -268,7 +311,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const size = [s.chapters && plural(s.chapters, 'chapter'), s.chars && `${compactCount(s.chars)} characters`].filter(Boolean).join(' · ');
     const go = existing
       ? h('a.btn.btn-sm', { href: readHref(existing.id) }, 'Open')
-      : h('button.btn.btn-sm.btn-primary', {
+      : h('button.btn.btn-sm.lib-add', {
           type: 'button',
           disabled: busy,
           onclick: async (e: Event) => {
@@ -312,35 +355,109 @@ export const mount: MountFn = (root, _params, ctx) => {
   window.addEventListener('dragleave', onLeave);
   window.addEventListener('drop', onDrop);
 
+  // The store also fires this when another tab imports, renames or deletes a book, so a second tab needs no reload.
   const offChange = store.onChange((what) => { if (what === 'books') void load(); });
 
+  // ---- the Mac's books ----
+  const syncDeps = {
+    list: () => store.books.list(),
+    fetchFile: fetchMacBookFile,
+    add: (files: File[]) => importer.files(files, { quiet: true }),
+    update: (id: string, patch: Partial<BookMeta>) => store.books.update(id, patch),
+    removed: removedMacBooks,
+    forget: forgetRemoval,
+  };
+
+  function renderMacNote(): void {
+    const publicCopy = macState === 'none' && !isMacOrigin();
+    const dismissed = (() => { try { return localStorage.getItem('dushu.public-note.v1') === '1'; } catch { return false; } })();
+    macNote.hidden = !((publicCopy && !dismissed) || macState === 'asleep' || macState === 'refused');
+    if (macNote.hidden) return;
+    clear(macNote);
+    if (publicCopy) {
+      macNote.append(
+        h('p', null, 'This is the public copy of Dushu. Your books, words and progress stay in this browser. If you run Dushu on your own Mac, connect this device to it in Settings to use its translator and read-aloud voices, and to bring your Mac books here.'),
+        h('div.lib-actions', null,
+          h('a.btn.btn-sm', { href: '#/settings' }, 'Open Settings'),
+          h('button.btn.btn-sm', { type: 'button', onclick: () => { try { localStorage.setItem('dushu.public-note.v1', '1'); } catch { /* ignore */ } renderMacNote(); } }, 'Dismiss')));
+      return;
+    }
+    macNote.append(
+      h('p', null, macState === 'refused'
+        ? 'Your Mac answered but did not accept this device. Sign in to Tailscale with the same account as the Mac, then try again.'
+        : 'Your Mac did not answer, so its books, translator and voices are paused. Wake the Mac and make sure Tailscale is on, then try again.'),
+      h('div.lib-actions', null, h('button.btn.btn-sm', { type: 'button', onclick: () => void refreshMac(true) }, 'Try again')));
+  }
+
+  function renderRestore(): void {
+    const gone = removedMacBooks();
+    restoreEl.hidden = !gone.length;
+    clear(restoreEl);
+    for (const r of gone) {
+      const title = r.name.replace(/\.[a-z0-9]{1,5}$/i, '');
+      restoreEl.appendChild(h('div.lib-restore-row', null,
+        h('span.lib-restore-text', null, h('span.zh', null, title), ' is removed from this device.'),
+        h('button.btn.btn-sm', { type: 'button', onclick: (e: Event) => void restore(r.name, e.currentTarget as HTMLButtonElement) }, 'Restore')));
+    }
+  }
+
+  async function restore(name: string, btn: HTMLButtonElement): Promise<void> {
+    btn.disabled = true;
+    try {
+      await refreshMac(false);
+      const item = macItems.find((m) => m.name === name);
+      if (macState !== 'ready' || !item) { ctx.toast(macState === 'ready' ? 'Your Mac no longer has that book.' : 'Connect to your Mac to restore it.'); return; }
+      forgetRemoval(name);
+      const { added } = await syncMacBooks([item], syncDeps);
+      if (added.length && alive) ctx.toast(addedMessage(added));
+    } finally { btn.disabled = false; renderRestore(); }
+  }
+
+  /** Asks the Mac what it has. With `auto`, adds what this device is missing; the person never has to ask. */
+  async function refreshMac(auto: boolean): Promise<void> {
+    const listing = await fetchMacBooks();
+    if (!alive) return;
+    macState = listing.state;
+    macItems = listing.books;
+    macBooks.hidden = !(macState === 'ready' && macItems.length);
+    renderMacNote();
+    renderRestore();
+    if (auto && macState === 'ready' && macItems.length) {
+      if (!loaded) await load();
+      const { added } = await syncMacBooks(macItems, syncDeps);
+      if (added.length) ctx.toast(addedMessage(added), { ms: 6000 });
+      if (alive) renderRestore();
+    }
+  }
+
+  /** The manual button: also brings back books removed here, and says what happened. */
   async function addMacBooks(): Promise<void> {
     if (macBooks.disabled || !alive) return;
     macBooks.disabled = true;
     macBooks.textContent = 'Adding from Mac…';
     try {
       if (!loaded) await load();
-      const response = await fetch('/api/local-books', { cache: 'no-store' });
-      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('The local book service is unavailable.');
-      const available = await response.json() as { id: string; name: string }[];
-      let added = 0;
-      for (const item of available) {
-        if (!alive) return;
-        if (books.some(b => b.sourceName === item.name)) continue;
-        const fileResponse = await fetch(`/api/local-books/${encodeURIComponent(item.id)}`, { cache: 'no-store' });
-        if (!fileResponse.ok) throw new Error(`Could not read ${item.name}.`);
-        const file = new File([await fileResponse.blob()], item.name, { type: 'application/epub+zip' });
-        added += (await importer.files([file])).length;
-      }
-      if (!added && alive) ctx.toast('The available Mac books are already in your library, or none could be added.');
+      await refreshMac(false);
+      if (macState !== 'ready') { ctx.toast('Your Mac did not answer. Wake it and try again.', { ms: 9000 }); return; }
+      const { added, failed } = await syncMacBooks(macItems, syncDeps, true);
+      if (added.length) ctx.toast(addedMessage(added));
+      else if (failed) ctx.toast('Could not add the books from your Mac.', { ms: 9000 });
+      else ctx.toast('The books on your Mac are already in your library.');
     } catch (e) {
-      if (alive) ctx.toast(e instanceof Error ? e.message : 'Could not add the local books.', { ms: 9000 });
+      if (alive) ctx.toast(e instanceof Error ? e.message : 'Could not add the Mac books.', { ms: 9000 });
     } finally {
       macBooks.disabled = false;
       macBooks.replaceChildren(icon('download'), 'Add books from Mac');
+      if (alive) renderRestore();
     }
   }
+  const onBridge = () => void refreshMac(true);
+  window.addEventListener(BRIDGE_EVENT, onBridge);
   void load().then(async () => {
+    if (!alive) return;
+    renderMacNote();
+    renderRestore();
+    await refreshMac(true);
     if (!alive || !new URLSearchParams(location.search).has('importLocalBooks')) return;
     // Explicit opt-in only. Home Screen users can also choose Add books from Mac in Library.
     history.replaceState(null, '', location.pathname + location.hash);
@@ -352,6 +469,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     alive = false;
     closeMenu();
     offChange();
+    window.removeEventListener(BRIDGE_EVENT, onBridge);
     window.removeEventListener('dragenter', onEnter);
     window.removeEventListener('dragover', onOver);
     window.removeEventListener('dragleave', onLeave);

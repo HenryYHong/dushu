@@ -35,11 +35,24 @@ class BundledCMapReaderFactory {
   }
 }
 
+export const PDF_HOST_MESSAGE =
+  'The PDF reader could not start. This is a problem with how Dushu is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.';
+
+/** True when a pdf.js failure is about loading its own worker or code, not about the file. */
+export function isPdfHostFailure(e: unknown): boolean {
+  const text = `${(e as { name?: string } | null)?.name ?? ''} ${(e as { message?: string } | null)?.message ?? e ?? ''}`;
+  return /fake worker|worker|dynamically imported module|importing a module script|module script|failed to fetch|loading chunk|MIME type|NetworkError/i.test(text);
+}
+
 async function loadRuntime(): Promise<PdfRuntime> {
-  const pdfjs = await import('pdfjs-dist');
-  const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-  return { pdfjs, cMapReaderFactory: BundledCMapReaderFactory };
+  try {
+    const pdfjs = await import('pdfjs-dist');
+    const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+    pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+    return { pdfjs, cMapReaderFactory: BundledCMapReaderFactory };
+  } catch {
+    throw new ImportError(PDF_HOST_MESSAGE);
+  }
 }
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -70,6 +83,7 @@ export async function importPdf(
   } catch (e) {
     const name = (e as { name?: string }).name;
     if (name === 'PasswordException') throw new ImportError('This PDF is password protected. Remove the password and import it again.');
+    if (isPdfHostFailure(e)) throw new ImportError(PDF_HOST_MESSAGE);
     throw new ImportError('This PDF could not be read. It may be damaged.');
   }
 

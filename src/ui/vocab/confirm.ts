@@ -12,9 +12,9 @@ export interface ConfirmOptions {
 export function confirmDialog(o: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => {
     let result = false;
-    const dlg = h('dialog', { class: 'modal voc-dialog' });
+    const dlg = h('dialog', { class: 'modal voc-dialog', tabindex: -1, 'aria-label': o.title });
     const cancel = h('button.btn', { type: 'button', onclick: () => dlg.close() }, 'Cancel');
-    const ok = h('button.btn', { type: 'button', class: o.danger ? 'btn-danger' : 'btn-primary', onclick: () => { result = true; dlg.close(); } }, o.confirmLabel);
+    const ok = h('button.btn', { type: 'button', class: o.danger ? 'btn-danger-solid' : 'btn-primary', onclick: () => { result = true; dlg.close(); } }, o.confirmLabel);
     dlg.append(
       h('div.voc-dialog-body', null, h('h2.voc-dialog-title', null, o.title), h('p.voc-dialog-text', null, o.body)),
       h('div.voc-dialog-actions', null, cancel, ok),
@@ -23,6 +23,7 @@ export function confirmDialog(o: ConfirmOptions): Promise<boolean> {
     dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
     document.body.appendChild(dlg);
     dlg.showModal();
-    cancel.focus();
+    // The dialog itself takes focus, so neither button starts with a ring; Tab reaches Cancel first.
+    dlg.focus({ preventScroll: true });
   });
 }

@@ -7,7 +7,7 @@ import { h } from '../dom';
 import { icon } from '../icons';
 import { createTranslationPanel, type TranslationPanel } from '../popup/translation';
 import {
-  displayTokens, pinyinVisible, refreshPinyin, refreshVisibility, renderTokens,
+  buildPinyin, displayTokens, pinyinVisible, refreshPinyin, refreshVisibility, renderTokens,
   type RenderedParagraph, type RenderOptions,
 } from './render';
 
@@ -18,6 +18,8 @@ export interface BlockState {
   el: HTMLElement;
   /** Text as displayed (after script conversion). Empty for images and rules. */
   text: string;
+  /** Where this block's text starts inside the stored block it came from (a very long paragraph is cut into pieces). */
+  pieceStart: number;
   rendered: RenderedParagraph | null;
   trans: { el: HTMLElement; panel: TranslationPanel } | null;
   transBtn: HTMLButtonElement | null;
@@ -31,8 +33,13 @@ export interface ChapterViewOptions {
   chapterIndex: number;
   /** Names and terms of the book; they join segmentation. Replace later with `setLexicon`. */
   lexicon?: Lexicon;
-  /** Called when something inside the chapter changed its height (a paragraph translation opened or grew). */
+  /** Called when something inside the chapter changed its height (a paragraph translation opened or grew, an image loaded). */
   onResize?: () => void;
+  /**
+   * Draw the pinyin of a block only when `ensurePinyin` asks (the Pages layout does so for the pages near the reader).
+   * The pinyin hangs out of the flow, so the layout of the text is the same without it.
+   */
+  lazyPinyin?: boolean;
 }
 
 export interface ChapterView {
@@ -40,12 +47,20 @@ export interface ChapterView {
   blocks: BlockState[];
   /** Blocks added in front of the stored ones (the chapter title), for progress bookkeeping. */
   synthetic: number;
+  /** A place in this view (block number, offset in that block) as the stored chapter spells it, for saved progress. */
+  toStored(block: number, offset: number): { block: number; offset: number };
+  /** The place in this view for a stored block number and offset (the reverse of `toStored`). */
+  fromStored(block: number, offset?: number): { block: number; offset: number };
   /** The chapter's title as stored. */
   title: string;
   /** Render blocks 0..index now. */
   renderTo(index: number): void;
   /** Render just this block now (it may be below unrendered ones). */
   ensure(index: number): void;
+  /** Draw the pinyin of a rendered block that was drawn without it (a no-op otherwise). */
+  ensurePinyin(index: number): void;
+  /** Blocks whose text could not be segmented are shown as plain text; how many so far. */
+  failedBlocks(): number;
   /** Render the rest of the chapter in idle time; resolves when every block is drawn. */
   renderRest(): Promise<void>;
   /** Text blocks as elements, in order (for selection mapping). */
@@ -70,6 +85,43 @@ export interface ChapterView {
 
 const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
+/**
+ * The longest a paragraph is allowed to be as one block. A book with no paragraph breaks (a whole page of verse, a
+ * pasted wall of text) would otherwise be one block of tens of thousands of characters that cannot be paginated in
+ * pieces. The pieces break after a sentence end where there is one.
+ */
+export const MAX_BLOCK_CHARS = 3000;
+
+/** A paragraph this short is verse or a line of dialogue: its lines are balanced rather than filled. */
+const SHORT_PARAGRAPH = 28;
+
+const SENTENCE_END = '。！？；\n';
+const CLAUSE_END = '，、：,;';
+const CLOSERS = '”’」』）》】';
+
+/** Cut `text` into pieces of at most about MAX_BLOCK_CHARS, after sentence ends where possible. Joined, they equal `text`. */
+export function splitLongText(text: string, max = MAX_BLOCK_CHARS): string[] {
+  if (text.length <= max) return [text];
+  const out: string[] = [];
+  let rest = text;
+  while (rest.length > max) {
+    const win = rest.slice(0, max);
+    const last = (chars: string) => Math.max(...[...chars].map((c) => win.lastIndexOf(c)));
+    let cut = last(SENTENCE_END);
+    if (cut < max * 0.4) cut = Math.max(cut, last(CLAUSE_END));
+    let at = cut >= max * 0.3 ? cut + 1 : max;
+    while (at < rest.length && at < max + 8 && CLOSERS.includes(rest[at])) at++;
+    const prev = rest.charCodeAt(at - 1);
+    if (prev >= 0xd800 && prev <= 0xdbff) at++; // never split a surrogate pair
+    out.push(rest.slice(0, at));
+    rest = rest.slice(at);
+  }
+  if (rest) out.push(rest);
+  return out;
+}
+
+interface SourcePiece { block: Block; src: number; start: number; cont: boolean; more: boolean }
+
 function schedule(fn: () => void): void {
   const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
   if (w.requestIdleCallback) w.requestIdleCallback(fn, { timeout: 250 });
@@ -87,14 +139,25 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
 
   // The title is shown as a heading unless the first block already says it.
   const first = chapter.blocks[0];
-  const sourceBlocks: Block[] = [...chapter.blocks];
+  const pieces: SourcePiece[] = [];
+  chapter.blocks.forEach((block, src) => {
+    if ((block.t === 'p' || block.t === 'quote') && block.text.length > MAX_BLOCK_CHARS) {
+      let start = 0;
+      const parts = splitLongText(block.text);
+      parts.forEach((text, k) => {
+        pieces.push({ block: { ...block, text }, src, start, cont: k > 0, more: k < parts.length - 1 });
+        start += text.length;
+      });
+    } else pieces.push({ block, src, start: 0, cont: false, more: false });
+  });
   let synthetic = 0;
   const title = chapter.title?.trim();
   const firstText = first && (first.t === 'h' || first.t === 'p') ? first.text.trim() : '';
   if (title && !(first && first.t === 'h' && (firstText === title || firstText.includes(title) || title.includes(firstText)))) {
-    sourceBlocks.unshift({ t: 'h', level: 1, text: title });
+    pieces.unshift({ block: { t: 'h', level: 1, text: title }, src: -1, start: 0, cont: false, more: false });
     synthetic = 1;
   }
+  const sourceBlocks: Block[] = pieces.map((x) => x.block);
 
   // ---- visibility rule, memoized per word until known/saved words change
   const knownMemo = new Map<string, boolean>();
@@ -114,8 +177,10 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
   const visible = (t: Token) => pinyinVisible(t.text, rule());
   const renderOptions = (): RenderOptions => {
     const s = settings();
-    return { style: s.pinyinStyle, toneColors: s.toneColors, sandhi: s.sandhi, visible };
+    return { style: s.pinyinStyle, toneColors: s.toneColors, sandhi: s.sandhi, visible, words: true };
   };
+  const lazy = !!o.lazyPinyin;
+  let failed = 0;
 
   // Names and terms are stored as the book spells them; when the reader converts the script they convert too.
   let lexMemo: { lex: Lexicon | undefined; mode: string; out: Lexicon | undefined } | null = null;
@@ -138,6 +203,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
 
   // ---- shells
   const blocks: BlockState[] = sourceBlocks.map((block, index) => {
+    const piece = pieces[index];
     let el: HTMLElement;
     let kind: BlockState['kind'] = 'text';
     let text = '';
@@ -160,7 +226,10 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
         el = h('figure.rd-b.rd-fig', { 'data-b': index }, img);
         void store.books.assetUrl(o.bookId, block.asset).then((url) => {
           if (disposed) return;
-          if (url) img.src = url;
+          if (url) {
+            img.addEventListener('load', () => o.onResize?.(), { once: true });
+            img.src = url;
+          }
           else { img.remove(); el.appendChild(h('span.rd-img-missing', null, block.alt || 'Image not available')); }
         });
         break;
@@ -169,10 +238,12 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
         kind = 'hr';
         el = h('hr.rd-b.rd-hr', { 'data-b': index });
     }
-    if (kind === 'text' && /^[　 ]/.test(text)) el.classList.add('rd-noindent');
+    if (kind === 'text' && (piece.cont || /^[　 ]/.test(text))) el.classList.add('rd-noindent');
+    if (kind === 'text' && piece.more) el.classList.add('rd-more');
     if (kind === 'text' && !/[\p{Script=Han}]/u.test(text)) el.classList.add('rd-plain');
+    else if (kind === 'text' && block.t === 'p' && text.length <= SHORT_PARAGRAPH) el.classList.add('rd-short');
     article.appendChild(el);
-    return { index, kind, block, el, text, rendered: null, trans: null, transBtn: null };
+    return { index, kind, block, el, text, pieceStart: piece.start, rendered: null, trans: null, transBtn: null };
   });
   const sourceText = blocks.map((b) => b.text);
   blocks.forEach((b) => { if (b.kind === 'text') b.text = convert(b.text); });
@@ -182,12 +253,23 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
 
   function renderBlock(b: BlockState): void {
     if (b.rendered || b.kind !== 'text') return;
-    const tokens = segment(b.text, dict, shownLexicon());
-    const opts = renderOptions();
-    const shown = displayTokens(tokens, opts.sandhi);
-    const { nodes, views } = renderTokens(tokens, shown, opts);
-    b.el.appendChild(nodes);
-    b.rendered = { el: b.el, text: b.text, tokens, shown, views };
+    try {
+      const tokens = segment(b.text, dict, shownLexicon());
+      const opts = renderOptions();
+      const shown = displayTokens(tokens, opts.sandhi);
+      const { nodes, views } = renderTokens(tokens, shown, { ...opts, deferPinyin: lazy });
+      b.el.appendChild(nodes);
+      b.rendered = { el: b.el, text: b.text, tokens, shown, views, pinyinBuilt: lazy ? false : undefined };
+    } catch (e) {
+      // One bad paragraph must not take the chapter down: show it as plain text, without lookup.
+      failed++;
+      console.error('Could not set a paragraph', b.index, e);
+      while (b.el.firstChild) b.el.removeChild(b.el.firstChild);
+      b.el.appendChild(document.createTextNode(b.text));
+      b.el.classList.add('rd-plain');
+      b.rendered = { el: b.el, text: b.text, tokens: [], shown: [], views: [] };
+      return;
+    }
     markSaved(b);
     if (/[\p{Script=Han}]/u.test(b.text) && b.block.t !== 'h') addTranslateButton(b);
   }
@@ -250,6 +332,30 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     });
   }
 
+  function ensurePinyin(index: number): void {
+    const b = blocks[index];
+    if (!b?.rendered || b.rendered.pinyinBuilt !== false) return;
+    buildPinyin(b.rendered, renderOptions());
+  }
+
+  // ---- places that survive splitting
+  const toStored = (block: number, offset: number) => {
+    const b = blocks[Math.min(Math.max(block, 0), blocks.length - 1)];
+    const src = pieces[b?.index ?? 0]?.src ?? -1;
+    if (src < 0) return { block: 0, offset: 0 }; // the chapter title is not a stored block
+    return { block: src, offset: (b?.pieceStart ?? 0) + Math.max(0, offset) };
+  };
+  const fromStored = (stored: number, offset = 0) => {
+    // Pieces of one stored block are consecutive; the one holding the offset is the last that starts at or before it.
+    let hit = -1;
+    for (let i = 0; i < pieces.length; i++) {
+      if (pieces[i].src !== stored) { if (hit >= 0) break; continue; }
+      if (hit < 0 || pieces[i].start <= offset) hit = i;
+    }
+    if (hit < 0) return { block: Math.min(Math.max(stored + synthetic, 0), blocks.length - 1), offset: 0 };
+    return { block: hit, offset: Math.max(0, offset - pieces[hit].start) };
+  };
+
   // ---- queries
   const textElements = () => blocks.filter((b) => b.kind === 'text').map((b) => b.el);
 
@@ -276,10 +382,23 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
   }
 
   function mark(b: BlockState, start: number, end: number, cls: string): void {
-    const rubies = b.el.querySelectorAll<HTMLElement>('ruby.rd-c');
-    for (const r of rubies) {
-      const off = Number(r.dataset.o);
-      if (off >= start && off < end) { r.classList.add(cls); marked.push({ el: r, cls }); }
+    // Characters in the range, and the marks of punctuation between them, so a phrase is one band and not a row of chips.
+    let pending: HTMLElement[] = [];
+    let inside = false;
+    for (const el of b.el.querySelectorAll<HTMLElement>('ruby.rd-c, .rd-pu')) {
+      if (el.classList.contains('rd-pu')) { if (inside) pending.push(el); continue; }
+      const off = Number(el.dataset.o);
+      if (off >= start && off < end) {
+        for (const p of pending) { p.classList.add(cls); marked.push({ el: p, cls }); }
+        pending = [];
+        el.classList.add(cls);
+        marked.push({ el, cls });
+        inside = true;
+      } else {
+        pending = [];
+        inside = false;
+        if (off >= end) break;
+      }
     }
   }
 
@@ -328,9 +447,13 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     el: article,
     blocks,
     synthetic,
+    toStored,
+    fromStored,
     title: chapter.title?.trim() ?? '',
     renderTo,
     ensure(index) { const b = blocks[index]; if (b) renderBlock(b); },
+    ensurePinyin,
+    failedBlocks: () => failed,
     renderRest,
     textElements,
     blockOfNode,

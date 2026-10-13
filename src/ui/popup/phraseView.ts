@@ -1,7 +1,7 @@
 // The phrase popup's content: the selected text with pinyin, speak and copy, a streaming translation, and a
 // word-by-word list whose rows open the word popup.
 import type { Dictionary, Token } from '../../types';
-import { formatSyllable, toneOf } from '../../core/pinyin';
+import { properGroups } from '../../core/names';
 import { speak, stopSpeaking, canSpeak } from '../../speech/tts';
 import { h } from '../dom';
 import { icon } from '../icons';
@@ -10,6 +10,7 @@ import { plainDefinition, splitClassifiers } from './defs';
 import type { PopupHost } from './host';
 import type { PhrasePopupOptions } from './popup';
 import { addWordControl } from './bookCard';
+import { pinyinSpans } from './pinyinText';
 import { createTranslationPanel } from './translation';
 import { entriesForReading } from '../../core/reading';
 
@@ -82,14 +83,14 @@ export function mountPhraseView(
     h('div.pp-head-actions', null, speakBtn, copyBtn, closeBtn),
   );
 
-  const translation = createTranslationPanel({ ctx, text: o.text.replace(/\n+/g, '\n'), context: o.context, lexicon: o.lexicon, onResize: () => host.reposition() });
+  const translation = createTranslationPanel({ ctx, text: o.text.replace(/\n+/g, '\n'), context: o.context, lexicon: o.lexicon, onResize: () => host.reposition(), hasWordList: rows.length > 0 });
 
   // Word by word
   const list = h('div.pp-wbw-list');
   const renderRows = (upTo: number) => {
     list.textContent = '';
     rows.slice(0, upTo).forEach((r) => {
-      const first = entriesForReading(dict.lookup(r.word), r.syllables)[0];
+      const first = entriesForReading(dict.lookup(r.word), r.syllables, r.word, { prev: r.prev, next: r.next })[0];
       const own = o.lexicon && (o.lexicon.get(r.word) || o.lexicon.get(dict.toSimplified(r.word)) || o.lexicon.get(dict.toTraditional(r.word)));
       let gloss = '';
       if (own?.gloss) gloss = own.gloss;
@@ -99,14 +100,9 @@ export function mountPhraseView(
       } else if ([...r.word].length === 1) {
         gloss = dict.char(r.word)?.definition.split(';')[0].trim() ?? '';
       }
-      const py = h('span.pp-py', null);
-      r.syllables.filter(Boolean).forEach((s, i) => {
-        const lower = s.toLowerCase();
-        const span = h('span.pp-syl', null, formatSyllable(lower, settings.pinyinStyle));
-        if (settings.toneColors) span.classList.add(`tone-${toneOf(lower)}`);
-        if (i) py.appendChild(document.createTextNode(' '));
-        py.appendChild(span);
-      });
+      // A name of the book or a proper noun of the dictionary is written with capitals (Guō Jìng, Cáo Cāo); a word, as it is.
+      const proper = own ? null : properGroups(dict.lookup(r.word), r.syllables);
+      const py = pinyinSpans(ctx, r.syllables, own ? { kind: own.kind, word: r.word } : proper ? { kind: 'name', word: r.word, groups: proper } : undefined);
       list.appendChild(h('button.pp-wbw', {
         onclick: (e: Event) => openWord(r, (e.currentTarget as HTMLElement).getBoundingClientRect()),
       }, h('span.pp-wbw-word.zh', null, r.word), py, h('span.pp-wbw-gloss', null, gloss)));
@@ -129,13 +125,15 @@ export function mountPhraseView(
 
   host.content.append(
     head,
+    // The translation is the one thing a reader selected a phrase for, so it comes first: on a sheet that is not tall it
+    // would otherwise sit under the repeated pinyin and the Read button, below the fold.
     h('div.pp-body', null,
+      translation.el,
       textBox,
       o.onReadFromHere && canSpeak() ? h('div.pp-read-from', null,
         h('button.btn.btn-sm', { type: 'button', title: 'Start at this selection and continue to the end of the chapter',
           onclick: () => { host.close(); o.onReadFromHere!(); } }, icon('play'), 'Read from here')) : null,
       addWord,
-      translation.el,
       rows.length ? h('section.pp-wbw-sec', null,
         h('span.pp-section', null, 'Word by word'),
         h('p.pp-wbw-note.muted', null, 'These are dictionary starting meanings, not context-selected meanings. Ordinary meanings lead unless the book supplies a name. Tap a word for all senses.'),

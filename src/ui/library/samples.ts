@@ -75,7 +75,15 @@ export async function loadSampleBook(
   importText: (text: string, title?: string, author?: string) => ImportedBook,
   fetchFn: Fetch = (u) => fetch(u),
 ): Promise<ImportedBook> {
-  const res = await fetchFn(baseUrl() + encodeURIComponent(s.file));
+  let res: Awaited<ReturnType<Fetch>>;
+  try {
+    res = await fetchFn(baseUrl() + encodeURIComponent(s.file));
+  } catch {
+    // The request never got an answer: offline, and this classic was not stored by an earlier visit.
+    throw new Error(typeof navigator !== 'undefined' && navigator.onLine === false
+      ? 'You are offline. Connect once to add this classic.'
+      : `Could not download “${s.title}”. Check your connection and try again.`);
+  }
   if (!res.ok) throw new Error(`Could not download “${s.title}”. Check your connection and try again.`);
   const text = await res.text();
   if (/^\s*<(?:!doctype|html)/i.test(text)) throw new Error(`“${s.title}” is not available right now.`);

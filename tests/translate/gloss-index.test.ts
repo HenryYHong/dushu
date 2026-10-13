@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { glossText, createGlossTranslator, type GlossDeps } from '../../src/translate/gloss';
 import { getTranslator, listTranslators, pickTranslator } from '../../src/translate';
+import { resetClaudeStatus } from '../../src/translate/claude';
 import type { Dictionary, Settings, Token } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
 
@@ -58,9 +59,27 @@ describe('gloss', () => {
   });
 });
 
-const base = { translator: 'auto', claudeApiKey: '', claudeModel: '' } as Settings;
+const base = { translator: 'auto', claudeModel: 'claude-sonnet-5-5', localOnly: false } as Settings;
 const g = globalThis as { Translator?: unknown };
-afterEach(() => { delete g.Translator; vi.unstubAllGlobals(); });
+type Mac = { claude?: object | 'down' | 'denied'; models?: string[] };
+/** A Mac on the page's own origin: Claude status and the local model's tag list, and a log of every path asked. */
+function mac({ claude = 'down', models = [] }: Mac = {}) {
+  const asked: string[] = [];
+  vi.stubGlobal('location', { hostname: 'localhost', protocol: 'http:', origin: 'http://localhost:5240' });
+  vi.stubGlobal('fetch', async (url: string) => {
+    asked.push(url);
+    if (url === '/api/claude/status') {
+      if (claude === 'down') throw new TypeError('Failed to fetch');
+      if (claude === 'denied') return new Response(null, { status: 403 });
+      return new Response(JSON.stringify(claude), { headers: { 'Content-Type': 'application/json' } });
+    }
+    if (url === '/api/local-model/api/tags') return { ok: true, json: async () => ({ models: models.map(name => ({ name })) }) };
+    throw new Error(`unexpected request ${url}`);
+  });
+  return asked;
+}
+const claudeReady = { configured: true, limitReached: false };
+afterEach(() => { delete g.Translator; vi.unstubAllGlobals(); resetClaudeStatus(); });
 
 describe('pickTranslator', () => {
   it('auto with nothing ready is gloss', async () => {
@@ -69,24 +88,22 @@ describe('pickTranslator', () => {
   it('auto prefers chrome when ready or downloadable', async () => {
     for (const a of ['available', 'downloadable']) {
       g.Translator = { availability: async () => a, create: async () => ({}) };
-      expect((await pickTranslator({ ...base, claudeApiKey: 'k' }, dict)).id).toBe('chrome');
+      expect((await pickTranslator(base, dict)).id).toBe('chrome');
     }
   });
-  it('auto skips unavailable chrome and uses claude when a key is set', async () => {
+  it('auto skips unavailable chrome and ends at the gloss', async () => {
     g.Translator = { availability: async () => 'unavailable', create: async () => ({}) };
-    expect((await pickTranslator({ ...base, claudeApiKey: 'k' }, dict)).id).toBe('claude');
+    expect((await pickTranslator(base, dict)).id).toBe('gloss');
   });
   it('prefers the ready browser model and uses the local model while the browser model needs a download', async () => {
-    vi.stubGlobal('location', { hostname: 'localhost' });
-    vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => ({ models: [{ name: 'vaultbox/qwen3.5-uncensored:4b' }] }) }));
+    mac({ models: ['vaultbox/qwen3.5-uncensored:4b'] });
     g.Translator = { availability: async () => 'available', create: async () => ({}) };
     expect((await pickTranslator(base, dict)).id).toBe('chrome');
     g.Translator = { availability: async () => 'downloadable', create: async () => ({}) };
     expect((await pickTranslator(base, dict)).id).toBe('local');
   });
   it('prefers the evaluated local 9B model over a ready browser model', async () => {
-    vi.stubGlobal('location', { hostname: 'localhost' });
-    vi.stubGlobal('fetch', async () => ({ ok: true, json: async () => ({ models: [{ name: 'qwen3.5:9b-q4_K_M' }] }) }));
+    mac({ models: ['qwen3.5:9b-q4_K_M'] });
     g.Translator = { availability: async () => 'available', create: async () => ({}) };
     expect((await pickTranslator(base, dict)).id).toBe('local');
   });
@@ -98,9 +115,71 @@ describe('pickTranslator', () => {
     expect((await pickTranslator({ ...base, translator: 'claude' }, dict)).id).toBe('claude');
   });
   it('listTranslators returns all five with availability', async () => {
-    const list = await listTranslators({ ...base, claudeApiKey: 'k' }, dict);
+    const list = await listTranslators(base, dict);
     expect(list.map(x => x.translator.id)).toEqual(['local', 'chrome', 'claude', 'mymemory', 'gloss']);
-    expect(Object.fromEntries(list.map(x => [x.translator.id, x.availability]))).toMatchObject({ chrome: 'no', claude: 'yes', gloss: 'yes' });
+    expect(Object.fromEntries(list.map(x => [x.translator.id, x.availability]))).toMatchObject({ chrome: 'no', claude: 'no', gloss: 'yes' });
     expect(getTranslator('gloss', base, dict).id).toBe('gloss');
+  });
+});
+
+describe('automatic order: Claude through the Mac, local Qwen, Chrome, gloss', () => {
+  const chromeReady = () => { g.Translator = { availability: async () => 'available', create: async () => ({}) }; };
+
+  it('picks Claude first when the Mac has a key, even over the 9B model and a ready Chrome', async () => {
+    mac({ claude: claudeReady, models: ['qwen3.5:9b-q4_K_M'] });
+    chromeReady();
+    expect((await pickTranslator(base, dict)).id).toBe('claude');
+  });
+  it('then the local 9B model, then Chrome, then the dictionary', async () => {
+    chromeReady();
+    mac({ claude: { configured: false }, models: ['qwen3.5:9b-q4_K_M'] });
+    expect((await pickTranslator(base, dict)).id).toBe('local');
+    mac({ claude: { configured: false }, models: [] });
+    expect((await pickTranslator(base, dict)).id).toBe('chrome');
+    delete g.Translator;
+    resetClaudeStatus();
+    mac({ claude: { configured: false }, models: [] });
+    expect((await pickTranslator(base, dict)).id).toBe('gloss');
+  });
+  it('falls through when the Mac is off, refuses this device, or today\'s limit is used', async () => {
+    chromeReady();
+    for (const claude of ['down', 'denied', { ...claudeReady, limitReached: true }] as const) {
+      resetClaudeStatus();
+      mac({ claude, models: ['qwen3.5:9b-q4_K_M'] });
+      expect((await pickTranslator(base, dict)).id).toBe('local');
+    }
+  });
+  it('Local only never asks Claude and never picks it', async () => {
+    const asked = mac({ claude: claudeReady, models: ['qwen3.5:9b-q4_K_M'] });
+    chromeReady();
+    expect((await pickTranslator({ ...base, localOnly: true }, dict)).id).toBe('local');
+    const asked2 = mac({ claude: claudeReady, models: [] });
+    expect((await pickTranslator({ ...base, localOnly: true }, dict)).id).toBe('chrome');
+    expect(asked).not.toContain('/api/claude/status');
+    expect(asked2).not.toContain('/api/claude/status');
+  });
+  it('Local only turns Claude and MyMemory off in the list, and refuses to run them when chosen', async () => {
+    const asked = mac({ claude: claudeReady, models: [] });
+    const settings = { ...base, localOnly: true };
+    const list = await listTranslators(settings, dict);
+    expect(Object.fromEntries(list.map(x => [x.translator.id, x.availability]))).toMatchObject({ claude: 'no', mymemory: 'no', gloss: 'yes' });
+    for (const id of ['claude', 'mymemory'] as const) {
+      const picked = await pickTranslator({ ...settings, translator: id }, dict);
+      expect(picked.id).toBe(id);
+      await expect(picked.translate({ text: '你好', mode: 'translate' })).rejects.toThrow(/Local only is on/);
+    }
+    expect(asked.filter(u => u.includes('translate'))).toEqual([]);
+    const notLocal = await listTranslators(base, dict);
+    expect(notLocal.find(x => x.translator.id === 'mymemory')?.availability).toBe('yes');
+  });
+  it('after a failure that will repeat, the next automatic pick moves on to the local model', async () => {
+    mac({ claude: claudeReady, models: ['qwen3.5:9b-q4_K_M'] });
+    const first = await pickTranslator(base, dict);
+    expect(first.id).toBe('claude');
+    const fetchSoFar = globalThis.fetch;
+    vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => url === '/api/claude/translate'
+      ? new Response(JSON.stringify({ code: 'daily_limit', error: 'Used up.' }), { status: 429 }) : fetchSoFar(url, init));
+    await expect(first.translate({ text: '你好', mode: 'translate' })).rejects.toThrow('Used up.');
+    expect((await pickTranslator(base, dict)).id).toBe('local');
   });
 });

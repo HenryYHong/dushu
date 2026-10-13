@@ -1,11 +1,12 @@
 // Book covers: the real image when the book has one, otherwise a generated tinted cover with the title.
 import type { BookMeta, Store } from '../../types';
 import { h } from '../dom';
-import { coverHue, titleSize } from './format';
+import { coverHue, titleLayout } from './format';
 
 /** Generated cover. Pure DOM, no network; the tint comes from a hash of the title. */
 export function generatedCover(title: string, author: string, size: 'md' | 'sm' = 'md'): HTMLElement {
-  return h(`div.lib-cover.lib-cover-${size}`, { style: `--lib-hue:${coverHue(title, author)};--lib-fs:${titleSize(title)}cqw`, 'aria-hidden': 'true' },
+  const { size: fs, perLine } = titleLayout(title);
+  return h(`div.lib-cover.lib-cover-${size}`, { style: `--lib-hue:${coverHue(title, author)};--lib-fs:${fs}cqw;--lib-pl:${perLine}`, 'aria-hidden': 'true' },
     h('div.lib-cover-frame', null,
       h('div.lib-cover-title.zh', null, title),
       author ? h('div.lib-cover-author', null, author) : null));

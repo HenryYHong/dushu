@@ -55,7 +55,7 @@ try {
   await floating.tap();
   await page.getByRole('button', { name: 'Translate sentence', exact: true }).tap();
   const startingGloss = async word => page.locator('.pp-wbw').filter({ has: page.locator('.pp-wbw-word', { hasText: word }) }).locator('.pp-wbw-gloss').innerText();
-  assert(/red/i.test(await startingGloss('红')), 'poem gloss shows red, not surname Hong');
+  assert(/red/i.test(await startingGloss(/^[红紅]$/)), 'poem gloss shows red, not surname Hong');
   assert(/clear/i.test(await startingGloss('清')), 'poem gloss shows clear, not Qing dynasty');
   assert(/wave/i.test(await startingGloss('波')), 'poem gloss shows wave, not Poland');
   await page.getByRole('button', { name: 'Copy translation', exact: true }).waitFor({ timeout: 180000 });

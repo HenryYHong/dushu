@@ -6,14 +6,41 @@
   --rd-lh: 2.1;
   --rd-width: 760px;
   --rd-bar-h: 52px;
-  /* Even pinyin grid: set by the reader from the measured width of the longest syllable (see grid.ts). */
-  --rd-cell: 1.5;
-  --rd-pad: 0.25;
-  --rd-rt: 0.46;
+  /* Even pinyin grid: set by the reader from the measured width of a typical syllable (see grid.ts). A cell is 1.25 em
+     wide, the pinyin 10.5 px or more, and a paragraph is indented exactly two cells. */
+  --rd-cell: 1.25;
+  --rd-pad: 0.125;
+  --rd-rt: 0.477;
+  --rd-sq: 0.12;
+  --rd-indent: 2.5em;
+  --rd-zy-font: 'PingFang TC', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans TC', 'Noto Sans SC', 'Microsoft JhengHei', sans-serif;
+  /* The fold of a spread and the shading of a turning leaf, per theme (tokens.css is not touched). */
+  --rd-spine-core: rgba(52, 36, 10, 0.2);
+  --rd-spine-mid: rgba(52, 36, 10, 0.1);
+  --rd-spine-soft: rgba(52, 36, 10, 0.035);
+  --rd-spine-hi: rgba(255, 252, 244, 0.5);
+  --rd-shade: 24, 14, 0;
+  --rd-shade-k: 1;
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
   -webkit-tap-highlight-color: transparent;
+}
+:root[data-theme='sepia'] .rd-root {
+  --rd-spine-core: rgba(70, 40, 8, 0.26);
+  --rd-spine-mid: rgba(70, 40, 8, 0.14);
+  --rd-spine-soft: rgba(70, 40, 8, 0.05);
+  --rd-spine-hi: rgba(255, 244, 218, 0.45);
+  --rd-shade: 62, 36, 6;
+  --rd-shade-k: 1.1;
+}
+:root[data-theme='dark'] .rd-root {
+  --rd-spine-core: rgba(0, 0, 0, 0.62);
+  --rd-spine-mid: rgba(0, 0, 0, 0.36);
+  --rd-spine-soft: rgba(0, 0, 0, 0.14);
+  --rd-spine-hi: rgba(255, 255, 255, 0.07);
+  --rd-shade: 0, 0, 0;
+  --rd-shade-k: 1.6;
 }
 
 /* ---------- top bar ---------- */
@@ -23,9 +50,10 @@
   display: flex; align-items: center; gap: var(--space-2);
   padding: env(safe-area-inset-top, 0px) max(var(--space-3), env(safe-area-inset-right, 0px)) 0 max(var(--space-3), env(safe-area-inset-left, 0px));
   transition: transform 0.22s var(--ease), opacity 0.18s;
-  background: color-mix(in srgb, var(--bg) 90%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px);
-  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  /* Nearly opaque: scrolled text must not show through the title and the buttons. */
+  background: color-mix(in srgb, var(--bg) 97%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
   border-bottom: 1px solid var(--border);
 }
 .rd-back { flex: none; text-decoration: none; }
@@ -41,6 +69,8 @@
 .rd-pill:hover { background: var(--surface-2); }
 .rd-pill[aria-expanded='true'] { border-color: var(--accent); }
 .rd-pill .icon { width: 16px; height: 16px; color: var(--text-2); }
+/* The pinyin pill keeps one width whatever the mode is called, so the buttons beside it never move. */
+.rd-pinyin-btn { min-width: 110px; justify-content: center; position: relative; }
 .rd-aa { font-family: var(--font-serif); font-size: 15px; letter-spacing: 0.01em; }
 .rd-pct { min-width: 38px; text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--text-3); margin-left: 4px; }
 .rd-progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: transparent; }
@@ -59,8 +89,6 @@
 .rd-audio-on:not(.rd-paged) .rd-page { padding-bottom: 160px; }
 @media (pointer: coarse) { .rd-audio-speed { font-size: 16px; width: 64px; } }
 @media (max-width: 380px) {
-  .rd-pinyin-btn .rd-pill-label { display: none; }
-  .rd-pinyin-btn { padding-inline: 8px; }
   .rd-audio { gap: 5px; padding: 7px 8px; }
   .rd-audio-status { min-width: 72px; font-size: 12px; }
   .rd-audio-pause { min-width: 64px; padding-inline: 8px; }
@@ -81,14 +109,15 @@
   -webkit-user-select: text; user-select: text;
 }
 .rd-article ::selection { background: var(--hl-select); }
+/* Blocks the pager has not measured yet take no part in the layout. */
+.rd-paged .rd-wait { display: none; }
 
 /* ---------- even pinyin grid ----------
    A character is a plain inline box; its pinyin is taken out of the flow and centered over it, so it can never push
-   neighbors apart. With pinyin on, every character (and each full-width punctuation mark) fills the same cell. */
-.rd-article ruby, .rd-article .rd-c { display: inline; ruby-align: center; }
+   neighbors apart. With pinyin on, every character fills the same cell and each full-width mark takes half a cell. */
+.rd-article ruby, .rd-article .rd-c { display: inline; position: relative; ruby-align: center; }
 /* The pinyin hangs above its character: <rt> holds a span that is taken out of the flow and centered over the cell.
    (Safari will not position an <rt> itself, so the text sits in a span inside it.) */
-.rd-article ruby, .rd-article .rd-c { display: inline; position: relative; ruby-align: center; }
 .rd-article rt {
   display: inline;
   font-family: var(--font-pinyin);
@@ -103,8 +132,24 @@
   -webkit-user-select: none; user-select: none;
   pointer-events: none;
 }
+/* Zhuyin needs a font that has the symbols and a larger size; its cell is measured in that font. */
+.rd-zy .rd-article rt { font-family: var(--rd-zy-font); font-weight: 400; }
+/* In zhuyin the tone marks rise a little above the box of their symbols. On the first row of a column that ink is painted at the bottom
+   of the column before it (WebKit lays columns out as one long strip), as specks under the last line. Sitting a hair lower keeps it
+   inside its own row. */
+.rd-zy .rd-article .rd-rtx { bottom: calc(100% - 0.28em - 0.13em); }
+/* Tone colors: a little pulled toward the text color, so small pinyin does not turn into confetti. (These beat the
+   grey above; base.css's .tone-N alone would lose to `.rd-article rt`.) */
+.rd-article rt.tone-1 { color: color-mix(in srgb, var(--tone-1) 74%, var(--text)); }
+.rd-article rt.tone-2 { color: color-mix(in srgb, var(--tone-2) 74%, var(--text)); }
+.rd-article rt.tone-3 { color: color-mix(in srgb, var(--tone-3) 74%, var(--text)); }
+.rd-article rt.tone-4 { color: color-mix(in srgb, var(--tone-4) 74%, var(--text)); }
+.rd-article rt.tone-5 { color: color-mix(in srgb, var(--tone-5) 60%, var(--text)); }
 .rd-article .rd-rtx {
-  position: absolute; left: 50%; bottom: calc(100% - 0.28em); transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: calc(100% - 0.28em);
+  /* A syllable wider than the cell (zhuāng, shuāng, chuáng) is squeezed to fit it; --rd-w is its width per em, set only
+     on those. Without it the divisor is huge, so the scale is 1. */
+  transform: translateX(-50%) scaleX(max(0.72, min(1, calc((var(--rd-cell) - var(--rd-sq, 0.12)) / (var(--rd-w, 0.01) * var(--rd-rt))))));
   white-space: nowrap; text-align: center; padding: 0; margin: 0;
 }
 .rd-article rt:empty { display: none; }
@@ -113,16 +158,60 @@
 /* The cell is padding on both sides of the character, not letter-spacing: spacing that does not fit at the end of a
    line splits the character's box in two, and the pinyin then centers over the wrong half. */
 .rd-grid .rd-article .rd-c { padding: 0 calc(var(--rd-pad) * 1em); white-space: nowrap; }
-.rd-grid .rd-article .rd-pu-c { padding-right: calc(var(--rd-pad) * 2em); }
-.rd-grid .rd-article .rd-pu-o { padding-left: calc(var(--rd-pad) * 2em); }
+/* Full-width marks take half a cell. A closing mark has its ink on the left of its box and hugs the character before it;
+   an opening mark has its ink on the right, so its empty left half is pulled over the character before, and it hugs the one after. */
+.rd-grid .rd-article .rd-pu-c { letter-spacing: -0.5em; margin-left: calc(var(--rd-pad) * -0.9em); }
+.rd-grid .rd-article .rd-pu-o { margin-left: -0.5em; margin-right: calc(var(--rd-pad) * -0.9em); }
+/* Curly quotes are narrow proportional glyphs in most fonts, not full-width marks, so they must not be trimmed like the ones above:
+   that put an opening quote's ink on the colon before it and left a closing quote no box. Each one gets a box of exactly half a cell
+   from its measured advance (--rd-q-*, em; grid.ts): an opening quote's ink sits at the right of its half cell, hugging the
+   character after it, a closing quote's at the left. A full-width glyph (advance 1) comes out as the trimmed marks above, a narrow one
+   gets a little air on its outer side. Unmeasured (no layout) a quote counts as full-width. */
+.rd-pq-lsq { --rd-qw: var(--rd-q-lsq, 1); }
+.rd-pq-rsq { --rd-qw: var(--rd-q-rsq, 1); }
+.rd-pq-ldq { --rd-qw: var(--rd-q-ldq, 1); }
+.rd-pq-rdq { --rd-qw: var(--rd-q-rdq, 1); }
+.rd-grid .rd-article .rd-pu-qo { margin-left: calc((0.5 - var(--rd-qw)) * 1em); margin-right: calc(var(--rd-pad) * -0.9em); }
+.rd-grid .rd-article .rd-pu-qc { margin-left: calc(var(--rd-pad) * -0.9em); margin-right: calc((0.5 - var(--rd-qw)) * 1em); }
+/* The cell padding a closing mark hugs belongs to a character: after another mark there is none to take back. */
+.rd-grid .rd-article .rd-pu + .rd-pu-qc { margin-left: 0; }
+/* ！ is drawn in the middle of its box where ， 。 ？ sit at the left, so in a half cell it leaves a gap before it and touches the next
+   character. Move the ink (not the box) over to the left like the others; the selection band is moved back. */
+.rd-grid .rd-article .rd-pu-b { position: relative; left: -0.3em; }
+.rd-grid .rd-article .rd-pu-b.rd-sel::after { left: 0.3em; right: -0.3em; }
+/* Without the grid a browser that cannot trim the empty half of a full-width mark next to another (WebKit before text-spacing-trim) leaves a
+   half-cell hole in runs like 」。 and 」，. Take that half out the way the grid does; Chrome does it itself. */
+@supports not (text-spacing-trim: normal) {
+  .rd-root:not(.rd-grid) .rd-article .rd-pu-c:has(+ .rd-pu) { letter-spacing: -0.5em; }
+  .rd-root:not(.rd-grid) .rd-article .rd-pu-o + .rd-pu-o { margin-left: -0.5em; }
+}
+/* Characters set in a fallback font are drawn heavier and taller than Songti's: a touch smaller evens the line color
+   (the cell stays the same width). */
+.rd-article .rd-rare { font-size: 0.93em; }
+.rd-grid .rd-article .rd-rare { padding: 0 calc((var(--rd-cell) / 0.93 - 1) / 2 * 1em); }
+.rd-article .rd-rare rt { font-size: calc(var(--rd-rt) * 1em / 0.93); }
 
 .rd-b { position: relative; }
 .rd-p { margin: 0 0 0.55em; text-indent: 2em; }
-.rd-noindent, .rd-plain { text-indent: 0; }
+/* With the grid, the first line of a paragraph starts exactly two cells in. */
+.rd-grid .rd-p { text-indent: var(--rd-indent); }
+.rd-noindent, .rd-plain, .rd-grid .rd-noindent, .rd-grid .rd-plain { text-indent: 0; }
+.rd-more { margin-bottom: 0; }
+/* Pretty wrapping only helps a run of plain text (it keeps the last line from being one character). With the grid it must be
+   off: WebKit then ends every line a cell early, so the block looks pushed left and a phone wastes a fifth of its width. */
+.rd-p, .rd-quote { text-wrap: pretty; }
+.rd-grid .rd-p, .rd-grid .rd-quote { text-wrap: wrap; }
+/* Safari (the only engine with hanging-punctuation) does the same without the grid, so it never gets pretty. */
+@supports (hanging-punctuation: first) { .rd-p, .rd-quote { text-wrap: wrap; } }
+.rd-short, .rd-h { text-wrap: balance; }
 .rd-b.rd-speaking { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 4px; }
-.rd-article .rd-c.rd-speaking-word { background: var(--hl); border-radius: 3px; }
 .rd-quote { margin: 0.7em 0; padding: 0 0 0 1em; border-left: 3px solid var(--border); color: var(--text-2); }
+.rd-grid .rd-quote { padding-left: calc(var(--rd-cell) * 1em); }
 .rd-h { font-weight: 700; line-height: 1.6; margin: 1.8em 0 0.7em; text-indent: 0; }
+/* With pinyin a heading needs the room between lines that the text has (its pinyin is bigger too). */
+.rd-grid .rd-h { line-height: calc(var(--rd-lh) * 0.9); }
+/* A name in a heading is not split across two lines. */
+.rd-h .rd-w { white-space: nowrap; }
 .rd-h1 { font-size: 1.5em; text-align: center; margin-top: 0.4em; margin-bottom: 1.1em; }
 .rd-h2 { font-size: 1.3em; }
 .rd-h3 { font-size: 1.15em; }
@@ -133,12 +222,26 @@
 
 /* words */
 .rd-w { cursor: pointer; }
+.rd-w:focus { outline: none; }
+.rd-w:focus-visible, .rd-w.rd-cursor { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .rd-c { border-radius: 3px; }
 @media (hover: hover) {
   .rd-w.rd-dict:hover .rd-c { background: color-mix(in srgb, var(--hl) 55%, transparent); }
 }
-.rd-article .rd-c.rd-active { background: var(--hl); }
-.rd-article .rd-c.rd-sel { background: var(--hl-select); }
+/* The active word, a selected phrase and the word being read aloud are one band: from above the pinyin row to the
+   bottom of the character, across the cell padding, so a phrase is not a row of separate chips. */
+.rd-article .rd-c.rd-active, .rd-article .rd-c.rd-sel, .rd-article .rd-c.rd-speaking-word { background: none; }
+.rd-article .rd-c.rd-active::after, .rd-article .rd-c.rd-sel::after, .rd-article .rd-c.rd-speaking-word::after,
+.rd-article .rd-pu.rd-sel::after {
+  content: ''; position: absolute; left: 0; right: 0; top: -0.36em; bottom: -0.02em;
+  pointer-events: none; z-index: -1;
+}
+.rd-article .rd-c.rd-active::after { background: var(--hl); border-radius: 3px; }
+.rd-article .rd-c.rd-speaking-word::after { background: var(--hl); border-radius: 3px; }
+.rd-article .rd-c.rd-sel::after, .rd-article .rd-pu.rd-sel::after { background: var(--hl-select); border-radius: 0; }
+.rd-article .rd-pu.rd-sel { position: relative; }
+/* The pseudo-elements sit behind the text: each block makes its own stacking context so z-index: -1 stays inside it. */
+.rd-article .rd-b { isolation: isolate; }
 .rd-saved .rd-c { box-shadow: inset 0 -3px 0 -1px var(--saved); }
 
 /* paragraph translation */
@@ -153,7 +256,6 @@
 .rd-pt-btn:hover, .rd-pt-btn[aria-pressed='true'] { background: var(--surface-2); color: var(--accent); }
 .rd-pt-on .rd-pt-btn { display: inline-flex; opacity: 0; transition: opacity 0.12s; }
 .rd-pt-on .rd-b:hover > .rd-pt-btn, .rd-pt-on .rd-pt-btn:focus-visible, .rd-pt-on .rd-pt-btn[aria-pressed='true'] { opacity: 1; }
-@media (hover: none) { .rd-pt-on .rd-pt-btn { opacity: 0.55; } }
 .rd-trans {
   margin: -0.2em 0 1em; padding: 0; font-family: var(--font-ui); font-size: 15px; line-height: 1.5; text-indent: 0; letter-spacing: 0;
 }
@@ -166,6 +268,32 @@
 }
 .rd-end-note { flex: 0 0 100%; text-align: center; color: var(--text-3); margin: 0; }
 .rd-end .btn { height: 42px; padding: 0 20px; text-decoration: none; }
+
+/* A chapter that could not be shown: a plain message and a way out, never a blank page. */
+.rd-fail {
+  max-width: 460px; margin: 0 auto; padding: calc(var(--rd-bar-h) + 72px) var(--space-5) var(--space-6); text-align: center;
+}
+.rd-root.rd-paged .rd-fail {
+  position: absolute; inset: 0; z-index: 8; max-width: none; background: var(--bg); padding-top: calc(var(--rd-bar-h) + 72px);
+  display: flex; flex-direction: column; align-items: center;
+}
+.rd-fail h2 { margin: 0 0 var(--space-2); font-size: 20px; }
+.rd-fail p { margin: 0 0 var(--space-4); color: var(--text-2); line-height: 1.5; max-width: 420px; }
+.rd-fail-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; }
+.rd-fail .btn { height: 42px; padding: 0 16px; text-decoration: none; }
+
+/* The first-session hint. */
+.rd-coach {
+  position: fixed; z-index: 40; left: 50%; bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px)); transform: translateX(-50%);
+  width: min(460px, calc(100% - 24px)); padding: var(--space-3) var(--space-4); display: flex; align-items: flex-start; gap: var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow);
+  font: 14px/1.45 var(--font-ui); color: var(--text);
+  animation: rd-rise 0.28s var(--ease);
+}
+.rd-coach p { margin: 0 0 4px; }
+.rd-coach p:last-child { margin: 0; color: var(--text-2); }
+.rd-coach .btn { flex: none; height: 34px; }
+@keyframes rd-rise { from { opacity: 0; transform: translate(-50%, 10px); } }
 
 /* ---------- chapter drawer ---------- */
 .rd-toc-root { position: fixed; inset: 0; z-index: 70; }
@@ -182,25 +310,47 @@
 .rd-toc-filter { margin: 0 var(--space-4) var(--space-2); width: calc(100% - 2 * var(--space-4)); }
 .rd-toc-status { padding: 0 var(--space-4); font-size: 12.5px; color: var(--text-3); }
 .rd-toc-status:empty { display: none; }
-.rd-toc-list { list-style: none; margin: 0; padding: var(--space-2) var(--space-2) var(--space-5); overflow-y: auto; flex: 1; }
+.rd-toc-list { list-style: none; margin: 0; padding: var(--space-2) var(--space-2) var(--space-5); overflow-y: auto; flex: 1; position: relative; }
+/* Long books: only the rows near the window exist (see toc.ts); the sizer gives the scrollbar its true length. */
+.rd-toc-sizer { position: relative; width: 100%; }
+.rd-toc-row { position: absolute; left: 0; right: 0; }
 .rd-toc-item {
-  display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: var(--radius-s);
+  display: flex; align-items: center; gap: 10px; width: 100%; height: 100%; padding: 0 12px; border: 0; border-radius: var(--radius-s);
   background: transparent; text-align: left; cursor: pointer; color: var(--text);
 }
 .rd-toc-item:hover { background: var(--surface-2); }
 .rd-toc-item[aria-current='true'] { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
-.rd-toc-n { flex: none; min-width: 2.2em; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.rd-toc-t { font-family: var(--font-serif); font-size: 15.5px; line-height: 1.35; }
+.rd-toc-t { font-family: var(--font-serif); font-size: 15.5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rd-toc-none { padding: var(--space-4); color: var(--text-3); text-align: center; }
 @keyframes rd-fade { from { opacity: 0; } }
 @keyframes rd-slide { from { transform: translateX(-16px); opacity: 0.4; } }
 
 /* ---------- popover menus ---------- */
 .rd-pop {
-  position: fixed; z-index: 75; width: 340px; overflow-y: auto;
+  position: fixed; z-index: 75; width: 372px; overflow-y: auto; overscroll-behavior: contain;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-l); box-shadow: var(--shadow);
   padding: var(--space-2); animation: rd-fade 0.12s var(--ease);
 }
+.rd-pop:focus { outline: none; }
+/* A cue that there is more below. */
+.rd-pop.rd-pop-more::after {
+  content: ''; position: sticky; bottom: calc(var(--space-2) * -1); display: block; height: 36px; margin: -36px calc(var(--space-2) * -1) calc(var(--space-2) * -1); pointer-events: none;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--surface) 0%, transparent), var(--surface) 85%);
+}
+/* On a touch screen or a narrow one the menu is a bottom sheet: compact, with the top of the page left in view so a change shows. */
+.rd-pop.rd-sheet {
+  top: auto !important; bottom: 0; left: 50% !important; right: auto !important; width: min(560px, 100%) !important;
+  transform: translateX(-50%);
+  max-height: min(60dvh, 520px) !important; border-radius: var(--radius-l) var(--radius-l) 0 0; border-bottom: 0;
+  padding: 0 var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  animation: rd-sheet-up 0.2s var(--ease);
+  overflow-y: auto;
+}
+@keyframes rd-sheet-up { from { transform: translate(-50%, 24px); opacity: 0.5; } }
+.rd-grab { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; min-height: 36px; margin: 0 calc(var(--space-3) * -1); padding: 6px var(--space-3) 0; background: var(--surface); touch-action: none; }
+.rd-grab::before { content: ''; position: absolute; left: 50%; top: 8px; width: 38px; height: 5px; margin-left: -19px; border-radius: 3px; background: var(--border); }
+.rd-grab-title { font-size: 13px; font-weight: 700; color: var(--text-2); padding-top: 10px; }
+.rd-grab .btn { margin-top: 10px; height: 30px; padding: 0 12px; font-size: 13px; }
 .rd-menu { display: flex; flex-direction: column; gap: 2px; }
 .rd-opt {
   display: flex; flex-direction: column; align-items: flex-start; padding: 8px 10px; border: 0; border-radius: var(--radius-s);
@@ -222,16 +372,24 @@
 .rd-step-lg { width: 44px; height: 36px; font-family: var(--font-serif); }
 
 .rd-display { gap: 0; }
-.rd-row { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
-.rd-row-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 650; color: var(--text-2); }
-.rd-row-hint { font-weight: 400; font-size: 12px; color: var(--text-3); }
+.rd-sec { padding: 4px 0 6px; }
+.rd-sec + .rd-sec { border-top: 1px solid var(--border); padding-top: 8px; }
+.rd-sec-title { margin: 4px 10px 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+/* One line per setting: the name on the left, the control on the right, at least 44 px tall. */
+.rd-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 4px 10px; }
+.rd-row[hidden] { display: none; }
+.rd-row-label { display: flex; flex-direction: column; gap: 1px; flex: 0 0 auto; max-width: 52%; font-size: 13.5px; font-weight: 650; color: var(--text); }
+.rd-row-hint { font-weight: 400; font-size: 11.5px; line-height: 1.3; color: var(--text-3); }
+.rd-row-ctl { flex: 1 1 auto; min-width: 0; display: flex; justify-content: flex-end; align-items: center; }
+.rd-row-ctl > .rd-seg { flex: 1 1 auto; }
+.rd-row-ctl > .rd-slider-wrap { flex: 1 1 auto; }
 .rd-sep { border: 0; border-top: 1px solid var(--border); margin: 4px 8px; }
 .rd-size { display: flex; align-items: center; gap: 10px; }
-.rd-size-val { flex: 1; text-align: center; font-variant-numeric: tabular-nums; font-weight: 650; }
+.rd-size-val { min-width: 3.4em; text-align: center; font-variant-numeric: tabular-nums; font-weight: 650; font-size: 13px; }
 .rd-seg { display: flex; border: 1px solid var(--border); border-radius: var(--radius-s); overflow: hidden; }
 .rd-seg-btn {
-  flex: 1; min-height: 32px; padding: 0 8px; border: 0; border-left: 1px solid var(--border); background: var(--surface); color: var(--text-2);
-  font-size: 13px; font-weight: 600; cursor: pointer;
+  flex: 1; min-height: 34px; padding: 0 8px; border: 0; border-left: 1px solid var(--border); background: var(--surface); color: var(--text-2);
+  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
 .rd-seg-btn:first-child { border-left: 0; }
 .rd-seg-btn:hover { background: var(--surface-2); }
@@ -240,15 +398,15 @@
 .rd-f-sans { font-family: var(--font-sans); font-size: 15px; }
 .rd-f-kai { font-family: var(--font-kai); font-size: 15px; }
 .rd-slider-wrap { display: flex; align-items: center; gap: 10px; }
-.rd-slider { flex: 1; accent-color: var(--accent); }
+.rd-slider { flex: 1; min-width: 0; accent-color: var(--accent); height: 28px; }
 .rd-slider-out { min-width: 3.4em; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text-2); }
 .rd-switch {
-  position: relative; width: 40px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 12px;
-  background: var(--surface-3); cursor: pointer; align-self: flex-start;
+  position: relative; flex: none; width: 46px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 14px;
+  background: var(--surface-3); cursor: pointer;
 }
-.rd-switch-dot { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-s); transition: transform 0.14s var(--ease); }
+.rd-switch-dot { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-s); transition: transform 0.14s var(--ease); }
 .rd-switch[aria-checked='true'] { background: var(--accent); border-color: var(--accent); }
-.rd-switch[aria-checked='true'] .rd-switch-dot { transform: translateX(16px); }
+.rd-switch[aria-checked='true'] .rd-switch-dot { transform: translateX(18px); }
 
 /* ---------- shortcuts sheet ---------- */
 .rd-keys-body { padding: var(--space-4) var(--space-5) var(--space-5); }
@@ -273,9 +431,15 @@
   .rd-pt-btn { right: -1.7rem; }
   .rd-page { padding-top: calc(var(--rd-bar-h) + 16px); }
   .rd-toc-t { font-size: 16px; }
-}
-@media (min-width: 381px) and (max-width: 400px) {
-  .rd-pinyin-btn .icon { display: none; }
+  /* In the bar the pinyin button is just the eye and Aa is just "Aa": the mode is in the eye (shut = off) and the dot. */
+  .rd-pinyin-btn { min-width: 0; width: 38px; padding: 0; justify-content: center; }
+  .rd-pinyin-btn .rd-pill-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .rd-pinyin-btn[data-mode='unknown']::after, .rd-pinyin-btn[data-mode='hsk']::after {
+    content: ''; position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); border: 1.5px solid var(--surface);
+  }
+  .rd-pinyin-btn[data-mode='hsk']::after { background: var(--ink); }
+  .rd-aa-btn { width: 38px; padding: 0; justify-content: center; }
 }
 
 /* ======================================================================
@@ -287,15 +451,21 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   overscroll-behavior: none;
   height: 100vh; height: 100dvh;
 }
+/* In Pages nothing scrolls under the bar except while the page is lifted for a word card, and then the big title and the pinyin
+   showed through it as ghosts. The bar is a solid sheet there (no blur to pay for during turns either). */
+.rd-paged .rd-bar { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
 .rd-chrome-off .rd-bar { transform: translateY(-100%); opacity: 0; visibility: hidden; transition: transform 0.22s var(--ease), opacity 0.18s, visibility 0s 0.22s; }
 
 .rd-stage {
   position: absolute; inset: 0; overflow: hidden; overflow: clip;
-  touch-action: none;
+  /* Swipes sideways are ours; vertical drags and pinch-zoom stay the browser's. */
+  touch-action: pan-y pinch-zoom;
   background: var(--bg);
   --pg-w: 1000px; --pg-h: 700px; --pg-paper: 1000px; --pg-cw: 640px; --pg-gap: 120px; --pg-left: 180px;
-  --pg-top: 60px; --pg-th: 580px; --pg-cols: 1; --pg-header-top: 22px; --pg-footer-bottom: 18px;
+  --pg-top: 66px; --pg-th: 580px; --pg-cols: 1; --pg-header-top: 22px; --pg-footer-bottom: 18px;
 }
+.rd-stage:focus { outline: none; }
+.rd-stage:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
 .rd-pager { position: absolute; inset: 0; overflow: hidden; overflow: clip; }
 .rd-safe {
   position: absolute; left: 0; top: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
@@ -313,18 +483,25 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   visibility: hidden; pointer-events: none;
 }
 .rd-root .rd-article.rd-paged.rd-live { visibility: visible; pointer-events: auto; }
-.rd-turning .rd-article.rd-paged.rd-live { will-change: transform; }
+/* While the pages are being set again the old picture would only be wrong. */
+.rd-measuring .rd-article.rd-paged.rd-live { opacity: 0; }
+/* Only a slide moves the chapter itself, and only then is it worth a layer of its own (it is as wide as every page of the chapter). */
+.rd-stage[data-turn='slide'] .rd-article.rd-paged.rd-live { will-change: transform; }
 .rd-paged .rd-p { margin: 0; text-indent: 2em; }
-.rd-paged .rd-noindent, .rd-paged .rd-plain { text-indent: 0; }
+.rd-paged.rd-grid .rd-p, .rd-grid .rd-paged .rd-p { text-indent: var(--rd-indent); }
+.rd-paged .rd-noindent, .rd-paged .rd-plain, .rd-grid .rd-paged .rd-noindent, .rd-grid .rd-paged .rd-plain { text-indent: 0; }
 .rd-paged .rd-quote { margin: 0.5em 0; }
 .rd-paged .rd-h { break-after: avoid; break-inside: avoid; margin: 1.2em 0 0.6em; }
-.rd-paged .rd-h1 { margin: 0 0 1.1em; padding-top: 1.4em; font-size: 1.45em; }
+/* No extra air above the chapter title: the first line of a chapter's opening page sits level with the facing page. */
+.rd-paged .rd-h1 { margin: 0 0 1.1em; padding-top: 0; font-size: 1.45em; }
 .rd-paged .rd-fig { break-inside: avoid; margin: 0.6em 0; }
+/* The first block of a chapter starts at the top line of its page, level with the page facing it. */
+.rd-root .rd-article.rd-paged > .rd-b:first-child { margin-top: 0; }
 .rd-paged .rd-img { max-height: calc(var(--rd-text-h, 520px) - 3em); max-width: 100%; width: auto; object-fit: contain; }
 .rd-paged .rd-hr { margin: 1.2em auto; }
 .rd-paged .rd-pt-btn, .rd-paged .rd-trans { display: none !important; }
 
-/* Page header and footer (quiet, like a printed book). */
+/* Page header and footer (quiet, like a printed book). The folio sits on the outer edge of each page. */
 .rd-hf { position: absolute; inset: 0; pointer-events: none; z-index: 2; transition: opacity 0.12s; }
 .rd-pc-slot { position: absolute; top: 0; height: 100%; }
 .rd-pc { position: absolute; inset: 0; pointer-events: none; }
@@ -335,23 +512,48 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 }
 .rd-hdr { top: var(--pg-header-top); text-align: center; white-space: nowrap; overflow: hidden; }
 .rd-hdr span { display: block; overflow: hidden; text-overflow: ellipsis; }
-.rd-ftr { bottom: var(--pg-footer-bottom); display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+.rd-ftr { bottom: var(--pg-footer-bottom); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-variant-numeric: tabular-nums; }
+.rd-ftr[data-side='right'] { flex-direction: row-reverse; }
+.rd-ftr[data-side='left'] { justify-content: flex-start; }
+.rd-ftr-next {
+  pointer-events: auto; border: 0; background: transparent; padding: 6px 0 6px 12px; margin: -6px 0; font: inherit; letter-spacing: inherit;
+  color: var(--ink); cursor: pointer; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rd-ftr-next:hover { text-decoration: underline; }
 .rd-chrome-off .rd-hdr { opacity: 1; }
 .rd-root:not(.rd-chrome-off) .rd-hdr { opacity: 0; }
 @media (max-width: 520px) { .rd-ftr-left { font-size: 11px; } }
 
-/* The fold in the middle of a spread. */
+/* The blank page after the last page of a chapter: a quiet mark and the way on. */
+.rd-endcard {
+  position: absolute; left: var(--pg-left); width: var(--pg-cw); top: var(--pg-top); height: var(--pg-th);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; pointer-events: none;
+}
+.rd-endmark { width: 36px; height: 1px; background: var(--border); position: relative; }
+.rd-endmark::after { content: ''; position: absolute; left: 50%; top: -3px; width: 7px; height: 7px; margin-left: -3.5px; transform: rotate(45deg); background: var(--bg); border: 1px solid var(--text-3); }
+.rd-endnote { margin: 0; font: 13px/1.4 var(--font-ui); color: var(--text-3); }
+.rd-endbtn {
+  pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; max-width: 100%; padding: 0 18px;
+  border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--ink); text-decoration: none;
+  font: 600 14px/1.2 var(--font-ui); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rd-endbtn:hover { background: var(--surface-2); }
+/* The way on to the next chapter is the main thing to tap here: a full 44 px target under a finger. */
+@media (pointer: coarse) { .rd-endbtn { min-height: 44px; border-radius: 22px; } }
+
+/* The fold in the middle of a spread: a soft shadow on both sides, and a thin light line beside the crease. */
 .rd-spine {
   display: none; position: absolute; top: 0; bottom: 0; left: 50%; width: 120px; margin-left: -60px; z-index: 1; pointer-events: none;
   background: linear-gradient(to right,
     transparent 0%,
-    color-mix(in srgb, var(--text) 3%, transparent) 30%,
-    color-mix(in srgb, var(--text) 9%, transparent) 48.5%,
-    color-mix(in srgb, var(--text) 13%, transparent) 50%,
-    color-mix(in srgb, var(--text) 9%, transparent) 51.5%,
-    color-mix(in srgb, var(--text) 3%, transparent) 70%,
+    var(--rd-spine-soft) 30%,
+    var(--rd-spine-mid) 48.5%,
+    var(--rd-spine-core) 50%,
+    var(--rd-spine-mid) 51.5%,
+    var(--rd-spine-soft) 70%,
     transparent 100%);
 }
+.rd-spine::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(50% + 1px); width: 8px; background: linear-gradient(to right, var(--rd-spine-hi), transparent); }
 .rd-stage[data-per='2'] .rd-spine { display: block; }
 
 .rd-stage-busy {
@@ -360,23 +562,30 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-s);
   color: var(--text-3); font: 13px var(--font-ui);
 }
+.rd-stage-busy[hidden] { display: none; }
 
 /* ---------- page turn ---------- */
 .rd-turn { position: absolute; inset: 0; z-index: 4; pointer-events: none; transform-style: preserve-3d; }
-.rd-turn[hidden] { display: none; }
+/* A turn made ahead of time waits here, laid out but unseen. */
+.rd-turn[data-idle] { opacity: 0; }
+/* A turn that is over waits for its pictures to be taken apart: it takes no part in drawing meanwhile. */
+.rd-turn[data-spent] { display: none; }
 .rd-face { position: absolute; top: 0; height: 100%; width: var(--pg-paper); background: var(--bg); overflow: hidden; }
 .rd-face-static { z-index: 0; }
-.rd-leaf { position: absolute; top: 0; height: 100%; transform-origin: 0 50%; transform-style: preserve-3d; will-change: transform; z-index: 3; }
+.rd-leaf { position: absolute; top: 0; height: 100%; transform-origin: 0 50%; transform-style: preserve-3d; z-index: 3; }
+/* The layer is promoted only while the leaf moves, so its picture is made at the size it is shown at. */
+.rd-turning .rd-leaf { will-change: transform; }
 .rd-leaf > .rd-face { left: 0; width: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
 .rd-face-back { transform: rotateY(180deg); }
 .rd-under, .rd-aside { position: absolute; top: 0; height: 100%; z-index: 1; overflow: hidden; }
 .rd-shade { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
-.rd-shade-under { background: linear-gradient(to right, rgba(24, 14, 0, 0.30), rgba(24, 14, 0, 0.12) 34%, rgba(24, 14, 0, 0) 78%); }
-.rd-shade-aside { background: linear-gradient(to left, rgba(24, 14, 0, 0.30), rgba(24, 14, 0, 0.12) 34%, rgba(24, 14, 0, 0) 78%); }
-.rd-shade-front { background: linear-gradient(to right, rgba(24, 14, 0, 0), rgba(24, 14, 0, 0.34)); }
-.rd-shade-back { background: linear-gradient(to right, rgba(24, 14, 0, 0.34), rgba(24, 14, 0, 0.04) 70%, rgba(24, 14, 0, 0)); }
+.rd-shade-under { background: linear-gradient(to right, rgba(var(--rd-shade), calc(0.3 * var(--rd-shade-k))), rgba(var(--rd-shade), calc(0.12 * var(--rd-shade-k))) 34%, rgba(var(--rd-shade), 0) 78%); }
+.rd-shade-aside { background: linear-gradient(to left, rgba(var(--rd-shade), calc(0.22 * var(--rd-shade-k))), rgba(var(--rd-shade), calc(0.08 * var(--rd-shade-k))) 40%, rgba(var(--rd-shade), 0) 80%); }
+/* The front of the leaf darkens a little toward the edge that lifts, never to a flat gray. */
+.rd-shade-front { background: linear-gradient(to right, rgba(var(--rd-shade), 0) 20%, rgba(var(--rd-shade), calc(0.14 * var(--rd-shade-k)))); }
+.rd-shade-back { background: linear-gradient(to right, rgba(var(--rd-shade), calc(0.2 * var(--rd-shade-k))), rgba(var(--rd-shade), calc(0.03 * var(--rd-shade-k))) 60%, rgba(var(--rd-shade), 0)); }
 /* The edge of the sheet while it stands up. */
-.rd-leaf::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 1px; background: color-mix(in srgb, var(--text) 18%, transparent); transform: translateZ(0.5px); }
+.rd-leaf::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 1px; background: color-mix(in srgb, var(--text) 22%, transparent); transform: translateZ(0.5px); }
 
 /* A page copied for the turn animation: the same text laid out in the same column width. */
 .rd-root .rd-article.rd-clone {
@@ -385,6 +594,9 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 }
 .rd-frag { position: absolute; left: 0; right: 0; overflow: hidden; }
 .rd-clone .rd-pt-btn { display: none !important; }
+.rd-clone .rd-w { cursor: default; }
+/* The pictures made for a turn are never touched: their buttons (the end of a chapter) must not catch a tap meant for the page. */
+.rd-turn, .rd-turn * { pointer-events: none !important; }
 
 /* ---------- names and terms ---------- */
 .rd-toc-tabs { display: flex; gap: 4px; margin: 0 var(--space-4) var(--space-2); padding: 3px; border-radius: var(--radius); background: var(--surface-2); }
@@ -412,7 +624,8 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-sw-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .rd-sw-track { position: absolute; inset: 0; border-radius: 12px; background: var(--surface-3); transition: background 0.15s; pointer-events: none; }
 .rd-sw-thumb { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-s); transition: transform 0.15s var(--ease); }
-.rd-sw-input:checked + .rd-sw-track { background: var(--accent); }
+/* On is a quiet gray-blue; the red of the accent stays for the chapter you are in. */
+.rd-sw-input:checked + .rd-sw-track { background: color-mix(in srgb, var(--ink) 62%, var(--surface-3)); }
 .rd-sw-input:checked + .rd-sw-track .rd-sw-thumb { transform: translateX(16px); }
 .rd-sw-input:focus-visible + .rd-sw-track { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rd-sw-input:disabled + .rd-sw-track { opacity: 0.6; }
@@ -425,13 +638,22 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 @media (pointer: coarse) {
   .rd-pill { height: 38px; padding: 0 14px; }
   .rd-bar .icon-btn { width: 42px; height: 42px; }
-  .rd-toc-item { padding: 12px 10px; }
+  .rd-toc-item { padding: 0 12px; }
   .rd-name-main { padding: 12px 10px; }
-  .rd-seg-btn { min-height: 38px; }
+  .rd-seg-btn { min-height: 40px; }
   .rd-step { width: 40px; height: 40px; }
+  .rd-row { min-height: 48px; }
+  /* Bigger thumbs on the sliders. */
+  .rd-slider { height: 36px; }
+  .rd-slider::-webkit-slider-thumb { width: 26px; height: 26px; }
+  .rd-slider::-moz-range-thumb { width: 26px; height: 26px; }
+}
+@media (pointer: coarse) and (max-width: 640px) {
+  .rd-pinyin-btn, .rd-aa-btn { width: 42px; padding: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .rd-bar, .rd-hf { transition: none; }
+  .rd-pop, .rd-pop.rd-sheet, .rd-coach { animation: none; }
 }
 
 /* A sideways trackpad swipe turns the page; it must not also make the browser go Back. */

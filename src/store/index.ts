@@ -2,7 +2,8 @@
 import type {
   BackupReport, BookMeta, Chapter, Grade, ImportedBook, Progress, ReviewLog, Settings, SrsState, Store, VocabItem, LexiconEntry,
 } from '../types';
-import { newSrs, schedule } from '../core/srs';
+import { sanitizeSrs, schedule } from '../core/srs';
+import { sniffRaster } from '../import/imageType';
 import { TABLES, createIdbBackend, createMemoryBackend, friendlyError, type Backend, type Table } from './db';
 import { SETTINGS_KEY, sanitizePatch, sanitizeSettings } from './settings';
 
@@ -79,19 +80,9 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 const str = (v: unknown, d = '') => (typeof v === 'string' ? v : d);
 const fin = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 
-function cleanSrs(v: unknown, fallbackNow: number): SrsState {
-  const base = newSrs(fallbackNow);
-  if (!isObj(v)) return base;
-  const out: SrsState = {
-    due: fin(v.due, base.due),
-    interval: Math.max(0, fin(v.interval, 0)),
-    ease: Math.max(1.3, fin(v.ease, 2.5)),
-    reps: Math.max(0, Math.round(fin(v.reps, 0))),
-    lapses: Math.max(0, Math.round(fin(v.lapses, 0))),
-  };
-  if (typeof v.last === 'number' && Number.isFinite(v.last)) out.last = v.last;
-  return out;
-}
+/** Longest values a backup may put in a field. A longer key is refused; a longer note is cut. */
+const LIMITS = { key: 100, pinyin: 200, gloss: 2000, sentence: 1000, title: 200, word: 64 };
+const cut = (v: unknown, max: number) => str(v).slice(0, max);
 
 function cleanLexRow(v: unknown): LexRow | null {
   if (!isObj(v)) return null;
@@ -100,7 +91,7 @@ function cleanLexRow(v: unknown): LexRow | null {
   if (!word || !scope || word.length > 40) return null;
   const kind = v.kind === 'name' || v.kind === 'place' || v.kind === 'term' || v.kind === 'user' ? v.kind : 'user';
   const out: LexRow = {
-    scope, word, pinyin: str(v.pinyin), gloss: str(v.gloss), kind,
+    scope: scope.slice(0, LIMITS.key), word, pinyin: cut(v.pinyin, LIMITS.pinyin), gloss: cut(v.gloss, LIMITS.gloss), kind,
     enabled: v.enabled !== false, origin: v.origin === 'auto' ? 'auto' : 'user',
   };
   if (typeof v.count === 'number' && Number.isFinite(v.count)) out.count = v.count;
@@ -111,23 +102,25 @@ function cleanVocab(v: unknown): VocabItem | null {
   if (!isObj(v)) return null;
   const simp = str(v.simp) || str(v.id);
   const id = str(v.id) || simp;
-  if (!id) return null;
+  // A headword is a word, not a document: anything past the limit is not a real card.
+  if (!id || id.length > LIMITS.key || simp.length > LIMITS.key) return null;
   const addedAt = fin(v.addedAt, Date.now());
+  const trad = str(v.trad, simp || id);
   const item: VocabItem = {
-    id, simp: simp || id, trad: str(v.trad, simp || id), pinyin: str(v.pinyin), gloss: str(v.gloss),
-    addedAt, srs: cleanSrs(v.srs, addedAt),
+    id, simp: simp || id, trad: trad.length > LIMITS.key ? simp || id : trad, pinyin: cut(v.pinyin, LIMITS.pinyin),
+    gloss: cut(v.gloss, LIMITS.gloss), addedAt, srs: sanitizeSrs(v.srs, addedAt),
   };
   if (isObj(v.context) && typeof v.context.sentence === 'string') {
-    item.context = { sentence: v.context.sentence };
-    if (typeof v.context.bookId === 'string') item.context.bookId = v.context.bookId;
-    if (typeof v.context.bookTitle === 'string') item.context.bookTitle = v.context.bookTitle;
-    if (typeof v.context.chapter === 'number') item.context.chapter = v.context.chapter;
+    item.context = { sentence: v.context.sentence.slice(0, LIMITS.sentence) };
+    if (typeof v.context.bookId === 'string' && v.context.bookId.length <= LIMITS.key) item.context.bookId = v.context.bookId;
+    if (typeof v.context.bookTitle === 'string') item.context.bookTitle = v.context.bookTitle.slice(0, LIMITS.title);
+    if (typeof v.context.chapter === 'number' && Number.isFinite(v.context.chapter)) item.context.chapter = v.context.chapter;
   }
   return item;
 }
 
 function cleanProgress(v: unknown): Progress | null {
-  if (!isObj(v) || typeof v.bookId !== 'string' || !v.bookId) return null;
+  if (!isObj(v) || typeof v.bookId !== 'string' || !v.bookId || v.bookId.length > LIMITS.key) return null;
   const out: Progress = {
     bookId: v.bookId,
     chapter: Math.max(0, Math.round(fin(v.chapter, 0))),
@@ -144,10 +137,26 @@ const stamp = (v: VocabItem) => Math.max(v.srs.last ?? 0, v.addedAt);
 
 // -------------------------------------------------------------------- store ---
 
-export async function openStore(name = 'dushu'): Promise<Store> {
+/** How long IndexedDB gets to answer when the app starts. Some WebKit versions never answer at all. */
+export const IDB_OPEN_TIMEOUT_MS = 4000;
+
+/** Messages between tabs (or between stores of one name in one page) when something was saved. */
+interface ChangeMessage { db: string; from: string; what: 'vocab' | 'known' | 'books'; removed?: string }
+const CHANNEL = 'dushu';
+/** Used when BroadcastChannel does not exist: stores in the same page still hear each other. */
+const inPage = new Set<(m: ChangeMessage) => void>();
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`IndexedDB did not answer within ${Math.round(ms / 1000)} seconds`)), ms);
+    p.then((v) => { clearTimeout(timer); resolve(v); }, (e) => { clearTimeout(timer); reject(e); });
+  });
+}
+
+export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } = {}): Promise<Store> {
   let backend: Backend;
   try {
-    backend = await createIdbBackend(name);
+    backend = await withTimeout(createIdbBackend(name), opts.idbTimeoutMs ?? IDB_OPEN_TIMEOUT_MS);
     try { void navigator.storage?.persist?.(); } catch { /* best effort */ }
   } catch (e) {
     if ((e as { name?: string } | null)?.name === 'VersionError') {
@@ -160,11 +169,48 @@ export async function openStore(name = 'dushu'): Promise<Store> {
   const write = (ops: Parameters<Backend['commit']>[0]) => db.commit(ops).catch((e) => { throw friendlyError(e); });
 
   // ---- events
-  const listeners = new Set<(what: 'vocab' | 'known' | 'books') => void>();
-  const emit = (what: 'vocab' | 'known' | 'books') => {
+  const listeners = new Set<(what: 'vocab' | 'known' | 'books', info?: { remote: boolean }) => void>();
+  const notify = (what: 'vocab' | 'known' | 'books', remote: boolean) => {
     for (const fn of [...listeners]) {
-      try { fn(what); } catch (e) { console.error('store listener failed', e); }
+      try { fn(what, { remote }); } catch (e) { console.error('store listener failed', e); }
     }
+  };
+
+  // Other tabs: a save in one tab is announced to the rest, which reload what they keep in memory and tell their screens.
+  // A store that only lives in memory has nobody to talk to.
+  const tabId = newId();
+  let channel: BroadcastChannel | null = null;
+  const post = (m: ChangeMessage) => {
+    if (db.kind !== 'idb') return;
+    if (channel) { try { channel.postMessage(m); } catch { /* a closed channel: nothing to tell */ } }
+    else for (const fn of [...inPage]) fn(m);
+  };
+  const onRemote = async (m: ChangeMessage) => {
+    if (!m || typeof m !== 'object' || m.db !== name || m.from === tabId) return;
+    if (m.what !== 'vocab' && m.what !== 'known' && m.what !== 'books') return;
+    try {
+      if (m.what === 'vocab') rebuildVocab(await db.getAll<VocabItem>('vocab'));
+      else if (m.what === 'known') {
+        knownWords.clear();
+        for (const k of await db.getAll<{ word: string }>('known')) knownWords.add(k.word);
+        rebuildKnown();
+      } else if (typeof m.removed === 'string') dropUrls(m.removed);
+    } catch (e) { console.error('Dushu: could not refresh after a change in another tab', e); return; }
+    notify(m.what, true);
+  };
+  if (db.kind === 'idb') {
+    if (typeof BroadcastChannel === 'function') {
+      try {
+        channel = new BroadcastChannel(CHANNEL);
+        channel.onmessage = (ev: MessageEvent) => { void onRemote(ev.data as ChangeMessage); };
+        (channel as unknown as { unref?: () => void }).unref?.(); // Node: do not keep a process alive
+      } catch { channel = null; }
+    }
+    if (!channel) inPage.add((m) => { void onRemote(m); });
+  }
+  const emit = (what: 'vocab' | 'known' | 'books', removed?: string) => {
+    notify(what, false);
+    post(removed === undefined ? { db: name, from: tabId, what } : { db: name, from: tabId, what, removed });
   };
 
   // ---- in-memory membership for sync has()
@@ -207,6 +253,13 @@ export async function openStore(name = 'dushu'): Promise<Store> {
   // ---- assets
   const urls = new Map<string, Promise<string | undefined>>();
   const urlKey = (bookId: string, name: string) => JSON.stringify([bookId, name]);
+  const dropUrls = (bookId: string) => {
+    for (const [k, p] of [...urls]) {
+      if ((JSON.parse(k) as string[])[0] !== bookId) continue;
+      urls.delete(k);
+      void p.then((u) => { if (u) URL.revokeObjectURL(u); });
+    }
+  };
 
   const store: Store = {
     backend: db.kind,
@@ -268,9 +321,14 @@ export async function openStore(name = 'dushu'): Promise<Store> {
         if (book.note !== undefined) meta.note = book.note;
         // Assets are stored as bytes plus a type, not as Blobs: WebKit can hang forever on a Blob written to IndexedDB
         // (seen in an ephemeral Playwright context; Safari private windows are the same engine path).
-        const assetRows = await Promise.all([...book.assets].map(async ([name, blob]) => ({
-          op: 'put' as const, table: 'assets' as const, value: { bookId: id, name, data: await bytesOf(blob), type: blob.type },
-        })));
+        // The stored type is the one the bytes show, never the one the book declared; anything that is not a raster
+        // image (an SVG, which would run script if opened as a page) is not saved.
+        const assetRows: { op: 'put'; table: 'assets'; value: { bookId: string; name: string; data: ArrayBuffer; type: string } }[] = [];
+        for (const [name, blob] of book.assets) {
+          const data = await bytesOf(blob);
+          const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
+          if (type) assetRows.push({ op: 'put', table: 'assets', value: { bookId: id, name, data, type: type.mime } });
+        }
         await write([
           { op: 'put', table: 'books', value: meta },
           ...book.chapters.map((chapter, index) => ({ op: 'put' as const, table: 'chapters' as const, value: { bookId: id, index, chapter } })),
@@ -294,22 +352,22 @@ export async function openStore(name = 'dushu'): Promise<Store> {
           { op: 'del', table: 'lexiconScopes', key: id },
           { op: 'del', table: 'progress', key: id },
         ]);
-        for (const [k, p] of [...urls]) {
-          if ((JSON.parse(k) as string[])[0] !== id) continue;
-          urls.delete(k);
-          void p.then((u) => { if (u) URL.revokeObjectURL(u); });
-        }
-        emit('books');
+        dropUrls(id);
+        emit('books', id);
       },
       assetUrl(bookId, asset) {
         const key = urlKey(bookId, asset);
         let p = urls.get(key);
         if (!p) {
-          p = db.get<{ blob?: Blob; data?: ArrayBuffer; type?: string }>('assets', [bookId, asset]).then((rec) => {
+          p = db.get<{ blob?: Blob; data?: ArrayBuffer; type?: string }>('assets', [bookId, asset]).then(async (rec) => {
             if (!rec) return undefined;
-            // Rows written by an older version hold a Blob; newer ones hold bytes and a type.
-            const blob = rec.blob ?? (rec.data ? new Blob([rec.data], { type: rec.type ?? '' }) : null);
-            return blob ? URL.createObjectURL(blob) : undefined;
+            // Rows written by an older version hold a Blob; newer ones hold bytes and a type. Either way the type
+            // given to the object URL comes from the bytes: a stored SVG (from before SVGs were converted) or any other
+            // non-raster file gets no URL, because opened as its own page it would run with this app's origin.
+            const data = rec.data ?? (rec.blob ? await bytesOf(rec.blob) : undefined);
+            if (!data) return undefined;
+            const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
+            return type ? URL.createObjectURL(new Blob([data], { type: type.mime })) : undefined;
           });
           urls.set(key, p);
           // Do not cache misses or failures: the asset may be added later.
@@ -392,7 +450,7 @@ export async function openStore(name = 'dushu'): Promise<Store> {
       let settings: Partial<Settings> | undefined;
       try {
         const raw = globalThis.localStorage?.getItem(SETTINGS_KEY);
-        if (raw) { const { claudeApiKey: _key, ...rest } = sanitizeSettings(JSON.parse(raw)); void _key; settings = rest; }
+        if (raw) settings = sanitizeSettings(JSON.parse(raw));
       } catch { /* no settings to include */ }
       return JSON.stringify({
         app: 'dushu', version: 1, exportedAt: new Date().toISOString(),
@@ -441,7 +499,7 @@ export async function openStore(name = 'dushu'): Promise<Store> {
         }
 
         for (const w of Array.isArray(data.known) ? data.known : []) {
-          if (typeof w !== 'string' || !w.trim() || knownWords.has(w.trim())) continue;
+          if (typeof w !== 'string' || !w.trim() || w.trim().length > LIMITS.word || knownWords.has(w.trim())) continue;
           const word = w.trim();
           report.known.added++;
           ops.push({ op: 'put', table: 'known', value: { word } });
@@ -463,7 +521,7 @@ export async function openStore(name = 'dushu'): Promise<Store> {
 
         const seen = new Set((await db.getAll<ReviewLog>('reviews')).map((r) => `${r.itemId}|${r.at}|${r.grade}`));
         for (const raw of Array.isArray(data.reviews) ? data.reviews : []) {
-          if (!isObj(raw) || typeof raw.itemId !== 'string' || typeof raw.at !== 'number') continue;
+          if (!isObj(raw) || typeof raw.itemId !== 'string' || raw.itemId.length > LIMITS.key || typeof raw.at !== 'number' || !Number.isFinite(raw.at) || raw.at < 0 || raw.at > 8.64e15) continue;
           const grade = raw.grade;
           if (grade !== 0 && grade !== 1 && grade !== 2 && grade !== 3) continue;
           const k = `${raw.itemId}|${raw.at}|${grade}`;
@@ -486,8 +544,12 @@ export async function openStore(name = 'dushu'): Promise<Store> {
         }
 
         if (isObj(data.settings)) {
-          const { claudeApiKey: _k, ...rest } = sanitizePatch(data.settings);
-          void _k;
+          const rest = sanitizePatch(data.settings);
+          // Claude and MyMemory send the selected text to a third party; that is a choice made on this device, never
+          // one a file can make for you. The other translators stay on the device (or are the automatic choice).
+          if (rest.translator === 'claude' || rest.translator === 'mymemory') delete rest.translator;
+          // Local only is a promise about this device; a backup file can never turn it off.
+          delete rest.localOnly;
           report.settings = rest;
         }
 

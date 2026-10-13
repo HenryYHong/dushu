@@ -181,7 +181,7 @@ async function readText(records: Uint8Array[], h: Header, base: number, onTick: 
     const first = base + h.huffOffset;
     const huff = new HuffReader(records.slice(first, first + h.huffCount));
     unpack = (r) => huff.unpack(r);
-  } else throw new ImportError('This Kindle book uses a compression Dushu does not support.');
+  } else throw new ImportError(BROKEN); // a value that is none of the three real ones is a damaged header
 
   const last = Math.min(base + h.textRecords, records.length - 1);
   const pieces: Uint8Array[] = [];
@@ -306,8 +306,12 @@ export async function importMobi(data: Uint8Array, sourceName: string, onProgres
   for (let i = 0; i < count; i++) {
     const at = 78 + i * 8;
     if (at + 4 > data.length) throw new ImportError(BROKEN);
-    offsets.push(u32(data, at));
+    const o = u32(data, at);
+    // Records follow each other in the file; an offset that goes backwards (or repeats the first record's) means a damaged table.
+    if (i > 0 && o < offsets[i - 1]) throw new ImportError(BROKEN);
+    offsets.push(o);
   }
+  if (offsets[1] === offsets[0]) throw new ImportError(BROKEN);
   const records: Uint8Array[] = offsets.map((o, i) => {
     const end = i + 1 < offsets.length ? offsets[i + 1] : data.length;
     if (o > data.length) throw new ImportError(BROKEN);
@@ -367,7 +371,7 @@ export async function importMobi(data: Uint8Array, sourceName: string, onProgres
     const rec = records[recordIndex];
     if (!rec) return undefined;
     const type = imageType(rec);
-    return type ? store.add(`rec${recordIndex}`, `image-${String(recordIndex).padStart(5, '0')}.${type.ext}`, rec, type.mime) : undefined;
+    return type ? store.add(`rec${recordIndex}`, `image-${String(recordIndex).padStart(5, '0')}.${type.ext}`, rec) : undefined;
   };
 
   let chapters: Chapter[];

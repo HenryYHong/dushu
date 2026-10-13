@@ -10,12 +10,14 @@ import { dictionaryContextMeaning } from '../../translate/contextSense';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import {
-  codePointLabel, groupByReading, orderGroups, parseDefinition, plainDefinition, shortGloss, splitClassifiers, sameReading,
+  codePointLabel, groupByReading, leadGloss, orderGroups, parseDefinition, plainDefinition, shortGloss, splitClassifiers, sameReading,
   type Classifier, type ReadingGroup,
 } from './defs';
 import type { PopupHost } from './host';
 import { addWordControl, bookCard, type BookCardEnv } from './bookCard';
 import { createStrokeOrder } from './writer';
+import { pinyinSpans } from './pinyinText';
+import { properGroups } from '../../core/names';
 import type { WordPopupOptions } from './popup';
 import { entriesForReading } from '../../core/reading';
 
@@ -34,19 +36,7 @@ export interface WordView {
 
 const ONE_CHAR = (s: string) => [...s].length === 1;
 
-/** One syllable list as colored spans in the user's pinyin style. */
-export function pinyinSpans(ctx: AppContext, syllables: string[]): HTMLElement {
-  const { pinyinStyle, toneColors } = ctx.settings.get();
-  const box = h('span.pp-py');
-  syllables.filter(Boolean).forEach((s, i) => {
-    const lower = s.toLowerCase();
-    const span = h('span.pp-syl', null, formatSyllable(lower, pinyinStyle));
-    if (toneColors) span.classList.add(`tone-${toneOf(lower)}`);
-    if (i > 0) box.appendChild(document.createTextNode(' '));
-    box.appendChild(span);
-  });
-  return box;
-}
+export { pinyinSpans };
 
 const splitSyllables = (numbered: string) => numbered.split(/\s+/).filter(Boolean);
 
@@ -102,16 +92,16 @@ export function mountWordView(
     return [];
   }
 
+  /** The sense of a character that fits the reading beside it, never a surname, abbreviation or variant pointer. */
   function firstGloss(ch: string, syl = ''): string {
-    const e = entriesForReading(entriesFor(ch), [syl]);
-    for (const x of e) {
-      const { rest } = splitClassifiers(x.defs);
-      const d = rest.find((s) => !/^(variant of|old variant of|surname|see |also written)/i.test(s)) ?? rest[0];
-      if (d) return plainDefinition(d);
-    }
+    const lead = leadGloss(entriesForReading(entriesFor(ch), [syl], ch), ch);
+    if (lead) return lead;
     const info = dict.char(ch);
     return info?.definition.split(';')[0].trim() ?? '';
   }
+
+  /** The neighbors a sense can depend on (the 里 after a number is a distance), only for a word opened from the page. */
+  const aroundOf = (v: View) => (v.prev || v.next ? { prev: v.prev, next: v.next } : undefined);
 
   // ---- small builders
 
@@ -142,28 +132,45 @@ export function mountWordView(
     return line;
   }
 
-  function readingBlock(g: ReadingGroup, headTrad: string, inSentence: boolean): HTMLElement {
+  /** Definitions beyond this many sit behind a "more" button. */
+  const DEF_LIMIT = 4;
+
+  function readingBlock(g: ReadingGroup, headTrad: string, inSentence: boolean, showPinyin: boolean): HTMLElement {
     const { rest, classifiers } = splitClassifiers(g.defs);
-    const head = h('div.pp-reading-head', null, pinyinSpans(ctx, splitSyllables(g.pinyin)));
-    if (g.trad !== headTrad && g.trad !== g.simp) head.appendChild(h('span.pp-reading-trad.zh', null, g.trad));
-    if (inSentence) head.appendChild(h('span.chip.chip-accent', null, 'reading in this sentence'));
-    const block = h('section.pp-reading', null, head);
-    if (rest.length) block.appendChild(h('ol.pp-defs', null, rest.map(renderDef)));
+    const block = h('section.pp-reading');
+    // The reading in this sentence is already the line under the headword; saying it again just adds height.
+    if (showPinyin || inSentence) {
+      const head = h('div.pp-reading-head');
+      if (showPinyin) head.appendChild(pinyinSpans(ctx, splitSyllables(g.pinyin)));
+      if (g.trad !== headTrad && g.trad !== g.simp) head.appendChild(h('span.pp-reading-trad.zh', null, g.trad));
+      if (inSentence) head.appendChild(h('span.chip.chip-accent', null, 'reading in this sentence'));
+      block.appendChild(head);
+    }
+    if (rest.length) {
+      const items = rest.map(renderDef);
+      const list = h('ol.pp-defs', null, items.slice(0, DEF_LIMIT));
+      block.appendChild(list);
+      if (items.length > DEF_LIMIT) {
+        const more = h('button.pp-more-btn', { type: 'button', 'aria-expanded': 'false' }, `${items.length - DEF_LIMIT} more`) as HTMLButtonElement;
+        more.addEventListener('click', () => {
+          list.append(...items.slice(DEF_LIMIT));
+          more.remove();
+          host.reposition();
+        });
+        block.appendChild(more);
+      }
+    }
     if (classifiers.length) block.appendChild(classifierLine(classifiers));
     return block;
   }
 
+  /** One character of a word as a compact chip: glyph, its reading, a few words of meaning. Opens the character. */
   function charCard(ch: string, syl: string, v: View): HTMLElement {
-    const info = dict.char(ch);
     const gloss = firstGloss(ch, syl);
-    const meta: string[] = [];
-    if (info?.radical) meta.push(`radical ${info.radical.radicalChar || info.radical.char}`);
-    if (info?.strokes) meta.push(`${info.strokes} strokes`);
     return h('button.pp-card', { onclick: () => push(v), title: `Look up ${ch}` },
       h('span.pp-card-glyph.zh', null, ch),
       syl ? pinyinSpans(ctx, [syl]) : h('span.pp-py'),
       h('span.pp-card-gloss', null, gloss || 'No definition'),
-      h('span.pp-card-meta', null, meta.join(' · ')),
     );
   }
 
@@ -213,11 +220,22 @@ export function mountWordView(
 
   // ---- save / known
 
-  function headwords(v: View, entries: DictEntry[]) {
-    const e = entries.find((x) => x.simp === v.word || x.trad === v.word) ?? entries[0];
+  /**
+   * The simplified and traditional spellings of a word, from the entries that have the reading on screen: 了 as the particle
+   * le has no other spelling, and only the liǎo "understand" row is 瞭; 干 gàn is 幹 and 干 gān is 乾. With no reading to go
+   * by (or none that an entry has) every entry of the word is considered.
+   */
+  function headwords(v: View, entries: DictEntry[], syllables: string[] = contextSyllables(v)) {
+    const own = entries.filter((x) => x.simp === v.word || x.trad === v.word);
+    const shown = syllables.filter(Boolean).map((x) => x.toLowerCase());
+    const exact = shown.length ? own.filter((x) => sameReading(x.pinyin, shown)) : [];
+    const e = exact[0] ?? own[0] ?? entries[0];
     const simp = e ? e.simp : dict.toSimplified(v.word);
     const trad = e ? e.trad : v.word;
-    return { simp, trad: trad === simp ? '' : trad };
+    // Every spelling the matching rows give for this word, the one on screen aside (干 gān: 乾 and 干 itself).
+    const pool = exact.length ? exact : own;
+    const others = [...new Set(pool.flatMap((x) => [x.trad, x.simp]))].filter((f) => f !== v.word);
+    return { simp, trad: trad === simp ? '' : trad, others, matched: exact.length > 0 || !shown.length };
   }
 
   async function toggleSave(v: View) {
@@ -230,7 +248,7 @@ export function mountWordView(
     }
     const info = ONE_CHAR(v.word) ? dict.char(v.word) : null;
     const syllables = contextSyllables(v);
-    const gloss = bookEntry(v.word)?.gloss || shortGloss(entriesForReading(entries, syllables).slice(0, 1)) || shortGloss(entries) || info?.definition.split(';').slice(0, 2).join(';').trim() || '';
+    const gloss = bookEntry(v.word)?.gloss || shortGloss(entriesForReading(entries, syllables, v.word, aroundOf(v)).slice(0, 1), 120, true) || shortGloss(entries) || info?.definition.split(';').slice(0, 2).join(';').trim() || '';
     const item: VocabItem = {
       id: simp,
       simp,
@@ -267,8 +285,8 @@ export function mountWordView(
     const chars = [...v.word];
     const single = chars.length === 1;
     const info = single ? dict.char(v.word) : null;
-    const { simp, trad } = headwords(v, entries);
     const syllables = contextSyllables(v);
+    const { simp, trad, others, matched } = headwords(v, entries, syllables);
     const hsk = dict.hsk(simp);
     const root = h('div.pp-word-view');
 
@@ -293,29 +311,41 @@ export function mountWordView(
       ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement, v), title: 'Pronounce (P)', 'aria-label': 'Pronounce' }, icon('speaker'))
       : null;
     const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('close'));
+    // Translate sits beside Pronounce, Save and Known so it is found on a page of dense text, in a sheet or a card.
+    const translateBtn = o.context?.sentence && stack.length === 1
+      ? h('button.icon-btn.pp-translate', { type: 'button', title: 'Translate sentence', 'aria-label': 'Translate sentence',
+        onclick: (e: Event) => openPhrase(o.context!.sentence, (e.currentTarget as HTMLElement).getBoundingClientRect(), o.context?.paragraph ?? o.context!.sentence) },
+      icon('translate'))
+      : null;
 
+    // The headword is spelled the way the book spells it; the other script is the small one beside it.
+    const otherForm = !single ? (v.word === simp ? (trad && trad !== simp ? trad : '') : (simp && simp !== v.word ? simp : '')) : '';
     root.appendChild(h('header.pp-head', null,
       showBack ? h('button.icon-btn.pp-back', { onclick: back, title: 'Back', 'aria-label': 'Back' }, icon('arrowLeft')) : null,
       h('div.pp-title', null,
-        h('span.pp-word.zh', null, single ? v.word : simp || v.word),
-        trad && trad !== simp && !single ? h('span.pp-trad.zh', null, trad) : null,
+        h('span.pp-word.zh', null, v.word),
+        otherForm ? h('span.pp-trad.zh', null, otherForm) : null,
       ),
-      h('div.pp-head-actions', null, speakBtn, saveBtn, knownBtn, closeBtn),
+      h('div.pp-head-actions', null, speakBtn, translateBtn, saveBtn, knownBtn, closeBtn),
     ));
 
     const pyLine = h('div.pp-pyline');
-    if (syllables.length) pyLine.appendChild(pinyinSpans(ctx, syllables));
+    // A name or place of this book is capitalized and grouped (Guō Jìng, Táohuā Dǎo); a technique or a plain word is not.
+    const ownKind = bookEntry(v.word);
+    // A proper noun of the dictionary (曹操, 王维, 北京) is written the same way: Cáo Cāo, Wáng Wéi, Běijīng.
+    const proper = ownKind ? null : properGroups(entries, syllables);
+    if (syllables.length) pyLine.appendChild(pinyinSpans(ctx, syllables, ownKind ? { kind: ownKind.kind, word: v.word } : proper ? { kind: 'name', word: v.word, groups: proper } : undefined));
     if (hsk?.hsk3) pyLine.appendChild(h('span.chip', null, hsk.hsk3 >= 7 ? 'HSK 7-9' : `HSK ${hsk.hsk3}`));
     if (single) {
-      const other = v.word !== simp ? ['Simplified', [simp]] as const
-        : trad && trad !== v.word ? ['Traditional', [trad]] as const
-        : info?.traditional.length ? ['Traditional', info.traditional] as const
-        : info?.simplified.length ? ['Simplified', info.simplified] as const
-        : null;
-      if (other) pyLine.appendChild(h('span.pp-trad-note', null, other[0] + ' ', h('span.zh', null, other[1].join(' '))));
+      // Only the spellings that belong to the reading on screen: 了 (le) has none, 了 (liǎo) is also 瞭. A character that no
+      // row of the dictionary has (a rare one) keeps what the character table says.
+      const known = entries.length > 0;
+      const toSimp = v.word !== simp;
+      const forms = known ? (matched ? others : []) : (toSimp ? [simp] : info?.traditional.length ? info.traditional : info?.simplified ?? []);
+      const label = known ? (toSimp ? 'Simplified' : 'Traditional') : (toSimp || (!info?.traditional.length && info?.simplified.length) ? 'Simplified' : 'Traditional');
+      if (forms.length) pyLine.appendChild(h('span.pp-trad-note', null, label + ' ', h('span.zh', null, forms.join(' '))));
     }
     root.appendChild(pyLine);
-
 
     const body = h('div.pp-body');
     root.appendChild(body);
@@ -325,23 +355,60 @@ export function mountWordView(
     const env = cardEnv();
     if (own && env) body.appendChild(bookCard(env, own));
 
-    const senses = entriesForReading(entries, syllables).flatMap(e => splitClassifiers(e.defs).rest).map(plainDefinition).filter(Boolean);
+    const senses = entriesForReading(entries, syllables, v.word, aroundOf(v)).flatMap(e => splitClassifiers(e.defs).rest).map(plainDefinition).filter(Boolean);
     if (!senses.length && info?.definition) senses.push(...info.definition.split(/;\s*/).filter(Boolean));
     const hasTargetContext = !!o.context?.paragraph && [v.word, dict.toSimplified(v.word), dict.toTraditional(v.word)].some(w => o.context!.paragraph!.includes(w));
     const contextual = hasTargetContext && !own ? dictionaryContextMeaning(v.word, o.context!.paragraph!, senses) : null;
-    if (contextual) body.appendChild(h('section.pp-context', null,
+    // The dictionary meanings are what the card is for, so they come first. The context tools wait below them.
+    const contextTools: HTMLElement[] = [];
+    if (contextual) contextTools.push(h('section.pp-context', null,
       h('span.pp-section', null, 'In this sentence'), h('strong', null, contextual.meaning), h('p.pp-muted', null, contextual.reason)));
+
+    // A local model can suggest a contextual sense, but the dictionary stays visible for checking it.
+    if (!contextual && hasTargetContext && o.context?.sentence && o.context.paragraph && hasMacBridge()) {
+      if (senses.length) {
+        const result = h('div.pp-context-result');
+        const btn = h('button.btn.btn-sm', { type: 'button' }, icon('sparkle'), 'Ask local AI about context') as HTMLButtonElement;
+        btn.addEventListener('click', async () => {
+          meaningCtl?.abort();
+          const ctl = (meaningCtl = new AbortController());
+          btn.disabled = true;
+          result.replaceChildren(h('span.app-spinner'), ' Checking with your Mac…');
+          host.reposition();
+          try {
+            const suggestion = await suggestMeaning(v.word, o.context!.sentence, o.context!.paragraph!, senses, ctl.signal);
+            if (ctl.signal.aborted) return;
+            result.replaceChildren(
+              h('strong', null, suggestion.meaning),
+              // The English rationale can invent subjects. Show the exact dictionary sense
+              // and checked source quote, not a second, unverifiable AI paraphrase.
+              ...(suggestion.evidence ? [h('p.pp-muted.zh', null, `Context clue: “${suggestion.evidence}”`)] : []),
+              h('p.pp-muted', null, suggestion.confidence === 'medium' ? 'Tentative AI suggestion — check the surrounding passage.' : 'AI suggestion — not a verified definition.'),
+            );
+          } catch (e) {
+            if (ctl.signal.aborted) return;
+            result.textContent = e instanceof Error ? e.message : 'The local model could not answer.';
+            btn.disabled = false;
+          }
+          host.reposition();
+        });
+        // The suggestion carries its own "AI suggestion" line once there is one; nothing is said before that.
+        contextTools.push(h('section.pp-context', null, h('span.pp-section', null, 'Context'), btn, result));
+      }
+    }
 
     // Definitions per reading
     if (entries.length) {
-      const ordered = orderGroups(groupByReading(entriesForReading(entries, syllables)), v.reading ? splitSyllables(v.reading) : syllables);
+      const ordered = orderGroups(groupByReading(entriesForReading(entries, syllables, v.word, aroundOf(v))), v.reading ? splitSyllables(v.reading) : syllables);
       const hasContext = !!(o.context?.sentence || o.prev || o.next) && stack.length === 1;
       const flag = ordered.matched && hasContext && ordered.groups.some(g => !sameReading(g.pinyin, syllables));
       const ambiguous = ordered.groups.length > 1 || ordered.groups.some((g) => splitClassifiers(g.defs).rest.length > 1);
-      ordered.groups.forEach((g, i) => body.appendChild(readingBlock(g, trad, flag && i === 0)));
-      // The note points at Translate sentence, which comes right after the definitions.
-      if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note', null,
-        'These are dictionary meanings, not a choice of meaning for this sentence. Use Translate sentence to check the context.'));
+      ordered.groups.forEach((g, i) => {
+        // With one reading, the pinyin under the headword is that reading: do not print it a second time.
+        const repeated = ordered.groups.length === 1 && sameReading(g.pinyin, syllables);
+        body.appendChild(readingBlock(g, trad, flag && i === 0, !repeated));
+      });
+      if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note', null, 'Dictionary meanings, not a choice of meaning for this sentence.'));
     } else if (info) {
       const note = sourceNote(info, false);
       if (info.readings.length || info.definition) {
@@ -377,46 +444,14 @@ export function mountWordView(
       h('button.btn.btn-sm', { type: 'button', title: 'Start at this word and continue to the end of the chapter',
         onclick: () => { host.close(); o.onReadFromHere!(); } }, icon('play'), 'Read from here')));
     if (readingActions.childElementCount) body.appendChild(readingActions);
-
-    // A local model can suggest a contextual sense, but the dictionary stays visible for checking it.
-    if (!contextual && hasTargetContext && o.context?.sentence && o.context.paragraph && hasMacBridge()) {
-      if (senses.length) {
-        const result = h('div.pp-context-result');
-        const btn = h('button.btn.btn-sm', { type: 'button' }, icon('sparkle'), 'Ask local AI about context') as HTMLButtonElement;
-        btn.addEventListener('click', async () => {
-          meaningCtl?.abort();
-          const ctl = (meaningCtl = new AbortController());
-          btn.disabled = true;
-          result.replaceChildren(h('span.app-spinner'), ' Checking with your Mac…');
-          host.reposition();
-          try {
-            const suggestion = await suggestMeaning(v.word, o.context!.sentence, o.context!.paragraph!, senses, ctl.signal);
-            if (ctl.signal.aborted) return;
-            result.replaceChildren(
-              h('strong', null, suggestion.meaning),
-              // The English rationale can invent subjects. Show the exact dictionary sense
-              // and checked source quote, not a second, unverifiable AI paraphrase.
-              ...(suggestion.evidence ? [h('p.pp-muted.zh', null, `Context clue: “${suggestion.evidence}”`)] : []),
-              h('p.pp-muted', null, suggestion.confidence === 'medium' ? 'Tentative AI suggestion — check the surrounding passage.' : 'AI suggestion — not a verified definition.'),
-            );
-          } catch (e) {
-            if (ctl.signal.aborted) return;
-            result.textContent = e instanceof Error ? e.message : 'The local model could not answer.';
-            btn.disabled = false;
-          }
-          host.reposition();
-        });
-        body.appendChild(h('section.pp-context', null,
-          h('span.pp-section', null, 'Context'), btn, result,
-          h('p.pp-muted', null, 'AI suggestion; compare it with the dictionary senses.')));
-      }
-    }
+    body.append(...contextTools);
 
     // Character breakdown (multi-character words)
     if (!single) {
       const cards = h('div.pp-cards');
       const codePoints = chars;
-      const py = dict.pinyinFor(v.word, { prev: v.prev, next: v.next });
+      // The characters carry the reading shown above (a name's own reading: 华筝 huà zhēng, 靖儿 jìng ér), not a fresh guess.
+      const py = syllables.length === chars.length && syllables.every(Boolean) ? syllables : dict.pinyinFor(v.word, { prev: v.prev, next: v.next });
       codePoints.forEach((ch, i) => {
         const syl = py[i] || (dict.char(ch)?.readings[0] ? markedToNumbered(dict.char(ch)!.readings[0]) : '');
         cards.appendChild(charCard(ch, syl, { word: ch, prev: i > 0 ? codePoints[i - 1] : v.prev, next: i < codePoints.length - 1 ? codePoints[i + 1] : v.next }));
@@ -432,21 +467,23 @@ export function mountWordView(
 
     body.appendChild(links(v.word));
 
-    // Footer: stepping and sentence translation (reader only)
+    // Footer: stepping and resizing the selection (reader only). Sticky, so it is never clipped or scrolled away.
     const foot = h('footer.pp-foot');
     const atRoot = stack.length === 1;
     if (atRoot && (o.onStep || o.onResize)) {
-      const tools = h('div.pp-tools');
+      const seg = (label: string, title: string, run: () => void, lead: Node | null, trail: Node | null) =>
+        h('button.pp-seg-btn', { type: 'button', onclick: run, title }, lead, h('span', null, label), trail);
+      const tools = h('div.pp-tools.pp-seg', { role: 'group', 'aria-label': 'Move or resize the selection' });
       if (o.onStep) {
         tools.append(
-          h('button.btn.btn-sm.btn-ghost', { onclick: () => o.onStep!(-1), title: 'Previous word (Left arrow)' }, icon('chevronLeft'), 'Prev'),
-          h('button.btn.btn-sm.btn-ghost', { onclick: () => o.onStep!(1), title: 'Next word (Right arrow)' }, 'Next', icon('chevronRight')),
+          seg('Prev', 'Previous word (Left arrow)', () => o.onStep!(-1), icon('chevronLeft'), null),
+          seg('Next', 'Next word (Right arrow)', () => o.onStep!(1), null, icon('chevronRight')),
         );
       }
       if (o.onResize) {
         tools.append(
-          h('button.btn.btn-sm.btn-ghost', { onclick: () => o.onResize!(-1), title: 'Shorter (Shift+Left)' }, icon('minus'), 'Shorter'),
-          h('button.btn.btn-sm.btn-ghost', { onclick: () => o.onResize!(1), title: 'Longer (Shift+Right)' }, icon('plus'), 'Longer'),
+          seg('Shorter', 'Shorter (Shift+Left)', () => o.onResize!(-1), icon('minus'), null),
+          seg('Longer', 'Longer (Shift+Right)', () => o.onResize!(1), icon('plus'), null),
         );
       }
       foot.appendChild(tools);
@@ -461,7 +498,9 @@ export function mountWordView(
     refreshers.length = 0;
     clear(host.content);
     host.content.appendChild(build(top()));
-    host.el.scrollTop = 0;
+    host.scroller.scrollTop = 0;
+    // A view that replaced the element holding focus (drilling in, Back) keeps focus inside the dialog.
+    if (!host.el.contains(document.activeElement)) host.focus();
     host.placeNow();
   }
 

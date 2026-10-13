@@ -3,7 +3,7 @@ import '../../styles/about.css';
 import type { DataMeta, MountFn } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
-import { SHORTCUTS } from '../shortcuts';
+import { SHORTCUTS, keyCaps } from '../shortcuts';
 
 export { SHORTCUTS };
 
@@ -53,8 +53,26 @@ const NAMES: [string, string][] = [
 const IPAD: [string, string][] = [
   ['Connect privately', 'Use the private HTTPS address shown in Settings, with Tailscale connected on your Mac and iPad under the same account. Keep the Mac awake for private AI and Premium audio. localhost only works on the Mac.'],
   ['Install it', 'Open the private address in Safari, tap Share, then Add to Home Screen. Imported books and downloaded dictionary data work offline. Mac AI and Mac voices still need the connection.'],
+  ['Translating sentences', 'Safari and iPadOS have no on-device translator, as Chrome does. On an iPad, sentence translation uses the private model on your Mac while it is reachable. Otherwise it needs a Claude key or MyMemory, both set in Settings.'],
   ['Bring your books', 'Tap Import book in the Library, then Browse to pick a file from the Files app (iCloud Drive, On My iPad, or a download).'],
   ['Move your words', 'Settings has a backup export and import. Export on one device, open the file on the other, and your saved words, progress and settings come along. Books are not in the backup, so import them on each device.'],
+];
+
+const HOSTED: [string, string][] = [
+  ['Two copies', 'The hosted copy at henryyhong.com/dushu is a plain static website. It has the dictionary and the classics, and it keeps your books, words and progress in your own browser. Nothing you read is sent to that site.'],
+  ['Your own Mac', 'If you run Dushu on your own Mac, the hosted copy can use it as a private helper: better sentence translation, Premium Mac voices and books that live on that Mac. This works only for the owner of the Mac, over Tailscale, and only after you connect the device once in Settings.'],
+  ['Connecting', 'In Settings on the copy that runs on your Mac, copy the connect link and open it on the device. Or type the Mac address into the Mac field in Settings on the hosted copy. The address is kept in this browser only, never in the website, a backup or a synced setting.'],
+  ['Without a Mac', 'Everything else works the same: lookups, reading, flashcards, offline use. Sentence translation then uses your browser\'s own translator where it has one, and otherwise shows the word-by-word gloss.'],
+  ['Books from the Mac', 'When a device is connected, books the Mac shares are added to its library in the background the first time, then kept like any other book, even offline. Delete one and it stays deleted; Restore in the Library brings it back.'],
+];
+
+const TRANSLATION: [string, string][] = [
+  ['Words and characters', 'Pinyin and meanings come from the dictionaries listed below, which are stored in the app and work offline. Machine translation is only used for whole sentences, and the dictionary is still the source of truth for pinyin.'],
+  ['Sentences, in order', 'With Automatic, Dushu tries Claude through your Mac first, then a small model that runs on your Mac (Qwen3.5 9B), then your browser\'s on-device translator (Chrome has one, Safari does not), and last the dictionary gloss. The first one that is ready is used, and the translation panel says which.'],
+  ['Claude', 'Claude is made by Anthropic. Your Mac sends only the selected sentence and a little nearby context to Anthropic, using a key that stays on the Mac. The key is never in this website, your browser or your backups.'],
+  ['Local only', 'Turn on Local only in Settings and every sentence stays on your Mac: Claude is skipped, and no online service is used.'],
+  ['MyMemory', 'An optional online service. It is used only if you choose it, and it sends the selected text to MyMemory.'],
+  ['A caution', 'A machine translation is a help, not a proof. When a sentence matters, check it against the word cards.'],
 ];
 
 const fmt = (n: number | undefined) => (typeof n === 'number' ? n.toLocaleString('en-US') : '-');
@@ -136,6 +154,14 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
       storageCard()),
 
     h('section.ab-section', null,
+      h('h2.section-title', null, 'The hosted copy and your Mac'),
+      steps(HOSTED, false)),
+
+    h('section.ab-section', null,
+      h('h2.section-title', null, 'Where translations come from'),
+      steps(TRANSLATION, false)),
+
+    h('section.ab-section', null,
       h('h2.section-title', null, 'Every character'),
       h('p.ab-p', null, 'Dushu can look up any Chinese character, not just common ones. Characters without a known reading still open a card with their radical, stroke count, Unicode block and variant forms, and rare characters display in a bundled font instead of an empty box.'),
       stats.length
@@ -151,7 +177,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
       h('div.ab-keys', null, SHORTCUTS.map((g) => h('div.ab-keys-group.card', null,
         h('h3.ab-keys-title', null, g.group),
         h('dl.ab-keys-list', null, g.rows.map((r) => h('div.ab-key-row', null,
-          h('dt', null, r.keys.map((k) => h('kbd.kbd', null, k))),
+          h('dt', null, keyCaps(r)),
           h('dd', null, r.what)))))))),
 
     h('section.ab-section', null,

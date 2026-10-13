@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { strToU8 } from 'fflate';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { importFile } from '../../src/import';
+import { setDefaultSvgRasterizer } from '../../src/import/assets';
 import { chapterHan } from '../../src/import/chapters';
 import { CONTAINER, PNG, SVG, asFile, makeEpub, navDoc, ncxDoc, opf, prose, xhtml } from './helpers';
 
@@ -325,6 +326,8 @@ describe('malformed markup and encodings', () => {
   });
 });
 
+afterEach(() => setDefaultSvgRasterizer());
+
 describe('images and cover', () => {
   const files = {
     'META-INF/container.xml': CONTAINER('content.opf'),
@@ -348,13 +351,15 @@ describe('images and cover', () => {
   };
 
   it('stores referenced images with their mime type and detects the cover', async () => {
+    setDefaultSvgRasterizer(async () => PNG); // no canvas in a test; the browser draws the SVG to a PNG
     const book = await load(files);
     const imgs = book.chapters[0].blocks.filter((b) => b.t === 'img');
     expect(imgs).toHaveLength(2);
     expect(book.cover).toBe('cover.png');
     expect(book.assets.get('cover.png')?.type).toBe('image/png');
     const svgName = (imgs[0] as { asset: string }).asset;
-    expect(book.assets.get(svgName)?.type).toBe('image/svg+xml');
+    expect(svgName).toMatch(/\.png$/); // an SVG is stored as the PNG it was drawn to
+    expect(book.assets.get(svgName)?.type).toBe('image/png');
     expect((imgs[0] as { alt?: string }).alt).toBe('示意图');
     expect((imgs[1] as { asset: string }).asset).toBe('cover.png');
     expect(book.assets.size).toBe(2);
@@ -491,7 +496,7 @@ describe('DRM and bad files', () => {
   });
 
   it('rejects an EPUB name on non-zip bytes', async () => {
-    await expect(importFile(asFile(strToU8('not a zip'), 'x.epub'))).rejects.toThrow(/not a valid EPUB/);
+    await expect(importFile(asFile(strToU8('not a zip'), 'x.epub'))).rejects.toThrow(/looks damaged or incomplete/);
   });
 });
 

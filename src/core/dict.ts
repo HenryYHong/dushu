@@ -4,7 +4,7 @@ import type { CharInfo, DataMeta, DictEntry, Dictionary, HskInfo, RadicalInfo } 
 import { ConvTable } from './convert';
 import { hanBlockName } from './blocks';
 import { baseOf, markedToNumbered, normalizePinyinField, numberedToMarked } from './pinyin';
-import { WORD_READINGS, firstCodePointOf, lastCodePoint, polyphoneReading } from './polyphone';
+import { CHAR_DEFAULTS, WORD_READINGS, firstCodePointOf, lastCodePoint, polyphoneReading } from './polyphone';
 import { isHanCodePoint } from './text';
 
 // ---------------------------------------------------------------- loading ---
@@ -95,6 +95,7 @@ export async function loadDictionary(baseUrl: string, opts?: LoadOptions): Promi
   files.meta = load('meta.json');
   const extra: Promise<string | null> = load('chars-extra.tsv.gz').catch(() => null);
   const wordsExtra: Promise<string | null> = load('cedict-extra.tsv.gz').catch(() => null);
+  const bookWords: Promise<string | null> = load('book-words.tsv.gz').catch(() => null);
   for (const p of Object.values(files)) p.catch(() => {}); // surfaced when awaited below
   report(10);
 
@@ -112,6 +113,9 @@ export async function loadDictionary(baseUrl: string, opts?: LoadOptions): Promi
   if (extraText) await data.parse('chars-extra', extraText);
   const wordsExtraText = await wordsExtra;
   if (wordsExtraText) await data.parse('cedict-extra', wordsExtraText);
+  // Last of the word files: its rows go ahead of whatever CC-CEDICT has for the same headword.
+  const bookWordsText = await bookWords;
+  if (bookWordsText) await data.parse('book-words', bookWordsText);
   data.parseMeta(await files.meta.catch(() => '{}'));
   await data.finish();
   report(100);
@@ -131,11 +135,18 @@ function entryPenalty(e: DictEntry): number {
   let p = 0;
   if (/^(old |archaic |ancient |Japanese )?variant (of|form of|pronunciation)/i.test(d0) || /^(also written|same as|see )/i.test(d0)) p += 3;
   else if (/^erhua variant/i.test(d0)) p += 1;
+  // "used in 仿佛": a bound reading that only occurs inside other words (佛 fu2 in 仿佛), never the one a bare character has.
+  else if (/^used in /i.test(d0)) p += 3;
   if (/^(Taiwan pr\.|also pr\.|\(Tw\) pr\.|pr\. )/i.test(d0)) p += 2.5;
   if (e.defs.length > 0 && e.defs.every((d) => /^surname /i.test(d))) p += 1.5;
   if (/^[A-Z]/.test(e.pinyin)) p += 0.4; // proper noun: lose to a common-noun reading of the same word
   return p;
 }
+
+/** "variant of 偷[tou1]", "old variant of 彷彿|仿佛[fang3 fu2]": the whole line, so a line with more to say is not a pointer. */
+const VARIANT_POINTER = /^(?:(?:old|archaic|ancient|Japanese|unofficial|Taiwan|erhua|euphemistic) )*(?:variant|form) (?:form )?of ([\p{Script=Han}·|]+)\[([^\]]+)\]$/u;
+/** "see 荆州市[Jing1 zhou1 Shi4]". */
+const SEE_POINTER = /^see (?:also )?([\p{Script=Han}·|]+)\[([^\]]+)\]$/u;
 
 const toArray = (s: string | undefined): string[] => (s ? Array.from(s) : EMPTY);
 
@@ -153,6 +164,7 @@ class DictImpl implements Dictionary {
   private lens = new Map<string, number>();
   private wordTotal = 1;
   private wordsExtraLoaded = 0;
+  private bookWordsLoaded = 0;
 
   private charLines = new Map<number, string>();
   private extraLines = new Map<number, string>();
@@ -175,6 +187,7 @@ class DictImpl implements Dictionary {
     switch (name) {
       case 'cedict': return this.parseCedict(text, false);
       case 'cedict-extra': return this.parseCedict(text, true);
+      case 'book-words': return this.parseBookWords(text);
       case 'chars': return this.parseChars(text);
       case 'chars-extra': return this.parseExtra(text);
       case 'words': return this.parseWords(text);
@@ -199,6 +212,43 @@ class DictImpl implements Dictionary {
       this.addEntry(entry.simp, entry);
       if (entry.trad !== entry.simp) { this.addEntry(entry.trad, entry); this.twoScript.push(entry); }
       else if (entry.simp.length > 1) this.sameScript.push(entry.simp);
+    });
+  }
+
+  /**
+   * Curated senses (public/data/book-words.tsv.gz, built from scripts/data/book-words.tsv). A row with the same trad,
+   * simp and pinyin as a CEDICT row replaces that row's definitions; any other row is added. Either way it moves to
+   * the front of the list for each of its headwords, so it leads the popup, the card and the saved gloss.
+   * The optional fifth column raises the segmentation count of a word that no list has (鴻濛).
+   */
+  private async parseBookWords(text: string): Promise<void> {
+    await eachLine(text, (line) => {
+      const t = line.split('\t');
+      if (t.length < 4) return;
+      const defs = t[3].split('/');
+      const keys = t[0] === t[1] ? [t[1]] : [t[1], t[0]];
+      let twin: DictEntry | undefined;
+      for (const key of keys) {
+        const list = this.entries.get(key);
+        // The same case first (Ba1 jie4, the name, is not ba1 jie4, the precepts), then any case.
+        const hit = list?.find((e) => e.trad === t[0] && e.simp === t[1] && e.pinyin === t[2])
+          ?? list?.find((e) => e.trad === t[0] && e.simp === t[1] && e.pinyin.toLowerCase() === t[2].toLowerCase());
+        if (hit) { twin = hit; break; }
+      }
+      const entry: DictEntry = twin ?? { trad: t[0], simp: t[1], pinyin: t[2], defs };
+      if (twin) entry.defs = defs;
+      entry.curated = true;
+      for (const key of keys) {
+        const list = this.entries.get(key) ?? [];
+        const rest = list.filter((e) => e !== entry);
+        this.entries.set(key, [entry, ...rest]);
+        if (!this.vocab.has(key)) this.vocab.set(key, 0);
+      }
+      if (!twin && entry.trad !== entry.simp) this.twoScript.push(entry);
+      else if (!twin && entry.simp.length > 1) this.sameScript.push(entry.simp);
+      const count = Number(t[4]);
+      if (count > 0) for (const key of keys) if ((this.vocab.get(key) ?? 0) < count) this.vocab.set(key, count);
+      this.bookWordsLoaded++;
     });
   }
 
@@ -281,10 +331,12 @@ class DictImpl implements Dictionary {
     await this.addTraditionalAliases();
     await this.protectSharedWords();
     await this.discountProperNouns();
+    await this.resolvePointers();
     this.meta.counts.wordTotal = this.wordTotal;
     this.meta.counts.charsLoaded = this.charLines.size;
     this.meta.counts.extraLoaded = this.extraLines.size;
     this.meta.counts.wordsExtraLoaded = this.wordsExtraLoaded;
+    this.meta.counts.bookWordsLoaded = this.bookWordsLoaded;
     let seen = 0;
     for (const word of this.vocab.keys()) {
       if (++seen % INDEX_CHUNK === 0) await yieldToEventLoop();
@@ -349,6 +401,47 @@ class DictImpl implements Dictionary {
       const c = this.vocab.get(word);
       if (c) this.vocab.set(word, Math.floor(c / 4));
     }
+  }
+
+  /**
+   * Many rows only point at another one: 偸 "variant of 偷[tou1]", 荊州 "see 荆州市[Jing1 zhou1 Shi4]". Read alone they tell the
+   * reader nothing, so the meanings of the row they point to are added to it. The pointer stays the first line (reading choice
+   * still sees a variant row as one: entryPenalty), and rankedDefs puts it behind the meanings when a card is drawn.
+   * Curated rows are left alone, and so is any row that has a meaning of its own.
+   */
+  private async resolvePointers(): Promise<void> {
+    let n = 0;
+    let resolved = 0;
+    const pointerOf = (d: string): { target: string; pinyin: string } | null => {
+      const m = VARIANT_POINTER.exec(d) ?? SEE_POINTER.exec(d);
+      return m ? { target: m[1], pinyin: m[2] } : null;
+    };
+    const isPointer = (d: string) => !!pointerOf(d) || /^(abbr\. for|short for)/i.test(d) || /^CL:/.test(d);
+    for (const [key, list] of this.entries) {
+      if (++n % INDEX_CHUNK === 0) await yieldToEventLoop();
+      for (const e of list) {
+        if (key !== e.simp || e.curated || !e.defs.length) continue; // an entry is under its simplified headword once
+        const d0 = e.defs[0];
+        if (d0.length > 90 || !(d0.startsWith('see ') || d0.includes(' of '))) continue; // cheap test before the patterns
+        // Only a row whose every line is a pointer is rewritten.
+        const points = e.defs.map(pointerOf);
+        if (points.some((p) => !p)) continue;
+        const want = points[0]!;
+        const reading = want.pinyin.toLowerCase().replace(/u:/g, 'ü').replace(/\s+/g, ' ');
+        const forms = want.target.split('|');
+        let found: DictEntry | undefined;
+        for (const form of forms) {
+          found = this.entries.get(form)?.find((x) => x !== e && x.pinyin.toLowerCase() === reading && !x.defs.every(isPointer) && x.defs.some((d) => !isPointer(d)));
+          if (found) break;
+        }
+        if (!found) continue;
+        const lead = found.defs.filter((d) => !isPointer(d) && !/^surname /i.test(d)).slice(0, 3);
+        if (!lead.length) continue;
+        e.defs = [...e.defs, ...lead];
+        resolved++;
+      }
+    }
+    this.meta.counts.pointersResolved = resolved;
   }
 
   // --------------------------------------------------------- normalization ---
@@ -569,17 +662,29 @@ class DictImpl implements Dictionary {
 
   // -------------------------------------------------------------- pinyinFor ---
 
-  /** Default numbered reading of one character, "" if none is known. */
-  private defaultSyllable(ch: string): string {
+  /**
+   * Default numbered reading of one character, "" if none is known. `visiting` holds the characters whose reading
+   * is being worked out further up the call chain: simplified/traditional counterparts can point at each other
+   * (𩣔 and 𬳹 each name the other and neither has a reading), so a revisit answers "" instead of recursing.
+   * A "" that came from cutting such a loop is not cached: it is only the answer for that chain.
+   */
+  private defaultSyllable(ch: string, visiting?: Set<string>): string {
     const cached = this.defaultCache.get(ch);
     if (cached !== undefined) return cached;
-    const r = this.computeDefault(ch);
-    this.defaultCache.set(ch, r);
+    if (visiting?.has(ch)) return '';
+    const chain = visiting ?? new Set<string>();
+    chain.add(ch);
+    const r = this.computeDefault(ch, chain);
+    chain.delete(ch);
+    // The outermost call saw the whole loop, so its answer (even "") is final; a nested "" may be partial.
+    if (!visiting || r) this.defaultCache.set(ch, r);
     return r;
   }
 
-  private computeDefault(ch: string): string {
+  private computeDefault(ch: string, visiting: Set<string>): string {
     const target = this.normalizeCp(ch);
+    const fixed = CHAR_DEFAULTS[target];
+    if (fixed) return fixed;
     const cp = target.codePointAt(0)!;
     const unihan = this.unihanReadings(cp).map(markedToNumbered);
     const own = (this.entries.get(target) ?? []).filter((e) => e.simp === target || e.trad === target);
@@ -589,11 +694,17 @@ class DictImpl implements Dictionary {
       .map((x) => x.e.pinyin.toLowerCase())
       .filter((p) => !p.includes(' '));
     const good = own.filter((e) => entryPenalty(e) < 2).map((e) => e.pinyin.toLowerCase()).filter((p) => !p.includes(' '));
-    for (const u of unihan) {
-      const b = baseOf(u);
-      for (const pool of [good, ranked]) {
-        const hit = pool.find((c) => c === u) ?? pool.find((c) => baseOf(c) === b);
-        if (hit) return hit;
+    // A "used in X" row (卜 bo2 in 萝卜) only says how the character sounds inside another word: the bare character's own
+    // rows are tried first, so 卜 is bǔ although Unihan lists bo first.
+    const boundOnly = new Set(own.filter((e) => /^used in /i.test(e.defs[0] ?? '')).map((e) => e.pinyin.toLowerCase()));
+    const rankedOwn = ranked.filter((p) => !boundOnly.has(p));
+    for (const pools of [[good, rankedOwn], [good, ranked]]) {
+      for (const u of unihan) {
+        const b = baseOf(u);
+        for (const pool of pools) {
+          const hit = pool.find((c) => c === u) ?? pool.find((c) => baseOf(c) === b);
+          if (hit) return hit;
+        }
       }
     }
     if (good.length) return good[0];
@@ -605,7 +716,7 @@ class DictImpl implements Dictionary {
     const f = this.fields(cp);
     for (const v of [...toArray(f[5]), ...toArray(f[6])]) {
       if (v === target) continue;
-      const r = this.defaultSyllable(v);
+      const r = this.defaultSyllable(v, visiting);
       if (r) return r;
     }
     return '';
@@ -619,7 +730,11 @@ class DictImpl implements Dictionary {
       if (this.wordReadingCache.size > 50000) this.wordReadingCache.clear();
       this.wordReadingCache.set(word, cand);
     }
-    return cand ? cand.syllables.slice() : null;
+    if (!cand) return null;
+    const out = cand.syllables.slice();
+    // 王夫人, 甘夫人: CEDICT writes the second syllable of 夫人 neutral, the dictionaries of the language say fūrén.
+    if (word.endsWith('夫人') && out[out.length - 1] === 'ren5') out[out.length - 1] = 'ren2';
+    return out;
   }
 
   private pickWordReading(word: string, cps: string[]): ReadingCandidate | null {
@@ -647,7 +762,7 @@ class DictImpl implements Dictionary {
    * Returns lowercase numbered syllables, one per code point; "" for non-Han code points and for Han characters
    * that no source knows a reading for.
    */
-  pinyinFor(word: string, ctx?: { prev?: string; next?: string }): string[] {
+  pinyinFor(word: string, ctx?: { prev?: string; next?: string; after?: string }): string[] {
     const w = this.normalizeWord(word);
     const cps = Array.from(w);
     const n = cps.length;
@@ -658,6 +773,20 @@ class DictImpl implements Dictionary {
     if (w === '不了' && ctx?.prev && isHanCodePoint(lastCodePoint(ctx.prev).codePointAt(0) ?? 0) && !/[个個]$/.test(ctx.prev)) {
       return ['bu5', 'liao3'];
     }
+    // 那裏肯聽, 那裏敢: "how could (he)" is nǎ li; 那裏 elsewhere is nà li "there".
+    if ((w === '那裏' || w === '那里' || w === '那裡') && ctx?.next && '肯敢能會会曉晓知曾容顧顾'.includes(firstCodePointOf(ctx.next))) return ['na3', 'li5'];
+    // 兄弟，我前日…: a man addressing his friend, or 我兄弟 "my younger brother", is xiōng di; 兄弟二人 (brothers) stays xiōngdì.
+    if (w === '兄弟' && ctx && !/^[\p{Script=Han}]/u.test(ctx.next ?? '。') && (!ctx.prev || !isHanCodePoint(lastCodePoint(ctx.prev).codePointAt(0) ?? 0) || '我你他咱'.includes(lastCodePoint(ctx.prev)))) return ['xiong1', 'di5'];
+    // 十餘騎馬 (a dozen horsemen, jì) after a number: the word 騎馬 "to ride a horse" is not meant.
+    if ((w === '騎馬' || w === '骑马') && ctx?.prev && '一二兩两三四五六七八九十數数餘余'.includes(lastCodePoint(ctx.prev)) && !(ctx.next && isHanCodePoint(firstCodePointOf(ctx.next).codePointAt(0) ?? 0) && '來来去上下'.includes(firstCodePointOf(ctx.next)))) return ['ji4', 'ma3'];
+    // 勒住馬: rein in the horse (lè zhù), not the lēi zhù "to strangle, to tie tight" of 勒住.
+    if (w === '勒住' && ctx?.next && '馬马韁缰繩绳'.includes(firstCodePointOf(ctx.next))) return ['le4', 'zhu4'];
+    // 正行間, 方行間: "while walking" (xíng jiān), not the "between the lines" of 行間.
+    if ((w === '行間' || w === '行间') && ctx?.prev && '正方在忽只'.includes(lastCodePoint(ctx.prev))) return ['xing2', 'jian1'];
+    // 重重圍住, 重重疊疊 (layer upon layer, chóng chóng); 重重賞 重重責罰 (heavily) stay zhòng zhòng.
+    if ((w === '重重') && ctx?.next && '圍围疊叠複复層层山嶂障門门谷關关'.includes(firstCodePointOf(ctx.next))) return ['chong2', 'chong2'];
+    // 士大夫 卿大夫 中大夫: an official of the old courts (dàfū), not the doctor 大夫 (dàifu).
+    if (w === '大夫' && ctx?.prev && '卿士中上下諫谏議议光祿禄太御諸诸'.includes(lastCodePoint(ctx.prev))) return ['da4', 'fu1'];
     if (n >= 2) {
       const hit = this.wordReading(w, cps);
       if (hit) {
@@ -690,10 +819,13 @@ class DictImpl implements Dictionary {
       const nextS = this.t2s.convert(nextTok);
       const ruled = polyphoneReading({
         ch: key,
+        orig: cps[i],
         prevTok: prevS,
         nextTok: nextS,
         prevChar: lastCodePoint(prevS),
         nextChar: firstCodePointOf(nextS),
+        afterChar: i < n - 1 ? '' : firstCodePointOf(this.t2s.convert(ctx?.after ?? '')),
+        nextKnown: i < n - 1 || ctx?.next !== undefined,
       });
       out[i] = ruled ?? this.defaultSyllable(cps[i]);
     }
@@ -737,6 +869,25 @@ class DictImpl implements Dictionary {
  */
 const RUNNING_TEXT_READINGS: Readonly<Record<string, string>> = {
   穿着: 'chuan1 zhe5', 穿著: 'chuan1 zhe5',
+  // Adverbs in -地 that CEDICT writes with the particle de5; the standard reading (and the one in the books) is dì.
+  猛地: 'meng3 di4', 忽地: 'hu1 di4', 蓦地: 'mo4 di4', 驀地: 'mo4 di4', 倏地: 'shu1 di4', 霍地: 'huo4 di4', 突地: 'tu1 di4', 陡地: 'dou3 di4',
+  // 钉钯 is the rake (pá) of Zhu Bajie, not the metal 钯 (bǎ).
+  钉钯: 'ding1 pa2', 釘鈀: 'ding1 pa2',
+  // 倒把 is the adverb 倒 + the 把 construction in the novels (倒把我…), not the profiteering word.
+  倒把: 'dao4 ba3',
+  // 衣甲 is the armor (yī jiǎ) in the novels, not the verb "to put on armor"; 夫人 is fūrén (CEDICT writes the second syllable neutral).
+  衣甲: 'yi1 jia3', 夫人: 'fu1 ren2',
+  // Buddhist salutation: 南無阿彌陀佛 is nā mó, not 南 + 無.
+  南無: 'na1 mo2', 南无: 'na1 mo2',
+  // 恁 is nèn "such" in the novels (CEDICT lists the thinking rèn first): 恁般 恁地 恁的.
+  恁般: 'nen4 ban1', 恁地: 'nen4 di4', 恁的: 'nen4 de5',
+  拚命: 'pin1 ming4', 拼命: 'pin1 ming4', 拚死: 'pin1 si3', 拼死: 'pin1 si3',
+  // 累卵 is lěi luǎn (eggs piled up), not the léi of 累赘.
+  累卵: 'lei3 luan3',
+  // Chagatai: Cháhétái (CEDICT writes the Taiwan reading with gě).
+  察合台: 'cha2 he2 tai2', 察合臺: 'cha2 he2 tai2',
+  // Layer upon layer, built by the reduplication rule from 重叠 (no dictionary row of its own).
+  重重叠叠: 'chong2 chong2 die2 die2', 重重疊疊: 'chong2 chong2 die2 die2',
 };
 
 const SYLLABLE_TOKEN = /^[a-zü]+[1-5]$/;

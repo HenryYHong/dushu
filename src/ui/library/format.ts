@@ -16,16 +16,33 @@ export function coverHue(title: string, author = ''): number {
   return hashString(`${title}\u0000${author}`) % 360;
 }
 
-/** Title font size on a generated cover, in percent of the cover width, by how many characters the title has. */
-export function titleSize(title: string): number {
-  const n = [...title.trim()].length;
-  if (n <= 2) return 26;
-  if (n <= 4) return 21;
-  if (n <= 6) return 17;
-  if (n <= 9) return 14;
-  if (n <= 16) return 11;
-  return 9;
+export interface TitleLayout {
+  /** Font size, in percent of the cover width. */
+  size: number;
+  /** How many full-width characters fit on a line before it wraps. */
+  perLine: number;
 }
+
+/**
+ * How a generated cover sets its title, by how many characters it has. The line length is chosen with the size so a
+ * title never ends with one character alone on the last line: four characters make two lines of two, six make two of three.
+ * Widths: size x perLine stays within the roughly 70% of the cover width that the frame leaves for text.
+ */
+export function titleLayout(title: string): TitleLayout {
+  const n = [...title.trim()].length;
+  if (n <= 2) return { size: 26, perLine: 2 };
+  if (n === 3) return { size: 21, perLine: 3 };
+  if (n === 4) return { size: 24, perLine: 2 };
+  if (n <= 6) return { size: 21, perLine: 3 };
+  if (n <= 8) return { size: 16, perLine: 4 };
+  if (n === 9) return { size: 14, perLine: 5 };
+  if (n <= 12) return { size: 11, perLine: 6 };
+  if (n <= 16) return { size: 11, perLine: 6 };
+  return { size: 9.5, perLine: 7 };
+}
+
+/** Title font size on a generated cover, in percent of the cover width. */
+export const titleSize = (title: string): number => titleLayout(title).size;
 
 /** "Not started", "42%", "Finished". Never "0%" or "100%" for a book that is not quite there. */
 export function progressLabel(p: Pick<Progress, 'percent'> | undefined): string {

@@ -22,6 +22,8 @@ export interface GeometryInput {
   safeBottom?: number;
   /** Height of one line of text in px. When given, the text block is a whole number of lines tall, so every page ends evenly. */
   linePitch?: number;
+  /** Width of one character cell in px (the pinyin grid). When given, the text column is a whole number of cells wide. */
+  cellPx?: number;
 }
 
 export interface PageGeometry {
@@ -52,12 +54,17 @@ export function computeGeometry(g: GeometryInput): PageGeometry {
   const per = decideSpread(g.spread, g.width, g.height);
   const paperW = g.width / per;
   const minMargin = clamp(Math.round(paperW * 0.09), 22, 84);
-  const cw = Math.max(160, Math.floor(Math.min(g.pageWidth, paperW - 2 * minMargin)));
+  const room_w = Math.min(g.pageWidth, paperW - 2 * minMargin);
+  // A whole number of cells wide, so a line of characters ends where the column does instead of 20 px short of it;
+  // the margins on both sides then grow by the leftover and the column stays centered.
+  const cells = g.cellPx && g.cellPx > 8 ? Math.floor(room_w / g.cellPx) : 0;
+  const cw = Math.max(160, cells >= 4 ? cells * (g.cellPx as number) : Math.floor(room_w));
   const margin = Math.max(0, (paperW - cw) / 2);
   const safeTop = g.safeTop ?? 0;
   const safeBottom = g.safeBottom ?? 0;
   const compact = g.height < 560;
-  let textTop = Math.round(safeTop + (compact ? 40 : 60));
+  // The first row of pinyin hangs above the first line; leave it room under the top bar.
+  let textTop = Math.round(safeTop + (compact ? 42 : 66));
   const bottom = Math.round(safeBottom + (compact ? 34 : 52));
   const room = Math.max(120, Math.floor(g.height - textTop - bottom));
   let textH = room;
@@ -140,11 +147,21 @@ export function spreadCount(pages: number, per: 1 | 2): number {
   return Math.max(1, Math.ceil(pages / per));
 }
 
-/** The text of the footer: "5 pages left in chapter". `page` is 0-based. */
-export function pagesLeftLabel(page: number, total: number): string {
+/**
+ * The text of the footer: "5 pages left in chapter". `page` is the 0-based number of the right-most page on show.
+ * While the chapter is still being paginated the total is an estimate and the label says so.
+ */
+export function pagesLeftLabel(page: number, total: number, approx = false): string {
   const left = Math.max(0, total - 1 - page);
-  if (left === 0) return 'Last page of chapter';
-  return `${left} ${left === 1 ? 'page' : 'pages'} left in chapter`;
+  if (left === 0 && !approx) return 'Last page of chapter';
+  const n = Math.max(1, left);
+  return `${approx ? 'About ' : ''}${n} ${n === 1 ? 'page' : 'pages'} left in chapter`;
+}
+
+/** Pages of a chapter that is only partly measured: scale what is known by the share of the text that has been measured. */
+export function estimatePages(measuredPages: number, measuredWeight: number, totalWeight: number): number {
+  if (measuredWeight <= 0 || totalWeight <= measuredWeight) return Math.max(1, measuredPages);
+  return Math.max(measuredPages + 1, Math.ceil((measuredPages * totalWeight) / measuredWeight));
 }
 
 /** Fraction of the chapter that is behind the reader: 0 on the first page, 1 on the last. */
@@ -194,10 +211,20 @@ export function swipeCompletes(progress: number, velocity: number): boolean {
   return progress > 0.32;
 }
 
-/** Which tap zone a click at `x` falls in: the outer third of a page turns, the rest toggles the reading chrome. */
+/** How wide each outer strip is, in px: it turns the page whatever is under the finger, words included. */
+export function edgeWidth(width: number, per: 1 | 2): number {
+  // About a sixth of a wide spread (a thumb's reach on an iPad), more of a narrow page, never less than 56 px.
+  const share = per === 2 ? 0.16 : 0.2;
+  return Math.min(Math.max(56, width * share), per === 2 ? 220 : 160);
+}
+
+/**
+ * Which tap zone a click at `x` falls in: the outer strips of the spread turn the page (they cover the page margins and
+ * the first characters of each line), the middle shows or hides the reading chrome.
+ */
 export function tapZone(x: number, width: number, per: 1 | 2): 'prev' | 'next' | 'middle' {
-  const paper = width / per;
-  if (x < paper / 3) return 'prev';
-  if (x > width - paper / 3) return 'next';
+  const edge = edgeWidth(width, per);
+  if (x < edge) return 'prev';
+  if (x > width - edge) return 'next';
   return 'middle';
 }

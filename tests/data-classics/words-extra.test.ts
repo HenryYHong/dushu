@@ -58,7 +58,9 @@ describe('cedict-extra', () => {
   it('covers the known gaps', () => {
     const have = new Set(extra.flatMap((r) => [r[0], r[1]]));
     const wanted = ['恁地', '便了', '却说', '甚么', '如何是好', '王熙凤'];
-    const found = wanted.filter((w) => have.has(w) || heads.has(w));
+    // 甚么 moved to the curated book words when cedict-extra was repaired, so those headwords count too.
+    const curated = new Set(rows(gz('book-words.tsv.gz')).flatMap((r) => [r[0], r[1]]));
+    const found = wanted.filter((w) => have.has(w) || heads.has(w) || curated.has(w));
     expect(found.length).toBeGreaterThanOrEqual(4);
   });
 });

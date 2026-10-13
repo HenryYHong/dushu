@@ -4,6 +4,10 @@ import { closePopup, openPhrasePopup, openWordPopup } from '../../src/ui/popup/p
 import { anchorRect, makeCtx, stubBrowser, tick } from './helpers';
 import { buildLexicon } from '../../src/core/lexicon';
 
+// Whether the Mac says Claude is ready; the real answer comes from a network call these tests do not make.
+let claudeReady = false;
+vi.mock('../../src/translate/claude', async (original) => ({ ...(await original<typeof import('../../src/translate/claude')>()), claudeReadySync: () => claudeReady }));
+
 beforeAll(() => stubBrowser());
 afterEach(() => { closePopup(); document.body.innerHTML = ''; });
 
@@ -211,8 +215,21 @@ describe('phrase popup', () => {
     // The pinyin never leaks into what a user can select inside the popup.
     expect(getComputedStyle(q('.pp-phrase-text rt')!).userSelect).toBeDefined();
     expect([...document.querySelectorAll('.pp-wbw-word')].map((e) => e.textContent)).toEqual(['我们', '在', '银行', '门口', '见面']);
-    await vi.waitFor(() => expect(text('.pp-tr-text')).toContain('银行'));
-    expect(text('.pp-tr-provider')).toMatch(/gloss|word/i);
+    // With no real translator the word list is the content: one quiet line, not the same glosses printed twice.
+    await vi.waitFor(() => expect(text('.pp-tr-body')).toContain('set to word by word')); // makeCtx sets translator: gloss
+    expect(q('.pp-tr-text')).toBeNull();
+    expect(q('.pp-tr')!.classList.contains('pp-tr-quiet')).toBe(true);
+    expect(q('.pp-tr-body a')!.getAttribute('href')).toBe('#/settings');
+    expect(q('.pp-tr-body')!.getAttribute('aria-live')).toBe('polite');
+  });
+
+  it('puts the translation directly under the header, before the repeated pinyin and the Read button', async () => {
+    const { ctx } = await makeCtx();
+    openPhrasePopup({ ctx, text: '我们在银行门口见面。', anchor: anchorRect(), onReadFromHere: () => {} });
+    const order = [...q('.pp-body')!.children].map((e) => e.className.split(' ')[0]);
+    expect(order[0]).toBe('pp-tr');
+    expect(order.indexOf('pp-tr')).toBeLessThan(order.indexOf('pp-phrase-text'));
+    expect(order.indexOf('pp-phrase-text')).toBeLessThan(order.indexOf('pp-wbw-sec'));
   });
 
   it('a row opens the word popup with a Back that returns to the phrase', async () => {
@@ -234,25 +251,26 @@ describe('phrase popup', () => {
   it('lets the user try another provider and shows an error when it is unusable', async () => {
     const { ctx } = await makeCtx();
     openPhrasePopup({ ctx, text: '你好。', anchor: anchorRect() });
-    await vi.waitFor(() => expect(q('.pp-tr-text')).not.toBeNull());
+    await vi.waitFor(() => expect(q('.pp-tr-actions button')).not.toBeNull());
     const more = [...document.querySelectorAll<HTMLElement>('.pp-tr-actions button')].find((b) => /another provider/.test(b.textContent ?? ''))!;
     more.click();
     await vi.waitFor(() => expect(document.querySelectorAll('.pp-menu-item').length).toBe(5));
     const claude = [...document.querySelectorAll<HTMLButtonElement>('.pp-menu-item')].find((b) => /Claude/.test(b.textContent ?? ''))!;
-    expect(claude.disabled).toBe(true); // no API key
-    expect(claude.textContent).toMatch(/API key/);
+    expect(claude.disabled).toBe(true); // no Mac connected
+    expect(claude.textContent).toMatch(/Mac/);
   });
 
-  it('offers Explain only when a Claude key is set', async () => {
+  it('offers Explain only when the Mac says Claude is ready', async () => {
     const { ctx } = await makeCtx();
     openPhrasePopup({ ctx, text: '你好。', anchor: anchorRect() });
-    await vi.waitFor(() => expect(q('.pp-tr-text')).not.toBeNull());
+    await vi.waitFor(() => expect(q('.pp-tr-actions button')).not.toBeNull());
     expect([...document.querySelectorAll('.pp-tr-actions button')].some((b) => /Explain/.test(b.textContent ?? ''))).toBe(false);
     closePopup();
-    ctx.settings.set({ claudeApiKey: 'sk-test' });
+    claudeReady = true;
     openPhrasePopup({ ctx, text: '你好。', anchor: anchorRect() });
-    await vi.waitFor(() => expect(q('.pp-tr-text')).not.toBeNull());
+    await vi.waitFor(() => expect(q('.pp-tr-actions button')).not.toBeNull());
     expect([...document.querySelectorAll('.pp-tr-actions button')].some((b) => /Explain/.test(b.textContent ?? ''))).toBe(true);
+    claudeReady = false;
   });
 
   it('Copy puts the selected text on the clipboard', async () => {

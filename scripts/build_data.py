@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """Build Dushu's dictionary data from the raw sources in .cache/raw/.
 
-Usage: python3 scripts/build_data.py [--download]
+Usage: python3 scripts/build_data.py [--download] [--book-words] [--repair-extra]
+
+--book-words rebuilds only public/data/book-words.tsv.gz from scripts/data/book-words.tsv (no raw sources needed).
+
+--repair-extra rewrites public/data/cedict-extra.tsv.gz in place (no raw sources needed): it re-splits run-together
+pinyin that was cut at the wrong place (三公 "sang1 ong1" for san1 gong1, 不能 "bun4 eng2" for bu4 neng2) by choosing the
+split every character's known readings agree with, and drops rows that are only a dialect word (Hokkien, Cantonese, Wu
+...) the books never use, or whose reading no character of the word has. Safe to run again.
 
 --download fetches the sources first (CC-CEDICT, Unihan, jieba's dict.txt.big,
 CJKRadicals, OpenCC tables, the HSK list and the Jigmo fonts). Without it the
@@ -214,7 +221,165 @@ def variants(f, key):
 
 # ------------------------------------------------------------------ main ----
 
+BOOK_WORDS_SRC = os.path.join(ROOT, "scripts", "data", "book-words.tsv")
+
+
+def build_book_words():
+    """Curated senses for the words the books use most (public/data/book-words.tsv.gz).
+
+    CC-CEDICT lists the rarer sense of many common words first (行者 "pedestrian", 只見 "to see over and over", 姨娘 "maternal
+    aunt", 罷 "to stop"). These rows are written by hand for Dushu from reading 西遊記, 紅樓夢, 活着 and 射雕英雄传 and are
+    original wording (CC0). The loader puts a row ahead of the CC-CEDICT rows for its headword; a row with the same trad, simp and
+    pinyin as a CC-CEDICT row replaces that row's definitions. The optional fifth column is a segmentation count, so a variant
+    spelling that no word list has (鴻濛) is still cut as one word.
+    """
+    rows = []
+    seen = set()
+    with open(BOOK_WORDS_SRC, encoding="utf-8") as f:
+        for n, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            cols = line.split("\t")
+            if not 4 <= len(cols) <= 5:
+                raise SystemExit(f"book-words.tsv line {n}: expected 4 or 5 tab-separated columns")
+            trad, simp, pinyin, defs = cols[:4]
+            if not (all(is_han(c) for c in trad) and all(is_han(c) for c in simp)):
+                raise SystemExit(f"book-words.tsv line {n}: headword must be Han characters")
+            if not all(re.fullmatch(r"[A-Za-zü]+[1-5]", t) for t in pinyin.split(" ")):
+                raise SystemExit(f"book-words.tsv line {n}: pinyin must be numbered syllables (capitalized for a proper noun), got {pinyin!r}")
+            if (trad, simp, pinyin) in seen:
+                raise SystemExit(f"book-words.tsv line {n}: duplicate row")
+            seen.add((trad, simp, pinyin))
+            rows.append(cols[:4] + ([cols[4]] if len(cols) == 5 and cols[4].strip().isdigit() else []))
+    write_gz(
+        "book-words.tsv.gz",
+        [
+            "Curated senses for words in classic and modern Chinese novels, written for Dushu (CC0 1.0). Source: scripts/data/book-words.tsv",
+            "trad<TAB>simp<TAB>pinyin (numbered, ü)<TAB>definitions joined by /<TAB>optional segmentation count",
+            "A row replaces the CC-CEDICT row with the same trad, simp and pinyin, or is added, and is listed first for its headword.",
+        ],
+        rows,
+    )
+    return len(rows)
+
+
+def read_gz_rows(name):
+    path = os.path.join(OUT, name)
+    with gzip.open(path, "rt", encoding="utf-8") as f:
+        return [line.rstrip("\n").split("\t") for line in f if line.strip() and not line.startswith("# ")]
+
+
+def base_of_marked(s):
+    return "".join(MARK_TO_BASE[c][0] if c in MARK_TO_BASE else c for c in unicodedata.normalize("NFC", s.lower()))
+
+
+DIALECT_DEF = re.compile(r"^\((Hokkien|Taiwanese Hokkien|Cantonese|Min|Min Nan|Eastern Min|Wu|Hakka|Teochew|Hainanese|Shanghainese|Xiang|Gan|Jin|Dungan)\b", re.I)
+
+
+def repair_cedict_extra():
+    """Fix cedict-extra.tsv.gz: wrong syllable cuts and dialect-only words (see the module docstring)."""
+    readings = defaultdict(set)
+    for r in read_gz_rows("chars.tsv.gz") + read_gz_rows("chars-extra.tsv.gz"):
+        for x in r[1].split(","):
+            if x:
+                readings[r[0]].add(base_of_marked(x))
+    valid = set()
+    for r in read_gz_rows("cedict.tsv.gz"):
+        for t in r[2].split(" "):
+            if re.fullmatch(r"[A-Za-zü]+[1-5]", t):
+                valid.add(re.sub(r"[1-5]$", "", t).lower())
+        if len(r[1]) == 1 or len(r[0]) == 1:
+            for ch in set(r[0] + r[1]):
+                if len(ch) == 1:
+                    readings[ch].update(re.sub(r"[1-5]$", "", t).lower() for t in r[2].split(" ") if re.fullmatch(r"[A-Za-zü]+[1-5]", t))
+    valid |= {b for bs in readings.values() for b in bs}
+    counts = {}
+    for r in read_gz_rows("words.tsv.gz"):
+        if len(r) > 1 and r[1].isdigit():
+            counts[r[0]] = int(r[1])
+
+    def fits(ch, base):
+        known = readings.get(ch)
+        return base in valid and (not known or base in known)
+
+    def resplit(word, syl):
+        letters = "".join(re.sub(r"[1-5]$", "", t) for t in syl)
+        tones = [re.search(r"[1-5]$", t).group(0) for t in syl]
+        caps = set()
+        at = 0
+        for t in syl:
+            if t[:1].isupper():
+                caps.add(at)
+            at += len(re.sub(r"[1-5]$", "", t))
+        lower = letters.lower()
+        n = len(word)
+        # Longest syllable first at every position is what cut the word wrongly, so search all cuts and keep the
+        # first one in which every character takes one of its own readings.
+        def go(i, pos):
+            if i == n:
+                return [] if pos == len(lower) else None
+            for j in range(min(len(lower), pos + 6), pos, -1):
+                if fits(word[i], lower[pos:j]):
+                    rest = go(i + 1, j)
+                    if rest is not None:
+                        return [(pos, j)] + rest
+            return None
+        cuts = go(0, 0)
+        if cuts is None:
+            return None
+        out = []
+        for k, (a, b) in enumerate(cuts):
+            piece = letters[a:b]
+            if a in caps:
+                piece = piece[:1].upper() + piece[1:]
+            out.append(piece + tones[k])
+        return out
+
+    rows = read_gz_rows("cedict-extra.tsv.gz")
+    fixed, dropped, left = 0, 0, 0
+    out = []
+    for r in rows:
+        trad, simp, pinyin, defs = r[:4]
+        first = defs.split("/")[0]
+        if DIALECT_DEF.match(first) and counts.get(trad, 0) == 0 and counts.get(simp, 0) == 0:
+            dropped += 1
+            continue
+        syl = pinyin.split(" ")
+        if len(syl) == len(simp) == len(trad) and all(re.fullmatch(r"[A-Za-zü]+[1-5]", t) for t in syl):
+            bad = any(not fits(ch, re.sub(r"[1-5]$", "", t).lower()) for ch, t in zip(trad, syl))
+            if bad:
+                again = resplit(trad, syl)
+                if again:
+                    r = [trad, simp, " ".join(again), defs]
+                    fixed += 1
+                else:
+                    # A colloquial or Taiwan reading no character of the word has (鞋帶兒 "hai2 dai1 er5"): better no row,
+                    # so the word reads from its characters, than a reading that is wrong in a book.
+                    left += 1
+                    continue
+        out.append(r)
+    write_gz(
+        "cedict-extra.tsv.gz",
+        [
+            "Wiktionary multi-character words missing from CC-CEDICT, via kaikki.org (wiktextract) — CC BY-SA 4.0, https://en.wiktionary.org/",
+            "trad<TAB>simp<TAB>pinyin (numbered, ü, space-separated)<TAB>definitions joined by /",
+            "same format as cedict.tsv.gz; no headword here (either script) appears in cedict.tsv.gz",
+            "repaired by build_data.py --repair-extra: pinyin re-cut where a character's own readings disagree; dialect-only words and words with a reading no character has dropped",
+        ],
+        out,
+    )
+    print(f"cedict-extra: {fixed} readings re-cut, {dropped} dialect rows dropped, {left} rows dropped for a reading none of their characters has")
+    return len(out)
+
+
 def main():
+    if "--book-words" in sys.argv:
+        build_book_words()
+        return
+    if "--repair-extra" in sys.argv:
+        repair_cedict_extra()
+        return
     if "--download" in sys.argv:
         download()
 
@@ -415,6 +580,7 @@ def main():
             {"name": "hanzi-writer-data (Make Me a Hanzi)", "license": "Arphic Public License", "url": "https://github.com/chanind/hanzi-writer-data"},
         ],
     }
+    meta["counts"]["bookWords"] = build_book_words()
     with open(os.path.join(OUT, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     print(json.dumps(meta["counts"], indent=2))

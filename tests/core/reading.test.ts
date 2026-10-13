@@ -38,8 +38,10 @@ describe('entriesForReading', () => {
   it('leaves the order alone when nothing matches or there is no reading', async () => {
     const d = await loadTestDictionary();
     const all = d.lookup('说');
-    expect(entriesForReading(all, [])).toEqual(all);
-    expect(entriesForReading(all, ['xyz9'])).toEqual(all);
+    // The entries keep their order (a card may still reorder the lines inside one entry).
+    const order = (list: typeof all) => list.map((e) => `${e.trad}|${e.simp}|${e.pinyin}`);
+    expect(order(entriesForReading(all, []))).toEqual(order(all));
+    expect(order(entriesForReading(all, ['xyz9']))).toEqual(order(all));
   });
 });
 

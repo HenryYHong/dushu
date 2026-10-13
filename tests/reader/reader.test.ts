@@ -134,7 +134,7 @@ describe('reader screen', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true, cancelable: true }));
     await vi.waitFor(() => expect(text('.rd-chapter-title')).toBe('第二章'));
     q('.rd-toc-btn')!.click();
-    await vi.waitFor(() => expect([...document.querySelectorAll('.rd-toc-item')].map((e) => e.textContent)).toEqual(['1第一章', '2第二章', '3第三章']));
+    await vi.waitFor(() => expect([...document.querySelectorAll('.rd-toc-item')].map((e) => e.textContent)).toEqual(['第一章', '第二章', '第三章']));
     expect(q('.rd-toc-item[aria-current="true"]')!.textContent).toContain('第二章');
     document.querySelectorAll<HTMLElement>('.rd-toc-item')[2].click();
     await vi.waitFor(() => expect(text('.rd-chapter-title')).toBe('第三章'));
@@ -159,6 +159,53 @@ describe('reader screen', () => {
     const base = [...document.querySelectorAll('.rd-article ruby')].map((r) => (r.firstChild as Text).data).join('');
     expect(base).toContain('銀行');
     expect(q('.rd-article')!.getAttribute('lang')).toBe('zh-Hant');
+  });
+
+  describe('double tap with a finger', () => {
+    const touch = () => document.dispatchEvent(Object.assign(new Event('pointerdown', { bubbles: true }), { pointerType: 'touch' }));
+    const tap = (el: Element, x: number, y: number) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, clientX: x, clientY: y }));
+    const kind = () => q('.pp-pop')?.className.match(/pp-k-\w+/)?.[0];
+    const wordsOf = () => [...document.querySelectorAll<HTMLElement>('.rd-p .rd-w')];
+
+    it('a second tap close to the first gives the sentence of the FIRST word, whatever is under the finger', async () => {
+      const { ctx, meta } = await setup();
+      await open(ctx, meta.id);
+      const a = wordsOf()[0];
+      const b = wordsOf().at(-1)!; // in the second paragraph
+      touch();
+      tap(a.querySelector('ruby')!, 200, 300);
+      expect(kind()).toBe('pp-k-word');
+      // By the second tap the page may have moved: it lands on another word, on the card itself or on nothing.
+      touch();
+      tap(b.querySelector('ruby')!, 212, 310);
+      expect(kind()).toBe('pp-k-phrase');
+      expect(text('.pp-pop')).toContain('银行');
+      expect(text('.pp-pop')).not.toContain('慢慢');
+      closePopup();
+      touch();
+      tap(a.querySelector('ruby')!, 200, 300);
+      touch();
+      tap(q('.pp-pop')!, 205, 305);
+      expect(kind()).toBe('pp-k-phrase');
+    });
+
+    it('two taps far apart are two lookups, and a mouse never double-taps', async () => {
+      const { ctx, meta } = await setup();
+      await open(ctx, meta.id);
+      const [a, b] = wordsOf();
+      touch();
+      tap(a.querySelector('ruby')!, 200, 300);
+      touch();
+      tap(b.querySelector('ruby')!, 200, 420);
+      expect(kind()).toBe('pp-k-word');
+      expect(text('.pp-word')).toBe([...b.querySelectorAll('ruby')].map((r) => (r.firstChild as Text).data).join(''));
+      closePopup();
+      document.dispatchEvent(Object.assign(new Event('pointerdown', { bubbles: true }), { pointerType: 'mouse' }));
+      tap(a.querySelector('ruby')!, 200, 300);
+      document.dispatchEvent(Object.assign(new Event('pointerdown', { bubbles: true }), { pointerType: 'mouse' }));
+      tap(b.querySelector('ruby')!, 204, 304);
+      expect(kind()).toBe('pp-k-word');
+    });
   });
 
   it('cleans up: popups, menus and key handlers are gone after unmount', async () => {

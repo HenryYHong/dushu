@@ -6,7 +6,9 @@ import { loadDictionary } from './core/dict';
 import { openStore } from './store';
 import { createSettingsStore } from './store/settings';
 import { h, clear } from './ui/dom';
+import { parseRoute } from './ui/route';
 import { icon } from './ui/icons';
+import { watchServiceWorker } from './swUpdate';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -34,15 +36,7 @@ function applyTheme(s: Settings): void {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || '#f6f2ea');
 }
 
-function parseHash(): { route: string; params: Record<string, string> } {
-  const raw = location.hash.replace(/^#\/?/, '');
-  const [path, query = ''] = raw.split('?');
-  const parts = path.split('/').filter(Boolean).map(decodeURIComponent);
-  const params: Record<string, string> = Object.fromEntries(new URLSearchParams(query));
-  const route = parts[0] ?? '';
-  if (route === 'read' && parts[1]) params.bookId = parts[1];
-  return { route: route in ROUTES ? route : '', params };
-}
+const parseHash = () => parseRoute(location.hash, (r) => Object.prototype.hasOwnProperty.call(ROUTES, r));
 
 async function boot(): Promise<void> {
   injectFonts();
@@ -51,18 +45,30 @@ async function boot(): Promise<void> {
   settings.subscribe((s, changed) => { if (changed.includes('theme')) applyTheme(s); });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(settings.get()));
 
+  // If IndexedDB never answers, the page would stay empty. Say what is happening, and after a while what to try.
+  const app = document.getElementById('app')!;
+  const opening = h('div.app-loading.app-opening', { role: 'status' }, h('div.app-spinner'), h('span', null, 'Opening your library…'));
+  app.append(opening);
+  const slow = setTimeout(() => {
+    opening.replaceChildren(h('div.app-spinner'),
+      h('span', null, 'Still opening your library. If this does not finish, close any other Dushu tabs and reload this page.'));
+  }, 5000);
+
   let store: Store;
   try {
     store = await openStore();
   } catch (e) {
     // Only a newer on-disk database lands here; everything else falls back to memory.
     console.error(e);
-    const app = document.getElementById('app')!;
+    clearTimeout(slow);
+    opening.remove();
     app.append(h('main.app-fatal', null,
       h('h1', null, 'Dushu cannot open your saved data'),
       h('p', null, e instanceof Error ? e.message : 'The local database could not be opened.')));
     return;
   }
+  clearTimeout(slow);
+  opening.remove();
 
   let dictPromise: Promise<Dictionary> | null = null;
   let dictReady: Dictionary | null = null;
@@ -81,13 +87,28 @@ async function boot(): Promise<void> {
     store,
     navigate(hash) { location.hash = hash.startsWith('#') ? hash : `#${hash}`; },
     toast(message, opts) {
-      const el = h('div.app-toast', null, h('span', null, message));
+      const ms = opts?.ms ?? 3500;
+      // The same message again, or a second "Added ... Read" while the first is still up, replaces the old one.
+      // (Other actions, such as Undo, never replace each other: each one still undoes its own change.)
+      const coalesce = opts?.action?.label === 'Read';
+      for (const old of [...toasts.children] as HTMLElement[]) {
+        if (old.dataset.msg === message || (coalesce && old.dataset.action === 'Read')) old.dispatchEvent(new Event('dismiss'));
+      }
+      const el = h('div.app-toast', { 'data-msg': message, 'data-action': opts?.action?.label ?? '' });
+      const text = h('span.app-toast-text', { title: message }, message);
+      el.append(text);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const dismiss = () => { clearTimeout(timer); el.remove(); };
+      el.addEventListener('dismiss', dismiss);
       if (opts?.action) {
         const a = opts.action;
-        el.appendChild(h('button', { onclick: () => { a.run(); el.remove(); } }, a.label));
+        el.appendChild(h('button.app-toast-action', { type: 'button', onclick: () => { a.run(); dismiss(); } }, a.label));
       }
+      // A toast that stays a long time (errors, the update notice) can be put away.
+      if (ms > 6000) el.appendChild(h('button.app-toast-close', { type: 'button', 'aria-label': 'Dismiss', title: 'Dismiss', onclick: dismiss }, icon('close')));
       toasts.appendChild(el);
-      setTimeout(() => el.remove(), opts?.ms ?? 3500);
+      while (toasts.children.length > 3) toasts.firstElementChild!.dispatchEvent(new Event('dismiss'));
+      timer = setTimeout(dismiss, ms);
     },
   };
   if (store.backend === 'memory') {
@@ -96,14 +117,13 @@ async function boot(): Promise<void> {
   // Start parsing the dictionary right away; the library does not wait for it.
   ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not load the dictionary data. Run `npm run data`.'); });
 
-  const app = document.getElementById('app')!;
   const reviewBadge = h('span.app-badge', { hidden: true });
   const navLink = (href: string, label: string, ic: string, extra?: Node) =>
     h('a.app-navlink', { href, title: label, 'aria-label': label, 'data-route': href.replace(/^#\/?/, '') }, icon(ic), h('span.app-navlabel', null, label), extra ?? null);
   const nav = h('nav.app-nav', { 'aria-label': 'Main' },
     h('a.app-brand', { href: '#/' }, h('span.app-brand-zh', null, '读书'), h('span.app-brand-en', null, 'Dushu')),
     navLink('#/', 'Library', 'library'),
-    navLink('#/vocab', 'Vocabulary', 'star'),
+    navLink('#/vocab', 'Vocabulary', 'list'),
     navLink('#/review', 'Review', 'cards', reviewBadge),
     navLink('#/settings', 'Settings', 'settings'),
   );
@@ -128,6 +148,7 @@ async function boot(): Promise<void> {
     reviewBadge.hidden = n === 0;
     reviewBadge.textContent = n > 99 ? '99+' : String(n);
   };
+  // Also fires for a save made in another tab.
   store.onChange((what) => { if (what === 'vocab') void refreshBadge(); });
   void refreshBadge();
 
@@ -145,7 +166,19 @@ async function boot(): Promise<void> {
     cleanup = undefined;
     clear(screen);
     screen.appendChild(h('div.app-loading', null, h('div.app-spinner'), 'Loading…'));
-    const mod = await ROUTES[route]();
+    let mod: { mount: MountFn };
+    try {
+      mod = await ROUTES[route]();
+    } catch (e) {
+      // Offline with a screen that was never downloaded, or a deploy that replaced the file: say so, and offer a retry.
+      console.error(e);
+      if (seq !== navSeq) return;
+      clear(screen);
+      screen.appendChild(h('div.app-loading.app-load-failed', { role: 'alert' },
+        h('span', null, navigator.onLine === false ? 'You are offline, and this screen has not been downloaded yet.' : 'This screen could not be loaded.'),
+        h('button.btn', { type: 'button', onclick: () => void render() }, icon('refresh'), 'Try again')));
+      return;
+    }
     if (seq !== navSeq) return;
     clear(screen);
     window.scrollTo(0, 0);
@@ -158,39 +191,6 @@ async function boot(): Promise<void> {
   void import('./fonts').catch(() => {});
 
   if (import.meta.env.PROD && 'serviceWorker' in navigator) watchServiceWorker(ctx);
-}
-
-/** Registers the service worker and offers "Reload" when a new version has been downloaded and is waiting. */
-function watchServiceWorker(ctx: AppContext): void {
-  let updateOffered = false;
-  let waitingWorker: ServiceWorker | null = null;
-  const offer = (worker: ServiceWorker) => {
-    waitingWorker = worker;
-    if (updateOffered) return;
-    updateOffered = true;
-    ctx.toast('A new version of Dushu is ready.', {
-      ms: 24 * 3600 * 1000,
-      action: { label: 'Reload', run: () => waitingWorker?.postMessage('SKIP_WAITING') },
-    });
-  };
-  let reloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    // The first install claims the page too; only an update (a previous controller existed) needs a reload.
-    if (!hadController || reloading) return;
-    reloading = true;
-    location.reload();
-  });
-  const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.register(new URL('sw.js', document.baseURI)).then((reg) => {
-    const watch = (worker: ServiceWorker | null) => {
-      worker?.addEventListener('statechange', () => { if (worker.state === 'installed' && navigator.serviceWorker.controller) offer(worker); });
-    };
-    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
-    watch(reg.installing);
-    reg.addEventListener('updatefound', () => watch(reg.installing));
-    // An installed app on an iPad can stay open for days: look for a new version whenever it comes back to the front.
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
-  }).catch(() => {});
 }
 
 void boot();

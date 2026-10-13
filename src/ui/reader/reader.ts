@@ -10,16 +10,21 @@ import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { closePopup, openWordPopup } from '../popup/popup';
 import { createChapterView, type BlockState, type ChapterView } from './chapter';
-import { effectiveLineHeight } from './grid';
+import { applyGridVars, effectiveLineHeight, readingSize } from './grid';
 import { createLookup } from './lookup';
 import {
   buildDisplayMenu, buildPinyinMenu, closePopover, openPopover, pinyinModeLabel, popoverOpenFor, showShortcuts,
 } from './menus';
 import { createPager, type Pager } from './pager';
-import { rangeToSpans, snapToCodePoint, spansText } from './selection';
+import { pointToOffset, rangeToSpans, snapToCodePoint, spansText } from './selection';
 import { createToc } from './toc';
 
 const BAR_H = 52;
+/** A second tap within this long and this far (CSS px) of the first is a double tap. */
+const DOUBLE_TAP_MS = 380;
+const DOUBLE_TAP_PX = 48;
+/** The page lifts for a bottom sheet only after the double-tap window, so the words stay where the finger is. */
+const LIFT_HOLD_MS = 400;
 const PINYIN_CYCLE: PinyinMode[] = ['off', 'all', 'unknown', 'hsk'];
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -28,6 +33,36 @@ function isTyping(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null;
   return !!el && !!el.tagName && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 }
+
+/** Chapters that failed to show, per book, so a saved position cannot trap the reader on a chapter that never opens. */
+const FAIL_KEY = 'dushu.chapter-failures';
+function readFails(): Record<string, number> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(FAIL_KEY) || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch { return {}; }
+}
+function writeFails(f: Record<string, number>): void {
+  try { localStorage.setItem(FAIL_KEY, JSON.stringify(f)); } catch { /* private mode: the count lasts this session only */ }
+}
+const failKey = (bookId: string, chapter: number) => `${bookId}:${chapter}`;
+function failCount(bookId: string, chapter: number): number { return readFails()[failKey(bookId, chapter)] ?? 0; }
+function bumpFail(bookId: string, chapter: number): number {
+  const f = readFails();
+  const k = failKey(bookId, chapter);
+  f[k] = (f[k] ?? 0) + 1;
+  writeFails(f);
+  return f[k];
+}
+function clearFail(bookId: string, chapter: number): void {
+  const f = readFails();
+  if (failKey(bookId, chapter) in f) { delete f[failKey(bookId, chapter)]; writeFails(f); }
+}
+
+/** The one-time hint about how to look things up. */
+const COACH_KEY = 'dushu.reader-hint.v1';
+function coachSeen(): boolean { try { return localStorage.getItem(COACH_KEY) === '1'; } catch { return true; } }
+function coachMark(): void { try { localStorage.setItem(COACH_KEY, '1'); } catch { /* ignore */ } }
 
 function message(root: HTMLElement, title: string, body: string): void {
   clear(root);
@@ -67,7 +102,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   const scanDone = () => { scanning = false; pager?.holdNeighbors(false); };
   try {
     lexicon = await loadLexicon(ctx, book.id, (lex) => {
-      if (lexiconReady) applyLexicon(lex); else lexicon = lex;
+      if (lexiconReady) applyLexicon(lex, true); else lexicon = lex;
       scanDone();
     });
     scanning = isDetecting(book.id);
@@ -75,15 +110,23 @@ export const mount: MountFn = async (root, params, ctx) => {
   lexiconReady = true;
 
   // ------------------------------------------------------------------ chrome
-  const titleBook = h('div.rd-book-title', null, book.title);
+  // Every string from the book that the bar, the running heads and the lists show follows the script setting, like the text.
+  const text = (s: string): string => {
+    const mode = ctx.settings.get().script;
+    if (mode === 'simplified') return dict.toSimplified(s);
+    if (mode === 'traditional') return dict.toTraditional(s);
+    return s;
+  };
+  const titleBook = h('div.rd-book-title', null, text(book.title));
   const titleChapter = h('div.rd-chapter-title');
   const pct = h('span.rd-pct');
   const fill = h('div.rd-progress-fill');
   const pinyinLabel = h('span.rd-pill-label');
-  const pinyinBtn = h('button.rd-pill.rd-pinyin-btn', { type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: 'Pinyin (P)', onclick: () => togglePinyinMenu() },
-    icon('eye'), pinyinLabel) as HTMLButtonElement;
-  const aaBtn = h('button.rd-pill.rd-aa-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Display settings', onclick: () => toggleDisplayMenu() },
-    h('span.rd-aa', null, 'Aa')) as HTMLButtonElement;
+  const pinyinIcon = h('span.rd-pill-icon', { 'aria-hidden': 'true' }, icon('eye'));
+  const pinyinBtn = h('button.rd-pill.rd-pinyin-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Pinyin (P)', onclick: () => togglePinyinMenu() },
+    pinyinIcon, pinyinLabel) as HTMLButtonElement;
+  const aaBtn = h('button.rd-pill.rd-aa-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': 'Display settings', title: 'Display settings', onclick: () => toggleDisplayMenu() },
+    h('span.rd-aa', { 'aria-hidden': 'true' }, 'Aa')) as HTMLButtonElement;
   const speechBtn = h('button.icon-btn.rd-speech-btn', {
     type: 'button', title: 'Read chapter aloud', 'aria-label': 'Read chapter aloud', 'aria-pressed': 'false',
     onclick: () => { if (speaking) stopChapterSpeech(); else void startChapterSpeech(); },
@@ -128,7 +171,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       await store.lexicon.upsert(book.id, { ...entry, enabled: !entry.enabled, origin: 'user' });
       await reloadLexicon();
     },
-  });
+  }, { text });
 
   // ------------------------------------------------------------------- state
   let scrollView: ChapterView | null = null;
@@ -146,6 +189,18 @@ export const mount: MountFn = async (root, params, ctx) => {
   let audioStarted = false;
   let speechRun = 0;
   let spokenBlock: BlockState | null = null;
+  /** The chapter whose error screen is showing, if any. */
+  let failing: number | null = null;
+  /** The word the keyboard cursor is on, if the reader is choosing words with the keys. */
+  let cursor: { bi: number; s: number; e: number } | null = null;
+  let cursorEl: HTMLElement | null = null;
+  let movingCursor = false;
+  /** The last touch tap that opened a word: when, where on the screen, and which word. A second tap close to it is a double tap. */
+  let lastTap: { t: number; x: number; y: number; w: Element } | null = null;
+  /** How far the Pages stage is lifted so a bottom-sheet popup does not cover the word. */
+  let lift = 0;
+  let liftTimer = 0;
+  let liftWanted: number | null = null;
 
   const view = (): ChapterView | null => (paged ? pager?.view() ?? null : scrollView);
 
@@ -257,6 +312,11 @@ export const mount: MountFn = async (root, params, ctx) => {
       if (view()?.blocks[block.index] !== block) { ctx.toast('Choose a starting word again; the text has changed.'); return; }
       void startChapterSpeech({ block: block.index, offset });
     },
+    // With the keyboard cursor on, the cursor follows the popup's word, and focus returns to it when the popup closes.
+    onWordShown: (b, s, e) => { if (cursor) setCursor(b, s, e, false); },
+    restoreFocus: () => (cursorEl?.isConnected ? cursorEl : null),
+    onSheetTop: (top) => liftPage(top),
+    liftsPage: () => paged,
   });
 
   // ------------------------------------------------------------ layout & live updates
@@ -271,10 +331,19 @@ export const mount: MountFn = async (root, params, ctx) => {
     rd.style.setProperty('--rd-width', `${s.pageWidth}px`);
     rd.classList.toggle('rd-py-off', s.pinyin === 'off');
     rd.classList.toggle('rd-grid', s.pinyin !== 'off');
+    rd.classList.toggle('rd-zy', s.pinyinStyle === 'zhuyin');
     rd.classList.toggle('rd-pt-on', s.paragraphTranslate);
     rd.classList.toggle('rd-hover-mode', s.lookupTrigger === 'hover');
+    // The cell, the pinyin size and the paragraph indent for the grid (both layouts use them).
+    if (rd.isConnected) applyGridVars(rd, readingSize(s), s.pinyinStyle);
     pinyinLabel.textContent = s.pinyin === 'hsk' ? `HSK ${s.hskThreshold >= 7 ? '7-9' : s.hskThreshold}` : pinyinModeLabel(s.pinyin);
     pinyinBtn.setAttribute('aria-label', `Pinyin: ${pinyinLabel.textContent}`);
+    pinyinBtn.dataset.mode = s.pinyin;
+    const shut = s.pinyin === 'off';
+    if (pinyinIcon.dataset.off !== String(shut)) {
+      pinyinIcon.dataset.off = String(shut);
+      pinyinIcon.replaceChildren(icon(shut ? 'eyeOff' : 'eye'));
+    }
   }
   applyLayout(ctx.settings.get());
 
@@ -297,6 +366,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (changed.includes('ttsRate')) syncSpeechButton();
     if (changed.every(key => key === 'ttsRate' || key === 'ttsVoice')) { menuSync?.(); return; }
     const v = view();
+    if (changed.includes('script')) refreshChromeText();
     if (changed.includes('layout')) {
       applyLayout(s);
       void switchLayout();
@@ -305,18 +375,25 @@ export const mount: MountFn = async (root, params, ctx) => {
     }
     if (!v) { applyLayout(s); return; }
     if (paged) {
+      // Anything that moves the text: the pager takes the chapter out of the layout first, so the browser does not lay all of
+      // it out at the new size at once (that is what froze the page for a second or more).
+      const moves = changed.includes('script') || changed.some((k) => LAYOUT_KEYS.includes(k) || k === 'pinyin');
+      if (moves) pager?.freeze();
       applyLayout(s);
       if (changed.includes('script')) {
         v.el.lang = langOf(s);
         closePopup();
+        clearCursor();
         v.reconvert();
-        v.renderTo(v.blocks.length - 1);
         pager?.dropNeighbors();
         pager?.refresh();
       } else {
-        if (changed.some((k) => k === 'pinyinStyle' || k === 'toneColors' || k === 'sandhi')) v.refreshPinyin();
-        if (changed.some((k) => k === 'pinyin' || k === 'hskThreshold')) v.refreshVisibility();
+        const repaint = changed.some((k) => k === 'pinyinStyle' || k === 'toneColors' || k === 'sandhi');
+        const visibility = changed.some((k) => k === 'pinyin' || k === 'hskThreshold');
+        if (repaint) v.refreshPinyin();
+        if (visibility) v.refreshVisibility();
         if (changed.some((k) => LAYOUT_KEYS.includes(k) || k === 'pinyin')) { closePopup(); pager?.relayout(); }
+        else if (repaint || visibility) pager?.invalidate();
       }
       menuSync?.();
       return;
@@ -339,21 +416,52 @@ export const mount: MountFn = async (root, params, ctx) => {
     menuSync?.();
   });
   const unsubStore = store.onChange((what) => {
-    if (what === 'vocab' || what === 'known') view()?.refreshMarks();
+    if (what === 'vocab' || what === 'known') {
+      view()?.refreshMarks();
+      if (paged) pager?.invalidate();
+    }
   });
 
   // ----------------------------------------------------------- lexicon
   /** Re-segment the chapter with a new lexicon and keep the reading position. */
-  function applyLexicon(lex: Lexicon): void {
+  const lexKey = (lex: Lexicon) => lex.entries().map((e) => `${e.word}|${e.pinyin}`).join(',');
+  let pendingLex: Lexicon | null = null;
+  let pendingLexTimer = 0;
+  /**
+   * `background`: names found by a scan the reader did not ask for (the first open of a book takes a few seconds). Those wait while a
+   * word card is open and are applied once it is closed, so the card is not taken away and the page does not redraw under it.
+   * (A name the reader edits in a card applies at once, as before.)
+   */
+  function applyLexicon(lex: Lexicon, background = false): void {
+    if (background && !disposed && document.querySelector('.pp-pop') && lexKey(lex) !== lexKey(lexicon)) {
+      pendingLex = lex;
+      if (!pendingLexTimer) {
+        pendingLexTimer = window.setInterval(() => {
+          if (disposed) { window.clearInterval(pendingLexTimer); pendingLexTimer = 0; return; }
+          if (document.querySelector('.pp-pop')) return;
+          window.clearInterval(pendingLexTimer);
+          pendingLexTimer = 0;
+          const next = pendingLex;
+          pendingLex = null;
+          if (next) applyLexicon(next);
+        }, 300);
+      }
+      return;
+    }
+    if (pendingLex && !background) pendingLex = null; // a newer lexicon replaces a waiting one
+    // A scan that found nothing new must not redraw the page, close the card the reader is in or drop the cursor.
+    const same = lexKey(lex) === lexKey(lexicon);
     lexicon = lex;
     toc.refreshNames();
+    if (same) return;
     const v = view();
     if (!v || disposed) return;
     closePopup();
     lookup.reset();
     if (paged) {
+      clearCursor();
+      pager?.freeze();
       v.setLexicon(lex);
-      v.renderTo(v.blocks.length - 1);
       pager?.dropNeighbors();
       pager?.refresh();
     } else {
@@ -363,7 +471,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   }
 
   async function reloadLexicon(): Promise<void> {
-    try { applyLexicon(await loadLexicon(ctx, book!.id, (lex) => applyLexicon(lex))); } catch (e) { console.error('lexicon', e); }
+    try { applyLexicon(await loadLexicon(ctx, book!.id, (lex) => applyLexicon(lex, true))); } catch (e) { console.error('lexicon', e); }
   }
 
   // --------------------------------------------------------------- menus
@@ -371,13 +479,13 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (popoverOpenFor(pinyinBtn)) { closePopover(); return; }
     const m = buildPinyinMenu(ctx);
     menuSync = m.sync;
-    openPopover(pinyinBtn, m.el, () => { menuSync = null; });
+    openPopover(pinyinBtn, m.el, () => { menuSync = null; }, { label: 'Pinyin' });
   }
   function toggleDisplayMenu(): void {
     if (popoverOpenFor(aaBtn)) { closePopover(); return; }
     const m = buildDisplayMenu(ctx);
     menuSync = m.sync;
-    openPopover(aaBtn, m.el, () => { menuSync = null; });
+    openPopover(aaBtn, m.el, () => { menuSync = null; }, { label: 'Display settings' });
   }
 
   /** Language tag for the text: lets the browser pick regional glyph shapes and the right speech voice. */
@@ -387,24 +495,82 @@ export const mount: MountFn = async (root, params, ctx) => {
     return book!.script === 'traditional' ? 'zh-Hant' : 'zh-Hans';
   }
 
-  /** Build a chapter view for either layout. */
+  /** Build a chapter view for the Pages layout (its pinyin is drawn near the eye only: `lazyPinyin`). */
   async function makeView(index: number): Promise<ChapterView | null> {
     const chapter = await store.books.chapter(book!.id, index);
     if (!chapter) return null;
-    const v = createChapterView({ ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, onResize: () => { if (paged) pager?.relayout(); } });
+    const v = createChapterView({
+      ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, lazyPinyin: true,
+      onResize: () => { if (paged) pager?.relayout(); },
+    });
     v.el.lang = langOf(ctx.settings.get());
     return v;
   }
+
+  const chapterTitleText = (index: number, v?: ChapterView | null): string =>
+    text(v?.title || book!.chapterTitles?.[index] || `Chapter ${index + 1}`);
 
   /** The chapter on screen changed (opened, or the pages turned over a chapter edge). */
   function chapterShown(index: number, v: ChapterView): void {
     if (speaking && index !== chapterIndex) stopChapterSpeech();
     chapterIndex = index;
+    failing = null;
     lookup.reset();
-    titleChapter.textContent = v.title || `Chapter ${index + 1}`;
+    clearCursor();
+    titleChapter.textContent = chapterTitleText(index, v);
     // A one-chapter book (a poem, a pasted page) would show its title twice.
-    titleChapter.hidden = book!.chapterCount === 1 && titleChapter.textContent === book!.title;
+    titleChapter.hidden = book!.chapterCount === 1 && titleChapter.textContent === text(book!.title);
     toc.setCurrent(index);
+  }
+
+  /** The script setting changed: the bar, the contents list and the names follow it. */
+  function refreshChromeText(): void {
+    titleBook.textContent = text(book!.title);
+    const v = view();
+    if (failing !== null) titleChapter.textContent = chapterTitleText(failing);
+    else if (v) {
+      titleChapter.textContent = chapterTitleText(chapterIndex, v);
+      titleChapter.hidden = book!.chapterCount === 1 && titleChapter.textContent === text(book!.title);
+    }
+    toc.refreshText();
+  }
+
+  // ------------------------------------------------------------ chapter errors
+  function clearChapterError(): void {
+    failing = null;
+    rd.querySelector('.rd-fail')?.remove();
+  }
+
+  /**
+   * A chapter that cannot be shown gets a plain message and the way out, not a blank page: the neighbors, the contents list,
+   * and (while it may still work) another try. Keys turn chapters here too.
+   */
+  function showChapterError(index: number, err: unknown): void {
+    console.error('Could not display chapter', index, err);
+    failing = index;
+    chapterIndex = index;
+    stopChapterSpeech();
+    closePopup();
+    clearCursor();
+    toc.setCurrent(index);
+    titleChapter.textContent = chapterTitleText(index);
+    titleChapter.hidden = false;
+    const tries = failCount(book!.id, index);
+    const last = index >= book!.chapterCount - 1;
+    const actions = h('div.rd-fail-actions', null,
+      index > 0 ? h('button.btn', { type: 'button', onclick: () => void loadChapter(index - 1, { top: true }) }, icon('chevronLeft'), 'Previous chapter') : null,
+      last ? null : h('button.btn', { type: 'button', onclick: () => void loadChapter(index + 1, { top: true }) }, 'Next chapter', icon('chevronRight')),
+      h('button.btn.btn-primary', { type: 'button', onclick: () => toc.open(index) }, icon('list'), 'Open chapter list'),
+      tries < 2 ? h('button.btn', { type: 'button', onclick: () => void loadChapter(index, { top: true }) }, icon('refresh'), 'Try again') : null,
+      h('a.btn', { href: '#/' }, icon('arrowLeft'), 'Back to the library'));
+    const box = h('div.rd-fail', { role: 'alert' },
+      h('h2', null, 'Could not display this chapter'),
+      h('p', null, `${chapterTitleText(index)} did not draw. Your place in the book is kept. You can read another chapter now.`),
+      actions);
+    rd.querySelector('.rd-fail')?.remove();
+    if (paged) rd.appendChild(box);
+    else { clear(page); page.appendChild(box); }
+    (box.querySelector('button.btn-primary') as HTMLElement | null)?.focus({ preventScroll: true });
   }
 
   // --------------------------------------------------------------- chapters
@@ -413,45 +579,57 @@ export const mount: MountFn = async (root, params, ctx) => {
     stopChapterSpeech();
     closePopup();
     closePopover();
+    clearCursor();
     saveProgressNow();
-    if (paged) {
-      if (!pager) return;
-      const target = at.end ? 'end' : at.block !== undefined ? { stored: at.block, offset: at.offset } : 'start';
-      await pager.open(index, target);
+    try {
+      clearChapterError();
+      if (paged) {
+        if (!pager) return;
+        const target = at.end ? 'end' : at.block !== undefined ? { stored: at.block, offset: at.offset } : 'start';
+        await pager.open(index, target);
+        if (seq !== loadSeq || disposed) return;
+        clearFail(book!.id, index);
+        updateProgressUi();
+        window.clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(saveProgressNow, 800);
+        return;
+      }
+      await loadScrollChapter(index, at, seq);
+    } catch (e) {
       if (seq !== loadSeq || disposed) return;
-      updateProgressUi();
-      window.clearTimeout(saveTimer);
-      saveTimer = window.setTimeout(saveProgressNow, 800);
-      return;
+      bumpFail(book!.id, index);
+      showChapterError(index, e);
     }
+  }
+
+  async function loadScrollChapter(index: number, at: { block?: number; offset?: number; top?: boolean; end?: boolean }, seq: number): Promise<void> {
     const chapter = await store.books.chapter(book!.id, index);
     if (seq !== loadSeq || disposed) return;
-    if (!chapter) {
-      clear(page);
-      page.appendChild(h('div.page', null, h('p.muted', null, 'This chapter could not be loaded.'),
-        h('a.btn', { href: '#/' }, icon('arrowLeft'), 'Back to the library')));
-      return;
-    }
-    scrollView?.dispose();
+    if (!chapter) throw new Error('The chapter is not in the library.');
+    const old = scrollView;
     const v = createChapterView({ ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon });
-    scrollView = v;
     v.el.lang = langOf(ctx.settings.get());
-    clear(page);
-    page.append(v.el, buildEnd(index));
-    chapterShown(index, v);
-
-    const target = at.block !== undefined ? clamp(at.block + v.synthetic, 0, v.blocks.length - 1) : 0;
+    v.el.tabIndex = 0;
+    v.el.setAttribute('aria-label', 'Book text. Press Enter to choose words with the arrow keys.');
+    const place = at.block !== undefined ? v.fromStored(at.block, at.offset ?? 0) : { block: 0, offset: 0 };
+    const target = clamp(place.block, 0, v.blocks.length - 1);
     // Render down to the target, then about two screens past it; the rest follows in idle time.
     let last = target;
     let chars = 0;
     while (last < v.blocks.length - 1 && chars < 1400) { last++; chars += v.blocks[last].text.length || 40; }
     v.renderTo(last);
+    if (at.end) v.renderTo(v.blocks.length - 1);
+    // Nothing above can throw after this point, so the old chapter is replaced only by one that drew.
+    scrollView = v;
+    old?.dispose();
+    clear(page);
+    page.append(v.el, buildEnd(index));
+    chapterShown(index, v);
+    clearFail(book!.id, index);
     window.scrollTo(0, 0);
     if (at.block !== undefined && target > 0) scrollToBlock(v.blocks[target]);
-    if (at.end) {
-      v.renderTo(v.blocks.length - 1);
-      window.scrollTo(0, document.documentElement.scrollHeight);
-    }
+    if (at.block !== undefined && place.offset > 0) scrollToOffset(v.blocks[target], place.offset);
+    if (at.end) window.scrollTo(0, document.documentElement.scrollHeight);
     updateProgressUi();
     // Record the new position even if the reader leaves without scrolling.
     window.clearTimeout(saveTimer);
@@ -481,10 +659,14 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (!v) return null;
     if (paged) {
       const a = pager?.anchor();
-      return a ? { chapter: chapterIndex, block: Math.max(0, a.block - v.synthetic), offset: a.offset } : null;
+      if (!a) return null;
+      const at = v.toStored(a.block, a.offset);
+      return { chapter: chapterIndex, block: at.block, offset: at.offset };
     }
     const b = firstVisible();
-    return { chapter: chapterIndex, block: Math.max(0, (b?.index ?? 0) - v.synthetic), offset: 0 };
+    if (!b) return { chapter: chapterIndex, block: 0, offset: 0 };
+    const at = v.toStored(b.index, scrollOffsetAtTop(b));
+    return { chapter: chapterIndex, block: at.block, offset: at.offset };
   }
 
   function enterPaged(): void {
@@ -499,14 +681,18 @@ export const mount: MountFn = async (root, params, ctx) => {
       root: rd, ctx, book: book!, makeView,
       onChapter: (i, v) => chapterShown(i, v),
       onMove: () => { updateProgressUi(); window.clearTimeout(saveTimer); saveTimer = window.setTimeout(saveProgressNow, 600); },
+      onPaginated: () => updateProgressUi(),
       onTurnStart: () => {
         closePopup();
         closePopover();
         window.getSelection()?.removeAllRanges();
+        if (!movingCursor) clearCursor();
         setChrome(false);
       },
       isBusy: () => { const sel = window.getSelection(); return !!sel && !sel.isCollapsed && !!view()?.el.contains(sel.anchorNode); },
       onEnd: () => ctx.toast('You have reached the end of the book.'),
+      onChapterError: (i, e) => { bumpFail(book!.id, i); showChapterError(i, e); },
+      text,
     });
     if (scanning) pager.holdNeighbors(true);
     rd.appendChild(pager.stage);
@@ -528,7 +714,10 @@ export const mount: MountFn = async (root, params, ctx) => {
     const place = currentPlace() ?? (saved ? { chapter: saved.chapter, block: saved.block, offset: 0 } : { chapter: 0, block: 0, offset: 0 });
     stopChapterSpeech();
     closePopup();
+    clearCursor();
+    clearChapterError();
     saveProgressNow();
+    lift = 0;
     if (want) enterPaged(); else leavePaged();
     applyLayout(ctx.settings.get());
     await loadChapter(place.chapter, place.block > 0 || place.offset > 0 ? { block: place.block, offset: place.offset } : { top: true });
@@ -546,6 +735,27 @@ export const mount: MountFn = async (root, params, ctx) => {
   function scrollToBlock(b: BlockState): void {
     const top = b.el.getBoundingClientRect().top + window.scrollY - BAR_H - 16;
     window.scrollTo(0, Math.max(0, top));
+  }
+
+  /** Offset of the first character of a block that is under the top bar, so a reload comes back to the line and not the paragraph. */
+  function scrollOffsetAtTop(b: BlockState): number {
+    const y = BAR_H + 4;
+    if (b.el.getBoundingClientRect().top >= y) return 0;
+    const rubies = b.el.querySelectorAll<HTMLElement>('ruby.rd-c');
+    let lo = 0;
+    let hi = rubies.length - 1;
+    let found = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (rubies[mid].getBoundingClientRect().bottom > y) { found = mid; hi = mid - 1; } else lo = mid + 1;
+    }
+    return found < 0 ? 0 : Number(rubies[found].dataset.o) || 0;
+  }
+
+  /** Scroll so the line holding `offset` of a block is just under the top bar. */
+  function scrollToOffset(b: BlockState, offset: number): void {
+    const r = view()?.rectOf(b, offset, offset + 1);
+    if (r) window.scrollBy(0, r.top - (BAR_H + 16));
   }
 
   function ensureInView(b: BlockState, start: number): void {
@@ -595,14 +805,22 @@ export const mount: MountFn = async (root, params, ctx) => {
     window.clearTimeout(saveTimer);
     saveTimer = 0;
     const v = view();
-    if (!v) return;
+    // A chapter that failed to show must not overwrite the place the reader had.
+    if (!v || failing !== null) return;
     let block: number;
     let offset = 0;
     if (paged) {
       const a = pager?.anchor();
-      block = Math.max(0, (a?.block ?? 0) - v.synthetic);
-      offset = a && a.block >= v.synthetic ? a.offset : 0;
-    } else block = Math.max(0, (firstVisible()?.index ?? 0) - v.synthetic);
+      if (!a) return; // the pages are being set: keep the place that is saved
+      const at = v.toStored(a.block, a.offset);
+      block = at.block;
+      offset = at.offset;
+    } else {
+      const b = firstVisible();
+      const at = v.toStored(b?.index ?? 0, b ? scrollOffsetAtTop(b) : 0);
+      block = at.block;
+      offset = at.offset;
+    }
     const p: Progress = { bookId: book!.id, chapter: chapterIndex, block, percent: percent(), updatedAt: Date.now() };
     if (offset > 0) p.offset = offset;
     void store.progress.set(p).catch(() => {});
@@ -620,6 +838,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   const onPointerDown = (e: PointerEvent) => {
     pointerKind = (e.pointerType as typeof pointerKind) || 'mouse';
     popupWasOpen = !!document.querySelector('.pp-pop');
+    // Pointing at the page ends keyboard word choosing.
+    if (cursor && !(e.target instanceof Element && e.target.closest('.pp-pop'))) clearCursor(false);
   };
   const onMouseDown = (e: MouseEvent) => {
     dragFromArticle = inArticle(e.target);
@@ -640,7 +860,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   };
   const onClick = (e: MouseEvent) => {
     if (suppressClick) { suppressClick = false; return; }
-    if (e.detail > 1) return;
+    const touchy = pointerKind !== 'mouse';
+    if (e.detail > 1 && !touchy) return;
     const target = e.target as Element;
     const w = target.closest?.('.rd-w');
     // A tap outside an open popup closes it. (The popup closes itself on a mouse press, but WebKit reports the click
@@ -657,22 +878,51 @@ export const mount: MountFn = async (root, params, ctx) => {
       if (!w && pointerKind !== 'mouse' && !document.querySelector('.pp-pop')) sel.removeAllRanges();
       return;
     }
+    const inStage = paged && !!pager && pager.stage.contains(target) && !target.closest('[data-rd-ui], button, a, input, .pp-pop');
+    // Pages, touch or pen: the outer strips of the spread turn the page whatever is under the finger, words included.
+    // (A word near the edge is looked up with a press and hold.) The middle looks words up and shows or hides the bar.
+    if (inStage && touchy && pager!.zoneAt(e.clientX) !== 'middle') {
+      if (popupWasOpen) { popupWasOpen = false; closePopup(); return; } // the tap only closed the popup
+      pager!.tapAt(e.clientX);
+      return;
+    }
     if (w) {
       window.clearTimeout(hoverTimer);
       if (ctx.settings.get().lookupTrigger === 'hover' && pointerKind === 'mouse') return;
+      // Remember the tap: a second one soon after, near the same spot, is a double tap (see onDoubleTap).
+      if (touchy) lastTap = { t: e.timeStamp, x: e.clientX, y: e.clientY, w };
       lookup.openToken(w);
       return;
     }
-    // Pages: a tap on the margins and gaps turns the page (outer thirds) or shows and hides the bar (middle).
-    if (paged && pager && pager.stage.contains(target) && !target.closest('[data-rd-ui], button, a, input')) {
+    // Pages with a mouse: a click on the margins and gaps turns the page (outer strips) or shows and hides the bar (middle).
+    if (inStage) {
       if (popupWasOpen) return; // the tap only closed the popup
-      if (pager.tapAt(e.clientX) === 'middle') toggleChrome();
+      if (pager!.tapAt(e.clientX) === 'middle') toggleChrome();
     }
+  };
+  /**
+   * Double tap with a finger or pen: the whole sentence of the word the FIRST tap opened. This runs in the capture phase, before
+   * anything under the finger can react, because by the second tap the first tap's card (a bottom sheet, or a card near the word)
+   * may be what is under the finger, or the page may have moved. Only the time and the distance on screen decide.
+   */
+  const onDoubleTap = (e: MouseEvent) => {
+    const prev = lastTap;
+    if (!prev || pointerKind === 'mouse' || disposed) return;
+    if (e.timeStamp - prev.t > DOUBLE_TAP_MS || e.timeStamp < prev.t) { lastTap = null; return; }
+    if (Math.hypot(e.clientX - prev.x, e.clientY - prev.y) >= DOUBLE_TAP_PX) return;
+    lastTap = null;
+    if (!prev.w.isConnected) return;
+    e.stopPropagation();
+    e.preventDefault();
+    popupWasOpen = false;
+    window.getSelection()?.removeAllRanges();
+    lookup.openSentence(prev.w);
   };
   const onDblClick = (e: MouseEvent) => {
     const w = (e.target as Element).closest?.('.rd-w');
     window.getSelection()?.removeAllRanges();
-    if (w) { window.clearTimeout(hoverTimer); lookup.openToken(w); }
+    // With a finger the second tap is already handled in onClick (the browser may not send a dblclick at all).
+    if (w && pointerKind === 'mouse') { window.clearTimeout(hoverTimer); lookup.openToken(w); }
   };
 
   let hoverTimer = 0;
@@ -718,10 +968,145 @@ export const mount: MountFn = async (root, params, ctx) => {
   const atBottom = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 8;
   const atTop = () => window.scrollY <= 2;
 
+  // ---------------------------------------------------------- keyboard word cursor
+  // A reader who cannot point (a keyboard on an iPad, Switch Control, VoiceOver) chooses words with the keys: Enter puts a
+  // cursor on the first word of the page, the arrows move it, Enter or Space looks the word up, Escape puts it away.
+  function clearCursor(blur = true): void {
+    if (cursorEl) {
+      cursorEl.classList.remove('rd-cursor');
+      cursorEl.removeAttribute('tabindex');
+      if (blur && document.activeElement === cursorEl) cursorEl.blur();
+    }
+    cursor = null;
+    cursorEl = null;
+  }
+
+  function setCursor(b: BlockState, s: number, e: number, focus: boolean): void {
+    const el = b.el.querySelector<HTMLElement>(`.rd-w[data-s="${s}"]`);
+    if (!el) return;
+    if (cursorEl && cursorEl !== el) { cursorEl.classList.remove('rd-cursor'); cursorEl.removeAttribute('tabindex'); }
+    cursor = { bi: b.index, s, e };
+    cursorEl = el;
+    el.classList.add('rd-cursor');
+    el.setAttribute('tabindex', '-1');
+    if (focus) el.focus({ preventScroll: true });
+  }
+
+  function startCursor(): boolean {
+    const v = view();
+    if (!v) return false;
+    let found: { b: BlockState; s: number; e: number } | null = null;
+    if (paged) {
+      const a = pager?.anchor();
+      found = lookup.nextWord(a?.block ?? 0, a?.offset ?? 0, 1);
+    } else {
+      const b = firstVisible();
+      let at = b ? lookup.nextWord(b.index, 0, 1) : null;
+      for (let n = 0; at && n < 600; n++) {
+        const r = v.rectOf(at.b, at.s, at.e);
+        if (!r || r.top >= BAR_H + 4) break;
+        at = lookup.nextWord(at.b.index, at.e, 1);
+      }
+      found = at;
+    }
+    if (!found) return false;
+    setCursor(found.b, found.s, found.e, true);
+    return true;
+  }
+
+  function moveCursor(dir: -1 | 1, byLine = false): void {
+    const v = view();
+    if (!v || !cursor) return;
+    let at = lookup.nextWord(cursor.bi, dir > 0 ? cursor.e : cursor.s, dir);
+    if (byLine && at) {
+      // To the same place on the next or the previous line: step on until the line changes, then until the word is under the old x.
+      const start = v.rectOf(v.blocks[cursor.bi], cursor.s, cursor.e);
+      const x = start ? start.left + start.width / 2 : 0;
+      let lineTop: number | null = null;
+      for (let n = 0; at && start && n < 400; n++) {
+        const r = v.rectOf(at.b, at.s, at.e);
+        if (r && Math.abs(r.top - start.top) > start.height * 0.6) {
+          if (lineTop === null) lineTop = r.top;
+          const passed = dir > 0 ? r.left + r.width / 2 >= x : r.left + r.width / 2 <= x;
+          if (Math.abs(r.top - lineTop) > start.height * 0.6 || passed) break;
+        }
+        const nx = lookup.nextWord(at.b.index, dir > 0 ? at.e : at.s, dir);
+        if (!nx) break;
+        at = nx;
+      }
+    }
+    if (!at) {
+      if (paged && dir > 0) pager?.next();
+      else if (paged && dir < 0) pager?.prev();
+      return;
+    }
+    movingCursor = true;
+    try {
+      if (paged) pager?.reveal(at.b.index, at.s);
+      else ensureInView(at.b, at.s);
+    } finally { movingCursor = false; }
+    setCursor(at.b, at.s, at.e, true);
+  }
+
+  /** Slide the stage up while a bottom-sheet popup covers the lower part of the page, so the word it is about stays in view. */
+  function liftPage(top: number | null): void {
+    const stage = pager?.stage;
+    window.clearTimeout(liftTimer);
+    liftWanted = top;
+    if (!stage) return;
+    if (top === null) {
+      lift = 0;
+      stage.style.transform = '';
+      return;
+    }
+    // Hold the lift until a second tap could no longer be coming: the word stays under the finger for the double tap.
+    const wait = lastTap ? lastTap.t + LIFT_HOLD_MS - performance.now() : 0;
+    if (wait > 0) {
+      liftTimer = window.setTimeout(() => { if (!disposed && liftWanted !== null) liftPage(liftWanted); }, wait);
+      return;
+    }
+    const mark = stage.querySelector<HTMLElement>('.rd-c.rd-active, .rd-c.rd-sel');
+    const r = mark?.getBoundingClientRect();
+    if (!r) return;
+    // Lift until the word's bottom clears the sheet, by as much as it takes: the only limit is the word itself, whose pinyin must not
+    // go up under the top bar. (The old limit, a fixed distance below the bar, held the lift at about 210 px on an iPad in landscape, where
+    // the sheet starts at 300 to 450 px, and left a word in the lower third under the sheet.)
+    const barBottom = Math.max(0, bar.getBoundingClientRect().bottom);
+    const ceiling = r.top + lift - (barBottom + r.height * 0.5 + 6);
+    const want = Math.max(0, Math.min(r.bottom + lift + 14 - top, ceiling));
+    if (Math.abs(want - lift) < 1) return;
+    lift = want;
+    stage.style.transition = 'transform 0.2s ease';
+    stage.style.transform = want ? `translateY(${-Math.round(want)}px)` : '';
+  }
+
   const onKey = (e: KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target) || document.querySelector('dialog[open]')) return;
     if (toc.isOpen()) return;
     const s = ctx.settings.get();
+    const popupOpen = !!document.querySelector('.pp-pop');
+    const onControl = e.target instanceof Element && !!e.target.closest('button, a, select, [role="dialog"], [role="menu"], .rd-pop');
+    // The error screen: the keys that turn chapters still do (its own buttons do not use the arrow keys).
+    if (failing !== null && (!onControl || (e.target instanceof Element && !!e.target.closest('.rd-fail')))) {
+      if ((e.key === 'ArrowLeft' || e.key === 'PageUp') && failing > 0) { e.preventDefault(); void loadChapter(failing - 1, { top: true }); return; }
+      if ((e.key === 'ArrowRight' || e.key === 'PageDown') && failing < book.chapterCount - 1) { e.preventDefault(); void loadChapter(failing + 1, { top: true }); return; }
+    }
+    if (cursor && !popupOpen) {
+      switch (e.key) {
+        case 'ArrowRight': e.preventDefault(); moveCursor(1); return;
+        case 'ArrowLeft': e.preventDefault(); moveCursor(-1); return;
+        case 'ArrowDown': e.preventDefault(); moveCursor(1, true); return;
+        case 'ArrowUp': e.preventDefault(); moveCursor(-1, true); return;
+        case 'Enter': case ' ':
+          if (cursorEl) { e.preventDefault(); lookup.openToken(cursorEl); }
+          return;
+        case 'Escape': e.preventDefault(); clearCursor(); return;
+        default: break;
+      }
+    } else if (e.key === 'Enter' && !popupOpen && !onControl && failing === null) {
+      if (startCursor()) e.preventDefault();
+      return;
+    }
     switch (e.key) {
       case 'p': case 'P':
         ctx.settings.set({ pinyin: PINYIN_CYCLE[(PINYIN_CYCLE.indexOf(s.pinyin) + 1) % PINYIN_CYCLE.length] });
@@ -734,6 +1119,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       case 'ArrowRight':
       case 'PageDown':
       case ' ':
+        if (onControl && e.key === ' ') break;
         if (e.repeat && !paged) break;
         if (paged) {
           if (e.key === ' ' && e.shiftKey) { e.preventDefault(); pager?.prev(); break; }
@@ -779,6 +1165,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   rd.addEventListener('mousemove', onMove);
   rd.addEventListener('copy', onCopy);
   document.addEventListener('pointerdown', onPointerDown, true);
+  document.addEventListener('click', onDoubleTap, true);
   document.addEventListener('mouseup', onMouseUp);
   document.addEventListener('selectionchange', onSelectionChange);
   document.addEventListener('keydown', onKey);
@@ -791,12 +1178,47 @@ export const mount: MountFn = async (root, params, ctx) => {
   const wantCh = params.ch !== undefined ? Number.parseInt(params.ch, 10) : NaN;
   const startPaged = ctx.settings.get().layout === 'pages';
   if (startPaged) enterPaged();
-  if (Number.isFinite(wantCh) && wantCh >= 0 && wantCh < book.chapterCount) {
-    await loadChapter(wantCh, { top: true });
-  } else if (saved && saved.chapter >= 0 && saved.chapter < book.chapterCount) {
+  const startAt = Number.isFinite(wantCh) && wantCh >= 0 && wantCh < book.chapterCount ? wantCh
+    : saved && saved.chapter >= 0 && saved.chapter < book.chapterCount ? saved.chapter : 0;
+  if (failCount(book.id, startAt) >= 2) {
+    // This chapter failed to show twice: opening it a third time would only trap the reader on it. Offer the list instead.
+    showChapterError(startAt, new Error('This chapter failed to show twice.'));
+    toc.open(startAt);
+  } else if (startAt === wantCh) {
+    await loadChapter(startAt, { top: true });
+  } else if (saved && startAt === saved.chapter) {
     await loadChapter(saved.chapter, { block: saved.block, offset: saved.offset });
   } else {
     await loadChapter(0, { top: true });
+  }
+  if (!disposed && failing === null) showReaderHint();
+
+  /** The first time a book is opened on this device: how to look things up, once. */
+  function showReaderHint(): void {
+    if (coachSeen()) return;
+    const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
+    const lines = [
+      touch
+        ? 'Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.'
+        : 'Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.',
+    ];
+    const s = ctx.settings.get();
+    if ((s.pinyin === 'unknown' || s.pinyin === 'hsk') && store.known.count() === 0) {
+      lines.push('Pinyin shows on every word until you mark words as known. Mark one in its card, and it goes away.');
+    }
+    const close = () => {
+      coachMark();
+      document.removeEventListener('pointerdown', close, true);
+      window.clearTimeout(timer);
+      box.remove();
+    };
+    const box = h('div.rd-coach', { role: 'note', 'data-rd-ui': '' },
+      h('div', null, lines.map((l) => h('p', null, l))),
+      h('button.btn.btn-sm', { type: 'button', onclick: close }, 'Got it'));
+    rd.appendChild(box);
+    const timer = window.setTimeout(close, 20000);
+    // The first tap anywhere puts it away (and still does what the tap was for).
+    window.setTimeout(() => document.addEventListener('pointerdown', close, true), 600);
   }
 
   return () => {
@@ -814,6 +1236,9 @@ export const mount: MountFn = async (root, params, ctx) => {
     rd.removeEventListener('mousemove', onMove);
     rd.removeEventListener('copy', onCopy);
     document.removeEventListener('pointerdown', onPointerDown, true);
+    document.removeEventListener('click', onDoubleTap, true);
+    window.clearTimeout(liftTimer);
+    window.clearInterval(pendingLexTimer);
     document.removeEventListener('mouseup', onMouseUp);
     document.removeEventListener('selectionchange', onSelectionChange);
     document.removeEventListener('keydown', onKey);

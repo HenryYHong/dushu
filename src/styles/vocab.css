@@ -1,5 +1,5 @@
 /* Vocabulary screen. Every class starts with voc-. */
-.voc-page { max-width: 860px; }
+.voc-page { /* same column as the library: the width is the .page default */ }
 .voc-head-actions { display: flex; gap: var(--space-2); }
 
 .voc-bar { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-3); }
@@ -12,7 +12,8 @@
 .voc-count { min-height: 20px; margin-bottom: var(--space-2); font-size: 13px; }
 .voc-count:empty { display: none; }
 
-.voc-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.voc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: var(--space-2) var(--space-3); align-items: start; }
+.voc-list > .empty { grid-column: 1 / -1; }
 .voc-row {
   display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -43,13 +44,19 @@
 .voc-empty-title { margin: 0 0 var(--space-2); font-size: 20px; color: var(--text-2); }
 .voc-empty p { max-width: 440px; margin: 0 auto var(--space-4); line-height: 1.6; }
 
-/* known words */
-.voc-known { padding: var(--space-4); }
-.voc-known-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
-.voc-known-title { margin: 0; font-size: 17px; }
-.voc-known-sub { margin: 4px 0 0; font-size: 13px; max-width: 520px; }
-.voc-known-total { font-size: 22px; font-weight: 700; white-space: nowrap; }
-.voc-known-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-4); }
+/* known words: a collapsed card above the list */
+.voc-known { padding: 0; margin-bottom: var(--space-4); }
+.voc-known-summary { display: flex; align-items: center; gap: var(--space-2); min-height: 48px; padding: 0 var(--space-4); cursor: pointer; list-style: none; border-radius: var(--radius); }
+.voc-known-summary::-webkit-details-marker { display: none; }
+.voc-known-summary:hover { background: var(--surface-2); }
+.voc-known-summary > .icon:first-child { color: var(--ok); }
+.voc-known-title { font-size: 15px; font-weight: 650; }
+.voc-known-total { font-variant-numeric: tabular-nums; }
+.voc-known-chev { margin-left: auto; color: var(--text-3); transition: transform 0.15s var(--ease); }
+.voc-known[open] .voc-known-chev { transform: rotate(180deg); }
+.voc-known-body { padding: 0 var(--space-4) var(--space-4); border-top: 1px solid var(--border); }
+.voc-known-sub { margin: var(--space-3) 0 0; font-size: 13px; max-width: 520px; }
+.voc-known-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
 .voc-level { width: auto; min-width: 130px; }
 .voc-known-details { margin-top: var(--space-4); font-size: 14px; }
 .voc-known-details summary { cursor: pointer; color: var(--text-2); }
@@ -68,8 +75,10 @@
   .voc-side { flex-direction: column; align-items: flex-end; gap: 2px; }
   .voc-word { font-size: 24px; }
   .voc-remove { opacity: 1; }
-  .voc-known-head { flex-direction: column; gap: var(--space-2); }
+  /* Anki, CSV, Backup and Restore stay on one row: four equal buttons, words only. */
+  .voc-tools { flex-wrap: nowrap; gap: 6px; }
+  .voc-tools .btn { flex: 1 1 0; min-width: 0; padding: 0 6px; }
+  .voc-tools .btn .icon { display: none; }
 }
 
 .voc-page a.btn, .voc-page a.btn:hover { text-decoration: none; }
-.voc-gap { height: var(--space-6); }

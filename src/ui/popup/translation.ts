@@ -2,10 +2,13 @@
 // retry, and the one-time on-device model download. Used by the phrase popup and paragraph translate.
 import type { AppContext, Dictionary, Lexicon, Translator, TranslatorId } from '../../types';
 import { getTranslator, listTranslators, pickTranslator, type ChromeTranslator } from '../../translate';
+import { claudeReadySync } from '../../translate/claude';
+import type { TranslateOptions, TranslationNote } from '../../translate/prompt';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { formatSyllable } from '../../core/pinyin';
 import { segment } from '../../core/segment';
+import { entriesForReading } from '../../core/reading';
 
 export interface TranslationPanelOptions {
   ctx: AppContext;
@@ -15,6 +18,11 @@ export interface TranslationPanelOptions {
   lexicon?: Lexicon;
   /** Called when the content height may have changed. */
   onResize?: () => void;
+  /**
+   * The caller lists the words of the text itself (the phrase popup does). An offline word-by-word gloss would
+   * then only repeat that list, so the panel says plainly that there is no translation instead.
+   */
+  hasWordList?: boolean;
 }
 
 export interface TranslationPanel {
@@ -23,8 +31,14 @@ export interface TranslationPanel {
   destroy(): void;
 }
 
-/** Match the displayed script, and keep the prompt's name glossary bounded. */
-export function translationTerms(text: string, lexicon?: Lexicon, dict?: Dictionary | null) {
+/** Dictionary senses marked as older or regional usage: the ones a modern default most often gets wrong in an old book. */
+const TAGGED_SENSE = /^\((?:archaic|dialect|literary|storytelling|old|dated|Wu dialect|Cantonese)\b/i;
+
+/**
+ * Match the displayed script, and keep the prompt's name glossary bounded. With `tagged`, words the dictionary marks as
+ * archaic, literary, storytelling or dialect (却说, 只见, 恁地, 洒家, 俺) are included with those senses, whatever their frequency.
+ */
+export function translationTerms(text: string, lexicon?: Lexicon, dict?: Dictionary | null, options: { tagged?: boolean } = {}) {
   const seen = new Set<string>();
   const terms = (lexicon?.entries() || []).flatMap(entry => {
     const variants = [...new Set([entry.word, dict?.toSimplified(entry.word) || entry.word, dict?.toTraditional(entry.word) || entry.word])];
@@ -41,10 +55,20 @@ export function translationTerms(text: string, lexicon?: Lexicon, dict?: Diction
     for (const token of segment(text.slice(0, 6000), dict, lexicon)) {
       if (token.kind === 'han' && token.inDict) {
         const word = token.text;
-        if ([...word].length < 2 || seen.has(word)) continue;
+        if (seen.has(word)) continue;
         const entries = dict.lookup(word);
-        if (entries.length !== 1) continue;
+        // Only a word whose leading sense is the older usage (not 备 or 座, which merely have a rare tagged sense).
+        const lead = options.tagged && !([...word].length === 1 && dict.hsk(dict.toSimplified(word))) ? entriesForReading(entries, token.pinyin ?? []).filter(entry => TAGGED_SENSE.test(entry.defs[0] ?? '')) : [];
+        const taggedSenses = [...new Set(lead.flatMap(entry => entry.defs.filter(def => TAGGED_SENSE.test(def))))];
+        if (taggedSenses.length) {
+          seen.add(word);
+          candidates.push({ word, pinyin: entries[0].pinyin.slice(0, 80), gloss: taggedSenses.slice(0, 2).join('; ').slice(0, 160), kind: 'term' as const, rank: -0.5 });
+          continue;
+        }
+        if ([...word].length < 2 || entries.length !== 1) continue;
         const entry = entries[0];
+        // Capitalized pinyin marks a proper noun (千山 is a district in Liaoning, not "a thousand mountains"); names come from the book's lexicon.
+        if (/^[A-Z]/.test(entry.pinyin)) continue;
         const idiom = entry.defs.some(def => /\bidiom\b/.test(def));
         const frequency = dict.freq(word);
         if (!idiom && (dict.hsk(word) || frequency > 20)) continue;
@@ -63,7 +87,7 @@ export function translationTerms(text: string, lexicon?: Lexicon, dict?: Diction
 const NOTES: Record<TranslatorId, { no: string; yes: string }> = {
   local: { no: 'Keep your Mac awake with Ollama and the private connection running', yes: 'Processed on your Mac; no cloud translation service' },
   chrome: { no: 'Not available in this browser', yes: 'On this device' },
-  claude: { no: 'Add an API key in Settings', yes: 'Uses your Anthropic key' },
+  claude: { no: 'Needs your Mac with a Claude key on it', yes: 'Through your Mac' },
   mymemory: { no: 'Not available', yes: 'Sends the text to MyMemory' },
   gloss: { no: 'Not available', yes: 'Offline, word by word' },
 };
@@ -101,7 +125,7 @@ export function renderRichText(text: string): HTMLElement {
 export function createTranslationPanel(o: TranslationPanelOptions): TranslationPanel {
   const { ctx } = o;
   const label = h('span.pp-tr-provider');
-  const body = h('div.pp-tr-body');
+  const body = h('div.pp-tr-body', { 'aria-live': 'polite', 'aria-atomic': 'false', 'aria-busy': 'false' });
   const actions = h('div.pp-tr-actions');
   const menuHost = h('div.pp-tr-menuhost');
   const el = h('section.pp-tr', null,
@@ -114,6 +138,8 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
   let lastMode: 'translate' | 'explain' = 'translate';
   let destroyed = false;
   let busy = false;
+  /** Screen readers wait for the whole answer while it streams (aria-busy), then read it once. */
+  const setBusy = (b: boolean) => { busy = b; body.setAttribute('aria-busy', String(b)); };
   let resultText = '';
   let localReady = false;
   let plainResult: { text: string; provider: Translator } | null = null;
@@ -128,7 +154,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
       return;
     }
     body.appendChild(h('p.pp-tr-note', null, 'Machine translation: check ambiguous literary meanings and rare terms against the references.'));
-    const references = translationTerms(o.text, o.lexicon, ctx.dictSync());
+    const references = translationTerms(o.text, o.lexicon, ctx.dictSync(), { tagged: true });
     if (!references.length) return;
     const list = h('dl.pp-tr-references');
     for (const term of references) list.append(
@@ -138,7 +164,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
   }
 
   const showError = (message: string, retry: (() => void) | null, extra?: Node) => {
-    busy = false;
+    setBusy(false);
     resultText = '';
     clear(body);
     body.appendChild(h('p.pp-tr-error', null, message));
@@ -153,7 +179,8 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     const mine = ++seq;
     const ctl = (abort = new AbortController());
     lastMode = mode;
-    busy = true;
+    el.classList.remove('pp-tr-quiet');
+    setBusy(true);
     resultText = '';
     clear(body);
     body.appendChild(h('div.pp-tr-loading', null, h('span.app-spinner'), mode === 'explain' ? 'Explaining…' : 'Translating…'));
@@ -174,6 +201,8 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     current = t;
     setLabel(t);
 
+    if (t.id === 'gloss' && o.hasWordList) { showNoTranslation(id === null && settings.translator === 'auto'); return; }
+
     let availability: 'yes' | 'download' | 'no';
     try { availability = await t.availability(); } catch { availability = 'no'; }
     if (mine !== seq) return;
@@ -193,16 +222,20 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
       if (mode === 'explain') { clear(text); text.appendChild(renderRichText(s)); } else text.textContent = s;
       changed();
     };
+    let note: TranslationNote | null = null;
     try {
+      const options: TranslateOptions = { signal: ctl.signal, onDelta: paint, onNote: n => { note = n; } };
       const final = await t.translate(
         { text: o.text, context: o.context, mode,
-          terms: translationTerms(o.text, o.lexicon, dict) },
-        { signal: ctl.signal, onDelta: paint },
+          terms: translationTerms(o.text, o.lexicon, dict, { tagged: true }) },
+        options,
       );
       if (mine !== seq) return;
       paint(final);
-      busy = false;
+      setBusy(false);
       if (mode === 'translate') plainResult = { text: final, provider: t };
+      // The checks could not confirm every detail: say so plainly instead of presenting a confident answer.
+      if (note) body.appendChild(h('p.pp-tr-note', { 'data-unverified': '' }, `Unverified: ${(note as TranslationNote).detail}. Check the reference words below.`));
       appendReferences(t);
       renderActions(null);
     } catch (e) {
@@ -211,8 +244,31 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     }
   }
 
+  /**
+   * No real translator is reachable. The caller already lists every word with its meaning, so repeating those
+   * glosses here as a "translation" would only say the same thing twice (with the same lead senses). One quiet line.
+   */
+  function showNoTranslation(automatic: boolean) {
+    setBusy(false);
+    resultText = '';
+    el.classList.add('pp-tr-quiet');
+    clear(body);
+    const settings = h('a.pp-tr-link', { href: '#/settings' }, 'Settings');
+    const noTranslator = typeof (globalThis as { Translator?: unknown }).Translator === 'undefined';
+    if (automatic) {
+      body.appendChild(h('p', null,
+        'No translation offline. ',
+        noTranslator ? 'Safari and iPadOS have no on-device translator. ' : '',
+        'Add a Claude key in ', settings, ', or use Chrome on a computer.'));
+    } else {
+      body.appendChild(h('p', null, 'Translation is set to word by word, so the list below is the result. Choose another provider below or in ', settings, '.'));
+    }
+    renderActions(null);
+    changed();
+  }
+
   function showDownload(t: ChromeTranslator, mode: 'translate' | 'explain', withGloss: boolean, mine: number) {
-    busy = false;
+    setBusy(false);
     clear(body);
     const status = h('span.pp-muted');
     const btn = h('button.btn.btn-primary.btn-sm', {
@@ -235,7 +291,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     );
     renderActions(null);
     changed();
-    if (!withGloss) return;
+    if (!withGloss || o.hasWordList) return;
     // Until the model is downloaded, still give a word-by-word gloss so the popup is never empty.
     const gloss = getTranslator('gloss', ctx.settings.get(), ctx.dictSync());
     void gloss.translate({ text: o.text, mode: 'translate' }).then((g) => {
@@ -251,14 +307,14 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     retryAction = retry;
     clear(actions);
     actions.hidden = false;
-    const hasClaude = ctx.settings.get().claudeApiKey.trim().length > 0;
+    const hasClaude = claudeReadySync(ctx.settings.get());
     if (busy) {
       actions.appendChild(h('button.btn.btn-sm', {
         'aria-label': lastMode === 'explain' ? 'Stop explanation' : 'Stop translation',
         onclick: () => {
           abort?.abort();
           seq++;
-          busy = false;
+          setBusy(false);
           if (!resultText) clear(body);
           body.appendChild(h('p.pp-tr-note', null, 'Stopped.'));
           renderActions(() => void run(current?.id ?? null, lastMode));
@@ -276,7 +332,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
         if (!plainResult) { void run(current?.id ?? null, 'translate'); return; }
         abort?.abort();
         seq++;
-        busy = false;
+        setBusy(false);
         lastMode = 'translate';
         current = plainResult.provider;
         resultText = plainResult.text;
@@ -322,6 +378,8 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     }
     menuHost.appendChild(menu);
     changed();
+    // The list can be taller than what is left of the popup: bring it into view inside the popup's own scroll box.
+    requestAnimationFrame(() => { if (!destroyed && typeof menu.scrollIntoView === 'function') menu.scrollIntoView({ block: 'nearest' }); });
   }
 
   void getTranslator('local', ctx.settings.get(), ctx.dictSync()).availability().then(availability => {

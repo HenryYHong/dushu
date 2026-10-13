@@ -1,0 +1,73 @@
+{
+ "referencesJudged": 69,
+ "referencesCorrect": 67,
+ "referencesWrong": 0,
+ "falsePositives": [
+  {
+   "id": "gx-road",
+   "verdict": "minor",
+   "errors": [
+    {
+     "type": "register-fluency",
+     "severity": "minor",
+     "evidence": "when more people walk along it, it eventually becomes a road",
+     "why": "The singular 'it' and 'a road' do not agree with the plural 'roads' or 'no roads', and 'when more people walk' loosely renders 走的人多了 (many people have walked). The meaning is still intact."
+    }
+   ]
+  },
+  {
+   "id": "kr-book",
+   "verdict": "minor",
+   "errors": [
+    {
+     "type": "register-fluency",
+     "severity": "minor",
+     "evidence": "between the lines (in the gaps between the characters)",
+     "why": "The candidate copies the reference's alternative rendering as an unneeded parenthetical; the meaning is correct, but a careful editor would keep only one version."
+    }
+   ]
+  }
+ ],
+ "seeded": 38,
+ "caughtAny": 38,
+ "caughtMajor": 24,
+ "caughtRightType": 34,
+ "byType": {
+  "wrong-sense": {
+   "n": 5,
+   "caught": 5,
+   "major": 3
+  },
+  "name-mangled": {
+   "n": 5,
+   "caught": 5,
+   "major": 4
+  },
+  "negation-modality": {
+   "n": 6,
+   "caught": 6,
+   "major": 6
+  },
+  "omission": {
+   "n": 7,
+   "caught": 7,
+   "major": 4
+  },
+  "addition": {
+   "n": 7,
+   "caught": 7,
+   "major": 2
+  },
+  "idiom-literal": {
+   "n": 3,
+   "caught": 3,
+   "major": 1
+  },
+  "number-unit": {
+   "n": 5,
+   "caught": 5,
+   "major": 4
+  }
+ },
+ "misses": []
+}

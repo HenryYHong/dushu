@@ -20,26 +20,37 @@ export function getTranslator(id: TranslatorId, settings: Settings, dict: Dictio
     case 'local': return local;
     case 'chrome': return chrome;
     case 'claude': return createClaudeTranslator(settings);
-    case 'mymemory': return mymemory;
+    case 'mymemory': return settings.localOnly ? withoutThirdParty(mymemory) : mymemory;
     case 'gloss': return createGlossTranslator(dict);
   }
 }
 
+/** With Local only on, a service that sends text to a third party is unavailable and refuses to run. */
+function withoutThirdParty(translator: Translator): Translator {
+  return {
+    id: translator.id,
+    label: translator.label,
+    availability: async () => 'no',
+    translate: async () => { throw new Error('Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use this service.'); },
+  };
+}
+
 /**
- * An explicit choice is honored as is. 'auto' prefers the evaluated Qwen3.5 9B local model,
- * then ready Chrome, smaller local models, downloadable Chrome, Claude (key set), and gloss.
- * It never picks MyMemory because that sends text to a
- * third party; the user has to choose it.
+ * An explicit choice is honored as is. 'auto' prefers Claude through the Mac (unless Local only is on), then the
+ * evaluated Qwen3.5 9B local model, ready Chrome, smaller local models, downloadable Chrome, and the dictionary gloss.
+ * It never picks MyMemory because that sends text to a third party; the user has to choose it.
  */
 export async function pickTranslator(settings: Settings, dict: Dictionary | null): Promise<Translator> {
   if (settings.translator !== 'auto') return getTranslator(settings.translator, settings, dict);
+  if (!settings.localOnly) {
+    const claude = getTranslator('claude', settings, dict);
+    if (await claude.availability() === 'yes') return claude;
+  }
   if (await qualityLocalAvailable()) return local;
   const chromeState = await chrome.availability();
   if (chromeState === 'yes') return chrome;
   if (await local.availability() === 'yes') return local;
   if (chromeState === 'download') return chrome;
-  const claude = getTranslator('claude', settings, dict);
-  if (await claude.availability() === 'yes') return claude;
   return getTranslator('gloss', settings, dict);
 }
 

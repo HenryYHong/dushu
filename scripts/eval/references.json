@@ -1,0 +1,1117 @@
+{
+ "hlm-daiyu-leftovers": {
+  "reference": "Daiyu gave a cold laugh and said, \"I knew it—if it weren't what the others had picked over and left, it wouldn't be given to me.\"",
+  "checkpoints": [
+   "Daiyu laughs coldly (冷笑), a sarcastic, resentful tone rather than a happy laugh.",
+   "She says she already knew (我就知道) this would happen; it is a sarcastic complaint, not a surprised remark.",
+   "Core sense: she receives only what the others have left over after choosing; 別人不挑剩下的 = 'what others haven't picked/left over'. The two flowers are leftovers.",
+   "The structure 別人不挑剩下的也不給我 means 'if it were not what others had rejected/left, it would not be given to me either'; the double negation must not be flipped into 'they gave me the best'.",
+   "The remark is aimed at Zhou Rui's wife, who was delivering the flowers; Daiyu is speaking to her and about the giver's way of treating her.",
+   "Name handled as Daiyu (pinyin), a first-person speaker 'I'."
+  ],
+  "traps": [
+   "Misreading the double negation as 'others did not pick the leftovers, so they did not give them to me', or as 'they would not give me what others did not choose'.",
+   "Translating 冷笑 as 'laughed coldly' with a friendly sense, or as 'smiled', losing the sarcasm.",
+   "Rendering 挑剩下的 literally as 'picked the remaining ones' without conveying 'leftovers/rejects'.",
+   "Adding an explanation or an invented target such as blaming Baochai directly when the text only has Daiyu's biting remark."
+  ]
+ },
+ "hlm-jiamu-blind": {
+  "reference": "Grandmother Jia said, \"What books do they read? They just know a few characters, that's all—enough so they aren't blind people with their eyes open!\"",
+  "checkpoints": [
+   "賈母 (Grandmother Jia) is the speaker, answering Daiyu's question about what books the girls (her cousins) study.",
+   "「讀的是什麼書」 is a dismissive rhetorical question meaning 'What sort of books do they read?', i.e. 'they don't really study any books'; it is not a sincere request to name titles.",
+   "「不過是認得兩個字」: they merely recognize a couple of characters, i.e. are barely literate; 兩個 is a loose small number, not literally two.",
+   "「不是睜眼的瞎子罷了」: they are just not illiterate 'blind people with open eyes'; the bar is minimal literacy. The negation is part of a self-deprecating minimization, and 罷了 means 'that's all'.",
+   "The tone is modest and self-deprecating, downplaying the granddaughters' education."
+  ],
+  "traps": [
+   "Taking 「讀的是什麼書」 as a genuine question and having Grandmother Jia ask Daiyu what books she reads, or listing book titles.",
+   "Translating 「認得兩個字」 literally as 'know exactly two characters'.",
+   "Dropping or flipping the negation in 「不是睜眼的瞎子」, e.g. 'they are blind though their eyes are open', or misreading it as an insult to Daiyu, or as literal blindness.",
+   "Missing the humble, dismissive tone, so the line reads as a proud claim about the girls' education."
+  ]
+ },
+ "hlm-xifeng-soft": {
+  "reference": "Xifeng said, \"I'm always telling you you're too soft. If you let the household servants get away with this, where will it end?\"",
+  "checkpoints": [
+   "Xifeng is the speaker, scolding someone for being too soft and lenient with the household's servants (the addressee is not named in the sentence).",
+   "成日家 means 'all day long / constantly'; 家 is a suffix, not 'home'. She says she is always saying this.",
+   "太軟弱 = too soft/weak (in character, indulgent in discipline), not physically weak.",
+   "縱的家裡人這樣 = by indulging/letting the household servants (get away with) behaving like this; 縱 means 'give free rein/indulge'.",
+   "還了得了 is a rhetorical idiom: 'how can this be tolerated / that would be intolerable', not a literal question about returning or being able to get something.",
+   "Name handled as Xifeng (or Wang Xifeng), consistent with the reader's known name; 鳳姐 not translated as 'Phoenix' unless explained."
+  ],
+  "traps": [
+   "Translating 成日家 as 'at home all day' or reading 家 as 'home'.",
+   "Taking 還了得了 literally (e.g., 'can it be returned/obtained') instead of 'this is outrageous/how can this be allowed'.",
+   "Reading 縱 as 'vertical/longitudinal' or 'to release (someone)' rather than 'indulge', or reversing blame so that the servants are being called soft rather than You-shi.",
+   "Rendering 家裡人 as 'family members/relatives' instead of household servants/retainers, as the context (the drunken Jiao Da) shows."
+  ]
+ },
+ "hlm-lifeblood": {
+  "reference": "\"If you're angry, it's easy enough to hit or scold someone—why on earth smash that life-root of yours!\"",
+  "checkpoints": [
+   "Speaker is Grandmother Jia (賈母), addressing Baoyu, who has just hurled his jade away in a fit of madness.",
+   "「你生氣，要打罵人容易」: when you are angry, hitting or scolding people is easy (an easy option); 容易 means 'easy', not 'allowed' or 'likely'.",
+   "「何苦」 is a rhetorical 'why bother/why ever', expressing reproach, not a real question about hardship.",
+   "「摔」 means to dash or hurl down hard; 「那命根子」 is the jade, which is Baoyu's 'life-root', i.e. his very lifeline, what he holds dearest; it should not be rendered as a body part.",
+   "The tone is anxious, scolding and indulgent, with a grandmother's concern; just before this she calls him 孽障 ('little nemesis')."
+  ],
+  "traps": [
+   "Translating 命根子 literally as 'root of life' with a bodily or sexual implication, or as 'his child' or 'descendant'.",
+   "Reading 何苦 as 'what suffering' or 'how bitter' rather than as 'why bother/why would you'.",
+   "Misreading 要打罵人容易 as 'if you want to hit people, it is easy to be scolded', or treating 人 as Baoyu himself; the objects are other people.",
+   "Omitting the demonstrative 那, or failing to make clear that the 'life-root' is the jade he threw."
+  ]
+ },
+ "hlm-monk-daoist": {
+  "reference": "Before Baoyu could reply, two men suddenly appeared at the bow of the boat, a Buddhist monk and a Taoist priest. They took Baoyu between them and said, \"Your worldly bonds are at an end. Why not hurry along?\"",
+  "checkpoints": [
+   "Baoyu had not yet had time to answer (未及回言) when the two figures arrived; he was answering Jia Zheng's question about why he was dressed so and had come here.",
+   "兩人 are identified as 一僧一道, a Buddhist monk and a Taoist priest, who came up onto the bow of the boat (舡 = 船).",
+   "夾住 means they flanked/held Baoyu between them, one on each side, not that they pinched or clamped him.",
+   "俗緣已畢 means his ties/karmic destiny in the mortal world are finished; 還不快走 is a rhetorical urging: 'why not leave quickly?'",
+   "The speech is by the monk and priest addressed to Baoyu; Jia Zheng is only a witness."
+  ],
+  "traps": [
+   "Translating 只見 as 'only saw' instead of the narrative 'suddenly saw / there appeared'.",
+   "Rendering 夾住 as 'gripped/pinched' or having them sandwich him in a hostile way, or mistaking 舡頭 for something other than the boat's bow.",
+   "Reading 還不快走 as a plain question or as negative ('do not go quickly'), or translating 俗緣 literally as 'vulgar fate' or 'common relatives'.",
+   "Making Jia Zheng or Baoyu the speaker, or omitting that the two were a monk and a priest."
+  ]
+ },
+ "hlm-pinger-forgive": {
+  "reference": "Pinger said with a smile, \"'Where you can let a person off, let them off.' If you can save yourself trouble, it's best to let things pass and make do.\"",
+  "checkpoints": [
+   "Pinger (平兒) is the speaker and she is smiling as she says it; her name is rendered as a name (Pinger / Ping'er), not translated as a common noun.",
+   "'得饒人處且饒人' is a proverb in quotation marks: where one can forgive or go easy on someone, one should do so (be lenient/show mercy).",
+   "'得省的' is dialect for 得省事/能省 (where one can save trouble); 將就些事 means to put up with or let matters slide, not to fuss over them.",
+   "'也罷了' means 'that would be fine / it would be best'; it is mild advice, not a command or a grudging concession.",
+   "The advice is general and addressed to Xiren and the others in the room, urging them not to stir up or press the quarrel."
+  ],
+  "traps": [
+   "Translating the proverb word for word (e.g. 'get the chance to spare people and spare them') so that it reads as nonsense, or missing that it is a quoted proverb.",
+   "Reading 得省的 as 'got to save' or 'was able to economize' (money or resources), instead of 'where one can spare oneself trouble'.",
+   "Reading 將就 as 'to compromise or settle for second best' in a material sense (e.g. 'make do with a few things') instead of 'to tolerate and let matters pass'.",
+   "Turning Pinger's mild advice into a rebuke, or making her the one who has been wronged or who is forgiving someone herself."
+  ]
+ },
+ "hlm-wang-indulged": {
+  "reference": "Lady Wang smiled and said, \"You don't know the reason. He is not like other people. From childhood, because Grandmother doted on him, he has been pampered and raised together with the girls, all in one place.\"",
+  "checkpoints": [
+   "Lady Wang (王夫人) is the speaker; she smiles as she speaks, and the smile is not mocking.",
+   "「你不知道原故」 means 'you don't know the reason/background'. Lady Wang is about to explain why Baoyu is unusual, so it does not mean 'you don't know the old story' or 'the cause of an accident'.",
+   "「老太太」 is Grandmother, i.e. the Matriarch (Grandmother Jia), who is Daiyu's maternal grandmother. She is the one who dotes on him (疼愛).",
+   "「原系同姊妹們一處嬌養慣了的」 means he was originally raised in the same place as his girl cousins and sisters and is used to being pampered with them. 嬌養 means 'pampered, indulgently raised'.",
+   "「與別人不同」 means 'different from other people'. It refers to Baoyu's peculiar, special status and temperament, and the sentence does not say he is better than others."
+  ],
+  "traps": [
+   "Taking 老太太 as 'old lady' in general, or as Lady Wang's own mother, rather than the Jia family matriarch, Grandmother Jia.",
+   "Reading 同姊妹們一處 as 'with his sisters' only in a literal biological sense, or missing 一處 ('in the same place, together'). Alternatively, mistranslating 嬌養慣了 as 'spoiled the girls'.",
+   "Rendering 原故 as 'original reason/old story' awkwardly, or misreading 你不知道原故 as an accusation instead of an explanatory preface.",
+   "Making Baoyu the one who dotes, or inverting who pampers whom (Grandmother pampers Baoyu)."
+  ]
+ },
+ "hlm-daiyu-school": {
+  "reference": "Daiyu said, \"No, I haven't studied the books. I only went to school for a year, and I know just a few characters.\"",
+  "checkpoints": [
+   "Daiyu answers Baoyu's question whether she has read/studied books: she says she has not (不曾讀), i.e. not seriously studied.",
+   "She attended school for only one year (只上了一年學).",
+   "She knows only a few characters, a modest self-deprecating statement (些須認得幾個字: 'just barely recognize a few characters').",
+   "The speaker is Daiyu, replying to Baoyu; 'Daiyu' is rendered as a name (Dai-yu / Daiyu)."
+  ],
+  "traps": [
+   "Translating 讀 as 'read' and implying she cannot read at all, or contradicting the 'a few characters' meaning.",
+   "Misreading 只上了一年學 as 'only went up one grade' or 'studied for one year at university', or giving the wrong duration.",
+   "Rendering 些須 as 'some/many' rather than 'a little/a few', overstating her literacy.",
+   "Attributing the line to Baoyu or someone else, or adding detail such as the teacher's name."
+  ]
+ },
+ "hlm-liu-laolao-ask": {
+  "reference": "Granny Liu smiled ingratiatingly and said, \"I'm looking for Mr. Zhou, the dowry servant who came with the Mistress from her family. Would one of you gentlemen be so kind as to ask him to come out for me?\"",
+  "checkpoints": [
+   "劉姥姥 is the speaker; she addresses the gatekeepers/loungers at the side gate, not Mr. Zhou himself.",
+   "陪笑 means to put on a smile deferentially or ingratiatingly, not to 'accompany with laughter'.",
+   "太太的陪房 means a servant who came with Madam (Lady Wang) as part of her dowry/trousseau when she married into the household; 周大爺 is a respectful title for that man, Zhou.",
+   "煩 is a polite 'trouble you to'; 那位太爺 is a deferential address to a man among the group, and 請他老出來 means 'invite/ask him (honorific 他老) to come out'.",
+   "The request is that the gentleman ask Zhou to come out; she is not asking to be let in or to see the Mistress."
+  ],
+  "traps": [
+   "Translating 陪房 literally as 'accompanying room' or as a bedroom companion/concubine instead of a dowry servant.",
+   "Rendering 太太 as 'wife' or 'Mrs.' of the speaker or as just 'madam' with no sense that she is the lady of the house (Lady Wang); or treating 周大爺 as an elder brother or a rich master.",
+   "Translating 陪笑 as 'laughed along with' someone, or missing the humble tone.",
+   "Taking 他老 as 'he is old' or 'the old man' rather than an honorific 'his honor', or making 太爺 literally 'grandfather'."
+  ]
+ },
+ "hlm-liu-laolao-advise": {
+  "reference": "Seeing this, Granny Liu could not stand by any longer and began to advise him: \"Son-in-law, don't be cross with me for speaking out of turn.",
+  "checkpoints": [
+   "因此: because of what has just been described (Gouer drinking and picking quarrels at home while his wife dare not answer back), so Granny Liu intervenes.",
+   "看不過 means she could not bear to watch / could not let it pass; it does not mean she 'could not see' or 'did not look past' anything.",
+   "乃勸道 means she then spoke in advice or remonstrance. She is exhorting him, not scolding or arguing.",
+   "姑爺 means 'son-in-law' (a respectful term for a daughter's husband), spoken by his mother-in-law. It is not 'brother-in-law' or 'young master'.",
+   "別嗔著我多嘴: 'don't take offense / get angry at me for butting in / for talking too much'. It is a polite apology for speaking out of turn. 嗔 here means to be angry or resentful.",
+   "劉姥姥 is a name/title: 'Granny Liu' or 'Old Mrs. Liu', an elderly woman. It is not a surname and given name pair."
+  ],
+  "traps": [
+   "Translating 看不過 as 'could not see past' or 'overlooked', instead of 'could not bear to watch / could not stand it'.",
+   "Rendering 姑爺 as 'aunt's husband', 'brother-in-law' or 'master', or treating it as a name.",
+   "Reading 別嗔著我多嘴 as 'don't be angry with me, you who talk too much', or otherwise misassigning who is talkative, or flipping the negation into an order to be angry.",
+   "Misidentifying the speaker as Gouer, or the one being advised as Granny Liu, because the paragraph is long and has many names."
+  ]
+ },
+ "hlm-li-gui": {
+  "reference": "Li Gui said with a smile, \"Don't be angry with me for saying so, sir, but you've always been a bit improper in your own conduct, and that's why these young fellows won't listen to you.",
+  "checkpoints": [
+   "Li Gui is speaking to Jia Rui, addressing him politely as '你老人家' (a respectful 'you, sir'), while saying something frank and unflattering.",
+   "'不怕你老人家惱我' is a polite preface: 'I hope you won't be angry with me / pardon my frankness'; it is not 'you are not afraid of me' or 'don't fear that you'll get angry'.",
+   "'素日...到底有些不正經' means that habitually, after all, Jia Rui's behavior has been somewhat improper or undignified (not serious or upright); 'to底' means 'in the end/after all'.",
+   "'這些兄弟' refers to the boys/younger schoolmates in the school (junior kinsmen), not Li Gui's own brothers; '才不聽' means that is why they did not obey (Jia Rui's shouting).",
+   "The causal logic: the pupils' disobedience is attributed to Jia Rui's own past misconduct."
+  ],
+  "traps": [
+   "Translating '不怕你老人家惱我' literally as 'You are not afraid of being angry at me' or 'Aren't you afraid I'll get angry', thus missing the polite-apology sense.",
+   "Rendering '不正經' as 'not serious/not formal' only, or as 'dishonest' or 'immoral' too strongly; or missing the implication of Jia Rui's questionable conduct.",
+   "Taking '兄弟' as literal brothers or Li Gui's siblings rather than the young schoolmates.",
+   "Rendering '你老人家' as 'old man/your old self' literally and implying great age rather than respectful address."
+  ]
+ },
+ "hlm-just-in-time": {
+  "reference": "On the stone steps sat several maids dressed in red and green. The moment they saw the party arrive, they all hurried forward with smiles to greet them, saying, \"Just now the Old Lady was still talking about you, and here you are, right on time!\"",
+  "checkpoints": [
+   "臺磯 means the stone steps/raised stone base of the porch or terrace in front of the main hall, not a 'stage' or 'platform for performing'.",
+   "穿紅著綠 describes the maids as brightly dressed in red and green clothing; it is not literally 'wearing red and green' as a fixed uniform, and it is not a metaphor.",
+   "便忙都笑迎上來: all the maids rush forward smilingly to meet Daiyu and her party as soon as they see them.",
+   "老太太 is Grandmother Jia (Daiyu's maternal grandmother), the matriarch; she had just been talking of/missing Daiyu (念 = think of, mention).",
+   "可巧就來了: 'by a lucky coincidence, she's arrived just now' — the maids express that the arrival coincides with the Old Lady's mention."
+  ],
+  "traps": [
+   "Translating 臺磯 as 'stage' or 'platform' or 'terrace seats', or missing that it refers to the steps in front of the building.",
+   "Rendering 老太太 as a generic 'old lady' without the sense of the family matriarch, or mistaking her for Daiyu's mother or someone else.",
+   "Translating 念 as 'reciting/praying (scripture)' rather than 'was talking about / thinking of'.",
+   "Interpreting 一見他們來了 as the maids seeing only Daiyu, or turning 笑迎 into something else like 'laughing at them'."
+  ]
+ },
+ "hlm-opening-zhen": {
+  "reference": "The author himself says: having once passed through a dream-like illusion, he therefore concealed the true events and, borrowing the notion of the \"Magic Jade of Spiritual Communication,\" composed this book, the Story of the Stone.",
+  "checkpoints": [
+   "因曾歷過一番夢幻之後: 'because he had once gone through a spell of dream and illusion'; the experience precedes and motivates the writing.",
+   "將真事隱去: the true events/facts are hidden or suppressed (this is the pun on 甄士隱, 'true matters hidden'), not 'the truth was revealed'.",
+   "借通靈之說: 'borrowing the tale/notion of the spirit-communicating (jade)'; 通靈 refers to the magic jade that is spiritually aware, and also echoes the stone; 借 means borrow or use as a vehicle.",
+   "撰此《石頭記》一書也: he composed this book titled Shitou Ji (Story of the Stone); the title is rendered or transliterated consistently, and 也 marks a concluding declarative.",
+   "作者自云 introduces the author's own statement ('the author says of himself'), a framing device in the opening of the novel."
+  ],
+  "traps": [
+   "Reading 真事隱去 as 'the true events passed away/were lost' or as 'Zhen Shiyin left', rather than 'hid the true events away'.",
+   "Translating 通靈 literally as 'communicating with ghosts/mediumship' or a modern 'psychic', instead of the magic jade/stone endowed with spiritual intelligence.",
+   "Rendering 夢幻 as merely 'fantasy' or 'dreaming' in a modern sense, or taking 一番 as 'one time dreaming' instead of 'a (whole) spell of'.",
+   "Translating 撰 as 'copied' or 'edited', or omitting that the title 石頭記 is the name of the book (translating it as 'a book about a stone' without the title)."
+  ]
+ },
+ "xyj-wukong-delight": {
+  "reference": "Sun Wukong, listening to the lecture from the side, was so delighted that he scratched his ears and rubbed his cheeks, his brows blossoming and his eyes smiling, and he couldn't help waving his hands and stamping his feet in a dance.",
+  "checkpoints": [
+   "Sun Wukong is listening to the lecture while standing/sitting to the side (在傍聞講), not giving it.",
+   "喜得他抓耳撓腮: he is so happy that he scratches his ears and rubs his cheeks, a monkey-like gesture of uncontainable glee.",
+   "眉花眼笑 is an idiom: brows 'in bloom' and eyes smiling, i.e. beaming with joy, not literally flowers.",
+   "忍不住 means 'could not help/restrain himself'; the subject is Wukong, who involuntarily moves.",
+   "手之舞之，足之蹈之 (之 is a filler particle, from the Classic of Poetry/Great Preface): his hands dance and his feet stamp, an irrepressible celebratory dance.",
+   "Name handled consistently: 孫悟空 is Sun Wukong (reader already knows 悟空)."
+  ],
+  "traps": [
+   "Translating 眉花眼笑 literally as flowers on the eyebrows or eyes laughing in a strange image.",
+   "Treating 之 as the pronoun 'it/him' (e.g. 'waved his hand at it') rather than a rhythmic particle.",
+   "Misreading 在傍聞講 as Wukong lecturing or hearing a lecture about the side/a neighbor.",
+   "Making the scratching of ears and cheeks a sign of itching, annoyance or distress rather than joy."
+  ]
+ },
+ "xyj-patriarch-scold": {
+  "reference": "The Patriarch heard this and gave a sharp \"Tut!\" He leapt down from the high platform, disciplinary ruler in hand, pointed at Wukong and said, \"You wretched monkey! You won't learn this and you won't learn that. What exactly do you want?\"",
+  "checkpoints": [
+   "The Patriarch reacts to Wukong's words (聞言) with an angry exclamation 咄 and jumps down from the high platform (高臺, the lecture dais).",
+   "He holds a 戒尺 (disciplinary ruler/rod) and points directly at Wukong (指定 = pointing straight at him).",
+   "猢猻 is a scolding term, 'you monkey'; it is not a name and carries insult.",
+   "這般不學，那般不學: 'you refuse to learn this, you refuse to learn that' – both negated, referring to the various arts/ways offered.",
+   "卻待怎麼 means 'what then do you want / what do you intend?', a rebuking rhetorical question; 卻 is not 'but' or 'however' here.",
+   "Wukong is rendered as Wukong (name known to reader)."
+  ],
+  "traps": [
+   "Translating 戒尺 as a 'precept ruler', 'commandment' or 'ruler' for measuring, rather than a disciplinary rod/ferule.",
+   "Taking 卻待怎麼 literally as 'but wait, how?' or as a request for method, rather than 'what do you want?' / 'what do you mean to do?'.",
+   "Reading 這般不學，那般不學 as 'learn this way, not that way' or dropping the double negation.",
+   "Rendering 咄的一聲 as the Patriarch laughing or sighing, or 高臺 as a 'high tower' or 'high stage' with the Patriarch falling rather than leaping down."
+  ]
+ },
+ "xyj-transformations": {
+  "reference": "There is one set of methods corresponding to the Heavenly Dipper numbers, which comprises thirty-six transformations; and another set corresponding to the Earthly Fiend numbers, which comprises seventy-two transformations.",
+  "checkpoints": [
+   "「有一般……」 means 'there is a kind/set of ...', introducing two distinct sets of techniques; 一般 here is not 'ordinary' or 'the same'.",
+   "天罡數 (Heavenly Dipper/Celestial Spirit number) corresponds to 三十六般變化, thirty-six transformations.",
+   "地煞數 (Earthly Fiend number) corresponds to 七十二般變化, seventy-two transformations.",
+   "該 means 'amounts to / comprises / corresponds to', not 'should' or 'owe'.",
+   "般 is a measure word for kinds or types; 變化 means magical transformations or shape-shifting."
+  ],
+  "traps": [
+   "Translating 一般 as 'the same' or 'ordinary' (e.g. 'in general, the Heavenly Dipper numbers...').",
+   "Taking 該 as modal 'should/ought to' ('should have thirty-six transformations').",
+   "Swapping the numbers, giving 72 to 天罡 and 36 to 地煞, or giving wrong counts.",
+   "Translating 天罡 and 地煞 as literal 'heavenly winds' or 'earth evil spirits' without sense of star-number categories, or misreading them as the names of persons."
+  ]
+ },
+ "xyj-one-opens": {
+  "reference": "This Monkey King, too, was one of those for whom once a single aperture is opened, a hundred apertures open; right then he learned the oral formula, practiced and refined it on his own, and mastered all seventy-two kinds of transformation.",
+  "checkpoints": [
+   "一竅通時百竅通 is a proverb: once one point is grasped (one aperture opened), everything else follows; it describes Wukong's quick, intuitive intelligence, not a physical ability.",
+   "當時 means 'at that very moment / right then', so he learned the formula immediately after it was whispered to him.",
+   "口訣 is an oral formula or mnemonic verse for the technique, which the Patriarch had just whispered in his ear.",
+   "自修自煉: he practiced and cultivated/refined it by himself (self-directed), without further instruction.",
+   "七十二般變化 is 'seventy-two kinds of transformations'; 都學成了 means he fully mastered all of them.",
+   "也 (這猴王也是…) means 'too/also', likening the monkey to clever people who learn by analogy; it is not 'also' in the sense of an additional action."
+  ],
+  "traps": [
+   "Translating 一竅通時百竅通 literally as 'when one hole is open a hundred holes are open' with no sense of quick comprehension, or as a bodily/anatomical statement (the preceding dialogue about 九竅 may tempt this).",
+   "Reading 當時 as 'at that time (in the past)' or 'in those days' rather than 'immediately', or implying a long period of study.",
+   "Saying he learned only part of the transformations, or 'seventy-two' as 'seventy' or 'thirty-six' (confusing with the 天罡 option he declined).",
+   "Implying the Patriarch kept teaching him, or inventing details of the formula's content, when the text says he practiced on his own."
+  ]
+ },
+ "xyj-cloud-somersault": {
+  "reference": "Wukong said, \"Ever since I learned the Way, I have mastered the seventy-two earthly transformations, and my somersault cloud has great, wondrous power. I am also skilled at making myself invisible and slipping away unseen, and at summoning and holding back the elements by magic.\"",
+  "checkpoints": [
+   "七十二般地煞變化: the seventy-two 'earthly' (Disha) transformations, a Daoist-style set of magical transformation arts, not 72 kinds of evil spirits or ordinary changes.",
+   "自聞道之後: 'since I heard/learned the Way (Dao)', meaning since he studied under his immortal master, not 'since I heard the news'.",
+   "觔斗雲 is the somersault cloud (cloud-somersault), a means of flying; 有莫大的神通 means it has immense magical power.",
+   "善能隱身遯身: skilled at hiding his body and escaping/evading by concealment; 起法攝法: raising and drawing in/controlling magic (spells or winds/elements), a pair of opposite actions.",
+   "The speaker is Wukong (悟空), who is boasting to the four old monkeys; the first person 我 refers to him. The name is rendered as Wukong/Sun Wukong, not translated as meaning."
+  ],
+  "traps": [
+   "Translating 聞道 literally as 'heard the news/heard it said', losing the sense of learning the Dao.",
+   "Rendering 地煞 as 'earth evil spirits' or 'ground-killing' rather than as the Disha transformation set; or reading 七十二 as 'seventy-two kinds of transformation skills of the earth' without the numeric sense.",
+   "Treating 觔斗雲 as a separate cloud-riding person or 'tumbling cloud' as acrobatics only, missing that it is a flying technique.",
+   "Misreading 起法攝法 as 'rise from the law and take the law' or inventing a legal sense of 法 instead of magic arts."
+  ]
+ },
+ "xyj-que-shuo-temple": {
+  "reference": "Now to tell of the master and his disciple: the two of them urged their horses forward until they reached the front of the temple gate and looked it over. Sure enough, it was a monastery.",
+  "checkpoints": [
+   "卻說 is a storyteller's transitional formula meaning 'now to tell of / meanwhile / to resume', not literal 'but said'; it does not introduce a quotation.",
+   "他師徒兩個 means 'the two of them, master and disciple' (one master, one disciple); not 'two disciples' or 'his two disciples'.",
+   "策馬前來: they spurred/urged their horses forward (they are riding, not walking or leading the horses); 前來 means advancing toward the place.",
+   "直至山門首觀看: they went right up to the head/front of the mountain gate (the temple's main gate) and looked; 山門 is the Buddhist temple's main gate, not a gate to a mountain.",
+   "果然是一座寺院: 果然 = 'sure enough / as expected'; it confirms an earlier expectation that it was a temple (monastery), a single one."
+  ],
+  "traps": [
+   "Translating 山門 literally as 'mountain gate' or 'mountain pass' and missing that it is the temple gate.",
+   "Rendering 師徒兩個 as 'two disciples' or 'teacher and two students', or 'his master and disciple' with wrong referent.",
+   "Translating 卻說 as 'but said' or 'however he said', or omitting its narrative-shift function.",
+   "Rendering 果然 as 'finally' or 'really' without the sense of confirmation, or turning 寺院 into a 'temple' of a wrong type like 'palace' or 'house'."
+  ]
+ },
+ "xyj-bajie-dates": {
+  "reference": "Now Bajie, for one thing, was hungry, and for another, thirsty; besides, he had a huge appetite by nature. Seeing three red dates in the cup, he picked them up and, with a gulp, swallowed them all down into his belly.",
+  "checkpoints": [
+   "卻說 is a narrative transition formula ('Now,' 'Meanwhile'), not literally 'but speaking of'; it resumes the story with Bajie as the subject.",
+   "一則饑，二則渴 = 'for one thing hungry, for another thirsty' – two reasons for his action.",
+   "原來是食腸大大的: he is by nature a big eater, with a large appetite ('capacious stomach'); 原來 here means 'as it happened/by nature', explaining his behavior.",
+   "鍾子 is a small cup (teacup), and it contains three red dates (紅棗兒, jujubes); Bajie takes and eats all three.",
+   "嘓的 is an onomatopoeic gulp; 都咽在肚裡 = swallowed them all down whole into his belly.",
+   "Bajie is the sole subject of this passage; the names are handled as 'Bajie' (八戒), not 'Pigsy' unless consistent."
+  ],
+  "traps": [
+   "Translating 卻說 as 'but' or 'however' with a contrastive sense, or as 'it is said that'.",
+   "Misreading 食腸大大的 as 'big intestines' or 'greedy for food' only literally, or omitting it; or treating 原來 as 'originally/formerly'.",
+   "Rendering 鍾子 as a bell/clock or 'bowl of rice', or 紅棗兒 as red berries/cherries/peaches; or getting the number wrong.",
+   "Omitting 'swallowed whole/all' (都咽) and implying he chewed them or ate only some; or adding that the others also ate them (that belongs to the next sentence)."
+  ]
+ },
+ "xyj-demon-king": {
+  "reference": "Now, the monster king was delighted in his cave. He said, \"Little ones, Sun the Pilgrim has come off worst and gone away.",
+  "checkpoints": [
+   "卻說 is a storyteller's transition meaning 'Now' or 'Meanwhile'; it should not be translated as 'but said'. The subject is the monster king (妖王), who is in his cave and delighted.",
+   "小的們 is the monster king addressing his underlings: 'little ones' or 'minions, lads'. It is not 'the small things'.",
+   "孫行者 is Sun Wukong, referred to by his title 'the Pilgrim'. The name should be handled consistently, as Sun the Pilgrim, Pilgrim Sun, or Sun Xingzhe.",
+   "吃了虧 means 'suffered a loss, got the worst of it'. 去了 means he has gone away or left.",
+   "The speaker is pleased because Sun has been defeated; he is not worried or sad."
+  ],
+  "traps": [
+   "Translating 吃了虧 literally as 'ate a loss', or as 'ate/swallowed something' with some food sense.",
+   "Treating 卻說 as the contrastive 'but' and 'said', or as 'but say' without the storytelling sense of 'now'.",
+   "Taking 小的們 as 'the small ones' in the sense of children or small objects, or as the speaker referring to himself, instead of addressing his followers.",
+   "Reading 孫行者 as a generic 'traveling monk' or a 'Pilgrim Sun' who is not the monkey king, or flipping who suffered the loss (the monster rather than Sun)."
+  ]
+ },
+ "xyj-pills": {
+  "reference": "All I've ever seen is pills made with a paste of vinegar, or a paste of old rice, or refined honey, or even just plain water. When have I ever seen pills made with horse piss?",
+  "checkpoints": [
+   "The speaker objects that he has never heard of pills made with horse urine (no speaker is named in the sentence).",
+   "丸 here is a pill or bolus; 為丸 means 'made into pills' with the named binder (糊 = paste, 煉蜜 = refined/processed honey, 陳米 = old stored rice).",
+   "只見 means 'I have only ever seen' (a limiting statement of experience), not 'I only saw it just now'.",
+   "那曾見 is a rhetorical question meaning 'when have I ever seen...?', implying it is unheard of; it is not a request for information.",
+   "馬尿 is horse urine (a crude word, 'piss', is acceptable); the sentence contrasts it with the usual clean binders.",
+   "或只是清水 means 'or even just plain water'."
+  ],
+  "traps": [
+   "Reading 只見 as the narrative 'just then saw' (as in 只見 introducing a scene) instead of 'all I've ever seen'.",
+   "Translating 那曾見 as 'where did (you) see' or as a real question, rather than as a rhetorical 'never have I seen'.",
+   "Taking 為丸 as 'to be a ball/pill' loosely, or 煉蜜 as 'sweet honey' or 'boiled sugar', dropping the idea of making pills with a binder.",
+   "Attributing the line to Zhu Bajie or Sun Wukong instead of Sha Seng."
+  ]
+ },
+ "xyj-sanzang-date": {
+  "reference": "Now, Sanzang, on the twelfth day of the ninth month in the thirteenth year of Zhenguan (three days before the full moon), had been escorted by the Tang king and many officials out beyond the Chang'an pass.",
+  "checkpoints": [
+   "卻說 is a narrative transition formula ('Now', 'To resume our tale'), not literally 'but say'; it resumes the story with Sanzang as subject.",
+   "自貞觀十三年九月望前三日: 'since/from' the date, three days before the full moon (望 = the 15th, so the 12th) of the ninth month of Zhenguan year 13 (AD 639); 自 marks the starting point of the journey.",
+   "蒙唐王與多官送出長安關外: Sanzang 'had the honor of being' seen off by the Tang king together with many officials; 蒙 marks receiving a favor, and the king and officials are the agents of 送.",
+   "送出...關外: they escorted him out past the Chang'an pass/gate, i.e. beyond the city's frontier.",
+   "Sanzang (三藏) is the monk Xuanzang, treated as a name/title; 唐王 is the Tang king (Emperor Taizong), as already known to the reader."
+  ],
+  "traps": [
+   "Translating 望前三日 as 'three days before looking/hoping' or missing that 望 means the full moon (15th), so the date should be the 12th, not the 15th or 18th.",
+   "Reading 蒙 as 'covered/deceived' or 'Mongolia' instead of the polite 'received the kindness of'.",
+   "Reversing agency, e.g. saying Sanzang saw off the king and officials, or omitting that the king himself escorted him.",
+   "Rendering 卻說 literally as 'but say' or 'however', or translating 關外 as a foreign land rather than 'outside the pass'."
+  ]
+ },
+ "sg-three-visits": {
+  "reference": "Kongming instructed him, saying: \"I have received the kindness of Imperial Uncle Liu's three visits, so I cannot refuse to come out and serve.",
+  "checkpoints": [
+   "Speaker is Kongming (Zhuge Liang), instructing his younger brother Zhuge Jun, who has just returned (from the paragraph context).",
+   "「三顧之恩」 means the favor/kindness of Liu Bei's three personal visits to recruit him (the 'three visits to the thatched cottage'), not three favors.",
+   "「劉皇叔」 is 'Imperial Uncle Liu', i.e. Liu Bei, honored as an uncle of the Han emperor; 'Imperial Uncle' should be rendered as a title, not as a literal family relation to the speaker.",
+   "「不容不出」 is a double negative: 'I cannot but come out / I must come out' to take office and serve; 'not allowed to not go out' is the sense, i.e. he feels obliged.",
+   "「囑付」 = instruct, charge, give parting instructions (same as 囑咐)."
+  ],
+  "traps": [
+   "Reading 不容不出 as 'I am not allowed to go out' or 'will not go out', flipping the double negative.",
+   "Translating 三顧之恩 as 'three favors' or missing that it refers to three visits.",
+   "Treating 劉皇叔 as Kongming's own uncle or rendering it as 'Emperor Liu'.",
+   "Treating 囑付 as 'entrust property' or as 'pay/hand over' rather than 'instructed/charged'."
+  ]
+ },
+ "sg-tripod-plan": {
+  "reference": "First take Jingzhou as your home base, then take Western Sichuan (Xichuan) and establish your foundation there, so as to form a tripod balance of power; only after that can you plan to seize the Central Plains.\"",
+  "checkpoints": [
+   "Sequence of steps: first take Jingzhou as a home base (先...為家), afterwards (後即) take Xichuan/Western Sichuan to found a lasting enterprise.",
+   "鼎足之勢 means a three-way balance of power like the three legs of a tripod (Cao Cao, Sun Quan, Liu Bei), not literally 'the shape of a cauldron's foot'.",
+   "Only after these steps (然後) can he plan for/attempt the Central Plains (中原); 圖 means to plan or scheme to seize, not to draw or picture.",
+   "The speaker is Zhuge Liang addressing Liu Bei (玄德), concluding his explanation of the map of Xichuan; the implied subject is 'you/General'.",
+   "取 means to seize or take (by conquest or acquisition), and 基業 means a foundation for a lasting enterprise or dynasty."
+  ],
+  "traps": [
+   "Translating 鼎足之勢 literally as a cauldron's foot or leg shape, or missing the tripod image of three powers.",
+   "Translating 圖 as 'draw' or 'map' because a map was just mentioned, rather than 'plan to seize'.",
+   "Reversing the order of Jingzhou and Xichuan, or omitting 然後 so that the Central Plains appear to be attacked at the same time.",
+   "Treating 西川 as a person's name or rendering 家 as 'family' instead of 'home base'."
+  ]
+ },
+ "sg-xuande-lineage": {
+  "reference": "Xuande said, \"I am a descendant of Prince Jing of Zhongshan. Ever since I took part in suppressing the Yellow Turbans from Zhuo Commandery, I have fought more than thirty battles, great and small, and earned some modest merit, for which I was granted my present post.\"",
+  "checkpoints": [
+   "Xuande speaks, answering the inspector's question about his origins; he uses the humble self-reference 備 (\"I\"), not a literal name-as-object.",
+   "中山靖王之後 means a descendant of Prince Jing of Zhongshan (an imperial Han kinsman); 後 here is 'descendant', not 'after' or 'behind'.",
+   "自涿郡剿戮黃巾: from Zhuo Commandery onward he has been suppressing/slaughtering the Yellow Turban rebels; 自 means 'from/since', and 剿戮 means to wipe out or exterminate.",
+   "大小三十餘戰: more than thirty battles, large and small (大小 = of all sizes; 餘 = 'more than').",
+   "頗有微功, 因得除今職: he had some slight merit, and because of it was appointed to his current post; 除 means 'to appoint to an office', not 'remove'.",
+   "Names and titles are handled consistently: 玄德 as Xuande (the reader already knows him), 涿郡 as Zhuo Commandery, 黃巾 as the Yellow Turbans."
+  ],
+  "traps": [
+   "Translating 除 as 'remove/eliminate' (e.g., 'was removed from the post') instead of 'appointed to'.",
+   "Reading 頗 as 'quite a lot of/very great' merit and ignoring the modest tone of 微功, or rendering 微功 as great achievements.",
+   "Treating 後 as 'afterwards' or 'later' instead of 'descendant', or mistaking 中山靖王 for a place or a person's name rather than a title (Prince Jing of Zhongshan).",
+   "Taking 三十餘戰 as 'thirty remaining battles' or 'thirty battles' without 'more than', or misreading 大小 as 'the big and the small men'."
+  ]
+ },
+ "sg-oath-brothers": {
+  "reference": "Xuande said, \"The three of us are bound together in righteousness, sharing life and death. How could we part?",
+  "checkpoints": [
+   "Xuande is the speaker; \"the three of us\" are he and his two sworn brothers.",
+   "三人義同生死: the three of them are bound by a sworn bond of loyalty and will live and die together; 義 refers to sworn brotherhood/righteous obligation, not just 'meaning'.",
+   "豈可相離 is a rhetorical question meaning 'how could we possibly separate?', i.e. we must not part; it is not a literal request for information.",
+   "The sentence is complete as given. It leads into the proposal in the paragraph that all three go elsewhere, but the proposal itself should not be added if the translation covers only this sentence.",
+   "Names: 玄德 is rendered consistently as Xuande (optionally Liu Bei); do not confuse him with Guan Yu or Zhang Fei."
+  ],
+  "traps": [
+   "Translating 義 as 'meaning' or 'justice' in the abstract, and losing the sense of a sworn brotherhood.",
+   "Rendering 豈可相離 as a literal question, or flipping it into a permission such as 'we may part'.",
+   "Reading 同生死 as 'born and died on the same day' rather than 'share life and death / stand or fall together'.",
+   "Adding the continuation 'better that we all go elsewhere' or misattributing the line to Zhang Fei or Guan Yu."
+  ]
+ },
+ "sg-no-plunder": {
+  "reference": "Xuande said, \"I have never taken the slightest thing from the people. Where would I get any money or goods to give him?\"",
+  "checkpoints": [
+   "「秋毫無犯」: 'not violating even a hair of autumn down', meaning he has never taken or harmed the people's property in the slightest; it is not literally about autumn or hair.",
+   "「我與民秋毫無犯」: Xuande is the subject, and the people are those he has not wronged or plundered. The meaning is not that the people did not harm him.",
+   "「那得」 (那 = 哪) is a rhetorical question meaning 'where could I get...', implying he has nothing to give; it is not a statement that he has plenty.",
+   "「財物與他」: 與 here is the verb 'give', and 他 is the inspector (督郵), so the sense is 'give him money and goods', i.e. a bribe.",
+   "The speaker is Liu Bei (玄德), replying to the clerk's remark that the inspector only wants bribes."
+  ],
+  "traps": [
+   "Translating 秋毫無犯 literally as 'autumn hair' or 'in autumn I did not offend', or missing that it is an idiom for strict, blameless conduct toward the people.",
+   "Reading 那 as 'that' ('that money') instead of the rhetorical 'where/how', which turns the question into a statement.",
+   "Taking 與 as 'and/with' ('money and him') instead of 'give', or misidentifying 他 as the people or the clerk rather than the inspector.",
+   "Reversing the sense, so that Xuande seems to refuse to pay because the people have wronged him, or so that he admits to having wealth."
+  ]
+ },
+ "sg-ma-su": {
+  "reference": "Ma Su, on the mountain, saw him and laughed loudly, saying, \"If he values his life, he won't come to surround the mountain.\"",
+  "checkpoints": [
+   "Ma Su is on the mountain and sees Sima Yi (the man who has just ridden around the foot of the hill to scout) and laughs heartily/loudly.",
+   "彼 refers to the enemy (Sima Yi/Wei forces), not to Ma Su's own men.",
+   "彼若有命，不來圍山: conditional 'if he has (a destined) life / if he knows what's good for his life, he wouldn't come to surround the mountain'; implies the enemy would not dare to besiege a mountain position, said mockingly with overconfidence.",
+   "不來圍山 is negative: the enemy will not come to surround the mountain; 圍 = encircle/besiege.",
+   "之 is the object 'him/it' (Sima Yi's scouting party); 大笑曰 = laughed loudly and said."
+  ],
+  "traps": [
+   "Translating 有命 literally as 'has a mission/orders' or 'has a command' instead of 'has a life/fate (to live)', which loses the sense of 'if he values his life'.",
+   "Reading 彼 as Ma Su's side or as 'Zhuge Liang', or turning the line into a statement that the enemy will not come at all because of fear of a trap.",
+   "Dropping the negation or the conditional, e.g. 'If he has fate, he will come to surround the mountain'.",
+   "Rendering 之 as an inanimate thing ('saw it') or misplacing the scene (making Ma Su go down the mountain or Sima Yi on the mountain)."
+  ]
+ },
+ "sg-kongming-camp": {
+  "reference": "Kongming finished looking, slapped the table and cried out in dismay, \"Who told His Majesty to make camp like this?",
+  "checkpoints": [
+   "孔明 (Kongming/Zhuge Liang) is the subject: after finishing looking at the map, he slaps the table and cries out in dismay/alarm (叫苦).",
+   "看訖 means 'finished looking' (the map/plan Ma Liang presented); 訖 marks completion.",
+   "是何人教主上…: 'Who taught/advised the sovereign (主上, i.e. Liu Bei) to...' – a rhetorical, angry question, not a request for information.",
+   "如此下寨 = 'pitch/set up camp in this way' (the 40+ camps strung along streams and woods over 700 li).",
+   "主上 refers to Liu Bei, the lord, handled respectfully ('His Majesty'/'my lord'), not 'the master'."
+  ],
+  "traps": [
+   "Translating 拍案叫苦 literally as 'slapped the table and shouted bitterness/suffering' or as 'complained of hardship' rather than crying out in dismay.",
+   "Misreading 教 as 'teach (a lesson)' in a classroom sense or 'taught him to build a camp' without the sense 'instructed/advised'.",
+   "Taking 下寨 as 'descend to the stockade' or 'go down to the village' instead of 'pitch camp'.",
+   "Rendering 主上 as 'the master/host' or confusing who is meant (e.g., Sun Quan or Ma Liang)."
+  ]
+ },
+ "sg-zhang-fei-vow": {
+  "reference": "Zhang Fei's blood was up. He swapped the horse he was riding for Xuande's, rushed out in front of the ranks, and shouted, \"If I can't capture you, I swear I won't go back up the pass!\"",
+  "checkpoints": [
+   "張飛性起: Zhang Fei's temper/fighting spirit is fully roused (\"his blood was up\"); it is not about his nature in general.",
+   "向玄德換了坐下馬: he exchanged his mount with Xuande, i.e. took Xuande's horse and gave his own; the horse is the one he was riding (坐下馬 = steed).",
+   "搶出陣來: he dashed/charged out in front of the battle line.",
+   "我捉你不得，誓不上關: 捉...不得 means 'unable to capture'; he swears not to go up to the pass (the fortress, Jiameng Pass) until he does. The negation is within the oath.",
+   "Speaker is Zhang Fei addressing Ma Chao (你 = Ma Chao); 玄德 is the person he swaps horses with, not the one he addresses in the shout."
+  ],
+  "traps": [
+   "Reading 向玄德 as 'toward Xuande' or 'asking Xuande for' without the sense of exchanging horses, or having Xuande change horses instead of Zhang Fei.",
+   "Translating 性起 literally as 'his nature rose' or missing that it means anger/excitement flaring up.",
+   "Reading 捉你不得 as 'I may not capture you' (prohibition) rather than 'cannot capture you', or dropping/flipping the negation in 誓不上關.",
+   "Translating 關 as 'customs' or 'gate' vaguely, or treating 上關 as 'go to the border'; it means going up to the mountain pass fortress."
+  ]
+ },
+ "sg-lu-zhi": {
+  "reference": "Xuande said, \"I have recently heard that the Palace Attendant-General (Zhonglang Jiang) Lu Zhi is fighting the rebel leader Zhang Jiao at Guangzong. I once studied under Lu Zhi myself, and I wish to go and help him.\"",
+  "checkpoints": [
+   "Speaker is Xuande (Liu Bei), who refers to himself with the humble first-person 備 (\"I, Bei\"), not a third person.",
+   "近聞 = \"recently heard\": the news is hearsay; Lu Zhi is fighting Zhang Jiao at Guangzong (a place name).",
+   "中郎將 is an official title (General of the Palace Gentlemen / Palace Attendant-General), Lu Zhi's rank; 賊首 = \"rebel/bandit leader\", describing Zhang Jiao.",
+   "昔曾師事盧植 = \"once served/studied under Lu Zhi as his teacher\", i.e., Xuande was formerly Lu Zhi's student.",
+   "欲往助之: Xuande wants to go and help Lu Zhi (之 = Lu Zhi), not Zhang Jiao."
+  ],
+  "traps": [
+   "Translating 師事 as \"taught Lu Zhi\" or \"worked as a teacher\", reversing the teacher-student relationship.",
+   "Treating 備 as \"prepare\" or \"in preparation\" instead of the speaker's personal name Bei, or rendering 戰於廣宗 as a battle with troops \"wide and ancestral\" instead of the place Guangzong.",
+   "Taking 之 as referring to Zhang Jiao or the rebels, so that Xuande seems to be helping the rebels.",
+   "Rendering 中郎將 as just \"a lieutenant\" or \"middle officer\", or 賊首 as \"thief\" without the sense of rebel leader."
+  ]
+ },
+ "sg-sima-yi-wrong": {
+  "reference": "When he reached Chian Slope and saw that the Shu troops had already gone far off, he led his army back. Turning to his generals, he said, \"Kongming is dead; we can all sleep soundly now without a worry!\"",
+  "checkpoints": [
+   "Subject is Sima Yi (from the context paragraph), who goes as far as Chian Slope (赤岸坡) and then turns back; he does not catch the Shu army.",
+   "見蜀兵已去遠: he saw the Shu troops had already gone far away, which is the reason he withdrew (引還 = led his troops back).",
+   "顧謂眾將曰: he turned to/looked back at his generals and said.",
+   "高枕無憂: idiom meaning to sleep with head on a high pillow, i.e. rest easy with nothing to fear; 皆 = all of us; 矣 marks a new situation.",
+   "孔明 (Kongming) is the courtesy name of Zhuge Liang; 孔明已死 'is already dead' is stated as fact, though in the story it is a ruse to be exposed."
+  ],
+  "traps": [
+   "Translating 引還 as 'led them to return/pursue' or implying he continued the chase rather than turning back.",
+   "Rendering 高枕無憂 too literally (e.g., 'high pillow without worry') or missing the idiom's sense of being completely at ease.",
+   "Making 顧 mean 'take care of' or 'look after' instead of 'turn his head/look back at'.",
+   "Misidentifying the speaker as Zhuge Liang or the Shu generals, or treating 我等 as only Sima Yi rather than 'we all'."
+  ]
+ },
+ "sh-only-so": {
+  "reference": "Wu Song said, \"This much will do. I'll come again soon to see you, elder brother.\"",
+  "checkpoints": [
+   "Speaker is Wu Song, replying to Wu Da's urging to stay for a few more cups; he is declining more drink and preparing to leave.",
+   "「只好恁地」 means 'this is enough / just this much will do' (恁地 = 'like this, so'); it does not mean 'I can only do it this way' or 'it must be so'.",
+   "「卻又來望哥哥」 means 'I'll come again to see (visit) my elder brother'; 卻又 here conveys 'another time/later', and 望 means to visit/look in on.",
+   "哥哥 is Wu Song's address to his elder brother Wu Da, rendered as 'brother' or 'elder brother', and not as a different person.",
+   "The sentence is in future/intentional mood: Wu Song promises a future visit, not a past one."
+  ],
+  "traps": [
+   "Translating 恁地 as 'so/thus' literally or reading 只好 as 'had no choice but', producing 'I can only do it this way'.",
+   "Taking 卻 as 'but/however' in a contrastive sense and writing something like 'but I came to see my brother', in the past tense.",
+   "Rendering 望 as 'hope/look forward to' ('I hope my brother...') rather than 'visit'.",
+   "Misattributing the speech to Wu Da or the woman (Pan Jinlian), or turning 哥哥 into a plural or 'brother and sister-in-law'."
+  ]
+ },
+ "sh-what-state": {
+  "reference": "Zhang Qing was greatly startled and hurriedly asked, \"Worthy brother, how have you come to look like this?\"",
+  "checkpoints": [
+   "Zhang Qing is the subject: he is shocked and quickly asks Wu Song the question; Wu Song is the one addressed.",
+   "賢弟 is a respectful, affectionate address meaning 'worthy brother' or 'good brother'. It is not literal biological kinship and not a formal title.",
+   "如何恁地模樣 means 'how come you look like this / in such a state'. 恁地 is early vernacular for 'such, so, in this way'. The question is about Wu Song's disheveled, wretched appearance.",
+   "大驚 means 'was greatly alarmed/startled'. 連忙 means 'hurriedly, at once'.",
+   "The name 張青 should be given as Zhang Qing, in pinyin or the reader's known form. It should not be translated as a description or confused with the nickname 菜園子."
+  ],
+  "traps": [
+   "Translating 恁地 as 'how could you do this' or as a verb, turning the question into an accusation instead of a question about his appearance.",
+   "Taking 賢弟 literally as Wu Song's 'younger brother' or rendering it as 'virtuous younger brother' in a stilted way.",
+   "Misreading 模樣 as 'model' or 'pattern', or as 'manner/behavior', instead of 'appearance, state'.",
+   "Reversing the speakers, so that Wu Song asks Zhang Qing the question."
+  ]
+ },
+ "sh-temple-ruin": {
+  "reference": "Zhishen thought to himself, \"This is such a great monastery—how has it fallen into such ruin?\"",
+  "checkpoints": [
+   "智深 (Zhishen, i.e., Lu Zhishen) is the subject; he is thinking silently to himself (尋思道), not speaking aloud to anyone.",
+   "「這個大寺」 means 'this great monastery/temple' (寺 = Buddhist monastery, not a modern 'temple' of another religion).",
+   "「如何…的恁地」: 如何 = 'how/why'; 恁地 = 'so, to such an extent, like this'; so the question is 'how has it become so dilapidated?'",
+   "敗落 means to fall into decay, ruin and decline (it refers to the monastery's physical and institutional decline), not 'defeated'.",
+   "The sentence is a puzzled, surprised rhetorical question reacting to the missing gate and walls just described."
+  ],
+  "traps": [
+   "Translating 恁地 as 'there/that place' or as a person/name, instead of 'so/this way'.",
+   "Rendering 敗落 as 'defeated' or 'lost a battle' rather than 'run down, fallen into ruin'.",
+   "Turning the inner thought into speech addressed to someone (e.g., 'Zhishen asked'), or omitting that it is a thought.",
+   "Reading 如何 as a statement ('in this way') instead of the question 'how/why'."
+  ]
+ },
+ "sh-zhishen-bianliao": {
+  "reference": "Zhishen said, \"Just sell me a little, any old way, for me to drink. I won't say it was you who sold it, and that'll be that.\"",
+  "checkpoints": [
+   "Zhishen is the speaker; he asks the shopkeeper to sell him some wine, which he will drink himself.",
+   "「胡亂」 means 'any old way / just casually / anyhow', i.e. sell him a bit without fuss or formality, not 'recklessly' or 'in disorder'.",
+   "「洒家」 and 「俺」 are both the speaker's own self-reference ('I/me'), a rough, bluff first-person style. Here the one who will not tell is Zhishen.",
+   "「俺須不說是你家」 means 'I certainly won't say it was your place (that sold it)', i.e. he promises to keep the source secret.",
+   "「便了」 is a sentence-final particle meaning 'and that's all / that settles it', not 'convenient' or 'then go'."
+  ],
+  "traps": [
+   "Translating 「胡亂」 as 'recklessly' or 'in confusion', or as a command to sell him cheap or poor wine.",
+   "Taking 「便了」 as 'convenient' or 'immediately' instead of a closing particle ('that will do / that's all').",
+   "Misreading 「你家」 as 'your family' or 'your home' as a place he will go, or reversing who keeps silent (making the shopkeeper promise not to tell).",
+   "Dropping the promise of secrecy, or rendering 「須不」 as 'must not' (obligation) instead of 'surely will not'."
+  ]
+ },
+ "sh-luda-go": {
+  "reference": "Lu Da said, \"If that's how things stand, then I'll simply leave on my own, and that's that.\"",
+  "checkpoints": [
+   "Lu Da is the speaker, replying to Old Jin's warning that constables may come to the village to arrest him.",
+   "恁地時 means 'in that case / if that's so' (conditional, early vernacular), not a question or a place or time word.",
+   "洒家 is Lu Da's rough, self-referential 'I' (a coarse military-style pronoun, roughly 'this fellow / yours truly'); it should be rendered as 'I' or a similar blunt first person, not as a third person or a title.",
+   "自去 means 'go of my own accord / go by myself', i.e. leave so as not to implicate others; 便了 is a sentence-final particle meaning 'that's all / that settles it', not 'then convenient' or 'immediately'.",
+   "The tone is blunt and resolute, not angry or fearful; he offers to leave voluntarily."
+  ],
+  "traps": [
+   "Translating 恁地時 as 'at that time' or 'in such a place' rather than 'in that case'.",
+   "Rendering 便了 literally as 'convenient/ finished' or omitting its sense of 'and that's the end of it'.",
+   "Treating 洒家 as a proper name or a different person (e.g., 'Sajia said'), or as 'you'.",
+   "Reading 自去 as 'go from here on' or 'go to the authorities', or turning it into a command to someone else ('you go')."
+  ]
+ },
+ "sh-song-jiang-bow": {
+  "reference": "Song Jiang said, \"Brother, it is true that you killed the young master, and though you were under the strategist's strict orders, by age he is your elder brother. For my sake, make a bow of apology to him, and I will bow to you myself, and that will settle it.\"",
+  "checkpoints": [
+   "Song Jiang addresses Li Kui as 'brother' (兄弟), a term of affection, and speaks as the one pleading with him.",
+   "Li Kui is the one who killed the young master (小衙內), but the strategist's strict order (軍師嚴令) is given as mitigating; the strategist is Wu Yong, not Song Jiang.",
+   "論齒序 means 'going by age/seniority': Zhu Tong is older, hence Li Kui's 'elder brother' (哥哥).",
+   "且看我面 means 'do it for my sake / out of regard for me'; 伏個禮 means to make a bow of submission or apology to Zhu Tong.",
+   "我卻自拜你便了: Song Jiang offers to bow to Li Kui himself in return; 便了 is a sentence-final particle meaning 'that will settle it / all right?', not a past action."
+  ],
+  "traps": [
+   "Reading 卻是 as 'but' or 'however' rather than 'it was (indeed) you who...', which blurs the emphasis on Li Kui's responsibility.",
+   "Reversing who bows to whom, e.g. saying Zhu Tong bows to Li Kui, or that Song Jiang bows to Zhu Tong.",
+   "Rendering 軍師嚴令 as an order from Song Jiang or Chao Gai, or missing the concession in 雖是.",
+   "Taking 論齒序 literally as 'teeth order', or 伏個禮 as 'submit to the rites' instead of making a bow of apology.",
+   "Treating 便了 as 'then it is finished' in the past tense, or ignoring it altogether, losing the sense of a promised settlement."
+  ]
+ },
+ "sh-village-tavern": {
+  "reference": "Then the four of them—Zhishen, Lin Chong, and the two officers Dong Chao and Xue Ba—sat down in a village wineshop. They called the waiter and told him to buy five or seven catties of meat, to draw two jugs of wine for them to drink, and to fetch back some flour to make flatbread.",
+  "checkpoints": [
+   "「深、沖、超、霸」 are four people, each named by a single given-name character: Lu Zhishen (深), Lin Chong (沖), Dong Chao (超), Xue Ba (霸). A translator should not treat them as common words (deep, rush, surpass, tyrant).",
+   "「當下」 means 'at that moment / then', not 'now' or 'under'.",
+   "「五七斤肉」 means about five or seven catties of meat (an approximate figure, 'five or seven'), not 57 catties.",
+   "「打兩角酒」 means to have two jugs/measures of wine drawn (buy two jiao of wine); 角 is a wine measure, not a horn or corner. 打酒 means to buy or draw wine.",
+   "「回些麵來打餅」 means to get some flour (brought back/supplied) to make flatbread; 回 here means to buy and bring back, and 打餅 means to make flatbreads or cakes.",
+   "酒店 here is a village tavern or inn that sells wine and food, not a hotel; 酒保 is the tavern waiter."
+  ],
+  "traps": [
+   "Translating 深、沖、超、霸 as adjectives or verbs rather than as personal names (e.g. 'deep, rush, surpass, dominate').",
+   "Reading 五七斤 as 57 catties, or converting it to a precise modern weight.",
+   "Reading 角 as 'corners' or 'horns' and 打 as 'hit', giving 'hit two corners of wine'.",
+   "Reading 回 as 'reply' or 'return' something to the waiter, and 打餅 as 'beat/hit cakes'; also taking 麵 as noodles rather than flour for flatbread."
+  ]
+ },
+ "sh-sign-three-bowls": {
+  "reference": "The tavern keeper said, \"Sir, surely you saw what is plainly written on the banner hanging at my door: 'Three bowls and you don't cross the ridge.'\"",
+  "checkpoints": [
+   "酒家 means the tavern keeper/innkeeper (the speaker), not a 'wine family' or a customer; 客官 is a polite address to a guest, 'sir/customer'.",
+   "你須見 means 'you must surely have seen / you ought to have seen', a mild reproach implying the notice is obvious; it is not a command to go and look.",
+   "招旗 is the banner or shop sign hung at the door (a tavern flag), and 明明寫道 means 'clearly/plainly written'.",
+   "「三碗不過岡」 is the slogan: after three bowls one cannot/will not cross the ridge (岡 = ridge/hill); it explains why he refuses to serve more wine.",
+   "The sentence is the keeper's explanation to Wu Song for refusing a fourth bowl; no new facts or names should be added."
+  ],
+  "traps": [
+   "Rendering 三碗不過岡 as 'three bowls is not too much for the ridge' or 'not more than three bowls of the ridge', or missing that 過 means 'cross/pass over'.",
+   "Translating 岡 as 'hill' vaguely without conveying the crossing, or treating it as a place name only and losing the warning sense.",
+   "Taking 須 as 'need to' and turning it into an order ('You need to look at my sign') rather than 'surely you must have seen'.",
+   "Misreading 招旗 as a military flag or banner of an army rather than a tavern sign, or 酒家 as 'wine family/house'."
+  ]
+ },
+ "sh-why-three-bowls": {
+  "reference": "The tavern keeper said, \"Though my wine is only village wine, it has a flavor to rival aged wine. Any customer who comes to my shop and drinks three bowls will be drunk and unable to get over the ridge ahead. That's why it's called 'Three Bowls and You Can't Cross the Ridge.'",
+  "checkpoints": [
+   "The speaker is the tavern keeper (酒家, 'the innkeeper/shopkeeper'), not a customer; 俺家 means 'my/our place', 'my wine'.",
+   "「卻比老酒的滋味」: the village wine is, in flavor, comparable to (or better than) aged wine; it is not inferior despite being rustic. 村酒 is homemade country wine, 老酒 is aged/mature wine.",
+   "「喫了三碗的，便醉了，過不得前面的山岡去」: anyone who drinks three bowls gets drunk and cannot pass over the hill ridge ahead; 過不得 means 'is unable to cross'.",
+   "「因此喚做『三碗不過岡』」: the name of the wine/the shop's slogan derives from this, rendered as 'Three bowls and you can't cross the ridge' (or similar); 岡 = ridge/hill, 碗 = bowl.",
+   "但凡 = 'any/every (customer) who'; 喫 = 'drink' (old spelling of 吃), here applied to wine."
+  ],
+  "traps": [
+   "Translating 卻比老酒的滋味 as 'but it tastes worse than/unlike aged wine' or misreading 比 as a contrast of inferiority.",
+   "Rendering 岡 as 'mountain peak', 'city' or 'cliff', or 過不得 as 'must not cross' (prohibition) instead of 'cannot get across' because of drunkenness.",
+   "Treating 俺家 as a name or as 'our family' of customers rather than the keeper's own establishment, or attributing the speech to Wu Song.",
+   "Translating 喫 as 'eat' rather than 'drink', or making 三碗 'three cups' with a small-cup sense, losing the idea of large bowls."
+  ]
+ },
+ "sh-dai-zong": {
+  "reference": "Dai Zong hurriedly turned around and asked, \"Good sir, we have never met before. How is it that you call out my humble name?\"",
+  "checkpoints": [
+   "Dai Zong is the subject: he quickly turns around (回轉身來) and asks the question; the stranger (Yang Lin) has just called out \"Magic Traveler\" (神行太保).",
+   "壯士 is a respectful address meaning 'brave fellow / good sir', not 'warrior' in a literal military sense.",
+   "素不曾拜識: 'have never had the honor of meeting you' (formal, polite); 素 here means 'all along/hitherto', reinforcing the negation.",
+   "賤名 is a self-deprecating term for 'my humble name'; 呼喚 means 'call out / address by name'.",
+   "如何 here means 'how is it that / why', a real question, not 'how' in the sense of method."
+  ],
+  "traps": [
+   "Rendering 素 as 'vegetarian' (as in 素茶素食 earlier) or misreading 素不曾 as something other than 'never before'.",
+   "Dropping the polite and humble register, e.g. 'Why do you call my name?' with no courtesy, or treating 賤名 as 'cheap name'.",
+   "Making the stranger the subject of 回轉身來 or 問道, or reversing who is asking whom.",
+   "Translating 如何 as 'how' (in what way) instead of 'why/how is it that', or turning the question into a statement."
+  ]
+ },
+ "sh-rice": {
+  "reference": "Seeing that I'm here entertaining guests at a drinking party, just give him three or five sheng of rice and be done with it—why come straight to ask me?\"",
+  "checkpoints": [
+   "見我管待客人在此喫酒 = 'seeing/since you can see I am entertaining guests here with wine'; 管待 means to host/entertain, not to manage or look after.",
+   "你便與他三五升米便了 = 'just give him three or five sheng of rice and that'll do'; 便了 is a sentence-final particle meaning 'and that settles it', and 升 is a dry measure of grain (sheng), not a modern liter.",
+   "何須直來問我 = 'why must you come straight to ask me?'; a rhetorical question conveying irritation, and 直 means 'directly', i.e. without handling it yourself.",
+   "The speaker is Chao Gai (Tiangai), scolding a retainer (莊客) who has reported a Daoist priest begging for alms grain; 'he' (他) is that priest.",
+   "三五升 means roughly three to five sheng of rice, a small approximate amount. A loose rendering such as \"a few pints\" is fine; 35 or an invented large amount is not."
+  ],
+  "traps": [
+   "Translating 管待 as 'manage/take care of' guests or 'wait on' them in a servile sense, rather than 'entertain/host'.",
+   "Reading 三五升 as 35 sheng or 'three to five liters' with modern unit conversion, or rendering 升 as 'bushel' or 'pints' without justification.",
+   "Treating 便了 as 'then he's convenient/finished' or ignoring it, instead of reading it as 'and that'll be that'.",
+   "Missing the rhetorical force of 何須 and rendering it as a literal request for information ('what need is there to ask me') without conveying rebuke, or making the retainer the host rather than Chao Gai."
+  ]
+ },
+ "sh-mouth-bland": {
+  "reference": "Squire Zhao hasn't sent anyone over with a bit of food for me to eat these past few days, and my mouth is so tasteless I could spit out birds.",
+  "checkpoints": [
+   "Squire Zhao (趙員外) has not sent anyone in recent days (這幾日) to bring food/things to the speaker; 不使人 = has not dispatched anyone.",
+   "洒家 is Lu Zhishen's rough, blunt first-person pronoun ('I', 'this old fellow'), not a name or a third party; 與洒家喫 = for me to eat.",
+   "口中淡出鳥來 is a crude idiom: his mouth is so bland/tasteless (from lack of meat and wine) that 'birds' come out; 鳥 is a vulgar intensifier/expletive (also a pun on the crude sense), not a literal bird.",
+   "又 here stresses that once again he has sent nothing, with an implied complaint; 東西 means food/provisions here (as the context of 喫 shows), not generic 'things'.",
+   "The tone is a grumbling, coarse monologue by Lu Zhishen, who is hungry and craving wine and meat as a monk."
+  ],
+  "traps": [
+   "Translating 淡出鳥來 literally as 'birds fly out of my mouth' with no sense of blandness, or missing that 鳥 is a vulgar expletive.",
+   "Treating 洒家 as a place or person's name, or rendering it as 'the family/home', instead of the first-person pronoun.",
+   "Reading 不使人送 as 'does not use people to send' or flipping the sense so that Zhao did send things.",
+   "Rendering 淡 as 'light in color' or 'indifferent' rather than 'tasteless/insipid'."
+  ]
+ },
+ "ky-shop-layout": {
+  "reference": "The layout of the taverns in Luzhen is different from those elsewhere: each has a large L-shaped counter facing the street, and behind the counter hot water is kept ready so that wine can be warmed at any moment.",
+  "checkpoints": [
+   "Luzhen taverns differ in layout from other places; the difference is specified in what follows the colon.",
+   "Each tavern has a large counter shaped like a carpenter's square (L-shaped / right-angled), set facing the street (当街).",
+   "Hot water is kept ready behind the counter (柜里面) so wine can be warmed at any time (随时).",
+   "The wine is warmed (温酒), i.e. served hot, not the water itself being the drink.",
+   "鲁镇 is a place name and should be rendered as Luzhen (Lu Town), not translated as a common noun or omitted.",
+   "酒店 here is a tavern or wine shop (it sells wine across a counter), not a hotel."
+  ],
+  "traps": [
+   "Translating 曲尺形 literally as 'curved ruler' or 'crooked' instead of an L-shape / carpenter's square shape.",
+   "Reading 当街 as 'in the street' or 'on the street' as if the counter were outdoors, rather than facing the street.",
+   "Treating 温酒 as 'drink warm wine' or 'warm water' and misreading 柜里面 as in front of the counter.",
+   "Rendering 酒店 as 'hotel' or 'liquor shop' (retail only) instead of a tavern/wine shop where people drink."
+  ]
+ },
+ "ky-prices": {
+  "reference": "Laborers, when they knocked off work at noon or in the evening, would usually spend four copper cash on a bowl of wine—this was more than twenty years ago; now the price has gone up to ten cash a bowl—and, leaning against the counter on the outside, drink it hot and rest.",
+  "checkpoints": [
+   "做工的人 = manual laborers/workers; 傍午傍晚 = around noon and toward evening; 散了工 = finished/knocked off work",
+   "每每 = habitually, usually (not 'every time' in a strict sense); 花四文铜钱 = spend four copper cash; 买一碗酒 = buy a bowl of wine (rice/yellow wine)",
+   "The dashed aside says this was over twenty years ago and that now the price has risen to ten cash per bowl (现在每碗要涨到十文)",
+   "靠柜外站着 = standing outside the counter, leaning on it; 热热的喝了休息 = drink it hot, then rest",
+   "Time: 二十多年前 = more than twenty years ago, from the narrator's present"
+  ],
+  "traps": [
+   "Translating 傍午傍晚 as 'afternoon and night' or 'midnight' instead of near noon and near dusk",
+   "Treating 现在每碗要涨到十文 as a future or hypothetical rise, or reversing the time order of the prices (four cash now, ten cash then)",
+   "Reading 靠柜外站着 as standing behind the counter or inside, or 'leaning on the wall'",
+   "Rendering 酒 as 'liquor/spirits' like baijiu, or 铜钱 as 'dollars/coins' without 'copper cash'; or taking 热热的喝了休息 as 'rest, then drink'"
+  ]
+ },
+ "ky-debt": {
+  "reference": "When the year-end came, the shopkeeper took down the chalkboard and said, \"Kong Yiji still owes nineteen coins!\"",
+  "checkpoints": [
+   "年关 means the New Year's year-end settlement time, when debts are due, not just 'the end of the year' in a neutral sense.",
+   "掌柜 is the tavern shopkeeper/manager, who takes down the 粉板 (a chalkboard/lime board where customers' debts are chalked up).",
+   "The shopkeeper says Kong Yiji still owes 十九个钱: nineteen coins (copper cash), not nineteen yuan.",
+   "还欠...呢 conveys 'still owes', with a tone of reminder or remark; 还 is 'still', not 'also' or 'return'.",
+   "孔乙己 is a nickname/name and should be transliterated (Kong Yiji) consistently."
+  ],
+  "traps": [
+   "Translating 年关 literally as 'year gate' or 'New Year's pass', or as just 'at the end of the year' missing the debt-settling sense.",
+   "Rendering 粉板 as 'powder board' or 'pink board' rather than a chalk/lime board for recording debts.",
+   "Misreading 还欠 as 'owes in return' or 'also owes', or rendering 十九个钱 as 'nineteen dollars/yuan'.",
+   "Making the shopkeeper's words indirect or changing the speaker, or omitting that he took the board down."
+  ]
+ },
+ "ky-dead": {
+  "reference": "To this day I still haven't seen him again. Probably Kong Yiji really is dead.",
+  "checkpoints": [
+   "The speaker (the narrator, a former tavern waiter) has still not seen Kong Yiji up to the present; '终于没有见' means 'in the end / to this day never saw him again'.",
+   "The dash marks a broken-off sentence: the narrator trails off, with '见' left unfinished (object, Kong Yiji, implied).",
+   "'大约' means 'probably / I suppose' and '的确' means 'certainly / truly'; together they express a hedged but firm conclusion: he most likely really is dead.",
+   "'孔乙己' is a nickname and should be rendered consistently as a name (Kong Yiji), not translated as a description.",
+   "The tense is present: '死了' states that he is now dead (a conclusion), not that he died at a specific moment."
+  ],
+  "traps": [
+   "Translating '终于' as 'finally' in a positive sense (as if the narrator were glad), instead of 'in the end / to this day never'.",
+   "Dropping or smoothing over the dash and writing a complete sentence such as 'I never saw him again', losing the trailing-off effect.",
+   "Rendering '大约...的确' as a contradiction or ignoring one of them, e.g. 'he is certainly dead' with no hedge, or 'maybe he is dead' with no certainty.",
+   "Inventing detail, e.g. adding how or when he died, or changing the narrator's identity."
+  ]
+ },
+ "ky-steal-books": {
+  "reference": "Kong Yiji flushed red, the blue veins on his forehead standing out one by one, and argued, \"Pilfering books is not stealing... Pilfering! ... The business of a scholar, can that be called stealing?\"",
+  "checkpoints": [
+   "Kong Yiji's face turns red (flushes deeply) and the blue-green veins on his forehead bulge out one by one, showing agitation and anger.",
+   "He argues that 窃书 (taking/pilfering books) 'cannot be counted as' 偸 (stealing); he insists on the more refined word 窃 over the plain 偸.",
+   "'读书人的事' means 'a matter concerning scholars/the educated'; the closing rhetorical question 能算偸么 expects the answer 'no, it cannot be called stealing'.",
+   "The ellipses and repetition of '窃书!' convey stammering, flustered self-justification.",
+   "Speaker is Kong Yiji, responding to the drinkers' taunt that he was caught stealing from the He family and beaten."
+  ],
+  "traps": [
+   "Translating 窃书 and 偸 identically or failing to preserve the contrast between the literary 'purloin/take' and the common 'steal'.",
+   "Misreading 青筋 as 'green muscles' or 'blue clothes' rather than visible bulging veins; or 涨红 as 'swelled up' without the red face.",
+   "Turning the rhetorical question 能算偸么 into a genuine question or a statement that it IS stealing, flipping the meaning.",
+   "Reading 读书人的事 as 'the business of reading' or 'a reader's affair' without the sense of scholars/the learned class."
+  ]
+ },
+ "ky-hui-character": {
+  "reference": "Both amused and impatient, I answered him listlessly, \"Who asked you to teach me? Isn't it the character with the grass radical on top and a 回, as in 'come and go' (back and forth), underneath?\"",
+  "checkpoints": [
+   "The narrator (the young waiter) is both amused and impatient at the same moment; 又…又… marks two simultaneous feelings, and 懒懒的 means listless or unenthusiastic.",
+   "「谁要你教」 is a dismissive rhetorical retort: 'Who asked you to teach me?' or 'Who needs your teaching?' It does not mean 'who wants to teach you'.",
+   "「不是……么？」 is a rhetorical question expecting agreement, meaning 'Isn't it...?'; the narrator is giving the answer, not asking for information.",
+   "「草头底下一个来回的回字」 describes the character 茴: the grass radical (草头) on top, with 回 ('to return') beneath it. The answer is that 茴 is written as 艹 plus 回.",
+   "The subject of 答 is the narrator, and 他 is Kong Yiji."
+  ],
+  "traps": [
+   "Translating 草头底下一个来回的回字 literally as 'a grass head with a coming-and-going return word under it', or leaving it unintelligible, without making clear that it spells out the character 茴 (艹 + 回).",
+   "Reading 谁要你教 as a genuine question, or as 'who wants to teach you', instead of a scornful 'Who asked you to teach me?'",
+   "Taking 又好笑，又不耐烦 as sequential or contradictory rather than as simultaneous feelings; or rendering 好笑 as 'funny ha-ha' with no sense of amused contempt.",
+   "Making 懒懒的 'lazily' in the sense of physically lazy, rather than answering in a listless, perfunctory tone."
+  ]
+ },
+ "gx-runtu-name": {
+  "reference": "My father agreed, and I was very pleased too, because I had long since heard the name Runtu, and I knew he was about my age, born in an intercalary month, and since in his Five Elements he lacked Earth, his father called him Runtu.",
+  "checkpoints": [
+   "My father gave his consent (允许了) to the proposal mentioned just before (that Runtu's father come/work); the narrator was glad as a result",
+   "早听到...这名字: the narrator had heard the name Runtu long before, not just recently",
+   "仿佛年纪: about the same age as the narrator (not 'looked like me')",
+   "闰月生的: born in an intercalary (leap) month of the lunar calendar; 闰 is the source of the 闰 in 闰土",
+   "五行缺土: his horoscope (Five Elements/Wuxing: metal, wood, water, fire, earth) lacks Earth, so 'Earth' 土 is put in his name; hence his father called him Runtu",
+   "Name 闰土 rendered as Runtu (Chinese name transliterated), with the 闰/土 etymology made clear"
+  ],
+  "traps": [
+   "Translating 仿佛 as 'seemed/as if' or 'resembled' rather than 'about (the same age)'",
+   "Rendering 闰月 as 'a leap year' or 'February' or omitting the lunar-calendar intercalary-month sense",
+   "Misreading 五行缺土 as 'lacking in land/soil' literally or 'five elements all missing earth'; failing to explain Five Elements/destiny logic and the causal 所以",
+   "Taking 允许 as 'allowed me' or reading 'my father permitted' without the implied referent, or reversing who was happy; also mistranslating 早听到 as 'heard early in the morning'"
+  ]
+ },
+ "gx-road": {
+  "reference": "This is just like roads on the earth: in fact, there were originally no roads on the earth; when more people walk along it, it eventually becomes a road.",
+  "checkpoints": [
+   "“这” refers to hope, which the preceding sentence says neither exists nor does not exist in itself; the road is an analogy for hope",
+   "“本没有路”: originally/in the beginning there were no roads on the earth",
+   "“走的人多了”: when many people have walked (the same way); the subject is people walking, not a single traveler",
+   "“也便成了路”: then it also becomes/turns into a road; a road comes into being through use, not by prior existence",
+   "The sentence structure is 正如…其实…: 'just as…, in fact…'; the tone is reflective and gently hopeful, not despairing"
+  ],
+  "traps": [
+   "Translating “地上的路” as 'the road to the ground' or ignoring that it means roads on the earth in general",
+   "Treating “走的人多了” as 'walking more' by one person, or as 'many roads', rather than many people walking",
+   "Dropping the connection to hope (“这”) so that the road metaphor is read as literal",
+   "Rendering “本没有路” as 'there is no road now' (wrong tense) or flipping the negation to imply roads always existed"
+  ]
+ },
+ "gx-hope": {
+  "reference": "Isn't what I now call hope also an idol of my own making?",
+  "checkpoints": [
+   "Rhetorical question (不也是……么？) implying the answer is yes: the narrator's 'hope' is also an idol he made himself.",
+   "现在我所谓希望 = 'what I now call hope' / 'my so-called hope'; 所谓 here signals the narrator's own use of the word, with a hint of self-questioning, not a quotation of others.",
+   "手制的偶像 = an idol made by one's own hands (handmade/self-made), implying that hope is a self-created object of worship, just as Runtu's incense burner and candlesticks were.",
+   "不也……么 means 'isn't (it) also...'; 也 draws a parallel with Runtu's idol worship mentioned just before, which the narrator had secretly laughed at.",
+   "The narrator is the subject ('I'/'my own'); the idol belongs to him, not to Runtu."
+  ],
+  "traps": [
+   "Missing the rhetorical force and rendering it as a neutral or open question ('Is my hope also an idol?') or as a flat denial ('My hope is not an idol').",
+   "Dropping or mistranslating 也 so that the parallel with Runtu's idol worship is lost.",
+   "Translating 手制 as 'handwritten' or 'controlled by hand', or 偶像 as a modern 'pop idol' rather than a religious idol or image.",
+   "Rendering 所谓 as 'so-called' with a sarcastic tone toward someone else, rather than the narrator's own term."
+  ]
+ },
+ "gx-melon": {
+  "reference": "When a traveler is thirsty and picks a melon to eat, here we do not count that as stealing.",
+  "checkpoints": [
+   "The speaker says that a passerby who picks one melon to quench thirst is not considered stealing in their village; the negation 不算偸 means 'doesn't count as theft'.",
+   "The negation 不算偷 means it does not count as theft: picking a melon to quench thirst is permitted here, not forbidden.",
+   "走路的人 is a passerby or traveler, and 一个瓜 is a single melon."
+  ],
+  "traps": [
+   "Flipping the negation so that picking a melon counts as stealing.",
+   "Adding the badger or the pitchfork from elsewhere in the story."
+  ]
+ },
+ "kr-teeth": {
+  "reference": "I can see that his words are all poison and his smiles all knives; their teeth are all lined up gleaming white and sharp—these are the tools of man-eaters.",
+  "checkpoints": [
+   "The speaker perceives (看出) that 'his words are entirely poison and his smiles entirely knives': metaphors of hidden malice and danger; 全是 = 'nothing but/all'.",
+   "他们的牙齿 shifts from 'he' to 'they': the teeth belong to the group of people, not to one person.",
+   "白厉厉 describes teeth that are gleaming white and sharp/fierce (a dialect/coined intensive form), arranged (排着) in a row.",
+   "这就是吃人的家伙: 'these are the man-eating creatures/tools'; 家伙 can mean 'fellow/creature' (derogatory) or 'implement', and here carries both a dehumanizing and an instrument sense. 吃人 means 'eat people', literal in the narrator's paranoid view.",
+   "The tone is the paranoid, first-person conviction of the 'madman' narrator, stated as certainty."
+  ],
+  "traps": [
+   "Translating 白厉厉 as just 'white' or misreading it as 'terribly white' without the sharp/fierce sense.",
+   "Rendering 吃人的家伙 only as 'people-eating tools' or only as 'cannibals' while ignoring the double sense; or softening 吃人 into a metaphor like 'exploiters' instead of the narrator's literal fear.",
+   "Making 他们的牙齿 singular or attributing the teeth to 'his' mouth only, losing the shift to the group.",
+   "Taking 笑中全是刀 literally (smiles hiding actual knives) or omitting the parallel structure of poison in words / knives in smiles."
+  ]
+ },
+ "kr-book": {
+  "reference": "Since I couldn't sleep anyway, I studied it carefully for half the night, and only then did I begin to make out the words between the lines (in the gaps between the characters): the whole book was filled with two words — \"Eat people\"!",
+  "checkpoints": [
+   "横竖 means 'in any case / anyway': since he can't sleep regardless; it does not mean 'horizontal and vertical'.",
+   "仔细看了半夜: he examined it closely for half the night (not 'half a night' of sleep, not 'half a page').",
+   "才从字缝里看出字来: only after that long effort did he read words out of the gaps between the characters, i.e., a hidden meaning beneath the surface text; 才 conveys 'only then'.",
+   "满本都写着两个字是『吃人』: the entire book is written over with just two characters, 'eat people' (吃人 verb-object: cannibalism), set in quotation marks.",
+   "The narrator is the 'madman' speaking in first person; the book is the history he just opened, whose pages bore 'benevolence, righteousness, morality' on the surface."
+  ],
+  "traps": [
+   "Translating 横竖 literally as 'horizontal and vertical' or 'crosswise and lengthwise' instead of 'anyway/in any case'.",
+   "Rendering 字缝 as 'cracks in the paper/binding' or missing the image of reading between the characters/lines; or treating 看出字来 as just 'saw words' without the sense of discerning/deciphering.",
+   "Translating 吃人 as 'people eat' or 'man-eating' as an adjective, or softening it to 'cannibals' rather than the two-character phrase 'eat people'.",
+   "Misreading 半夜 as 'midnight' or 'a half-night's sleep' rather than 'half the night', or dropping 才 so that the sense of delayed discovery is lost."
+  ]
+ },
+ "kr-brave": {
+  "reference": "I'm not afraid either; though I don't eat people, my nerve is even bolder than theirs.",
+  "checkpoints": [
+   "The speaker (the madman) says he is not afraid; 也 means 'also/for my part', matching his earlier calm.",
+   "虽然不吃人 = 'although I do not eat people'; he himself is not a cannibal, in contrast to 他们 (those around him).",
+   "胆子却比他们还壮: his courage/nerve is even greater than theirs (他们 = the brother and the doctor, who are the cannibals); 却 marks the contrast.",
+   "The negation 不吃人 must not be flipped, and 壮 here means bold/strong in courage, not physically robust.",
+   "The sentence is the madman's first-person assertion, and the context is that he suspects the 'doctor' is a disguised executioner who will assess his fatness."
+  ],
+  "traps": [
+   "Reading 虽然不吃人 as 'although they don't eat people' or as the speaker admitting that he eats people, which wrongly changes the subject or flips the negation.",
+   "Translating 胆子 literally as 'gallbladder' or 'guts' in a physical sense, or 壮 as 'fat/stout'.",
+   "Dropping the concessive contrast (虽然...却) and writing 'I don't eat people and I'm braver than them' as a plain list.",
+   "Reading 他们 as 'people in general' rather than the brother and the old man, or taking 也 as 'also eat people'."
+  ]
+ },
+ "ly-learning": {
+  "reference": "The Master said: \"To learn something and then practice it at the proper times—is this not a pleasure? To have friends come from far away—is this not a joy? To be unknown to others and yet feel no resentment—is this not the mark of a gentleman (junzi)?\"",
+  "checkpoints": [
+   "子曰 = 'The Master said' (Confucius); 子 is an honorific for the teacher, not 'son' or 'child'",
+   "學而時習之: learn and then review/practice it at due times or regularly; 之 is the object 'it' (what was learned); 時 = at the appropriate times/regularly, not 'sometimes' or 'time'",
+   "不亦…乎 is a rhetorical question meaning 'is it not indeed…?', expecting agreement; 說 is read as 悅 'pleasure/delight'",
+   "有朋自遠方來: friends (like-minded companions) coming from afar; 樂 'joy' is the pleasure of shared company",
+   "人不知而不慍: others do not know/recognize (him, his worth) and yet he is not resentful/vexed; 慍 = resent, be indignant",
+   "君子 = 'gentleman' or 'exemplary person', a person of moral cultivation, not simply 'nobleman' or 'ruler'"
+  ],
+  "traps": [
+   "Translating 說 as 'speak/say' instead of 'delight/be pleased'",
+   "Rendering 習 as 'study' only or as 'habit', or ignoring 時 ('at due times'), or reading 時 as 'time'",
+   "Missing the rhetorical force of 不亦…乎 and rendering it as a flat negation ('it is not pleasant')",
+   "Taking 人不知 as 'people do not know (things)' without the sense of not recognizing him, or translating 慍 as 'angry at others' inaccurately; or rendering 君子 as 'son of a lord'"
+  ]
+ },
+ "ly-three-checks": {
+  "reference": "Master Zeng said: \"Every day I examine myself on three counts: In planning on behalf of others, have I failed to be loyal (conscientious)? In dealings with friends, have I failed to be trustworthy? Have I failed to practice what has been transmitted to me (what I was taught)?\"",
+  "checkpoints": [
+   "曾子 is Master Zeng (Zeng Shen), a disciple of Confucius; 子 is an honorific, so he is not simply \"Zeng\" with no title and not a son.",
+   "日三省吾身: \"each day I reflect on / examine myself on three points\" (or possibly \"many times\"); 三 is conventionally the three items listed, though some commentators read it as \"repeatedly\"; the object of examination is 吾身 (myself).",
+   "Each of the three items is a self-questioning rhetorical question ending in 乎, asking whether he has failed: 不忠 (not been loyal/conscientious), 不信 (not been trustworthy/sincere), 不習 (not practiced).",
+   "為人謀 means \"to plan/counsel on behalf of others\"; 忠 means doing one's utmost, conscientiousness or loyalty, not narrowly political loyalty to a ruler.",
+   "傳不習乎: 傳 is what was handed down to him by his teacher (teachings), and 習 is to practice/review it; he asks whether he has failed to practice what he was taught (not \"have I failed to pass on teachings I did not practice\", though that reading is a minor variant).",
+   "與朋友交 means \"in associating/dealing with friends\"; 信 is keeping one's word, being trustworthy."
+  ],
+  "traps": [
+   "Mistranslating 傳不習乎 as \"have I taught what I haven't practiced?\", i.e. reading 傳 as the active verb \"to transmit to others\", which is a possible traditional reading but less standard than the received-teaching sense; or dropping the negation so the question becomes \"Have I practiced what was taught?\".",
+   "Reading 三省 as \"examine myself three times a day\" while ignoring the three listed points, or the reverse, losing the list structure; and rendering 省 as \"visit/save\" rather than \"reflect on/examine\".",
+   "Translating 忠 as \"loyal to the emperor/ruler\" or 信 as \"faith/belief\" (religious), when they refer here to doing one's best for others and being trustworthy with friends.",
+   "Turning the questions into statements or flipping the negation (e.g., \"I am not loyal\" as an assertion rather than \"have I been disloyal?\"), or leaving 曾子 as \"Zengzi's son\" or \"Zeng said\" with no recognition of the honorific."
+  ]
+ },
+ "ly-clever-words": {
+  "reference": "The Master said, \"Clever words and an ingratiating countenance: rarely is there goodness (benevolence) in such a person.\"",
+  "checkpoints": [
+   "子 (the Master) refers to Confucius; 子曰 means 'The Master said' and introduces a quotation.",
+   "巧言令色 means 'artful/glib speech and an ingratiating, pleasing facial expression', i.e. flattery and putting on a show to win favor; it is a criticism, not praise.",
+   "鮮 here means 'few, rare' (read xiǎn), not 'fresh' or 'bright'; the sentence says such people seldom have ren, not that they never do.",
+   "鮮矣仁 is an inverted word order for emphasis (仁鮮矣): 'ren is scarce in them'; 矣 gives a tone of judgment or assertion.",
+   "仁 is the central Confucian virtue, rendered as 'benevolence', 'goodness', 'humaneness' or 'authentic virtue', and should not be reduced to mere 'kindness'."
+  ],
+  "traps": [
+   "Reading 鮮 as 'fresh/bright' or 'beautiful' and so mistranslating the sentence as praise, or translating 鮮 as 'never' and thereby overstating it as an absolute claim.",
+   "Translating 令色 as 'good color/complexion' or 'command color' instead of a pleasing, fawning expression; or treating 巧 as 'skillful' in a positive sense.",
+   "Mistranslating 仁 as 'benevolent person' or 'kindness', or leaving it ambiguous, failing to convey the Confucian virtue.",
+   "Adding a subject or explanation not in the text (e.g., naming the person as a 'ruler' or 'gentleman') or leaving out the quotation attribution to the Master."
+  ]
+ },
+ "ly-not-known": {
+  "reference": "The Master said: \"Do not be troubled that others do not recognize you; be troubled that you do not recognize others.\"",
+  "checkpoints": [
+   "子 (the Master) is Confucius; 子曰 means \"The Master said\", so the statement is a quoted saying.",
+   "不患 means \"do not worry/be troubled about\"; it is a prohibition or admonition, not a statement about a specific person.",
+   "人之不己知 is the object of 患. It is the inverted-object pattern 不己知 = 不知己, meaning \"that others do not know/recognize me (you)\". 己 is the object, placed before the verb because of the negation.",
+   "患不知人也: \"[be troubled] that you do not know others\". 知人 means to understand or appreciate others, judging their worth and character. The sentence contrasts being recognized by others with recognizing others.",
+   "The two clauses are a contrast: don't worry about not being known, worry about not knowing others. 也 is a sentence-final particle for assertion and needs no separate translation."
+  ],
+  "traps": [
+   "Misreading 不己知 as \"do not know oneself\" or \"others do not know themselves\" and missing the object-fronting, which gives \"others do not know me\".",
+   "Flipping the contrast or dropping a negation, e.g. \"Worry that people don't know you, not that you don't know people\".",
+   "Rendering 知人 as merely \"know people\" in the sense of acquaintance, losing the sense of discerning or appreciating their worth. Also treating 患 as \"illness\" rather than \"worry/be troubled by\".",
+   "Translating 子 as \"son\" or \"child\", or rendering 己 as \"himself\" in a way that makes the subject unclear."
+  ]
+ },
+ "ly-gentleman-eats": {
+  "reference": "The Master said: \"A gentleman does not seek to stuff himself when he eats, nor seek comfort in where he lives. He is diligent in his tasks and careful in his speech, and he goes to those who possess the Way to have himself set right. Such a person can truly be said to love learning.\"",
+  "checkpoints": [
+   "「食無求飽，居無求安」: the gentleman does not seek fullness in food or comfort in dwelling; it describes an attitude, not a literal inability to eat or a prohibition.",
+   "「敏於事而愼於言」: quick/diligent in action or work, but cautious/prudent in speech. 敏 means quick or diligent, not clever; 愼 means careful, not fearful.",
+   "「就有道而正焉」: he approaches those who have the Way (virtuous, worthy people) and has himself corrected by them. 正 means to be rectified, and 焉 = 於之. 有道 refers to people, not merely 'a path'.",
+   "「可謂好學也已」: 'can indeed be called one who loves learning'; 也已 is a sentence-final particle marking emphatic affirmation.",
+   "子 = Confucius, 'the Master'; 君子 = 'gentleman' or 'superior man', a moral ideal, not a noble by birth. The sentence has a single subject, the gentleman, throughout."
+  ],
+  "traps": [
+   "Translating 無求飽/無求安 as 'has nothing to seek' or as 'cannot eat his fill/has no home', rather than 'does not seek/aim at'.",
+   "Reading 就有道 as 'goes to a place/road with the Way' or 'accomplishes the Way', and 正 as 'be correct' (self-righteous) or 'correct others', rather than seeking correction from virtuous persons.",
+   "Rendering 敏於事 as 'clever/sharp in affairs' or 愼於言 as 'afraid to speak/silent', and missing the contrast between action and speech.",
+   "Treating 好學 as merely 'being fond of school/studying books' without the moral-practical sense, or dropping the concluding judgment 可謂好學也已."
+  ]
+ },
+ "ly-poor-flatter": {
+  "reference": "Zigong said, \"What do you think of a man who is poor yet does not flatter, or rich yet is not arrogant?\" The Master said, \"That is acceptable. But it is not as good as one who is poor yet delights in the Way, or rich yet loves ritual propriety.\"",
+  "checkpoints": [
+   "子貢 is a personal name/courtesy name of a disciple (Zigong); 子 alone is Confucius, \"the Master\".",
+   "貧而無諂, 富而無驕: 而 links contrast/concession (poor yet not fawning; rich yet not arrogant); 諂 = flatter, fawn on others.",
+   "何如 = \"how about it? what do you think?\" a request for evaluation.",
+   "可也 = \"acceptable/passable\" (qualified approval, not full praise).",
+   "未若 = \"not as good as / not yet equal to\"; the comparison favors 貧而樂 and 富而好禮; 好禮 = love/be fond of ritual propriety (好 read hào, verb).",
+   "樂 (be joyful/content) is the key contrast to merely 'not flattering'; in the poor man's case the object (the Way) is implicit and may be added in translation, not stated in the text."
+  ],
+  "traps": [
+   "Translating 可也 as strong praise (\"Good!\" / \"Excellent\") and missing that 未若 introduces a higher ideal.",
+   "Reading 未若 as \"has not yet\" / \"has never been like\" rather than \"is not as good as\".",
+   "Misreading 好禮 as \"good at ritual\" or \"good ritual\" instead of \"loves ritual propriety\".",
+   "Rendering 諂 as \"complain\" or 驕 as \"proud\" in the positive sense, or treating 樂 as \"music\" rather than \"being happy/content\"."
+  ]
+ },
+ "tang-moonlight": {
+  "reference": "Before my bed, the bright moonlight—\nI suspect it is frost upon the ground.\nI lift my head and gaze at the bright moon;\nI lower my head and think of my homeland.",
+  "checkpoints": [
+   "Line 1 is a noun phrase: bright moonlight (is) in front of the bed; no verb of seeing is stated, and the moonlight is the subject of the speaker's mistaken impression.",
+   "疑是 means 'suspect/mistake it for', i.e. the speaker momentarily takes the moonlight to be frost on the ground; it is not a certain statement, and 疑 is not 'doubt that'.",
+   "舉頭 and 低頭 are parallel actions in sequence: raising the head to look at the moon, then lowering it in thought; the speaker is the subject, though unstated.",
+   "故鄉 means one's native place or old home (homeland/hometown), and 思 here is 'think of / long for', conveying homesickness.",
+   "牀 here is most plausibly a bed (some scholars suggest a well-rail or a folding stool; uncertain), and no names or proper nouns need handling."
+  ],
+  "traps": [
+   "Translating 牀 as 'couch' or 'floor' loosely, or inventing a window or a room scene not in the text.",
+   "Rendering 疑是 as 'doubt that it is frost' or as a definite 'it is frost', losing the sense of mistaken impression.",
+   "Dropping the contrast between raising and lowering the head, or translating 思 as merely 'thought' without the nostalgic sense.",
+   "Inventing a first-person narrative detail (e.g. 'I woke at night', 'I am far from home') as explicit fact, or adding the poet's name or a reason for the travel."
+  ]
+ },
+ "tang-spring-dawn": {
+  "reference": "Sleeping in spring, I don't notice the dawn;\nEverywhere I hear birds singing.\nThere was the sound of wind and rain in the night—\nWho knows how many blossoms have fallen?",
+  "checkpoints": [
+   "春眠不覺曉: asleep in spring, the speaker does not realize that day has broken (sleeps past dawn without noticing it); 不覺 = 'be unaware of / not notice', not 'not feel' or 'not wake up early'",
+   "處處聞啼鳥: 'everywhere' (處處) the speaker hears birds chirping/singing (啼 = cry/sing of birds); the speaker is hearing, not seeing, the birds",
+   "夜來: 'during the night / since last night' (Tang colloquial usage), not 'at night they came'; 風雨聲 = the sound of wind and rain, heard in the night",
+   "花落知多少: a rhetorical or wondering question, 'how many flowers have fallen, I wonder?' — implies many fell, with a gentle sense of regret; 知 here means 'who knows / I wonder', not a literal request for a number",
+   "Overall tone: a quiet, gently wistful spring-morning scene; the poem has no named persons, and the speaker is an implied first person (the subject is omitted in the original)"
+  ],
+  "traps": [
+   "Translating 不覺曉 as 'not feeling the dawn' or 'cannot wake at dawn / dawn does not come', or as 'I do not know it is morning' without conveying the sense of sleeping soundly past daybreak",
+   "Taking 夜來 as 'night comes' or 'at night, [someone] came', rather than 'during the night / last night'",
+   "Rendering 花落知多少 as a statement ('I know how many flowers fell') or a literal numeric question, losing the sense of 'who knows how many / I wonder how many'",
+   "Adding details not in the text, such as naming the speaker, specifying the type of flowers or birds, or saying that the speaker is sad or woke up and went out to look at the garden"
+  ]
+ },
+ "tang-red-beans": {
+  "reference": "Red beans grow in the southern lands; when spring comes, how many new sprigs do they put forth?\nI wish you would gather plenty of them — of all things, these best stir thoughts of longing.",
+  "checkpoints": [
+   "紅豆 are 'red beans' (the red seeds of the southern lovebird/acacia-type plant, a symbol of love and longing), not ordinary kidney or adzuki beans for eating; 南國 means the southern region/lands, not a country named South.",
+   "發幾枝 is a question or wondering: 'how many branches/sprigs sprout' (春來 = when spring comes); 幾 is not 'several' as a flat statement, though the tone is gently inquiring.",
+   "願君多采擷: the speaker wishes 'you' (君, a beloved or friend) to gather/pick many of them; 采擷 = pick, pluck; 多 modifies the picking ('plenty').",
+   "此物最相思: 'this thing, above all, evokes longing/lovesickness' — 相思 means yearning for an absent loved one, and 最 is superlative; the beans prompt remembrance of the speaker.",
+   "The poem is a short, indirect expression of longing for an absent loved one or friend, with the tone of tender affection; the speaker is not literally discussing agriculture."
+  ],
+  "traps": [
+   "Translating 紅豆 as 'red bean' food/adzuki or 'kidney beans' and missing the love-token symbolism.",
+   "Reading 願君多采擷 as 'I hope you will not pick many' or misreading it as a warning, or treating 多 as 'many people'.",
+   "Rendering 相思 literally as 'mutual thinking' or omitting the sense of lovesick longing; or taking 最相思 as 'most like each other'.",
+   "Treating 發幾枝 as 'send out a few branches' with no question, or translating 發 as 'send/emit' in an odd sense like 'launch'."
+  ]
+ },
+ "tang-wanderer": {
+  "reference": "As he was about to leave, she sewed the stitches close and tight, / for she feared he would be late, very late, in returning. / Who can say that the heart of a mere inch-long blade of grass / can repay the warmth of the spring sunlight in all three months?",
+  "checkpoints": [
+   "The subject of 縫 is the mother (the poem is Meng Jiao's 游子吟), sewing the traveler's garment with close, dense stitches just as he is about to depart; 臨行 = 'as he was about to set out'.",
+   "意恐遲遲歸: 'she fears he will be slow/late to return'; 遲遲 means very slow or long delayed, and the fear is the mother's.",
+   "誰言...: a rhetorical question meaning 'who says (that) ... can repay...?', implying that the child's small devotion cannot possibly repay the mother's love.",
+   "寸草心 is the 'heart' of a tiny blade of grass, a metaphor for the child's small filial devotion; 三春暉 is the sunlight/warmth of spring (the three spring months), a metaphor for the mother's great love.",
+   "報得 = 'be able to repay'; 暉 means sunlight, not 'glory' or 'brightness' in the abstract."
+  ],
+  "traps": [
+   "Taking 'who says' as a real question or as a statement that grass can repay the sun, thus losing the rhetorical negation.",
+   "Translating 三春 literally as 'three springs' (three years) instead of the three months of spring.",
+   "Making the son sew or leaving the subject unclear, or misreading 意恐 as 'intends to fear'; also rendering 遲遲 as 'slowly walking' rather than 'delayed return'.",
+   "Translating 寸草 as 'an inch of grass' without the sense of a small blade, or 心 as 'mind' and missing the metaphor of the heart."
+  ]
+ },
+ "tang-river-snow": {
+  "reference": "On a thousand mountains, the birds have stopped flying; on ten thousand paths, not a human footprint remains.\nIn a lone boat, an old man in a straw cape and bamboo hat fishes alone in the cold river, amid the snow.",
+  "checkpoints": [
+   "千山 and 萬徑 are hyperbolic: 'a thousand mountains' and 'ten thousand paths' mean all the mountains and all the paths, not literal counts.",
+   "鳥飛絕 means birds' flight has ceased (no birds flying at all); 人蹤滅 means human traces/footprints have vanished. Both describe a scene of utter stillness and emptiness.",
+   "孤舟簑笠翁: an old man (翁) wearing a straw/coir rain cape (簑, now 蓑) and a bamboo hat (笠) in a solitary boat; 孤 and 獨 stress his solitude.",
+   "獨釣寒江雪: he fishes alone on the cold river; 雪 is the snow-filled setting. It does not mean he is catching snow, though the image of fishing 'the river's snow' is a poetic ambiguity.",
+   "The poem is a classical quatrain with no named people; no names need to be handled. The tone is austere and still, with a contrast between the empty landscape and the single human figure."
+  ],
+  "traps": [
+   "Translating 千山 and 萬徑 literally as exactly 1,000 and 10,000, or ignoring the hyperbole.",
+   "Reading 絕 and 滅 as 'died out' or 'were killed' (e.g. birds dead, people extinct) rather than 'ceased' and 'vanished' as visible signs.",
+   "Treating 簑笠翁 as two people or mistranslating 簑笠 (e.g. 'coat and hat of silk', or 'umbrella'), or making the man a young fisherman.",
+   "Making 釣雪 'fishing for snow' with no river, or dropping 寒江 ('cold river'), or turning 獨 into 'only' (fishing only in snow) instead of 'alone'."
+  ]
+ }
+}

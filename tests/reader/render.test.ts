@@ -202,10 +202,21 @@ describe('even grid markup', () => {
     expect(span.textContent).toBe('ni3');
   });
   it('wraps full-width punctuation in a cell of its own, marking openers and closers', () => {
-    const p = renderParagraph('他说：“你好。”', dict, opts());
+    const p = renderParagraph('他说：（你好。）', dict, opts());
     const sides = [...p.el.querySelectorAll('.rd-pu')].map((e) => [e.textContent, e.classList.contains('rd-pu-o') ? 'o' : 'c']);
-    expect(sides).toEqual([['：', 'c'], ['“', 'o'], ['。', 'c'], ['”', 'c']]);
-    expect(blockText(p.el)).toBe('他说：“你好。”');
+    expect(sides).toEqual([['：', 'c'], ['（', 'o'], ['。', 'c'], ['）', 'c']]);
+    expect(blockText(p.el)).toBe('他说：（你好。）');
+  });
+  it('gives the curly quotes a class of their own, not the full-width trimming of the other marks', () => {
+    const p = renderParagraph('他说：“你好。”她想：‘好’。', dict, opts());
+    const quotes = [...p.el.querySelectorAll('.rd-pu-q')].map((e) => [e.textContent, e.className]);
+    expect(quotes).toEqual([
+      ['“', 'rd-pu rd-pu-q rd-pu-qo rd-pq-ldq'], ['”', 'rd-pu rd-pu-q rd-pu-qc rd-pq-rdq'],
+      ['‘', 'rd-pu rd-pu-q rd-pu-qo rd-pq-lsq'], ['’', 'rd-pu rd-pu-q rd-pu-qc rd-pq-rsq'],
+    ]);
+    // Never in the classes that pull half the box back (that is what put the quote's ink on the colon).
+    for (const e of p.el.querySelectorAll('.rd-pu-q')) expect(e.classList.contains('rd-pu-o') || e.classList.contains('rd-pu-c')).toBe(false);
+    expect(blockText(p.el)).toBe('他说：“你好。”她想：‘好’。');
   });
   it('leaves ASCII punctuation and dashes alone', () => {
     const p = renderParagraph('好, 好——好...', dict, opts());

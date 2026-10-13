@@ -79,10 +79,10 @@ afterEach(() => {
 
 describe('library screen', () => {
   it('offers private Mac book import even when the iPad library is empty', async () => {
-    vi.stubGlobal('location', { hostname: 'my-mac.private.ts.net', protocol: 'https:', search: '' });
+    vi.stubGlobal('location', { hostname: 'my-mac.private.ts.net', protocol: 'https:', origin: 'https://my-mac.private.ts.net', search: '' });
     vi.stubGlobal('fetch', async (url: string) => url === '/api/local-books'
-      ? { ok: true, json: async () => [{ id: 'huozhe', name: '活着.epub' }] }
-      : { ok: false, text: async () => '' });
+      ? { ok: true, status: 200, headers: new Headers({ 'content-type': 'application/json' }), json: async () => [{ id: 'huozhe', name: '活着.epub' }] }
+      : { ok: false, status: 404, text: async () => '' });
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => !!root.querySelector('.lib-empty'));
     const button = [...root.querySelectorAll('button')].find(b => b.textContent === 'Add books from Mac')!;
@@ -213,12 +213,12 @@ describe('library screen', () => {
       return { ok: false, text: async () => '' };
     });
     cleanup = await mountLibrary(root, {}, ctx);
-    await until(() => !!root.querySelector('.lib-sample .btn-primary'));
-    (root.querySelector('.lib-sample .btn-primary') as HTMLElement).click();
+    await until(() => !!root.querySelector('.lib-sample .lib-add'));
+    (root.querySelector('.lib-sample .lib-add') as HTMLElement).click();
     await until(() => navigated.length > 0, 8000);
     const [added] = await store.books.list();
     expect(added).toMatchObject({ title: '小故事', author: '某人', format: 'sample', sourceName: 'sample:x1' });
-    await until(() => root.querySelector('.lib-sample .btn-primary') === null);
+    await until(() => root.querySelector('.lib-sample .lib-add') === null);
     expect(root.querySelector('.lib-sample')?.textContent).toContain('In your library');
   });
 });
@@ -294,38 +294,37 @@ describe('settings screen', () => {
   });
 
   it('lists all providers with live status and the Claude model choices', async () => {
-    ctx.settings.set({ claudeApiKey: 'sk-ant-xyz' });
     cleanup = await mountSettings(root, {}, ctx);
     await until(() => [...root.querySelectorAll('.set-prov .set-chip')].every((c) => c.textContent !== '…'));
     const rows = [...root.querySelectorAll('.set-prov')];
     expect(rows).toHaveLength(6);
     const claude = rows.find((r) => r.querySelector('.set-prov-name')?.textContent?.startsWith('Claude'))!;
-    expect(claude.querySelector('.set-chip')?.textContent).toBe('Ready');
-    expect(claude.querySelector('.set-chip-ok')).toBeTruthy();
-    const key = root.querySelector<HTMLInputElement>('.set-key')!;
-    expect(key.type).toBe('password');
-    expect(key.value).toBe('sk-ant-xyz');
+    // The test page counts as the Mac's own origin but nothing answers, so Claude cannot be ready; the browser holds no key to be "Ready" from.
+    expect(claude.querySelector('.set-chip')?.textContent).toBe('Mac not reachable');
+    expect(root.querySelector('.set-key')).toBeNull();
     const models = [...root.querySelectorAll<HTMLOptionElement>('select[aria-label="Claude model"] option')].map((o) => o.value);
-    expect(models).toEqual(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']);
+    expect(models).toEqual(['claude-sonnet-5-5', 'claude-haiku-5-5']);
     // choosing a provider sets it
     rows.find((r) => r.querySelector('.set-prov-name')?.textContent?.startsWith('Chrome'))!
       .querySelector<HTMLInputElement>('input')!.click();
     expect(ctx.settings.get().translator).toBe('chrome');
   });
 
-  it('refuses to test an empty key', async () => {
+  it('marks Claude as off under Local only', async () => {
+    ctx.settings.set({ localOnly: true });
     cleanup = await mountSettings(root, {}, ctx);
-    [...root.querySelectorAll<HTMLElement>('.btn')].find((b) => b.textContent === 'Test key')!.click();
-    await flush();
-    expect(root.querySelector('.set-test-out')?.textContent).toBe('Enter a key first.');
+    await until(() => [...root.querySelectorAll('.set-prov .set-chip')].every((c) => c.textContent !== '…'));
+    const claude = [...root.querySelectorAll('.set-prov')].find((r) => r.querySelector('.set-prov-name')?.textContent?.startsWith('Claude'))!;
+    expect(claude.querySelector('.set-chip')?.textContent).toBe('Local only is on');
+    const test = [...root.querySelectorAll<HTMLButtonElement>('.btn')].find((b) => b.textContent === 'Test Claude')!;
+    expect(test.disabled).toBe(true);
   });
 
-  it('exports a backup file without the API key and imports one back with a summary', async () => {
-    ctx.settings.set({ claudeApiKey: 'sk-secret' });
+  it('exports a backup file and imports one back with a summary', async () => {
     await store.known.add(['你好']);
     cleanup = await mountSettings(root, {}, ctx);
     const json = await store.exportBackup();
-    expect(json).not.toContain('sk-secret');
+    expect(json).not.toMatch(/sk-ant|apiKey/i);
 
     const input = root.querySelector<HTMLInputElement>('input[type=file]')!;
     const other = await openStore(`screens-other-${Math.random()}`);
@@ -358,7 +357,8 @@ describe('settings helpers', () => {
   });
 
   it('describes availability and what Automatic picks', () => {
-    expect(statusText('claude', 'no').text).toBe('Needs an API key');
+    expect(statusText('claude', 'no').text).toBe('Mac not reachable'); // the test page is the Mac's own origin and nothing answers
+    expect(statusText('claude', 'no', null, true).text).toBe('Local only is on');
     expect(statusText('chrome', 'download').kind).toBe('warn');
     expect(statusText('gloss', 'yes').kind).toBe('ok');
     expect(autoPick({ local: 'yes', chrome: 'download', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('local');
@@ -400,5 +400,22 @@ describe('about screen', () => {
   it('formats coverage tiles and drops the ones it has no number for', () => {
     expect(coverageStats({ counts: { unifiedIdeographs: 101997, withReading: 44362, extraLoaded: 5132 } }).map((s) => s.value)).toEqual(['101,997', '44,362']);
     expect(coverageStats({ counts: {} })).toEqual([]);
+  });
+});
+
+describe('second tab', () => {
+  it('the library and the vocabulary list show what another tab saved, without a reload', async () => {
+    const name = `tabs-${Math.random().toString(36).slice(2)}`;
+    const a = await openStore(name);
+    const b = await openStore(name); // the same database, as a second tab would open it
+    const dict = await loadTestDictionary();
+    const ctxA: AppContext = { ...ctx, store: a, dict: () => Promise.resolve(dict), dictSync: () => dict };
+    cleanup = await mountLibrary(root, {}, ctxA);
+    await until(() => !!root.querySelector('.lib-empty'));
+    await b.books.add(book('别处导入'));
+    await until(() => [...root.querySelectorAll('.lib-card-title')].some((e) => e.textContent === '别处导入'));
+    const [added] = await b.books.list();
+    await b.books.remove(added.id);
+    await until(() => root.querySelectorAll('.lib-card').length === 0);
   });
 });

@@ -10,7 +10,7 @@ import { speechGroup } from './speech';
 import { translationGroup } from './translation';
 import { ipadGroup } from './ipad';
 
-export const mount: MountFn = (root, _params, ctx) => {
+export const mount: MountFn = (root, params, ctx) => {
   const { settings, store } = ctx;
   const controls: Control[] = [];
   const set = <K extends keyof Settings>(k: K) => (v: Settings[K]) => settings.set({ [k]: v } as Partial<Settings>);
@@ -57,9 +57,10 @@ export const mount: MountFn = (root, _params, ctx) => {
   ], set('lookupTrigger')));
   const paragraph = add(toggle('paragraphTranslate', 'Translate whole paragraphs', set('paragraphTranslate')));
 
-  const hskRow = row('HSK level', 'Words at or below this level lose their pinyin.', hsk);
-  const spreadRow = row('Pages shown', 'Auto shows two pages side by side on a wide, landscape screen such as an iPad held sideways.', spread);
-  const turnRow = row('Page turn', 'How a page turns: it flips around the spine like a leaf, slides, or just changes.', pageTurn);
+  // Rows that only matter in one mode are hidden in the other (a dimmed row still looks like something you can change).
+  const hskRow = row('HSK level', 'Words at or below this level lose their pinyin. Applies to the Above HSK mode.', hsk);
+  const spreadRow = row('Pages shown', 'Applies to the Pages layout. Auto shows two pages side by side on a wide, landscape screen such as an iPad held sideways.', spread);
+  const turnRow = row('Page turn', 'Applies to the Pages layout. A page flips around the spine like a leaf, slides, or just changes.', pageTurn);
   const reading = group('Reading', null,
     row('Theme', 'System follows your device.', theme),
     row('Layout', 'Pages turns like a book (tap the edges, swipe, or use the arrow keys). Scroll is one long column.', layout),
@@ -78,11 +79,12 @@ export const mount: MountFn = (root, _params, ctx) => {
     row('Tone changes for yī and bù', 'Show 一个 as yí gè and 不是 as bú shì, as spoken, instead of the dictionary tone.', sandhi));
   const lookup = group('Lookup', 'Double-click and drag-select always work, whichever you choose.',
     row('Look up a word by', null, trigger),
-    row('Paragraph translation', 'Show a small translate button beside each paragraph (Scroll layout; in Pages, select a sentence instead).', paragraph));
+    row('Translate paragraphs', 'On a touch screen, tap a word twice to translate its sentence. With a mouse, a small translate button appears beside each paragraph in the Scroll layout; in Pages, drag across a sentence.', paragraph));
 
   const translation = translationGroup(ctx);
   const speech = speechGroup(ctx);
   const data = dataGroup(ctx);
+  const ipad = ipadGroup(params);
 
   // ---- preview ----
   const sample = h('div.set-sample.zh', { lang: 'zh', 'aria-label': 'Preview sentence' });
@@ -96,14 +98,57 @@ export const mount: MountFn = (root, _params, ctx) => {
     translation.update(s);
     speech.update(s);
     hsk.input.disabled = s.pinyin !== 'hsk';
-    hskRow.classList.toggle('set-row-off', s.pinyin !== 'hsk');
-    for (const r of [spreadRow, turnRow]) r.classList.toggle('set-row-off', s.layout !== 'pages');
+    hskRow.hidden = s.pinyin !== 'hsk';
+    for (const r of [spreadRow, turnRow]) r.hidden = s.layout !== 'pages';
     drawPreview();
   };
 
+  // A list of the sections at the left on a wide screen: the page is long.
+  const sections: { id: string; label: string; el: HTMLElement }[] = [
+    { id: 'set-reading', label: 'Reading', el: reading },
+    { id: 'set-pinyin', label: 'Pinyin', el: pinyinGroup },
+    { id: 'set-lookup', label: 'Lookup', el: lookup },
+    { id: 'set-translation', label: 'Translation', el: translation.el },
+    { id: 'set-speech', label: 'Speech', el: speech.el },
+    { id: 'set-ipad', label: 'iPad', el: ipad.el },
+    { id: 'set-data', label: 'Data', el: data },
+  ];
+  for (const sec of sections) sec.el.id = sec.id;
+  const navButtons = sections.map((sec) => h('button.set-nav-link', { type: 'button', 'data-target': sec.id, onclick: () => {
+    sec.el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    sec.el.querySelector<HTMLElement>('h2')?.setAttribute('tabindex', '-1');
+    sec.el.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+  } }, sec.label) as HTMLButtonElement);
+  const nav = h('nav.set-nav', { 'aria-label': 'Sections' }, navButtons);
+
   root.appendChild(h('div.page.set-page', null,
     h('div.page-head', null, h('div', null, h('h1.page-title', null, 'Settings'), h('p.page-sub', null, 'Changes apply right away and are saved in this browser.'))),
-    preview, reading, pinyinGroup, lookup, translation.el, speech.el, ipadGroup(), data));
+    h('div.set-layout', null, nav, h('div.set-main', null, preview, ...sections.map((sec) => sec.el)))));
+
+  // The preview sticks under the top bar, so a section the list scrolls to must stop below it, not behind it. The sticky height is
+  // measured (it changes with the width, the font size and a wrapped sample) and handed to the stylesheet; a preview that is not
+  // sticky (a phone, a short window) adds nothing.
+  const page = root.querySelector<HTMLElement>('.set-page');
+  const syncStick = () => {
+    if (!page) return;
+    const sticky = getComputedStyle(preview).position === 'sticky';
+    page.style.setProperty('--set-stick', sticky ? `${Math.ceil(preview.getBoundingClientRect().height) + 8}px` : '0px');
+  };
+  syncStick();
+  const stickObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(syncStick) : null;
+  stickObserver?.observe(preview);
+  window.addEventListener('resize', syncStick);
+
+  // The section being read lights up in the list.
+  let observer: IntersectionObserver | null = null;
+  if (typeof IntersectionObserver === 'function') {
+    observer = new IntersectionObserver((entries) => {
+      const seen = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (!seen) return;
+      for (const b of navButtons) b.setAttribute('aria-current', String(b.dataset.target === seen.target.id));
+    }, { rootMargin: '-20% 0px -65% 0px' });
+    for (const sec of sections) observer.observe(sec.el);
+  }
 
   const off = settings.subscribe((s) => sync(s));
   sync(settings.get());
@@ -112,7 +157,12 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   return () => {
     alive = false;
+    observer?.disconnect();
+    stickObserver?.disconnect();
+    window.removeEventListener('resize', syncStick);
     off();
     speech.dispose();
+    translation.dispose();
+    ipad.dispose();
   };
 };

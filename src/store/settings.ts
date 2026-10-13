@@ -1,4 +1,5 @@
 // Settings in localStorage. Unknown keys are dropped, bad types reset, numbers clamped.
+import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../translate/claudePrompts';
 import type { Settings, SettingsStore } from '../types';
 
 export const SETTINGS_KEY = 'dushu.settings.v1';
@@ -19,8 +20,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lookupTrigger: 'click',
   paragraphTranslate: true,
   translator: 'auto',
-  claudeApiKey: '',
-  claudeModel: 'claude-opus-5-5',
+  claudeModel: DEFAULT_CLAUDE_MODEL,
+  localOnly: false,
   ttsVoice: '',
   ttsRate: 0.9,
   layout: 'scroll',
@@ -59,8 +60,8 @@ const RULES: { [K in keyof Settings]: Rule } = {
   lookupTrigger: oneOf('click', 'hover'),
   paragraphTranslate: bool,
   translator: oneOf('auto', 'local', 'chrome', 'claude', 'mymemory', 'gloss'),
-  claudeApiKey: text(400, true),
-  claudeModel: text(100, false),
+  claudeModel: oneOf(...CLAUDE_MODELS.map(m => m.value)),
+  localOnly: bool,
   ttsVoice: text(200, true),
   ttsRate: num(0.5, 2, 2),
   layout: oneOf('scroll', 'pages'),
@@ -109,7 +110,12 @@ function defaultStorage(): Storage | undefined {
 function load(storage: Storage | undefined): Settings {
   try {
     const raw = storage?.getItem(SETTINGS_KEY);
-    if (raw) return sanitizeSettings(JSON.parse(raw));
+    if (raw) {
+      const clean = sanitizeSettings(JSON.parse(raw));
+      // Older versions kept an Anthropic key here. The key now lives only on the Mac, so rewrite the entry without it.
+      if (raw.includes('claudeApiKey')) { try { storage?.setItem(SETTINGS_KEY, JSON.stringify(clean)); } catch { /* read-only storage */ } }
+      return clean;
+    }
   } catch { /* corrupt JSON or blocked storage: use defaults */ }
   return { ...DEFAULT_SETTINGS };
 }

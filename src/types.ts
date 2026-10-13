@@ -13,6 +13,8 @@ export interface DictEntry {
   defs: string[];
   /** Where the entry came from (absent = CC-CEDICT). */
   source?: 'cedict' | 'hsk' | 'wiktionary';
+  /** A hand-written row from book-words.tsv: it leads its headword's senses. */
+  curated?: true;
 }
 
 export interface RadicalInfo {
@@ -79,7 +81,7 @@ export interface Dictionary {
    * Best numbered pinyin for `word` in context, one syllable per code point
    * (non-Han code points get "" ). Handles polyphones (了 le/liǎo, 的, 着, 得, 地 …).
    */
-  pinyinFor(word: string, ctx?: { prev?: string; next?: string }): string[];
+  pinyinFor(word: string, ctx?: { prev?: string; next?: string; /** The token after `next` (for 倒了茶 vs 墙倒了). */ after?: string }): string[];
   toSimplified(text: string): string;
   toTraditional(text: string): string;
   meta: DataMeta;
@@ -232,8 +234,10 @@ export interface Settings {
   lookupTrigger: 'click' | 'hover';
   paragraphTranslate: boolean;
   translator: 'auto' | 'local' | 'chrome' | 'claude' | 'mymemory' | 'gloss';
-  claudeApiKey: string;
+  /** Sonnet 5.5 (default) or Haiku 5.5, asked through the owner's Mac. The API key lives only on the Mac. */
   claudeModel: string;
+  /** Keep every sentence on the Mac: no Claude and no MyMemory, only the local model, on-device Chrome and the dictionary. */
+  localOnly: boolean;
   ttsVoice: string;
   ttsRate: number;
   /** scroll = one long column per chapter; pages = paginated like a printed book (Apple Books style). */
@@ -349,8 +353,11 @@ export interface Store {
   importBackup(json: string): Promise<BackupReport>;
   /** Deletes every book, word, progress record and review log. */
   wipe(): Promise<void>;
-  /** Fires on any vocab/known change so open screens can refresh. */
-  onChange(fn: (what: 'vocab' | 'known' | 'books') => void): () => void;
+  /**
+   * Fires on any vocab/known/books change so open screens can refresh. `info.remote` is true when another tab made the
+   * change (the store has already reloaded what it keeps in memory by then).
+   */
+  onChange(fn: (what: 'vocab' | 'known' | 'books', info?: { remote: boolean }) => void): () => void;
   /**
    * Called by main.ts once the dictionary loads (dict.toSimplified). vocab.has / known.has then
    * also match a word written in the other script. Before that, matching is exact.
@@ -380,7 +387,7 @@ export interface Translator {
   /** Streams partial output to onDelta (full text so far) when the provider supports it. */
   translate(
     req: TranslateRequest,
-    opts?: { signal?: AbortSignal; onDelta?: (soFar: string) => void },
+    opts?: { signal?: AbortSignal; onDelta?: (soFar: string) => void; onNote?: (note: { kind: 'unverified'; detail: string }) => void },
   ): Promise<string>;
 }
 

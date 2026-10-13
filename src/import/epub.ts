@@ -1,11 +1,11 @@
 // EPUB 2 and 3: zip, package document, spine, table of contents, content to blocks, cover.
-import { unzipSync } from 'fflate';
 import type { Block, Chapter, ImportedBook } from '../types';
-import { AssetStore } from './assets';
+import { AssetStore, dropAssets } from './assets';
 import { extractBlocks } from './blocks';
 import { finalizeChapters, stripGutenberg } from './chapters';
 import { decodeText, sniffMarkupCharset } from './encoding';
 import { ImportError } from './errors';
+import { Archive, ZIP_LIMITS } from './zip';
 import { attr, byLocal, childrenByLocal, dirname, fragmentOf, localName, parseXhtml, parseXmlLoose, plainText, resolvePath } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
 import { chaptersFromSpine, dropTitlePage, type SpineDoc, type TocRef } from './spine';
@@ -23,10 +23,7 @@ interface TocEntry {
   frag: string;
 }
 
-const IMAGE_EXT: Record<string, string> = {
-  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
-  svg: 'image/svg+xml', bmp: 'image/bmp', avif: 'image/avif',
-};
+const IMAGE_EXT = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif']);
 const FONT_ALGORITHMS = ['http://www.idpf.org/2008/embedding', 'http://ns.adobe.com/pdf/enc#rc'];
 const DRM_MESSAGE =
   'This EPUB is protected by DRM (copy protection), so Dushu cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.';
@@ -40,8 +37,8 @@ function decodeMarkup(bytes: Uint8Array): string {
 }
 
 /** Throw if the book is encrypted with anything other than font obfuscation. */
-function assertNotDrm(files: Record<string, Uint8Array>): void {
-  const bytes = files['META-INF/encryption.xml'];
+function assertNotDrm(archive: Archive): void {
+  const bytes = archive.get('META-INF/encryption.xml');
   if (!bytes) return;
   const doc = parseXmlLoose(utf8(bytes));
   for (const ed of byLocal(doc, 'encrypteddata')) {
@@ -52,8 +49,8 @@ function assertNotDrm(files: Record<string, Uint8Array>): void {
   }
 }
 
-function findOpf(files: Record<string, Uint8Array>): string {
-  const container = files['META-INF/container.xml'];
+function findOpf(archive: Archive): string {
+  const container = archive.get('META-INF/container.xml');
   if (container) {
     const doc = parseXmlLoose(utf8(container));
     const roots = byLocal(doc, 'rootfile');
@@ -61,9 +58,9 @@ function findOpf(files: Record<string, Uint8Array>): string {
     const path = root ? attr(root, 'full-path') : '';
     if (path) return resolvePath('', path);
   }
-  const opf = Object.keys(files).find((k) => k.toLowerCase().endsWith('.opf'));
+  const opf = archive.names().find((k) => k.toLowerCase().endsWith('.opf'));
   if (!opf) {
-    if (files['word/document.xml']) throw new ImportError('Word documents are not supported. Save the document as a text file or PDF, then import that.');
+    if (archive.has('word/document.xml')) throw new ImportError('Word documents are not supported. Save the document as a text file or PDF, then import that.');
     throw new ImportError('This zip archive is not an EPUB (no package document found).');
   }
   return opf;
@@ -126,25 +123,23 @@ function readToc(
 }
 
 export async function importEpub(data: Uint8Array, sourceName: string, onProgress?: (fraction: number) => void): Promise<ImportedBook> {
-  let files: Record<string, Uint8Array>;
-  try {
-    files = unzipSync(data);
-  } catch {
-    throw new ImportError('This file could not be opened as an EPUB (it is not a valid zip archive).');
-  }
-  assertNotDrm(files);
+  // List the archive first (declared sizes are checked there), then inflate only what the book needs.
+  const archive = new Archive(data);
+  const textMax = ZIP_LIMITS.textBytes;
+  archive.inflate(['META-INF/container.xml', 'META-INF/encryption.xml'], { maxBytes: textMax });
+  if (!archive.has('META-INF/container.xml')) archive.inflate(archive.names().filter((k) => k.toLowerCase().endsWith('.opf')).slice(0, 4), { maxBytes: textMax });
+  assertNotDrm(archive);
   onProgress?.(0.05);
 
-  const lowerNames = new Map<string, string>();
-  for (const k of Object.keys(files)) lowerNames.set(k.toLowerCase(), k);
-  const getFile = (path: string): Uint8Array | undefined => files[path] ?? files[lowerNames.get(path.toLowerCase()) ?? ''];
+  const getFile = (path: string): Uint8Array | undefined => archive.get(path);
   const getText = (path: string): string | undefined => {
     const b = getFile(path);
     return b ? decodeMarkup(b) : undefined;
   };
 
   // ---- package document
-  const opfPath = findOpf(files);
+  const opfPath = findOpf(archive);
+  archive.inflate([opfPath], { maxBytes: textMax });
   const opfText = getText(opfPath);
   if (!opfText) throw new ImportError('This EPUB is damaged: its package document is missing.');
   const opf = parseXmlLoose(opfText);
@@ -158,15 +153,23 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
       properties: attr(el, 'properties').split(/\s+/).filter(Boolean),
     }));
   const byId = new Map(manifest.map((m) => [m.id, m]));
-  const byPath = new Map(manifest.map((m) => [m.path, m]));
+  const isImagePath = (path: string) => IMAGE_EXT.has(extOf(path));
+  // Inflate what the package lists, plus any image file (some books use pictures their manifest forgot). Other
+  // entries (fonts, audio, stray files) are never inflated. A picture over the size cap is skipped, not fatal.
+  archive.inflate(manifest.filter((m) => !m.mediaType.startsWith('image/') && !isImagePath(m.path)).map((m) => m.path), { maxBytes: textMax });
+  archive.inflate(
+    [...manifest.filter((m) => m.mediaType.startsWith('image/') || isImagePath(m.path)).map((m) => m.path), ...archive.names().filter(isImagePath)],
+    { maxBytes: ZIP_LIMITS.imageBytes, skipLarge: true },
+  );
 
   let spine: ManifestItem[] = byLocal(opf, 'itemref')
     .map((el) => byId.get(el.getAttribute('idref') ?? ''))
     .filter((m): m is ManifestItem => !!m);
   if (!spine.length) {
     // No usable spine: read every markup file in name order.
-    spine = Object.keys(files)
-      .filter((k) => /\.(?:x?html?)$/i.test(k) && !/^META-INF\//.test(k))
+    const loose = archive.names().filter((k) => /\.(?:x?html?)$/i.test(k) && !/^META-INF\//.test(k));
+    archive.inflate(loose, { maxBytes: textMax });
+    spine = loose
       .sort(naturalCompare)
       .map((path) => ({ id: path, path, mediaType: 'application/xhtml+xml', properties: [] }));
   }
@@ -177,9 +180,8 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   const registerAsset = (path: string): string | undefined => {
     const bytes = getFile(path);
     if (!bytes) return undefined;
-    const declared = byPath.get(path)?.mediaType ?? '';
-    const mime = declared.startsWith('image/') ? declared : (IMAGE_EXT[extOf(path)] ?? 'application/octet-stream');
-    return store.add(path, path.split('/').pop() ?? 'image', bytes, mime);
+    // The type comes from the bytes (assets.ts); what the manifest or extension says is not trusted.
+    return store.add(path, path.split('/').pop() ?? 'image', bytes);
   };
 
   // ---- table of contents
@@ -254,7 +256,11 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   const title = cleanTitle(dc('title').map((t) => plainText(t)).find(Boolean) ?? '') || fromFile.title || 'Untitled';
   const author = cleanAuthors(authorList);
 
-  const cover = findCover(opf, opfPath, manifest, byId, getText, registerAsset);
+  const coverName = findCover(opf, opfPath, manifest, byId, getText, registerAsset);
+
+  // SVG images become PNG here; any that cannot be converted are removed from the text and the cover.
+  const dropped = await store.finalize();
+  const kept = dropAssets(dropTitlePage(finalizeChapters(stripGutenberg(chapters, title)), title, author), coverName, dropped);
 
   onProgress?.(0.97);
   return {
@@ -262,9 +268,9 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
     author,
     format: 'epub',
     script: 'unknown',
-    chapters: dropTitlePage(finalizeChapters(stripGutenberg(chapters, title)), title, author),
+    chapters: kept.chapters,
     assets: store.assets,
-    cover,
+    cover: kept.cover,
     sourceName,
   };
 }

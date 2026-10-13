@@ -1,0 +1,332 @@
+{
+ "id": "qwen.think",
+ "label": "qwen: thinking on",
+ "model": "qwen3.5:9b-q4_K_M",
+ "ranAt": "2026-10-13T20:06:25.210Z",
+ "note": "Lever 4b. As lever 2 with thinking on (the bridge forces it off; needs a bigger context and output budget).",
+ "items": [
+  {
+   "id": "hlm-daiyu-leftovers",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "dialogue",
+   "text": "黛玉冷笑道：「我就知道，別人不挑剩下的也不給我。」",
+   "answer": "Daiyu smiled coldly: \"I knew it. Others wouldn't even give me the leftovers.\"",
+   "firstMs": 248914,
+   "totalMs": 250201,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "negation-modality",
+      "severity": "major",
+      "evidence": "Others wouldn't even give me the leftovers.",
+      "why": "The source says she only gets what others have picked over and left; the candidate reverses this to say she wouldn't even get leftovers."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-xifeng-soft",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "function-words",
+   "text": "鳳姐道：「我成日家說你太軟弱了，縱的家裡人這樣還了得了。」",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-monk-daoist",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "names",
+   "text": "寶玉未及回言，只見舡頭上來了兩人，一僧一道，夾住寶玉說道：「俗緣已畢，還不快走。」",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-pinger-forgive",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "proverb",
+   "text": "平兒笑道：「『得饒人處且饒人』，得省的將就些事也罷了。",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-daiyu-school",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "numbers",
+   "text": "黛玉道：「不曾讀，只上了一年學，些須認得幾個字。」",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-liu-laolao-advise",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "narration",
+   "text": "因此劉姥姥看不過，乃勸道：「姑爺，你別嗔著我多嘴。",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-li-gui",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "negation",
+   "text": "李貴笑道：“不怕你老人家惱我，素日你老人家到底有些不正經，所以這些兄弟才不聽。",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-opening-zhen",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "names-pun",
+   "text": "作者自云：因曾歷過一番夢幻之後，故將真事隱去，而借通靈之說，撰此《石頭記》一書也。",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-wukong-delight",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "idiom",
+   "text": "孫悟空在傍聞講，喜得他抓耳撓腮，眉花眼笑，忍不住手之舞之，足之蹈之。",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-transformations",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "numbers",
+   "text": "有一般天罡數，該三十六般變化；有一般地煞數，該七十二般變化。",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-cloud-somersault",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "terms",
+   "text": "悟空道：「我自聞道之後，有七十二般地煞變化之功，觔斗雲有莫大的神通；善能隱身遯身，起法攝法。",
+   "answer": "",
+   "error": "empty answer",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "empty answer"
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-que-shuo-temple",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "function-words",
+   "text": "卻說他師徒兩個策馬前來，直至山門首觀看，果然是一座寺院。",
+   "answer": "",
+   "error": "The operation was aborted due to timeout",
+   "firstMs": null,
+   "totalMs": null,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "",
+      "why": "The operation was aborted due to timeout"
+     }
+    ]
+   },
+   "screens": []
+  }
+ ]
+}

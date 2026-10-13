@@ -1,11 +1,18 @@
 // Headless QA for the library, settings and about screens.
 // Usage: start `npx vite --port 5182 --strictPort`, then `node scripts/qa-shell.mjs`.
 // Writes screenshots to qa-out/shell/ and exits non-zero on console errors or failed checks.
+//
+// Offline check (service worker): needs a production build in a scratch folder, never dist/ (the running server serves that):
+//   npx vite build --outDir .cache/build-x
+//   QA_ONLY=offline QA_DIST=.cache/build-x QA_PREVIEW_PORT=5212 node scripts/qa-shell.mjs
+// It starts `vite preview` itself, lets the service worker install, then STOPS the server and loads every screen again.
+// page.setOfflineMode cannot see the real failure: it never changes the Vary headers a cache lookup depends on.
 import puppeteer from 'puppeteer-core';
 import { mkdirSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'qa-out', 'shell');
@@ -17,17 +24,114 @@ const problems = [];
 const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (!ok) problems.push(msg); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// ------------------------------------------------------- offline (server stopped) ---
+async function offlineStep() {
+  const dist = process.env.QA_DIST;
+  const port = Number(process.env.QA_PREVIEW_PORT ?? 0);
+  if (!dist || !port) { console.log('FAIL QA_ONLY=offline needs QA_DIST (a build folder) and QA_PREVIEW_PORT'); process.exit(1); }
+  if (/(^|\/)dist\/?$/.test(dist)) { console.log('FAIL refusing to preview dist/: build into .cache/ instead'); process.exit(1); }
+  const base = `http://localhost:${port}/`;
+  const up = async () => { try { return (await fetch(base, { signal: AbortSignal.timeout(1500) })).ok; } catch { return false; } };
+  const server = spawn(process.execPath, [join(root, 'node_modules/vite/bin/vite.js'), 'preview', '--outDir', dist, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' });
+  const stopServer = async () => { server.kill('SIGTERM'); for (let i = 0; i < 40 && await up(); i++) await sleep(150); };
+  for (let i = 0; i < 60 && !(await up()); i++) await sleep(250);
+  check(await up(), 'preview server is up');
+  const vary = (await fetch(base)).headers.get('vary');
+  console.log(`     host sends Vary: ${vary ?? '(none)'}`);
+
+  const b = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, timeout: 90000, args: ['--no-first-run', '--no-default-browser-check'] });
+  const p = await b.newPage();
+  await p.setViewport({ width: 1280, height: 860 });
+  const errs = [];
+  p.on('pageerror', (e) => errs.push(e.message));
+  try {
+    await p.goto(base, { waitUntil: 'networkidle0' });
+    await p.evaluate(() => navigator.serviceWorker.ready);
+    await p.waitForFunction(async () => (await caches.keys()).length >= 2 && (await (await caches.open((await caches.keys()).find((k) => k.startsWith('dushu-app-')))).keys()).length > 5, { timeout: 30000 });
+    await p.reload({ waitUntil: 'networkidle0' });
+    check(await p.evaluate(() => !!navigator.serviceWorker.controller), 'service worker controls the page');
+    const cached = await p.evaluate(async () => { let n = 0; for (const k of await caches.keys()) n += (await (await caches.open(k)).keys()).length; return n; });
+    check(cached > 20, `service worker cached ${cached} files`);
+
+    // A top-level visit to another file must not replace the stored app shell.
+    await p.goto(`${base}manifest.webmanifest`, { waitUntil: 'networkidle0' });
+    await sleep(300);
+    const shellType = await p.evaluate(async () => (await caches.match('./', { ignoreVary: true }))?.headers.get('content-type'));
+    check(/text\/html/.test(shellType ?? ''), `stored app shell is still HTML after visiting the manifest (${shellType})`);
+    await p.goto(base, { waitUntil: 'networkidle0' });
+
+    await stopServer();
+    check(!(await up()), 'server stopped');
+
+    // Fresh navigation with the server gone: the shell and each lazy chunk come from the cache.
+    await p.goto(base, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await p.waitForSelector('.lib-page', { timeout: 15000 });
+    check(true, 'offline: the library opens');
+    for (const [hash, sel] of [['#/vocab', '.voc-page'], ['#/review', '.rev-empty, .rev-word, .card'], ['#/settings', '.set-page'], ['#/about', '.ab-host section'], ['#/', '.lib-page']]) {
+      await p.evaluate((h) => { location.hash = h; }, hash);
+      const ok = await p.waitForSelector(sel, { timeout: 8000 }).then(() => true, () => false);
+      const stuck = await p.evaluate(() => !!document.querySelector('.app-load-failed'));
+      check(ok && !stuck, `offline: ${hash} opens`);
+    }
+    await p.screenshot({ path: join(out, 'offline-about.png') });
+
+    // Classics are precached, so they add fine offline. A classic that was never stored (the precache can be partial) cannot
+    // be added; take them out of the cache to see what the person would read then.
+    const inCache = await p.evaluate(async () => { for (const k of await caches.keys()) { const c = await caches.open(k); for (const r of await c.keys()) if (/\/samples\/[^/]+\.txt$/.test(r.url)) await c.delete(r); } return true; });
+    await p.evaluate(() => { location.hash = '#/'; });
+    await p.waitForSelector('.lib-sample .lib-add', { timeout: 8000 }).catch(() => {});
+    if (await p.$('.lib-sample .lib-add')) {
+      await p.evaluate(() => document.querySelectorAll('.app-toast').forEach((t) => t.remove()));
+      await p.evaluate(() => document.querySelector('.lib-sample .lib-add').click());
+      await p.waitForSelector('.app-toast', { timeout: 10000 });
+      const t = await p.$eval('.app-toast', (e) => e.textContent);
+      check(/^Could not (add|download) /.test(t) && !/respondWith|TypeError|Load failed|Failed to fetch/.test(t), `offline: adding a classic gives a plain message (${t.slice(0, 90)})`);
+      // With the browser itself reporting offline, the message says so.
+      await p.setOfflineMode(true);
+      await p.evaluate(() => document.querySelectorAll('.app-toast').forEach((t) => t.remove()));
+      await p.evaluate(() => document.querySelector('.lib-sample .lib-add').click());
+      await p.waitForFunction(() => /offline/i.test(document.querySelector('.app-toast')?.textContent ?? ''), { timeout: 10000 }).catch(() => {});
+      const t2 = await p.$eval('.app-toast', (e) => e.textContent).catch(() => '');
+      check(/You are offline\. Connect once to add this classic\./.test(t2), `offline: the browser reports offline (${t2.slice(0, 90)})`);
+      await p.screenshot({ path: join(out, 'offline-add-classic.png') });
+      await p.setOfflineMode(false);
+    } else {
+      check(false, 'offline: classics list is available from the cache');
+    }
+    check(errs.filter((e) => !/Failed to fetch|Load failed/.test(e)).length === 0, `offline: no page errors${errs.length ? ' (' + errs.slice(0, 3).join(' / ') + ')' : ''}`);
+  } finally {
+    await b.close();
+    await stopServer();
+  }
+  if (problems.length) { console.log(`\n${problems.length} check(s) failed`); process.exit(1); }
+  console.log('\nall offline checks passed');
+  process.exit(0);
+}
+if (process.env.QA_ONLY === 'offline') await offlineStep();
+
 const browser = await puppeteer.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   headless: true, timeout: 90000,
   args: ['--no-first-run', '--no-default-browser-check'],
 });
 const page = await browser.newPage();
+// On the dev server the Mac bridge lists the owner's books and a fresh profile adds them at once, so the library would never
+// start empty. Answer the list with "no books"; the bridge and the owner books are checked in qa-local-books.mjs.
+await page.setRequestInterception(true);
+page.on('request', (r) => {
+  if (new URL(r.url()).pathname === '/api/local-books') void r.respond({ status: 200, contentType: 'application/json', headers: { 'cache-control': 'no-store' }, body: '[]' });
+  else void r.continue();
+});
 const errors = [];
 let ignoreErrors = false;
 page.on('console', (m) => { if (m.type() === 'error' && !ignoreErrors) errors.push(`console: ${m.text()}`); });
 page.on('pageerror', (e) => { if (!ignoreErrors) errors.push(`pageerror: ${e.message}`); });
-page.on('requestfailed', (r) => { if (!ignoreErrors && !r.url().includes('hanzi')) errors.push(`requestfailed: ${r.url()}`); });
+page.on('requestfailed', (r) => {
+  if (ignoreErrors || r.url().includes('hanzi')) return;
+  // A probe the page abandons on purpose (its own AbortSignal.timeout, or a reload while it was in flight) shows up as ERR_ABORTED.
+  if (/\/api\//.test(r.url()) && r.failure()?.errorText === 'net::ERR_ABORTED') return;
+  errors.push(`requestfailed: ${r.url()} (${r.failure()?.errorText})`);
+});
 
 const shot = async (name, opts = {}) => { await sleep(250); await page.screenshot({ path: join(out, `${name}.png`), ...opts }); console.log(`     shot ${name}`); };
 const goto = async (hash) => { await page.evaluate((h) => { location.hash = h; }, hash); await sleep(500); };
@@ -68,8 +172,8 @@ await page.waitForSelector('.lib-card');
 ignoreErrors = false;
 
 // Two samples by click (first one opens the reader), then back.
-await page.waitForSelector('.lib-sample .btn-primary');
-await page.evaluate(() => document.querySelector('.lib-sample .btn-primary').click());
+await page.waitForSelector('.lib-sample .lib-add');
+await page.evaluate(() => document.querySelector('.lib-sample .lib-add').click());
 await page.waitForFunction(() => location.hash.startsWith('#/read/'), { timeout: 15000 });
 check(true, 'sample click imports and opens the reader');
 ignoreErrors = true;
@@ -193,12 +297,10 @@ await sleep(200);
 check((await page.$eval('.set-sample', (e) => e.style.fontSize)) === '32px', 'font size slider applies');
 await page.$eval('.set-range', (el) => { el.value = '22'; el.dispatchEvent(new Event('input', { bubbles: true })); });
 
-// Claude key + test button without a key.
-await page.type('.set-key', 'sk-ant-test-1234');
-await sleep(500);
-check((await page.evaluate(() => JSON.parse(localStorage.getItem('dushu.settings.v1')).claudeApiKey)) === 'sk-ant-test-1234', 'API key saved to settings');
+// The Anthropic key lives only on the Mac: Settings has no key field, and nothing about a key is kept in the browser.
+check(!(await page.$('.set-key, input[type=password]')), 'settings has no API key field (the key stays on the Mac)');
+check(await page.evaluate(() => !/claudeApiKey|sk-ant-/.test(localStorage.getItem('dushu.settings.v1') ?? '')), 'saved settings hold no API key');
 await shot('12-settings-translation', { clip: undefined });
-await page.$eval('.set-key', (e) => { e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); });
 
 // Backup export.
 const exported = await page.evaluate(async () => {

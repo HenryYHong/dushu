@@ -30,6 +30,13 @@ export interface WordPopupOptions {
   getAnchor?: () => DOMRect | null;
   /** Optional: on a narrow screen, scroll so the bottom sheet does not cover the word. */
   keepAnchorVisible?: boolean;
+  /**
+   * Optional: called after each placement with the viewport y of the bottom sheet's top edge, or null when the popup
+   * floats or closes. The Pages reader lifts the page by this much so the tapped word stays above the sheet.
+   */
+  onSheetTop?: (top: number | null) => void;
+  /** Optional: the element focus returns to when the popup closes (default: the element it was opened from). */
+  restoreFocus?: () => HTMLElement | null;
   /** Optional: shows a Back button on the first view (used when opened from a phrase popup). */
   onBack?: () => void;
   /** The open book's lexicon (names/terms + user words); the popup shows and edits its entries. */
@@ -52,6 +59,13 @@ export interface PhrasePopupOptions {
   onReadFromHere?: () => void;
   getAnchor?: () => DOMRect | null;
   keepAnchorVisible?: boolean;
+  /**
+   * Optional: called after each placement with the viewport y of the bottom sheet's top edge, or null when the popup
+   * floats or closes. The Pages reader lifts the page by this much so the tapped word stays above the sheet.
+   */
+  onSheetTop?: (top: number | null) => void;
+  /** Optional: the element focus returns to when the popup closes (default: the element it was opened from). */
+  restoreFocus?: () => HTMLElement | null;
   /** Optional: shows a Back button (used when opened from a word popup). */
   onBack?: () => void;
   lexicon?: Lexicon;
@@ -74,6 +88,8 @@ export function openWordPopup(o: WordPopupOptions): PopupHandle {
     anchor: o.anchor,
     getAnchor: o.getAnchor,
     keepAnchorVisible: o.keepAnchorVisible,
+    onSheetTop: o.onSheetTop,
+    restoreFocus: o.restoreFocus,
     onKey: (e) => view?.onKey(e) ?? false,
     onClose: () => { view?.dispose(); o.onClose?.(); },
   });
@@ -83,6 +99,7 @@ export function openWordPopup(o: WordPopupOptions): PopupHandle {
     openPhrasePopup({
       ctx: o.ctx, text, anchor, context, wordContext: wasContext,
       lexicon: o.lexicon, bookId: o.bookId, onLexiconChange: o.onLexiconChange,
+      onSheetTop: o.onSheetTop, restoreFocus: o.restoreFocus,
       onBack: () => { openWordPopup({ ...o, anchor: o.getAnchor?.() ?? o.anchor }); },
     });
   };
@@ -114,6 +131,8 @@ export function openPhrasePopup(o: PhrasePopupOptions): PopupHandle {
     anchor: o.anchor,
     getAnchor: o.getAnchor,
     keepAnchorVisible: o.keepAnchorVisible,
+    onSheetTop: o.onSheetTop,
+    restoreFocus: o.restoreFocus,
     onKey: (e) => view?.onKey(e) ?? false,
     onClose: () => { view?.dispose(); o.onClose?.(); },
   });
@@ -123,6 +142,7 @@ export function openPhrasePopup(o: PhrasePopupOptions): PopupHandle {
       ctx: o.ctx, word: r.word, anchor, prev: r.prev, next: r.next, reading: r.reading,
       lexicon: o.lexicon, bookId: o.bookId, onLexiconChange: o.onLexiconChange,
       context: o.wordContext ?? (o.context ? { sentence: o.context } : undefined),
+      onSheetTop: o.onSheetTop, restoreFocus: o.restoreFocus,
       onBack: () => { openPhrasePopup({ ...o, anchor: o.getAnchor?.() ?? o.anchor }); },
     });
   };

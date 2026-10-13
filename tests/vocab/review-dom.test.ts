@@ -12,6 +12,10 @@ import { item } from './helpers';
 vi.mock('../../src/ui/popup/popup', () => ({ openWordPopup: vi.fn() }));
 
 const tick = () => new Promise((r) => setTimeout(r, 30));
+async function until(fn: () => boolean, ms = 2000) {
+  const t = Date.now();
+  while (!fn()) { if (Date.now() - t > ms) throw new Error('timed out waiting'); await new Promise((r) => setTimeout(r, 10)); }
+}
 const key = (k: string) => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
 
 async function setup(words: ReturnType<typeof item>[]) {
@@ -102,10 +106,52 @@ describe('vocab screen', () => {
     expect(root.textContent).toContain('Nothing matches');
     input.value = ''; input.dispatchEvent(new Event('input'));
     root.querySelector<HTMLButtonElement>('.voc-remove')!.click();
-    await tick();
+    await until(() => root.querySelectorAll('.voc-row').length === 1);
     expect((await store.vocab.list()).length).toBe(1);
-    expect(root.querySelectorAll('.voc-row')).toHaveLength(1);
     cleanup();
+  });
+
+  it('shows saved words in the reader script: the headword and the book sentence agree', async () => {
+    const dict = { toSimplified: (t: string) => t.replace(/學/g, '学').replace(/習/g, '习'), toTraditional: (t: string) => t.replace(/学/g, '學').replace(/习/g, '習') };
+    const w = item('学习', 'xue2 xi2', 'to study', { trad: '學習', context: { sentence: '我學習漢語。', bookTitle: '學校' } });
+    const a = await setup([w]);
+    a.ctx.dictSync = () => dict as never;
+    a.ctx.settings.set({ script: 'simplified' });
+    await mountVocab(a.root, {}, a.ctx);
+    await until(() => !!a.root.querySelector('.voc-row'));
+    expect(a.root.querySelector('.voc-word')!.textContent).toBe('学习');
+    expect(a.root.querySelector('.voc-ctx')!.textContent).toContain('我学习');
+    expect(a.root.querySelector('.voc-meta')!.textContent).toContain('学校');
+    const b = await setup([w]);
+    b.ctx.dictSync = () => dict as never;
+    b.ctx.settings.set({ script: 'traditional' });
+    const stop = await mountReview(b.root, {}, b.ctx) as () => void;
+    await until(() => !!b.root.querySelector('.rev-word'));
+    expect(b.root.querySelector('.rev-word')!.textContent).toBe('學習');
+    expect(b.root.querySelector('.rev-word')!.getAttribute('lang')).toBe('zh-Hant');
+    expect(b.root.querySelector('.rev-ctx')!.textContent).toContain('我學習');
+    stop();
+  });
+
+  it('keeps the known-words panel at the top, closed until opened', async () => {
+    const { ctx, root } = await setup([item('爱', 'ai4', 'to love')]);
+    await mountVocab(root, {}, ctx);
+    await until(() => !!root.querySelector('.voc-row'));
+    const panel = root.querySelector<HTMLDetailsElement>('details.voc-known')!;
+    expect(panel).toBeTruthy();
+    expect(panel.open).toBe(false);
+    const page = root.querySelector('.voc-page')!;
+    expect([...page.children].indexOf(panel)).toBeLessThan([...page.children].indexOf(root.querySelector('.voc-list')!));
+  });
+
+  it('the session summary line is short', async () => {
+    const { ctx, root } = await setup([item('爱', 'ai4', 'to love')]);
+    const stop = await mountReview(root, {}, ctx) as () => void;
+    await until(() => !!root.querySelector('.rev-word'));
+    key(' '); key('4');
+    await until(() => !!root.querySelector('.rev-summary-title'));
+    expect(root.querySelector('.rev-summary .muted')!.textContent).toBe('1 card, 1 answer');
+    stop();
   });
 
   it('empty state', async () => {

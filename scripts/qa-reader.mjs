@@ -53,6 +53,41 @@ try {
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   const shot = (name) => page.screenshot({ path: `${OUT}${name}.png` });
 
+  // Network stubs for the whole run. Claude goes through the Mac bridge and the dev server has the owner's real key, so no
+  // section may reach /api/claude or api.anthropic.com for real: outside section 18 the Mac answers "no key" (the app then
+  // never picks Claude), inside it a stub Mac answers. MyMemory is always stubbed.
+  await page.setRequestInterception(true);
+  const stub = { claude: false };
+  const hosts = [];
+  const claudeCalls = [];
+  const strays = [];
+  const KEY_REJECTED = 'Anthropic rejected the key on your Mac. Replace it in ~/.config/dushu/anthropic-api-key.';
+  page.on('request', (req) => {
+    const u = new URL(req.url());
+    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+    if (u.hostname === 'api.anthropic.com') { strays.push(u.hostname); return req.abort(); }
+    if (u.pathname === '/api/claude/status') {
+      if (stub.claude) claudeCalls.push('status');
+      const body = stub.claude ? { configured: true, limitReached: false } : { configured: false, problem: 'No Claude key is set up on your Mac.' };
+      return req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+    }
+    if (u.pathname === '/api/claude/translate') {
+      if (!stub.claude) { strays.push('translate outside section 18'); return req.respond({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'no_key', error: 'No Claude key is set up on your Mac.' }) }); }
+      let mode = 'translate';
+      try { mode = JSON.parse(req.postData() ?? '{}').mode ?? 'translate'; } catch { /* keep the default */ }
+      claudeCalls.push(mode);
+      if (mode === 'explain') return req.respond({ status: 502, contentType: 'application/json', body: JSON.stringify({ code: 'upstream_auth', error: KEY_REJECTED }) });
+      const lines = [{ type: 'text', text: 'Stub Claude translation.' }, { type: 'done', stop: 'end_turn' }].map((e) => JSON.stringify(e)).join('\n') + '\n';
+      return req.respond({ status: 200, contentType: 'application/x-ndjson', body: lines });
+    }
+    if (u.pathname.startsWith('/api/claude/')) { strays.push(u.pathname); return req.abort(); }
+    if (u.hostname.endsWith('mymemory.translated.net')) {
+      hosts.push(u.hostname);
+      return req.respond({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify({ responseData: { translatedText: 'Stub translation of the paragraph.' }, responseStatus: 200 }) });
+    }
+    return req.continue();
+  });
+
   const SETTINGS_KEY = 'dushu.settings.v1';
   const setSettings = async (patch, { reload = true } = {}) => {
     await page.evaluate((k, p) => {
@@ -191,13 +226,14 @@ try {
   check((await activeText()) === '酒店', 'Shift+Left shrinks back');
 
   // drill into a character and back
-  await page.click('.pp-card');
-  await settle(250);
+  // (Clicked in the page, not at the card's position: the card may sit under the popup's sticky footer.)
+  await page.$eval('.pp-card', (e) => e.click());
+  await settle(800);
   check(await page.$('.pp-back') !== null, 'drill-in shows a Back button');
-  check(await page.$('.pp-facts') !== null, 'single character view lists facts');
+  check(await page.$('.pp-facts, .pp-char-facts') !== null, 'single character view lists facts');
   await shot('07-char-drill');
-  await page.click('.pp-back');
-  await settle(250);
+  // (A drill-in belongs to the popup; if it did not happen the rest of the run still goes on.)
+  if (await page.$('.pp-back')) { await page.click('.pp-back'); await settle(250); }
   check((await page.$$('.pp-card')).length === 2, 'Back returns to the word view');
 
   // save and known toggles write to the store; known words lose pinyin live
@@ -330,6 +366,30 @@ try {
   });
   console.log('   rare copy:', JSON.stringify(rareCopy));
   check(rareCopy.includes('𠀀𪚥𰻞') && rareCopy.includes('⼈') && rareCopy.includes('豈'), 'copy keeps astral, radical and compatibility characters intact');
+
+  // ---- 6b. Curly quotes in the pinyin grid (synthetic text only): a quote never lands on the mark beside it and always has a box
+  {
+    const q = await page.evaluate(() => {
+      const out = { pairs: 0, overlaps: [], emptyBoxes: 0, widths: [] };
+      for (const el of document.querySelectorAll('.rd-article .rd-pu-q')) {
+        const r = el.getBoundingClientRect();
+        if (r.width < 3) out.emptyBoxes++;
+        out.widths.push(Math.round(r.width * 10) / 10);
+        for (const nb of [el.previousElementSibling, el.nextElementSibling]) {
+          if (!nb || !nb.classList.contains('rd-pu')) continue;
+          const n = nb.getBoundingClientRect();
+          out.pairs++;
+          const w = Math.min(r.right, n.right) - Math.max(r.left, n.left);
+          if (w > 0.5) out.overlaps.push(`${el.textContent}${nb.textContent} ${w.toFixed(1)}px`);
+        }
+      }
+      return out;
+    });
+    console.log(`   quotes: ${q.widths.length} curly quotes, ${q.pairs} touching a mark, boxes ${[...new Set(q.widths)].join('/')} px`);
+    check(q.widths.length >= 2 && q.pairs >= 1, 'the synthetic paragraph has curly quotes beside other marks');
+    check(q.overlaps.length === 0, `no curly quote overprints the mark beside it${q.overlaps.length ? ' (' + q.overlaps.join(', ') + ')' : ''}`);
+    check(q.emptyBoxes === 0, 'every curly quote keeps a box of its own in the grid');
+  }
 
   // ---- 7. Menus, TOC and shortcuts sheet
   await setSettings({ pinyin: 'all', fontSize: 22 });
@@ -541,7 +601,9 @@ try {
     await openBook(ids.many);
     await page.click('.rd-toc-btn');
     await settle(900);
-    check(await page.$('.rd-toc-filter') !== null && (await page.$$('.rd-toc-item')).length === 40, 'a 40-chapter book lists every chapter and offers a filter');
+    // The list is windowed: its sizer is as tall as all 40 rows, and only the rows near the window exist.
+    const rows40 = await page.$eval('.rd-toc-list .rd-toc-sizer', (e) => Math.round(parseFloat(e.style.height) / parseFloat(e.querySelector('.rd-toc-row').style.height)));
+    check(await page.$('.rd-toc-filter') !== null && rows40 === 40, `a 40-chapter book lists every chapter and offers a filter (${rows40} rows)`);
     await page.type('.rd-toc-filter', '第3');
     await settle(200);
     const filtered = await page.$$eval('.rd-toc-item', (e) => e.length);
@@ -584,10 +646,10 @@ try {
   await setSettings({ pinyin: 'all', pinyinStyle: 'marks', toneColors: true, fontSize: 22 });
   await openBook(ids.kong);
   await page.evaluate(() => { window.__w = document.querySelector('.rd-article .rd-w'); window.__rt = document.querySelector('.rd-article rt'); });
-  await page.click('.rd-aa-btn');
+  // How the pinyin looks lives in the pinyin menu.
+  await page.click('.rd-pinyin-btn');
   await settle(150);
-  await page.click('.rd-display .rd-seg-btn:nth-of-type(2)').catch(() => {});
-  const styleRow = await page.evaluateHandle(() => [...document.querySelectorAll('.rd-display .rd-row')].find((r) => r.querySelector('.rd-row-label')?.textContent.startsWith('Pinyin style')));
+  const styleRow = await page.evaluateHandle(() => [...document.querySelectorAll('.rd-pinyin-menu .rd-row')].find((r) => r.querySelector('.rd-row-label')?.textContent.startsWith('Style')));
   const styleBtns = await styleRow.$$('.rd-seg-btn');
   if (styleBtns.length === 3) await styleBtns[1].click();
   await settle(250);
@@ -634,23 +696,10 @@ try {
   await page.keyboard.press('Escape');
 
   // ---- 18. Translation providers (network calls are stubbed)
-  await page.setRequestInterception(true);
-  const hosts = [];
-  page.on('request', (req) => {
-    const u = new URL(req.url());
-    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-    if (u.hostname === 'api.anthropic.com') {
-      hosts.push(u.hostname);
-      if (req.method() === 'OPTIONS') return req.respond({ status: 204, headers: cors });
-      return req.respond({ status: 401, headers: cors, contentType: 'application/json', body: JSON.stringify({ type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }) });
-    }
-    if (u.hostname.endsWith('mymemory.translated.net')) {
-      hosts.push(u.hostname);
-      return req.respond({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify({ responseData: { translatedText: 'Stub translation of the paragraph.' }, responseStatus: 200 }) });
-    }
-    return req.continue();
-  });
-  await setSettings({ pinyin: 'off', translator: 'claude', claudeApiKey: 'sk-ant-qa-test' });
+  // Claude goes through the Mac bridge (/api/claude/*). The request handler installed at the top answers it: here it plays a
+  // Mac with a key that Anthropic rejects for Explain, and nothing reaches Anthropic.
+  stub.claude = true;
+  await setSettings({ pinyin: 'off', translator: 'claude' });
   await openBook(ids.kong);
   // This section exercises providers, so select a known multiword range directly; pointer dragging is tested above.
   await page.evaluate(() => {
@@ -670,12 +719,13 @@ try {
   });
   await page.waitForFunction(() => [...document.querySelectorAll('.pp-tr-actions button')].some((b) => /Explain/.test(b.textContent)), { timeout: 20000 }).catch(() => {});
   const actionLabels = await page.$$eval('.pp-tr-actions button', (b) => b.map((x) => x.textContent.trim()));
-  check(actionLabels.some((l) => /Explain/.test(l)), `Explain is offered with a Claude key (${actionLabels.join(' | ')}; popup: ${(await popupText() ?? '').slice(0, 160).replace(/\n/g, ' | ')})`);
+  check(actionLabels.some((l) => /Explain/.test(l)), `Explain is offered when the Mac says Claude is set up (${actionLabels.join(' | ')}; popup: ${(await popupText() ?? '').slice(0, 160).replace(/\n/g, ' | ')})`);
   if (!actionLabels.some((l) => /Explain/.test(l))) throw new Error('Could not open the Claude explanation panel');
   await page.evaluate(() => [...document.querySelectorAll('.pp-tr-actions button')].find((b) => /Explain/.test(b.textContent)).click());
   await page.waitForFunction(() => document.querySelector('.pp-tr-error'), { timeout: 15000 }).catch(() => {});
   const errText = await page.$eval('.pp-tr-error', (e) => e.textContent).catch(() => '');
-  check(/key|rejected|invalid|401/i.test(errText), `a bad Claude key gives a plain error (${errText.slice(0, 80)})`);
+  check(errText === KEY_REJECTED, `a rejected Claude key gives the Mac's plain error (${errText.slice(0, 100)})`);
+  check(/Claude \(through your Mac\)/.test(await page.$eval('.pp-tr-provider', (e) => e.textContent).catch(() => '')), 'the provider line says Claude goes through the Mac');
   await shot('27-explain-error');
   // switch to MyMemory from the provider menu
   await page.evaluate(() => [...document.querySelectorAll('.pp-tr-actions button')].find((b) => /another provider/.test(b.textContent)).click());
@@ -686,11 +736,11 @@ try {
   check(/MyMemory/i.test(await page.$eval('.pp-tr-provider', (e) => e.textContent)), 'the provider name is shown');
   await shot('28-provider-mymemory');
   await page.keyboard.press('Escape');
-  check(hosts.includes('api.anthropic.com') && hosts.includes('api.mymemory.translated.net'), 'the stubbed provider endpoints were the only network targets');
-  await page.setRequestInterception(false);
+  check(claudeCalls.includes('translate') && claudeCalls.includes('explain') && hosts.includes('api.mymemory.translated.net'), `the stubbed bridge and MyMemory answered the translations (${claudeCalls.join(',')})`);
+  check(strays.length === 0, `no request reached api.anthropic.com or an unstubbed Claude route (${strays.join(', ')})`);
+  stub.claude = false;
 
   // ---- 19. Pages layout at 1440x900 (Chrome): spreads, even pinyin grid, turning, position, settings
-  page.removeAllListeners('request'); // section 18's stub handler must not outlive its interception
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   const stageInfo = () => page.evaluate(() => ({ ...document.querySelector('.rd-stage').dataset }));
   const liveWord = (n) => page.evaluate((i) => {
@@ -732,6 +782,15 @@ try {
   check(await page.evaluate(() => document.querySelector('.rd-root').classList.contains('rd-paged') && document.documentElement.scrollHeight <= innerHeight + 1), 'the page itself does not scroll in Pages');
   await shot('30-pages-spread-light');
   await gridCheck('pinyin all');
+  // The tone colors setting reaches the reader's pinyin: different colors with it on, one grey with it off.
+  const toneColors = () => page.evaluate(() => [1, 2, 3, 4, 5].map((n) => { const r = document.querySelector(`.rd-article.rd-live rt.tone-${n}`); return r ? getComputedStyle(r).color : null; }));
+  const tonesOn = await toneColors();
+  check(new Set(tonesOn.filter(Boolean)).size >= 3, `tone colors show in the reader's pinyin (${tonesOn.filter(Boolean).length} tones, ${new Set(tonesOn.filter(Boolean)).size} colors)`);
+  await setSettings({ toneColors: false }, { reload: false });
+  await settle(500);
+  check(await page.evaluate(() => { const cs = [...document.querySelectorAll('.rd-article.rd-live rt')].slice(0, 60).map((r) => getComputedStyle(r).color); return new Set(cs).size === 1; }), 'with tone colors off the pinyin is one grey');
+  await setSettings({ toneColors: true }, { reload: false });
+  await settle(500);
   check(await page.$eval('.rd-article rt', (e) => (getComputedStyle(e).webkitUserSelect || getComputedStyle(e).userSelect) === 'none'), 'rt is not selectable');
   check(await page.$('.rd-hdr') !== null && await page.$('.rd-ftr') !== null, 'every page has a header and a footer');
   check((await page.$$eval('.rd-ftr', (f) => f.map((x) => x.textContent))).some((t) => /pages? left in chapter|Last page/.test(t)), 'the footer says how many pages are left in the chapter');
@@ -801,7 +860,8 @@ try {
   await settle(900);
   let now = await stageInfo();
   check(Number(now.page) === Number(base.page) + 2, `ArrowRight turns a spread (${base.page} -> ${now.page})`);
-  check(await page.$('.rd-leaf') === null, 'the leaf is gone when the turn ends');
+  // (A turn for the next page is built in idle time and waits, unseen, in a host marked data-idle.)
+  check(await page.$('.rd-turn:not([data-idle]) .rd-leaf') === null, 'the leaf is gone when the turn ends');
   await page.keyboard.press('Space');
   await settle(900);
   check(Number((await stageInfo()).page) === Number(base.page) + 4, 'Space turns forward');
@@ -879,6 +939,8 @@ try {
   const progP = await page.evaluate(async (id) => (await (await import('/src/store/index.ts')).openStore('dushu')).progress.get(id), ids.hlm);
   check(progP && progP.block > 0 && progP.percent > 0, `progress is saved (block ${progP?.block}, ${(progP?.percent * 100).toFixed(1)}%)`);
   const beforeReload = await stageInfo();
+  // A link with ?ch=n opens that chapter at its start; a plain book link comes back to the saved place.
+  await page.evaluate((id) => { history.replaceState(null, '', `#/read/${id}`); }, ids.hlm);
   await page.reload({ waitUntil: 'networkidle0' });
   await page.waitForSelector('.rd-stage[data-pages]');
   await settle(1200);
@@ -959,10 +1021,38 @@ try {
     const openMs = Date.now() - tOpen;
     const sdi = await stageInfo();
     console.log(`   射雕英雄传 chapter 6: ${sdi.pages} pages, opened in ${openMs} ms`);
-    check(openMs < 8000 && Number(sdi.pages) > 20, `a 20,000-character chapter of 射雕英雄传 opens in Pages in ${openMs} ms (${sdi.pages} pages)`);
+    check(openMs < 4000 && Number(sdi.pages) > 20, `a 20,000-character chapter of 射雕英雄传 opens in Pages in ${openMs} ms (${sdi.pages} pages)`);
     await settle(1500);
     await shot('43-shediao-spread');
     await gridCheck('射雕英雄传');
+  }
+  // The very long chapter (about 57,000 characters in 600 paragraphs): the first spread must not wait for the rest.
+  {
+    await setSettings({ layout: 'pages', fontSize: 22, pinyin: 'all', spread: 'auto' });
+    await page.evaluate(() => { location.hash = '#/'; });
+    await settle(500);
+    const r = await page.evaluate((id) => new Promise((resolve) => {
+      const t0 = performance.now();
+      location.hash = `#/read/${id}?ch=0`;
+      const iv = setInterval(() => {
+        const st = document.querySelector('.rd-stage');
+        if (st?.dataset.page && document.querySelector('.rd-article.rd-live .rd-w')) {
+          clearInterval(iv);
+          resolve({ ms: Math.round(performance.now() - t0), nodes: document.getElementsByTagName('*').length, exact: st.dataset.exact, pages: st.dataset.pages });
+        }
+      }, 10);
+    }), ids.long);
+    console.log(`   57,000-character chapter: first spread in ${r.ms} ms, ${r.nodes} DOM nodes, about ${r.pages} pages (exact: ${r.exact})`);
+    check(r.ms < 2500 && r.nodes < 40000, `the first spread of a 57,000-character chapter is up in ${r.ms} ms with ${r.nodes} DOM nodes (not the whole chapter)`);
+    check(r.exact === 'false', 'its page count is an estimate until the reader gets near the end');
+    await settle(1500);
+    // A font step must not freeze the page: the longest gap between frames stays well under a second.
+    await page.evaluate(() => { window.__gap = 0; let last = performance.now(); const f = (n) => { window.__gap = Math.max(window.__gap, n - last); last = n; requestAnimationFrame(f); }; requestAnimationFrame(f); });
+    await page.keyboard.press(']');
+    await settle(2500);
+    const gap = await page.evaluate(() => Math.round(window.__gap));
+    console.log(`   font step on the long chapter: longest frame gap ${gap} ms`);
+    check(gap < 1000, `a font step on the long chapter keeps the page responsive (longest frame gap ${gap} ms)`);
   }
   await setSettings({ layout: 'scroll' }, { reload: false });
 

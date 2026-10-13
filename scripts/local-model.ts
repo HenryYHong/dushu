@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { Plugin } from 'vite';
 import { LOCAL_MODELS } from '../src/translate/localModels';
-import { trustedRequest } from './private-access';
+import { bridgeRequest } from './private-access';
 
 export function generationBody(value: any): object | null {
   if (!value || !LOCAL_MODELS.includes(value.model) || typeof value.prompt !== 'string' || !value.prompt.trim()
@@ -18,7 +18,7 @@ export function localModelBridge(): Plugin {
   async function handle(req: IncomingMessage, res: ServerResponse, next: () => void) {
     const path = new URL(req.url || '/', 'http://localhost').pathname;
     if (!path.startsWith('/api/local-model/')) { next(); return; }
-    if (!trustedRequest(req)) { res.writeHead(403).end(); return; }
+    if (!bridgeRequest(req)) { res.writeHead(403).end(); return; }
     res.setHeader('Cache-Control', 'no-store');
     const tags = path === '/api/local-model/api/tags';
     if (!tags && path !== '/api/local-model/api/generate') { res.writeHead(404).end(); return; }

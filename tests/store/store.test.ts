@@ -6,6 +6,12 @@ import { openStore, type DushuStore } from '../../src/store';
 import { DB_VERSION } from '../../src/store/db';
 import type { ImportedBook, VocabItem } from '../../src/types';
 
+/** 1x1 PNG: the store keeps an asset only when its bytes are a raster image. */
+const PNG = Uint8Array.from(
+  atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='),
+  (c) => c.charCodeAt(0),
+);
+
 let n = 0;
 const dbName = () => `test-${++n}-${Math.random().toString(36).slice(2)}`;
 
@@ -17,7 +23,7 @@ function sampleBook(): ImportedBook {
       { title: '二', blocks: [{ t: 'h', level: 2, text: '𠀀𪚥' }, { t: 'quote', text: '〇一' }] },
       { title: 'x', blocks: [] },
     ],
-    assets: new Map([['a.png', new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' })]]),
+    assets: new Map([['a.png', new Blob([PNG], { type: 'image/png' })]]),
     cover: 'a.png', sourceName: 'x.txt',
   };
 }
@@ -68,7 +74,7 @@ describe('books', () => {
     expect(await store.books.assetUrl(meta.id, 'a.png')).toBe(u1);
     expect(await store.books.assetUrl(meta.id, 'missing')).toBeUndefined();
     const blob = await (await fetch(u1!)).blob().catch(() => null);
-    if (blob) expect(blob.size).toBe(3);
+    if (blob) expect(blob.size).toBe(PNG.length);
   });
 
   it('remove cascades: chapters, assets, progress; vocab stays', async () => {
@@ -301,7 +307,7 @@ describe('backup', () => {
         { bookId: 'c', chapter: 9, block: 0, percent: 0.9, updatedAt: 5 },
         { bookId: 'd', chapter: 0, block: 0, percent: 2, updatedAt: 1 },
       ],
-      settings: { fontSize: 99, claudeApiKey: 'sk-secret', bogus: 1, theme: 'dark' },
+      settings: { fontSize: 99, claudeApiKey: 'sk-secret', localOnly: false, bogus: 1, theme: 'dark' },
     };
     const r = await store.importBackup(JSON.stringify(backup));
     expect(r.vocab).toEqual({ added: 1, updated: 1, skipped: 2 });

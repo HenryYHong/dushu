@@ -4,6 +4,7 @@
 import { applySandhi, formatSyllable, toneOf } from '../../core/pinyin';
 import { segment } from '../../core/segment';
 import type { Dictionary, Lexicon, PinyinMode, PinyinStyle, Token } from '../../types';
+import { widthOfPinyin } from './grid';
 
 export interface PinyinDisplay {
   style: PinyinStyle;
@@ -27,12 +28,21 @@ export interface RenderedParagraph {
   /** Same tokens with sandhi applied when the setting is on; this is what the rt text shows. */
   shown: Token[];
   views: TokenView[];
+  /** False while the <rt> nodes have not been built yet (see RenderOptions.deferPinyin). */
+  pinyinBuilt?: boolean;
 }
 
 export interface RenderOptions extends PinyinDisplay {
   sandhi: boolean;
   /** Whether a token's pinyin is shown right now (pinyin mode, known words). Default: all. */
   visible?: (t: Token) => boolean;
+  /**
+   * Leave the <rt> nodes out; `buildPinyin` adds them later. The pinyin sits out of the flow, so the layout of a page does
+   * not depend on it, and a long chapter can be paginated with a third of the DOM.
+   */
+  deferPinyin?: boolean;
+  /** Give each word role=button and a spoken name (the word and its pinyin), for VoiceOver and Switch Control. */
+  words?: boolean;
 }
 
 /** Copy of the tokens with the sandhi rewrite applied (or not). The originals stay untouched. */
@@ -53,8 +63,21 @@ export function rtContent(syllable: string, d: PinyinDisplay): { text: string; c
 }
 
 /** Full-width punctuation that takes a grid cell of its own (so lines of text stay on an even grid). */
-const PUNCT_OPEN = '（“‘《〈「『【〔［｛';
-const PUNCT_CLOSE = '，。、；：！？）”’》〉」』】〕］｝';
+const PUNCT_OPEN = '（《〈「『【〔［｛';
+const PUNCT_CLOSE = '，。、；：！？）》〉」』】〕］｝';
+
+/**
+ * The four curly quotes are not full-width marks: in most fonts (Songti SC on a Mac, with the page marked zh) they are narrow,
+ * proportional glyphs, so the half-cell trimming the other marks get would put an opening quote's ink on the mark before it and
+ * leave a closing quote no box at all. They get a class of their own; the stylesheet gives each a half-cell box from the glyph's
+ * measured advance (grid.ts, measureQuotes), whatever the font draws. 'o' opens, 'c' closes; `key` names the glyph.
+ */
+export const CURLY_QUOTES: Record<string, { side: 'o' | 'c'; key: string }> = {
+  '\u2018': { side: 'o', key: 'lsq' },
+  '\u2019': { side: 'c', key: 'rsq' },
+  '\u201c': { side: 'o', key: 'ldq' },
+  '\u201d': { side: 'c', key: 'rdq' },
+};
 
 /** 'o' for opening marks (the glyph hugs the right of its cell), 'c' for closing marks, '' for everything else. */
 export function punctSide(text: string): 'o' | 'c' | '' {
@@ -70,6 +93,45 @@ function createEl(tag: string, cls: string): HTMLElement {
   return el;
 }
 
+/** Pinyin wider than this (per em of the pinyin font) may need squeezing to fit its cell; the stylesheet does the math. */
+const SQUEEZE_FROM = 1.8;
+
+/** Characters whose glyphs usually come from a fallback font (Ext B and later, compatibility forms, radicals). */
+function isRare(cp: number): boolean {
+  return cp >= 0x20000 || (cp >= 0xf900 && cp <= 0xfaff) || (cp >= 0x2e80 && cp <= 0x2fdf);
+}
+
+/** Put the pinyin text in an rt's label and, for the few long syllables, the width the stylesheet squeezes them by. */
+function setLabel(label: HTMLElement, text: string): void {
+  label.textContent = text;
+  const w = widthOfPinyin(text);
+  if (w >= SQUEEZE_FROM) label.style.setProperty('--rd-w', w.toFixed(2));
+  else if (label.style.length) label.style.removeProperty('--rd-w');
+}
+
+/** The <rt> for one syllable. The text sits in a span so the stylesheet can place it (Safari cannot position an rt itself). */
+function makeRt(syllable: string, opts: PinyinDisplay): HTMLElement {
+  const rt = document.createElement('rt');
+  const c = rtContent(syllable, opts);
+  const label = createEl('span', 'rd-rtx');
+  setLabel(label, c.text);
+  rt.appendChild(label);
+  rt.setAttribute('aria-hidden', 'true');
+  if (c.cls) rt.className = c.cls;
+  return rt;
+}
+
+/** What a screen reader says for a word: the word, then its pinyin, never the ruby text inline ("第dì"). */
+function wordName(token: Token, shown: Token, style: PinyinStyle): string {
+  const py = (shown.pinyin ?? []).filter(Boolean).map((s) => formatSyllable(s, style)).join(' ');
+  return py ? `${token.text}, ${py}` : token.text;
+}
+
+function decorateWord(view: TokenView, shown: Token, style: PinyinStyle): void {
+  view.el.setAttribute('role', 'button');
+  view.el.setAttribute('aria-label', wordName(view.token, shown, style));
+}
+
 /** Build the nodes for a token list. Non-Han tokens become plain text nodes. */
 export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOptions): { nodes: DocumentFragment; views: TokenView[] } {
   const frag = document.createDocumentFragment();
@@ -77,8 +139,14 @@ export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOption
   tokens.forEach((token, index) => {
     if (token.kind !== 'han') {
       const side = token.kind === 'punct' ? punctSide(token.text) : '';
-      if (side) {
-        const pu = createEl('span', side === 'o' ? 'rd-pu rd-pu-o' : 'rd-pu rd-pu-c');
+      const quote = token.kind === 'punct' ? CURLY_QUOTES[token.text] : undefined;
+      if (quote) {
+        const pu = createEl('span', `rd-pu rd-pu-q rd-pu-q${quote.side} rd-pq-${quote.key}`);
+        pu.appendChild(document.createTextNode(token.text));
+        frag.appendChild(pu);
+      } else if (side) {
+        // ！ is drawn centered in its box (the other closing marks sit at the left), so the stylesheet moves it (rd-pu-b).
+        const pu = createEl('span', side === 'o' ? 'rd-pu rd-pu-o' : token.text === '！' ? 'rd-pu rd-pu-c rd-pu-b' : 'rd-pu rd-pu-c');
         pu.appendChild(document.createTextNode(token.text));
         frag.appendChild(pu);
       } else frag.appendChild(document.createTextNode(token.text));
@@ -94,19 +162,13 @@ export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOption
     let offset = token.start;
     let k = 0;
     for (const ch of token.text) {
-      const ruby = createEl('ruby', 'rd-c');
+      const ruby = createEl('ruby', isRare(ch.codePointAt(0) ?? 0) ? 'rd-c rd-rare' : 'rd-c');
       ruby.dataset.o = String(offset);
       ruby.appendChild(document.createTextNode(ch));
       const syllable = syls[k] ?? '';
       let rt: HTMLElement | null = null;
-      if (syllable) {
-        rt = document.createElement('rt');
-        const c = rtContent(syllable, opts);
-        // The text sits in a span so the stylesheet can place it (Safari does not let an rt itself be positioned).
-        const label = createEl('span', 'rd-rtx');
-        label.textContent = c.text;
-        rt.appendChild(label);
-        if (c.cls) rt.className = c.cls;
+      if (syllable && !opts.deferPinyin) {
+        rt = makeRt(syllable, opts);
         ruby.appendChild(rt);
       }
       chars.push({ ruby, rt, syllable });
@@ -115,11 +177,34 @@ export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOption
       k++;
     }
     const view: TokenView = { index, token, el, chars };
+    if (opts.words) decorateWord(view, shown[index], opts.style);
     if (opts.visible && !opts.visible(token)) el.classList.add('rd-nopy');
     views.push(view);
     frag.appendChild(el);
   });
   return { nodes: frag, views };
+}
+
+/**
+ * Add the <rt> nodes a deferred paragraph lacks, with the pinyin of the moment (sandhi, style, tone colors).
+ * A paragraph that has them already is left alone; `refreshPinyin` keeps those up to date.
+ */
+export function buildPinyin(p: RenderedParagraph, opts: RenderOptions): void {
+  if (p.pinyinBuilt !== false) return;
+  p.pinyinBuilt = true;
+  p.shown = displayTokens(p.tokens, opts.sandhi);
+  for (const v of p.views) {
+    const shown = p.shown[v.index];
+    const syls = shown.pinyin ?? [];
+    v.chars.forEach((c, i) => {
+      c.syllable = syls[i] ?? '';
+      if (c.syllable && !c.rt) {
+        c.rt = makeRt(c.syllable, opts);
+        c.ruby.appendChild(c.rt);
+      }
+    });
+    if (opts.words) decorateWord(v, shown, opts.style);
+  }
 }
 
 /** Segment a paragraph and render it into `tag` (p, h2, blockquote, span …). */
@@ -136,22 +221,24 @@ export function renderParagraph(
   return { el, text, tokens, shown, views };
 }
 
-/** Re-apply sandhi, style and tone colors to existing rt nodes. */
+/** Re-apply sandhi, style and tone colors to existing rt nodes. A paragraph without rt nodes yet only learns the new syllables. */
 export function refreshPinyin(p: RenderedParagraph, opts: RenderOptions): void {
   p.shown = displayTokens(p.tokens, opts.sandhi);
   for (const v of p.views) {
-    const syls = p.shown[v.index].pinyin ?? [];
+    const shown = p.shown[v.index];
+    const syls = shown.pinyin ?? [];
     v.chars.forEach((c, i) => {
       c.syllable = syls[i] ?? '';
       if (!c.rt) return;
       const r = rtContent(c.syllable, opts);
       if (c.rt.textContent !== r.text) {
-        const label = c.rt.firstElementChild;
-        if (label) label.textContent = r.text;
+        const label = c.rt.firstElementChild as HTMLElement | null;
+        if (label) setLabel(label, r.text);
         else c.rt.textContent = r.text;
       }
       c.rt.className = r.cls;
     });
+    if (opts.words && v.el.hasAttribute('role')) decorateWord(v, shown, opts.style);
   }
 }
 

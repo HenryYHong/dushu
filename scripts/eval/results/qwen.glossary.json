@@ -1,0 +1,1194 @@
+{
+ "id": "qwen.glossary",
+ "label": "qwen: + new message and name spellings",
+ "model": "qwen3.5:9b-q4_K_M",
+ "ranAt": "2026-10-13T17:38:30.140Z",
+ "note": "Lever 2. Adds the tagged message: glossary limited to the sentence with name spellings, paragraph window.",
+ "items": [
+  {
+   "id": "hlm-daiyu-leftovers",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "dialogue",
+   "text": "黛玉冷笑道：「我就知道，別人不挑剩下的也不給我。」",
+   "answer": "Daiyu sneered, \"I knew it. No one else gets the leftovers, and they give them to me.\"",
+   "firstMs": 3028,
+   "totalMs": 4226,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "negation-modality",
+      "severity": "major",
+      "evidence": "No one else gets the leftovers, and they give them to me.",
+      "why": "The conditional double negation (they'd only give me what others had passed over) is misread, so the idea that the others chose first and Daiyu gets what they rejected is lost."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-xifeng-soft",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "function-words",
+   "text": "鳳姐道：「我成日家說你太軟弱了，縱的家裡人這樣還了得了。」",
+   "answer": "\"Every day I tell you that you are too weak; how can we possibly manage if the people in this household continue to act like this?\"",
+   "firstMs": 2112,
+   "totalMs": 3491,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "how can we possibly manage if the people in this household continue to act like this?",
+      "why": "還了得了 is a rhetorical 'this is intolerable', and 縱 (indulging) is lost, so the sense becomes a practical worry about managing rather than outrage at the servants being let off."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "Every day I tell you that you are too weak",
+      "why": "'Weak' is stiff for 軟弱 here, where 'too soft' or 'too lenient' fits; the sentence also omits that Xifeng is the speaker."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-monk-daoist",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "names",
+   "text": "寶玉未及回言，只見舡頭上來了兩人，一僧一道，夾住寶玉說道：「俗緣已畢，還不快走。」",
+   "answer": "Before Baoyu could reply, two figures appeared at the bow of the boat—one a monk and the other a Taoist priest. They stepped forward, flanking Baoyu, and said: \"Your mortal ties are now complete; why do you not hasten to leave?\"",
+   "firstMs": 1751,
+   "totalMs": 4560,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-pinger-forgive",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "proverb",
+   "text": "平兒笑道：「『得饒人處且饒人』，得省的將就些事也罷了。",
+   "answer": "Ping'er smiled and said, \"Where it is possible to let people off, one should spare them; where there's a way to make do with less trouble, that will do.\"",
+   "firstMs": 1542,
+   "totalMs": 3257,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-daiyu-school",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "numbers",
+   "text": "黛玉道：「不曾讀，只上了一年學，些須認得幾個字。」",
+   "answer": "\"I have not studied; I attended school for only one year and can barely recognize a few characters.\"",
+   "firstMs": 3844,
+   "totalMs": 4864,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-liu-laolao-advise",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "narration",
+   "text": "因此劉姥姥看不過，乃勸道：「姑爺，你別嗔著我多嘴。",
+   "answer": "That was why Aunt Liu, unable to bear it, advised him: \"Young master, don't be angry with me for speaking my mind.",
+   "firstMs": 4038,
+   "totalMs": 5496,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "Young master",
+      "why": "姑爺 is a mother-in-law addressing her son-in-law; \"Young master\" misses the kinship relation, which the key lists as a trap (not 'master')."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "for speaking my mind",
+      "why": "多嘴 means speaking out of turn or talking too much; \"speaking my mind\" loses the apologetic sense of overstepping."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "Aunt Liu",
+      "why": "姥姥 means Granny or an old woman; \"Aunt\" is less accurate, though it is a title rendering."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-li-gui",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "negation",
+   "text": "李貴笑道：“不怕你老人家惱我，素日你老人家到底有些不正經，所以這些兄弟才不聽。",
+   "answer": "Li Gui smiled and said, \"I dare not fear your displeasure, my lord. You have always been a bit undisciplined, which is why these brothers do not listen to you.\"",
+   "firstMs": 2923,
+   "totalMs": 4809,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "I dare not fear your displeasure, my lord.",
+      "why": "The polite preface 'don't be angry with me for saying so' is muddled into an odd 'I dare not fear', though the apologetic gist is partly kept."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "You have always been a bit undisciplined",
+      "why": "'不正經' means improper or not upright in conduct, not 'undisciplined'; the frank rebuke is slightly shifted."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "these brothers do not listen to you",
+      "why": "'Brothers' is unclear for the young schoolmates; 'young fellows' or 'cousins' would read more naturally."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "hlm-opening-zhen",
+   "rep": 0,
+   "split": "dev",
+   "book": "hongloumeng",
+   "cat": "names-pun",
+   "text": "作者自云：因曾歷過一番夢幻之後，故將真事隱去，而借通靈之說，撰此《石頭記》一書也。",
+   "answer": "The author says: Having once experienced a dream and an illusion, he has hidden the true events and, by means of the tale of the Spirit Stone, composed this book called The Story of the Stone.",
+   "firstMs": 2790,
+   "totalMs": 4876,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "Having once experienced a dream and an illusion",
+      "why": "夢幻 is a single notion, a dream-like illusion; splitting it into 'a dream and an illusion' is slightly off, though the meaning survives."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "he has hidden the true events",
+      "why": "The present perfect and the missing 'therefore' weaken the causal link 因…故; the experience motivating the concealment is blurred."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-wukong-delight",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "idiom",
+   "text": "孫悟空在傍聞講，喜得他抓耳撓腮，眉花眼笑，忍不住手之舞之，足之蹈之。",
+   "answer": "Sun Wukong listened to the sermon from beside, so delighted that he tweaked his ears and scratched his cheeks, with a smile in his brows and joy in his eyes; he could not help dancing with his hands and stamping with his feet.",
+   "firstMs": 1785,
+   "totalMs": 4362,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-transformations",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "numbers",
+   "text": "有一般天罡數，該三十六般變化；有一般地煞數，該七十二般變化。",
+   "answer": "There is the Celestial Star number, which entails thirty-six transformations; there is the Earthly Fiend number, which entails seventy-two transformations.",
+   "firstMs": 1541,
+   "totalMs": 3040,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-cloud-somersault",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "terms",
+   "text": "悟空道：「我自聞道之後，有七十二般地煞變化之功，觔斗雲有莫大的神通；善能隱身遯身，起法攝法。",
+   "answer": "Wukong said, \"Since I heard the Way, I have mastered the seventy-two transformations of earth and hell, and the Somersault Cloud possesses immense power; I am skilled in hiding my body, vanishing from sight, and casting spells.",
+   "firstMs": 1596,
+   "totalMs": 4216,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "seventy-two transformations of earth and hell",
+      "why": "地煞 is the Disha (earthly) set of transformations; \"earth and hell\" invents a sense, though the 72 transformations are still conveyed."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "vanishing from sight, and casting spells.",
+      "why": "起法攝法 (raising and drawing in magic) is reduced to \"casting spells\", losing the paired opposite actions."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "Since I heard the Way",
+      "why": "\"Heard the Way\" is awkward; \"learned the Way\" would be clearer. Meaning is still passable."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-que-shuo-temple",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "function-words",
+   "text": "卻說他師徒兩個策馬前來，直至山門首觀看，果然是一座寺院。",
+   "answer": "Now, he and his disciple rode their horses forward until they reached the mountain gate to take a look; indeed, it was a temple.",
+   "firstMs": 639,
+   "totalMs": 2067,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "he and his disciple rode their horses forward",
+      "why": "他師徒兩個 means the two of them, master and disciple, and the candidate turns it into 'he and his disciple', which gives a wrong referent and drops the pair."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "reached the mountain gate to take a look",
+      "why": "山門 is the temple's main gate, and the literal 'mountain gate' hides that; the candidate also ignores 山門首 (the front of the gate)."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-demon-king",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "idiom",
+   "text": "卻說那個妖王在洞裡歡喜道：「小的們，孫行者吃了虧去了。",
+   "answer": "Now that demon king, inside his cave, spoke with delight: \"My little ones, Sun Wukong has suffered a setback and gone.\"",
+   "firstMs": 729,
+   "totalMs": 2184,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "xyj-sanzang-date",
+   "rep": 0,
+   "split": "dev",
+   "book": "xiyouji",
+   "cat": "dates",
+   "text": "卻說三藏自貞觀十三年九月望前三日，蒙唐王與多官送出長安關外。",
+   "answer": "Now, it was three days before the full moon in the ninth year of Zhenguan, the thirteenth year of Emperor Taizong's reign, that Tripitaka had been escorted out of Chang'an Pass by King Tang and his officials.",
+   "firstMs": 1009,
+   "totalMs": 3518,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "number-unit",
+      "severity": "major",
+      "evidence": "in the ninth year of Zhenguan, the thirteenth year of Emperor Taizong's reign",
+      "why": "The source says Zhenguan year 13, ninth month; the candidate makes it the ninth year of Zhenguan and also gives a conflicting 'thirteenth year' of the reign."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "three days before the full moon in the ninth year",
+      "why": "The ninth month is not stated, so the reader loses which month it was."
+     },
+     {
+      "type": "addition",
+      "severity": "minor",
+      "evidence": "the thirteenth year of Emperor Taizong's reign",
+      "why": "This is an added gloss, and it contradicts the first date the candidate gives."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-three-visits",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "double-negation",
+   "text": "孔明囑付曰：「吾受劉皇叔三顧之恩，不容不出。",
+   "answer": "Zhuge Kongming instructed him, saying, \"I have received the grace of three visits from Liu Huangshu; I cannot but leave.\"",
+   "firstMs": 1019,
+   "totalMs": 2499,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "name-mangled",
+      "severity": "minor",
+      "evidence": "Liu Huangshu",
+      "why": "The title 劉皇叔 is left as pinyin, so the reader misses 'Imperial Uncle Liu' (Liu Bei) and may take Huangshu for a personal name."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "I cannot but leave.",
+      "why": "'Leave' is vague for 出 (come out of seclusion to serve), and it can read as departing from somewhere."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-xuande-lineage",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "numbers",
+   "text": "玄德曰：「備乃中山靖王之後；自涿郡剿戮黃巾，大小三十餘戰，頗有微功，因得除今職。」",
+   "answer": "Xuande said, \"I am a descendant of the Prince of Zhongshan Jing; since I began slaughtering the Yellow Turbans in Zhuo, I have fought more than thirty battles of varying sizes and achieved some merit, thus earning my current post.\"",
+   "firstMs": 2594,
+   "totalMs": 5593,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "achieved some merit",
+      "why": "微功 (slight/modest merit) loses the humble tone; 'some merit' is close but drops 'slight'."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "the Prince of Zhongshan Jing",
+      "why": "Awkward title order; 'Prince Jing of Zhongshan' is the natural rendering."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "since I began slaughtering the Yellow Turbans in Zhuo",
+      "why": "'Zhuo' alone omits 'Commandery', and the sense is that he started from Zhuo Commandery, which is only loosely captured."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-no-plunder",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "idiom",
+   "text": "玄德曰：「我與民秋毫無犯，那得財物與他？」",
+   "answer": "Xuande said, \"I have not taken so much as a feather or a grain from the people; where could I possibly get money to give him?\"",
+   "firstMs": 1964,
+   "totalMs": 3405,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-ma-su",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "conditional",
+   "text": "馬謖在山上見之，大笑曰：「彼若有命，不來圍山。」",
+   "answer": "Ma Su, seeing this from the mountain, laughed aloud: \"If he has any life left in him, he will not come to besiege the mountain.\"",
+   "firstMs": 1384,
+   "totalMs": 3106,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-zhang-fei-vow",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "vow",
+   "text": "張飛性起，向玄德換了坐下馬，搶出陣來，叫曰：「我捉你不得，誓不上關！」",
+   "answer": "Zhang Fei, his temper flaring, exchanged mounts with Xuande and charged out of the formation, shouting, \"I cannot catch you! I swear I will not retreat to the pass!\"",
+   "firstMs": 2660,
+   "totalMs": 5438,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "negation-modality",
+      "severity": "major",
+      "evidence": "\"I cannot catch you! I swear I will not retreat to the pass!\"",
+      "why": "The conditional oath (if I can't capture you, I won't go up the pass) is split into a flat statement of inability plus a separate vow, losing the condition."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sg-sima-yi-wrong",
+   "rep": 0,
+   "split": "dev",
+   "book": "sanguo",
+   "cat": "classical",
+   "text": "行到赤岸坡，見蜀兵已去遠，乃引還，顧謂眾將曰：「孔明已死，我等皆高枕無憂矣！」",
+   "answer": "Arriving at Chi'an Slope, he saw the Shu troops had long gone far ahead, so he turned back. Turning to address his generals, he said, \"Kongming is dead; we may all rest easy now!\"",
+   "firstMs": 1662,
+   "totalMs": 4117,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "name-mangled",
+      "severity": "minor",
+      "evidence": "Chi'an Slope",
+      "why": "The place name 赤岸坡 is rendered with an irregular romanization, 'Chi'an', instead of the standard 'Chian' or 'Chi'an' for 赤岸; this is borderline and barely affects comprehension."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "had long gone far ahead",
+      "why": "'Long gone far ahead' is slightly awkward and suggests the troops went ahead of him, whereas the source says they had gone far away."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-only-so",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "vernacular",
+   "text": "武松道：「只好恁地，卻又來望哥哥。」",
+   "answer": "\"Such is fine, and I shall come to visit my brother again.\"",
+   "firstMs": 2819,
+   "totalMs": 3797,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "\"Such is fine, and I shall come to visit my brother again.\"",
+      "why": "\"Such is fine\" is vague and could be read as approval of the arrangement. The sense is \"this much is enough; I won't drink more\", so the reply to Wu Da's urging to stay is blurred."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "\"Such is fine\"",
+      "why": "The phrasing is stilted and unnatural in English."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-temple-ruin",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "vernacular",
+   "text": "智深尋思道：「這個大寺，如何敗落的恁地？」",
+   "answer": "Zhishen pondered, \"How has this great temple fallen into such ruin?\"",
+   "firstMs": 6614,
+   "totalMs": 7450,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-luda-go",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "function-words",
+   "text": "魯達道：「恁地時，洒家自去便了。」",
+   "answer": "\"If that is the case, I'll just go on my own.\"",
+   "firstMs": 3336,
+   "totalMs": 4207,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-song-jiang-bow",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "kinship",
+   "text": "宋江道：「兄弟，卻是你殺了小衙內，雖是軍師嚴令，論齒序他也是你哥哥，且看我面，與他伏個禮，我卻自拜你便了。」",
+   "answer": "Brother, it was you who killed the young master. Though it was Master Wu's strict order, by age he is your elder brother; do me this favor and bow to him, and I will bow to you in return.",
+   "firstMs": 4316,
+   "totalMs": 7507,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "Though it was Master Wu's strict order",
+      "why": "The strategist Wu Yong (軍師) is rendered as \"Master Wu\", which loses his role of military strategist; the meaning is still roughly intact."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "I will bow to you in return.",
+      "why": "The settling sense of 便了 (\"that will settle it\") is not rendered, but the promise itself is conveyed."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-sign-three-bowls",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "sense-tavern",
+   "text": "酒家道：「客官，你須見我門前招旗上面明明寫道：『三碗不過岡』。」",
+   "answer": "The innkeeper said, \"Guest, you must have seen the banner above my door that clearly reads: 'Three bowls and you cannot cross the pass.'\"",
+   "firstMs": 3005,
+   "totalMs": 5273,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "you cannot cross the pass",
+      "why": "岡 means ridge or hill, not 'pass'; the sense of the warning is kept but the detail is slightly inaccurate."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "Guest, you must have seen",
+      "why": "'Guest' as a form of address is stiff; 'sir' or 'customer' would be more natural."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-dai-zong",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "vernacular",
+   "text": "戴宗連忙回轉身來問道：「壯士素不曾拜識，如何呼喚賤名？」",
+   "answer": "Dai Zong quickly turned around and asked, \"I have never had the honor of meeting you before; what is your name?\"",
+   "firstMs": 10436,
+   "totalMs": 12807,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "what is your name?",
+      "why": "Dai Zong asks why the stranger calls out his own humble name; the candidate turns this into a request for the stranger's name, which Dai Zong asks only later."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "I have never had the honor of meeting you before;",
+      "why": "The address 壯士 and the humble self-reference 賤名 are both dropped."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "sh-rice",
+   "rep": 0,
+   "split": "dev",
+   "book": "shuihu",
+   "cat": "numbers",
+   "text": "見我管待客人在此喫酒，你便與他三五升米便了，何須直來問我！」",
+   "answer": "\"See that I am entertaining guests here drinking wine; you simply give him three or five sheng of rice, why must he come straight to ask me!\"",
+   "firstMs": 3796,
+   "totalMs": 6807,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "why must he come straight to ask me!",
+      "why": "The one who comes straight to ask is the retainer (you), not the priest; the subject is wrong."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "See that I am entertaining guests here drinking wine; you simply give him",
+      "why": "Reads as an imperative and is a comma splice; 'Since you see I'm entertaining guests...' would be more natural."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ky-shop-layout",
+   "rep": 0,
+   "split": "dev",
+   "book": "kong-yiji",
+   "cat": "sense-tavern",
+   "text": "鲁镇的酒店的格局，是和别处不同的：都是当街一个曲尺形的大柜台，柜里面豫备着热水，可以随时温酒。",
+   "answer": "The layout of the taverns in Lu Town differs from those elsewhere: each has a large counter shaped like a carpenter's square right on the street, with hot water kept inside to warm wine at any time.",
+   "firstMs": 3190,
+   "totalMs": 6963,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "a large counter shaped like a carpenter's square right on the street",
+      "why": "当街 means facing the street; \"right on the street\" slightly suggests the counter is outdoors, though the meaning is mostly intact."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "with hot water kept inside to warm wine at any time",
+      "why": "\"Inside\" is vague; it should be \"behind the counter\", and \"kept ready\" is missing, so the sentence is less clear."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ky-debt",
+   "rep": 0,
+   "split": "dev",
+   "book": "kong-yiji",
+   "cat": "numbers",
+   "text": "到了年关，掌柜取下粉板说：『孔乙己还欠十九个钱呢！』",
+   "answer": "When the New Year approached, the shopkeeper took down the blackboard and said, \"Kong Yiji still owes nineteen qian!\"",
+   "firstMs": 1809,
+   "totalMs": 4177,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "When the New Year approached",
+      "why": "This loses the sense of 年关 as the year-end debt-settling time, though the timing is roughly right."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "took down the blackboard",
+      "why": "粉板 is a lime/chalk board for recording debts; 'blackboard' is slightly inaccurate but conveys a similar object."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "nineteen qian",
+      "why": "The untranslated unit 'qian' is unexplained for an English reader; 'coins' or 'cash' would be clearer."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ky-steal-books",
+   "rep": 0,
+   "split": "dev",
+   "book": "kong-yiji",
+   "cat": "dialogue",
+   "text": "孔乙己便涨红了脸，额上的青筋条条绽出，争辩道：『窃书不能算偸……窃书！……读书人的事，能算偸么？』",
+   "answer": "Kong Yiji turned red in the face, with veins bulging on his forehead, and argued: \"Stealing books cannot be called stealing... Stealing! ... What a scholar does, how can that be called stealing?\"",
+   "firstMs": 4024,
+   "totalMs": 8037,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "major",
+      "evidence": "\"Stealing books cannot be called stealing... Stealing!\"",
+      "why": "窃 and 偸 are rendered with the same word, so the literary/common contrast that drives Kong Yiji's argument is lost and the sentence reads as nonsensical."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "with veins bulging on his forehead",
+      "why": "The source says the veins stood out 'one by one' (条条) and are blue (青筋), and neither detail is rendered."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ky-hui-character",
+   "rep": 0,
+   "split": "dev",
+   "book": "kong-yiji",
+   "cat": "language",
+   "text": "又好笑，又不耐烦，懒懒的答他道：『谁要你教，不是草头底下一个来回的回字么？』",
+   "answer": "\"Who needs your teaching? Isn't it simply the character 'hui' with a grass radical on top and a 'return' underneath?\"",
+   "firstMs": 3526,
+   "totalMs": 5626,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "major",
+      "evidence": "\"Who needs your teaching?",
+      "why": "The opening clause is missing: the narrator is both amused and impatient and answers listlessly, so the mood and the speaker's identity are lost."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "the character 'hui' with a grass radical on top and a 'return' underneath",
+      "why": "The character description is muddled: 'hui' is ambiguous between 茴 and 回, and the 'come and go' sense of 回 is not conveyed."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "gx-runtu-name",
+   "rep": 0,
+   "split": "dev",
+   "book": "guxiang",
+   "cat": "names-pun",
+   "text": "我的父亲允许了；我也很高兴，因为我早听到闰土这名字，而且知道他和我仿佛年纪，闰月生的，五行缺土，所以他的父亲叫他闰土。",
+   "answer": "My father gave his consent; I was also very happy, for I had long heard the name Runtu and knew that he was about my own age, born in a leap month, with an element lacking earth in his fortune, so his father named him Runtu.",
+   "firstMs": 1469,
+   "totalMs": 6812,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "with an element lacking earth in his fortune",
+      "why": "Awkward and slightly unclear for 五行缺土; it should say the Five Elements in his horoscope lack Earth, so the reader can see why he was named Runtu."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "born in a leap month",
+      "why": "The 闰/土 etymology is not made explicit, because the candidate never says that 闰 means 'leap' and 土 means 'earth', though the name is given."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "gx-hope",
+   "rep": 0,
+   "split": "dev",
+   "book": "guxiang",
+   "cat": "abstract",
+   "text": "现在我所谓希望，不也是我自己手制的偶像么？",
+   "answer": "Is not the hope I speak of now also an idol made by my own hands?",
+   "firstMs": 1538,
+   "totalMs": 3122,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "kr-teeth",
+   "rep": 0,
+   "split": "dev",
+   "book": "kuangren-riji",
+   "cat": "figurative",
+   "text": "我看出他话中全是毒，笑中全是刀，他们的牙齿，全是白厉厉的排着，这就是吃人的家伙。",
+   "answer": "I saw that his words were all poison, his laughter held a blade, their teeth stood in a row of menacingly white fangs—these were the men who eat people.",
+   "firstMs": 1781,
+   "totalMs": 5472,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "negation-modality",
+      "severity": "minor",
+      "evidence": "his laughter held a blade",
+      "why": "全是 ('all/nothing but') is lost: 'all poison' is kept but 'all knives' becomes 'held a blade', which breaks the parallel structure."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "I saw that his words were all poison, his laughter held a blade, their teeth stood in a row",
+      "why": "The past tense shifts the narrator's present certainty into narration, and the comma splice reads awkwardly."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "menacingly white fangs",
+      "why": "'Fangs' adds a detail that is not in the source (the teeth are described as sharp and gleaming white), though it fits the 青面獠牙 image."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "kr-brave",
+   "rep": 0,
+   "split": "dev",
+   "book": "kuangren-riji",
+   "cat": "negation",
+   "text": "我也不怕；虽然不吃人，胆子却比他们还壮。",
+   "answer": "I am not afraid; even though I do not eat people, my courage is greater than theirs.",
+   "firstMs": 2923,
+   "totalMs": 4620,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "I am not afraid;",
+      "why": "The 也 ('also/for my part') is dropped, losing a slight link to his earlier calm."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "even though I do not eat people, my courage is greater than theirs",
+      "why": "'Even though' and the plain comparative miss the concessive 虽然...却 and the intensifying 还 ('even bolder'); 'although ... even bolder' is more natural."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ly-learning",
+   "rep": 0,
+   "split": "dev",
+   "book": "lunyu-xue-er",
+   "cat": "classical",
+   "text": "子曰：「學而時習之，不亦說乎？有朋自遠方來，不亦樂乎？人不知而不慍，不亦君子乎？」",
+   "answer": "The Master said, \"Is it not delightful to study and then review it from time to time? Is it not joyful when friends come from afar? Is it not the mark of a gentleman to be free of resentment when others do not know him?\"",
+   "firstMs": 978,
+   "totalMs": 5962,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "to study and then review it from time to time",
+      "why": "\"From time to time\" slightly blurs 時 (at due times, regularly) toward \"occasionally\", and \"review\" narrows 習, though the meaning is largely intact."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "ly-clever-words",
+   "rep": 0,
+   "split": "dev",
+   "book": "lunyu-xue-er",
+   "cat": "classical",
+   "text": "子曰：「巧言令色，鮮矣仁。」",
+   "answer": "The Master said: \"He who is glib in his speech and wears an ingratiating expression has little of benevolence.\"",
+   "firstMs": 1318,
+   "totalMs": 4147,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "ly-gentleman-eats",
+   "rep": 0,
+   "split": "dev",
+   "book": "lunyu-xue-er",
+   "cat": "classical",
+   "text": "子曰：「君子食無求飽，居無求安，敏於事而愼於言，就有道而正焉：可謂好學也已。」",
+   "answer": "The Master said: \"A gentleman does not seek to be well-fed in his eating, nor to be comfortable in his dwelling; he is diligent in his work and cautious in his speech, and seeks out those who are virtuous to correct himself. This may be called true love of learning.\"",
+   "firstMs": 1063,
+   "totalMs": 7550,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "ly-poor-flatter",
+   "rep": 0,
+   "split": "dev",
+   "book": "lunyu-xue-er",
+   "cat": "classical-dialogue",
+   "text": "子貢曰：「貧而無諂，富而無驕，何如？」子曰：「可也。未若貧而樂，富而好禮者也」。",
+   "answer": "Zi Gong said, \"Is it good to be poor without being obsequious and rich without being arrogant?\" The Master replied, \"That is acceptable. But it is not as good as being poor yet happy and rich yet fond of ritual.\"",
+   "firstMs": 3039,
+   "totalMs": 8723,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "tang-moonlight",
+   "rep": 0,
+   "split": "dev",
+   "book": "tang-poems",
+   "cat": "poem",
+   "text": "牀前明月光，疑是地上霜。\n舉頭望明月，低頭思故鄉。",
+   "answer": "Before my bed the bright moon's light gleams, I wonder if it is frost on the ground. I raise my head to gaze at the bright moon; I lower my head and think of my native land.",
+   "firstMs": 1110,
+   "totalMs": 5888,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "correct",
+    "errors": []
+   },
+   "screens": []
+  },
+  {
+   "id": "tang-red-beans",
+   "rep": 0,
+   "split": "dev",
+   "book": "tang-poems",
+   "cat": "poem",
+   "text": "紅豆生南國，春來發幾枝。\n願君多采擷，此物最相思。",
+   "answer": "Red beans grow in the southern land; how many branches bloom when spring comes? I wish you would gather them more, for this is the thing that most stirs thoughts of longing.",
+   "firstMs": 1126,
+   "totalMs": 5427,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "minor",
+    "errors": [
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "how many branches bloom when spring comes",
+      "why": "發 means sprout or put forth shoots, not bloom; this is a slight inaccuracy that leaves the meaning intact."
+     },
+     {
+      "type": "register-fluency",
+      "severity": "minor",
+      "evidence": "I wish you would gather them more",
+      "why": "'gather them more' is awkward; 'gather plenty' or 'gather many' is the natural English."
+     }
+    ]
+   },
+   "screens": []
+  },
+  {
+   "id": "tang-river-snow",
+   "rep": 0,
+   "split": "dev",
+   "book": "tang-poems",
+   "cat": "poem",
+   "text": "千山鳥飛絕，萬徑人蹤滅。\n孤舟簑笠翁，獨釣寒江雪。",
+   "answer": "Birds fly from the peaks of Qianshan, and footprints vanish from every path. A lone boatman in a straw raincoat and hat casts his line alone into the cold river's snow.",
+   "firstMs": 1829,
+   "totalMs": 5818,
+   "calls": 1,
+   "unverified": false,
+   "flags": [],
+   "judge": {
+    "verdict": "wrong",
+    "errors": [
+     {
+      "type": "name-mangled",
+      "severity": "major",
+      "evidence": "Birds fly from the peaks of Qianshan",
+      "why": "千山 means 'a thousand mountains' (all the mountains), not a place name 'Qianshan'."
+     },
+     {
+      "type": "negation-modality",
+      "severity": "major",
+      "evidence": "Birds fly from the peaks",
+      "why": "鳥飛絕 means birds have ceased flying; the candidate states that birds fly, which loses the stillness and reverses the meaning."
+     },
+     {
+      "type": "wrong-sense",
+      "severity": "minor",
+      "evidence": "footprints vanish from every path",
+      "why": "This is acceptable for the hyperbole, but it is tense-confused and the first line's meaning is already lost."
+     },
+     {
+      "type": "omission",
+      "severity": "minor",
+      "evidence": "A lone boatman",
+      "why": "The old man (翁) is rendered as 'boatman', so his age is lost."
+     }
+    ]
+   },
+   "screens": []
+  }
+ ]
+}

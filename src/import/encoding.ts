@@ -102,3 +102,38 @@ export function decodeText(bytes: Uint8Array, hint?: string): Decoded {
 export function normalizeNewlines(text: string): string {
   return text.replace(/\r\n?|[\u2028\u2029\u000b\u000c\u0085]/g, '\n').replace(/[\u0000\ufeff]/g, '');
 }
+
+/**
+ * Bidirectional controls (embeddings, overrides, isolates, marks). In a book they only ever reorder the text and
+ * its pinyin, so they are removed on import.
+ */
+const BIDI = /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
+export function stripBidi(text: string): string {
+  return text.replace(BIDI, '');
+}
+
+export const NOT_TEXT_MESSAGE = 'This file does not look like text (it may be a binary file with a .txt name), so Dushu did not import it.';
+
+/**
+ * Whether bytes decoded as text really are text: not full of zero or control bytes. A strict UTF-8 decode is accepted
+ * after that. A fallback decode (GB18030, Big5) of binary data still yields characters, so it must also score as
+ * ordinary Chinese.
+ */
+export function plausibleText(bytes: Uint8Array, decoded: Decoded): boolean {
+  if (decoded.encoding.startsWith('utf-16')) return true;
+  const sample = bytes.subarray(0, Math.min(bytes.length, 131072));
+  let nul = 0;
+  let ctrl = 0;
+  for (let i = 0; i < sample.length; i++) {
+    const b = sample[i];
+    if (b === 0) nul++;
+    else if (b < 0x20 && b !== 9 && b !== 10 && b !== 13 && b !== 12) ctrl++;
+  }
+  if (nul + ctrl > sample.length * 0.01) return false;
+  if (decoded.encoding === 'utf-8') return true;
+  const text = decoded.text.length > 200000 ? decoded.text.slice(0, 200000) : decoded.text;
+  let high = 0;
+  for (const ch of text) if (ch.codePointAt(0)! > 0x7f) high++;
+  if (high < 20) return true; // nearly all ASCII: the content check after import decides
+  return scoreDecoding(text) >= 0.3;
+}

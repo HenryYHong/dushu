@@ -193,11 +193,11 @@ describe('pages layout', () => {
     expect(q('.pp-pop')).not.toBeNull();
     expect(stage().page).toBe('1');
     closePopup();
-    // The outer right third of the stage is 'next'.
-    q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 700 }));
+    // The outer right strip of the stage is 'next' (the fake stage starts at x = 100; strips are 160 px wide on an 800 px page).
+    q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 790 }));
     await tick(5);
     expect(stage().page).toBe('2');
-    q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 50 }));
+    q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 150 }));
     await tick(5);
     expect(stage().page).toBe('1');
   });
@@ -222,7 +222,7 @@ describe('pages layout', () => {
     q('.rd-article.rd-live .rd-p .rd-w ruby')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
     expect(q('.pp-pop')).not.toBeNull();
     document.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 700 }));
+    q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 790 }));
     expect(stage().page).toBe('1');
   });
 
@@ -282,13 +282,22 @@ describe('book lexicon in the reader', () => {
     expect(stage().page).toBe('3');
   });
 
-  it('closes the open popup when the lexicon changes under it', async () => {
+  it('keeps the open popup when names are found in the background, and applies them once it is closed', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);
     q('.rd-article.rd-live .rd-p .rd-w ruby')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
     expect(q('.pp-pop')).not.toBeNull();
+    segmentSpy.mockClear();
+    // The rest of the chapter may still be laying out in the background (slow machines), so count only
+    // re-segmentation that uses the new names: that is what must wait for the popup to close.
+    const appliedNames = () => segmentSpy.mock.calls.some((c) => (c[2] as Lexicon | undefined)?.has?.('郭靖') === true);
     pushUpdate!(buildLexicon([entry('郭靖')]));
+    await tick(400);
+    expect(q('.pp-pop')).not.toBeNull();
+    expect(appliedNames()).toBe(false);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(q('.pp-pop')).toBeNull();
+    await vi.waitFor(() => expect(appliedNames()).toBe(true), { timeout: 2000 });
   });
 
   it('lists names and terms in the chapter drawer and lets the reader switch one off', async () => {
@@ -299,7 +308,7 @@ describe('book lexicon in the reader', () => {
     await vi.waitFor(() => expect(document.querySelectorAll('.rd-name')).toHaveLength(2));
     const rows = [...document.querySelectorAll('.rd-name')].map((r) => r.textContent);
     expect(rows[0]).toContain('郭靖'); // most frequent first
-    expect(rows[0]).toContain('Guō jìng'.toLowerCase().replace('guō', 'guō'));
+    expect(rows[0]).toContain('Guō Jìng'); // a person's name starts each syllable with a capital
     expect(rows[0]).toContain('Person');
     expect(rows[0]).toContain('90');
     expect(rows[1]).toContain('Place');
@@ -323,5 +332,79 @@ describe('book lexicon in the reader', () => {
     await vi.waitFor(() => expect(document.querySelector('.rd-name-main')).not.toBeNull());
     document.querySelector<HTMLElement>('.rd-name-main')!.click();
     await vi.waitFor(() => expect(q('.pp-pop')).not.toBeNull());
+  });
+});
+
+
+describe('long chapters are paginated a few spreads ahead, not all at once', () => {
+  const longChapters: Chapter[] = [{ title: '长章', blocks: Array.from({ length: 450 }, (_, i) => ({ t: 'p' as const, text: `第${i}段，我们在银行门口见面，他慢慢地走了过来，对我说了很多很多的话。` + '我们一起去银行门口见面，然后又回到了学校里面学习汉语。'.repeat(1) })) }];
+
+  async function openLong(settings = {}, params: Record<string, string> = {}) {
+    const made = await makeCtx({ pinyin: 'all', layout: 'pages', pageTurn: 'none', spread: 'single', ...settings });
+    const meta: BookMeta = await made.ctx.store.books.add({ title: '长书', author: 'T', format: 'paste', script: 'simplified', chapters: longChapters, assets: new Map() });
+    await open(made.ctx, meta.id, params);
+    return { ...made, meta };
+  }
+  const drawn = () => [...document.querySelectorAll('.rd-article.rd-live [data-b]')].filter((b) => b.querySelector('.rd-w')).length;
+
+  it('shows the first spread with a handful of blocks drawn and an estimated page count', async () => {
+    await openLong();
+    expect(stage().page).toBe('1');
+    expect(stage().exact).toBe('false');
+    expect(drawn()).toBeLessThan(120);
+    expect(Number(stage().pages)).toBeGreaterThan(20);
+    expect(q('.rd-ftr-left')!.textContent).toMatch(/^About \d+ pages left in chapter$/);
+    // The blocks that are not measured yet take no part in the layout.
+    expect(document.querySelectorAll('.rd-article.rd-live .rd-wait').length).toBeGreaterThan(300);
+  });
+
+  it('keeps measuring ahead of the reader as pages turn', async () => {
+    await openLong();
+    const before = drawn();
+    // Far enough to need what was not measured at the start.
+    for (let i = 0; i < 60; i++) { key('ArrowRight'); await tick(2); }
+    expect(stage().page).toBe('61');
+    await tick(150);
+    expect(drawn()).toBeGreaterThan(before);
+    expect(drawn()).toBeLessThan(300);
+    expect(stage().exact).toBe('false');
+  });
+
+  it('measures to the end when the reader asks for it, and then the count is exact', async () => {
+    await openLong();
+    key('End');
+    await vi.waitFor(() => expect(stage().exact).toBe('true'), { timeout: 5000 });
+    expect(Number(stage().pages)).toBe(151); // 450 blocks and the title, three to a page
+    expect(stage().page).toBe('151');
+    expect(q('.rd-ftr-left')!.textContent).toBe('End of the book'); // the only chapter of the book
+  });
+
+  it('opens at a saved place far into the chapter, measuring only up to it', async () => {
+    const { ctx, meta } = await openLong();
+    cleanup?.(); cleanup = undefined; document.body.innerHTML = ''; // (leaving saves the place it was at)
+    await tick(30);
+    await ctx.store.progress.set({ bookId: meta.id, chapter: 0, block: 300, offset: 0, percent: 0.5, updatedAt: Date.now() });
+    await open(ctx, meta.id);
+    await vi.waitFor(() => expect(stage().page).toBe('101'), { timeout: 5000 }); // block 300 (+ the title) / 3 per page = page 100
+    expect(stage().exact).toBe('false');
+  });
+
+  it('keeps the place through a change of font size, taking the chapter out of the layout first', async () => {
+    const { ctx } = await openLong();
+    for (let i = 0; i < 20; i++) { key('ArrowRight'); await tick(2); }
+    expect(stage().page).toBe('21');
+    ctx.settings.set({ fontSize: 30 });
+    // At once the text is out of the layout, so the browser has nothing big to lay out at the new size.
+    expect(q('.rd-stage')!.classList.contains('rd-measuring')).toBe(true);
+    expect(document.querySelectorAll('.rd-article.rd-live .rd-wait').length).toBeGreaterThan(400);
+    await vi.waitFor(() => expect(q('.rd-stage')!.classList.contains('rd-measuring')).toBe(false), { timeout: 5000 });
+    expect(stage().page).toBe('21');
+  });
+
+  it('draws the pinyin only for the pages near the reader', async () => {
+    await openLong();
+    const withRt = [...document.querySelectorAll('.rd-article.rd-live [data-b]')].filter((b) => b.querySelector('rt')).length;
+    expect(withRt).toBeGreaterThan(0);
+    expect(withRt).toBeLessThan(40);
   });
 });

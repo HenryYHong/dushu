@@ -2,13 +2,15 @@
 // Contract: ARCHITECTURE.md section 4.5.
 import type { ImportedBook } from '../types';
 import { detectScript } from '../core/text';
-import { decodeText } from './encoding';
+import { decodeText, stripBidi } from './encoding';
 import { importEpub } from './epub';
+import { DAMAGED_MESSAGE } from './zip';
 import { importMobi, looksLikeMobi } from './mobi';
 import { ImportError, NO_CHINESE } from './errors';
 import { countHan } from './han';
 import { totalHan } from './chapters';
 import { importHtml, importMarkdown } from './html';
+import { capChars } from './meta';
 import { bookFromText, importTxt } from './txt';
 
 export { ImportError } from './errors';
@@ -20,7 +22,12 @@ function extension(name: string): string {
   return (/\.([A-Za-z0-9]+)$/.exec(name)?.[1] ?? '').toLowerCase();
 }
 
+/** A file over this size is refused before it is read: it would not fit in memory on an iPad, and no book is this big. */
+export const MAX_FILE_BYTES = 200 * 1024 * 1024;
+export const FILE_TOO_BIG = 'This file is larger than 200 MB, which is too big to import. Try a smaller edition of the book.';
+
 async function readBytes(blob: Blob): Promise<Uint8Array> {
+  if (blob.size > MAX_FILE_BYTES) throw new ImportError(FILE_TOO_BIG);
   if (typeof blob.arrayBuffer === 'function') return new Uint8Array(await blob.arrayBuffer());
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -56,7 +63,7 @@ function detectKind(name: string, bytes: Uint8Array): Kind {
   if (UNSUPPORTED[ext]) throw new ImportError(UNSUPPORTED[ext]);
   switch (ext) {
     case 'epub':
-      throw new ImportError('This file is not a valid EPUB (it is not a zip archive).');
+      throw new ImportError(DAMAGED_MESSAGE);
     case 'mobi':
     case 'azw':
     case 'azw3':
@@ -82,9 +89,21 @@ function detectKind(name: string, bytes: Uint8Array): Kind {
   throw new ImportError(`Files of type .${ext || 'unknown'} are not supported. Use EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown.`);
 }
 
+const BIDI_TEST = /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/;
+
+/** Remove bidirectional controls from every title and block of text, whichever importer produced them. */
+function stripBidiChapters(chapters: ImportedBook['chapters']): ImportedBook['chapters'] {
+  return chapters.map((c) => {
+    const blocks = c.blocks.some((b) => 'text' in b && BIDI_TEST.test(b.text))
+      ? c.blocks.map((b) => ('text' in b && BIDI_TEST.test(b.text) ? { ...b, text: stripBidi(b.text) } : b))
+      : c.blocks;
+    return blocks === c.blocks && !BIDI_TEST.test(c.title) ? c : { ...c, title: stripBidi(c.title), blocks };
+  });
+}
+
 /** Last checks and the fields every importer leaves blank: reject non-Chinese files, detect the script. */
 function finish(book: ImportedBook): ImportedBook {
-  const chapters = book.chapters.filter((c) => c.blocks.length > 0);
+  const chapters = stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0));
   const han = totalHan(chapters);
   let letters = 0;
   for (const c of chapters) for (const b of c.blocks) if (b.t === 'p' || b.t === 'h' || b.t === 'quote') letters += b.text.replace(/\s/g, '').length;
@@ -95,7 +114,9 @@ function finish(book: ImportedBook): ImportedBook {
     for (const b of c.blocks) if (b.t === 'p' || b.t === 'quote') sample += b.text;
     if (sample.length > 60000) break;
   }
-  return { ...book, chapters, script: detectScript(sample) };
+  // A title or author is a label: no direction controls, and never a paragraph long.
+  const title = capChars(book.title) || 'Untitled';
+  return { ...book, title, author: capChars(book.author), chapters, script: detectScript(sample) };
 }
 
 /** EPUB, MOBI / AZW3, TXT (any common Chinese encoding), PDF (text layer), HTML, Markdown. Detects by extension + magic bytes. */
@@ -121,7 +142,7 @@ export async function importFile(file: Blob & { name: string }, opts?: { onProgr
       break;
     }
     case 'html':
-      book = importHtml(bytes, name);
+      book = await importHtml(bytes, name);
       break;
     case 'md':
       book = importMarkdown(bytes, name);

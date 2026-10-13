@@ -29,7 +29,24 @@ export interface ChromeTranslator extends Translator {
   prepare(onProgress?: (fraction: number) => void): Promise<void>;
 }
 
-const LANGS = { sourceLanguage: 'zh', targetLanguage: 'en' };
+type Source = 'zh' | 'zh-Hant';
+const langs = (sourceLanguage: Source) => ({ sourceLanguage, targetLanguage: 'en' });
+
+// Characters that differ between the scripts and are very common. A passage with more of one set than the other
+// is in that script (a few shared or mixed-in characters do not matter).
+const HANT_ONLY = new Set([...'們這個來說時會對國學為關開見經過還與麼樣體點嗎無從後書長東門問間認識鬥幾師話現當後見該請謝誰聽讓麼歲懷處總過還點樣門']);
+const HANS_ONLY = new Set([...'们这个来说时会对国学为关开见经过还与么样体点吗无从后书长东门问间认识斗几师话现当该请谢谁听让岁怀处总']);
+
+/** 'zh-Hant' when the text is mostly traditional characters, else 'zh'. */
+export function sourceFor(text: string): Source {
+  let hant = 0;
+  let hans = 0;
+  for (const ch of text.slice(0, 2000)) {
+    if (HANT_ONLY.has(ch) && !HANS_ONLY.has(ch)) hant++;
+    else if (HANS_ONLY.has(ch) && !HANT_ONLY.has(ch)) hans++;
+  }
+  return hant > hans ? 'zh-Hant' : 'zh';
+}
 /** Stay well under the model's input quota. */
 const CHUNK = 1000;
 
@@ -40,11 +57,11 @@ function api(): ChromeTranslatorStatic | null {
 
 export function chromeSupported(): boolean { return api() !== null; }
 
-async function rawAvailability(): Promise<'yes' | 'download' | 'no'> {
+async function rawAvailability(source: Source = 'zh'): Promise<'yes' | 'download' | 'no'> {
   const t = api();
   if (!t) return 'no';
   try {
-    const a = await t.availability(LANGS);
+    const a = await t.availability(langs(source));
     if (a === 'available' || a === 'readily') return 'yes';
     if (a === 'downloadable' || a === 'downloading' || a === 'after-download') return 'download';
     return 'no';
@@ -53,32 +70,34 @@ async function rawAvailability(): Promise<'yes' | 'download' | 'no'> {
   }
 }
 
-let instance: Promise<ChromeTranslatorInstance> | null = null;
+/** One translator per source script: the model for traditional text is a different download from the simplified one. */
+const instances = new Map<Source, Promise<ChromeTranslatorInstance>>();
 
-function create(onProgress?: (fraction: number) => void): Promise<ChromeTranslatorInstance> {
+function create(source: Source = 'zh', onProgress?: (fraction: number) => void): Promise<ChromeTranslatorInstance> {
   const t = api();
   if (!t) return Promise.reject(new Error('This browser has no built-in translator. Use Chrome 138 or newer on a computer.'));
-  if (instance) return instance;
+  const have = instances.get(source);
+  if (have) return have;
   const p = t.create({
-    ...LANGS,
+    ...langs(source),
     monitor(m) {
       m.addEventListener('downloadprogress', e => onProgress?.((e as Event & { loaded: number }).loaded));
     },
   }).catch((e: unknown) => {
-    instance = null; // let the next click try again
+    instances.delete(source); // let the next click try again
     const name = (e as { name?: string })?.name;
     if (name === 'NotAllowedError') throw new Error('Chrome needs a click to download the translation model. Press the download button in Settings.');
     if (name === 'NotSupportedError') throw new Error('Chrome cannot translate Chinese to English on this device.');
     throw new Error('Chrome could not start its translator: ' + ((e as Error)?.message ?? 'unknown error'));
   });
-  instance = p;
+  instances.set(source, p);
   return p;
 }
 
 /** Drops the cached instance (tests, and after a failed download). */
 export function resetChromeTranslator(): void {
-  instance?.then(i => i.destroy?.()).catch(() => {});
-  instance = null;
+  for (const p of instances.values()) p.then(i => i.destroy?.()).catch(() => {});
+  instances.clear();
 }
 
 function aborted(): never {
@@ -111,7 +130,7 @@ export function createChromeTranslator(): ChromeTranslator {
     label: 'Chrome on-device',
     availability: rawAvailability,
     async prepare(onProgress) {
-      await create(onProgress);
+      await create('zh', onProgress);
     },
     async translate(req: TranslateRequest, opts) {
       const signal = opts?.signal;
@@ -119,7 +138,9 @@ export function createChromeTranslator(): ChromeTranslator {
       const state = await rawAvailability();
       if (state === 'no') throw new Error('Chrome\'s on-device translator is not available here.');
       // 'download' only works inside a click; create() reports NotAllowedError otherwise.
-      const tr = await create();
+      // Traditional text uses the zh-Hant model when it is ready; otherwise the plain zh one, as before.
+      const source: Source = sourceFor(req.text) === 'zh-Hant' && (await rawAvailability('zh-Hant')) === 'yes' ? 'zh-Hant' : 'zh';
+      const tr = await create(source);
       const chunks = chunkText(req.text, CHUNK);
       let done = '';
       for (const c of chunks) {

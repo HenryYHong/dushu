@@ -1,6 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { contextWindow, createLocalTranslator, suggestMeaning, translationIssue } from '../../src/translate/localMeaning';
 
+// The tests run as if on the Mac's own origin, where the bridge is the page itself.
+beforeEach(() => vi.stubGlobal('location', new URL('http://localhost:4317/')));
 afterEach(() => vi.unstubAllGlobals());
 
 const tags = { models: [{ name: 'vaultbox/qwen3.5-uncensored:4b' }] };
@@ -24,7 +26,8 @@ describe('local translation', () => {
       return json({ response: requests.length === 1 ? 'He booked a room at the wine shop.' : 'He booked a room at the hotel for three nights.' });
     });
     expect(await createLocalTranslator().translate({ text: '他在酒店订了一间客房，打算住三晚。', mode: 'translate' }, { onDelta: text => seen.push(text) })).toContain('hotel');
-    expect(JSON.parse(requests[0].prompt).lexicalHints.酒店).toContain('hotel/accommodation');
+    expect(requests[0].prompt).toContain('hotel/accommodation');
+    expect(requests[0].prompt).not.toContain('wine shop or tavern');
     expect(seen).toEqual(['He booked a room at the hotel for three nights.']);
     expect(requests).toHaveLength(2);
     expect(requests.every(request => request.system.length <= 4000)).toBe(true);
@@ -110,17 +113,19 @@ describe('local translation', () => {
 
   it('translates every chunk of a long selection rather than silently losing its tail', async () => {
     const source = '他走到河边，看着流水。'.repeat(180) + '最后，他回家了。';
-    const sent: string[] = [];
+    const sent: string[] = []; const answers: string[] = [];
     vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith('/api/tags')) return json(tags);
       const body = JSON.parse(init!.body as string);
-      sent.push(JSON.parse(body.prompt).text);
-      return json({ response: `Part ${sent.length}` });
+      sent.push(/<text>\n([\s\S]*)\n<\/text>$/.exec(body.prompt)![1]);
+      // A plausible length, so the length check has nothing to say.
+      answers.push(`Part ${sent.length}. ` + 'The man walked to the river and watched the water. '.repeat(Math.ceil(sent.at(-1)!.length / 11)).trim());
+      return json({ response: answers.at(-1) });
     }));
     const answer = await createLocalTranslator().translate({ text: source, mode: 'translate' });
     expect(sent.join('')).toBe(source);
     expect(sent.every(s => s.length <= 600)).toBe(true);
-    expect(answer).toBe(sent.map((_, i) => `Part ${i + 1}`).join('\n\n'));
+    expect(answer).toBe(answers.join('\n\n'));
   });
 
   it('keeps context around the selected sentence late in a long paragraph', () => {
@@ -129,17 +134,17 @@ describe('local translation', () => {
     expect(result).toContain('他把钱还给了我。');
     expect(result.length).toBeLessThanOrEqual(1400);
   });
-  it('passes name readings and narrowly supported older meanings as reference data', async () => {
-    let request: Record<string, unknown> = {};
+  it('passes name spellings and narrowly supported older meanings as reference data', async () => {
+    let message = '';
     vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith('/api/tags')) return json(tags);
-      request = JSON.parse(JSON.parse(init!.body as string).prompt);
+      message = JSON.parse(init!.body as string).prompt;
       return json({ response: 'Guo Jing bought warm wine at the tavern.' });
     }));
     await createLocalTranslator().translate({ text: '郭靖在酒店买了一碗温酒。', mode: 'translate',
-      terms: [{ word: '郭靖', pinyin: 'guo1 jing4', gloss: 'name (person)' }] });
-    expect(request.glossary).toEqual([{ word: '郭靖', pinyin: 'guo1 jing4', gloss: 'name (person)' }]);
-    expect(request.lexicalHints).toEqual({ 酒店: expect.stringContaining('tavern') });
+      terms: [{ word: '郭靖', pinyin: 'guo1 jing4', gloss: 'name (person)', kind: 'name' }] });
+    expect(message).toContain('郭靖 (name): write Guo Jing');
+    expect(message).toMatch(/<notes>\nIn this passage 酒店 means: wine shop or tavern/);
   });
 
   it.each([

@@ -6,7 +6,7 @@ import { icon } from '../icons';
 import { openWordPopup } from '../popup/popup';
 import { confirmDialog } from './confirm';
 import { ankiTsv, dueLabel, filterAndSort, vocabCsv, type SortKey } from './model';
-import { contextEl, pinyinEl } from './render';
+import { contextEl, pinyinEl, scriptView } from './render';
 
 const SORT_LABELS: Record<SortKey, string> = { added: 'Newest first', due: 'Due soonest', pinyin: 'Pinyin A to Z' };
 const SORT_KEY = 'dushu.vocab.sort';
@@ -101,13 +101,15 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   function row(it: VocabItem, now: number): HTMLElement {
     const due = dueLabel(it, now);
-    const word = h('span.voc-word.zh', { lang: 'zh' }, settings.script === 'traditional' ? it.trad || it.simp : it.simp);
-    const meta = [it.context?.bookTitle, `Added ${fmtDate(it.addedAt)}`].filter(Boolean).join(' · ');
+    const view = scriptView(settings.script, ctx.dictSync());
+    const shownWord = view.word(it);
+    const word = h('span.voc-word.zh', { lang: shownWord === it.trad && it.trad !== it.simp ? 'zh-Hant' : 'zh' }, shownWord);
+    const meta = [it.context?.bookTitle && view.text(it.context.bookTitle), `Added ${fmtDate(it.addedAt)}`].filter(Boolean).join(' · ');
     const el = h('div', { class: 'voc-row', role: 'listitem', tabindex: 0, 'aria-label': `${it.simp}, ${it.gloss}` },
       h('div.voc-main', null,
         h('div.voc-line', null, word, pinyinEl(it.pinyin, settings.pinyinStyle, settings.toneColors, 'voc-py')),
         h('div.voc-gloss', null, it.gloss),
-        it.context?.sentence ? h('div.voc-ctx.zh', { lang: 'zh' }, contextEl(it.context.sentence, [it.simp, it.trad], 'b', 90)) : null,
+        it.context?.sentence ? h('div.voc-ctx.zh', { lang: shownWord === it.trad && it.trad !== it.simp ? 'zh-Hant' : 'zh' }, contextEl(view.text(it.context.sentence), [it.simp, it.trad], 'b', 90)) : null,
         h('div.voc-meta.muted', null, meta),
       ),
       h('div.voc-side', null,
@@ -239,27 +241,29 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   const clearBtn = h('button.btn.btn-sm.btn-danger', { type: 'button', onclick: () => void clearKnown() }, 'Clear known words');
   const clearBtnHolder = h('div');
-  const knownPanel = h('section.card.voc-known', { 'aria-labelledby': 'voc-known-title' },
-    h('div.voc-known-head', null,
-      h('div', null, h('h2.voc-known-title#voc-known-title', null, 'Known words'),
-        h('p.voc-known-sub.muted', null, 'Words you already know. Pinyin is hidden above them when you read with "unknown words only".')),
-      h('div.voc-known-total', null, knownCount),
-    ),
-    h('div.voc-known-actions', null,
-      levelSel,
-      h('button.btn.btn-sm', { type: 'button', onclick: () => void markHsk() }, icon('checkCircle'), 'Mark as known'),
-      clearBtnHolder,
-    ),
-    knownDetails,
+  // Collapsed by default and at the top: it is a setting you reach for now and then, not the end of a long list.
+  const knownPanel = h('details.card.voc-known', null,
+    h('summary.voc-known-summary', null,
+      icon('checkCircle'),
+      h('span.voc-known-title', null, 'Known words'),
+      h('span.chip.voc-known-total', null, knownCount),
+      icon('chevronDown', 'icon voc-known-chev')),
+    h('div.voc-known-body', null,
+      h('p.voc-known-sub.muted', null, 'Words you already know. Pinyin is hidden above them when you read with "unknown words only".'),
+      h('div.voc-known-actions', null,
+        levelSel,
+        h('button.btn.btn-sm', { type: 'button', onclick: () => void markHsk() }, icon('checkCircle'), 'Mark as known'),
+        clearBtnHolder,
+      ),
+      knownDetails),
   );
 
   // ------------------------------------------------------------ mount ---
   const page = h('div.page.voc-page', null,
     head,
+    knownPanel,
     h('div.voc-bar', null, toolbar, tools),
     count, list,
-    h('div.voc-gap'),
-    knownPanel,
   );
   root.appendChild(page);
 
@@ -281,12 +285,15 @@ export const mount: MountFn = (root, _params, ctx) => {
     renderKnown();
   }
 
+  // Also fires for a change made in another tab (the store tells every tab), so words saved there show up here.
   const offChange = store.onChange((what) => {
     if (what === 'vocab') void load();
     if (what === 'known') renderKnown();
   });
   const offSettings = ctx.settings.subscribe((s) => { settings = s; renderList(); });
   void load();
+  // Converting sentences to the reader's script needs the dictionary; draw again once it is there.
+  if (settings.script !== 'original' && !ctx.dictSync()) void ctx.dict().then(() => { if (alive) renderList(); }, () => {});
 
   return () => { alive = false; offChange(); offSettings(); };
 };

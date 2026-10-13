@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { trustedRequest } from './private-access';
+import { bridgeRequest } from './private-access';
 
 const execute = promisify(execFile);
 type Voice = { name: string; lang: string; voiceURI: string };
@@ -26,7 +26,7 @@ export function nativeSpeech(): Plugin {
   async function handle(req: IncomingMessage, res: ServerResponse, next: () => void) {
     const path = new URL(req.url || '/', 'http://localhost').pathname;
     if (path !== '/api/native-voices' && path !== '/api/native-speech') { next(); return; }
-    if (!trustedRequest(req)) { res.writeHead(403).end(); return; }
+    if (!bridgeRequest(req)) { res.writeHead(403).end(); return; }
     res.setHeader('Cache-Control', 'no-store');
     if (process.platform !== 'darwin') { res.writeHead(404).end(); return; }
     if (path === '/api/native-voices') {

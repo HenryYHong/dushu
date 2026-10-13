@@ -3,6 +3,7 @@ import type { AppContext, BackupReport } from '../../types';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { confirmDialog } from '../library/dialogs';
+import { MAC_NOTE, fetchMacBooks, removedMacBooks, rememberRemoval, type MacBook } from '../library/macBooks';
 import { group, row } from './controls';
 
 
@@ -28,12 +29,30 @@ export function describeReport(r: BackupReport): string {
   return text[0].toUpperCase() + text.slice(1) + '.';
 }
 
-/** Removes books, words, progress, review history and every dushu.* key in localStorage, then reloads. */
-async function wipe(ctx: AppContext): Promise<void> {
+/** The Mac's book list for the wipe, or nothing if the Mac does not answer quickly: a wipe never waits long on the Mac. */
+async function quickMacList(): Promise<MacBook[]> {
+  try { return (await Promise.race([fetchMacBooks(), new Promise<never>((_, no) => setTimeout(no, 2000))])).books; } catch { return []; }
+}
+
+/**
+ * Removes books, words, progress, review history and every dushu.* key in localStorage. The Mac's books that were on this
+ * device stay on the removed list, so a wipe does not silently bring them back: the library offers Restore.
+ */
+export async function eraseAllData(ctx: AppContext, macBooks?: MacBook[]): Promise<void> {
+  const known = macBooks ?? await quickMacList();
+  // Noted before anything is deleted: a wipe that fails halfway leaves the books and a removal note, never a lost book.
+  for (const b of await ctx.store.books.list()) rememberRemoval(b, known);
+  const keep = removedMacBooks();
   await ctx.store.wipe();
   try {
     for (const k of Object.keys(localStorage)) if (k.startsWith('dushu.')) localStorage.removeItem(k);
   } catch { /* storage blocked: nothing to remove */ }
+  // The removed list is the one thing a wipe keeps; it holds file names and digests, no reading data.
+  for (const r of keep) rememberRemoval({ note: MAC_NOTE + (r.sha256 ?? ''), sourceName: r.name });
+}
+
+async function wipe(ctx: AppContext): Promise<void> {
+  await eraseAllData(ctx);
   location.hash = '#/';
   location.reload();
 }
@@ -79,7 +98,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
   delBtn.addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: 'Delete all data?',
-      message: 'This removes every book, saved word, known word, review record, reading position and setting (including your API key) from this browser. It cannot be undone. Export a backup first if you want to keep your words.',
+      message: 'This removes every book, saved word, known word, review record, reading position and setting (including the address of your Mac) from this browser. It cannot be undone. Books from your Mac are not added again; Restore in the Library brings them back. Export a backup first if you want to keep your words.',
       confirmLabel: 'Delete everything',
       danger: true,
     });
@@ -93,7 +112,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
 
   return group('Data', 'Everything lives in this browser. Nothing is uploaded.',
     memoryWarning,
-    row('Backup', 'Saved words, known words, reading progress, review history and settings. Books and API keys are excluded. On another device, import the same book files first, then import a fresh backup so progress and edited terms match their books.',
+    row('Backup', 'Saved words, known words, reading progress, review history and settings. Books and the address of your Mac are excluded. On another device, import the same book files first, then import a fresh backup so progress and edited terms match their books.',
       h('div.set-backup', null, h('div.set-btn-row', null, exportBtn, importBtn, file), status)),
-    row('Delete all data', 'Removes books, words and settings from this browser.', delBtn));
+    row('Delete all data', 'Removes books, words and settings from this browser. Books from your Mac stay deleted until you restore them.', delBtn));
 }

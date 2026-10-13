@@ -279,7 +279,9 @@ export function formatPinyin(numbered: string, style: PinyinStyle): string {
 
 // ----------------------------------------------------------------- sandhi ---
 
-const NUMERAL_CHARS = new Set([...'零〇一二三四五六七八九十百千万亿两']);
+const NUMERAL_CHARS = new Set([...'零〇一二三四五六七八九十百千万萬亿億两兩']);
+/** Measure words (traditional and simplified) that are often repeated after 一: 一个一个, 一次一次, 一步一步. */
+const MEASURE_WORDS = new Set([...'个個次遍回趟下件张張条條只隻位名些点點天年月日本册冊口句步场場样樣种種双雙对對家间間座层層块塊片份群队隊批支根颗顆粒封首道把章篇段頁页卷行棵杯碗盞盏']);
 
 interface SandhiSlot {
   tok: Token;
@@ -329,12 +331,17 @@ export function applySandhi(tokens: Token[]): void {
       if (!nextSyl) continue; // unreadable next character
       const prev = k > 0 ? r[k - 1] : null;
       const set = (n: number) => { slot.tok.pinyin![slot.i] = base + n; };
-      if (prev && prev.ch === next.ch && !NUMERAL_CHARS.has(prev.ch)) { set(5); continue; }
+      // 看一看, 好不好: one character repeated around 一/不 is neutral. A measure word repeated (一个一个, 一次一次,
+      // 一遍一遍) is not: that is yí ge, yí cì, yí biàn.
+      if (prev && prev.ch === next.ch && !NUMERAL_CHARS.has(prev.ch) && !(slot.ch === '一' && MEASURE_WORDS.has(prev.ch))) { set(5); continue; }
       // 个 is written neutral in running text but changes 一 as the 4th tone it is underneath: yí ge.
-      const nextTone = next.ch === '个' && toneOf(nextSyl) === 5 ? 4 : toneOf(nextSyl);
+      const nextTone = (next.ch === '个' || next.ch === '個') && toneOf(nextSyl) === 5 ? 4 : toneOf(nextSyl);
       if (isBu) { set(nextTone === 4 ? 2 : 4); continue; }
       if (prev && (NUMERAL_CHARS.has(prev.ch) || prev.ch === '第')) continue;
-      if (NUMERAL_CHARS.has(next.ch) || next.ch === '月' || next.ch === '号') continue;
+      // 一两个, 一两天: "a couple of" is yì liǎng (a number only when 两 is the unit: 一两银子).
+      const after = r[k + 2];
+      const couple = (next.ch === '两' || next.ch === '兩') && !!after && MEASURE_WORDS.has(after.ch);
+      if (!couple && (NUMERAL_CHARS.has(next.ch) || next.ch === '月' || next.ch === '号')) continue;
       if (nextTone === 4) set(2);
       else if (nextTone !== 5) set(4);
     }

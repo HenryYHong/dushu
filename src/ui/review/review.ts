@@ -5,7 +5,7 @@ import { canSpeak, speak, stopSpeaking } from '../../speech/tts';
 import type { Grade, MountFn, VocabItem } from '../../types';
 import { clear, h } from '../dom';
 import { icon } from '../icons';
-import { contextEl, pinyinEl } from '../vocab/render';
+import { contextEl, pinyinEl, scriptView } from '../vocab/render';
 import { describeNextDue, ReviewSession } from './queue';
 
 const GRADES: { grade: Grade; key: 'again' | 'hard' | 'good' | 'easy'; label: string }[] = [
@@ -74,7 +74,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!cur) { void showSummary(); return; }
     clear(screen);
 
-    const word = settings.script === 'traditional' ? cur.trad || cur.simp : cur.simp;
+    const view = scriptView(settings.script, ctx.dictSync());
+    const word = view.word(cur);
+    const lang = word === cur.trad && cur.trad !== cur.simp ? 'zh-Hant' : 'zh';
     const len = [...word].length;
     const progress = h('div.rev-progress', { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': session.total, 'aria-valuenow': session.done },
       h('div.rev-progress-fill', { style: `width:${(session.done / session.total) * 100}%` }));
@@ -85,9 +87,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     );
 
     const front = h('div.rev-front', null,
-      h('div', { class: `rev-word zh${len > 4 ? ' rev-word-long' : len > 2 ? ' rev-word-mid' : ''}`, lang: 'zh' }, word),
+      h('div', { class: `rev-word zh${len > 4 ? ' rev-word-long' : len > 2 ? ' rev-word-mid' : ''}`, lang }, word),
       cur.context?.sentence
-        ? h('p.rev-ctx.zh', { lang: 'zh' }, contextEl(cur.context.sentence, [cur.simp, cur.trad], 'mark', 70))
+        ? h('p.rev-ctx.zh', { lang }, contextEl(view.text(cur.context.sentence), [cur.simp, cur.trad], 'mark', 70))
         : null,
     );
     const back = h('div.rev-back', { hidden: !revealed },
@@ -96,7 +98,7 @@ export const mount: MountFn = (root, _params, ctx) => {
         canSpeak() ? h('button.icon-btn.rev-speak', { type: 'button', title: 'Play audio (P)', 'aria-label': 'Play audio', onclick: (e: Event) => { e.stopPropagation(); speakNow(); } }, icon('speaker')) : null,
       ),
       h('p.rev-gloss', null, cur.gloss),
-      cur.context?.bookTitle ? h('p.rev-source.muted', null, `From ${cur.context.bookTitle}`) : null,
+      cur.context?.bookTitle ? h('p.rev-source.muted', null, `From ${view.text(cur.context.bookTitle)}`) : null,
     );
     const reveal = h('button.btn.btn-primary.rev-reveal', { type: 'button', hidden: revealed, onclick: (e: Event) => { e.stopPropagation(); reveal_(); } },
       'Show answer', h('span.kbd', null, 'Space'));
@@ -165,7 +167,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const stat = (value: string, label: string) => h('div.rev-stat', null, h('div.rev-stat-value', null, value), h('div.rev-stat-label', null, label));
     screen.appendChild(h('div.card.rev-summary', null,
       h('h1.rev-summary-title', null, 'Session complete'),
-      h('p.muted', null, `${count(s.cards, 'card')} reviewed, ${count(s.reviews, 'answer')} given.`),
+      h('p.muted', null, `${count(s.cards, 'card')}, ${count(s.reviews, 'answer')}`),
       h('div.rev-stats', null,
         stat(pct(s.recall), 'Remembered'),
         ...GRADES.map((g) => stat(String(s.grades[g.grade]), g.label)),
@@ -207,6 +209,8 @@ export const mount: MountFn = (root, _params, ctx) => {
   const offSettings = ctx.settings.subscribe((s) => { settings = s; });
 
   void start();
+  // Sentences follow the reader's script, which needs the dictionary: draw the card again once it has loaded.
+  if (settings.script !== 'original' && !ctx.dictSync()) void ctx.dict().then(() => { if (alive && session?.current) showCard(); }, () => {});
   return () => {
     alive = false;
     document.removeEventListener('keydown', onKey);

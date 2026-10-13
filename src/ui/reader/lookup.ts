@@ -22,6 +22,14 @@ export interface LookupHost {
   pointerKind(): 'mouse' | 'touch' | 'pen';
   /** Continue chapter audio at an exact displayed-text offset. */
   readFrom?(block: BlockState, offset: number): void;
+  /** A word popup is now showing this word (it also fires when the popup steps to a neighbor). */
+  onWordShown?(b: BlockState, start: number, end: number): void;
+  /** The element focus returns to when a popup closes (the word the reader's keyboard cursor is on). */
+  restoreFocus?(): HTMLElement | null;
+  /** The y of the top edge of a bottom-sheet popup, or null when it is not a sheet (the Pages stage lifts so the word stays in view). */
+  onSheetTop?(top: number | null): void;
+  /** Can the page move out of a sheet's way right now (Pages)? Popups on a touch tablet become sheets only then. */
+  liftsPage?(): boolean;
 }
 
 export interface Lookup {
@@ -29,6 +37,10 @@ export interface Lookup {
   openToken(w: Element): void;
   step(dir: -1 | 1): void;
   resize(delta: -1 | 1): void;
+  /** The nearest Han word at or after (dir 1) or before (dir -1) an offset, crossing blocks. */
+  nextWord(bi: number, offset: number, dir: -1 | 1): { b: BlockState; s: number; e: number } | null;
+  /** Look up the whole sentence around a word (double-tap): the phrase popup with its translation. */
+  openSentence(w: Element): void;
   /** Map the native selection to a word or phrase popup. Returns true when it opened one. */
   processSelection(): boolean;
   /** Forget the open word (the chapter changed). */
@@ -75,8 +87,11 @@ export function createLookup(host: LookupHost): Lookup {
       onResize: (d) => resize(d),
       onReadFromHere: host.readFrom ? () => host.readFrom!(b, s) : undefined,
       onClose: () => { if (seq === openSeq) { v.clearMarks(); active = null; } },
+      restoreFocus: host.restoreFocus,
+      onSheetTop: host.liftsPage?.() ? host.onSheetTop : undefined,
       ...lexiconProps(),
     });
+    host.onWordShown?.(b, s, e);
   }
 
   function openToken(w: Element): void {
@@ -86,7 +101,7 @@ export function createLookup(host: LookupHost): Lookup {
     if (b && tok) openWord(b, tok.start, tok.end);
   }
 
-  /** The nearest han token strictly after (dir 1) or before (dir -1) an offset, crossing blocks. */
+  /** The nearest han token starting at or after (dir 1), or ending at or before (dir -1), an offset, crossing blocks. */
   function adjacentHan(bi: number, offset: number, dir: -1 | 1): { b: BlockState; s: number; e: number } | null {
     const v = host.view()!;
     for (let i = bi; i >= 0 && i < v.blocks.length; i += dir) {
@@ -179,6 +194,14 @@ export function createLookup(host: LookupHost): Lookup {
       }
     }
 
+    return showPhrase(spans, text, !touch);
+  }
+
+  /** The phrase popup for text already mapped to blocks. `clearNative` drops the browser's selection (mouse; touch keeps its handles). */
+  function showPhrase(spans: BlockSpan[], text: string, clearNative: boolean): boolean {
+    const v = host.view();
+    if (!v) return false;
+    const stateOf = (sp: BlockSpan) => v.blocks[Number(sp.block.dataset.b)];
     const key = spans.map((sp) => `${sp.block.dataset.b}:${sp.start}-${sp.end}`).join('|');
     if (key === lastPhraseKey && active?.kind === 'phrase') return true;
     lastPhraseKey = key;
@@ -197,7 +220,7 @@ export function createLookup(host: LookupHost): Lookup {
     const first = stateOf(spans[0]);
     active = { bi: first.index, s: spans[0].start, e: spans[0].end, kind: 'phrase' };
     const seq = ++openSeq;
-    if (!touch) sel.removeAllRanges();
+    if (clearNative) window.getSelection()?.removeAllRanges();
     const sentence = sentenceAround(first.text, spans[0].start).text;
     openPhrasePopup({
       ctx,
@@ -209,9 +232,25 @@ export function createLookup(host: LookupHost): Lookup {
       onReadFromHere: host.readFrom ? () => host.readFrom!(first, spans[0].start) : undefined,
       wordContext: { sentence, paragraph: first.text, bookId: book.id, bookTitle: book.title, chapter: host.chapterIndex() },
       onClose: () => { if (seq === openSeq) { v.clearMarks(); active = null; lastPhraseKey = ''; } },
+      restoreFocus: host.restoreFocus,
+      onSheetTop: host.liftsPage?.() ? host.onSheetTop : undefined,
       ...lexiconProps(),
     });
     return true;
+  }
+
+  function openSentence(w: Element): void {
+    const v = host.view();
+    const b = v?.blockOfNode(w);
+    const tok = b?.rendered?.tokens[Number((w as HTMLElement).dataset.i)];
+    if (!v || !b || !tok) return;
+    const sp = sentenceAround(b.text, tok.start);
+    const lead = sp.text.length - sp.text.trimStart().length;
+    const start = sp.start + lead;
+    const end = sp.start + sp.text.trimEnd().length;
+    const phrase = b.text.slice(start, end);
+    if (end <= start || !hasHan(phrase)) return;
+    showPhrase([{ block: b.el, start, end }], phrase, true);
   }
 
   return {
@@ -219,6 +258,8 @@ export function createLookup(host: LookupHost): Lookup {
     openToken,
     step,
     resize,
+    nextWord: adjacentHan,
+    openSentence,
     processSelection,
     reset() { active = null; lastPhraseKey = ''; openSeq++; },
     hasPhraseOpen: () => active?.kind === 'phrase',

@@ -37,3 +37,86 @@ export const NAME_CHAR_READINGS: Readonly<Record<string, string>> = {
   曾: 'zeng1',
   裳: 'chang2', // 黄裳
 };
+
+// ------------------------------------------------------------- display ---
+
+/** Endings that make a place name two words: 桃花岛 is Táohuā Dǎo, 归云庄 is Guīyún Zhuāng, 净衣派 is Jìngyī Pài. */
+const PLACE_GENERIC = new Set([...'岛山庄寺城府村镇峰谷关江河湖海岭洞殿堡宫楼阁庙塔桥坡寨营州县国派帮教门会宗亭郡院庵观觀']);
+
+/**
+ * How the syllables of a name or place are grouped when written with capitals: Guō Jìng, Hán Xiǎoyíng, Ōuyáng Wújì,
+ * Táohuā Dǎo. Returns the size of each group in syllables (they add up to the number of characters), or null when the
+ * word is not a name or a place. `fold` turns traditional text into simplified before the surname lookup.
+ */
+export function pinyinGroups(word: string, kind: string | undefined, fold: (s: string) => string = (s) => s): number[] | null {
+  const orig = [...word];
+  const simp = [...fold(word)];
+  const n = orig.length;
+  if (n === 0 || simp.length !== n) return null;
+  if (kind === 'place') {
+    return n >= 2 && PLACE_GENERIC.has(simp[n - 1]) ? [n - 1, 1] : [n];
+  }
+  if (kind !== 'name') return null;
+  if (n === 1) return [1];
+  if (n >= 3 && COMPOUND_SURNAMES.has(simp[0] + simp[1])) return [2, n - 2];
+  if (n <= 4 && SURNAMES.has(simp[0])) return [1, n - 1];
+  // 老顽童, 小红马: the prefix is a word of its own.
+  if (n >= 3 && (simp[0] === '老' || simp[0] === '小')) return [1, n - 1];
+  return [n];
+}
+
+/**
+ * Pinyin of a name or place with capitals the way an English reader expects it: "Guō Jìng", "Táohuā Dǎo". The
+ * syllables are already formatted (tone marks or numbers); characters of a name are joined inside a group and groups are
+ * separated by a space. A term (a technique, a book) and a user word stay lowercase, and so does anything in zhuyin.
+ */
+export function capitalizePinyin(
+  syllables: readonly string[],
+  kind: string | undefined,
+  word = '',
+  fold?: (s: string) => string,
+): string {
+  const syl = syllables.filter(Boolean);
+  const plain = syl.join(' ');
+  if (kind !== 'name' && kind !== 'place') return plain;
+  if (syl.some((s) => !/^[A-Za-zÀ-ž\u0100-\u024f\u1e00-\u1eff]/.test(s))) return plain; // zhuyin or anything not Latin
+  const groups = pinyinGroups(word, kind, fold);
+  const sizes = groups && groups.reduce((a, b) => a + b, 0) === syl.length ? groups : syl.map(() => 1);
+  const out: string[] = [];
+  let at = 0;
+  for (const size of sizes) {
+    const part = joinSyllables(syl.slice(at, at + size));
+    at += size;
+    out.push(part.charAt(0).toUpperCase() + part.slice(1));
+  }
+  return out.join(' ');
+}
+
+/** A syllable that starts with a, o or e after another one in the same word needs an apostrophe: Píng'ér, Xī'ān. */
+export function needsApostrophe(syllable: string): boolean {
+  return /^[aoe]/i.test(syllable.normalize('NFD').charAt(0));
+}
+
+/** Syllables written as one word, with the apostrophes pinyin asks for. */
+export function joinSyllables(syllables: readonly string[]): string {
+  return syllables.map((s, i) => (i > 0 && needsApostrophe(s) ? "'" + s : s)).join('');
+}
+
+/**
+ * CC-CEDICT writes a proper noun with a capital at the start of each of its words ("Cao2 Cao1", "Zhu1 ge3 Liang4", "Bei3
+ * jing1"). When the reading on screen is that of a proper-noun row, and no ordinary row has the same reading, the sizes of its
+ * groups follow the capitals: Cáo Cāo, Zhūgě Liàng, Běijīng. Null for anything else (a common word, a reading no row has).
+ */
+export function properGroups(entries: readonly { pinyin: string }[], syllables: readonly string[]): number[] | null {
+  const norm = (p: string) => p.toLowerCase().replace(/u:/g, 'ü').replace(/\s+/g, ' ').trim();
+  const want = norm(syllables.filter(Boolean).join(' '));
+  if (!want) return null;
+  const same = entries.filter((e) => norm(e.pinyin) === want);
+  if (!same.length || same.some((e) => !/^[A-ZÜ]/.test(e.pinyin.trim()))) return null;
+  const sizes: number[] = [];
+  for (const syl of same[0].pinyin.trim().split(/\s+/)) {
+    if (/^[A-ZÜ]/.test(syl) || !sizes.length) sizes.push(1);
+    else sizes[sizes.length - 1]++;
+  }
+  return sizes;
+}

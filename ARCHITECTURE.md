@@ -25,7 +25,7 @@ no character renders as tofu and no character is un-look-up-able.
 
 Vite 6 + TypeScript 5.9 strict, vanilla DOM (no framework), Vitest 3. Node is 20.15 on this
 Mac, so Vite must stay ≤ 6. Dependencies: `fflate` (zip/gzip), `pdfjs-dist@4` (PDF text),
-`@anthropic-ai/sdk` (optional Claude translation, user's own key), `hanzi-writer` (stroke order).
+`@anthropic-ai/sdk` (Node only, in the Claude bridge on the Mac; the browser bundle has no SDK and no key), `hanzi-writer` (stroke order).
 Dev: `fake-indexeddb`, `jsdom`, `puppeteer-core` (headless Chrome QA), `playwright` (WebKit iPad QA, installed in the
 isolated folder `.cache/qa-webkit`, not in package.json). Fonts ship from `@fontsource/noto-serif-sc`, `@fontsource/noto-serif-tc`
 and `lxgw-wenkai-webfont` (SIL OFL 1.1).
@@ -79,6 +79,7 @@ in Node tests. Real files are present; tests should use them (they load in ~0.3 
 | `chars.tsv.gz` | char, readings, definition, strokes, rs, simp, trad, variants, compatOf | 102,999 |
 | `chars-extra.tsv.gz` | char, readings, definition (Wiktionary supplement; may be absent) | 5,132 |
 | `cedict-extra.tsv.gz` | same columns as `cedict` (Wiktionary words CC-CEDICT lacks; optional) | see file |
+| `book-words.tsv.gz` | trad, simp, pinyin, defs, optional segmentation count (curated senses for the words the books use most; optional) | ~365 |
 | `words.tsv.gz` | word, count | 287,084 |
 | `hsk.tsv.gz` | simp, trad, hsk3, hsk2, rank | 11,470 |
 | `t2s.tsv.gz` / `s2t.tsv.gz` | from, to (OpenCC phrases + chars, first candidate) | 3.5k / 42k |
@@ -93,6 +94,12 @@ Details:
   The final 30 rows are HSK words missing from CC-CEDICT. Those rows are NOT in the numbered format
   (they hold tone marks and run-together syllables such as `chènzhe`, `bu4 lìyú`); the loader repairs them with
   `normalizePinyinField`. A cleaner fix is for `build_data.py` to emit numbered pinyin for them.
+- `cedict-extra` is repaired by `python3 scripts/build_data.py --repair-extra` (re-cuts mis-split readings, drops dialect-only rows and rows no character can read). The loader resolves "variant of X" and "see X" pointer rows to the target's meaning, and `entriesForReading(entries, syllables, shown, around)` can reorder senses by the neighbors (里 after a number is a distance).
+- `book-words` (source `scripts/data/book-words.tsv`, built by `python3 scripts/build_data.py --book-words`, original wording, CC0): CC-CEDICT
+  lists the rarer sense of many common words first (行者 "pedestrian", 只見 "to see over and over", 姨娘 "maternal aunt", 罷 "to stop", 后 "empress").
+  A row replaces the CC-CEDICT row with the same trad, simp and pinyin (same case first: `Ba1 jie4` the name is not `ba1 jie4` the precepts), or is
+  added, and is moved to the front of the list for each of its headwords with `DictEntry.curated = true` (ranking gives it a bonus). The optional fifth
+  column raises the segmentation count so a spelling no list has (鴻濛) is cut as one word. `meta.counts.bookWordsLoaded` reports how many rows loaded.
 - `chars` readings are tone-marked (`hǎo`), comma-separated, most customary first (kMandarin
   first). `rs` is kRSUnicode `85.5` = radical 85, 5 residual strokes (`120'.3` = simplified
   radical form). simp/trad/variants columns are strings of chars (no separator).
@@ -139,6 +146,10 @@ Details:
   readings (tone-insensitive compare on the base), else the first CEDICT entry, else Unihan.
   `pinyinFor` returns lowercase numbered syllables ('' for non-Han and for characters with no reading from Unihan,
   the supplement or a simplified/traditional counterpart); `ctx.prev/next` are neighboring token texts of any kind.
+  `ctx.after` is the token after `next` (倒了茶 pours, 墙倒了 falls). Context rules added from reading the four books (tests/core/pinyin-rules.test.ts):
+  倒 is dào (adverb, pouring, reversing) except after a verb of falling or before 下在地霉 or at the end of a clause (dǎo); 啊 啦 呀 哇 吧 哩 and
+  clause-final 罷/罢 are neutral after a word; 猛地 忽地 蓦地 倏地 are dì; 儿 after 斡 篾 撒 帖 蒲 is ér. `RUNNING_TEXT_READINGS` holds the readings that
+  differ from CEDICT in running text (穿着, 猛地, 钉钯 pá, 倒把).
   Curated word readings live in `WORD_READINGS` (polyphone.ts, checked against CEDICT by a test). Context rules (must have tests): 了 → le5 except as a full word like 了解/了不起 (those come
   from CEDICT); 的 → de5; 着 → zhe5 (zháo only via words like 着急 — check CEDICT); 得 → de5
   unless followed by a verb in 得到/得出 style words (CEDICT handles most) — keep rules simple
@@ -160,6 +171,8 @@ Details:
 - Han runs: jieba-style max-probability path over the DAG of `wordsAt` candidates with
   log(count+1) − log(total) scores (unseen single chars get count 0 → still valid). Ties favor
   fewer tokens. Each han token gets `pinyin` from `dict.pinyinFor(word, {prev, next})`.
+- Reduplication: AABB and ABAB built from a dictionary word AB (吆吆喝喝, 研究研究) are one token; 一一 stays together (一一应); a 只 after a numeral is
+  a measure word, so 只用 after 一 is cut 只|用. Not handled: 着落/上爬 after a verb (the dictionary word wins).
 - Traditional text segments exactly as well as simplified (both scripts are in `words`).
 - Performance: 10,000 Han chars in < 60 ms on this Mac (test it).
 - Tests on real sentences, e.g. 我们在银行门口见面。 → 我们|在|银行|门口|见面|。;
@@ -172,7 +185,8 @@ Details:
 tone marks ˊˇˋ˙), `formatSyllable(s, style)`, `formatPinyin(numbered, style)`,
 `applySandhi(tokens)`: 不 before a 4th tone → bu2; 一 → yi2 before 4th, yi4 before 1/2/3,
 unchanged as a number (第一, 一月, 十一, 一二三, 唯一, end of phrase). Also: 一/不 between identical characters are
-neutral (看一看, 好不好), and 一 before a neutral 个 is yi2 (一个 is yí ge). Only applied when
+neutral (看一看, 好不好) unless the character is a measure word (一个一个, 一次一次, 一遍一遍 are yí ge, yí cì, yí biàn), and 一 before a neutral
+个/個 is yi2 (一个, 一個 are yí ge); 一两个 is yì liǎng gè (一两银子 stays yī liǎng). Only applied when
 settings.sandhi is on (the caller decides).
 
 ### 4.4 `core/text.ts` — exact signatures are in the stub file.
@@ -260,7 +274,7 @@ settings.sandhi is on (the caller decides).
   clamped (fontSize/scrollFontSize 14–44, lineHeight 1.4–3, pageWidth 480–1200, hskThreshold 1–7).
   Text size is saved per layout: Pages uses `fontSize` (22 px default), Scroll uses
   `scrollFontSize` (28 px default, also used when older settings lack the field).
-- Backup JSON: `{ app: 'dushu', version: 1, exportedAt, settings (minus claudeApiKey),
+- Backup JSON: `{ app: 'dushu', version: 1, exportedAt, settings (the Mac address is not a setting and never appears; an import can never turn Local only off, and a key left by an older version is dropped),
   vocab, known, progress, reviews, lexicon }` — books are not included (they can be big); say so in the UI.
 
 ### 4.7 `translate/` — `getTranslator(id, settings, dict)`, `pickTranslator(settings, dict)`
@@ -268,17 +282,22 @@ settings.sandhi is on (the caller decides).
   `Translator.availability({sourceLanguage:'zh', targetLanguage:'en'})` →
   available/downloadable/downloading/unavailable; `Translator.create({...,monitor})` needs a
   user gesture when downloading. Cache the instance. Feature-detect; never throw at import.
-- `claude`: `@anthropic-ai/sdk` with `dangerouslyAllowBrowser: true` and the user's key
-  (settings.claudeApiKey; stored only in localStorage). Default model `claude-opus-5-5`
-  (settings.claudeModel; offer claude-sonnet-5-5 and claude-haiku-5-5 in Settings). Request:
-  `client.beta.messages.stream({ model, max_tokens: 2000, betas: ['server-side-fallback-2026-07-01'],
-  fallbacks: 'default', output_config: { effort: 'low' }, system, messages })` — no `thinking`
-  param, no temperature, no prefill. Stream text deltas to `onDelta`. Check
-  `stop_reason === 'refusal'` and surface a short message. System prompt: translate Chinese
-  for an English-speaking learner reading a book; `translate` mode returns only the natural
-  English; `explain` mode returns the translation, then 2–6 short bullets on words, grammar
-  patterns and idioms in the selection. Pass `context` (the paragraph) as reference only.
-  Map SDK errors (401 bad key, 429, network) to short user messages.
+- `claude`: Claude **through the owner's Mac**; the browser holds no key. `src/translate/claude.ts` calls the bridge
+  (`scripts/claude-bridge.ts`, a Vite plugin in dev and preview): `POST /api/claude/translate` streams NDJSON events
+  (`text`, `done` with token counts, `error`), `GET /api/claude/status` says whether the Mac is reachable, a key is configured,
+  and how much was used today (never the key). The Mac reads the key from `~/.config/dushu/anthropic-api-key` (chmod 600, outside
+  the repo) at request time and calls Claude with the official `@anthropic-ai/sdk` from Node only. The Mac builds the prompt from
+  `src/translate/claudePrompts.ts` (which delegates to `prompt.ts`, the instructions measured in `scripts/eval/report.md`), so
+  a browser cannot send its own system prompt; it sends only text, context, mode, model and glossary terms (bounded: 64 KB body,
+  8,000 characters of text, 3,000 of context, 30 terms, 4 concurrent requests). Models: `claude-sonnet-5-5` (default, with the
+  server-side fallback beta) and `claude-haiku-5-5` (cheaper, no fallback parameter); anything else, Opus included, is a 400.
+  `output_config: { effort: 'low' }` (`DUSHU_CLAUDE_EFFORT=medium` to change), no thinking, temperature or prefill. `stop_reason ===
+  'refusal'` and every typed SDK error map to a short message that never carries SDK text or the key. A daily spend guard in
+  `.dushu-local/claude-usage.json` (mode 600, local day) stops at 3,000 requests or 3M input tokens
+  (`DUSHU_CLAUDE_MAX_REQUESTS`, `DUSHU_CLAUDE_MAX_INPUT_TOKENS`); failed calls count too. After an error that will repeat (limit, no key,
+  bad key, credit, Mac unreachable) automatic mode skips Claude for 60 s (`claudeReadySync`). **Local only** (`settings.localOnly`)
+  makes Claude and MyMemory unavailable and refuse to run even when picked, so every sentence stays on the Mac (Chrome's on-device
+  translator is still allowed: it runs on the device that holds the browser).
 - `mymemory`: `https://api.mymemory.translated.net/get?q=…&langpair=zh-CN|en` (no email
   param, ever). 500-char chunks. Free tier ~5k chars/day — report quota errors plainly.
 - `gloss`: always available, offline: segment + first definition of each word, joined
@@ -286,8 +305,8 @@ settings.sandhi is on (the caller decides).
 - `local`: on the owner's Mac only, call an installed Ollama model over loopback for a sentence
   translation or explanation. Word cards may request a separate contextual suggestion, always
   marked as fallible AI and never substituted for dictionary entries.
-- `pickTranslator` with `auto`: evaluated local Qwen3.5 9B → ready Chrome → smaller local model → Chrome download → claude if key →
-  gloss. (MyMemory sends text to a third party, so auto never picks it; the user opts in.)
+- `pickTranslator` with `auto`: Claude via the Mac (skipped under Local only) → evaluated local Qwen3.5 9B → ready Chrome → smaller local model → Chrome download →
+  gloss. Claude through the Mac comes first when it is ready and Local only is off. (MyMemory sends text to a third party, so auto never picks it; the user opts in.)
   The Translator API's availability values are available/downloadable/downloading/unavailable; chrome.ts maps them to
   yes/download/no. In the `download` state only a click can start the download: the UI casts to `ChromeTranslator`
   and calls `prepare(onProgress)` inside its click handler. In that state the phrase popup also shows the offline
@@ -334,6 +353,24 @@ backup transfer is manual, not automatic sync. New v1 backups include only SHA-2
 Progress, book-specific terms and vocab book context are remapped only to an exact, unambiguous imported copy;
 different editions/duplicate copies are not guessed, and older backups remain readable. Import books before the backup.
 Mac services require an awake, connected Mac.
+
+**The public copy.** `https://henryyhong.com/dushu/` is a static build (`.github/workflows/pages.yml`; relative base, so it works under `/dushu/`).
+It talks to the Mac's bridge only from origin `https://henryyhong.com`, and only for the owner's exact Tailscale identity:
+`bridgeRequest()` in `scripts/private-access.ts` requires the private host plus the injected owner headers, and `bridgeCors()` answers the
+preflight (including `Access-Control-Allow-Private-Network`; credentials are never allowed, every bridge response has `Vary: Origin`).
+CORS covers `/api/claude/`, `/api/local-model/`, `/api/native-voices`, `/api/native-speech`, `/api/local-books` and `/api/private-status`;
+any other route, and any other origin, is refused. `DUSHU_EXTRA_ORIGINS` (comma separated) adds origins for testing on one machine and may
+include localhost. The Mac's tailnet hostname is never in the bundle, the repo or a document (a test fails if it appears); the owner
+connects each device once (`src/core/macBridge.ts`: the address lives only in localStorage key `dushu.mac-bridge.v1`, never in Settings or a
+backup; `bridgeFetch`, `bridgeUrl`, `hasMacBridge`, event `dushu:bridge`). The CSP in `index.html` is rewritten at build and dev time by
+`scripts/bridge-csp.ts` (adds `https://*.ts.net:*`, drops api.anthropic.com).
+
+**The owner's books.** `scripts/local-books.ts` serves `~/Downloads/活着.epub` and `~/Downloads/射雕英雄传.epub` in place (never copied; never in the
+repo, the build or the public site). `GET /api/local-books` lists `{ id, name, size, sha256 }` (SHA-256 of the file bytes) and the book route
+sends `ETag` and `X-Dushu-Digest`. `src/ui/library/macBooks.ts` makes them permanent built-in books of every device that reaches the Mac: the
+library adds the missing ones in the background (serialized with Web Locks), marks them with note `mac-book:<sha>`, and requests persistent
+storage; after that they live in the device's IndexedDB (offline, kept over reloads and app updates, with progress and names). A book the
+person deletes is remembered on that device (localStorage) and offered back with "Restore"; "Add books from Mac" is the manual fallback.
 `start-local.mjs` also probes the installed Ollama service, launches it on loopback only if unreachable,
 and leaves an unrelated responding service on port 11434 untouched. It never downloads models or changes VPN/account settings.
 Offline speech discards cached Mac voices and chooses an available device voice; discovery expires after 30 seconds
@@ -358,9 +395,22 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   bind ≥ 0.45 or a speaker; 2-character ones must be seen speaking or be tightly bound), a compound surname plus 1–2, a surname-led string
   with a title (程大小姐, 柯大侠), a title (…大师/上人/长老/庄主/岛主/帮主…), a nickname (老/小 + 2 characters), or a name without a Chinese surname
   (哲别, 瑛姑, 札木合) that speaks. Names must not contain 给带向让从跟对把被为以于得地. Fragments are dropped when a longer accepted string
-  explains them (洪七 inside 洪七公). On 射雕英雄传 this gives 157 entries (郭靖 4,999, 黄蓉 3,641 …); on 活着 13 (家珍, 凤霞, 有庆, 福贵 …); on the
+  explains them (洪七 inside 洪七公). On 射雕英雄传 this gives 139 entries: 89 names, 29 terms and 21 places (郭靖 4,999, 黄蓉 3,641 …); on 活着 13 (家珍, 凤霞, 有庆, 福贵 …); on the
   traditional 红楼梦 sample 106 (賈母, 黛玉, 王夫人 …). Known misses: names that CEDICT also lists (铁木真, 成吉思汗, 老顽童 are already words,
   so they need nothing), and nicknames such as 靖哥哥.
+- Detection v5 (`DETECTOR_VERSION` 5) adds three passes after the n-gram statistics. **Speakers**: a 2–5 character string that opens a clause and is
+  followed by a verb of speech (平兒笑道, 麝月便道, 周瑞家的說), is not a dictionary word with corpus counts, is mentioned at least twice as often as it
+  speaks, and is not a phrase (a name plus a verb, a string that begins with a function word) becomes a person; pet names in 儿 (平兒, 鳳姐兒) are
+  included though jieba cuts them whole, because their 儿 must read ér. A word CEDICT lists but jieba never counted (悟空, 麝月, 雪雁) is accepted
+  only as a person and only when it is a main character (20 speaking turns); a manner adverb (朗声) is not. **Siblings**: 悟能 and 悟净 follow 悟空 when
+  the first character is used almost only in that name. **Groups**: 江南七怪, 全真七子 (place + numeral + kind of person) are terms. Statistics
+  also accept a tightly bound free-standing string with no surname (秋桐), a numeral given name when bound (龙二), and tell a transliterated
+  person (赤老温, 合撒儿) from a technique by how often it is addressed or ordered (对 向 问 命 …). A dictionary proper noun keeps its own first sense as
+  the gloss. Offices (郡侯, 功曹) are not persons, 亭 and 郡 end a place. Detection yields every 8 ms of work (`detectGen`); `loadLexicon` waits for
+  an idle moment and works in 10 ms slices, so no task is longer than a frame. Known misses: 小紅, 长根 (too rare or too common a first character).
+- `capitalizePinyin(syllables, kind, word, fold?)` and `pinyinGroups` (exported from `names.ts` and `lexicon.ts`): a name is written Guō Jìng,
+  Hán Xiǎoyíng, Ōuyáng Wújì, Lǎo Wántóng; a place Táohuā Dǎo, Guīyún Zhuāng; a term, a user word and zhuyin stay as they are. The word popup and the
+  "In this book" card use it (`ui/popup/pinyinText.ts`); ruby over the text stays lowercase.
 - `pinyinOf(word, kind, dict)`: one numbered syllable per code point from the dictionary's default reading, with surname readings for a
   surname-led name (单 shàn, 曾 zēng, 解 xiè, 区 ōu, 仇 qiú, 华 huà, 任 rén, 尉迟 yùchí, 万俟 mòqí, 欧阳 ōuyáng …; tables in `names.ts`),
   儿/处/乐 as in names (蓉儿 ér, 丘处机 chǔ), and a doubled last character neutral (哥哥). Glosses: "name (person)", "place or group name",
@@ -413,10 +463,19 @@ K = known, P = play audio.
   unavailable), and links (MDBG, Wiktionary, zdic 汉典). If the word is not in CEDICT, say which
   source the info came from. Footer: "Translate sentence" (opens the phrase popup for
   `context.sentence`).
-- **Phrase popup**: the selected text with pinyin, speak, Copy, translation from
+- **Shell** (`host.ts`): the card (`.pp-pop`) is a labelled `role=dialog` with `tabindex=-1`; focus moves into it on open and returns to the word (or
+  `restoreFocus()`) on close unless the user already moved it. It does not clip, so a 10 px caret (`data-side`, `--pp-caret`) can point at the word;
+  the scrolling is done by `.pp-scroll` inside it, and a scroll inside the popup never triggers a placement (it used to reset `scrollTop`). The
+  Prev/Next/Shorter/Longer control is a sticky footer with a fade while there is more to scroll. Placement (`position.ts`): under 640 px a bottom sheet
+  capped at 45% of the screen; on a touch screen of any width a centered sheet (600 px, up to 60%) when `onSheetTop` is passed (the reader lifts the page by
+  the sheet height), otherwise a floating card that, on a spread (touch, 900 px or wider), goes over the other page. Safe-area insets are honored
+  (not verifiable in headless WebKit). Definitions show four senses per reading and a "N more" button; the characters are 40 px chips.
+- **Phrase popup**: the selected text with pinyin (12 px per character, even grid), speak, Copy, translation from
   `pickTranslator` (shows provider name, streaming text, error states, "Explain" button for
   Claude or a local model, "Try another provider" menu), and the word-by-word breakdown (each row clickable →
-  word popup). Save phrase is not needed.
+  word popup). Save phrase is not needed. With no translator reachable (Safari and iPadOS have no on-device one; no Claude key) the Translation block is one
+  quiet line with a Settings link and the word list is the content (`hasWordList`); the translation text is an `aria-live=polite` region that is `aria-busy`
+  while it streams. Chrome's Translator uses `zh-Hant` as the source for a traditional passage when that model is ready, else `zh`.
   Loading requests can be stopped or switched; the completed plain answer is retained while an explanation
   is generated and can be restored immediately. Translation results have a separate Copy action.
 
@@ -437,7 +496,12 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   `<span class="rd-w" data-s=start data-e=end data-i=token>` containing `<ruby class="rd-c" data-o=offset>` per character with
   `<rt class="tone-n"><span class="rd-rtx">pinyin</span></rt>` (the text sits in a span because Safari ignores positioning on `rt`; tone class
   only when toneColors; `rt.textContent` is unchanged). `ruby` is `display: inline` in the reader. Full-width punctuation is wrapped in
-  `span.rd-pu.rd-pu-o` (opening) or `.rd-pu-c` (closing) so it takes a grid cell. The phrase popup's text uses the same spans
+  `span.rd-pu.rd-pu-o` (opening) or `.rd-pu-c` (closing) so the grid can give it half a cell. Each `rt` is `aria-hidden` and each word is `role=button`
+  with `aria-label="word, pinyin"`, so a screen reader says the word once and a double tap looks it up. In the Pages layout the `rt` nodes are
+  left out until `view.ensurePinyin(block)` (`lazyPinyin`): the pinyin hangs out of the flow, so pagination does not depend on it, and only the
+  pages near the reader carry it (about a third of the DOM). Characters from Ext B and later get `rd-rare` (a touch smaller, to even the line
+  color). A paragraph over 3,000 characters is cut into pieces after a sentence end (`splitLongText`); progress still uses stored block numbers
+  (`view.toStored` / `view.fromStored`). A paragraph that cannot be segmented is drawn as plain text, not allowed to take the chapter down. The phrase popup's text uses the same spans
   but `popup.css` still styles it as native ruby. Toggling pinyin mode / style / tone colors /
   known words must not re-segment: keep tokens per block in memory and update classes or rt text.
   Pinyin visibility via classes (`.rd-py-off`, `.rd-known`), `rt` must not be selectable and must
@@ -458,11 +522,27 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   in-flow translation block (select a sentence instead).
 - Keys: ←/→ or PageUp/PageDown at chapter edges = prev/next chapter, `p` cycles pinyin mode,
   `[`/`]` font size, Esc closes popups, `?` shows a shortcut sheet.
+- Keyboard word cursor (Switch Control, VoiceOver, a Bluetooth keyboard on an iPad): Enter puts a cursor (real focus, class `rd-cursor`) on the first
+  word of the page; ←/→ move by word and ↑/↓ by line, across page turns; Enter or Space opens the card; Esc closes the card (focus returns to the word),
+  then ends the cursor. PageUp/PageDown still turn pages. The page itself (`.rd-stage` or the Scroll article) has `tabindex=0` and a label.
+- Touch: on a touch screen a second tap within 380 ms and 48 px (screen coordinates) of the first opens the sentence of the FIRST tap's word as a phrase popup (translation), whatever is under the finger by then: it is a capture-phase click listener (`onDoubleTap` in reader.ts), because the first tap's card or the lifted page can be under the second tap, and the Pages lift of a bottom sheet is held back 400 ms (`LIFT_HOLD_MS`) so the word stays put for it. Names found by the first-open scan wait while a word card is open and apply when it is closed. Pages turns the page
+  from the outer strips of the spread whatever is under the finger (`edgeWidth`: about 16% of a spread, 20% of one page, 56 px at least), and a word
+  there is looked up with a press and hold. A mouse click on a word always looks it up. The first time a book is opened on a device a hint says so
+  (`dushu.reader-hint.v1` in localStorage, dismissed by the first tap).
+- A chapter that cannot be loaded or drawn shows "Could not display this chapter" with Previous, Next, Open chapter list and (the first time) Try
+  again; keys still turn chapters; the saved place is not overwritten. Failures are counted per chapter in localStorage (`dushu.chapter-failures`):
+  after two, opening the book shows the error and the chapter list instead of trying that chapter again.
+- Dialogs: the chapter drawer is a modal `role=dialog` (focus goes to the current chapter, Tab stays inside, Esc and close return focus to the opener;
+  its list is windowed, so 2,000 chapters draw about 30 rows); the Aa and pinyin menus are labeled dialogs that take focus and give it back. On a
+  touch screen or under 640 px they are bottom sheets (grabber, Done, at most 60% of the height, so the top of the page stays in view).
+- Everything the chrome shows from the book (bar titles, running heads, chapter list, names, the end-of-chapter button) goes through the same
+  script conversion as the text (`text()` in reader.ts, `opts.text` in the pager and the drawer).
 - `#/read/<id>?ch=<n>`: `n` is the 0-based chapter index, matching `Progress.chapter` and `VocabItem.context.chapter`.
   The reader does not rewrite the hash, so a reload restores the saved position. The library links without `?ch=`.
   Shortcuts live in `ui/shortcuts.ts`, shared by the reader's `?` sheet and the About page.
 - Progress: save `{chapter, block, offset?, percent}` (debounced on scroll; on every page turn in Pages); restore on open (scroll the
-  block into view, or open the page that holds the offset). Update `lastOpenedAt`. Chapter end: "Next chapter" button (Scroll), or the
+  block into view, or open the page that holds the offset). Scroll also saves the offset of the first line under the bar, so a reload comes back to
+  the line, not the paragraph. A link with `?ch=n` opens that chapter at its start; a plain book link restores the saved place. Update `lastOpenedAt`. Chapter end: "Next chapter" button (Scroll), or the
   next page flows into the next chapter (Pages).
 - Script and fonts: the article's `lang` is `zh-Hant` or `zh-Hans` from the script setting (original = the book's script). `--rd-font` is set
   to the matching stack (`--font-serif`, `--font-sans`, `--font-kai`, and the `-hant` variants for traditional) because a `var()` set on the
@@ -501,11 +581,16 @@ and opens it. Empty state explains what the app does in two sentences.
 ### 5.6 Settings and About
 Settings: every `Settings` field grouped (Reading, Pinyin, Lookup, Translation, Speech, Data),
 live preview sentence rendered with the reader's renderer if exported, otherwise simple ruby.
-Translation: provider select with live availability status per provider, Claude key field
-(password input, "stored only in this browser", Test button), model select; Chrome on-device
+Translation: provider select with live availability status per provider, a Claude model select (Sonnet 5.5, Haiku 5.5), a "Local only"
+switch, a live status block (Mac reachable, key configured on the Mac, usage today and the limits) with "Check again" and "Test Claude";
+there is no key field, the key lives only on the Mac. "Your Mac and iPad": the connection state; on the private site a one-time hand-off
+link (Copy, Share) that opens Settings on the public copy with the Mac's address in the URL fragment, and on the public copy a Mac address
+field with Connect and Disconnect plus a confirm card for `#/settings?connect=<url>` (the address is stripped from the URL). Chrome on-device
 "Download model" button when availability is `download`. Data: backup export/import, delete all
-data (confirm). Layout, Pages shown and Page turn are in Settings and in the reader's Aa menu (the last two dim when the layout is Scroll but stay
-clickable). About: what the app is, data sources + licenses from `meta.json` (CC-CEDICT
+data (confirm). Layout, Pages shown and Page turn are in Settings and in the reader's Aa menu; rows that only apply to one layout are hidden in the
+other (Pages shown and Page turn in Scroll, the page width in Pages) and Settings says "Applies to the Pages layout". How the pinyin looks (style, tone
+colors, tone changes) is in the reader's pinyin menu; the Aa menu has Text, Page and Reading sections. Settings lists its sections at the left on a wide
+screen. About: what the app is, data sources + licenses from `meta.json` (CC-CEDICT
 CC BY-SA attribution is required; Noto Serif SC/TC and LXGW WenKai are OFL 1.1), coverage counts, keyboard shortcuts, what can be imported
 (EPUB, MOBI and AZW3 without DRM, TXT, PDF, HTML, Markdown), reading like a book, names and terms, iPad, and a storage card (is the data
 protected from eviction, with an ask button; `navigator.storage.persist()` is requested once after the first import, or at boot when books exist).
@@ -516,34 +601,62 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   force it. `settings.pageTurn`: `flip` (default — the turning leaf rotates around the spine with a soft
   shadow, like a book), `slide`, or `none`.
 - Pagination: lay the chapter out in CSS multi-column inside a fixed-height page area (100dvh minus the
-  reading chrome); one column per page, a spread shows two with a spine gutter. Page header (chapter title,
-  small) and footer (page number, "n pages left in chapter") per page, Apple Books style, quiet.
-- Turning: tap or click the outer third of a page = next/previous; swipe with the page following the
-  finger; ←/→, Space/Shift+Space, PageUp/PageDown; horizontal trackpad scroll (debounced). A tap on a Han
-  word still looks it up; the tap zones apply to taps elsewhere. A tap in the middle toggles the chrome.
-  Chapter edges flow into the next/previous chapter (pre-paginate the neighbor so the turn is instant).
+  reading chrome); one column per page, a spread shows two with a spine gutter. The column is a whole number of grid cells wide and centered.
+  Page header (chapter title, small) and footer per page, Apple Books style, quiet: the folio sits on the outer edge of each page, and "n pages
+  left in chapter" only on the right page (or the single page). The blank right page after an odd chapter carries a small end mark and a button
+  "Next: <chapter title>" (one-page mode puts that button in the footer of the last page; the last chapter says the book is finished).
+- Turning: tap or click the outer strips of the spread = next/previous (see the touch rules in 5.3); swipe with the page following the
+  finger; ←/→, Space/Shift+Space, PageUp/PageDown; horizontal trackpad scroll (debounced). A click in the middle toggles the chrome.
+  Under prefers-reduced-motion the old pages cross-fade out (about 180 ms) instead of flipping or cutting.
+  Chapter edges flow into the next/previous chapter (the next chapter's first pages, and a short previous chapter, are ready in idle time).
 - Position: progress keeps the first block on the current page; resizing, rotating, changing font size or
   pinyin re-paginates and lands on the page that contains that block. 60 fps turns (transform/opacity only).
 - **Even pinyin grid (both layouts):** when a paragraph shows pinyin, every Han character occupies the same
   cell width: padding on both sides of the character (`--rd-pad`) with `white-space: nowrap` on the character box (letter-spacing would
-  split the box at line ends and push pinyin off center), cell width `--rd-cell` (1.3–1.5em) and pinyin size `--rd-rt` chosen from the
-  measured width of the longest syllables at that size (zhuāng, shuāng, chuáng; `ui/reader/grid.ts`, minimum pinyin 9.5 px). The rt holds
-  `span.rd-rtx`, which the stylesheet centers over its character; it never pushes characters apart. Full-width punctuation (`span.rd-pu`)
-  gets a cell too. Characters whose pinyin is
+  split the box at line ends and push pinyin off center), cell width `--rd-cell` and pinyin size `--rd-rt` set from the measured width of a
+  typical syllable (the 85th percentile of all of them, canvas-measured in the pinyin font; `ui/reader/grid.ts`): the cell is about 1.25em at
+  reading sizes, the pinyin 10.5 px at least (12 px for zhuyin, in a bopomofo font), 16 px at most. The few longer syllables (zhuāng, shuāng,
+  chuáng) are squeezed horizontally by the stylesheet (`--rd-w` on their `rd-rtx`, down to 72%) so two neighbors never touch. A paragraph is
+  indented exactly two cells (`--rd-indent`); without the grid it is 2em. The rt holds
+  `span.rd-rtx`, which the stylesheet centers over its character; it never pushes characters apart. Full-width marks (`span.rd-pu`) take half a
+  cell: a closing mark hugs the character before it, an opening one the character after, and the empty half of a mark hangs over its neighbor.
+  Tone colors tint the pinyin (`rt.tone-N` is 74% tone color, 26% text color: at least 4.5:1 in all three themes, checked by a test).
+  The active word, a selected phrase and the word being read aloud are one band that includes the pinyin row (`::after`), punctuation in
+  a phrase included. Characters whose pinyin is
   hidden (known words in Unknown mode) keep the same cell so the column stays even. With pinyin off,
   normal CJK spacing. Selection/offset mapping must not change.
 - Progress in Pages is `{block, offset}` (§4.6). Neighbor chapters are laid out ahead of time. Page numbers restart in each chapter and the
-  footer counts pages within the chapter (no book-wide page number). Tap zones: the outer third turns, a tap in the middle toggles the bar, a word
-  tap still looks the word up, and a tap that only closes a popup does not turn the page. The bar tucks away on the first turn; the mouse at the top
+  footer counts pages within the chapter (no book-wide page number). Tap zones: the outer strips turn (touch: even over a word), a tap in the middle
+  toggles the bar and looks words up, and a tap that only closes a popup does not turn the page. The bar tucks away on the first turn; the mouse at the top
   edge brings it back. Swipes follow the finger and are ignored while text is selected. Flip rotates the leaf around the spine in 3D (one- and
   two-page modes); only transform and opacity animate.
 - iPad/Safari: 100dvh + safe-area insets, no hover-only affordances, native long-press selection opens the
   phrase popup, `-webkit-user-select: none` on rt, works as a home-screen web app (standalone: `apple-mobile-web-app-capable`, status bar
   style `default`, apple-touch-icon and a manifest with 192/512 and maskable PNG icons, `viewport-fit=cover`).
   **Verified only in WebKit at iPad size (Playwright), not on a real iPad**: home-screen mode, native selection handles, the real keyboard, offline
-  and the update toast on iOS.
-- Performance: a 22,000-character chapter opens in about 1–2.4 s and re-paginates in about 1 s after a font change (synchronous layout);
-  neighbor chapters lay out in one block when preparing. Splitting very long chapters into sub-layouts is the fix if a slower iPad stutters.
+  and the update toast on iOS. `.rd-stage` uses `touch-action: pan-y pinch-zoom` (it was `none`, which also blocked pinch zoom); horizontal swipes are
+  still ours. Whether long-press selection, dragging its handles and Look Up still behave on a device is untested: if they do not, put `none` back.
+- Performance (progressive pagination, `ui/reader/pager.ts`). Laying out a whole chapter in one multi-column container took 0.7 to 2 s for 34,000
+  characters and 112,000 DOM nodes (about 2 GB of renderer memory with its neighbors laid out as well), and the cost of each slice of a growing
+  container grows with what is already laid out. So: every block starts hidden (`rd-wait`, `display: none`); the pager reveals, renders and measures
+  them in slices of a few hundred characters (timed to about 14 ms each) and reads which page each block landed on. The first spread is up after
+  about 3 spreads are measured. Pages are then measured only a few spreads ahead of the reader (a chapter under 16,000 characters is finished in
+  the background, so its count is exact); a longer one keeps an estimate ("About 40 pages left in chapter", `data-exact="false"`) until the reader
+  gets near the end, presses End, or opens a saved place far in; those waits take bigger bites and show "Setting the pages…". A change of font
+  size, spacing, script or names calls `pager.freeze()` first: the place is kept and the text is taken out of the layout (`rd-measuring`, page
+  hidden), then measured again from the place the reader is at. Turns are built ahead (idle time, one face at a time) into hidden hosts
+  (`.rd-turn[data-idle]`), so a turn starts by revealing them; the pictures of a finished turn are taken apart a second later. Measured with
+  `scripts/qa-reader.mjs` and the scratch scripts of the 2026-10-13 pass, Chrome headless on this Mac, production build, a 34,000-character
+  chapter: first spread 70 to 170 ms warm (360 ms with the dictionary cold), 300 to 700 ms at 4x CPU throttle, 15,700 DOM nodes instead of 112,000
+  (about 90 MB of JS heap); a font step shows the repaginated page again in about 320 ms (1.2 s at 4x); the longest frame during a flip is 33 to
+  50 ms (130 to 220 ms at 4x; it was 100 to 450 ms and 0.9 to 1.8 s). A 20,000-character chapter of 射雕英雄传 opens in about 220 ms. In headless
+  WebKit at iPad Pro size (software compositing, a desktop CPU): first spread about 560 ms warm, a font step about 530 ms, flip frames about 20 ms
+  with the leaf on screen within 50 to 75 ms. In the 1.4 s after a tap the longest frame is 93 to 120 ms landscape, 92 to 142 ms portrait and 64 to 101 ms on an iPhone
+  profile (2 to 7 frames over 50 ms; it was 96 to 136, 115 to 208 and 76 to 105 ms with 4 to 8 such frames: the old 200 ms stall was the turn pictures being copied and laid
+  out in one go). The first of those frames is the turn starting; the rest is background work. The turn pictures are now built a few blocks at a time (`buildFaceSteps`, a pause
+  after about 12 ms), 300 ms after the page settles. What is left, 50 to 90 ms a few times in the second after a turn, is the browser laying the whole column strip out again
+  after the pump draws the pinyin of the neighboring spreads and the pictures are added: it is layout, not script (the pump's own slices take 0 to 30 ms), and drawing that
+  pinyin one block at a time made it more frames, not cheaper ones. Real iPad GPU and CPU numbers are not measured.
 
 ### 5.8 Shell, fonts, PWA
 - Fonts: Noto Serif SC and TC (400, 700) and LXGW WenKai (regular) from the installed packages, woff2 slices only (a vite plugin strips the woff
@@ -554,8 +667,8 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   `dushu-app-<build>` (index.html network first, `assets/` cache first; replaced on every build), `dushu-static-<data version>` (`data/`, `samples/`,
   survives app updates) and `dushu-fonts-v1` (the woff2 slices, cached on first use, never cleared by app or data updates). It does not call `skipWaiting` at install; it handles a
   `SKIP_WAITING` message. `main.ts` shows a persistent "A new version of Dushu is ready. Reload" toast when a worker is waiting, and checks for updates
-  when the page becomes visible. HTTPS is required for install and offline on an iPad (README, "Read on your iPad"); the private Serve endpoint provides it without a public deployment.
-- Safe areas: `#screen` and the reader use `env(safe-area-inset-*)` and `dvh`. Coarse pointers get 40 px touch targets and 16 px inputs.
+  when the page becomes visible. Every cache lookup passes `ignoreVary` (a static host's `Vary: Origin` otherwise hides cached module chunks from `import()`), and only an HTML response is ever stored as the app shell. `qa-shell.mjs` with `QA_ONLY=offline` stops a preview server and reloads every screen from the cache. HTTPS is required for install and offline on an iPad (README, "Read on your iPad"); the private Serve endpoint provides it without a public deployment.
+- Safe areas: `#screen` and the reader use `env(safe-area-inset-*)` and `dvh`. Coarse pointers get 44 px buttons (Apple's minimum target), 40 px icon buttons and fields, and 16 px inputs.
 
 
 
@@ -574,6 +687,11 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
 
 ## 7. Testing and QA
 
+- Public build checks: `node scripts/check-public.mjs --source|--build` scans for emails, tailnet hostnames, `sk-ant` keys, EPUB files and
+  10-character Han windows from the owner's EPUBs (prints file, line and rule only); `scripts/serve-subpath.mjs` serves a build under `/dushu/`
+  like GitHub Pages; `scripts/qa-public.mjs` checks the manifest, icons, service worker scope and offline reload on that subpath;
+  `scripts/qa-popup.mjs` checks word and phrase popups at iPad and iPhone size (WebKit): the footer is reachable by scrolling to the bottom,
+  controls are 44 px, a tablet sheet spans the screen.
 - `npm run typecheck` clean, `npm test` green, `npm run build` succeeds — before reporting done.
 - Unit tests live in `tests/<area>/`. Use the real data files (loader in
   `tests/helpers/data.ts`, owned by core: `loadTestDictionary()` caches one instance per worker).
@@ -593,7 +711,7 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   (production only). `read` and `epub` seed `layout: 'scroll'` because they assert scroll offsets and the Next chapter button.
 - `scripts/qa-reader.mjs` (Scroll and Pages, popups, grid measurements, big chapters; `QA_BASE=…` uses a running server) and `scripts/qa-ipad.mjs`
   (WebKit at iPad Pro 11 landscape/portrait, iPad Mini, iPhone 13: layout, taps, swipes, selection, rotation, flip, and the names card) run against the
-  dev server. `qa-shell.mjs` checks the shell and PWA, `qa-vocab.mjs` the vocab screens. None of them print book text.
+  dev server. `qa-shell.mjs` checks the shell and PWA (and, with `QA_ONLY=offline QA_DIST=<scratch build> QA_PREVIEW_PORT=<port>`, the service worker with the server stopped), `qa-vocab.mjs` the vocab screens. None of them print book text.
 - `public/sw.js` is the service worker (registered in production builds only). The build fills in its build id,
   data version and precache list (`serviceWorker()` plugin in vite.config.ts). index.html is network first,
   `assets/` cache first, `data/` `fonts/` `samples/` cache first in a cache that survives app updates.

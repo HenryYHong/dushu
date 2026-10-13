@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createChromeTranslator, resetChromeTranslator } from '../../src/translate/chrome';
+import { createChromeTranslator, resetChromeTranslator, sourceFor } from '../../src/translate/chrome';
 
 const g = globalThis as { Translator?: unknown };
 afterEach(() => { resetChromeTranslator(); delete g.Translator; });
@@ -67,5 +67,21 @@ describe('chrome translator', () => {
   it('refuses when unavailable', async () => {
     install('unavailable');
     await expect(createChromeTranslator().translate({ text: '好', mode: 'translate' })).rejects.toThrow(/not available/);
+  });
+  it('detects the script of the text', () => {
+    expect(sourceFor('他們說這個國家的人都來了')).toBe('zh-Hant');
+    expect(sourceFor('他们说这个国家的人都来了')).toBe('zh');
+    expect(sourceFor('你好')).toBe('zh');
+  });
+  it('uses zh-Hant for traditional text when that model is ready, else zh', async () => {
+    const { create } = install('available');
+    const t = createChromeTranslator();
+    await t.translate({ text: '他們說這個國家的人都來了', mode: 'translate' });
+    expect(create.mock.calls[0][0]).toMatchObject({ sourceLanguage: 'zh-Hant', targetLanguage: 'en' });
+    resetChromeTranslator();
+    const g2 = globalThis as { Translator?: { availability: (o: { sourceLanguage: string }) => Promise<string>; create: typeof create } };
+    g2.Translator!.availability = async (o) => (o.sourceLanguage === 'zh-Hant' ? 'downloadable' : 'available');
+    await createChromeTranslator().translate({ text: '他們說這個國家的人都來了', mode: 'translate' });
+    expect(create.mock.calls[1][0]).toMatchObject({ sourceLanguage: 'zh' });
   });
 });

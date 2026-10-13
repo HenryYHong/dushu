@@ -29,13 +29,28 @@
   border-radius: 2px;
   outline: 1px solid color-mix(in srgb, currentColor 16%, transparent); outline-offset: -5cqw;
 }
-.lib-cover-title { font-size: var(--lib-fs, 16cqw); line-height: 1.25; font-weight: 700; letter-spacing: 0.04em; overflow-wrap: anywhere; margin: auto 0; max-height: 100%; overflow: hidden; }
-.lib-cover-author { font-size: 8cqw; opacity: 0.8; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.lib-cover-title {
+  font-size: var(--lib-fs, 16cqw); line-height: 1.25; font-weight: 700; letter-spacing: 0.04em; overflow-wrap: anywhere; margin: auto 0; max-height: 100%; overflow: hidden;
+  /* --lib-pl is how many full-width characters fit on a line (set from the title length in cover.ts), so four characters
+     make two lines of two and a title never ends with one character alone; balance evens out Latin titles. */
+  max-width: calc(var(--lib-pl, 4) * 1.04em + 0.1em); text-wrap: balance;
+}
+.lib-cover-author { font-size: max(10px, 8cqw); opacity: 0.85; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+/* Dark: a lighter, tinted cover with light ink (at least 4.5:1) and a visible edge, instead of a near-black rectangle. */
+:root[data-theme='dark'] .lib-cover {
+  background: hsl(var(--lib-hue, 20) 30% 27%);
+  color: hsl(var(--lib-hue, 20) 55% 86%);
+  box-shadow: inset 0 0 0 1px hsl(var(--lib-hue, 20) 30% 38%);
+}
 .lib-cover-blank { align-items: center; justify-content: center; background: var(--surface-2); color: var(--text-3); }
+.lib-cover-busy { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--surface) 38%, transparent); }
 
 /* ---------- progress bar ---------- */
 .lib-bar { height: 4px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
 .lib-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.2s var(--ease); }
+.lib-bar-wait { position: relative; }
+.lib-bar-wait .lib-bar-fill { position: absolute; width: 38%; transition: none; animation: lib-bar-slide 1.1s ease-in-out infinite alternate; }
+@keyframes lib-bar-slide { from { left: 0; } to { left: 62%; } }
 
 /* ---------- continue card ---------- */
 .lib-continue-slot:not(:empty) { margin-bottom: var(--space-5); }
@@ -49,15 +64,20 @@
 
 /* ---------- book grid ---------- */
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: var(--space-5) var(--space-4); }
-.lib-card { position: relative; min-width: 0; }
-.lib-card-main { display: block; color: inherit; text-decoration: none; border-radius: var(--radius); }
+.lib-card { position: relative; min-width: 0; display: flex; flex-direction: column; }
+/* Cards in a row are as tall as the tallest, and each one's bar and meta line sit at its bottom, so rows stay level
+   whether a title takes one line or two. */
+.lib-card-main { flex: 1; }
+.lib-card .lib-cover-wrap { flex: none; }
+.lib-card-main { display: flex; flex-direction: column; color: inherit; text-decoration: none; border-radius: var(--radius); }
 .lib-card-main:focus-visible { outline-offset: 4px; }
 .lib-card-main .lib-cover-wrap { transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease); }
 .lib-card-main:hover .lib-cover-wrap { transform: translateY(-2px); box-shadow: var(--shadow); }
-.lib-card-info { padding-top: 10px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lib-card-info { flex: 1; padding-top: 10px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .lib-card-title { font-weight: 700; font-size: 15px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .lib-card-author { font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lib-card-info .lib-bar { margin-top: 6px; }
+.lib-card-author { margin-bottom: 6px; }
+.lib-card-info .lib-bar { margin-top: auto; }
 .lib-card-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text-3); margin-top: 2px; white-space: nowrap; }
 .lib-card-menu {
   position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 15px;
@@ -67,8 +87,9 @@
   opacity: 0; transition: opacity 0.12s;
 }
 .lib-card:hover .lib-card-menu, .lib-card-menu:focus-visible, .lib-card-menu[aria-expanded='true'] { opacity: 1; }
-@media (hover: none) { .lib-card-menu { opacity: 1; } }
-.lib-card-pending { opacity: 0.9; }
+@media (hover: none) { .lib-card-menu { opacity: 1; width: 36px; height: 36px; border-radius: 18px; top: 4px; right: 4px; } }
+.lib-card-menu .icon { width: 20px; height: 20px; }
+.lib-card-pending .lib-pending-stage { font-variant-numeric: tabular-nums; }
 
 /* ---------- empty state ---------- */
 .lib-empty { text-align: center; padding: var(--space-7) var(--space-5); max-width: 640px; margin: var(--space-5) auto 0; }
@@ -80,9 +101,9 @@
 
 /* ---------- classics ---------- */
 .lib-samples { margin-top: var(--space-6); }
-.lib-samples .section-title { margin-bottom: 4px; }
+.lib-samples-title { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
 .lib-samples-sub { margin: 0 0 var(--space-4); font-size: 14px; }
-.lib-sample-group { margin: var(--space-5) 0 var(--space-3); font-size: 15px; font-weight: 700; color: var(--text-2); }
+.lib-sample-group { margin: var(--space-5) 0 var(--space-3); font-size: 14px; font-weight: 650; color: var(--text-2); }
 .lib-sample-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: var(--space-3); }
 .lib-sample { display: flex; gap: var(--space-4); padding: var(--space-3); min-width: 0; }
 .lib-sample-cover { flex: none; width: 66px; }
@@ -95,10 +116,13 @@
 .lib-sample-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: auto; padding-top: var(--space-2); }
 .lib-sample-size { font-size: 12px; }
 .lib-sample .btn { text-decoration: none; }
+/* Twelve of these can be on screen: an outlined ink button, so the solid red stays for Import, Continue and Review. */
+.lib-add { background: transparent; color: var(--ink); border-color: color-mix(in srgb, var(--ink) 50%, var(--border)); }
+.lib-add:hover { background: color-mix(in srgb, var(--ink) 10%, transparent); }
 
 /* ---------- card menu ---------- */
 .lib-menu {
-  position: fixed; z-index: 200; min-width: 160px; padding: 4px;
+  position: fixed; z-index: 200; min-width: 128px; padding: 4px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
 }
 .lib-menu-item {
@@ -106,7 +130,7 @@
   border: 0; border-radius: var(--radius-s); background: none; cursor: pointer; text-align: left; font-size: 14px;
 }
 .lib-menu-item:hover, .lib-menu-item:focus-visible { background: var(--surface-2); outline: none; }
-.lib-menu-danger { color: var(--accent); }
+.lib-menu-danger { color: var(--danger); }
 
 /* ---------- drop overlay ---------- */
 .lib-drop {
@@ -165,3 +189,13 @@
   .lib-continue-title { margin-top: 0; }
   .lib-continue-progress { margin-top: 4px; }
 }
+
+/* The public copy's note about the Mac, and the "removed from this device" row for the owner's books. */
+.lib-mac-note { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); padding: var(--space-3) var(--space-4); font-size: 14px; }
+.lib-mac-note[hidden], .lib-restore[hidden] { display: none; }
+.lib-mac-note p { margin: 0; flex: 1 1 320px; max-width: 70ch; line-height: 1.5; }
+.lib-mac-note .lib-actions { width: auto; flex: none; }
+.lib-mac-note .lib-actions .btn { flex: none; text-decoration: none; }
+.lib-restore { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.lib-restore-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; font-size: 14px; color: var(--text-2); }
+@media (pointer: coarse) { .lib-mac-note .btn, .lib-restore .btn { min-height: 44px; } }

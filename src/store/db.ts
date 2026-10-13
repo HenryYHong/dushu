@@ -39,6 +39,14 @@ export interface Backend {
 export const QUOTA_MESSAGE =
   'Not enough storage space on this device to save that. Free up space or delete a book, then try again.';
 
+/** What a transaction that was aborted without saying why most often means: the browser ran out of room. */
+export const ABORT_MESSAGE = 'The browser could not save the book (it may be out of space).';
+
+/** The error to show for an aborted transaction; `tx.error` is null when the browser aborts it for lack of space. */
+export function abortError(e: unknown): Error {
+  return e === null || e === undefined ? new Error(ABORT_MESSAGE) : friendlyError(e);
+}
+
 export function friendlyError(e: unknown): Error {
   const name = (e as { name?: string } | null)?.name;
   if (name === 'QuotaExceededError' || /quota/i.test(String((e as Error | null)?.message ?? ''))) {
@@ -171,7 +179,7 @@ export async function createIdbBackend(name: string): Promise<Backend> {
       return withDb((d) => new Promise<void>((resolve, reject) => {
         const tx = d.transaction([...new Set(ops.map((o) => o.table))], 'readwrite');
         tx.oncomplete = () => resolve();
-        tx.onabort = () => reject(friendlyError(tx.error));
+        tx.onabort = () => reject(abortError(tx.error));
         tx.onerror = () => { /* the abort handler reports it */ };
         try {
           for (const o of ops) {

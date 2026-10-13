@@ -8,9 +8,14 @@ import type { AppContext, Dictionary, Lexicon, LexiconEntry } from '../types';
 import { markedToNumbered, splitPinyinRun } from './pinyin';
 import { SURNAME_READINGS, COMPOUND_SURNAME_READINGS, NAME_CHAR_READINGS } from './names';
 import { COMPOUND_SURNAMES, SURNAMES } from './names';
+export { capitalizePinyin, pinyinGroups } from './names';
+
+/** Detection hands the main thread back after this much work (ms), so a slice stays within a frame. */
+const SLICE_WORK_MS = 8;
+const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 4;
+export const DETECTOR_VERSION = 5;
 
 /** Lexicon over the given rows (disabled rows ignored). */
 export function buildLexicon(rows: LexiconEntry[]): Lexicon {
@@ -33,13 +38,17 @@ export const EMPTY_LEXICON: Lexicon = buildLexicon([]);
 /** Never start or end a word: particles, pronouns, the commonest adverbs and conjunctions. */
 const EDGE_STOP = new Set([...'的了着过是在和与就也都把被我你他她它们这那个不很又还而但却才并将已正之其所'.replace('之', '').replace('其', '')]);
 /** Characters that rarely start a name or term but can (有庆, 向问天): accepted only when strongly bound. */
-const SOFT_START = new Set([...'有没要会能可以对给从向跟说道笑问叫看听想去来到为让见只便然至往自于在']);
+const SOFT_START = new Set([...'有没要会能可以对给从向跟说道笑问叫看听想去来到为让见只便然至往自于在此其本该該回']);
 /** Characters that rarely end a name or term: verbs of speech, direction and locatives. */
-const SOFT_END = new Set([...'道说笑问叫看听想去来到上下里中外内前后边面起出完得地']);
+const SOFT_END = new Set([...'道说笑问叫看听想去来到上下里中外内前后边面起出完得地等家其回过過报報处處']);
+/** Right after one of these, a string is acting as a person (the object of an address or an order). */
+const PERSON_PREP = new Set([...'对對向问問叫和与與让讓给給跟见見命令派请請使谢謝扶抱拉救杀殺打骂罵恨爱愛喊唤喚召找随隨同被']);
 /** Followed by one of these, a string is acting as a person (subject of speech). */
-const SPEECH_NEXT = new Set([...'说道笑叫问答喊哭骂叹怒喝嚷应']);
+const SPEECH_NEXT = new Set([...'说道笑叫问答喊哭骂叹怒喝嚷应曰']);
 const NUMERALS = new Set([...'零〇一二三四五六七八九十百千万两半几']);
-const PLACE_SUFFIX = new Set([...'岛山庄寺城府村镇峰谷关江河湖海岭洞殿堡宫楼阁庙塔桥坡寨营州县国']);
+const PLACE_SUFFIX = new Set([...'岛山庄寺城府村镇峰谷关江河湖海岭洞殿堡宫楼阁庙塔桥坡寨营州县国亭郡观觀']);
+/** A string that ends with one of these is an office or a rank (郡侯, 功曹, 真君), not a person's name; a surname before it makes it a name (张道士). */
+const ROLE_END = new Set([...'侯曹君办辦丞官吏役卒兵將将妖魔怪王帝']);
 const GROUP_SUFFIX = new Set([...'派帮教门会宗']);
 const BRACKETS = new Set([...'《》“”‘’「」『』〈〉【】（）()"']);
 
@@ -59,6 +68,8 @@ export interface TermCandidate {
   right: number;
   /** Share of occurrences followed by a verb of speech. */
   speech: number;
+  /** Share of occurrences right after a verb or preposition that takes a person (对 向 问 叫 命 …): people are addressed and ordered. */
+  prep: number;
   /** Dictionary status: CEDICT/HSK headword, jieba-only, or unknown. */
   known: 'entry' | 'jieba' | 'none';
   kind: LexiconEntry['kind'];
@@ -113,6 +124,10 @@ export function surnameSplit(word: string, dict?: Dictionary): { surname: string
  */
 export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: DetectOptions = {}): Generator<void, LexiconEntry[], void> {
   const maxLen = Math.min(6, Math.max(2, opts.maxLen ?? 6));
+  // Yield every few milliseconds of work, not only between phases: an idle-sliced caller then never holds the main
+  // thread for more than a frame, even on a million-character book.
+  let lastYield = now();
+  const due = (): boolean => { const t = now(); if (t - lastYield < SLICE_WORK_MS) return false; lastYield = t; return true; };
   const text = chapterTexts.join('\n');
   const n = text.length;
   if (n < 50) return [];
@@ -124,6 +139,7 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   for (let i = 0; i < n; i++) {
     const c = text.charCodeAt(i);
     if (isHanUnit(c)) { han[i] = 1; uni[c]++; hanCount++; }
+    if ((i & 0xffff) === 0xffff && due()) yield;
   }
   const runEnd = new Int32Array(n + 1);
   for (let i = n - 1; i >= 0; i--) runEnd[i] = han[i] ? (i + 1 < n && han[i + 1] ? runEnd[i + 1] : i + 1) : i;
@@ -134,6 +150,7 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   // ---- bigrams (numeric keys), then longer grams level by level, only where both halves are frequent
   const bi = new Map<number, number>();
   for (let i = 0; i + 1 < n; i++) {
+    if ((i & 0x7fff) === 0x7fff && due()) yield;
     if (!(han[i] && han[i + 1])) continue;
     const k = text.charCodeAt(i) * 65536 + text.charCodeAt(i + 1);
     bi.set(k, (bi.get(k) ?? 0) + 1);
@@ -150,12 +167,12 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     if (!prev.size) { freq[len - 1] = level; break; }
     const counts = new Map<string, number>();
     for (let i = 0; i + len <= n; i++) {
+      if ((i & 0x7fff) === 0x7fff && due()) yield;
       if (runEnd[i] < i + len) continue;
       if (!biOk(i) || !biOk(i + len - 2)) continue;
       if (len > 3 && (!prev.has(text.substr(i, len - 1)) || !prev.has(text.substr(i + 1, len - 1)))) continue;
       const g = text.substr(i, len);
       counts.set(g, (counts.get(g) ?? 0) + 1);
-      if ((i & 0x3ffff) === 0) { /* keep the loop tight; yields happen between levels */ }
     }
     for (const [g, v] of counts) if (v >= minCount) level.set(g, v);
     freq[len - 1] = level;
@@ -168,7 +185,9 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   const cands: TermCandidate[] = [];
   const statsByWord = new Map<string, Stat>();
   for (let len = 2; len <= maxLen; len++) {
+    let seen = 0;
     for (const [g, c] of freq[len - 1] ?? []) {
+      if ((++seen & 0x1ff) === 0 && due()) yield;
       const first = g[0];
       const last = g[len - 1];
       if (EDGE_STOP.has(first) || EDGE_STOP.has(last)) continue;
@@ -187,7 +206,7 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
       if (bind < 0.2 || pmi < 2.5) continue;
       const hasEntry = dict.hasWord(g) || dict.hasWord(dict.toSimplified(g));
       const known: TermCandidate['known'] = hasEntry ? 'entry' : dict.freq(g) > 0 ? 'jieba' : 'none';
-      cands.push({ word: g, count: c, bind, pmi, left: 0, right: 0, speech: 0, known, kind: 'term', surnameLed: false });
+      cands.push({ word: g, count: c, bind, pmi, left: 0, right: 0, speech: 0, prep: 0, known, kind: 'term', surnameLed: false });
       statsByWord.set(g, { left: new Map(), right: new Map() });
     }
   }
@@ -202,6 +221,7 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   }
   const lenList = [...lens];
   for (let i = 0; i + 1 < n; i++) {
+    if ((i & 0x7fff) === 0x7fff && due()) yield;
     if (!han[i] || !han[i + 1]) continue;
     if (!startBigrams.has(text.charCodeAt(i) * 65536 + text.charCodeAt(i + 1))) continue;
     for (const L of lenList) {
@@ -213,7 +233,6 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
       st.left.set(lc, (st.left.get(lc) ?? 0) + 1);
       st.right.set(rc, (st.right.get(rc) ?? 0) + 1);
     }
-    if ((i & 0xfffff) === 0) yield;
   }
   yield;
   for (const c of cands) {
@@ -223,12 +242,17 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     let sp = 0;
     for (const [k, v] of st.right) if (SPEECH_NEXT.has(String.fromCharCode(k))) sp += v;
     c.speech = sp / c.count;
+    let pp = 0;
+    for (const [k, v] of st.left) if (PERSON_PREP.has(String.fromCharCode(k))) pp += v;
+    c.prep = pp / c.count;
   }
   opts.debug?.(cands);
 
   // ---- accept, classify
   const accepted: TermCandidate[] = [];
+  let judged = 0;
   for (const c of cands) {
+    if ((++judged & 0x3f) === 0 && due()) yield;
     const verdict = judge(c, dict, minCount);
     if (!verdict) continue;
     c.kind = verdict.kind;
@@ -256,7 +280,119 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     out.push(toEntry(c, dict));
   }
   out.push(...nicknames(out, text, dict, minCount));
+  yield;
+  out.push(...(yield* speakers(out, text, dict, minCount, due)));
+  out.push(...(yield* siblings(out, text, dict, minCount, due)));
   return out;
+}
+
+// ------------------------------------------------------------ speakers ---
+
+/** A string that starts a clause and is followed by a verb of speech: 平兒笑道, 麝月便道, 周瑞家的說. */
+const SPEAKER_RE = /(?:^|[\s，。！？；：、「」『』“”‘’（）—…])([\u3400-\u4dbf\u4e00-\u9fff]{2,5}?)[笑便又忙因只也都却卻则則還还仍再]?(?:說道|说道|笑道|問道|问道|答道|道|說|说|問|问|答|喊|叫|哭|嘆|叹|罵|骂|應|应|笑|曰)/gmu;
+/** A string that starts with one of these is a phrase (這丫頭, 既如此, 向寶玉, 話未), not a name. */
+const SPEAKER_BAD_START = new Set([...'這这那哪某各每眾众諸诸一二三四五六七八九十两兩几幾半只又还還便就也都却卻则則的了是在有无無不既且莫待方自如雖虽話话快忙對对向因以此然縱纵倘若旣又更再仍已正才并將将把被從从往跟與与及連连為为']);
+/** Characters that end a phrase or a verb rather than a name. */
+const SPEAKER_BAD_END = new Set([...'道说說笑問问答叫喊哭嘆叹罵骂應应聽听見见了着著的得地去来來等官丞怪妖魔僧声聲曰']);
+
+/**
+ * Given names built on one character that is used almost only in that name: 悟空 (the monk's name 悟 is hardly used
+ * elsewhere) leads to 悟能 and 悟净. A two-character string that starts with the same rare character and is frequent,
+ * free on both sides and unknown to the dictionary is a sibling.
+ */
+function* siblings(found: LexiconEntry[], text: string, dict: Dictionary, minCount: number, due: () => boolean): Generator<void, LexiconEntry[], void> {
+  const have = new Set(found.map((e) => e.word));
+  const out: LexiconEntry[] = [];
+  const seenFirst = new Set<string>();
+  for (const e of found) {
+    const cps = [...e.word];
+    if (e.kind !== 'name' || cps.length !== 2 || (e.count ?? 0) < 100) continue;
+    const first = cps[0];
+    if (seenFirst.has(first) || SURNAMES.has(dict.toSimplified(first)) || EDGE_STOP.has(first)) continue;
+    seenFirst.add(first);
+    let firstTotal = 0;
+    const next = new Map<string, { n: number; left: Set<string>; right: Set<string> }>();
+    for (let i = text.indexOf(first), k = 0; i >= 0; i = text.indexOf(first, i + 1)) {
+      if ((++k & 0x3ff) === 0 && due()) yield;
+      firstTotal++;
+      const b = text[i + 1];
+      if (!b || !isHanUnit(b.charCodeAt(0))) continue;
+      let r = next.get(b);
+      if (!r) next.set(b, (r = { n: 0, left: new Set(), right: new Set() }));
+      r.n++;
+      r.left.add(text[i - 1] ?? '\n');
+      r.right.add(text[i + 2] ?? '\n');
+    }
+    // The character must belong to the names: most of its uses are the name already found.
+    if (firstTotal > 1.6 * (e.count ?? 0)) continue;
+    for (const [b, r] of next) {
+      const word = first + b;
+      if (have.has(word) || r.n < Math.max(minCount * 2, Math.round((e.count ?? 0) / 10)) || r.left.size < 4 || r.right.size < 4) continue;
+      if (dict.freq(word) > 0 || EDGE_STOP.has(b) || SOFT_END.has(dict.toSimplified(b))) continue;
+      have.add(word);
+      out.push({ word, pinyin: pinyinOf(word, 'name', dict), gloss: glossFor(word, 'name', dict.hasWord(word) ? 'entry' : 'none', dict), kind: 'name', count: r.n, enabled: true, origin: 'auto' });
+    }
+  }
+  return out;
+}
+
+/**
+ * Characters of a novel are the ones who speak, and speech is the clearest sign of a name: 麝月便道, 龙二说,
+ * 小红笑道. A string that opens a clause and is followed by a verb of speech at least a few times, and that is not
+ * a dictionary word (or is only a CC-CEDICT entry the segmenter never sees, like 悟空), is added as a person.
+ * Pet names in 儿 (平兒, 金釧兒) are included even though jieba knows them: it cuts them whole, but reads 儿 as r.
+ */
+function* speakers(found: LexiconEntry[], text: string, dict: Dictionary, minCount: number, due: () => boolean): Generator<void, LexiconEntry[], void> {
+  const counts = new Map<string, number>();
+  const re = new RegExp(SPEAKER_RE.source, SPEAKER_RE.flags);
+  for (let m = re.exec(text), k = 0; m; m = re.exec(text)) {
+    counts.set(m[1], (counts.get(m[1]) ?? 0) + 1);
+    if ((++k & 0x3ff) === 0 && due()) yield;
+  }
+  const have = new Set(found.map((e) => e.word));
+  const need = Math.max(5, Math.round(minCount * 0.8));
+  const known = (w: string) => dict.freq(w) > 0 || dict.hasWord(w) || dict.hasWord(dict.toSimplified(w));
+  const total = (w: string): number => { let n = 0; for (let i = text.indexOf(w); i >= 0; i = text.indexOf(w, i + w.length)) n++; return n; };
+  const out: LexiconEntry[] = [];
+  for (const [word, count] of counts) {
+    const cps = [...word];
+    const len = cps.length;
+    if (count < need || have.has(word)) continue;
+    if (due()) yield;
+    const simp = [...dict.toSimplified(word)];
+    const maid = word.endsWith('家的') && len >= 4;
+    const erhua = simp[len - 1] === '儿';
+    if (SPEAKER_BAD_START.has(simp[0]) || EDGE_STOP.has(simp[0])) continue;
+    if (!maid && (SPEAKER_BAD_END.has(simp[len - 1]) || EDGE_STOP.has(simp[len - 1]))) continue;
+    if (!maid && simp.some((c, i) => i > 0 && i < len - 1 && '的了着著過过得地'.includes(c))) continue;
+    const f = dict.freq(word);
+    const listed = dict.hasWord(word) || dict.hasWord(simp.join(''));
+    // A word the corpus knows is an ordinary word; a pet name in 儿 (平兒) is the one exception: jieba cuts it
+    // whole, but would read the 儿 as r.
+    // (A jieba-only compound such as 晴雯 is joined by the segmenter already, but the book still wants its card:
+    // a main character who speaks a lot gets an entry.)
+    if (f > 0 && !(erhua && !listed) && !(!listed && count >= 20 && len <= 3)) continue;
+    if (len > 4 && !maid) continue;
+    if (len === 4 && !maid && known(cps.slice(0, 2).join(''))) continue; // 只見黛玉
+    // 郭靖摇头 + 道, 黄蓉心 + 想: a name followed by a verb, not a name. (A name's first two characters are not a word.)
+    if (len >= 3 && !maid && !erhua && (known(cps.slice(0, len - 1).join('')) || have.has(cps.slice(0, len - 1).join('')))) continue;
+    if (len >= 3 && !maid && have.has(cps.slice(1).join(''))) continue; // 问郭靖
+    if (len >= 3 && !maid && known(cps.slice(len - 2).join('')) && !surnameSplit(word, dict)) continue;
+    if (SOFT_END.has(simp[len - 1]) && !erhua) continue;
+    if (!surnameSplit(word, dict) && !maid && ROLE_END.has(simp[len - 1]) && len <= 3) continue;
+    if (simp.every((c) => NUMERALS.has(c))) continue;
+    if (MEASURE_START.has(simp[0]) && !(surnameSplit(word, dict) && len >= 3)) continue;
+    // Names are mentioned everywhere, not only before a verb of speech.
+    const all = total(word);
+    if (all < 2 * count) continue;
+    // A dictionary word the segmenter never sees is a name only when it is a main character.
+    if (listed && f === 0 && (count < 20 || all < 40)) continue;
+    const kind: LexiconEntry['kind'] = 'name';
+    have.add(word);
+    out.push({ word, pinyin: pinyinOf(word, kind, dict), gloss: GLOSS[kind], kind, count: all, enabled: true, origin: 'auto' });
+  }
+  // Drop a speaker that is only the front of a longer accepted one (周瑞家 inside 周瑞家的).
+  return out.filter((e) => !out.some((o) => o !== e && o.word.length > e.word.length && o.word.startsWith(e.word) && (o.count ?? 0) >= 0.7 * (e.count ?? 0)));
 }
 
 /**
@@ -325,7 +461,7 @@ const KIN_PAIRS = new Set(['父子', '母子', '父女', '母女', '夫妇', '�
 /** A pet name is never made from these (娘儿, 官儿, 爷儿 are ordinary erhua words). */
 const NO_PET_NAME = new Set([...'生化爷娘官光子头姑人氏母王侯主师公婆妃姐哥弟妹老家物马儿女夫友民兵客叔伯嫂翁']);
 /** Never part of a given name: they make the string a phrase (许配给, 连人带). */
-const NOT_IN_NAME = new Set([...'给带向让从跟对把被为以于得地']);
+const NOT_IN_NAME = new Set([...'给带向让从跟对把被为以于得地其此本该該回过過报報']);
 /** A two-character string ending in one of these is a bare title (寨主, 帮主), not a name. */
 const BARE_TITLE_END = new Set([...'主长师爷婆']);
 
@@ -339,23 +475,37 @@ function endsWithAny(word: string, list: readonly string[]): boolean {
  * word breaks the segmentation of ordinary text around it, while a missed name only costs a split.
  */
 export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6): { kind: LexiconEntry['kind']; surnameLed: boolean } | null {
+  const verdict = judgeInner(c, dict, minCount);
+  // A word the dictionary lists is only ever replaced by a person (悟空); a term or place would hide a real definition.
+  if (verdict && c.known === 'entry' && verdict.kind !== 'name') return null;
+  return verdict;
+}
+
+function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kind: LexiconEntry['kind']; surnameLed: boolean } | null {
   const w = c.word;
   const cps = [...w];
   const len = cps.length;
   if (len < 2 || len > 6) return null;
-  if (c.known !== 'none') return null; // the dictionary already has it
-  if (c.left < 1.0 || c.right < 1.0 || c.bind < 0.35) return null;
+  // The dictionary already has it, unless it only lists it and the corpus never saw it (悟空, 麝月, 苦根): the segmenter
+  // cuts such a word into characters, so the book needs its own entry. Only a person can come of that.
+  const unseenEntry = c.known === 'entry' && dict.freq(c.word) === 0 && len <= 4;
+  if (c.known !== 'none' && !unseenEntry) return null;
+  const sur = surnameSplit(w, dict);
+  // A surname-led pair that is ordered, addressed and sent very often and is free on both sides (黃祖, 關興) is a person even
+  // when its second character is common elsewhere and the binding is low.
+  const ordered = !!sur && len <= 3 && c.known === 'none' && c.prep >= 0.10 && c.count >= 8 * minCount && c.bind >= 0.25 && c.pmi >= 4.3 && c.left >= 2.5 && c.right >= 2.9;
+  if (c.left < 1.0 || c.right < 1.0 || (c.bind < 0.35 && !ordered)) return null;
   const simp = [...dict.toSimplified(w)];
   const first = simp[0];
   const last = simp[len - 1];
-  const sur = surnameSplit(w, dict);
   const strongSpeech = c.speech >= 0.06;
   const bracketed = c.left >= 9 && c.right >= 9;
   /** Characters that almost never appear outside this string, seen often: 福贵, 有庆, 凤霞. */
   const bound = c.bind >= 0.9 && c.count >= 3 * minCount;
 
   // Titles and fragments never start a name, whatever the counts say.
-  if (FRAGMENT_END.has(last) && !bracketed) return null;
+  const bareNumeral = !!sur && len === 2 && NUMERALS.has(last) && bound; // 龙二
+  if (FRAGMENT_END.has(last) && !bracketed && !bareNumeral) return null;
   if (last === '人' && NUMERALS.has(simp[len - 2])) return null;
   const titled = endsWithAny(w, TITLE_SUFFIXES);
   const measured = MEASURE_START.has(first) && !titled;
@@ -365,6 +515,22 @@ export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6)
   // A rare four-character string made of two dictionary words is a phrase (光耀祖宗), not a term.
   if (len >= 4 && c.count < 12 && dict.hasWord(simp.slice(0, 2).join('')) && dict.hasWord(simp.slice(2).join(''))) return null;
 
+  // A word the dictionary lists and the corpus never saw, followed by a verb of speech nearly every time, is a manner
+  // adverb (朗声道, 詫异道), not a person.
+  if (c.known === 'entry' && (c.speech > 0.5 || c.right < 2)) return null; // 詫异 + 道: few different followers
+  if (c.speech > 0.6) return null; // 詫异道, 朗声道: nearly always followed by a verb of speech
+  // 功曹, 真君, 郡侯, 妖王: an office or a rank is not a name unless a surname leads it.
+  if (!sur && ROLE_END.has(last) && !titled && c.known !== 'none') return null;
+  // (芳官, 藕官, the young actresses of 紅樓夢, end in 官 too: they speak, are spoken to and are free on both sides.)
+  const personal = strongSpeech && c.bind >= 0.5 && c.count >= 20 && c.left >= 2.5 && c.right >= 2.5;
+  if (!sur && ROLE_END.has(last) && c.known === 'none' && len <= 3 && !PLACE_SUFFIX.has(last) && !ART_SUFFIX.has(last) && !personal) return null;
+
+  // Sworn groups: 江南七怪, 全真七子, 河朔三雄 (a place, a numeral, a kind of person).
+  if (len === 4 && NUMERALS.has(simp[2]) && !NUMERALS.has(simp[0]) && !NUMERALS.has(simp[3]) && c.known === 'none'
+    && c.bind >= 0.5 && c.count >= 3 * minCount && c.left >= 2 && c.right >= 2 && '怪子侠俠杰傑雄友鬼仙贤賢英'.includes(last)) {
+    return { kind: 'term', surnameLed: false };
+  }
+
   // Martial arts, books, techniques.
   if (len >= 3 && ART_SUFFIX.has(last) && !softEnd && !softStart && !measured && c.speech < 0.05 && c.bind >= 0.4 && !(sur && len <= 3)) {
     return { kind: 'term', surnameLed: false };
@@ -372,7 +538,8 @@ export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6)
   if (bracketed && len >= 3 && !softEnd) return { kind: 'term', surnameLed: false };
 
   // Places and groups: 桃花岛, 牛家村, 归云庄, 铁掌帮, 大金国.
-  if (PLACE_SUFFIX.has(last) && !softEnd && !softStart && !measured && c.speech < 0.05 && c.bind >= 0.4 && len >= 3) {
+  // (林如海 ends in 海 but speaks: a person.)
+  if (PLACE_SUFFIX.has(last) && !softEnd && !softStart && !measured && c.speech < 0.05 && c.bind >= 0.4 && len >= 3 && !(sur && len === 3 && (c.speech >= 0.03 || ('海河江湖'.includes(last) && simp[1] !== '家')))) {
     return { kind: 'place', surnameLed: false };
   }
   if (GROUP_SUFFIX.has(last) && len >= 3 && !measured && c.speech < 0.05 && c.bind >= 0.4) return { kind: 'place', surnameLed: false };
@@ -386,7 +553,8 @@ export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6)
   if (sur) {
     const given = [...dict.toSimplified(sur.given)];
     if (given.some((g) => EDGE_STOP.has(g) || NOT_IN_NAME.has(g))) return null;
-    if (given.length === 1 && NUMERALS.has(given[0])) return null;
+    // 王二, 龙二: a numeral as the whole given name is a person only when the string is tightly bound and frequent.
+    if (given.length === 1 && NUMERALS.has(given[0]) && !(bound && c.pmi >= 5 && c.speech >= 0.02)) return null;
     // 戴一顶 (wear a ...), 王父子 (Wang and son): a verb or a family word after a surname-like character.
     if (given.some((g, i) => NUMERALS.has(g) && MEASURE_AFTER.has(given[i + 1] ?? ''))) return null;
     if (given.length === 2 && !titled && KIN_PAIRS.has(given.join(''))) return null;
@@ -394,7 +562,12 @@ export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6)
     if (given.length > 2 && !titled) return null;
     if (len === 2 || (len === 3 && COMPOUND_SURNAMES.has(first + simp[1]))) {
       // Two characters (杨康, 马钰) are short enough to be an ordinary word: they must be seen speaking.
-      if (!(strongSpeech && c.bind >= 0.4) && !bound) return null;
+      // A very tight, very frequent string that is free on both sides is a person even when she rarely speaks (司棋).
+      const tight = c.bind >= 0.6 && c.pmi >= 7 && c.count >= 5 * minCount && c.left >= 2.4 && c.right >= 2.8;
+      // A general of the Three Kingdoms rarely speaks in the text but is ordered, addressed and sent (令徐晃, 對夏侯惇):
+      // often enough, and free on both sides, that is a person.
+      const addressed = c.prep >= 0.06 && c.count >= 8 * minCount && c.bind >= 0.45 && c.pmi >= 4.3 && c.left >= 2.5 && c.right >= 3;
+      if (!(strongSpeech && c.bind >= 0.4) && !bound && !tight && !addressed && !ordered) return null;
     } else if (c.bind < 0.45 && !strongSpeech) {
       return null;
     }
@@ -402,6 +575,12 @@ export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6)
     return { kind: 'name', surnameLed: true };
   }
   if (titled && len <= 5 && c.bind >= 0.4) return { kind: 'name', surnameLed: false };
+  // A tightly bound, frequent two- or three-character string free on both sides, with no surname: 秋桐, 司棋-like
+  // maids and young masters in a novel. Stricter than a surname-led name, looser than an unknown term.
+  if ((len === 2 || len === 3) && c.known !== 'entry' && c.bind >= 0.6 && c.pmi >= 7 && c.count >= 5 * minCount && c.left >= 2.5 && c.right >= 3
+    && c.speech >= 0.02 && !measured && !softStart) {
+    return { kind: 'name', surnameLed: false };
+  }
   // Nicknames: 老毒物, 小红马.
   if ((first === '老' || first === '小') && len === 3 && c.bind >= 0.6 && c.right >= 2) return { kind: 'name', surnameLed: false };
   // Names without a Chinese surname (哲别, 瑛姑, 札木合, 窝阔台): they speak and are spoken to.
@@ -409,7 +588,9 @@ export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6)
   // A tightly bound string with no sign of what it is: a name from a first-person book, or a missing word.
   if (len <= 4 && bound && c.pmi >= 4.5 && c.speech < 0.05 && !measured) {
     // In a novel, a two-character string this tightly bound and this frequent is almost always a person (福贵, 有庆).
-    return { kind: len === 2 && c.count >= 50 ? 'name' : 'term', surnameLed: false };
+    // Transliterated names (赤老温, 合撒儿) have no surname: they are told apart from techniques and books by being
+    // addressed and ordered about, which 华山论剑 and 黑风双煞 never are.
+    return { kind: (len === 2 && c.count >= 50) || (len >= 3 && c.prep + c.speech >= 0.12) ? 'name' : 'term', surnameLed: false };
   }
   return null;
 }
@@ -457,7 +638,17 @@ const GLOSS: Record<LexiconEntry['kind'], string> = {
 };
 
 function toEntry(c: TermCandidate, dict: Dictionary): LexiconEntry {
-  return { word: c.word, pinyin: pinyinOf(c.word, c.kind, dict), gloss: GLOSS[c.kind], kind: c.kind, count: c.count, enabled: true, origin: 'auto' };
+  return { word: c.word, pinyin: pinyinOf(c.word, c.kind, dict), gloss: glossFor(c.word, c.kind, c.known, dict), kind: c.kind, count: c.count, enabled: true, origin: 'auto' };
+}
+
+/** A dictionary proper noun the segmenter never saw (悟空: "Sun Wukong, the Monkey King …") keeps its own first sense. */
+function glossFor(word: string, kind: LexiconEntry['kind'], known: TermCandidate['known'], dict: Dictionary): string {
+  if (known === 'entry') {
+    const e = dict.lookup(word).find((x) => /^[A-Z]/.test(x.pinyin));
+    const def = e?.defs.find((d) => !/^(see |variant|CL:|surname|abbr)/i.test(d));
+    if (def) return def.replace(/\s*\(.*?\)\s*$/, '').replace(/[\p{Script=Han}|]+\[[^\]]*\]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 100) || GLOSS[kind];
+  }
+  return GLOSS[kind];
 }
 
 /**
@@ -507,6 +698,15 @@ async function bookTexts(ctx: AppContext, bookId: string): Promise<string[]> {
   return out;
 }
 
+/** Resolves when the browser is idle, or after `timeout` ms at the latest. */
+function whenIdle(timeout: number): Promise<void> {
+  const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+  return new Promise((resolve) => {
+    if (typeof ric === 'function') ric(() => resolve(), { timeout });
+    else setTimeout(resolve, 0);
+  });
+}
+
 const running = new Map<string, Promise<void>>();
 
 /** True while a background scan of this book is running (the reader holds back other heavy work until it ends). */
@@ -527,8 +727,10 @@ export async function loadLexicon(ctx: AppContext, bookId: string, onUpdate?: (l
   if (!running.has(bookId)) {
     const job = (async () => {
       const [dict, texts] = await Promise.all([ctx.dict(), bookTexts(ctx, bookId)]);
-      // Slices of 120 ms: the reader is busy laying out pages, and a short slice waits behind every one of its tasks.
-      const found = await detectTermsAsync(texts, dict, undefined, 120);
+      // The first page is the reader's job: start when the browser is idle (or after a moment), then work in
+      // slices of about 10 ms with the event loop getting a turn between them.
+      await whenIdle(1500);
+      const found = await detectTermsAsync(texts, dict, undefined, 10);
       await store.lexicon.putDetected(bookId, found, DETECTOR_VERSION);
     })().finally(() => { running.delete(bookId); });
     running.set(bookId, job);

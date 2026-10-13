@@ -9,6 +9,32 @@ export interface ModalApi<T> {
 }
 
 /**
+ * iPadOS and iOS do not shrink the page when the on-screen keyboard opens; only the visual viewport shrinks, so a
+ * centered dialog can end up with its buttons behind the keyboard. While the keyboard covers part of the window, pin the
+ * dialog to the top of the visible area and cap its height there (its body scrolls, its footer stays). Returns the cleanup.
+ * Headless browsers have no keyboard, so this is checked by shrinking the visual viewport in a test, not on a real iPad.
+ */
+export function keepAboveKeyboard(dlg: HTMLElement, vv: VisualViewport | null = typeof window !== 'undefined' ? window.visualViewport : null): () => void {
+  if (!vv) return () => {};
+  const props = ['max-height', 'inset-block-start', 'inset-block-end', 'margin-block'];
+  const fit = () => {
+    const hidden = window.innerHeight - vv.height - vv.offsetTop;
+    if (hidden > 80) {
+      dlg.style.setProperty('max-height', `${Math.max(220, vv.height - 24)}px`);
+      dlg.style.setProperty('inset-block-start', `${vv.offsetTop + 12}px`);
+      dlg.style.setProperty('inset-block-end', 'auto');
+      dlg.style.setProperty('margin-block', '0');
+    } else {
+      for (const p of props) dlg.style.removeProperty(p);
+    }
+  };
+  vv.addEventListener('resize', fit);
+  vv.addEventListener('scroll', fit);
+  fit();
+  return () => { vv.removeEventListener('resize', fit); vv.removeEventListener('scroll', fit); };
+}
+
+/**
  * Opens a modal and resolves with whatever close() was given (undefined if the user cancelled with Esc,
  * the close button or a click on the backdrop). build() returns the body, the footer and an optional
  * element to focus first.
@@ -19,11 +45,13 @@ export function showModal<T>(
   opts: { wide?: boolean } = {},
 ): Promise<T | undefined> {
   return new Promise((resolve) => {
-    const dlg = h('dialog.modal.lib-dlg', { 'aria-label': title }) as HTMLDialogElement;
+    const dlg = h('dialog.modal.lib-dlg', { 'aria-label': title, tabindex: -1 }) as HTMLDialogElement;
     let done = false;
+    let stopKeyboardWatch = () => {};
     const close = (result?: T) => {
       if (done) return;
       done = true;
+      stopKeyboardWatch();
       if (typeof dlg.close === 'function' && dlg.open) dlg.close();
       dlg.remove();
       resolve(result);
@@ -44,7 +72,9 @@ export function showModal<T>(
     // jsdom has no showModal; a plain open attribute is enough there.
     if (typeof dlg.showModal === 'function') dlg.showModal();
     else dlg.setAttribute('open', '');
-    (parts.focus ?? dlg.querySelector<HTMLElement>('input, textarea, button.btn'))?.focus();
+    stopKeyboardWatch = keepAboveKeyboard(dlg);
+    // A field to type in gets focus; a plain question focuses the dialog itself, so no button starts with a ring.
+    (parts.focus ?? dlg).focus({ preventScroll: true });
   });
 }
 
@@ -55,11 +85,10 @@ export function confirmDialog(opts: {
   danger?: boolean;
 }): Promise<boolean> {
   return showModal<boolean>(opts.title, (api) => {
-    const ok = h('button.btn.btn-primary', { type: 'button', onclick: () => api.close(true) }, opts.confirmLabel);
+    const ok = h('button.btn' + (opts.danger ? '.btn-danger-solid' : '.btn-primary'), { type: 'button', onclick: () => api.close(true) }, opts.confirmLabel);
     return {
       body: h('p.lib-dlg-text', null, opts.message),
       footer: [h('button.btn', { type: 'button', onclick: () => api.close(false) }, 'Cancel'), ok],
-      focus: opts.danger ? undefined : ok,
     };
   }).then((v) => v === true);
 }

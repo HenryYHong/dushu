@@ -186,18 +186,62 @@ export function linesToParagraphs(rawLines: string[], width: number): string[] {
   return out;
 }
 
-/** Split a very long paragraph at sentence ends so the reader never gets one 100k-character block. */
+/** Where a piece may end when a block has no sentence punctuation: after a comma, semicolon, colon, enumeration mark or space. */
+const SOFT_BREAK = /[，,；;：:、\s\u3000]/;
+const CLOSERS = /[”’」』）)》〉】〕\]]/;
+
+/**
+ * Cut one run of text that has no sentence end into pieces of about `chunk` code points. A piece ends at the
+ * last comma, semicolon, colon or space in the second half of its window; with none there, it is cut at `chunk`.
+ */
+function hardSplit(text: string, chunk: number): string[] {
+  const cps = Array.from(text);
+  const out: string[] = [];
+  let pos = 0;
+  while (pos < cps.length) {
+    if (cps.length - pos <= chunk) {
+      out.push(cps.slice(pos).join(''));
+      break;
+    }
+    let end = pos + chunk;
+    for (let i = pos + chunk - 1; i >= pos + Math.floor(chunk / 2); i--) {
+      if (SOFT_BREAK.test(cps[i])) {
+        end = i + 1;
+        break;
+      }
+    }
+    while (end < cps.length && end - pos < chunk * 1.2 && CLOSERS.test(cps[end])) end++;
+    out.push(cps.slice(pos, end).join(''));
+    pos = end;
+  }
+  return out;
+}
+
+/**
+ * Split a very long paragraph so the reader never gets one 100k-character block: at sentence ends first, and where a
+ * sentence itself is longer than `max` (no punctuation at all, commas only, OCR text) at commas, semicolons or spaces,
+ * else at a fixed length. A paragraph of `max` code points or fewer is left whole.
+ */
 export function splitLongParagraph(text: string, max = 3000, chunk = 1500): string[] {
   if (cpLen(text) <= max) return [text];
   const sentences = text.match(/[^。！？!?…]*[。！？!?…]+[”’」』）)]*|[^。！？!?…]+$/g) ?? [text];
   const out: string[] = [];
   let cur = '';
-  for (const s of sentences) {
-    cur += s;
+  const push = (piece: string) => {
+    cur += piece;
     if (cpLen(cur) >= chunk) {
       out.push(cur);
       cur = '';
     }
+  };
+  for (const s of sentences) {
+    if (cpLen(s) > max) {
+      if (cur) {
+        out.push(cur);
+        cur = '';
+      }
+      for (const piece of hardSplit(s, chunk)) push(piece);
+    } else push(s);
   }
   if (cur) out.push(cur);
   return out;

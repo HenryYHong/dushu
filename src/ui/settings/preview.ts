@@ -4,8 +4,8 @@ import { readingFontSizeKey } from '../../store/settings';
 import { segment } from '../../core/segment';
 import { applySandhi, formatSyllable, toneOf } from '../../core/pinyin';
 import { clear, h } from '../dom';
-import { effectiveLineHeight, gridMetrics, measureLongest } from '../reader/grid';
-import { punctSide } from '../reader/render';
+import { effectiveLineHeight, gridMetrics, measureQuotes, measureSyllables, setQuoteVars, widthOfPinyin } from '../reader/grid';
+import { CURLY_QUOTES, punctSide } from '../reader/render';
 
 /** Has a measure word, 慢慢地, 一个 and 不大 so tone colors, sandhi and polyphones are all visible. */
 export const PREVIEW_TEXT = '我们慢慢地走进一个不大的院子，他说：“你好，这是我的家。”';
@@ -32,12 +32,16 @@ export function showsPinyin(word: string, s: Visibility, dict: Dictionary, isKno
 }
 
 /** Same structure as the reader: a plain inline character with its pinyin hung above it, every character in one cell width. */
-function charSpans(token: Token, s: Settings, show: boolean): HTMLElement {
+function charSpans(token: Token, s: Settings, show: boolean, widthOf: (text: string) => number): HTMLElement {
   const chars = [...token.text];
   return h('span.set-w', null, chars.map((ch, i) => {
     const py = token.pinyin?.[i] ?? '';
     if (!show || !py) return h('ruby.set-ruby', null, ch);
-    const rt = h('rt', { class: s.toneColors ? `tone-${toneOf(py)}` : '' }, h('span.set-rtx', null, formatSyllable(py, s.pinyinStyle)));
+    const text = formatSyllable(py, s.pinyinStyle);
+    // Long syllables are squeezed to fit their cell, as in the reader (the stylesheet does the math from --set-w).
+    const w = widthOf(text);
+    const label = h('span.set-rtx', w >= 1.8 ? { style: `--set-w:${w.toFixed(2)}` } : null, text);
+    const rt = h('rt', { class: s.toneColors ? `tone-${toneOf(py)}` : '' }, label);
     return h('ruby.set-ruby', null, ch, rt);
   }));
 }
@@ -53,15 +57,21 @@ export function renderPreview(target: HTMLElement, s: Settings, dict: Dictionary
   // The even grid: the cell is sized from the longest syllable at the pinyin size (see reader/grid.ts).
   const grid = s.pinyin !== 'off';
   target.classList.toggle('set-grid', grid);
+  target.classList.toggle('set-zy', s.pinyinStyle === 'zhuyin');
+  let widthOf = (text: string) => widthOfPinyin(text);
   if (grid) {
-    const rt = h('rt', { style: 'position:absolute;visibility:hidden' });
-    target.appendChild(rt);
-    const family = getComputedStyle(rt).fontFamily || 'sans-serif';
-    rt.remove();
-    const m = gridMetrics(measureLongest(s.pinyinStyle, family), fontSize);
+    const probe = h('ruby.set-ruby', { style: 'position:absolute;visibility:hidden' }, h('rt'));
+    target.appendChild(probe);
+    const family = getComputedStyle(probe.querySelector('rt')!).fontFamily || 'sans-serif';
+    probe.remove();
+    const measure = measureSyllables(s.pinyinStyle, family);
+    widthOf = measure.widthOf;
+    const m = gridMetrics(measure.typical, fontSize, s.pinyinStyle);
     target.style.setProperty('--set-pad', String(m.padEm));
     target.style.setProperty('--set-cell', String(m.cellEm));
     target.style.setProperty('--set-rt', String(m.rtEm));
+    target.style.setProperty('--set-sq', String(m.sqEm));
+    setQuoteVars(target, 'set', measureQuotes(target, 'zh', false));
   }
   if (!dict) {
     target.append(PREVIEW_TEXT);
@@ -71,10 +81,12 @@ export function renderPreview(target: HTMLElement, s: Settings, dict: Dictionary
   const tokens = segment(text, dict);
   if (s.sandhi) applySandhi(tokens);
   for (const t of tokens) {
-    if (t.kind === 'han') target.append(charSpans(t, s, showsPinyin(t.text, s, dict, isKnown)));
+    if (t.kind === 'han') target.append(charSpans(t, s, showsPinyin(t.text, s, dict, isKnown), widthOf));
     else {
       const side = t.kind === 'punct' ? punctSide(t.text) : '';
-      if (side) target.append(h(`span.set-pu.set-pu-${side}`, null, t.text));
+      const quote = t.kind === 'punct' ? CURLY_QUOTES[t.text] : undefined;
+      if (quote) target.append(h(`span.set-pu.set-pu-q${quote.side}.set-pq-${quote.key}`, null, t.text));
+      else if (side) target.append(h(`span.set-pu.set-pu-${side}`, null, t.text));
       else target.append(t.text);
     }
   }

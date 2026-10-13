@@ -44,9 +44,19 @@ const browser = await puppeteer.launch({
 });
 
 /** A fresh incognito context per scenario, so IndexedDB and localStorage start empty. */
-async function session({ width = 1100, height = 860, mobile = false, settings = {} } = {}) {
+async function session({ width = 1100, height = 860, mobile = false, settings = {}, ownerBooks = false } = {}) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
+  // On the dev server and on 4317 the Mac bridge lists the owner's books and every fresh profile adds them in the background,
+  // so the library is never empty and a card can appear while a scenario is importing its own file. Answer the list with
+  // "no books" unless the scenario asks for them; the bridge itself is checked in qa-local-books.mjs.
+  if (!ownerBooks) {
+    await page.setRequestInterception(true);
+    page.on('request', (r) => {
+      if (new URL(r.url()).pathname === '/api/local-books') void r.respond({ status: 200, contentType: 'application/json', headers: { 'cache-control': 'no-store' }, body: '[]' });
+      else void r.continue();
+    });
+  }
   const errors = [];
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
@@ -60,6 +70,8 @@ async function session({ width = 1100, height = 860, mobile = false, settings = 
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('requestfailed', (r) => {
     if (/jsdelivr|translated\.net|anthropic/.test(r.url())) return;
+    // The page's own 2 s AbortSignal.timeout on the voices probe is intended; under load it shows up as ERR_ABORTED.
+    if (/\/api\/native-voices/.test(r.url()) && r.failure()?.errorText === 'net::ERR_ABORTED') return;
     errors.push(`request failed: ${r.url()} (${r.failure()?.errorText})`);
   });
   await page.setViewport(mobile
@@ -95,7 +107,7 @@ async function session({ width = 1100, height = 860, mobile = false, settings = 
       await page.waitForSelector('.lib-sample', { timeout: 15000 });
       const clicked = await page.evaluate((t) => {
         const card = [...document.querySelectorAll('.lib-sample')].find((c) => c.querySelector('.lib-sample-title')?.textContent === t);
-        const btn = card?.querySelector('.btn-primary');
+        const btn = card?.querySelector('.lib-add');
         if (!btn) return false;
         btn.click();
         return true;
@@ -556,7 +568,16 @@ scenarios.themes = async () => {
     await sleep(450);
     await s.shot(`${theme}-reader-popup`);
     const colors = await page.evaluate(() => {
-      const parse = (c) => (c.match(/[\d.]+/g) ?? []).slice(0, 4).map(Number);
+      // Resolve any CSS color (rgb(), color(srgb ...), color-mix()) to [r, g, b, a] in 0-255 sRGB via a canvas.
+      const cv = document.createElement('canvas'); cv.width = cv.height = 1;
+      const cx = cv.getContext('2d', { willReadFrequently: true });
+      const parse = (c) => {
+        cx.clearRect(0, 0, 1, 1);
+        cx.fillStyle = '#000'; cx.fillStyle = c;
+        cx.fillRect(0, 0, 1, 1);
+        const d = cx.getImageData(0, 0, 1, 1).data;
+        return [d[0], d[1], d[2], d[3] / 255];
+      };
       const bgOf = (el) => {
         for (let e = el; e; e = e.parentElement) {
           const c = parse(getComputedStyle(e).backgroundColor);
@@ -760,7 +781,7 @@ scenarios.lexicon = async () => {
   await page.mouse.click(w.x, w.y);
   await sleep(600);
   const card = flat(await page.$eval('.pp-book', (e) => e.innerText).catch(() => ''));
-  check(/In this book/i.test(card) && /Person/.test(card) && /guō jìng/.test(card), `the popup shows the In this book card (${card.slice(0, 80)})`);
+  check(/In this book/i.test(card) && /Person/.test(card) && /guō jìng/i.test(card), `the popup shows the In this book card (${card.slice(0, 80)})`);
   check(await page.$eval('.pp-body', (b) => b.firstElementChild.classList.contains('pp-book')).catch(() => false), 'the card comes first in the popup');
   await s.shot('popup-card');
 
@@ -791,8 +812,14 @@ scenarios.lexicon = async () => {
   const tab = await page.evaluate(() => { const t = [...document.querySelectorAll('.rd-toc-tab')].find((b) => /Names/i.test(b.textContent)); if (t) t.click(); return !!t; });
   check(tab, 'the contents drawer has a Names & terms tab');
   await sleep(500);
-  const rows = await page.$$eval('.rd-names > li:not(.rd-toc-none)', (r) => r.length);
-  check(rows > 50, `the list shows the detected names (${rows} rows)`);
+  // The list is windowed: only the rows near the viewport exist, so read the total from the sizer's height.
+  const { drawn, rows } = await page.$eval('.rd-names', (list) => {
+    const rowEls = list.querySelectorAll('.rd-toc-row');
+    const sizer = list.querySelector('.rd-toc-sizer');
+    const rowH = rowEls[0]?.getBoundingClientRect().height || 0;
+    return { drawn: rowEls.length, rows: rowH && sizer ? Math.round(sizer.getBoundingClientRect().height / rowH) : 0 };
+  });
+  check(drawn > 5 && rows > 50, `the list shows the detected names (${rows} rows, ${drawn} drawn)`);
   await s.shot('names-tab');
   await page.keyboard.press('Escape');
 
@@ -827,11 +854,16 @@ scenarios.mobi = async () => {
   const accept = await page.$eval('input[type=file]', (i) => i.accept);
   check(/\.mobi/.test(accept) && /\.azw3/.test(accept), `the file picker accepts Kindle files (${accept})`);
   await (await page.$('input[type=file]')).uploadFile(files[0]);
-  await page.waitForSelector('.lib-card-main', { timeout: 60000 });
-  const title = await page.$eval('.lib-card-title', (e) => e.textContent);
-  check(/道/.test(title), `${files[0].split('/').pop()} imported as "${title}"`);
+  // The pending card has the file name as its title; the finished card is a different one (.lib-card[data-id]).
+  await page.waitForSelector('.lib-card[data-id] .lib-card-main', { timeout: 60000 });
+  await page.waitForFunction(() => !document.querySelector('.lib-card-pending'), { timeout: 60000 });
+  const { title, id } = await page.evaluate(() => {
+    const card = [...document.querySelectorAll('.lib-card[data-id]')].find((c) => /道/.test(c.querySelector('.lib-card-title')?.textContent ?? ''));
+    const a = card?.querySelector('.lib-card-main');
+    return { title: card?.querySelector('.lib-card-title')?.textContent ?? '', id: a ? decodeURIComponent(a.getAttribute('href').split('/read/')[1].split('?')[0]) : '' };
+  });
+  check(/道/.test(title) && !!id, `${files[0].split('/').pop()} imported as "${title}"`);
   await s.shot('library');
-  const id = await page.$eval('.lib-card-main', (a) => decodeURIComponent(a.getAttribute('href').split('/read/')[1].split('?')[0]));
   await page.evaluate((i) => { location.hash = `#/read/${encodeURIComponent(i)}`; }, id);
   await s.waitReader();
   await page.keyboard.press('c');
@@ -851,7 +883,7 @@ scenarios.mobi = async () => {
     await s.goto('#/');
     await page.waitForSelector('.lib-page');
     await (await page.$('input[type=file]')).uploadFile(files[1]);
-    await page.waitForFunction(() => document.querySelectorAll('.lib-card-main').length > 1, { timeout: 60000 }).then(() => check(true, 'the AZW3 imported too'), () => check(false, 'the AZW3 imported too'));
+    await page.waitForFunction(() => !document.querySelector('.lib-card-pending') && document.querySelectorAll('.lib-card[data-id]').length > 1, { timeout: 60000 }).then(() => check(true, 'the AZW3 imported too'), () => check(false, 'the AZW3 imported too'));
   }
   await s.done();
 };

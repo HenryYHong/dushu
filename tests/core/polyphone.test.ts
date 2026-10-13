@@ -96,7 +96,7 @@ describe('polyphones in context (end to end through segment)', () => {
     ['我们的老师', '老师', 'lao3 shi1', ''],
     ['女儿很可爱。', '女儿', 'nü3 er2', ''],
     ['他在玩儿。', '玩儿', 'wan2 r5', ''],
-    ['他在花园里种花儿。', '花儿', 'hua1 er2', 'CEDICT lists the folk-song sense first'],
+    ['他在花园里种花儿。', '花儿', 'hua1 r5', 'the flower with the suffix; CEDICT lists the Gansu folk song (hua1 er2) first'],
   ];
   for (const [text, word, expected, why] of cases) {
     it(`${text}: ${word} = ${expected}${why ? ' (' + why + ')' : ''}`, async () => {
@@ -106,7 +106,7 @@ describe('polyphones in context (end to end through segment)', () => {
 });
 
 describe('explicit context rules (pinyinFor with prev/next)', () => {
-  type C = [string, { prev?: string; next?: string }, string];
+  type C = [string, { prev?: string; next?: string; after?: string }, string | undefined];
   const rules: C[] = [
     // 了
     ['了', {}, 'le5'], ['了', { prev: '吃', next: '饭' }, 'le5'], ['了', { prev: '不' }, 'liao3'],
@@ -185,15 +185,69 @@ describe('explicit context rules (pinyinFor with prev/next)', () => {
     ['磨', { next: '坊' }, 'mo4'], ['磨', { next: '练' }, 'mo2'],
     ['宿', { prev: '一' }, 'xiu3'], ['宿', { next: '舍' }, 'su4'],
     ['儿', { prev: '花' }, 'r5'], ['儿', {}, 'er2'], ['儿', { prev: '，' }, 'er2'], ['儿', { next: '子' }, 'er2'],
+    // 倒: the adverb (dào) is the common use in dialogue; falling over stays dǎo
+    ['倒', { next: '也' }, 'dao4'], ['倒', { prev: '他', next: '不' }, 'dao4'], ['倒', { prev: '，', next: '像' }, 'dao4'], ['倒', { prev: '你', next: '还' }, 'dao4'],
+    ['倒', { next: '是' }, 'dao4'], ['倒', { next: '茶' }, 'dao4'], ['倒', { prev: '摔' }, 'dao3'], ['倒', { next: '下' }, 'dao3'], ['倒', { prev: '怕我', next: '。' }, 'dao3'],
+    ['倒', { prev: '墙', next: '了' }, 'dao3'], ['倒', { prev: '反' }, 'dao4'], ['倒', { prev: '，', next: '在' }, 'dao3'], ['倒', { next: '還' }, 'dao4'], ['倒', { next: '沒' }, 'dao4'],
+    // sentence-final particles are neutral; a free-standing interjection keeps its tone
+    ['啊', { prev: '好', next: '！' }, 'a5'], ['啊', { prev: '，', next: '你' }, 'a1'], ['啊', {}, 'a1'], ['啦', { prev: '走' }, 'la5'], ['啦', {}, 'la5'],
+    ['呀', { prev: '好', next: '！' }, 'ya5'], ['哇', { prev: '好', next: '！' }, 'wa5'], ['吧', { prev: '走' }, 'ba5'],
+    ['罢', { prev: '去', next: '。' }, 'ba5'], ['罷', { prev: '去', next: '，' }, 'ba5'], ['罢', { prev: '作', next: '。' }, 'ba4'], ['罢', { next: '了' }, 'ba4'],
+    ['哩', { prev: '在', next: '。' }, 'li5'], ['哩', { prev: '英' }, 'li3'],
+    // smaller context rules
+    ['数', { next: '十' }, 'shu4'], ['数', { prev: '了', next: '十' }, 'shu4'], ['数', { prev: '了', next: '数' }, 'shu3'], ['行', { prev: '米' }, 'hang2'], ['行', { prev: '数' }, 'hang2'],
+    ['觉', { prev: '一', next: '醒' }, 'jiao4'], ['地', { prev: '猛', next: '站' }, 'di4'], ['地', { prev: '忽', next: '一' }, 'di4'], ['地', { prev: '蓦', next: '然' }, 'di4'],
+    ['当', { prev: '当', next: '作' }, 'dang1'], ['當', { prev: '噹', next: '作' }, 'dang1'], ['为', { prev: '劈', next: '两' }, 'wei2'], ['为', { prev: '理解', next: '。' }, 'wei2'], ['为', { next: '妻' }, 'wei2'],
+    ['为', { prev: '娶', next: '妻' }, 'wei2'], ['得', { next: '叫' }, 'dei3'], ['了', { prev: '动弹不得', next: '。' }, 'le5'], ['了', { prev: '吃不得', next: '。' }, 'le5'],
+    ['重', { next: '又' }, 'chong2'], ['空', { prev: '留个' }, 'kong4'], ['少', { next: '小' }, 'shao4'], ['还', { prev: '他', next: '回' }, 'hai2'], ['还', { next: '回' }, 'huan2'],
+    ['中', { prev: '小说', next: '，' }, 'zhong1'], ['中', { prev: '传说' }, 'zhong1'], ['隻', {}, 'zhi1'], ['钯', { prev: '钉' }, 'pa2'], ['鈀', { prev: '釘' }, 'pa2'], ['钯', {}, 'ba3'],
+    ['塞', { prev: '边' }, 'sai4'], ['塞', { prev: '堵' }, 'sai1'], ['担', { prev: '挑' }, 'dan4'], ['擔', { prev: '挑' }, 'dan4'], ['担', { next: '心' }, 'dan1'],
     // traditional characters follow the same rules
     ['長', { prev: '生' }, 'zhang3'], ['還', { next: '書' }, 'huan2'], ['著', { prev: '睡', next: '了' }, 'zhao2'], ['發', { prev: '頭' }, 'fa4'],
     ['當', { next: '作' }, 'dang4'], ['數', { next: '一' }, 'shu3'], ['為', { prev: '成' }, 'wei2'], ['處', { next: '理' }, 'chu3'],
     ['種', { next: '樹' }, 'zhong4'], ['傳', { next: '記' }, 'zhuan4'], ['樂', { prev: '音' }, 'yue4'], ['將', { prev: '大' }, 'jiang4'],
     ['調', { next: '整' }, 'tiao2'], ['難', { next: '民' }, 'nan4'], ['興', { next: '趣' }, 'xing4'], ['載', { prev: '記' }, 'zai3'],
+    // read from the four classics and Lu Xun (see pinyin-accuracy.test.ts for the same rules through the segmenter)
+    ['鮮', { next: '矣' }, 'xian3'], ['鲜', { next: '有' }, 'xian3'], ['鮮', { next: '花' }, 'xian1'],
+    ['麼', { prev: '人', next: '？' }, 'ma5'], ['么', { prev: '好', next: '，' }, 'ma5'], ['么', { prev: '什', next: '人' }, 'me5'],
+    ['鋪', { next: '著' }, 'pu1'], ['鋪', { prev: '店' }, 'pu4'], ['舖', { next: '子' }, 'pu4'], ['铺', { prev: '十里', next: '。' }, 'pu4'],
+    ['更', { prev: '三' }, 'geng1'], ['更', { next: '鼓' }, 'geng1'], ['更', { next: '好' }, 'geng4'],
+    ['差', { next: '人' }, 'chai1'], ['差', { prev: '当' }, 'chai1'], ['差', { next: '点' }, 'cha4'], ['差', { next: '得' }, 'cha4'], ['差', { next: '别' }, 'cha1'], ['差', { next: '我' }, 'chai1'],
+    ['場', { prev: '一', next: '雨' }, 'chang2'], ['場', { prev: '一', next: '電' }, 'chang3'], ['場', { prev: '市' }, 'chang3'],
+    ['沈', { next: '吟' }, 'chen2'], ['沈', { prev: '，', next: '從' }, 'shen3'], ['沈', { next: '氏' }, 'shen3'],
+    ['哄', { prev: '怎么', next: '我' }, 'hong3'], ['哄', { prev: '起' }, 'hong4'], ['哄', { next: '堂' }, 'hong1'], ['哄', { next: '骗' }, 'hong3'],
+    ['徵', { prev: '魏' }, 'zheng1'], ['徵', { prev: '宮' }, 'zhi3'], ['征', { prev: '出' }, 'zheng1'],
+    ['累', { next: '卵' }, 'lei3'], ['累', { next: '了' }, 'lei4'], ['藏', { prev: '地' }, 'zang4'], ['藏', { prev: '收' }, 'cang2'],
+    ['斗', { prev: '星' }, 'dou3'], ['斗', { next: '争' }, 'dou4'], ['帖', { prev: '请' }, 'tie3'], ['帖', { prev: '服' }, 'tie1'], ['帖', { prev: '字' }, 'tie4'],
+    ['解', { prev: '押' }, 'jie4'], ['解', { next: '送' }, 'jie4'], ['沒', { prev: '辱' }, 'mo4'], ['沒', { prev: '他' }, 'mei2'],
+    ['恁', { next: '般' }, 'nen4'], ['咽', { prev: '嗚' }, 'ye4'], ['咽', { prev: '下' }, 'yan4'], ['什', { next: '物' }, 'shi2'], ['什', { next: '么' }, 'shen2'],
+    ['譙', { next: '樓' }, 'qiao2'], ['紮', { next: '營' }, 'zha1'], ['紮', { next: '辮' }, 'za1'],
+    ['剋', { next: '我' }, 'kei1'], ['剋', { prev: '相' }, 'ke4'], ['拚', { next: '命' }, 'pin1'],
+    ['幹', { next: '事' }, 'gan4'], ['乾', { next: '元' }, 'qian2'], ['乾', { next: '淨' }, 'gan1'], ['髮', {}, 'fa4'], ['發', { next: '財' }, 'fa1'],
+    ['降', { next: '妖' }, 'xiang2'], ['降', { prev: '歸' }, 'xiang2'], ['降', { next: '臨' }, 'jiang4'], ['降', { prev: '空' }, 'jiang4'],
+    ['數', { prev: '了', next: '個' }, 'shu4'], ['數', { prev: '歷' }, 'shu4'], ['數', { prev: '了', next: '數' }, 'shu3'],
+    ['得', { prev: '他', next: '了' }, 'de2'], ['得', { prev: '我', next: '去' }, 'dei3'],
+    ['了', { prev: '晓得', next: '。' }, 'le5'], ['了', { prev: '吃得', next: '。' }, 'liao3'],
+    ['空', { prev: '个', next: '。' }, 'kong4'], ['空', { prev: '个', next: '瓶' }, 'kong1'],
+    ['朝', { prev: '一', next: '天氣' }, 'zhao1'], ['朝', { prev: '一', next: '天子' }, 'chao2'],
+    ['卷', { prev: '一', next: '經' }, 'juan4'], ['卷', { prev: '一', next: '鋪' }, 'juan3'],
+    ['還', { next: '陽' }, 'huan2'], ['樂', { prev: '鼓' }, 'yue4'], ['難', { prev: '急' }, 'nan4'], ['彈', { prev: '珠' }, 'dan4'],
+    ['切', { next: '莫' }, 'qie4'], ['切', { next: '不可' }, 'qie4'], ['切', { next: '菜' }, 'qie1'],
+    ['佛', {}, 'fo2'], ['擔', {}, 'dan1'], ['卜', {}, 'bu3'],
+    ['干', { next: '甚' }, 'gan4'], ['干', { prev: '晒' }, 'gan1'], ['长', { prev: '道' }, 'zhang3'], ['差', { prev: '不' }, 'cha4'], ['卷', { prev: '下', next: '经' }, 'juan4'], ['为', { prev: '转' }, 'wei2'],
+    ['骑', { prev: '一', next: '自' }, 'ji4'], ['骑', { next: '马' }, 'qi2'], ['繫', { prev: '腰' }, 'ji4'], ['繫', { next: '統' }, 'xi4'], ['盛', { next: '饭' }, 'cheng2'], ['盛', { prev: '繁' }, 'sheng4'], ['系', { prev: '腰' }, 'xi4'],
+    ['莎', { next: '草' }, 'suo1'], ['莎', { prev: '枯' }, 'suo1'], ['鈀', {}, 'pa2'], ['没', { prev: '父' }, 'mo4'],
+    ['挑', { prev: '枪' }, 'tiao3'], ['挑', { prev: '水' }, undefined], ['弟', { prev: '则' }, 'ti4'], ['得', { prev: '兵', next: '令' }, 'de2'],
+    ['娜', { prev: '婀' }, 'nuo2'], ['娜', { prev: '丽' }, 'na4'], ['咧', { prev: '罢', next: '。' }, 'lie5'], ['咧', { next: '嘴' }, 'lie3'], ['教', { prev: '我', next: '给' }, 'jiao1'],
+    ['缝', { prev: '密' }, 'feng2'], ['缝', { prev: '门' }, 'feng4'],
+    ['省', { prev: '三' }, 'xing3'], ['省', { prev: '各' }, 'sheng3'], ['喝', { prev: '大' }, 'he4'], ['喝', { next: '酒' }, 'he1'], ['喝', { next: '道' }, 'he4'],
+    ['嗄', { prev: '灯', next: '。' }, 'a5'], ['嗄', { prev: '声' , next: '音' }, 'sha4'], ['曾', { next: '子' }, 'zeng1'], ['曾', { prev: '何' }, 'ceng2'],
+    ['场', { prev: '一', next: '雨' }, 'chang2'], ['没', { prev: '淹' }, 'mo4'], ['谯', {}, 'qiao2'], ['扎', { next: '针' }, 'zha1'], ['克', { next: '制' }, 'ke4'], ['拼', { next: '命' }, 'pin1'],
   ];
   for (const [ch, ctx, expected] of rules) {
     it(`${ch} ${JSON.stringify(ctx)} -> ${expected}`, async () => {
       const d = await dictP;
+      if (expected === undefined) return void expect(d.pinyinFor(ch, ctx)).toHaveLength(1); // no rule: whatever the dictionary says
       expect(d.pinyinFor(ch, ctx)).toEqual([expected]);
     });
   }
