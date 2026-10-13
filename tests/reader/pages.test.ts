@@ -202,6 +202,56 @@ describe('pages layout', () => {
     expect(stage().page).toBe('1');
   });
 
+  it('turns a page for every quick click on the outer strip, double and triple clicks included', async () => {
+    const { ctx, meta } = await setup();
+    await open(ctx, meta.id);
+    for (const detail of [1, 2]) {
+      const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail, clientX: 790 });
+      q('.rd-stage')!.dispatchEvent(down);
+      // A double or triple click must not select the word nearest the margin (Chrome does, and the click was then spent on it).
+      if (detail > 1) expect(down.defaultPrevented).toBe(true);
+      q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail, clientX: 790 }));
+    }
+    await tick(5);
+    expect(stage().page).toBe('3');
+    // Even with a word selected, a click on the page edge turns the page.
+    const word = q('.rd-article.rd-live .rd-p .rd-w ruby')!.firstChild!;
+    const range = document.createRange(); range.setStart(word, 0); range.setEnd(word, 1);
+    window.getSelection()!.removeAllRanges(); window.getSelection()!.addRange(range);
+    q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 3, clientX: 790 }));
+    await tick(5);
+    expect(stage().page).toBe('4');
+  });
+
+  it('changes the page at once when turns come quickly, so they never pile up behind the reader', async () => {
+    const { ctx, meta } = await setup({ pageTurn: 'slide' });
+    await open(ctx, meta.id);
+    key('ArrowRight');
+    expect(stage().turn).toBe('slide'); // the first turn animates
+    key('ArrowRight');
+    key('ArrowRight');
+    // The quick ones finish the running turn and change the page at once instead of starting animations of their own.
+    expect(stage().turn).toBeUndefined();
+    expect(stage().page).toBe('4');
+    await tick(5);
+    expect(stage().page).toBe('4');
+  });
+
+  it('turns once per trackpad swipe, and again for a quick second swipe while the first is still coasting', async () => {
+    const { ctx, meta } = await setup();
+    await open(ctx, meta.id);
+    const wheel = (dx: number) => q('.rd-stage')!.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: dx, deltaY: 0 }));
+    for (const d of [12, 30, 26, 18, 12, 8, 5, 3]) wheel(d); // one swipe and its coasting
+    await tick(5);
+    expect(stage().page).toBe('2');
+    for (const d of [24, 40, 30]) wheel(d); // a new swipe before the coasting stopped
+    await tick(5);
+    expect(stage().page).toBe('3');
+    wheel(-30); wheel(-40); // and straight back the other way
+    await tick(5);
+    expect(stage().page).toBe('2');
+  });
+
   it('a click in the middle toggles the bar, and turning a page tucks it away', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);

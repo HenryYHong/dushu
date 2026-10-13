@@ -843,9 +843,10 @@ export const mount: MountFn = async (root, params, ctx) => {
   };
   const onMouseDown = (e: MouseEvent) => {
     dragFromArticle = inArticle(e.target);
-    if (!dragFromArticle) return;
-    // Stop the browser from selecting a word on double or triple click; we look the word up instead.
-    if (e.detail > 1) e.preventDefault();
+    // Stop the browser from selecting a word on a double or triple click: on a word we look it up instead, and quick clicks
+    // anywhere on the pages turn them (Chrome would otherwise select the word nearest the margin and swallow the turn).
+    const onPages = paged && !!pager && e.target instanceof Node && pager.stage.contains(e.target);
+    if (e.detail > 1 && (dragFromArticle || onPages)) e.preventDefault();
   };
   const onMouseUp = (e: MouseEvent) => {
     if (e.button !== 0 || !dragFromArticle) return;
@@ -861,9 +862,13 @@ export const mount: MountFn = async (root, params, ctx) => {
   const onClick = (e: MouseEvent) => {
     if (suppressClick) { suppressClick = false; return; }
     const touchy = pointerKind !== 'mouse';
-    if (e.detail > 1 && !touchy) return;
     const target = e.target as Element;
     const w = target.closest?.('.rd-w');
+    // A double click on a word looks that word up (onDblClick). Quick clicks on the outer strips of a page each turn a page:
+    // the browser counts them as double and triple clicks, which used to swallow every click after the first.
+    const edgeClick = paged && !!pager && !w && pager.stage.contains(target)
+      && !target.closest('[data-rd-ui], button, a, input, .pp-pop') && pager.zoneAt(e.clientX) !== 'middle';
+    if (e.detail > 1 && !touchy && !edgeClick) return;
     // A tap outside an open popup closes it. (The popup closes itself on a mouse press, but WebKit reports the click
     // that follows a touch as a mouse click, so a tap would otherwise leave it open.)
     if (popupWasOpen && !w && !target.closest?.('[data-rd-ui], button, a, input, .rd-bar')) {
@@ -872,7 +877,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       return;
     }
     const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && inArticle(sel.anchorNode)) {
+    if (!edgeClick && sel && !sel.isCollapsed && inArticle(sel.anchorNode)) {
       // A tap with a selection showing only puts the selection away, like a native text view.
       // (Not for a mouse drag: its click arrives before the selection has been turned into a phrase popup.)
       if (!w && pointerKind !== 'mouse' && !document.querySelector('.pp-pop')) sel.removeAllRanges();

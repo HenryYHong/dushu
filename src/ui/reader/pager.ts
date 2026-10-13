@@ -1121,9 +1121,18 @@ export function createPager(o: PagerOptions): Pager {
     return reduced() ? 'fade' : k;
   }
 
-  /** Go one spread forward or back: animated for taps and keys. */
+  /** A turn asked for this soon after the last one (a held key, quick taps or clicks) changes the page at once. */
+  const RAPID_TURN_MS = 350;
+  let lastGoAt = -Infinity;
+
+  /** Go one spread forward or back: animated for taps and keys, instant when turns come quickly one after another. */
   function go(dir: 1 | -1): void {
     if (!cur || disposed) return;
+    const now = performance.now();
+    // Building a turn's pictures takes a while; animating every quick turn queued them up behind the reader and the
+    // pages seemed to refuse to turn. The first turn animates; the ones that follow it closely just change the page.
+    const rapid = !!turn || now - lastGoAt < RAPID_TURN_MS;
+    lastGoAt = now;
     if (turn) endTurn(true);
     const plan = planTurn(dir);
     if (!plan) {
@@ -1138,7 +1147,7 @@ export function createPager(o: PagerOptions): Pager {
       else nudge();
       return;
     }
-    const kind = kindNow();
+    const kind = rapid ? 'none' : kindNow();
     if (kind === 'none') {
       o.onTurnStart();
       setCurrent(plan.to.layout, plan.to.spread, plan.to.layout !== plan.from.layout);
@@ -1397,20 +1406,31 @@ export function createPager(o: PagerOptions): Pager {
   };
   area.addEventListener('click', onSwipeClick, true);
 
-  // Horizontal trackpad scroll: one turn per gesture.
+  // Horizontal trackpad scroll: one turn per swipe. A trackpad keeps sending ever smaller deltas while a swipe coasts, so after
+  // a turn the rest of that swipe is ignored. A delta that jumps up again, or goes the other way, is a new swipe and may turn
+  // at once (waiting for the coasting to stop swallowed quick second swipes).
   let wheelAcc = 0;
   let wheelLock = false;
   let wheelTimer = 0;
+  let wheelLast = 0;
+  let wheelDir = 0;
   const onWheel = (e: WheelEvent) => {
     if (e.ctrlKey || interactive(e.target)) return;
     const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
     const delta = horizontal ? e.deltaX : e.deltaY;
     e.preventDefault();
     window.clearTimeout(wheelTimer);
-    wheelTimer = window.setTimeout(() => { wheelAcc = 0; wheelLock = false; }, 160);
+    wheelTimer = window.setTimeout(() => { wheelAcc = 0; wheelLock = false; wheelLast = 0; }, 160);
+    const mag = Math.abs(delta);
+    if (wheelLock && mag > 0 && (Math.sign(delta) !== wheelDir || (mag > 6 && mag > wheelLast * 2))) {
+      wheelLock = false;
+      wheelAcc = 0;
+    }
+    if (mag > 0) wheelLast = mag;
     if (wheelLock) return;
     wheelAcc += delta;
     if (Math.abs(wheelAcc) >= (horizontal ? 40 : 70)) {
+      wheelDir = Math.sign(wheelAcc);
       go(wheelAcc > 0 ? 1 : -1);
       wheelAcc = 0;
       wheelLock = true;
