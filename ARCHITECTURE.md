@@ -582,6 +582,15 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
 - A chapter that cannot be loaded or drawn shows "Could not display this chapter" with Previous, Next, Open chapter list and (the first time) Try
   again; keys still turn chapters; the saved place is not overwritten. Failures are counted per chapter in localStorage (`dushu.chapter-failures`):
   after two, opening the book shows the error and the chapter list instead of trying that chapter again.
+- Words tab (`ui/reader/wordsTab.ts`, counting in `core/chapterWords.ts`): the chapter drawer's middle tab (press W) lists the words of the
+  current chapter, segmented like the reader (same dictionary and lexicon; the book's names and terms are left out, they have their own tab),
+  one row per simplified form with its count, its most common reading in the chapter, a short gloss, its HSK band, and the sentence it first
+  comes up in. A summary gives the share of word occurrences known and the number of new words (and of those that come up 3+ times). New/All
+  and Most often/In order chips, a filter (word, pinyin with or without tones, gloss), and arrows to look at another chapter's words without
+  turning the page. A row opens the word card with that sentence as context; its star saves the word (`popup/saveWord.ts`, the same card the
+  word popup makes, with the chapter) and its check marks it known. Rows stay in place when saved or known, so a slip is one tap to undo; the
+  list is filtered again only when the chips or the filter change. The reader caches the counts per chapter until the lexicon changes. Counting
+  runs in slices of 6,000 characters with a pause between them (about 0.15 s for a 40,000-character chapter).
 - Dialogs: the chapter drawer is a modal `role=dialog` (focus goes to the current chapter, Tab stays inside, Esc and close return focus to the opener;
   its list is windowed, so 2,000 chapters draw about 30 rows); the Aa and pinyin menus are labeled dialogs that take focus and give it back. On a
   touch screen or under 640 px they are bottom sheets (grabber, Done, at most 60% of the height, so the top of the page stays in view).

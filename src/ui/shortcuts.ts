@@ -21,6 +21,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['P'], what: 'Cycle pinyin: off, all, unknown, HSK' },
       { keys: ['[ or ]'], what: 'Smaller and larger text' },
       { keys: ['C'], what: 'Open the chapter list' },
+      { keys: ['W'], what: 'Open the words of this chapter' },
       { keys: ['N'], what: 'Open the names and terms of this book' },
       { keys: ['Page Down'], what: 'At the end of a chapter, go to the next one' },
       { keys: ['Page Up'], what: 'At the top of a chapter, go to the previous one' },

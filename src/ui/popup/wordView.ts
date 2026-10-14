@@ -1,8 +1,7 @@
 // The word popup's content: readings and definitions, character breakdown, single-character facts,
 // stroke order, links, and the Save / Known / speak controls.
-import type { AppContext, CharInfo, Dictionary, DictEntry, VocabItem } from '../../types';
+import type { AppContext, CharInfo, Dictionary, DictEntry } from '../../types';
 import { formatSyllable, markedToNumbered, toneOf } from '../../core/pinyin';
-import { newSrs } from '../../core/srs';
 import { speak, stopSpeaking, canSpeak } from '../../speech/tts';
 import { suggestMeaning } from '../../translate/localMeaning';
 import { hasMacBridge } from '../../core/macBridge';
@@ -20,6 +19,7 @@ import { pinyinSpans } from './pinyinText';
 import { properGroups } from '../../core/names';
 import type { WordPopupOptions } from './popup';
 import { entriesForReading } from '../../core/reading';
+import { headwordsFor, vocabItemFor } from './saveWord';
 
 interface View {
   word: string;
@@ -220,48 +220,22 @@ export function mountWordView(
 
   // ---- save / known
 
-  /**
-   * The simplified and traditional spellings of a word, from the entries that have the reading on screen: 了 as the particle
-   * le has no other spelling, and only the liǎo "understand" row is 瞭; 干 gàn is 幹 and 干 gān is 乾. With no reading to go
-   * by (or none that an entry has) every entry of the word is considered.
-   */
+  /** The simplified and traditional spellings of a word for the reading on screen (see headwordsFor). */
   function headwords(v: View, entries: DictEntry[], syllables: string[] = contextSyllables(v)) {
-    const own = entries.filter((x) => x.simp === v.word || x.trad === v.word);
-    const shown = syllables.filter(Boolean).map((x) => x.toLowerCase());
-    const exact = shown.length ? own.filter((x) => sameReading(x.pinyin, shown)) : [];
-    const e = exact[0] ?? own[0] ?? entries[0];
-    const simp = e ? e.simp : dict.toSimplified(v.word);
-    const trad = e ? e.trad : v.word;
-    // Every spelling the matching rows give for this word, the one on screen aside (干 gān: 乾 and 干 itself).
-    const pool = exact.length ? exact : own;
-    const others = [...new Set(pool.flatMap((x) => [x.trad, x.simp]))].filter((f) => f !== v.word);
-    return { simp, trad: trad === simp ? '' : trad, others, matched: exact.length > 0 || !shown.length };
+    return headwordsFor(dict, v.word, entries, syllables);
   }
 
   async function toggleSave(v: View) {
     const entries = entriesFor(v.word);
-    const { simp, trad } = headwords(v, entries);
+    const { simp } = headwords(v, entries);
     const existing = (await store.vocab.get(simp)) ?? (await store.vocab.get(v.word));
     if (existing) {
       await store.vocab.remove(existing.id);
       return;
     }
-    const info = ONE_CHAR(v.word) ? dict.char(v.word) : null;
-    const syllables = contextSyllables(v);
-    const gloss = bookEntry(v.word)?.gloss || shortGloss(entriesForReading(entries, syllables, v.word, aroundOf(v)).slice(0, 1), 120, true) || shortGloss(entries) || info?.definition.split(';').slice(0, 2).join(';').trim() || '';
-    const item: VocabItem = {
-      id: simp,
-      simp,
-      trad: trad || simp,
-      pinyin: syllables.filter(Boolean).join(' ').toLowerCase(),
-      gloss,
-      addedAt: Date.now(),
-      srs: newSrs(Date.now()),
-    };
-    if (o.context?.sentence) {
-      item.context = { sentence: o.context.sentence, bookId: o.context.bookId, bookTitle: o.context.bookTitle, chapter: o.context.chapter };
-    }
-    await store.vocab.put(item);
+    await store.vocab.put(vocabItemFor(dict, {
+      word: v.word, syllables: contextSyllables(v), around: aroundOf(v), bookGloss: bookEntry(v.word)?.gloss, context: o.context,
+    }));
   }
 
   async function toggleKnown(v: View) {

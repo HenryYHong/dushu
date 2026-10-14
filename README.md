@@ -88,6 +88,7 @@ The speaker button reads from your current position to the end of the chapter, w
 - **Keyboard:** press Enter to put a cursor on the first word of the page, move it with the arrow keys (up and down by line), and press Enter again to open the card. Escape puts the cursor away. In Pages, tap the outer edges of the spread to turn the page (press and hold a word there to look it up).
 - **Drag across text** to open the phrase card: pinyin over the whole phrase, a translation, and a word-by-word list. On a phone, press and hold, then adjust the selection.
 - Star a word to save it with the sentence you found it in. Mark it known and its pinyin stays hidden.
+- **Words in this chapter** (press `W`, or the Words tab under the contents button) lists the chapter's words you have not marked known, the most frequent first, with how much of the chapter you already know. Look through them before you read, or after. Tap a word for its card, star it to save it with the sentence it first comes up in, or check it off as known. The arrows at the top show the next chapter's words without leaving your page.
 
 ## Pinyin modes
 

@@ -7,6 +7,7 @@ import { readingFontSizeKey } from '../../store/settings';
 import { canSpeak, pauseSpeaking, resumeSpeaking, speakSequence, stopSpeaking } from '../../speech/tts';
 import { EMPTY_LEXICON, isDetecting, loadLexicon } from '../../core/lexicon';
 import { REMOTE_PROGRESS_EVENT, syncBeforeOpen } from '../../core/sync';
+import { chapterWords, type ChapterWords } from '../../core/chapterWords';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { closePopup, openWordPopup } from '../popup/popup';
@@ -168,6 +169,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   clear(root);
   root.appendChild(rd);
 
+  // The Words tab's counts, per chapter, until the names and terms change.
+  const chapterWordCache = new Map<number, Promise<ChapterWords>>();
   const toc = createToc(ctx, book, (i) => void loadChapter(i, { top: true }), {
     load: () => store.lexicon.get(book.id),
     onWord: (entry, anchor) => openWordPopup({
@@ -179,7 +182,30 @@ export const mount: MountFn = async (root, params, ctx) => {
       await store.lexicon.upsert(book.id, { ...entry, enabled: !entry.enabled, origin: 'user' });
       await reloadLexicon();
     },
-  }, { text });
+  }, {
+    text,
+    words: {
+      load(i) {
+        let got = chapterWordCache.get(i);
+        if (!got) {
+          const lex = lexicon;
+          got = store.books.chapter(book.id, i).then((c) => {
+            if (!c) throw new Error('This chapter is missing.');
+            const texts = c.blocks.flatMap((b) => (b.t === 'p' || b.t === 'h' || b.t === 'quote' ? [b.text] : []));
+            return chapterWords(texts, dict, lex, { cancelled: () => disposed });
+          });
+          got.catch(() => chapterWordCache.delete(i));
+          chapterWordCache.set(i, got);
+        }
+        return got;
+      },
+      onWord: (w, anchor, chapter) => openWordPopup({
+        ctx, word: w.word, reading: w.pinyin, anchor, prev: w.prev, next: w.next,
+        lexicon, bookId: book.id, onLexiconChange: () => void reloadLexicon(),
+        context: { sentence: w.sentence, bookId: book.id, bookTitle: book.title, chapter },
+      }),
+    },
+  });
 
   // ------------------------------------------------------------------- state
   let scrollView: ChapterView | null = null;
@@ -467,6 +493,8 @@ export const mount: MountFn = async (root, params, ctx) => {
     lexicon = lex;
     toc.refreshNames();
     if (same) return;
+    chapterWordCache.clear();
+    toc.refreshWords();
     const v = view();
     if (!v || disposed) return;
     closePopup();
@@ -1141,6 +1169,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       case '?': e.preventDefault(); showShortcuts(); break;
       case 'c': case 'C': e.preventDefault(); toc.open(chapterIndex); break;
       case 'n': case 'N': e.preventDefault(); toc.open(chapterIndex, 'names'); break;
+      case 'w': case 'W': e.preventDefault(); toc.open(chapterIndex, 'words'); break;
       case 'ArrowRight':
       case 'PageDown':
       case ' ':

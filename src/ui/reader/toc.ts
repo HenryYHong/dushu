@@ -1,4 +1,4 @@
-// The chapter drawer, with a second tab for the book's names and terms. Chapter titles are loaded lazily
+// The chapter drawer, with tabs for the words of a chapter (wordsTab.ts) and the book's names and terms. Chapter titles are loaded lazily
 // (the book record only has counts) and cached. Both lists are windowed: only the rows near the visible part exist,
 // so a book with 2,000 chapters opens as fast as one with twenty.
 // The drawer is a modal dialog: focus moves into it on open, Tab stays inside it, and focus returns to its opener on close.
@@ -6,14 +6,20 @@ import type { AppContext, BookMeta, LexiconEntry, PinyinStyle } from '../../type
 import { formatSyllable } from '../../core/pinyin';
 import { h } from '../dom';
 import { icon } from '../icons';
+import { windowed } from './windowed';
+import { createWordsTab, type TocWords } from './wordsTab';
+
+export type TocTab = 'chapters' | 'words' | 'names';
 
 export interface TocDrawer {
-  open(current: number, tab?: 'chapters' | 'names'): void;
+  open(current: number, tab?: TocTab): void;
   close(): void;
   setCurrent(index: number): void;
   isOpen(): boolean;
   /** The lexicon changed: redraw the names tab if it is showing. */
   refreshNames(): void;
+  /** The names and terms in use changed: the words are counted again. */
+  refreshWords(): void;
   /** The script setting changed: titles and names are drawn again in the new script. */
   refreshText(): void;
   dispose(): void;
@@ -32,6 +38,8 @@ export interface TocNames {
 export interface TocOptions {
   /** Book text as the reader shows it (the script setting also applies to the chapter list and the names). */
   text?(s: string): string;
+  /** The Words tab: the words of a chapter. Without it the tab is not shown. */
+  words?: TocWords;
 }
 
 /** Book metadata may carry titles already (optional field); otherwise they are read from the chapters. */
@@ -60,93 +68,13 @@ export function capitalizePinyin(numbered: string, kind: LexiconEntry['kind'], s
   return cap(syl.join(''));
 }
 
-/** A window of rows over a long list. Rows are absolutely positioned in a sizer as tall as the whole list. */
-interface Windowed {
-  /** The new list of items (the number of them); redraws the window. */
-  set(count: number, rowH: number): void;
-  /** Redraw the rows that are showing (their content changed). */
-  repaint(): void;
-  /** Scroll so row `i` is centered (or just visible), and make sure it exists. */
-  reveal(i: number, center?: boolean): void;
-  /** The row element for item `i`, if it exists right now. */
-  rowAt(i: number): HTMLElement | null;
-  dispose(): void;
-}
-
-function windowed(scroller: HTMLElement, render: (i: number) => HTMLElement, keep: () => number): Windowed {
-  const sizer = h('div.rd-toc-sizer', { role: 'presentation' });
-  scroller.appendChild(sizer);
-  const rows = new Map<number, HTMLElement>();
-  let count = 0;
-  let rowH = 44;
-  let raf = 0;
-
-  function paint(): void {
-    raf = 0;
-    const top = scroller.scrollTop;
-    const view = scroller.clientHeight || 480;
-    const from = Math.max(0, Math.floor(top / rowH) - 6);
-    const to = Math.min(count, Math.ceil((top + view) / rowH) + 6);
-    const focused = scroller.contains(document.activeElement) ? (document.activeElement as HTMLElement).closest<HTMLElement>('[data-i]') : null;
-    const must = new Set<number>([keep()]);
-    if (focused) must.add(Number(focused.dataset.i));
-    for (const [i, el] of rows) {
-      if ((i < from || i >= to) && !must.has(i)) { el.remove(); rows.delete(i); }
-    }
-    const frag = document.createDocumentFragment();
-    for (let i = from; i < to; i++) if (!rows.has(i)) rows.set(i, frag.appendChild(place(render(i), i)));
-    for (const i of must) if (i >= 0 && i < count && !rows.has(i)) rows.set(i, frag.appendChild(place(render(i), i)));
-    sizer.appendChild(frag);
-  }
-  function place(el: HTMLElement, i: number): HTMLElement {
-    el.dataset.i = String(i);
-    el.style.top = `${i * rowH}px`;
-    el.style.height = `${rowH}px`;
-    return el;
-  }
-  const onScroll = () => { if (!raf) raf = requestAnimationFrame(paint); };
-  scroller.addEventListener('scroll', onScroll, { passive: true });
-
-  /** Redraw every row, and give focus back to the row (its button) that had it. */
-  function redraw(): void {
-    const had = scroller.contains(document.activeElement)
-      ? (document.activeElement as HTMLElement).closest<HTMLElement>('[data-i]')?.dataset.i
-      : undefined;
-    const wasButton = had !== undefined && (document.activeElement as HTMLElement).tagName === 'BUTTON';
-    for (const el of rows.values()) el.remove();
-    rows.clear();
-    paint();
-    if (had !== undefined && wasButton) rows.get(Number(had))?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
-  }
-
-  return {
-    set(n, h_) {
-      count = n;
-      rowH = h_;
-      sizer.style.height = `${n * rowH}px`;
-      redraw();
-    },
-    repaint: redraw,
-    reveal(i, center = false) {
-      const top = i * rowH;
-      const view = scroller.clientHeight || 480;
-      if (center) scroller.scrollTop = Math.max(0, top - view / 2 + rowH / 2);
-      else if (top < scroller.scrollTop) scroller.scrollTop = top;
-      else if (top + rowH > scroller.scrollTop + view) scroller.scrollTop = top + rowH - view;
-      paint();
-    },
-    rowAt: (i) => rows.get(i) ?? null,
-    dispose() { scroller.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); },
-  };
-}
-
 export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: number) => void, names?: TocNames, opts: TocOptions = {}): TocDrawer {
   const text = (s: string): string => (opts.text ? opts.text(s) : s);
   const titles: (string | undefined)[] = [...((book as MetaWithTitles).chapterTitles ?? [])];
   let loadingAll: Promise<void> | null = null;
   let disposed = false;
   let currentIndex = 0;
-  let tab: 'chapters' | 'names' = 'chapters';
+  let tab: TocTab = 'chapters';
   let rows: LexiconEntry[] = [];
   let namesSeq = 0;
   let opener: HTMLElement | null = null;
@@ -167,8 +95,15 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   const nameList = h('div.rd-toc-list.rd-names', { role: 'list', 'aria-label': 'Names and terms' });
   const status = h('div.rd-toc-status', { role: 'status' });
   const tabChapters = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('chapters') }, 'Chapters') as HTMLButtonElement;
+  const tabWords = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('words') }, 'Words') as HTMLButtonElement;
   const tabNames = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('names') }, 'Names & terms') as HTMLButtonElement;
-  const tabs = names ? h('div.rd-toc-tabs', { role: 'tablist' }, tabChapters, tabNames) : null;
+  const label = (i: number) => text(titles[i] || `Chapter ${i + 1}`);
+  const words = opts.words
+    ? createWordsTab(ctx, book, opts.words, { text, rowH: nameRowH, chapterTitle: (i) => titles[i] || `Chapter ${i + 1}` })
+    : null;
+  const tabs = names || words
+    ? h('div.rd-toc-tabs', { role: 'tablist' }, tabChapters, words ? tabWords : null, names ? tabNames : null)
+    : null;
   const closeBtn = h('button.icon-btn', { type: 'button', 'aria-label': 'Close chapters', onclick: () => close() }, icon('close'));
   const panel = h('aside.rd-toc', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Chapters', tabindex: '-1' },
     h('div.rd-toc-head', null,
@@ -177,14 +112,14 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     tabs,
     book.chapterCount > 12 ? filter : null,
     names ? nameFilter : null,
+    words?.head ?? null,
     status,
     list,
+    words?.list ?? null,
     names ? nameList : null);
   const backdrop = h('div.rd-backdrop', { onclick: () => close() });
   const root = h('div.rd-toc-root', { hidden: true }, backdrop, panel);
   document.body.appendChild(root);
-
-  const label = (i: number) => text(titles[i] || `Chapter ${i + 1}`);
 
   // ------------------------------------------------------- chapters tab
   function chapterRow(pos: number): HTMLElement {
@@ -267,18 +202,24 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (tab === 'names' && !root.hidden) paintNames();
   }
 
-  function setTab(next: 'chapters' | 'names') {
-    tab = names ? next : 'chapters';
+  function setTab(next: TocTab) {
+    tab = next === 'names' && names ? 'names' : next === 'words' && words ? 'words' : 'chapters';
     const isNames = tab === 'names';
-    tabChapters.setAttribute('aria-selected', String(!isNames));
+    const isWords = tab === 'words';
+    const isChapters = tab === 'chapters';
+    tabChapters.setAttribute('aria-selected', String(isChapters));
+    tabWords.setAttribute('aria-selected', String(isWords));
     tabNames.setAttribute('aria-selected', String(isNames));
-    list.hidden = isNames;
-    filter.hidden = isNames;
+    list.hidden = !isChapters;
+    filter.hidden = !isChapters;
+    status.hidden = !isChapters;
     nameList.hidden = !isNames;
     nameFilter.hidden = !isNames;
-    status.hidden = isNames;
-    panel.setAttribute('aria-label', isNames ? 'Names and terms' : 'Chapters');
-    if (isNames) { paintNames(); void loadNames(); } else { paint(); scrollToCurrent(); }
+    if (words) { words.head.hidden = !isWords; words.list.hidden = !isWords; words.setVisible(isWords && !root.hidden); }
+    panel.setAttribute('aria-label', isNames ? 'Names and terms' : isWords ? 'Words in this chapter' : 'Chapters');
+    if (isNames) { paintNames(); void loadNames(); }
+    else if (isWords) words!.show(currentIndex);
+    else { paint(); scrollToCurrent(); }
   }
 
   async function loadTitles() {
@@ -312,19 +253,20 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       .filter((el) => !el.closest('[hidden]') && !el.hidden && el.getAttribute('tabindex') !== '-1');
 
   function moveRove(delta: number, absolute?: 'start' | 'end') {
-    const isNames = tab === 'names';
-    const n = isNames ? shownNames.length : shown.length;
+    const n = tab === 'names' ? shownNames.length : tab === 'words' ? words!.count() : shown.length;
     if (!n) return;
-    const from = isNames ? roveName : rove;
+    const from = tab === 'names' ? roveName : tab === 'words' ? words!.rove : rove;
     const to = absolute === 'start' ? 0 : absolute === 'end' ? n - 1 : Math.max(0, Math.min(n - 1, from + delta));
-    if (isNames) roveName = to; else rove = to;
-    const w = isNames ? nameWindow : chapterWindow;
+    if (tab === 'names') roveName = to; else if (tab === 'words') words!.rove = to; else rove = to;
+    const w = tab === 'names' ? nameWindow : tab === 'words' ? words!.window : chapterWindow;
     w.reveal(to);
     // Rows are rebuilt around the new tab stop; the one that gets focus is the new one.
     w.repaint();
     w.reveal(to);
-    const btn = w.rowAt(to)?.querySelector<HTMLElement>('button');
-    btn?.focus({ preventScroll: true });
+    // The same kind of button as before (a row of words has three), else the row's first.
+    const kind = (document.activeElement as HTMLElement | null)?.dataset?.k;
+    const row = w.rowAt(to);
+    (row?.querySelector<HTMLElement>(kind ? `button[data-k="${kind}"]` : 'button') ?? row?.querySelector<HTMLElement>('button'))?.focus({ preventScroll: true });
   }
 
   function onKey(e: KeyboardEvent) {
@@ -349,7 +291,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     else if (e.key === 'End') { e.preventDefault(); moveRove(0, 'end'); }
   }
 
-  function open(current: number, which: 'chapters' | 'names' = 'chapters') {
+  function open(current: number, which: TocTab = 'chapters') {
     opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     currentIndex = current;
     root.hidden = false;
@@ -363,12 +305,13 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (tab === 'chapters') {
       const row = chapterWindow.rowAt(rove)?.querySelector<HTMLElement>('button');
       (row ?? panel).focus({ preventScroll: true });
-    } else tabNames.focus({ preventScroll: true });
+    } else (tab === 'words' ? tabWords : tabNames).focus({ preventScroll: true });
   }
 
   function close() {
     if (root.hidden) return;
     root.hidden = true;
+    words?.setVisible(false);
     window.removeEventListener('keydown', onKey, true);
     // Focus goes back to what opened the drawer (the Chapters button, or the page when a key opened it).
     const back = opener && opener.isConnected ? opener : document.querySelector<HTMLElement>('.rd-toc-btn');
@@ -386,15 +329,17 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     isOpen: () => !root.hidden,
     setCurrent(i) { currentIndex = i; },
     refreshNames() { if (!root.hidden && tab === 'names') void loadNames(); else rows = []; },
+    refreshWords() { words?.reload(); },
     refreshText() {
       if (root.hidden) return;
-      if (tab === 'chapters') chapterWindow.repaint(); else paintNames();
+      if (tab === 'chapters') chapterWindow.repaint(); else if (tab === 'words') words!.refreshText(); else paintNames();
     },
     dispose() {
       disposed = true;
       window.removeEventListener('keydown', onKey, true);
       chapterWindow.dispose();
       nameWindow.dispose();
+      words?.dispose();
       root.remove();
     },
   };

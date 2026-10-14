@@ -630,6 +630,35 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-sw-input:focus-visible + .rd-sw-track { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rd-sw-input:disabled + .rd-sw-track { opacity: 0.6; }
 
+/* ---------- words of a chapter (wordsTab.ts) ---------- */
+.rd-words-head { padding: 0 var(--space-4) var(--space-2); }
+.rd-words-head .rd-toc-filter { margin: var(--space-2) 0; width: 100%; }
+.rd-words-nav { display: flex; align-items: center; gap: 4px; margin: 0 -6px; }
+.rd-words-chapter { flex: 1; min-width: 0; text-align: center; font-family: var(--font-serif); font-size: 15px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-words-step:disabled { opacity: 0.3; cursor: default; }
+.rd-words-share { margin-top: var(--space-2); min-height: 44px; }
+.rd-words-meter { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.rd-words-meter > span { display: block; height: 100%; border-radius: 3px; background: color-mix(in srgb, var(--ink) 70%, var(--surface-3)); transition: width 0.25s var(--ease); }
+.rd-words-big { margin: 6px 0 0; font-size: 13.5px; color: var(--text-2); line-height: 1.4; }
+.rd-words-big strong { font-size: 17px; color: var(--text); font-variant-numeric: tabular-nums; }
+.rd-words-note { margin: 2px 0 0; font-size: 12.5px; color: var(--text-3); line-height: 1.4; }
+.rd-words-chips { display: flex; justify-content: space-between; gap: var(--space-2); }
+.rd-words-group { display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--surface-2); }
+.rd-words-chip { height: 26px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: var(--text-2); font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.rd-words-chip[aria-pressed='true'] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-s); }
+.rd-words { padding-top: var(--space-1); }
+.rd-word { gap: 0; }
+.rd-word-main { grid-template-rows: auto auto; }
+.rd-word-main > * { min-width: 0; }
+.rd-word-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.rd-word-line .rd-name-py { flex: 0 1 auto; }
+.rd-word-gloss { font-size: 12.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-word-hsk { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.rd-word-act { flex: none; width: 36px; height: 36px; color: var(--text-3); }
+.rd-word-act[aria-pressed='true'] { color: var(--accent); }
+.rd-word-act:last-child { margin-right: 4px; }
+.rd-word[data-known] .rd-word-main { opacity: 0.5; }
+
 /* ---------- touch screens (iPad) ---------- */
 @media (hover: none) {
   .rd-pill:hover, .icon-btn:hover { background: inherit; }
@@ -640,6 +669,8 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   .rd-bar .icon-btn { width: 42px; height: 42px; }
   .rd-toc-item { padding: 0 12px; }
   .rd-name-main { padding: 12px 10px; }
+  .rd-word-act { width: 42px; height: 42px; }
+  .rd-words-chip { height: 32px; }
   .rd-seg-btn { min-height: 40px; }
   .rd-step { width: 40px; height: 40px; }
   .rd-row { min-height: 48px; }

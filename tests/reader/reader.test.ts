@@ -142,6 +142,19 @@ describe('reader screen', () => {
     expect(document.querySelector('.rd-toc-root')!.hasAttribute('hidden')).toBe(true);
   });
 
+  it('W opens the words of this chapter; a row opens the word card with its sentence, and saving it keeps the chapter', async () => {
+    const { ctx, meta } = await setup();
+    await open(ctx, meta.id);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true, cancelable: true }));
+    await vi.waitFor(() => expect(document.querySelectorAll('.rd-words .rd-word').length).toBeGreaterThan(4));
+    expect(text('.rd-words-chapter')).toBe('第一章');
+    const row = [...document.querySelectorAll<HTMLElement>('.rd-words .rd-word')].find((r) => r.querySelector('.rd-name-word')!.textContent === '银行')!;
+    row.querySelector<HTMLElement>('.rd-word-main')!.click();
+    expect(text('.pp-word')).toBe('银行');
+    q('.pp-save')!.click();
+    await vi.waitFor(async () => expect((await ctx.store.vocab.get('银行'))?.context).toMatchObject({ sentence: '我们在银行门口见面。', chapter: 0, bookTitle: '测试书' }));
+  });
+
   it('records progress and the last-opened time, and restores the saved chapter', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id, { ch: '2' });
