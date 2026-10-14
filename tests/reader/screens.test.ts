@@ -292,6 +292,18 @@ describe('the end of a chapter in Pages', () => {
     expect(stage().page).toBe('1');
   });
 
+  it('offers the chapter\'s words on its last page', async () => {
+    const { ctx, meta } = await setup();
+    await open(ctx, meta.id);
+    for (let i = 0; i < 3; i++) { key('ArrowRight'); await tick(5); }
+    const words = q('.rd-hf .rd-ftr-words')!;
+    expect(words.textContent).toBe('Words');
+    words.click();
+    await vi.waitFor(() => expect(qa('.rd-words .rd-word').length).toBeGreaterThan(2));
+    expect(q('.rd-toc')!.getAttribute('aria-label')).toBe('Words in this chapter');
+    expect(q('.rd-words-chapter')!.textContent).toContain('第一章');
+  });
+
   it('never says "1 page left" on the last page or on the first page of a two-page chapter', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id, { ch: '1' });

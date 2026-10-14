@@ -3,6 +3,7 @@ import '../../styles/library.css';
 import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
+import { createBookShares } from './bookShare';
 import { bookCover, generatedCover } from './cover';
 import { confirmDialog, formDialog } from './dialogs';
 import { compactCount, plural, progressFraction, progressLabel } from './format';
@@ -83,6 +84,8 @@ export const mount: MountFn = (root, _params, ctx) => {
   let importer: Importer;
   let query = '';
   let order: 'recent' | 'title' | 'added' = 'recent';
+  // How much of each book's vocabulary is known (a line on each card).
+  const shares = createBookShares(ctx);
 
   const fileInput = h('input', { type: 'file', accept: ACCEPT, multiple: true, hidden: true, 'aria-hidden': 'true', tabindex: -1 }) as HTMLInputElement;
   fileInput.addEventListener('change', () => {
@@ -154,6 +157,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     renderContinue();
     renderGrid();
     renderSamples();
+    shares.measure(list);
   }
 
   // ---- continue card ----
@@ -245,14 +249,17 @@ export const mount: MountFn = (root, _params, ctx) => {
         ], card);
       },
     }, icon('more'));
+    const label = `${b.title}${b.author ? ', ' + b.author : ''}. ${progressLabel(p)}`;
+    const known = shares.text(b.id);
     const card: HTMLElement = h('article.lib-card', { 'data-id': b.id },
-      h('a.lib-card-main', { href: readHref(b.id), 'aria-label': `${b.title}${b.author ? ', ' + b.author : ''}. ${progressLabel(p)}` },
+      h('a.lib-card-main', { href: readHref(b.id), 'data-label': label, 'aria-label': known ? `${label}. ${known}.` : label },
         bookCover(b, store, 'md'),
         h('div.lib-card-info', null,
           h('div.lib-card-title.zh', null, b.title),
           h('div.lib-card-author', null, b.author || ' '),
           progressBar(progressFraction(p)),
-          h('div.lib-card-meta', null, h('span', null, progressLabel(p)), h('span', null, `${compactCount(b.charCount)} chars`)))),
+          h('div.lib-card-meta', null, h('span', null, progressLabel(p)), h('span', null, `${compactCount(b.charCount)} chars`)),
+          shares.line(b))),
       menuBtn);
     return card;
   }
@@ -357,7 +364,10 @@ export const mount: MountFn = (root, _params, ctx) => {
   window.addEventListener('drop', onDrop);
 
   // The store also fires this when another tab imports, renames or deletes a book, so a second tab needs no reload.
-  const offChange = store.onChange((what) => { if (what === 'books') void load(); });
+  const offChange = store.onChange((what) => {
+    if (what === 'books') void load();
+    else if (what === 'known') shares.refresh();
+  });
   // A reading place from another device moves the progress bars.
   const onRemoteProgress = () => void load();
   window.addEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
@@ -473,6 +483,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     alive = false;
     closeMenu();
     offChange();
+    shares.dispose();
     window.removeEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
     window.removeEventListener(BRIDGE_EVENT, onBridge);
     window.removeEventListener('dragenter', onEnter);

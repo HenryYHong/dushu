@@ -520,6 +520,14 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   color: var(--ink); cursor: pointer; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .rd-ftr-next:hover { text-decoration: underline; }
+.rd-ftr-words {
+  pointer-events: auto; border: 0; background: transparent; padding: 6px 0; margin: -6px 0; font: inherit; letter-spacing: inherit;
+  color: var(--ink); cursor: pointer; white-space: nowrap; flex: none;
+}
+.rd-ftr-words:hover { text-decoration: underline; }
+/* The last page in one-page mode: the chapter's words, then the way on. */
+.rd-ftr-end { display: flex; align-items: baseline; justify-content: flex-end; gap: 14px; min-width: 0; }
+.rd-ftr-end .rd-ftr-next { max-width: none; min-width: 0; }
 .rd-chrome-off .rd-hdr { opacity: 1; }
 .rd-root:not(.rd-chrome-off) .rd-hdr { opacity: 0; }
 @media (max-width: 520px) { .rd-ftr-left { font-size: 11px; } }
@@ -538,6 +546,7 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   font: 600 14px/1.2 var(--font-ui); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .rd-endbtn:hover { background: var(--surface-2); }
+.rd-endbtn-quiet { border-color: transparent; background: transparent; color: var(--text-2); font-weight: 500; }
 /* The way on to the next chapter is the main thing to tap here: a full 44 px target under a finger. */
 @media (pointer: coarse) { .rd-endbtn { min-height: 44px; border-radius: 22px; } }
 

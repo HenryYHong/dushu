@@ -45,6 +45,8 @@ export interface PagerOptions {
   onChapterError?(index: number, error: unknown): void;
   /** Book text as the reader shows it (the script setting applies to titles and running heads too). */
   text?(s: string): string;
+  /** The end of a chapter offers its word list (the drawer's Words tab); without this the link is not shown. */
+  onChapterWords?(index: number): void;
 }
 
 export interface Pager {
@@ -516,7 +518,15 @@ export function createPager(o: PagerOptions): Pager {
       h('p.rd-endnote', null, last ? 'You have reached the end of the book.' : 'End of chapter'));
     if (last) card.appendChild(h('a.rd-endbtn', { href: '#/' }, 'Back to the library'));
     else card.appendChild(h('button.rd-endbtn', { type: 'button', onclick: () => api.chapter(1) }, goNextChapterLabel(l)));
+    const words = wordsButton(l, 'button.rd-endbtn.rd-endbtn-quiet', 'Words in this chapter');
+    if (words) card.appendChild(words);
     return card;
+  }
+
+  /** The way to the chapter's word list, from its last page. */
+  function wordsButton(l: Layout, tag: string, label: string): HTMLElement | null {
+    const go = o.onChapterWords;
+    return go ? h(tag, { type: 'button', 'data-rd-ui': '', onclick: () => go(l.index) }, label) : null;
   }
 
   function pageChrome(l: Layout, page: number, side: 'left' | 'right' | 'single'): HTMLElement {
@@ -531,11 +541,15 @@ export function createPager(o: PagerOptions): Pager {
     const isLast = page >= l.pages - 1;
     const footer = h('div.rd-ftr', { 'data-side': side }, h('span.rd-ftr-n', null, String(page + 1)));
     if (lastShown) {
-      // One-page mode has no blank page to hold an end card: the footer carries the way on.
-      if (side === 'single' && isLast && l.done && l.index < book.chapterCount - 1) {
-        footer.appendChild(h('button.rd-ftr-next', { type: 'button', 'data-rd-ui': '', onclick: () => api.chapter(1) }, goNextChapterLabel(l), ' ›'));
-      } else if (side === 'single' && isLast && l.done && l.index >= book.chapterCount - 1) {
-        footer.appendChild(h('span.rd-ftr-left', null, 'End of the book'));
+      // One-page mode has no blank page to hold an end card: the footer carries the way on, and the chapter's words.
+      if (side === 'single' && isLast && l.done) {
+        const on = l.index < book.chapterCount - 1
+          ? h('button.rd-ftr-next', { type: 'button', 'data-rd-ui': '', onclick: () => api.chapter(1) }, goNextChapterLabel(l), ' ›')
+          : h('span.rd-ftr-left', null, 'End of the book');
+        footer.appendChild(h('span.rd-ftr-end', null, wordsButton(l, 'button.rd-ftr-words', 'Words'), on));
+      } else if (side === 'right' && isLast && l.done && o.onChapterWords) {
+        // The last page of a chapter that fills its spread (no blank page follows).
+        footer.appendChild(wordsButton(l, 'button.rd-ftr-words', 'Words in this chapter')!);
       } else footer.appendChild(h('span.rd-ftr-left', null, pagesLeftLabel(page, l.pages, !l.done)));
     }
     el.append(h('div.rd-hdr', null, h('span', null, header)), footer);

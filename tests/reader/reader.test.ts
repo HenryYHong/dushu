@@ -155,6 +155,15 @@ describe('reader screen', () => {
     await vi.waitFor(async () => expect((await ctx.store.vocab.get('银行'))?.context).toMatchObject({ sentence: '我们在银行门口见面。', chapter: 0, bookTitle: '测试书' }));
   });
 
+  it('the end of a chapter in Scroll offers its words', async () => {
+    const { ctx, meta } = await setup();
+    await open(ctx, meta.id);
+    await vi.waitFor(() => expect(q('.rd-end-words')).not.toBeNull());
+    q('.rd-end-words')!.click();
+    await vi.waitFor(() => expect(document.querySelectorAll('.rd-words .rd-word').length).toBeGreaterThan(4));
+    expect(text('.rd-words-chapter')).toBe('第一章');
+  });
+
   it('records progress and the last-opened time, and restores the saved chapter', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id, { ch: '2' });

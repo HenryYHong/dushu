@@ -590,7 +590,9 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   turning the page. A row opens the word card with that sentence as context; its star saves the word (`popup/saveWord.ts`, the same card the
   word popup makes, with the chapter) and its check marks it known. Rows stay in place when saved or known, so a slip is one tap to undo; the
   list is filtered again only when the chips or the filter change. The reader caches the counts per chapter until the lexicon changes. Counting
-  runs in slices of 6,000 characters with a pause between them (about 0.15 s for a 40,000-character chapter).
+  runs in slices of 6,000 characters with a pause between them (about 0.15 s for a 40,000-character chapter). The end of a chapter links
+  to it: a "Words in this chapter" button in Scroll; in Pages a quiet button on the blank page after an odd chapter, "Words in this chapter"
+  in the right page's footer when the chapter fills its spread, and "Words" beside the way on in one-page mode (`onChapterWords`).
 - Dialogs: the chapter drawer is a modal `role=dialog` (focus goes to the current chapter, Tab stays inside, Esc and close return focus to the opener;
   its list is windowed, so 2,000 chapters draw about 30 rows); the Aa and pinyin menus are labeled dialogs that take focus and give it back. On a
   touch screen or under 640 px they are bottom sheets (grabber, Done, at most 60% of the height, so the top of the page stays in view).
@@ -618,7 +620,11 @@ Samples are stored with `format: 'sample'`, `sourceName: 'sample:<id>'` and the 
 `public/samples/index.json` entries carry id, title, author, script, file, level, blurb, source, note and optional
 `group` (the four classical novels are grouped), chapters and chars.
 Grid of book cards (cover image or a generated cover: title in large serif on a tinted
-background derived from the title hash; author; progress bar; "Continue" on the most recent).
+background derived from the title hash; author; progress bar; "Continue" on the most recent). Once any word is marked known, each card
+also says "You know N% of its words" (`ui/library/bookShare.ts`, `core/bookWords.ts`): six chapters spread over the book, the first 4,000
+characters of each, counted like the Words tab (names left out), share of occurrences known. Samples are counted one book at a time in the
+background a moment after the library opens and kept per device (`dushu.book-words.v1`, keyed by chapter count, size and the number of names),
+so the share follows known-word changes without reading the book again.
 Title/author search normalizes simplified/traditional text; the grid can be sorted by recently read,
 title or date added. Filtering never changes stored books and has a clear empty-result state.
 Import: button + drag-and-drop anywhere on the page + "Paste text" dialog. Progress UI during

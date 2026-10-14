@@ -685,6 +685,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (index > 0) {
       el.appendChild(h('button.btn.rd-end-prev', { type: 'button', onclick: () => void loadChapter(index - 1, { top: true }) }, icon('chevronLeft'), 'Previous chapter'));
     }
+    el.appendChild(h('button.btn.rd-end-words', { type: 'button', onclick: () => toc.open(index, 'words') }, icon('list'), 'Words in this chapter'));
     if (last) {
       el.append(h('p.rd-end-note', null, 'You have reached the end.'),
         h('a.btn.btn-primary', { href: '#/' }, icon('library'), 'Back to the library'));
@@ -735,6 +736,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       onEnd: () => ctx.toast('You have reached the end of the book.'),
       onChapterError: (i, e) => { bumpFail(book!.id, i); showChapterError(i, e); },
       text,
+      onChapterWords: (i) => toc.open(i, 'words'),
     });
     if (scanning) pager.holdNeighbors(true);
     rd.appendChild(pager.stage);

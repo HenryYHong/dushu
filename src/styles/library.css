@@ -79,6 +79,7 @@
 .lib-card-author { margin-bottom: 6px; }
 .lib-card-info .lib-bar { margin-top: auto; }
 .lib-card-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text-3); margin-top: 2px; white-space: nowrap; }
+.lib-card-known { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lib-card-menu {
   position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 15px;
   display: inline-flex; align-items: center; justify-content: center;

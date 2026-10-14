@@ -114,6 +114,28 @@ describe('library screen', () => {
     expect((root.querySelector('.lib-empty') as HTMLElement | null)).toBeNull();
   });
 
+  it('says how much of each book\'s words are known once some are, and follows changes', async () => {
+    const a = await store.books.add(book('孔乙己'));
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => root.querySelectorAll('.lib-card').length === 1);
+    const line = () => root.querySelector<HTMLElement>(`.lib-card[data-id="${a.id}"] .lib-card-known`)!;
+    // No known words yet: no line (every book would say 0%).
+    await flush(1500);
+    expect(line().hidden).toBe(true);
+    await store.known.add(['今天', '我们']);
+    await until(() => !line().hidden && /You know \d+% of its words/.test(line().textContent ?? ''));
+    const first = Number(/(\d+)%/.exec(line().textContent!)![1]);
+    expect(first).toBeGreaterThan(0);
+    expect(root.querySelector(`.lib-card[data-id="${a.id}"] .lib-card-main`)!.getAttribute('aria-label')).toContain(`You know ${first}% of its words`);
+    await store.known.add(['天气', '很', '好', '去', '公园', '玩']);
+    await until(() => Number(/(\d+)%/.exec(line().textContent ?? '')?.[1]) > first);
+    // Kept on the device: a new library screen has the number without counting again.
+    cleanup?.();
+    root.textContent = '';
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => /You know \d+%/.test(root.querySelector('.lib-card-known')?.textContent ?? ''), 1000);
+  });
+
   it('renames through the menu and dialog', async () => {
     const a = await store.books.add(book('旧名'));
     cleanup = await mountLibrary(root, {}, ctx);

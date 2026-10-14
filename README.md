@@ -37,6 +37,8 @@ You need Node.js 20 or newer. The launcher uses your installed Node.js and the v
 
 Easiest on a Mac: double-click `Dushu.command`. The first run installs the packages and builds the app, which takes a minute. After that it starts a local server on port 4317 and opens http://localhost:4317. It also starts the already-installed Ollama service on loopback when needed, without downloading models or changing Tailscale settings.
 
+To have Dushu start by itself when you log in, run `npm run autostart` once in this folder. It also checks every 15 minutes and starts Dushu again if it has stopped, so your iPad, sync and your Mac's books are there without opening anything. `npm run autostart -- status` shows whether it is set up, and `npm run autostart -- remove` turns it off. It is a LaunchAgent for your user only (`~/Library/LaunchAgents/com.dushu.reader.plist`, log in `~/Library/Logs/Dushu`).
+
 From a terminal:
 
 ```
@@ -66,6 +68,8 @@ The Mac's Tailscale device key can expire. Reconnect it when Tailscale asks. To 
 
 Your library can be searched by title or author, in simplified or traditional characters, and sorted by recently read, title, or date added.
 
+Once you have marked some words known, each book in your library says how much of its vocabulary you know ("You know 82% of its words"), estimated from six chapters spread through it. Use it to pick a book at your level.
+
 - **Import book**, or drop a file anywhere on the Library page. Supported: EPUB, MOBI and AZW3 (Kindle files without DRM), TXT (UTF-8, GBK, Big5 and UTF-16 are detected), PDF with a text layer, HTML and Markdown.
 - **Paste text** for an article or a chapter you copied from the web.
 - **Start with a classic** adds a public-domain text in one click.
@@ -88,7 +92,7 @@ The speaker button reads from your current position to the end of the chapter, w
 - **Keyboard:** press Enter to put a cursor on the first word of the page, move it with the arrow keys (up and down by line), and press Enter again to open the card. Escape puts the cursor away. In Pages, tap the outer edges of the spread to turn the page (press and hold a word there to look it up).
 - **Drag across text** to open the phrase card: pinyin over the whole phrase, a translation, and a word-by-word list. On a phone, press and hold, then adjust the selection.
 - Star a word to save it with the sentence you found it in. Mark it known and its pinyin stays hidden.
-- **Words in this chapter** (press `W`, or the Words tab under the contents button) lists the chapter's words you have not marked known, the most frequent first, with how much of the chapter you already know. Look through them before you read, or after. Tap a word for its card, star it to save it with the sentence it first comes up in, or check it off as known. The arrows at the top show the next chapter's words without leaving your page.
+- **Words in this chapter** (press `W`, or the Words tab under the contents button) lists the chapter's words you have not marked known, the most frequent first, with how much of the chapter you already know. Look through them before you read, or after. Tap a word for its card, star it to save it with the sentence it first comes up in, or check it off as known. The arrows at the top show the next chapter's words without leaving your page. The end of every chapter links here too, so you can go over what you just read.
 
 ## Pinyin modes
 

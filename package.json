@@ -6,6 +6,7 @@
   "description": "Dushu (读书) — read real Chinese books with tap-to-look-up pinyin, definitions and translation.",
   "scripts": {
     "start": "node scripts/start-local.mjs",
+    "autostart": "node scripts/autostart.mjs",
     "ipad": "node scripts/setup-ipad.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
