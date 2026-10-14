@@ -1,6 +1,6 @@
 // Persistence over IndexedDB (memory fallback). Contract: ARCHITECTURE.md §4.6.
 import type {
-  BackupReport, BookMeta, Chapter, Grade, ImportedBook, Progress, ReviewLog, Settings, SrsState, Store, VocabItem, LexiconEntry,
+  BackupReport, BookMeta, Chapter, Grade, ImportedBook, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, SyncRow, VocabItem, LexiconEntry,
 } from '../types';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
@@ -98,7 +98,7 @@ function cleanLexRow(v: unknown): LexRow | null {
   return out;
 }
 
-function cleanVocab(v: unknown): VocabItem | null {
+export function cleanVocab(v: unknown): VocabItem | null {
   if (!isObj(v)) return null;
   const simp = str(v.simp) || str(v.id);
   const id = str(v.id) || simp;
@@ -119,7 +119,7 @@ function cleanVocab(v: unknown): VocabItem | null {
   return item;
 }
 
-function cleanProgress(v: unknown): Progress | null {
+export function cleanProgress(v: unknown): Progress | null {
   if (!isObj(v) || typeof v.bookId !== 'string' || !v.bookId || v.bookId.length > LIMITS.key) return null;
   const out: Progress = {
     bookId: v.bookId,
@@ -131,6 +131,9 @@ function cleanProgress(v: unknown): Progress | null {
   if (typeof v.offset === 'number' && Number.isFinite(v.offset) && v.offset > 0) out.offset = Math.round(v.offset);
   return out;
 }
+
+/** A known-words row: `auto` when reading marked it (settings.autoKnown). */
+interface KnownRow { word: string; auto?: true }
 
 /** When an item last changed: its last review, else when it was added. */
 const stamp = (v: VocabItem) => Math.max(v.srs.last ?? 0, v.addedAt);
@@ -190,11 +193,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     if (m.what !== 'vocab' && m.what !== 'known' && m.what !== 'books') return;
     try {
       if (m.what === 'vocab') rebuildVocab(await db.getAll<VocabItem>('vocab'));
-      else if (m.what === 'known') {
-        knownWords.clear();
-        for (const k of await db.getAll<{ word: string }>('known')) knownWords.add(k.word);
-        rebuildKnown();
-      } else if (typeof m.removed === 'string') dropUrls(m.removed);
+      else if (m.what === 'known') loadKnown(await db.getAll<KnownRow>('known')); else if (typeof m.removed === 'string') dropUrls(m.removed);
     } catch (e) { console.error('Dushu: could not refresh after a change in another tab', e); return; }
     notify(m.what, true);
   };
@@ -220,6 +219,9 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
   const vocabNorm = new Set<string>();
   const knownWords = new Set<string>();
   const knownNorm = new Set<string>();
+  /** Known words that reading marked (settings.autoKnown), a subset of knownWords. */
+  const autoWords = new Set<string>();
+  const autoNorm = new Set<string>();
   const norm = (w: string) => { try { return normalize(w); } catch { return w; } };
 
   const addVocabKeys = (it: Pick<VocabItem, 'id' | 'simp' | 'trad'>) => {
@@ -233,14 +235,29 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     vocabKeys.clear(); vocabNorm.clear();
     for (const it of items) addVocabKeys(it);
   };
-  const addKnown = (w: string) => { knownWords.add(w); if (normalizerSet) knownNorm.add(norm(w)); };
+  const addKnown = (w: string, auto = false) => {
+    knownWords.add(w);
+    if (normalizerSet) knownNorm.add(norm(w));
+    if (auto) { autoWords.add(w); if (normalizerSet) autoNorm.add(norm(w)); }
+    else autoWords.delete(w); // the normalized set is rebuilt by the caller when a word stops being learned
+  };
   const rebuildKnown = () => {
     knownNorm.clear();
-    if (normalizerSet) for (const w of knownWords) knownNorm.add(norm(w));
+    autoNorm.clear();
+    if (normalizerSet) {
+      for (const w of knownWords) knownNorm.add(norm(w));
+      for (const w of autoWords) autoNorm.add(norm(w));
+    }
+  };
+  const loadKnown = (rows: KnownRow[]) => {
+    knownWords.clear();
+    autoWords.clear();
+    for (const k of rows) { knownWords.add(k.word); if (k.auto) autoWords.add(k.word); }
+    rebuildKnown();
   };
 
   rebuildVocab(await db.getAll<VocabItem>('vocab'));
-  for (const k of await db.getAll<{ word: string }>('known')) knownWords.add(k.word);
+  loadKnown(await db.getAll<KnownRow>('known'));
 
   // Serializes read-modify-write operations (reviews, imports) so they cannot interleave.
   let queue: Promise<unknown> = Promise.resolve();
@@ -419,23 +436,87 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
 
     known: {
       has: (word) => knownWords.has(word) || (normalizerSet && knownNorm.has(norm(word))),
-      async add(words) {
-        const clean = [...new Set(words.map((w) => w.trim()).filter(Boolean))];
+      async add(words, opts = {}) {
+        const auto = !!opts.auto;
+        // Reading never overrides the person: a word they marked (or one already learned) is left as it is.
+        const clean = [...new Set(words.map((w) => w.trim()).filter(Boolean))]
+          .filter((w) => (auto ? !knownWords.has(w) : !knownWords.has(w) || autoWords.has(w)));
         if (!clean.length) return;
-        await write(clean.map((word) => ({ op: 'put' as const, table: 'known' as const, value: { word } })));
-        for (const w of clean) addKnown(w);
+        await write(clean.map((word) => ({ op: 'put' as const, table: 'known' as const, value: auto ? { word, auto: true } : { word } })));
+        for (const w of clean) addKnown(w, auto);
+        if (!auto) rebuildKnown();
         emit('known');
       },
       async remove(words) {
         const present = [...new Set(words)].filter((w) => knownWords.has(w));
         if (!present.length) return;
         await write(present.map((word) => ({ op: 'del' as const, table: 'known' as const, key: word })));
-        for (const w of present) knownWords.delete(w);
+        for (const w of present) { knownWords.delete(w); autoWords.delete(w); }
         rebuildKnown();
         emit('known');
       },
       all: () => [...knownWords],
       count: () => knownWords.size,
+      isAuto: (word) => autoWords.has(word) || (normalizerSet && !knownWords.has(word) && autoNorm.has(norm(word))),
+      autoCount: () => autoWords.size,
+    },
+
+    seen: {
+      async get(words) {
+        const rows = await Promise.all([...new Set(words)].map((w) => db.get<SeenRow>('seen', w)));
+        return rows.filter((r): r is SeenRow => !!r);
+      },
+      async put(rows) {
+        for (let i = 0; i < rows.length; i += 2000) await write(rows.slice(i, i + 2000).map((value) => ({ op: 'put' as const, table: 'seen' as const, value })));
+      },
+      async remove(words) {
+        const unique = [...new Set(words)];
+        if (unique.length) await write(unique.map((key) => ({ op: 'del' as const, table: 'seen' as const, key })));
+      },
+      clear: () => write([{ op: 'clear', table: 'seen' }]),
+    },
+
+    sync: {
+      rows: () => db.getAll<SyncRow>('sync'),
+      async write(put, del = []) {
+        const ops: Parameters<Backend['commit']>[0] = [
+          ...del.map((key) => ({ op: 'del' as const, table: 'sync' as const, key })),
+          ...put.map((value) => ({ op: 'put' as const, table: 'sync' as const, value })),
+        ];
+        for (let i = 0; i < ops.length; i += 2000) await write(ops.slice(i, i + 2000));
+      },
+      apply(change) {
+        return exclusive(async () => {
+          const ops: Parameters<Backend['commit']>[0] = [];
+          for (const item of change.vocabPut ?? []) {
+            const clean = cleanVocab(item);
+            if (clean) ops.push({ op: 'put', table: 'vocab', value: clean });
+          }
+          for (const id of change.vocabDel ?? []) ops.push({ op: 'del', table: 'vocab', key: id });
+          for (const k of change.knownPut ?? []) {
+            const word = typeof k.word === 'string' ? k.word.trim() : '';
+            if (word && word.length <= LIMITS.word) ops.push({ op: 'put', table: 'known', value: k.auto ? { word, auto: true } : { word } });
+          }
+          for (const word of change.knownDel ?? []) ops.push({ op: 'del', table: 'known', key: word });
+          for (const p of change.progressPut ?? []) {
+            const clean = cleanProgress(p);
+            if (clean) ops.push({ op: 'put', table: 'progress', value: clean });
+          }
+          for (const row of change.rows ?? []) ops.push({ op: 'put', table: 'sync', value: row });
+          // One transaction: the records and the rows that say they are in step can never disagree.
+          await write(ops);
+          const vocab = !!(change.vocabPut?.length || change.vocabDel?.length);
+          const known = !!(change.knownPut?.length || change.knownDel?.length);
+          if (vocab) rebuildVocab(await db.getAll<VocabItem>('vocab'));
+          if (known) loadKnown(await db.getAll<KnownRow>('known'));
+          // Heard here as remote (another device made the change) and told to the other tabs like any save.
+          for (const what of [vocab && 'vocab', known && 'known'] as const) {
+            if (!what) continue;
+            notify(what, true);
+            post({ db: name, from: tabId, what });
+          }
+        });
+      },
     },
 
     async exportBackup() {
@@ -454,7 +535,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       } catch { /* no settings to include */ }
       return JSON.stringify({
         app: 'dushu', version: 1, exportedAt: new Date().toISOString(),
-        settings, vocab, known: [...knownWords], progress, reviews, lexicon, bookIdentities,
+        settings, vocab, known: [...knownWords], knownAuto: [...autoWords], progress, reviews, lexicon, bookIdentities,
       });
     },
 
@@ -498,11 +579,12 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           ops.push({ op: 'put', table: 'vocab', value: inc });
         }
 
+        const learned = new Set((Array.isArray(data.knownAuto) ? data.knownAuto : []).filter((w): w is string => typeof w === 'string').map((w) => w.trim()));
         for (const w of Array.isArray(data.known) ? data.known : []) {
           if (typeof w !== 'string' || !w.trim() || w.trim().length > LIMITS.word || knownWords.has(w.trim())) continue;
           const word = w.trim();
           report.known.added++;
-          ops.push({ op: 'put', table: 'known', value: { word } });
+          ops.push({ op: 'put', table: 'known', value: learned.has(word) ? { word, auto: true } : { word } });
         }
 
         const curProgress = new Map((await db.getAll<Progress>('progress')).map((p) => [p.bookId, p]));
@@ -557,7 +639,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         for (let i = 0; i < ops.length; i += 2000) await write(ops.slice(i, i + 2000));
 
         for (const o of ops) {
-          if (o.op === 'put' && o.table === 'known') addKnown((o.value as { word: string }).word);
+          if (o.op === 'put' && o.table === 'known') addKnown((o.value as KnownRow).word, !!(o.value as KnownRow).auto);
         }
         rebuildVocab([...existing.values()]);
         if (report.vocab.added + report.vocab.updated + report.reviews.added) emit('vocab');
@@ -572,6 +654,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         for (const [, p] of urls) void p.then((u) => { if (u) URL.revokeObjectURL(u); });
         urls.clear();
         knownWords.clear();
+        autoWords.clear();
         rebuildKnown();
         rebuildVocab([]);
       });

@@ -24,6 +24,8 @@ export interface LookupHost {
   readFrom?(block: BlockState, offset: number): void;
   /** A word popup is now showing this word (it also fires when the popup steps to a neighbor). */
   onWordShown?(b: BlockState, start: number, end: number): void;
+  /** A phrase popup (with its translation) is now showing this text. */
+  onPhraseShown?(spans: { b: BlockState; start: number; end: number }[]): void;
   /** The element focus returns to when a popup closes (the word the reader's keyboard cursor is on). */
   restoreFocus?(): HTMLElement | null;
   /** The y of the top edge of a bottom-sheet popup, or null when it is not a sheet (the Pages stage lifts so the word stays in view). */
@@ -236,6 +238,7 @@ export function createLookup(host: LookupHost): Lookup {
       onSheetTop: host.liftsPage?.() ? host.onSheetTop : undefined,
       ...lexiconProps(),
     });
+    host.onPhraseShown?.(spans.map((sp) => ({ b: stateOf(sp), start: sp.start, end: sp.end })));
     return true;
   }
 

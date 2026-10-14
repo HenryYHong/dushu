@@ -71,6 +71,8 @@
 .pp-muted { color: var(--text-3); font-size: 13px; }
 .pp-head-actions { display: flex; align-items: center; gap: 0; flex: none; margin: -4px -6px 0 0; }
 .pp-head .icon-btn[aria-pressed='true'] { color: var(--accent); }
+/* Known because reading marked it (settings.autoKnown), not by hand: the same check, a little lighter. */
+.pp-head .icon-btn.pp-learned[aria-pressed='true'] { color: color-mix(in srgb, var(--accent) 60%, var(--text-3)); }
 .pp-head .icon-btn.pp-on { color: var(--accent); background: var(--accent-soft); }
 .pp-back { margin: -4px 0 0 -8px; }
 

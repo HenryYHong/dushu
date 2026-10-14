@@ -60,7 +60,7 @@ Scroll is the default, with larger text and no horizontal progress bar. Pages us
 
 The Mac's Tailscale device key can expire. Reconnect it when Tailscale asks. To turn the private endpoint off without affecting other services: `tailscale serve --https=8443 off`.
 
-**Move your words between devices.** Export a fresh backup in Settings, then Data, and import it on the other device, after the same books are there. Backups match books by a digest of their text, so progress and your edited names do not depend on device-specific IDs. They leave out books, images and keys. There is no automatic syncing of words.
+**Your words on every device.** Saved words, known words and your place in each book sync through your Mac whenever a device can reach it (Settings, then Your Mac and iPad, then Sync). Changes made while the Mac is asleep sync when it wakes. If you open a book on one device after reading further on another, Dushu offers to go to the newer place. The Mac keeps a daily copy of the synced words for two weeks in `.dushu-local/sync`. Backups still work for moving to a device that cannot reach the Mac: export one in Settings, then Data, and import it on the other device after the same books are there.
 
 ## Add books
 
@@ -95,7 +95,7 @@ Press `P` in the reader, or use the eye button in the top bar.
 
 - **Off**: no pinyin.
 - **All**: pinyin over everything.
-- **Unknown**: pinyin only over words you have not marked as known.
+- **Unknown**: pinyin only over words you have not marked as known. Turn on **Learn known words as I read** (in the pinyin menu or Settings) and a word you read past on 10 pages over 2 days without looking it up is marked known for you. Looking it up takes it back off.
 - **HSK**: pinyin only over words above an HSK level you choose (words outside HSK always count as above).
 
 In Settings you can choose tone marks (hǎo), numbers (hao3) or zhuyin, color the tones, and turn on tone changes for 一 and 不 (yí gè, bú shì). You can also display a book in simplified or traditional characters whatever it was written in.
@@ -139,7 +139,7 @@ Saved words come back as flashcards. Press Space to reveal, then 1 to 4 for Agai
 
 ## Privacy
 
-On the hosted site, everything is local to your browser. Books, saved words, progress and settings live in the browser's own storage, and the dictionary is served with the app. The app contacts another site only when you ask it to: the stroke-order data for a character (from jsDelivr), the selected text if you choose MyMemory, and your own Mac if you connect one. Settings has a backup export and a Delete all data button. Backups hold your words, progress and settings, but not your books or any key.
+On the hosted site, everything is local to your browser. Books, saved words, progress and settings live in the browser's own storage, and the dictionary is served with the app. If you connect your own Mac, your words and reading places are also kept on that Mac, never anywhere else. The app contacts another site only when you ask it to: the stroke-order data for a character (from jsDelivr), the selected text if you choose MyMemory, and your own Mac if you connect one. Settings has a backup export and a Delete all data button. Backups hold your words, progress and settings, but not your books or any key.
 
 ## Data sources and licenses
 

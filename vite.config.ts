@@ -8,6 +8,7 @@ import { localModelBridge } from './scripts/local-model';
 import { requestedLocalBooks } from './scripts/local-books';
 import { nativeSpeech } from './scripts/native-speech';
 import { privateAccess, privateGateway } from './scripts/private-access';
+import { syncBridge } from './scripts/sync-bridge';
 
 /**
  * The font packages ship each slice as woff2 and as woff. Every browser Dushu supports reads woff2, so the
@@ -56,7 +57,7 @@ function serviceWorker(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [privateGateway(), bridgeCsp(), woff2Only(), serviceWorker(), requestedLocalBooks(), nativeSpeech(), localModelBridge(), claudeBridge()],
+  plugins: [privateGateway(), bridgeCsp(), woff2Only(), serviceWorker(), requestedLocalBooks(), nativeSpeech(), localModelBridge(), claudeBridge(), syncBridge()],
   build: { target: 'es2022', chunkSizeWarningLimit: 2000 },
   worker: { format: 'es' },
   server: { port: 5173, allowedHosts: [privateAccess()?.host.split(':')[0] ?? 'localhost'] },

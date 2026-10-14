@@ -57,6 +57,8 @@
 .voc-known-body { padding: 0 var(--space-4) var(--space-4); border-top: 1px solid var(--border); }
 .voc-known-sub { margin: var(--space-3) 0 0; font-size: 13px; max-width: 520px; }
 .voc-known-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
+.voc-known-clear { display: contents; }
+.voc-known-learned { margin-top: var(--space-1); }
 .voc-level { width: auto; min-width: 130px; }
 .voc-known-details { margin-top: var(--space-4); font-size: 14px; }
 .voc-known-details summary { cursor: pointer; color: var(--text-2); }

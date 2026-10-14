@@ -199,6 +199,41 @@ export interface VocabItem {
   srs: SrsState;
 }
 
+/** One word's sightings on pages read without looking it up (settings.autoKnown). */
+export interface SeenRow {
+  word: string;
+  /** Pages it was on since it was last looked up. */
+  n: number;
+  /** Different days among those. */
+  days: number;
+  /** The last of those days, as a local day number (days since 1970 in local time). */
+  lastDay: number;
+}
+
+/** Sync bookkeeping: the record `key` ('v:<word>', 'k:<word>', 'p:<book key>') as this device last agreed with the Mac. */
+export interface SyncRow {
+  key: string;
+  /** When the record last changed, on the device that changed it (ms epoch). */
+  at: number;
+  /** Hash of the record's contents; '-' when deleted. */
+  sig: string;
+  /** Changed here and not yet sent to the Mac. */
+  dirty?: 1;
+  /** A word saved here before this device ever agreed on it with the Mac (see core/sync.ts). */
+  fresh?: 1;
+  /** A reading place for a book this device does not have yet, applied when the book arrives. */
+  held?: unknown;
+}
+
+export interface SyncApply {
+  vocabPut?: VocabItem[];
+  vocabDel?: string[];
+  knownPut?: { word: string; auto?: true }[];
+  knownDel?: string[];
+  progressPut?: Progress[];
+  rows?: SyncRow[];
+}
+
 export interface ReviewLog {
   id?: number;
   itemId: string;
@@ -228,6 +263,8 @@ export interface Settings {
   toneColors: boolean;
   /** Mark 一/不 tone changes (yí gè, bú shì). */
   sandhi: boolean;
+  /** Learn known words from reading: a word read past often enough without being looked up is marked known (core/autoKnown.ts). */
+  autoKnown: boolean;
   /** Display conversion of the book text. */
   script: 'original' | 'simplified' | 'traditional';
   /** How a single word is looked up. Double-click and drag-select always work. */
@@ -329,10 +366,35 @@ export interface Store {
   known: {
     /** Synchronous; accepts simplified or traditional. */
     has(word: string): boolean;
-    add(words: string[]): Promise<void>;
+    /**
+     * Marks words known. `auto` = learned from reading (settings.autoKnown): it never replaces a word the person marked
+     * themselves, while a plain add turns a learned word into one the person marked.
+     */
+    add(words: string[], opts?: { auto?: boolean }): Promise<void>;
     remove(words: string[]): Promise<void>;
     all(): string[];
     count(): number;
+    /** Synchronous: true when the word is known only because reading marked it (accepts either script). */
+    isAuto(word: string): boolean;
+    /** How many known words reading marked. */
+    autoCount(): number;
+  };
+  /** Sightings per word for settings.autoKnown. Disposable: a wipe clears it, nothing syncs it. */
+  seen: {
+    get(words: string[]): Promise<SeenRow[]>;
+    put(rows: SeenRow[]): Promise<void>;
+    remove(words: string[]): Promise<void>;
+    clear(): Promise<void>;
+  };
+  /** The sync bookkeeping (core/sync.ts). Nothing else reads or writes it. */
+  sync: {
+    rows(): Promise<SyncRow[]>;
+    write(put: SyncRow[], del?: string[]): Promise<void>;
+    /**
+     * Saves what came from another device, together with the sync rows that record it, in one transaction. Open screens
+     * hear it as a remote change (info.remote), the same as a save in another tab.
+     */
+    apply(change: SyncApply): Promise<void>;
   };
   /**
    * Per-scope lexicon rows. scope = a bookId for that book's names/terms, or '*' for the user's own words

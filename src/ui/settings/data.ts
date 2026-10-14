@@ -4,6 +4,7 @@ import { h } from '../dom';
 import { icon } from '../icons';
 import { confirmDialog } from '../library/dialogs';
 import { MAC_NOTE, fetchMacBooks, removedMacBooks, rememberRemoval, type MacBook } from '../library/macBooks';
+import { currentSyncer, setSyncEnabled } from '../../core/sync';
 import { group, row } from './controls';
 
 
@@ -43,10 +44,14 @@ export async function eraseAllData(ctx: AppContext, macBooks?: MacBook[]): Promi
   // Noted before anything is deleted: a wipe that fails halfway leaves the books and a removal note, never a lost book.
   for (const b of await ctx.store.books.list()) rememberRemoval(b, known);
   const keep = removedMacBooks();
+  // A sync that is running could bring words back in the middle of the wipe.
+  currentSyncer()?.stop();
   await ctx.store.wipe();
   try {
     for (const k of Object.keys(localStorage)) if (k.startsWith('dushu.')) localStorage.removeItem(k);
   } catch { /* storage blocked: nothing to remove */ }
+  // An empty device stays empty: the words on the Mac come back only when sync is turned on again.
+  setSyncEnabled(false);
   // The removed list is the one thing a wipe keeps; it holds file names and digests, no reading data.
   for (const r of keep) rememberRemoval({ note: MAC_NOTE + (r.sha256 ?? ''), sourceName: r.name });
 }
@@ -98,7 +103,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
   delBtn.addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: 'Delete all data?',
-      message: 'This removes every book, saved word, known word, review record, reading position and setting (including the address of your Mac) from this browser. It cannot be undone. Books from your Mac are not added again; Restore in the Library brings them back. Export a backup first if you want to keep your words.',
+      message: 'This removes every book, saved word, known word, review record, reading position and setting (including the address of your Mac) from this browser. It cannot be undone. Books from your Mac are not added again; Restore in the Library brings them back. Sync is turned off here, so the copy of your words on your Mac stays there and does not come back until you turn sync on again.',
       confirmLabel: 'Delete everything',
       danger: true,
     });
@@ -110,7 +115,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
     ? h('div.set-warn', { role: 'alert' }, 'This browser is blocking local storage, so your books and words will be lost when you close the tab.')
     : null;
 
-  return group('Data', 'Everything lives in this browser. Nothing is uploaded.',
+  return group('Data', 'Everything lives in this browser. When it is connected to your Mac, your words and reading places are also kept on the Mac, never anywhere else.',
     memoryWarning,
     row('Backup', 'Saved words, known words, reading progress, review history and settings. Books and the address of your Mac are excluded. On another device, import the same book files first, then import a fresh backup so progress and edited terms match their books.',
       h('div.set-backup', null, h('div.set-btn-row', null, exportBtn, importBtn, file), status)),

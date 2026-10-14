@@ -191,9 +191,13 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   function renderKnown(): void {
     const n = store.known.count();
+    const learned = store.known.autoCount();
     knownCount.textContent = plural(n, 'word');
+    learnedNote.textContent = learned ? `${plural(learned, 'word')} learned from reading.` : '';
+    learnedNote.hidden = !learned;
     clear(clearBtnHolder);
     if (n) clearBtnHolder.appendChild(clearBtn);
+    if (learned) clearBtnHolder.appendChild(clearLearnedBtn);
     knownDetails.hidden = n === 0;
     renderKnownWords();
   }
@@ -235,12 +239,36 @@ export const mount: MountFn = (root, _params, ctx) => {
     });
     if (!ok || !alive) return;
     const words = store.known.all();
+    const learned = words.filter((w) => store.known.isAuto(w));
     await store.known.remove(words);
-    ctx.toast(`Cleared ${plural(words.length, 'known word')}.`, { ms: 6000, action: { label: 'Undo', run: () => { void store.known.add(words); } } });
+    // Undo puts each word back the way it was: marked by hand, or learned from reading.
+    const undo = async () => {
+      await store.known.add(words.filter((w) => !learned.includes(w)));
+      await store.known.add(learned, { auto: true });
+    };
+    ctx.toast(`Cleared ${plural(words.length, 'known word')}.`, { ms: 6000, action: { label: 'Undo', run: () => { void undo(); } } });
+  }
+
+  /** Takes off only the words reading marked (settings.autoKnown) and starts their counts again; words marked by hand stay. */
+  async function clearLearned(): Promise<void> {
+    const learned = store.known.all().filter((w) => store.known.isAuto(w));
+    if (!learned.length) return;
+    const ok = await confirmDialog({
+      title: 'Clear words learned from reading?',
+      body: `This removes ${plural(learned.length, 'word')} that reading marked as known, and starts counting again from nothing. Words you marked yourself stay known. Saved flashcards are not changed.`,
+      confirmLabel: 'Clear learned words',
+      danger: true,
+    });
+    if (!ok || !alive) return;
+    await store.known.remove(learned);
+    await store.seen.clear();
+    ctx.toast(`Cleared ${plural(learned.length, 'word')} learned from reading.`);
   }
 
   const clearBtn = h('button.btn.btn-sm.btn-danger', { type: 'button', onclick: () => void clearKnown() }, 'Clear known words');
-  const clearBtnHolder = h('div');
+  const clearLearnedBtn = h('button.btn.btn-sm', { type: 'button', onclick: () => void clearLearned() }, 'Clear learned words');
+  const learnedNote = h('p.voc-known-learned.muted', { hidden: true });
+  const clearBtnHolder = h('div.voc-known-clear');
   // Collapsed by default and at the top: it is a setting you reach for now and then, not the end of a long list.
   const knownPanel = h('details.card.voc-known', null,
     h('summary.voc-known-summary', null,
@@ -250,6 +278,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       icon('chevronDown', 'icon voc-known-chev')),
     h('div.voc-known-body', null,
       h('p.voc-known-sub.muted', null, 'Words you already know. Pinyin is hidden above them when you read with "unknown words only".'),
+      learnedNote,
       h('div.voc-known-actions', null,
         levelSel,
         h('button.btn.btn-sm', { type: 'button', onclick: () => void markHsk() }, icon('checkCircle'), 'Mark as known'),

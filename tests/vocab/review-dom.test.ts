@@ -144,6 +144,28 @@ describe('vocab screen', () => {
     expect([...page.children].indexOf(panel)).toBeLessThan([...page.children].indexOf(root.querySelector('.voc-list')!));
   });
 
+  it('shows how many known words reading marked, and clears only those', async () => {
+    const proto = HTMLDialogElement.prototype as unknown as { showModal?: () => void; close?: () => void };
+    proto.showModal ??= function (this: HTMLDialogElement) { this.setAttribute('open', ''); };
+    proto.close ??= function (this: HTMLDialogElement) { this.removeAttribute('open'); this.dispatchEvent(new Event('close')); };
+    const { ctx, root, store } = await setup([item('爱', 'ai4', 'to love')]);
+    await store.known.add(['你好']);
+    await store.known.add(['山', '水'], { auto: true });
+    await store.seen.put([{ word: '火', n: 3, days: 1, lastDay: 1 }]);
+    await mountVocab(root, {}, ctx);
+    await until(() => !!root.querySelector('.voc-row'));
+    expect(root.querySelector('.voc-known-learned')!.textContent).toBe('2 words learned from reading.');
+    const btn = [...root.querySelectorAll<HTMLButtonElement>('.voc-known-actions button')].find((b) => b.textContent === 'Clear learned words')!;
+    btn.click();
+    await until(() => !!document.querySelector('dialog.voc-dialog'));
+    [...document.querySelectorAll<HTMLButtonElement>('dialog.voc-dialog button')].find((b) => b.textContent === 'Clear learned words')!.click();
+    await until(() => store.known.autoCount() === 0);
+    expect(store.known.has('你好')).toBe(true);
+    expect(store.known.has('山')).toBe(false);
+    await until(() => root.querySelector<HTMLElement>('.voc-known-learned')!.hidden);
+    expect(await store.seen.get(['火'])).toEqual([]);
+  });
+
   it('the session summary line is short', async () => {
     const { ctx, root } = await setup([item('爱', 'ai4', 'to love')]);
     const stop = await mountReview(root, {}, ctx) as () => void;

@@ -6,11 +6,13 @@ import type { Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, Progress, 
 import { readingFontSizeKey } from '../../store/settings';
 import { canSpeak, pauseSpeaking, resumeSpeaking, speakSequence, stopSpeaking } from '../../speech/tts';
 import { EMPTY_LEXICON, isDetecting, loadLexicon } from '../../core/lexicon';
+import { REMOTE_PROGRESS_EVENT, syncBeforeOpen } from '../../core/sync';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { closePopup, openWordPopup } from '../popup/popup';
 import { createChapterView, type BlockState, type ChapterView } from './chapter';
 import { applyGridVars, effectiveLineHeight, readingSize } from './grid';
+import { createLearning } from './learning';
 import { createLookup } from './lookup';
 import {
   buildDisplayMenu, buildPinyinMenu, closePopover, openPopover, pinyinModeLabel, popoverOpenFor, showShortcuts,
@@ -89,7 +91,13 @@ export const mount: MountFn = async (root, params, ctx) => {
   }
   if (!location.hash.startsWith('#/read')) return; // navigated away while loading
 
+  // The place read on another device, if the Mac answers quickly.
+  await syncBeforeOpen();
+  if (!location.hash.startsWith('#/read')) return;
   const saved = await store.progress.get(book.id);
+  /** The place last saved (or the one the book opened at). Saving the same place again would make it look newer than a place
+   * read since on another device, so it is not saved again. */
+  let lastSaved = saved ? { chapter: saved.chapter, block: saved.block, offset: saved.offset ?? 0 } : { chapter: 0, block: 0, offset: 0 };
   const prevTitle = document.title;
   document.title = `${book.title} - Dushu`;
   void store.books.update(book.id, { lastOpenedAt: Date.now() }).catch(() => {});
@@ -297,6 +305,10 @@ export const mount: MountFn = async (root, params, ctx) => {
     }
   }
 
+  // Words learned from reading (settings.autoKnown): what is on screen, and what was looked up.
+  let hoverOpening = false;
+  const learning = createLearning({ ctx, dict, view, chapterIndex: () => chapterIndex, pager: () => (paged ? pager : null), topInset: BAR_H });
+
   const lookup = createLookup({
     ctx, dict, book,
     view,
@@ -313,7 +325,8 @@ export const mount: MountFn = async (root, params, ctx) => {
       void startChapterSpeech({ block: block.index, offset });
     },
     // With the keyboard cursor on, the cursor follows the popup's word, and focus returns to it when the popup closes.
-    onWordShown: (b, s, e) => { if (cursor) setCursor(b, s, e, false); },
+    onWordShown: (b, s, e) => { learning.lookedUp(b.text.slice(s, e), !hoverOpening); if (cursor) setCursor(b, s, e, false); },
+    onPhraseShown: (spans) => learning.helped(spans),
     restoreFocus: () => (cursorEl?.isConnected ? cursorEl : null),
     onSheetTop: (top) => liftPage(top),
     liftsPage: () => paged,
@@ -581,6 +594,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     closePopover();
     clearCursor();
     saveProgressNow();
+    learning.restart();
     try {
       clearChapterError();
       if (paged) {
@@ -821,6 +835,8 @@ export const mount: MountFn = async (root, params, ctx) => {
       block = at.block;
       offset = at.offset;
     }
+    if (lastSaved.chapter === chapterIndex && lastSaved.block === block && lastSaved.offset === offset) return;
+    lastSaved = { chapter: chapterIndex, block, offset };
     const p: Progress = { bookId: book!.id, chapter: chapterIndex, block, percent: percent(), updatedAt: Date.now() };
     if (offset > 0) p.offset = offset;
     void store.progress.set(p).catch(() => {});
@@ -938,7 +954,11 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (!w || w === hoverEl) return;
     hoverEl = w;
     window.clearTimeout(hoverTimer);
-    hoverTimer = window.setTimeout(() => { if (hoverEl === w && !disposed) lookup.openToken(w); }, 250);
+    hoverTimer = window.setTimeout(() => {
+      if (hoverEl !== w || disposed) return;
+      hoverOpening = true;
+      try { lookup.openToken(w); } finally { hoverOpening = false; }
+    }, 250);
   };
   const onOut = (e: MouseEvent) => {
     const w = (e.target as Element).closest?.('.rd-w');
@@ -1161,6 +1181,17 @@ export const mount: MountFn = async (root, params, ctx) => {
   };
 
   const onVisibility = () => { if (document.visibilityState === 'hidden') saveProgressNow(); };
+  // Another device read this book further (or elsewhere): offer to go there, never move the page by itself.
+  const onRemoteProgress = (e: Event) => {
+    const { bookId, progress: p } = (e as CustomEvent<{ bookId: string; progress: Progress }>).detail ?? {};
+    if (bookId !== book!.id || !p) return;
+    const here = currentPlace();
+    if (here && here.chapter === p.chapter && here.block === p.block && here.offset === (p.offset ?? 0)) return;
+    ctx.toast(`On another device you are ${Math.round(p.percent * 100)}% through this book.`, {
+      ms: 12000,
+      action: { label: 'Go there', run: () => void loadChapter(p.chapter, p.block > 0 || (p.offset ?? 0) > 0 ? { block: p.block, offset: p.offset } : { top: true }) },
+    });
+  };
 
   rd.addEventListener('mousedown', onMouseDown);
   rd.addEventListener('click', onClick);
@@ -1176,6 +1207,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('pagehide', saveProgressNow);
+  window.addEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', updateProgressUi);
 
@@ -1249,10 +1281,12 @@ export const mount: MountFn = async (root, params, ctx) => {
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', saveProgressNow);
+    window.removeEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
     window.removeEventListener('scroll', onScroll);
     window.removeEventListener('resize', updateProgressUi);
     unsubSettings();
     unsubStore();
+    learning.dispose();
     closePopup();
     closePopover();
     toc.dispose();

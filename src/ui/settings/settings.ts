@@ -1,6 +1,7 @@
 // Settings screen: grouped controls, a live preview sentence, translation providers, speech, data. ARCHITECTURE.md 5.6.
 import '../../styles/settings.css';
 import type { MountFn, Settings } from '../../types';
+import { AUTO_KNOWN_HELP } from '../../core/autoKnown';
 import { readingFontSizeKey } from '../../store/settings';
 import { h } from '../dom';
 import { group, row, segmented, slider, toggle, type Control } from './controls';
@@ -50,6 +51,7 @@ export const mount: MountFn = (root, params, ctx) => {
   ], set('pinyinStyle')));
   const tones = add(toggle('toneColors', 'Color pinyin by tone', set('toneColors')));
   const sandhi = add(toggle('sandhi', 'Show tone changes for yī and bù', set('sandhi')));
+  const autoKnown = add(toggle('autoKnown', 'Learn known words as I read', set('autoKnown')));
 
   // ---- lookup ----
   const trigger = add(segmented('lookupTrigger', 'Look up words with', [
@@ -76,7 +78,8 @@ export const mount: MountFn = (root, params, ctx) => {
     hskRow,
     row('Style', null, style),
     row('Tone colors', 'Red, green, blue, purple and gray for tones 1 to 5.', tones),
-    row('Tone changes for yī and bù', 'Show 一个 as yí gè and 不是 as bú shì, as spoken, instead of the dictionary tone.', sandhi));
+    row('Tone changes for yī and bù', 'Show 一个 as yí gè and 不是 as bú shì, as spoken, instead of the dictionary tone.', sandhi),
+    row('Learn known words as I read', AUTO_KNOWN_HELP, autoKnown));
   const lookup = group('Lookup', 'Double-click and drag-select always work, whichever you choose.',
     row('Look up a word by', null, trigger),
     row('Translate paragraphs', 'On a touch screen, tap a word twice to translate its sentence. With a mouse, a small translate button appears beside each paragraph in the Scroll layout; in Pages, drag across a sentence.', paragraph));

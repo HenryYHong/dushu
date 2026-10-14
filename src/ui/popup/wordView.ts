@@ -299,9 +299,13 @@ export function mountWordView(
       saveBtn.setAttribute('aria-pressed', String(saved));
       saveBtn.title = saved ? 'Remove from saved words (S)' : 'Save word (S)';
       const known = store.known.has(simp) || store.known.has(v.word);
+      // Learned from reading (settings.autoKnown) rather than marked by hand: said so, and the button looks a little lighter.
+      const learned = known && (store.known.isAuto(simp) || store.known.isAuto(v.word));
       knownBtn.replaceChildren(icon('checkCircle'));
       knownBtn.setAttribute('aria-pressed', String(known));
-      knownBtn.title = known ? 'Known. Click to unmark (K)' : 'Mark as known (K)';
+      knownBtn.classList.toggle('pp-learned', learned);
+      knownBtn.title = learned ? 'Learned from reading. Click to unmark (K)' : known ? 'Known. Click to unmark (K)' : 'Mark as known (K)';
+      knownBtn.setAttribute('aria-label', learned ? 'Known, learned from reading' : 'Mark as known');
     };
     sync();
     refreshers.push(sync);

@@ -2,10 +2,10 @@
 // when IndexedDB is missing or refuses to open, e.g. some private-browsing modes).
 // All writes go through commit(), which is atomic.
 
-export type Table = 'books' | 'chapters' | 'assets' | 'progress' | 'vocab' | 'known' | 'reviews' | 'lexicon' | 'lexiconScopes';
+export type Table = 'books' | 'chapters' | 'assets' | 'progress' | 'vocab' | 'known' | 'reviews' | 'lexicon' | 'lexiconScopes' | 'sync' | 'seen';
 
 /** Bump when a table is added or changed; openDb's upgrade step creates what is missing, so v1 data is kept. */
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export const TABLES: Record<Table, { keyPath: string | string[]; autoIncrement?: boolean }> = {
   books: { keyPath: 'id' },
@@ -19,6 +19,11 @@ export const TABLES: Record<Table, { keyPath: string | string[]; autoIncrement?:
   lexicon: { keyPath: ['scope', 'word'] },
   /** Which scopes have been scanned, and by which detector version. */
   lexiconScopes: { keyPath: 'scope' },
+  /** What this device last agreed with the Mac on, one row per synced record, plus '#meta'. Kept with the data so a wipe or an
+   * eviction clears both together: the device then looks new, and never tells the Mac its words were deleted. */
+  sync: { keyPath: 'key' },
+  /** How often each word went by on a page without being looked up (known words learned from reading). */
+  seen: { keyPath: 'word' },
 };
 
 export type Op =

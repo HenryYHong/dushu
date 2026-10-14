@@ -9,6 +9,7 @@ import { h, clear } from './ui/dom';
 import { parseRoute } from './ui/route';
 import { icon } from './ui/icons';
 import { watchServiceWorker } from './swUpdate';
+import { startSync } from './core/sync';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -116,6 +117,8 @@ async function boot(): Promise<void> {
   }
   // Start parsing the dictionary right away; the library does not wait for it.
   ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not load the dictionary data. Run `npm run data`.'); });
+  // Saved words, known words and reading places, kept the same on every device connected to the Mac.
+  startSync(store);
 
   const reviewBadge = h('span.app-badge', { hidden: true });
   const navLink = (href: string, label: string, ic: string, extra?: Node) =>

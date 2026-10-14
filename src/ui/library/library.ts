@@ -10,6 +10,7 @@ import { ACCEPT, createImporter, jobStage, prefetchImporters, type Importer, typ
 import { pasteDialog } from './paste';
 import { fetchSamples, sampleSourceName, type Sample } from './samples';
 import { BRIDGE_EVENT, isMacOrigin } from '../../core/macBridge';
+import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
 import { addedMessage, fetchMacBookFile, fetchMacBooks, forgetRemoval, isMacBook, rememberRemoval, removedMacBooks, syncMacBooks, type MacBook, type MacState } from './macBooks';
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
@@ -357,6 +358,9 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   // The store also fires this when another tab imports, renames or deletes a book, so a second tab needs no reload.
   const offChange = store.onChange((what) => { if (what === 'books') void load(); });
+  // A reading place from another device moves the progress bars.
+  const onRemoteProgress = () => void load();
+  window.addEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
 
   // ---- the Mac's books ----
   const syncDeps = {
@@ -376,7 +380,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(macNote);
     if (publicCopy) {
       macNote.append(
-        h('p', null, 'This is the public copy of Dushu. Your books, words and progress stay in this browser. If you run Dushu on your own Mac, connect this device to it in Settings to use its translator and read-aloud voices, and to bring your Mac books here.'),
+        h('p', null, 'This is the public copy of Dushu. Your books, words and progress stay in this browser. If you run Dushu on your own Mac, connect this device to it in Settings to use its translator and read-aloud voices, to bring your Mac books here, and to sync your words and reading places.'),
         h('div.lib-actions', null,
           h('a.btn.btn-sm', { href: '#/settings' }, 'Open Settings'),
           h('button.btn.btn-sm', { type: 'button', onclick: () => { try { localStorage.setItem('dushu.public-note.v1', '1'); } catch { /* ignore */ } renderMacNote(); } }, 'Dismiss')));
@@ -469,6 +473,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     alive = false;
     closeMenu();
     offChange();
+    window.removeEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
     window.removeEventListener(BRIDGE_EVENT, onBridge);
     window.removeEventListener('dragenter', onEnter);
     window.removeEventListener('dragover', onOver);

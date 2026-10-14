@@ -21,7 +21,7 @@ export const PUBLIC_ORIGIN = 'https://henryyhong.com';
 
 /** Routes the public site needs. Everything else under /api/ stays same-origin only. */
 export const BRIDGE_ROUTES = [
-  '/api/claude/', '/api/local-model/', '/api/native-voices', '/api/native-speech', '/api/local-books', '/api/private-status',
+  '/api/claude/', '/api/local-model/', '/api/native-voices', '/api/native-speech', '/api/local-books', '/api/private-status', '/api/sync',
 ];
 export function isBridgeRoute(path: string): boolean {
   return BRIDGE_ROUTES.some(route => route.endsWith('/') ? path.startsWith(route) : path === route || path.startsWith(`${route}/`));

@@ -25,9 +25,9 @@ const owner = (extra: Record<string, string> = {}) => ({ 'tailscale-user-login':
 describe('bridge routes', () => {
   it('covers exactly the routes the public site needs', () => {
     for (const path of ['/api/claude/status', '/api/claude/translate', '/api/local-model/api/tags', '/api/local-model/api/generate',
-      '/api/native-voices', '/api/native-speech', '/api/local-books', '/api/local-books/huozhe', '/api/private-status']) expect(isBridgeRoute(path)).toBe(true);
+      '/api/native-voices', '/api/native-speech', '/api/local-books', '/api/local-books/huozhe', '/api/private-status', '/api/sync']) expect(isBridgeRoute(path)).toBe(true);
     for (const path of ['/', '/index.html', '/api/other', '/api/claude', '/api/local-booksx', '/assets/api/claude/status']) expect(isBridgeRoute(path)).toBe(false);
-    expect(BRIDGE_ROUTES).toHaveLength(6);
+    expect(BRIDGE_ROUTES).toHaveLength(7);
   });
 });
 

@@ -348,8 +348,8 @@ Serve removes spoofed identity headers; direct remote requests cannot reach the 
 `scripts/local-model.ts` exposes only filtered tags and bounded generation, a supported model allowlist, fixed inference
 limits, two active generations, timeouts and disconnect cancellation. It never exposes Ollama model management.
 The browser requests its own origin, not iPad localhost:11434. Books are exact opt-in owner files, not a Downloads browser.
-API responses are no-store and the service worker does not intercept them. Library storage remains device/browser-specific;
-backup transfer is manual, not automatic sync. New v1 backups include only SHA-256 book-content identities, not the content itself.
+API responses are no-store and the service worker does not intercept them. Books stay device/browser-specific; saved words,
+known words and reading places sync through the Mac (§4.11). New v1 backups include only SHA-256 book-content identities, not the content itself.
 Progress, book-specific terms and vocab book context are remapped only to an exact, unambiguous imported copy;
 different editions/duplicate copies are not guessed, and older backups remain readable. Import books before the backup.
 Mac services require an awake, connected Mac.
@@ -358,7 +358,7 @@ Mac services require an awake, connected Mac.
 It talks to the Mac's bridge only from origin `https://henryyhong.com`, and only for the owner's exact Tailscale identity:
 `bridgeRequest()` in `scripts/private-access.ts` requires the private host plus the injected owner headers, and `bridgeCors()` answers the
 preflight (including `Access-Control-Allow-Private-Network`; credentials are never allowed, every bridge response has `Vary: Origin`).
-CORS covers `/api/claude/`, `/api/local-model/`, `/api/native-voices`, `/api/native-speech`, `/api/local-books` and `/api/private-status`;
+CORS covers `/api/claude/`, `/api/local-model/`, `/api/native-voices`, `/api/native-speech`, `/api/local-books`, `/api/private-status` and `/api/sync`;
 any other route, and any other origin, is refused. `DUSHU_EXTRA_ORIGINS` (comma separated) adds origins for testing on one machine and may
 include localhost. The Mac's tailnet hostname is never in the bundle, the repo or a document (a test fails if it appears); the owner
 connects each device once (`src/core/macBridge.ts`: the address lives only in localStorage key `dushu.mac-bridge.v1`, never in Settings or a
@@ -438,6 +438,56 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   (also offered in the word popup under "not in the dictionary as a word"): pinyin prefilled from what is shown, optional meaning, "This book"
   or "All books" (`'*'`). The phrase popup segments with the lexicon, so a name is one row in the word-by-word list. Edits call
   `onLexiconChange` and the reader reloads the lexicon.
+
+### 4.10 `core/autoKnown.ts` — known words learned from reading (`settings.autoKnown`, off by default)
+- The rule: a word that goes by on 10 pages (`AUTO_KNOWN_PAGES`) over at least 2 different local days (`AUTO_KNOWN_DAYS`) without being looked
+  up is added with `store.known.add([word], { auto: true })`, so the Unknown pinyin mode stops showing its pinyin. Counts are kept per word in
+  the simplified form (`dict.toSimplified`) in the `seen` table (`SeenRow {word, n, days, lastDay}`); a word that becomes known loses its row.
+  Words already known and saved words (they are studied with review) are never counted. A learned word never replaces one marked by hand; marking a
+  learned word by hand makes it a hand-marked one (`known.isAuto`, `known.autoCount`; the flag is the `auto` field of the `known` row and
+  travels in backups as `knownAuto`).
+- What counts as a page read: the reader (`ui/reader/learning.ts`) reports what is on screen once a second (`tick(view)`, nothing while the page
+  is hidden). In Pages a view is the text of the spread on show (`pager.shownRange()`: from the top of the spread to the top of the next one); in
+  Scroll it is each paragraph in the window. Text counts once it has stayed on screen `readingDwell(chars)` = max(3 s, 40 ms per character):
+  the whole spread's characters in Pages, the paragraph's in Scroll. Text that leaves the screen starts again from nothing, so flipping through
+  pages never adds up. Going back (a lower position than the furthest reached, beyond a third of a screen in Scroll) pauses counting until the
+  reader is back; opening a chapter from the contents (`restart()`) counts from there. Each occurrence counts at most once while the book is open.
+  One `seen.put` per counted view; writes are queued and never block a page turn; failures are logged and dropped.
+- Looking a word up: a word card opened by a tap, click, double-click, the keys or a step in the card resets the word's count and takes a learned
+  word off the known list (it comes back only by reading past it again). A hover popup (`lookupTrigger: hover`) and a translated phrase only keep
+  their words from counting for the text on screen at the time. With the setting off nothing is counted or taken off.
+- UI: a switch in Settings → Pinyin and in the reader's pinyin menu (shown in Unknown mode). The word card's Known button says "Learned from
+  reading". The known-words panel on the Words screen shows how many reading marked and has **Clear learned words** (removes only those and
+  clears the counts). An added word updates the open page in place (the store's `known` change → `refreshMarks`), never re-segmenting.
+
+### 4.11 Sync through the Mac (`core/sync.ts`, `scripts/sync-bridge.ts`)
+Saved words (with their SRS state), known words (with the learned-from-reading mark) and the reading place in each book are the same on
+every device connected to the Mac. Books, settings, review logs and names are not synced.
+- **The Mac** (`scripts/sync-bridge.ts`, route `POST /api/sync`, owner-only through `bridgeRequest`, CORS like the other bridge routes)
+  keeps one file, `.dushu-local/sync/state.json` (`DUSHU_SYNC_DIR` overrides it for tests): `{ epoch, version, records: { key: { at, data, rev } } }`.
+  Keys: `v:<word id>`, `k:<word>`, `p:<book key>`; `data: null` is a deletion. A request sends `{ epoch, since, changes: [{ key, at, data }] }`;
+  each change wins when its `at` is later (a tie goes to the larger JSON, so every copy agrees; an `at` more than 10 minutes ahead of the
+  Mac's clock is clamped). `at: 0` means a copy the device never synced: it lands only where the Mac has nothing. The reply holds every
+  record with `rev > since` plus the current value of every change that lost, the new `version`, and counts. A different `epoch` (or a
+  cursor past the end) gets everything. Writes are atomic; before the first write of a day the previous file is kept as
+  `state-YYYY-MM-DD.json` (14 kept); a file that cannot be parsed is set aside, never overwritten. Limits: 8 MB body, 5,000 changes, 32 KB per record.
+- **A device** keeps one row per record in the store's `sync` table (`SyncRow`: `at`, `sig` = hash of the record, `dirty` when not yet sent,
+  `fresh` for a word saved before it ever synced, `held` for a place in a book the device does not have yet; `#meta` holds `epoch` and the
+  cursor). These rows live in the same IndexedDB as the data, so a wipe or an eviction clears both: the device looks new and only receives;
+  sync never reads "missing" as "deleted" unless the device had agreed on the record before. A run (Web Locks `dushu-sync`, one tab at a time):
+  apply held places whose book arrived; compare a snapshot of the store with the rows and mark what changed (stamped now; a place with its
+  `updatedAt`; a fresh word with `at: 0`); send up to 1,000 changes per request and apply what comes back (`store.sync.apply`, one
+  transaction, heard by screens as a remote change). Places are never deleted by sync. A fresh word that meets the Mac's copy keeps the one
+  studied more (`srs.last`), or itself when it was saved after the Mac's deletion, and is sent again stamped to win.
+- **Book keys** (`bookKey`): `m<file digest>` for the Mac's books, `s<id>` for the classics, else `b<hash of chapter count, Han count and
+  chapter titles>` (the same import of the same file matches; a rename does not change it). Saved words travel with `context.bookId` as the
+  book key and are mapped back to the local id.
+- **When**: at start, 1.5 s after a word or known-word change, 5 s after a place is saved, on every screen change, when the page is hidden (keepalive when small) or
+  shown again, when the connected Mac changes, when back online, and every 45 s while visible. The reader waits up to 1.5 s for a sync
+  before it reads the saved place (`syncBeforeOpen`), never saves a place that did not move (so opening a book on a stale device cannot
+  overwrite a newer place), and when another device's place arrives for the open book it offers "Go there" (`dushu:remote-progress`).
+- **Settings** → Your Mac and iPad → Sync: a switch (localStorage `dushu.sync.off.v1`), Sync now, and the status. Delete all data turns
+  sync off on that device, so the Mac's copy stays there until it is turned on again. The memory fallback never syncs.
 
 ## 5. UI
 

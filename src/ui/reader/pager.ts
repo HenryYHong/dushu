@@ -72,6 +72,11 @@ export interface Pager {
   view(): ChapterView | null;
   chapterIndex(): number;
   anchor(): Anchor | null;
+  /**
+   * The text on the pages on show: from the top of the spread to the top of the next one (`end` null: to the chapter's end).
+   * Null while a page is turning or the chapter is being set.
+   */
+  shownRange(): { start: Anchor; end: Anchor | null } | null;
   /** Fraction of the whole book behind the reader, 0..1. */
   percent(): number;
   /** Show the page that holds this place without animating. */
@@ -1242,6 +1247,15 @@ export function createPager(o: PagerOptions): Pager {
     return anchorAtPage(cur, firstPageOfSpread(spread, geom.per));
   }
 
+  function shownRange(): { start: Anchor; end: Anchor | null } | null {
+    if (!cur || !cur.cols.length || frozen || turn) return null;
+    const start = anchorAtPage(cur, firstPageOfSpread(spread, geom.per));
+    const next = lastPageOfSpread(spread) + 1;
+    // Past the blocks measured so far: the rest of the chapter is still hidden, so the pages end where they do.
+    if (next > cur.cols[cur.cols.length - 1].last) return { start, end: cur.done ? null : { block: cur.cols.length, offset: 0 } };
+    return { start, end: anchorAtPage(cur, next) };
+  }
+
   function freeze(): void {
     if (!cur || disposed) return;
     if (turn) endTurn(true);
@@ -1481,6 +1495,7 @@ export function createPager(o: PagerOptions): Pager {
     view: () => cur?.view ?? null,
     chapterIndex: () => cur?.index ?? 0,
     anchor: currentAnchor,
+    shownRange,
     percent,
     reveal(block, offset) {
       if (!cur) return;

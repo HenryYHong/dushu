@@ -4,6 +4,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { AppContext, BookMeta, Chapter } from '../../src/types';
 import { mount } from '../../src/ui/reader/reader';
 import { closePopup } from '../../src/ui/popup/popup';
+import { REMOTE_PROGRESS_EVENT } from '../../src/core/sync';
 import { makeCtx, stubBrowser, tick } from './helpers';
 
 beforeAll(() => stubBrowser());
@@ -149,6 +150,30 @@ describe('reader screen', () => {
     expect((await ctx.store.books.get(meta.id))?.lastOpenedAt).toBeGreaterThan(0);
     await open(ctx, meta.id);
     expect(text('.rd-chapter-title')).toBe('第三章');
+  });
+
+  it('does not save an unchanged place again, so a newer place read on another device is kept', async () => {
+    const { ctx, meta } = await setup();
+    await ctx.store.progress.set({ bookId: meta.id, chapter: 1, block: 0, percent: 0.4, updatedAt: 1234 });
+    await open(ctx, meta.id);
+    expect(text('.rd-chapter-title')).toBe('第二章');
+    await tick(1000);
+    cleanup?.(); cleanup = undefined;
+    expect((await ctx.store.progress.get(meta.id))?.updatedAt).toBe(1234);
+  });
+
+  it('offers to go to the place read on another device, and only for this book', async () => {
+    const { ctx, meta } = await setup();
+    const offers: { message: string; run?: () => void }[] = [];
+    ctx.toast = (message, o) => { offers.push({ message, run: o?.action?.run }); };
+    await open(ctx, meta.id);
+    const event = (bookId: string) => new CustomEvent(REMOTE_PROGRESS_EVENT, { detail: { bookId, progress: { bookId, chapter: 2, block: 0, percent: 0.9, updatedAt: Date.now() } } });
+    window.dispatchEvent(event('another-book'));
+    expect(offers).toHaveLength(0);
+    window.dispatchEvent(event(meta.id));
+    expect(offers.map((o) => o.message)).toEqual(['On another device you are 90% through this book.']);
+    offers[0].run!();
+    await vi.waitFor(() => expect(text('.rd-chapter-title')).toBe('第三章'));
   });
 
   it('script conversion re-renders the chapter text', async () => {

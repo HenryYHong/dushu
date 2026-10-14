@@ -2,6 +2,7 @@
 // On a touch screen or a narrow one a menu is a bottom sheet with a grabber and a Done button; on a computer it is a
 // panel under its button. Both are dialogs: focus moves into them on open and returns to the button on close.
 import type { AppContext, PinyinMode, Settings } from '../../types';
+import { AUTO_KNOWN_HELP } from '../../core/autoKnown';
 import { readingFontSizeKey } from '../../store/settings';
 import { h } from '../dom';
 import { icon } from '../icons';
@@ -224,15 +225,20 @@ export function buildPinyinMenu(ctx: AppContext): { el: HTMLElement; sync(): voi
     () => get().pinyinStyle, (v) => set({ pinyinStyle: v })));
   const tones = add(toggle(() => get().toneColors, (v) => set({ toneColors: v })));
   const sandhi = add(toggle(() => get().sandhi, (v) => set({ sandhi: v })));
+  const learn = add(toggle(() => get().autoKnown, (v) => set({ autoKnown: v })));
+  learn.el.title = AUTO_KNOWN_HELP;
+  // Learning from reading changes what Unknown hides, so it sits under the modes while Unknown is the one chosen.
+  const learnRow = row('Learn as I read', learn.el, 'Words you read past often lose their pinyin');
   const modes = h('div.rd-menu', { role: 'menu', 'aria-label': 'Show pinyin' }, items, stepper);
   const el = h('div.rd-menu.rd-pinyin-menu', null,
-    section('Show pinyin', modes),
+    section('Show pinyin', modes, learnRow),
     section('Look', row('Style', style.el), row('Tone colors', tones.el), row('Tone changes', sandhi.el, 'yí gè, bú shì')));
   const sync = () => {
     const s = get();
     items.forEach((b, i) => b.setAttribute('aria-checked', String(PINYIN_MODES[i].value === s.pinyin)));
     level.textContent = s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
     stepper.hidden = s.pinyin !== 'hsk';
+    learnRow.hidden = s.pinyin !== 'unknown';
     syncs.forEach((f) => f());
   };
   sync();
