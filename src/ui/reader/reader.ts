@@ -214,6 +214,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   let chapterIndex = 0;
   let loadSeq = 0;
   let disposed = false;
+  /** Puts away the first-visit hint's timers and listener (set while the hint shows). */
+  let stopCoach: (() => void) | null = null;
   let suppressClick = false;
   let dragFromArticle = false;
   let pointerKind: 'mouse' | 'touch' | 'pen' = 'mouse';
@@ -1278,10 +1280,15 @@ export const mount: MountFn = async (root, params, ctx) => {
     if ((s.pinyin === 'unknown' || s.pinyin === 'hsk') && store.known.count() === 0) {
       lines.push('Pinyin shows on every word until you mark words as known. Mark one in its card, and it goes away.');
     }
-    const close = () => {
-      coachMark();
+    const stop = () => {
       document.removeEventListener('pointerdown', close, true);
       window.clearTimeout(timer);
+      window.clearTimeout(arm);
+      stopCoach = null;
+    };
+    const close = () => {
+      coachMark();
+      stop();
       box.remove();
     };
     const box = h('div.rd-coach', { role: 'note', 'data-rd-ui': '' },
@@ -1290,10 +1297,13 @@ export const mount: MountFn = async (root, params, ctx) => {
     rd.appendChild(box);
     const timer = window.setTimeout(close, 20000);
     // The first tap anywhere puts it away (and still does what the tap was for).
-    window.setTimeout(() => document.addEventListener('pointerdown', close, true), 600);
+    const arm = window.setTimeout(() => document.addEventListener('pointerdown', close, true), 600);
+    // Leaving the reader takes its timers and listener with it (the hint shows again next time).
+    stopCoach = stop;
   }
 
   return () => {
+    stopCoach?.();
     stopChapterSpeech();
     saveProgressNow();
     disposed = true;
