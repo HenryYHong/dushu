@@ -1098,7 +1098,11 @@ export function createPager(o: PagerOptions): Pager {
     return t;
   }
 
-  function endTurn(commit: boolean): void {
+  /** Ends the running turn. `next`: it finished on its own, so the turn that waited for it (see go) starts now; anything else
+   * that cuts a turn short (a new chapter, a relayout, a finger on the page) drops the waiting one. */
+  function endTurn(commit: boolean, next = false): void {
+    const after = next ? waiting : 0;
+    waiting = 0;
     if (!turn) return;
     const t = turn;
     turn = null;
@@ -1108,6 +1112,7 @@ export function createPager(o: PagerOptions): Pager {
     t.done(commit);
     // The background work waits for the page to be at rest: it would land in the frame after the turn.
     if (commit) pumpSoon();
+    if (after) go(after);
   }
 
   let pumpSoonTimer = 0;
@@ -1121,14 +1126,14 @@ export function createPager(o: PagerOptions): Pager {
     return new Promise((resolve) => {
       const start = t.p;
       const dur = t.kind === 'fade' ? 180 : settleDuration(target - start, velocity);
-      if (dur === 0) { t.set(target); endTurn(target === 1); resolve(); return; }
+      if (dur === 0) { t.set(target); endTurn(target === 1, true); resolve(); return; }
       const t0 = performance.now();
       const step = (now: number) => {
         if (turn !== t) { resolve(); return; }
         const k = clamp((now - t0) / dur, 0, 1);
         t.set(start + (target - start) * ease(k));
         if (k < 1) anim = requestAnimationFrame(step);
-        else { endTurn(target === 1); resolve(); }
+        else { endTurn(target === 1, true); resolve(); }
       };
       anim = requestAnimationFrame(step);
     });
@@ -1141,19 +1146,17 @@ export function createPager(o: PagerOptions): Pager {
     return reduced() ? 'fade' : k;
   }
 
-  /** A turn asked for this soon after the last one (a held key, quick taps or clicks) changes the page at once. */
-  const RAPID_TURN_MS = 350;
-  let lastGoAt = -Infinity;
+  /** The one turn waiting for the running turn to finish (0: none). */
+  let waiting: 1 | -1 | 0 = 0;
 
-  /** Go one spread forward or back: animated for taps and keys, instant when turns come quickly one after another. */
-  function go(dir: 1 | -1, quick?: boolean): void {
+  /**
+   * Go one spread forward or back. Every turn shows its whole animation: one asked for while a page is still turning (fast
+   * scrolling, quick taps, a held key) waits for it to finish. Only the latest one waits, so the pages never run on after
+   * the reader stops, and the turns come no faster than the animation.
+   */
+  function go(dir: 1 | -1): void {
     if (!cur || disposed) return;
-    const now = performance.now();
-    // Building a turn's pictures takes a while; animating every quick turn queued them up behind the reader and the
-    // pages seemed to refuse to turn. The first turn animates; the ones that follow it closely just change the page.
-    const rapid = quick ?? (!!turn || now - lastGoAt < RAPID_TURN_MS);
-    lastGoAt = now;
-    if (turn) endTurn(true);
+    if (turn) { waiting = dir; return; }
     const plan = planTurn(dir);
     if (!plan) {
       // The neighbor chapter may still be setting its pages: get it ready, then try again.
@@ -1161,14 +1164,14 @@ export function createPager(o: PagerOptions): Pager {
       if (idx >= 0 && idx < book.chapterCount) {
         const have = layouts.get(idx);
         if (!(valid(have) && (dir === 1 ? have.done || safeLimit(have) > lastPageOfSpread(0) : have.done))) {
-          // Once it is ready this is the same turn, not a quick second one: it animates if it would have.
-          void prepareNeighbor(idx, dir).then((ok) => { if (ok && !disposed) go(dir, rapid); });
+          // Once it is ready the turn goes ahead, animated like any other.
+          void prepareNeighbor(idx, dir).then((ok) => { if (ok && !disposed) go(dir); });
         }
       } else if (dir === 1) o.onEnd();
       else nudge();
       return;
     }
-    const kind = rapid ? 'none' : kindNow();
+    const kind = kindNow();
     if (kind === 'none') {
       o.onTurnStart();
       setCurrent(plan.to.layout, plan.to.spread, plan.to.layout !== plan.from.layout);

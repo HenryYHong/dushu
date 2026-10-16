@@ -695,8 +695,9 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   events' own time stamps over about 64 ms (events with one time stamp count as one): deltas jump when the fingers lift (the events space
   out) and when a busy page gets several folded into one, while the speed holds. A new swipe is a pause of 160 ms (unless the event carries
   the movement the swipe would have made in it: a busy page), a delta the other way, or the swipe speeding up again after it slowed below
-  60% of its top speed or stopped dead (fingers landing on a coasting swipe). A turn that comes within 350 ms of the last one, or while one
-  is animating, changes the page without animating; a turn that waited for its chapter to load still animates.
+  60% of its top speed or stopped dead (fingers landing on a coasting swipe). Every turn plays its whole animation: one asked for while a
+  page is still turning (fast scrolling, quick taps, a held key) waits for it and then plays; only the latest waits, so turns come no faster
+  than the animation and stop when the reader stops. A finger on the page, a relayout or a new chapter drops the waiting turn.
   Under prefers-reduced-motion the old pages cross-fade out (about 180 ms) instead of flipping or cutting.
   Chapter edges flow into the next/previous chapter (the next chapter's first pages, and a short previous chapter, are ready in idle time).
 - Position: progress keeps the first block on the current page; resizing, rotating, changing font size or

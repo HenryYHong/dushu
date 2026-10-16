@@ -223,18 +223,23 @@ describe('pages layout', () => {
     expect(stage().page).toBe('4');
   });
 
-  it('changes the page at once when turns come quickly, so they never pile up behind the reader', async () => {
+  it('plays every turn in full: one asked for mid-turn waits for it, and only the latest waits', async () => {
     const { ctx, meta } = await setup({ pageTurn: 'slide' });
     await open(ctx, meta.id);
     key('ArrowRight');
     expect(stage().turn).toBe('slide'); // the first turn animates
     key('ArrowRight');
     key('ArrowRight');
-    // The quick ones finish the running turn and change the page at once instead of starting animations of their own.
-    expect(stage().turn).toBeUndefined();
-    expect(stage().page).toBe('4');
-    await tick(5);
-    expect(stage().page).toBe('4');
+    // The quick ones do not cut it short: the page is still turning to 2.
+    expect(stage().turn).toBe('slide');
+    expect(stage().page).toBe('1');
+    // Then the waiting one plays, animated, and the third press (which only replaced it) adds no turn of its own.
+    await vi.waitFor(() => expect(stage().page).toBe('2'), { timeout: 3000, interval: 5 });
+    expect(stage().turn).toBe('slide');
+    await vi.waitFor(() => expect(stage().turn).toBeUndefined(), { timeout: 3000, interval: 5 });
+    expect(stage().page).toBe('3');
+    await tick(700);
+    expect(stage().page).toBe('3');
   });
 
   it('turns once per trackpad swipe, and again for a quick second swipe while the first is still coasting', async () => {
@@ -270,8 +275,10 @@ describe('pages layout', () => {
     const chapter = ctx.store.books.chapter.bind(ctx.store.books);
     ctx.store.books.chapter = async (id, i) => { if (i === 1) await gate; return chapter(id, i); };
     await open(ctx, meta.id);
-    for (let i = 0; i < 3; i++) key('ArrowRight');
-    await tick(400);
+    for (let i = 0; i < 3; i++) {
+      key('ArrowRight');
+      await vi.waitFor(() => expect(stage().turn).toBeUndefined(), { timeout: 3000, interval: 5 });
+    }
     expect(stage().page).toBe('4');
     key('ArrowRight');
     await tick(20);
