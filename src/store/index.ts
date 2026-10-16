@@ -2,7 +2,8 @@
 import type {
   BackupReport, BookMeta, Chapter, Grade, ImportedBook, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, SyncRow, VocabItem, LexiconEntry,
 } from '../types';
-import { hanBefore, placeAt, textHan } from '../core/place';
+import { hanBefore, moveByPercent, placeAt, textHan } from '../core/place';
+import { bookKey, olderKeys, progressWire } from '../core/syncKeys';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
 import { TABLES, createIdbBackend, createMemoryBackend, friendlyError, type Backend, type Table } from './db';
@@ -284,6 +285,42 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     return run;
   };
 
+  // ---- reading places kept for books that are not here
+  type Ops = Parameters<Backend['commit']>[0];
+  /**
+   * A deleted book's place is kept in its sync row (as core/sync.ts keeps a place the Mac sent before the book arrived), so
+   * adding the same book again opens it where it was. Sync never deletes places, so the Mac keeps it too.
+   */
+  async function keepPlace(meta: BookMeta | undefined): Promise<Ops> {
+    const place = meta && await db.get<Progress>('progress', meta.id);
+    if (!meta || !place) return [];
+    const key = `p:${bookKey(meta)}`;
+    const row = await db.get<SyncRow>('sync', key);
+    return [{ op: 'put', table: 'sync', value: { ...(row ?? { key, at: place.updatedAt, sig: '' }), held: progressWire(place) } }];
+  }
+  /**
+   * The place kept for a book, once the book is here under its key (just added, or just marked as the Mac's): as it was, or
+   * from an older importer's key moved by its percent. The newest wins, and only over an older place here.
+   */
+  async function keptPlace(meta: BookMeta, chapter: (index: number) => Chapter | undefined | Promise<Chapter | undefined>): Promise<Ops> {
+    const key = bookKey(meta);
+    const here = await db.get<Progress>('progress', meta.id);
+    let best = here;
+    const ops: Ops = [];
+    for (const k of [key, ...olderKeys(key)]) {
+      const row = await db.get<SyncRow>('sync', `p:${k}`);
+      if (row?.held === undefined) continue;
+      const { held, ...rest } = row;
+      ops.push({ op: 'put', table: 'sync', value: rest });
+      const kept = cleanProgress({ ...(held as object), bookId: meta.id });
+      if (!kept) continue;
+      const p = k === key ? kept : await moveByPercent(meta, progressWire(kept), chapter);
+      if (!best || p.updatedAt > best.updatedAt) best = p;
+    }
+    if (best && best !== here) ops.push({ op: 'put', table: 'progress', value: best });
+    return ops;
+  }
+
   // ---- assets
   const urls = new Map<string, Promise<string | undefined>>();
   const urlKey = (bookId: string, name: string) => JSON.stringify([bookId, name]);
@@ -358,6 +395,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           { op: 'put', table: 'books', value: meta },
           ...book.chapters.map((chapter, index) => ({ op: 'put' as const, table: 'chapters' as const, value: { bookId: id, index, chapter } })),
           ...await assetRowsOf(id, book),
+          ...await keptPlace(meta, (i) => book.chapters[i]),
         ]);
         emit('books');
         return meta;
@@ -405,11 +443,16 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       async update(id, patch) {
         const cur = await db.get<BookMeta>('books', id);
         if (!cur) throw new Error('That book is no longer in your library.');
-        await write([{ op: 'put', table: 'books', value: { ...cur, ...patch, id } }]);
+        const next: BookMeta = { ...cur, ...patch, id };
+        // Marked as the Mac's book (or otherwise renamed for sync): a place kept under its new key lands now.
+        const kept = bookKey(next) === bookKey(cur) ? [] : await keptPlace(next, async (i) => (await db.get<{ chapter: Chapter }>('chapters', [id, i]))?.chapter);
+        await write([{ op: 'put', table: 'books', value: next }, ...kept]);
         emit('books');
       },
       async remove(id) {
+        const kept = await keepPlace(await db.get<BookMeta>('books', id));
         await write([
+          ...kept,
           { op: 'del', table: 'books', key: id },
           { op: 'delBook', table: 'chapters', bookId: id },
           { op: 'delBook', table: 'assets', bookId: id },

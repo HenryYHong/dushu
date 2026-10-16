@@ -48,6 +48,16 @@ const book = (): ImportedBook => ({
   chapters: [{ title: '一', blocks: [{ t: 'p', text: '我比现在年轻十岁的时候' }] }, { title: '二', blocks: [{ t: 'p', text: '获得了一个游手好闲的职业' }] }],
 });
 
+// Ten Han characters each. Version 2 is the newer importer's cut: one chapter.
+const LUNYU = ['学而时习之不亦说乎有', '朋自远方来不亦乐乎人', '不知而不愠不亦君子乎', '其为人也孝弟而好犯上'];
+const lunyu = (version = 1): ImportedBook => ({
+  title: '论语', author: '孔子', format: 'txt', script: 'simplified', assets: new Map(), sourceName: 'sample:lunyu',
+  ...(version > 1 ? { importVersion: version } : {}),
+  chapters: version > 1
+    ? [{ title: '学而', blocks: LUNYU.map((text) => ({ t: 'p' as const, text })) }]
+    : [{ title: '一', blocks: LUNYU.slice(0, 2).map((text) => ({ t: 'p' as const, text })) }, { title: '二', blocks: LUNYU.slice(2).map((text) => ({ t: 'p' as const, text })) }],
+});
+
 describe('sync between two devices', () => {
   it('brings saved words, reviews and deletions across, and settles', async () => {
     const m = mac();
@@ -140,6 +150,47 @@ describe('sync between two devices', () => {
     await b.books.remove(bb.id);
     await sb.run(); await sa.run();
     expect((await a.progress.get(ba.id))?.chapter).toBe(1);
+  });
+
+  it('a place read and deleted before the Mac heard of it still reaches the Mac, and comes back with the book', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    m.down = true;
+    const sa = device(a, m);
+    const ba = await a.books.add(book());
+    await a.progress.set({ bookId: ba.id, chapter: 1, block: 0, offset: 2, percent: 0.7, updatedAt: 4_000_000 });
+    await a.books.remove(ba.id);
+    await sa.run();
+    m.down = false;
+    await sa.run();
+    const sb = device(b, m);
+    await sb.run();
+    const bb = await b.books.add(book());
+    expect(await b.progress.get(bb.id)).toMatchObject({ chapter: 1, block: 0, offset: 2, updatedAt: 4_000_000 });
+    // Settled: nothing is sent again.
+    const before = m.sent.flat().length;
+    await sa.run(); await sb.run(); await sa.run();
+    expect(m.sent.flat().length).toBe(before);
+  });
+
+  it('a place read in an older import lands in the new one by its percent, until the device that read it moves it exactly', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const ba = await a.books.add(lunyu());
+    const sa = device(a, m);
+    await a.progress.set({ bookId: ba.id, chapter: 1, block: 0, percent: 0.5, updatedAt: 5_000_000 });
+    await sa.run();
+    // A new device has only the new import: half of 42 Han characters (titles counted) is the 20th of the new chapter's text.
+    const bb = await b.books.add(lunyu(2));
+    const sb = device(b, m);
+    await sb.run();
+    expect(await b.progress.get(bb.id)).toEqual({ bookId: bb.id, chapter: 0, block: 1, offset: 9, percent: 0.5, updatedAt: 4_999_999 });
+    // The first device imports it again and moves its place by the text: that wins everywhere.
+    await a.books.replace(ba.id, lunyu(2));
+    await sa.run(); await sb.run();
+    expect(await b.progress.get(bb.id)).toEqual({ bookId: bb.id, chapter: 0, block: 2, percent: 0.5, updatedAt: 5_000_000 });
+    await sa.run();
+    expect(await a.progress.get(ba.id)).toEqual({ bookId: ba.id, chapter: 0, block: 2, percent: 0.5, updatedAt: 5_000_000 });
   });
 
   it('a device that lost its data only receives: it never deletes words on the Mac', async () => {

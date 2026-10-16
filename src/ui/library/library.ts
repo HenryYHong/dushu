@@ -283,7 +283,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   async function remove(b: BookMeta): Promise<void> {
     const ok = await confirmDialog({
       title: 'Delete this book?',
-      message: `“${b.title}” and your reading progress in it will be removed from this device. Your saved words stay.`,
+      message: `“${b.title}” will be removed from this device. Your place in it and your saved words stay: add it again and it opens where you left off.`,
       confirmLabel: 'Delete',
       danger: true,
     });

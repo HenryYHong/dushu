@@ -245,7 +245,9 @@ settings.sandhi is on (the caller decides).
 - Raising `IMPORT_VERSION` re-imports the books the library can fetch again (`ui/library/upgrade.ts`): the Mac's books from the Mac and
   the classics from the site, one at a time once the library has the Mac's list. `store.books.replace` keeps the id, name, notes and
   history and moves the reading place to the same Han character (`core/place.ts`). Sync names an upgraded book with its version
-  (`bookKey`: `m<digest>.2`), so a place read in the old chapters never lands in the new ones; each device moves its own place.
+  (`bookKey`: `m<digest>.2`), so a place read in the old chapters never lands in the new ones as it is; each device moves its own place.
+  A place known only under an older key (`olderKeys`) is moved by its percent (`moveByPercent`, about a page) and stamped 1 ms older, so
+  the same place moved by the text wins over it.
 
 ### 4.6 `store/` — `openStore(name) → Store`, `store/settings.ts`, `core/srs.ts`
 - IndexedDB `dushu` (v2) stores: `books` (BookMeta), `chapters` (key `[bookId, index]`),
@@ -487,12 +489,13 @@ every device connected to the Mac. Books, settings, review logs and names are no
   cursor past the end) gets everything. Writes are atomic; before the first write of a day the previous file is kept as
   `state-YYYY-MM-DD.json` (14 kept); a file that cannot be parsed is set aside, never overwritten. Limits: 8 MB body, 5,000 changes, 32 KB per record.
 - **A device** keeps one row per record in the store's `sync` table (`SyncRow`: `at`, `sig` = hash of the record, `dirty` when not yet sent,
-  `fresh` for a word saved before it ever synced, `held` for a place in a book the device does not have yet; `#meta` holds `epoch` and the
-  cursor). These rows live in the same IndexedDB as the data, so a wipe or an eviction clears both: the device looks new and only receives;
+  `fresh` for a word saved before it ever synced, `held` for a place in a book the device does not have: sent by the Mac before the book
+  arrived, or kept by `store.books.remove`; `#meta` holds `epoch` and the cursor). `store.books.add` (and `update`, when marking a book as
+  the Mac's changes its key) lands a held place in the same transaction, so a book deleted and added again opens where it was. These rows live in the same IndexedDB as the data, so a wipe or an eviction clears both: the device looks new and only receives;
   sync never reads "missing" as "deleted" unless the device had agreed on the record before. A run (Web Locks `dushu-sync`, one tab at a time):
   apply held places whose book arrived; compare a snapshot of the store with the rows and mark what changed (stamped now; a place with its
   `updatedAt`; a fresh word with `at: 0`); send up to 1,000 changes per request and apply what comes back (`store.sync.apply`, one
-  transaction, heard by screens as a remote change). Places are never deleted by sync. A fresh word that meets the Mac's copy keeps the one
+  transaction, heard by screens as a remote change). Places are never deleted by sync, and a held place is sent like any other. A fresh word that meets the Mac's copy keeps the one
   studied more (`srs.last`), or itself when it was saved after the Mac's deletion, and is sent again stamped to win.
 - **Book keys** (`bookKey`): `m<file digest>` for the Mac's books, `s<id>` for the classics, else `b<hash of chapter count, Han count and
   chapter titles>` (the same import of the same file matches; a rename does not change it). Saved words travel with `context.bookId` as the

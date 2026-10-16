@@ -5,7 +5,11 @@
 // device that lost its data looks new and only receives; it never tells the Mac its words were deleted.
 import type { BookMeta, Progress, Store, SyncRow, VocabItem } from '../types';
 import { cleanProgress, cleanVocab } from '../store';
+import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeFetch, hasMacBridge } from './macBridge';
+import { bookKey, canonical, hash, olderKeys, progressWire } from './syncKeys';
+
+export { bookKey, canonical, hash };
 
 /** Fired on window when the sync status changes (Settings shows it). */
 export const SYNC_EVENT = 'dushu:sync';
@@ -36,46 +40,16 @@ interface Meta { epoch?: string; cursor: number }
 
 // ------------------------------------------------------------------ keys ---
 
-/** cyrb53: a fast 53-bit string hash, as base36. Enough to tell versions of a record (or books) apart. */
-export function hash(s: string): string {
-  let h1 = 0xdeadbeef;
-  let h2 = 0x41c6ce57;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 2654435761);
-    h2 = Math.imul(h2 ^ c, 1597334677);
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
-}
-
-/** JSON with sorted object keys and no undefined fields, so equal records always hash alike. */
-export function canonical(v: unknown): string {
-  if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null';
-  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
-  const o = v as Record<string, unknown>;
-  return `{${Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${canonical(o[k])}`).join(',')}}`;
-}
 const sigOf = (data: unknown) => (data === null ? '-' : hash(canonical(data)));
-
-/**
- * The same book on every device: the Mac's books by their file's digest, the classics by their id, anything else by its
- * shape (chapter titles and size), which an import of the same file reproduces and a rename does not change.
- */
-export function bookKey(b: Pick<BookMeta, 'note' | 'sourceName' | 'chapterCount' | 'charCount' | 'chapterTitles' | 'title' | 'importVersion'>): string {
-  // A book imported again by a newer importer may have its chapters cut differently: to sync it is another book, so a place
-  // read in the old chapters never lands in the new ones. Each device moves its own place when it imports the book again.
-  const v = (b.importVersion ?? 1) > 1 ? `.${b.importVersion}` : '';
-  const mac = /^mac-book:([a-f0-9]{64})$/.exec(b.note ?? '');
-  if (mac) return `m${mac[1].slice(0, 32)}${v}`;
-  if (b.sourceName?.startsWith('sample:')) return `s${b.sourceName.slice(7, 80)}${v}`;
-  return `b${hash(`${b.chapterCount}|${b.charCount}|${(b.chapterTitles ?? [b.title]).join('\u0001')}`)}`;
-}
 
 // ------------------------------------------------------------- records ---
 
-interface Books { keyOf: Map<string, string>; idOf: Map<string, string> }
+interface Books {
+  keyOf: Map<string, string>;
+  idOf: Map<string, string>;
+  /** An older importer's key for a book here, to that book's id (olderKeys). */
+  newer: Map<string, string>;
+}
 
 /** A saved word as it travels: its book is named by book key, so another device can find its own copy. */
 function vocabWire(item: VocabItem, books: Books): VocabItem {
@@ -86,14 +60,9 @@ function vocabLocal(item: VocabItem, books: Books): VocabItem {
   if (!item.context?.bookId) return item;
   return { ...item, context: { ...item.context, bookId: books.idOf.get(item.context.bookId) ?? item.context.bookId } };
 }
-function progressWire(p: Progress): Omit<Progress, 'bookId'> {
-  const { bookId: _id, ...rest } = p;
-  void _id;
-  return rest;
-}
 
 /** Everything this device would send, by record key, with the time each record says it last changed. */
-async function snapshot(store: Store, books: Books): Promise<Map<string, { data: unknown; sig: string; at: number }>> {
+async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>): Promise<Map<string, { data: unknown; sig: string; at: number }>> {
   const out = new Map<string, { data: unknown; sig: string; at: number }>();
   const put = (key: string, data: unknown, at: number) => { if (key.length <= MAX_KEY) out.set(key, { data, sig: sigOf(data), at }); };
   for (const item of await store.vocab.list()) put(`v:${item.id}`, vocabWire(item, books), Math.max(item.srs?.last ?? 0, item.addedAt ?? 0));
@@ -101,6 +70,13 @@ async function snapshot(store: Store, books: Books): Promise<Map<string, { data:
   for (const [id, key] of books.keyOf) {
     const p = await store.progress.get(id);
     if (p) put(`p:${key}`, progressWire(p), p.updatedAt);
+  }
+  // A place kept for a book that is not here (deleted here, or sent before the book arrived) is still sent: a place read
+  // here and deleted before the Mac heard of it reaches the Mac all the same.
+  for (const row of rows.values()) {
+    if (!row.key.startsWith('p:') || row.held === undefined || out.has(row.key)) continue;
+    const at = (row.held as { updatedAt?: unknown }).updatedAt;
+    put(row.key, row.held, typeof at === 'number' && Number.isFinite(at) ? at : row.at);
   }
   return out;
 }
@@ -177,39 +153,38 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   async function once(): Promise<void> {
     if (store.backend === 'memory') { setStatus({ state: 'memory' }); return; }
     const list = await store.books.list();
-    const books: Books = { keyOf: new Map(), idOf: new Map() };
+    const books: Books = { keyOf: new Map(), idOf: new Map(), newer: new Map() };
     for (const b of list) {
       const key = bookKey(b);
       books.keyOf.set(b.id, key);
       if (!books.idOf.has(key)) books.idOf.set(key, b.id);
+      for (const k of olderKeys(key)) if (!books.newer.has(k)) books.newer.set(k, b.id);
     }
     const rows = new Map((await store.sync.rows()).map((r) => [r.key, r]));
     const meta: Meta = { cursor: 0, ...(rows.get(META)?.held as Meta | undefined) };
 
-    // 1. Places held for books that have arrived since.
-    const arrived: Progress[] = [];
+    // 1. Places held for books that have arrived since (store.books.add lands most of them as the book arrives).
+    const arrived = new Map<string, Progress>();
     const settled: SyncRow[] = [];
     for (const row of rows.values()) {
       if (!row.key.startsWith('p:') || row.held === undefined) continue;
-      const id = books.idOf.get(row.key.slice(2));
-      if (!id) continue;
-      const p = cleanProgress({ ...(row.held as object), bookId: id });
+      const p = await placeHere(row.key.slice(2), row.held, books);
+      if (p === undefined) continue;
       const { held: _h, ...rest } = row;
       void _h;
-      const here = await store.progress.get(id);
-      if (p && (!here || here.updatedAt < p.updatedAt)) arrived.push(p);
-      const next: SyncRow = here && p && here.updatedAt >= p.updatedAt ? rest : { ...rest, sig: p ? sigOf(progressWire(p)) : rest.sig };
-      settled.push(next);
-      rows.set(row.key, next);
+      settled.push(rest);
+      rows.set(row.key, rest);
+      const here = p && (arrived.get(p.bookId) ?? await store.progress.get(p.bookId));
+      if (p && (!here || here.updatedAt < p.updatedAt)) arrived.set(p.bookId, p);
     }
-    if (arrived.length || settled.length) {
-      await store.sync.apply({ progressPut: arrived, rows: settled });
-      announceProgress(arrived);
+    if (arrived.size || settled.length) {
+      await store.sync.apply({ progressPut: [...arrived.values()], rows: settled });
+      announceProgress([...arrived.values()]);
     }
 
     // 2. What changed here since the last agreement, stamped now (or, for a record the Mac has never heard of, with
     //    the time the record itself carries, so an old copy on a new device does not beat a newer one elsewhere).
-    const current = await snapshot(store, books);
+    const current = await snapshot(store, books, rows);
     const t = now();
     const changed: SyncRow[] = [];
     for (const [key, cur] of current) {
@@ -223,7 +198,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       }
       // A place carries the time it was read; anything else changed just now (this runs within seconds of a change).
       const at = !base || key.startsWith('p:') ? cur.at : Math.max(t, base.at + 1);
-      changed.push({ key, at, sig: cur.sig, dirty: 1 });
+      changed.push({ key, at, sig: cur.sig, dirty: 1, ...(base?.held !== undefined ? { held: base.held } : {}) });
     }
     for (const [key, base] of rows) {
       // Places are never deleted by sync: removing a book here must not lose the place on the other devices.
@@ -264,7 +239,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         // The Mac's copy is new (or was reset): everything here goes to it again, then everything it has comes back.
         restarted = true;
         const all = [...rows.values()]
-          .filter((r) => r.key !== META && r.held === undefined && (r.sig === '-' ? !r.key.startsWith('p:') : current.has(r.key)))
+          .filter((r) => r.key !== META && (r.sig === '-' ? !r.key.startsWith('p:') : current.has(r.key)))
           .map((r) => ({ ...r, dirty: 1 as const }));
         meta.epoch = reply.epoch;
         meta.cursor = 0;
@@ -308,6 +283,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const knownPut: { word: string; auto?: true }[] = [];
     const knownDel: string[] = [];
     const progressPut: Progress[] = [];
+    const moved = new Map<string, Progress>();
     const next: SyncRow[] = [];
     for (const r of reply.records) {
       if (!r || typeof r.key !== 'string' || r.key.length > MAX_KEY || typeof r.at !== 'number' || !Number.isFinite(r.at)) continue;
@@ -353,25 +329,46 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         next.push({ key: r.key, at: r.at, sig });
       } else {
         if (data === null) continue;
-        const local = books.idOf.get(id);
-        if (!local) {
+        const wire = cleanProgress({ ...(data as object), bookId: 'held' });
+        if (!wire) continue;
+        const sig = sigOf(progressWire(wire));
+        const p = await placeHere(id, data, books);
+        if (p === undefined) {
           // A book that is not here (yet): keep the place, and use it when the book arrives.
-          const held = cleanProgress({ ...(data as object), bookId: 'held' });
-          if (held) next.push({ key: r.key, at: r.at, sig: base?.sig ?? '', held: progressWire(held) });
+          next.push({ key: r.key, at: r.at, sig, held: progressWire(wire) });
           continue;
         }
-        const p = cleanProgress({ ...(data as object), bookId: local });
-        if (!p) continue;
-        const sig = sigOf(progressWire(p));
-        if (base?.sig !== sig) progressPut.push(p);
+        if (p && books.idOf.has(id)) {
+          if (base?.sig !== sig) progressPut.push(p);
+        } else if (p) {
+          // Read in the book as an older importer cut it: moved into the chapters here, if it is newer than the place here.
+          const here = moved.get(p.bookId) ?? await store.progress.get(p.bookId);
+          if (!here || here.updatedAt < p.updatedAt) moved.set(p.bookId, p);
+        }
         next.push({ key: r.key, at: r.at, sig });
       }
     }
     if (!next.length) return kept;
+    for (const p of moved.values()) if (!progressPut.some((q) => q.bookId === p.bookId && q.updatedAt >= p.updatedAt)) progressPut.push(p);
     await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, rows: next });
+    // A moved place is this device's to send, under the book's key here.
+    if (moved.size) soon();
     for (const r of next) rows.set(r.key, r);
     announceProgress(progressPut);
     return kept;
+  }
+
+  /**
+   * A place saved under `key`, as it lands in this device's copy of that book: as it is, or moved by its percent when the
+   * book here was imported again by a newer importer. Undefined when the book is not here; null when the place is unusable.
+   */
+  async function placeHere(key: string, data: unknown, books: Books): Promise<Progress | null | undefined> {
+    const id = books.idOf.get(key) ?? books.newer.get(key);
+    if (!id) return undefined;
+    const p = cleanProgress({ ...(data as object), bookId: id });
+    if (!p || books.idOf.has(key)) return p;
+    const meta = await store.books.get(id);
+    return meta ? moveByPercent(meta, progressWire(p), (i) => store.books.chapter(id, i)) : null;
   }
 
   function announceProgress(list: Progress[]): void {

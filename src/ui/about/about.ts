@@ -41,7 +41,7 @@ const PAGES: [string, string][] = [
   ['Pages or scrolling', 'By default a chapter is one long scrolling column. If you prefer turning pages like a printed book, switch the layout to Pages in Settings.'],
   ['Two pages at a time', 'On a wide screen held sideways, such as an iPad in landscape, you see a spread of two pages. In portrait you see one. You can force either one in Settings.'],
   ['Turning', 'Tap the left or right edge of a page, swipe, press the arrow keys or Space. Tap the middle to show or hide the controls. Choose a page flip, a slide or no animation.'],
-  ['Where you were', 'Your place is kept by the text, not by the page number, so changing the text size or turning the screen lands you on the same line.'],
+  ['Where you were', 'Your place is kept by the text, not by the page number, so changing the text size or turning the screen lands you on the same line. It stays when Dushu updates, and when you delete a book and add it again.'],
 ];
 
 const NAMES: [string, string][] = [
