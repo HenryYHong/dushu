@@ -10,6 +10,7 @@
 import type { AppContext, BookMeta, Settings } from '../../types';
 import { h } from '../dom';
 import type { BlockState, ChapterView } from './chapter';
+import { createWheelTurns } from './wheelTurns';
 import { applyGridVars, effectiveLineHeight, readingSize, resetMeasurements } from './grid';
 import {
   blockOfPage, chapterFraction, computeGeometry, estimatePages, firstPageOfSpread, geometryKey, pageAtX, pageCount,
@@ -1145,12 +1146,12 @@ export function createPager(o: PagerOptions): Pager {
   let lastGoAt = -Infinity;
 
   /** Go one spread forward or back: animated for taps and keys, instant when turns come quickly one after another. */
-  function go(dir: 1 | -1): void {
+  function go(dir: 1 | -1, quick?: boolean): void {
     if (!cur || disposed) return;
     const now = performance.now();
     // Building a turn's pictures takes a while; animating every quick turn queued them up behind the reader and the
     // pages seemed to refuse to turn. The first turn animates; the ones that follow it closely just change the page.
-    const rapid = !!turn || now - lastGoAt < RAPID_TURN_MS;
+    const rapid = quick ?? (!!turn || now - lastGoAt < RAPID_TURN_MS);
     lastGoAt = now;
     if (turn) endTurn(true);
     const plan = planTurn(dir);
@@ -1160,7 +1161,8 @@ export function createPager(o: PagerOptions): Pager {
       if (idx >= 0 && idx < book.chapterCount) {
         const have = layouts.get(idx);
         if (!(valid(have) && (dir === 1 ? have.done || safeLimit(have) > lastPageOfSpread(0) : have.done))) {
-          void prepareNeighbor(idx, dir).then((ok) => { if (ok && !disposed) go(dir); });
+          // Once it is ready this is the same turn, not a quick second one: it animates if it would have.
+          void prepareNeighbor(idx, dir).then((ok) => { if (ok && !disposed) go(dir, rapid); });
         }
       } else if (dir === 1) o.onEnd();
       else nudge();
@@ -1434,35 +1436,13 @@ export function createPager(o: PagerOptions): Pager {
   };
   area.addEventListener('click', onSwipeClick, true);
 
-  // Horizontal trackpad scroll: one turn per swipe. A trackpad keeps sending ever smaller deltas while a swipe coasts, so after
-  // a turn the rest of that swipe is ignored. A delta that jumps up again, or goes the other way, is a new swipe and may turn
-  // at once (waiting for the coasting to stop swallowed quick second swipes).
-  let wheelAcc = 0;
-  let wheelLock = false;
-  let wheelTimer = 0;
-  let wheelLast = 0;
-  let wheelDir = 0;
+  // Trackpad swipes and the mouse wheel: one turn per swipe (wheelTurns.ts tells one swipe from the next).
+  const wheelTurns = createWheelTurns();
   const onWheel = (e: WheelEvent) => {
     if (e.ctrlKey || interactive(e.target)) return;
-    const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-    const delta = horizontal ? e.deltaX : e.deltaY;
     e.preventDefault();
-    window.clearTimeout(wheelTimer);
-    wheelTimer = window.setTimeout(() => { wheelAcc = 0; wheelLock = false; wheelLast = 0; }, 160);
-    const mag = Math.abs(delta);
-    if (wheelLock && mag > 0 && (Math.sign(delta) !== wheelDir || (mag > 6 && mag > wheelLast * 2))) {
-      wheelLock = false;
-      wheelAcc = 0;
-    }
-    if (mag > 0) wheelLast = mag;
-    if (wheelLock) return;
-    wheelAcc += delta;
-    if (Math.abs(wheelAcc) >= (horizontal ? 40 : 70)) {
-      wheelDir = Math.sign(wheelAcc);
-      go(wheelAcc > 0 ? 1 : -1);
-      wheelAcc = 0;
-      wheelLock = true;
-    }
+    const dir = wheelTurns.feed(e);
+    if (dir) go(dir);
   };
   area.addEventListener('wheel', onWheel, { passive: false });
 
@@ -1555,7 +1535,6 @@ export function createPager(o: PagerOptions): Pager {
       window.clearTimeout(faceTimer);
       window.clearTimeout(reapTimer);
       window.clearTimeout(pumpSoonTimer);
-      window.clearTimeout(wheelTimer);
       window.cancelAnimationFrame(anim);
       ro?.disconnect();
       fonts?.removeEventListener?.('loadingdone', onFonts);

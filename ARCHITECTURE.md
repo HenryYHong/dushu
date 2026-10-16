@@ -671,7 +671,13 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   left in chapter" only on the right page (or the single page). The blank right page after an odd chapter carries a small end mark and a button
   "Next: <chapter title>" (one-page mode puts that button in the footer of the last page; the last chapter says the book is finished).
 - Turning: tap or click the outer strips of the spread = next/previous (see the touch rules in 5.3); swipe with the page following the
-  finger; ←/→, Space/Shift+Space, PageUp/PageDown; horizontal trackpad scroll (debounced). A click in the middle toggles the chrome.
+  finger; ←/→, Space/Shift+Space, PageUp/PageDown; a trackpad swipe or the mouse wheel. A click in the middle toggles the chrome.
+  A trackpad swipe turns one spread, its coasting included (`ui/reader/wheelTurns.ts`). One swipe is told from the next by speed, from the
+  events' own time stamps over about 64 ms (events with one time stamp count as one): deltas jump when the fingers lift (the events space
+  out) and when a busy page gets several folded into one, while the speed holds. A new swipe is a pause of 160 ms (unless the event carries
+  the movement the swipe would have made in it: a busy page), a delta the other way, or the swipe speeding up again after it slowed below
+  60% of its top speed or stopped dead (fingers landing on a coasting swipe). A turn that comes within 350 ms of the last one, or while one
+  is animating, changes the page without animating; a turn that waited for its chapter to load still animates.
   Under prefers-reduced-motion the old pages cross-fade out (about 180 ms) instead of flipping or cutting.
   Chapter edges flow into the next/previous chapter (the next chapter's first pages, and a short previous chapter, are ready in idle time).
 - Position: progress keeps the first block on the current page; resizing, rotating, changing font size or

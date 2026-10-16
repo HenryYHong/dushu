@@ -240,16 +240,46 @@ describe('pages layout', () => {
   it('turns once per trackpad swipe, and again for a quick second swipe while the first is still coasting', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);
-    const wheel = (dx: number) => q('.rd-stage')!.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: dx, deltaY: 0 }));
-    for (const d of [12, 30, 26, 18, 12, 8, 5, 3]) wheel(d); // one swipe and its coasting
+    // The pager reads the events' own time stamps (wheelTurns.ts), so each event carries the time a trackpad would give it.
+    let t = 1000;
+    const wheel = (dx: number, gap = 8) => {
+      const e = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX: dx, deltaY: 0 });
+      Object.defineProperty(e, 'timeStamp', { value: (t += gap) });
+      q('.rd-stage')!.dispatchEvent(e);
+    };
+    const swipe = (dir: 1 | -1) => {
+      for (const d of [3, 6, 8, 11, 14, 24, 29, 41, 49]) wheel(dir * d); // fingers moving
+      wheel(dir * 120, 25); // they lift: the coasting starts
+      for (let d = 112; d > 30; d *= 0.94) wheel(dir * Math.round(d), 16);
+    };
+    swipe(1);
     await tick(5);
     expect(stage().page).toBe('2');
-    for (const d of [24, 40, 30]) wheel(d); // a new swipe before the coasting stopped
+    swipe(1); // a new swipe before the coasting stopped
     await tick(5);
     expect(stage().page).toBe('3');
-    wheel(-30); wheel(-40); // and straight back the other way
+    swipe(-1); // and straight back the other way
     await tick(5);
     expect(stage().page).toBe('2');
+  });
+
+  it('animates the turn into the next chapter when that chapter was still loading', async () => {
+    const { ctx, meta } = await setup({ pageTurn: 'slide' });
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const chapter = ctx.store.books.chapter.bind(ctx.store.books);
+    ctx.store.books.chapter = async (id, i) => { if (i === 1) await gate; return chapter(id, i); };
+    await open(ctx, meta.id);
+    for (let i = 0; i < 3; i++) key('ArrowRight');
+    await tick(400);
+    expect(stage().page).toBe('4');
+    key('ArrowRight');
+    await tick(20);
+    expect(stage().chapter).toBe('0');
+    // It was one turn, waiting for its chapter, not a quick second one: it animates like any other.
+    release();
+    await vi.waitFor(() => expect(stage().turn).toBe('slide'), { timeout: 2000, interval: 2 });
+    await vi.waitFor(() => expect(stage().chapter).toBe('1'));
   });
 
   it('a click in the middle toggles the bar, and turning a page tucks it away', async () => {
