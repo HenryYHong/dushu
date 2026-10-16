@@ -2,6 +2,7 @@
 import type {
   BackupReport, BookMeta, Chapter, Grade, ImportedBook, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, SyncRow, VocabItem, LexiconEntry,
 } from '../types';
+import { hanBefore, placeAt, textHan } from '../core/place';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
 import { TABLES, createIdbBackend, createMemoryBackend, friendlyError, type Backend, type Table } from './db';
@@ -41,6 +42,22 @@ async function bytesOf(blob: Blob): Promise<ArrayBuffer> {
     r.onerror = () => reject(r.error ?? new Error('Could not read an image from the book'));
     r.readAsArrayBuffer(blob);
   });
+}
+
+/**
+ * Assets are stored as bytes plus a type, not as Blobs: WebKit can hang forever on a Blob written to IndexedDB (seen in an
+ * ephemeral Playwright context; Safari private windows are the same engine path). The stored type is the one the bytes show,
+ * never the one the book declared; anything that is not a raster image (an SVG, which would run script if opened as a page)
+ * is not saved.
+ */
+async function assetRowsOf(bookId: string, book: ImportedBook) {
+  const rows: { op: 'put'; table: 'assets'; value: { bookId: string; name: string; data: ArrayBuffer; type: string } }[] = [];
+  for (const [name, blob] of book.assets) {
+    const data = await bytesOf(blob);
+    const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
+    if (type) rows.push({ op: 'put', table: 'assets', value: { bookId, name, data, type: type.mime } });
+  }
+  return rows;
 }
 
 function newId(): string {
@@ -336,22 +353,53 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         if (book.cover !== undefined) meta.cover = book.cover;
         if (book.sourceName !== undefined) meta.sourceName = book.sourceName;
         if (book.note !== undefined) meta.note = book.note;
-        // Assets are stored as bytes plus a type, not as Blobs: WebKit can hang forever on a Blob written to IndexedDB
-        // (seen in an ephemeral Playwright context; Safari private windows are the same engine path).
-        // The stored type is the one the bytes show, never the one the book declared; anything that is not a raster
-        // image (an SVG, which would run script if opened as a page) is not saved.
-        const assetRows: { op: 'put'; table: 'assets'; value: { bookId: string; name: string; data: ArrayBuffer; type: string } }[] = [];
-        for (const [name, blob] of book.assets) {
-          const data = await bytesOf(blob);
-          const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
-          if (type) assetRows.push({ op: 'put', table: 'assets', value: { bookId: id, name, data, type: type.mime } });
-        }
+        if (book.importVersion !== undefined) meta.importVersion = book.importVersion;
         await write([
           { op: 'put', table: 'books', value: meta },
           ...book.chapters.map((chapter, index) => ({ op: 'put' as const, table: 'chapters' as const, value: { bookId: id, index, chapter } })),
-          ...assetRows,
+          ...await assetRowsOf(id, book),
         ]);
         emit('books');
+        return meta;
+      },
+      async replace(id, book) {
+        const cur = await db.get<BookMeta>('books', id);
+        if (!cur) throw new Error('That book is no longer in your library.');
+        // The reading place moves to the same character in the new chapters.
+        const place = await db.get<Progress>('progress', id);
+        let moved: Progress | undefined;
+        if (place && place.chapter >= 0 && place.chapter < cur.chapterCount) {
+          let pos = 0;
+          for (let i = 0; i < place.chapter; i++) {
+            const c = (await db.get<{ chapter: Chapter }>('chapters', [id, i]))?.chapter;
+            if (c) pos += textHan(c);
+          }
+          const here = (await db.get<{ chapter: Chapter }>('chapters', [id, place.chapter]))?.chapter;
+          if (here) pos += hanBefore(here, place.block, place.offset ?? 0);
+          const at = placeAt(book.chapters, pos);
+          moved = { ...place, chapter: at.chapter, block: at.block };
+          if (place.offset !== undefined) moved.offset = at.offset;
+        }
+        const offsets: number[] = [];
+        let total = 0;
+        for (const c of book.chapters) { offsets.push(total); total += chapterHan(c); }
+        // Its name, notes and history stay: only what the importer makes is new.
+        const meta: BookMeta = {
+          ...cur, format: book.format, script: book.script, chapterCount: book.chapters.length, charCount: total,
+          chapterOffsets: offsets, chapterTitles: book.chapters.map((c) => c.title),
+        };
+        if (book.cover !== undefined) meta.cover = book.cover; else delete meta.cover;
+        if (book.importVersion !== undefined) meta.importVersion = book.importVersion;
+        await write([
+          { op: 'delBook', table: 'chapters', bookId: id },
+          { op: 'delBook', table: 'assets', bookId: id },
+          { op: 'put', table: 'books', value: meta },
+          ...book.chapters.map((chapter, index) => ({ op: 'put' as const, table: 'chapters' as const, value: { bookId: id, index, chapter } })),
+          ...await assetRowsOf(id, book),
+          ...(moved ? [{ op: 'put' as const, table: 'progress' as const, value: moved }] : []),
+        ]);
+        dropUrls(id);
+        emit('books', id);
         return meta;
       },
       async update(id, patch) {

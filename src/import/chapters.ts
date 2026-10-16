@@ -7,12 +7,61 @@ import { normalizeNewlines } from './encoding';
 
 /** Target size of a section when a text has no chapter markers. */
 export const PART_HAN = 4000;
-/** A chapter with more Han characters than this is split further. */
-export const BIG_CHAPTER_HAN = 30000;
+/** A chapter with more Han characters than this is split further. The reader lays a chapter out a few pages at a time, so
+ * this only guards against a whole book in one file; a long real chapter (some novels have 40,000) stays whole. */
+export const BIG_CHAPTER_HAN = 60000;
 /** Size of the pieces an oversize chapter with no headings inside is cut into. */
 export const BIG_PART_HAN = 12000;
 
 // ------------------------------------------------------------------ basics ---
+
+/** A paragraph longer than this is cut in pieces (splitLongParagraph). */
+export const LONG_PARAGRAPH = 3000;
+
+const HAN_CHAR = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u{20000}-\u{3134f}]/u;
+const SMALL_FORMS: Record<string, string> = { '﹐': '，', '﹑': '、', '﹒': '。', '﹔': '；', '﹕': '：', '﹖': '？', '﹗': '！' };
+const HALF_TO_FULL: Record<string, string> = { ',': '，', ';': '；', ':': '：', '?': '？', '!': '！' };
+const HAN_PUNCT_HAN = /([\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u{20000}-\u{3134f}])([,;:?!])(?=[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u{20000}-\u{3134f}])/gu;
+
+/**
+ * Punctuation as Chinese text sets it: the small-form marks some editions use (﹐ ﹔ ﹖, drawn tiny and placed oddly) and an
+ * ASCII , ; : ? ! between two Han characters (a typo in the source) become the full-width marks.
+ */
+export function normalizePunctuation(text: string): string {
+  if (!/[\ufe50-\ufe57,;:?!]/.test(text)) return text;
+  return text.replace(/[\ufe50-\ufe57]/g, (m) => SMALL_FORMS[m] ?? m).replace(HAN_PUNCT_HAN, (_, a: string, p: string) => a + HALF_TO_FULL[p]);
+}
+
+/**
+ * Join paragraphs a file broke in the middle of a sentence, even in the middle of a word (a page break in the edition an
+ * EPUB was made from; 998-character pieces in a Wikisource text). A paragraph of prose that ends on a Han character, or on
+ * ， 、 when it is long, runs on into a following paragraph of prose that starts with one. Short lines are verse, headings
+ * or list items and stay apart, and so do lines set out with spaces (a letter's signature).
+ */
+export function joinSplitParagraphs(blocks: Block[]): Block[] {
+  const out: Block[] = [];
+  let changed = false;
+  for (const cur of blocks) {
+    const prev = out[out.length - 1];
+    if (prev?.t === 'p' && cur.t === 'p' && runsOn(prev.text, cur.text)) {
+      out[out.length - 1] = { t: 'p', text: prev.text.trimEnd() + cur.text.trimStart() };
+      changed = true;
+    } else out.push(cur);
+  }
+  return changed ? out : blocks;
+}
+
+function runsOn(a: string, b: string): boolean {
+  // Never past the length a long paragraph is cut at (splitLongParagraph): that cut is on purpose.
+  if (a.length + b.length > LONG_PARAGRAPH) return false;
+  const t = a.trimEnd();
+  const n = [...t].length;
+  const end = [...t].pop() ?? '';
+  const prose = (HAN_CHAR.test(end) && n >= 40) || ((end === '，' || end === '、') && n >= 60);
+  if (!prose || /[\s\u3000]/.test([...t].slice(-12).join(''))) return false;
+  const next = b.trimStart();
+  return [...next].length >= 20 && HAN_CHAR.test([...next][0] ?? '');
+}
 
 export function blockText(b: Block): string {
   return b.t === 'p' || b.t === 'h' || b.t === 'quote' ? b.text : '';
@@ -222,7 +271,7 @@ function hardSplit(text: string, chunk: number): string[] {
  * sentence itself is longer than `max` (no punctuation at all, commas only, OCR text) at commas, semicolons or spaces,
  * else at a fixed length. A paragraph of `max` code points or fewer is left whole.
  */
-export function splitLongParagraph(text: string, max = 3000, chunk = 1500): string[] {
+export function splitLongParagraph(text: string, max = LONG_PARAGRAPH, chunk = 1500): string[] {
   if (cpLen(text) <= max) return [text];
   const sentences = text.match(/[^。！？!?…]*[。！？!?…]+[”’」』）)]*|[^。！？!?…]+$/g) ?? [text];
   const out: string[] = [];
@@ -378,10 +427,17 @@ function boundaries(blocks: Block[]): number[] | null {
       const b = blocks[i];
       if (b.t === 'p') blocks[i] = { t: 'h', level: 3, text: b.text.trim() };
     }
+    // Bare numerals mark sections, not chapters: a short text (狂人日记, 13 sections in 5,000 characters) reads as one
+    // chapter with its section numbers as headings, instead of a spread per section.
+    const han = blocks.reduce((n, b) => n + blockHan(b), 0);
+    if (han / numbered.length < SECTION_HAN) return [];
     return numbered;
   }
   return null;
 }
+
+/** Sections marked by bare numerals that average fewer Han characters than this stay in one chapter. */
+const SECTION_HAN = 1500;
 
 function headingText(b: Block): string {
   return isHead(b) ? b.text.replace(/\s+/g, ' ').trim() : '';
@@ -431,7 +487,9 @@ export function chaptersFromBlocks(input: Block[], opts: { title: string }): Cha
   const blocks = demoteContentsRuns(input);
   const cuts = boundaries(blocks);
   let chapters: Chapter[];
-  if (cuts) {
+  if (cuts && !cuts.length) {
+    chapters = [{ title: opts.title, blocks }];
+  } else if (cuts) {
     chapters = cutAt(blocks, cuts, opts.title);
   } else {
     const han = blocks.reduce((n, b) => n + blockHan(b), 0);
@@ -469,7 +527,9 @@ function splitOversize(c: Chapter): Chapter[] {
       continue;
     }
     splitBySize(piece.blocks, BIG_PART_HAN).forEach((p, i) => {
-      out.push({ title: piece.title ? `${piece.title} (${i + 1})` : `Part ${i + 1}`, blocks: p });
+      const part: Chapter = { title: piece.title ? `${piece.title} (${i + 1})` : `Part ${i + 1}`, blocks: p };
+      if (i > 0) part.cont = true;
+      out.push(part);
     });
   }
   return out;
@@ -554,5 +614,5 @@ export function finalizeChapters(input: Chapter[]): Chapter[] {
 
   const out: Chapter[] = [];
   for (const c of merged) out.push(...splitOversize(c));
-  return out.map((c, i) => ({ title: c.title || `Section ${i + 1}`, blocks: c.blocks }));
+  return out.map((c, i) => ({ ...c, title: c.title || `Section ${i + 1}` }));
 }

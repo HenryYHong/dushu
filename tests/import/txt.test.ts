@@ -175,11 +175,17 @@ describe('TXT chapters', () => {
 });
 
 describe('other structure', () => {
-  it('splits on running numerals alone on a line', () => {
+  it('keeps short sections marked by running numerals in one chapter, the numerals as headings', () => {
     const text = ['一', prose(100), '二', prose(100, 1), '三', prose(100, 2), '十二', prose(50, 3)].join('\n');
     const book = importText(text, '日记');
-    expect(book.chapters.map((c) => c.title)).toEqual(['一', '二', '三']);
-    expect(book.chapters[2].blocks.map((b) => b.t)).toEqual(['h', 'p', 'p', 'p']);
+    expect(book.chapters.map((c) => c.title)).toEqual(['日记']);
+    expect(book.chapters[0].blocks.map((b) => b.t)).toEqual(['h', 'p', 'h', 'p', 'h', 'p', 'p', 'p']);
+    expect(book.chapters[0].blocks.filter((b) => b.t === 'h').map((b) => ('text' in b ? b.text : ''))).toEqual(['一', '二', '三']);
+  });
+
+  it('splits long sections marked by running numerals into chapters', () => {
+    const text = ['一', prose(2000), '二', prose(2000, 1), '三', prose(2000, 2)].join('\n');
+    expect(importText(text, '日记').chapters.map((c) => c.title)).toEqual(['一', '二', '三']);
   });
 
   it('does not split on stray numerals that do not count up from one', () => {

@@ -27,7 +27,7 @@ You can run Dushu on a Mac you own and let the hosted site use it as a private h
 
 Claude uses Sonnet 5.5 by default; Settings also offers the cheaper Haiku 5.5. No other model is accepted. The Mac keeps a daily spend guard (3,000 requests or 3 million input tokens by default; set `DUSHU_CLAUDE_MAX_REQUESTS` or `DUSHU_CLAUDE_MAX_INPUT_TOKENS` to change it) and Settings shows today's use. To try the hosted site against the Mac from another local origin, set `DUSHU_EXTRA_ORIGINS` (testing only).
 
-When a device is connected, the Library adds any book the Mac shares in the background the first time, then keeps it like any other book, with your place and names, even offline and with the Mac off. A book you delete stays deleted, and Restore brings it back. **Add books from Mac** remains as a manual fallback. A **Local only** setting keeps every sentence on the Mac, so nothing goes to Anthropic or any online service.
+When a device is connected, the Library adds any book the Mac shares in the background, then keeps it like any other book, with your place and names, even offline and with the Mac off. These books are always there: they have no Delete, and if the browser clears them they come back the next time the device reaches the Mac. **Add books from Mac** remains as a manual fallback. A **Local only** setting keeps every sentence on the Mac, so nothing goes to Anthropic or any online service.
 
 If the Mac is asleep, the Library says so and everything else keeps working.
 

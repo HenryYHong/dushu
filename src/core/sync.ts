@@ -63,10 +63,13 @@ const sigOf = (data: unknown) => (data === null ? '-' : hash(canonical(data)));
  * The same book on every device: the Mac's books by their file's digest, the classics by their id, anything else by its
  * shape (chapter titles and size), which an import of the same file reproduces and a rename does not change.
  */
-export function bookKey(b: Pick<BookMeta, 'note' | 'sourceName' | 'chapterCount' | 'charCount' | 'chapterTitles' | 'title'>): string {
+export function bookKey(b: Pick<BookMeta, 'note' | 'sourceName' | 'chapterCount' | 'charCount' | 'chapterTitles' | 'title' | 'importVersion'>): string {
+  // A book imported again by a newer importer may have its chapters cut differently: to sync it is another book, so a place
+  // read in the old chapters never lands in the new ones. Each device moves its own place when it imports the book again.
+  const v = (b.importVersion ?? 1) > 1 ? `.${b.importVersion}` : '';
   const mac = /^mac-book:([a-f0-9]{64})$/.exec(b.note ?? '');
-  if (mac) return `m${mac[1].slice(0, 32)}`;
-  if (b.sourceName?.startsWith('sample:')) return `s${b.sourceName.slice(7, 80)}`;
+  if (mac) return `m${mac[1].slice(0, 32)}${v}`;
+  if (b.sourceName?.startsWith('sample:')) return `s${b.sourceName.slice(7, 80)}${v}`;
   return `b${hash(`${b.chapterCount}|${b.charCount}|${(b.chapterTitles ?? [b.title]).join('\u0001')}`)}`;
 }
 

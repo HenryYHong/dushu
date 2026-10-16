@@ -240,6 +240,10 @@ describe('sync keys', () => {
     const base = { title: 'x', chapterCount: 2, charCount: 10, chapterTitles: ['a', 'b'] };
     expect(bookKey({ ...base, note: `mac-book:${'a'.repeat(64)}` })).toBe(`m${'a'.repeat(32)}`);
     expect(bookKey({ ...base, sourceName: 'sample:xiyouji' })).toBe('sxiyouji');
+    // Imported again with chapters cut differently: another book to sync, so an old place never lands in the new chapters.
+    expect(bookKey({ ...base, note: `mac-book:${'a'.repeat(64)}`, importVersion: 2 })).toBe(`m${'a'.repeat(32)}.2`);
+    expect(bookKey({ ...base, sourceName: 'sample:xiyouji', importVersion: 2 })).toBe('sxiyouji.2');
+    expect(bookKey({ ...base, sourceName: 'sample:xiyouji', importVersion: 1 })).toBe('sxiyouji');
     expect(bookKey(base)).toBe(bookKey({ ...base, title: 'renamed' }));
     expect(bookKey(base)).not.toBe(bookKey({ ...base, charCount: 11 }));
   });

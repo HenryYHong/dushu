@@ -63,7 +63,7 @@ const HOSTED: [string, string][] = [
   ['Your own Mac', 'If you run Dushu on your own Mac, the hosted copy can use it as a private helper: better sentence translation, Premium Mac voices and books that live on that Mac. This works only for the owner of the Mac, over Tailscale, and only after you connect the device once in Settings.'],
   ['Connecting', 'In Settings on the copy that runs on your Mac, copy the connect link and open it on the device. Or type the Mac address into the Mac field in Settings on the hosted copy. The address is kept in this browser only, never in the website, a backup or a synced setting.'],
   ['Without a Mac', 'Everything else works the same: lookups, reading, flashcards, offline use. Sentence translation then uses your browser\'s own translator where it has one, and otherwise shows the word-by-word gloss.'],
-  ['Books from the Mac', 'When a device is connected, books the Mac shares are added to its library in the background the first time, then kept like any other book, even offline. Delete one and it stays deleted; Restore in the Library brings it back.'],
+  ['Books from the Mac', 'When a device is connected, books the Mac shares are added to its library in the background, then kept like any other book, even offline. They are always there: they cannot be deleted, and if the browser clears them they come back the next time the device reaches the Mac.'],
 ];
 
 const TRANSLATION: [string, string][] = [

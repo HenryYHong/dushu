@@ -364,6 +364,10 @@ export const mount: MountFn = async (root, params, ctx) => {
     const hant = langOf(s) === 'zh-Hant' ? '-hant' : '';
     const font = s.fontFamily === 'sans' ? `var(--font-sans${hant})` : s.fontFamily === 'kai' ? `var(--font-kai${hant})` : `var(--font-serif${hant})`;
     rd.style.setProperty('--rd-font', font);
+    // Traditional fonts draw ， 。 、 ： ； in the middle of the box (the Taiwan convention). The pinyin grid gives a mark half a
+    // cell and expects its ink at the left, as simplified fonts draw it, so in a traditional book the marks come from the
+    // simplified stack of the same family (rd is not inside the lang="zh-Hant" text, so these resolve to the simplified ones).
+    rd.style.setProperty('--rd-pu-font', !hant ? font : s.fontFamily === 'sans' ? 'var(--font-sans)' : s.fontFamily === 'kai' ? 'var(--font-kai)' : 'var(--font-serif)');
     rd.style.setProperty('--rd-size', `${s[readingFontSizeKey(s)]}px`);
     // Pinyin sits in the space between lines, so lines need room for it whenever pinyin can show.
     rd.style.setProperty('--rd-lh', String(effectiveLineHeight(s.lineHeight, s.pinyin)));

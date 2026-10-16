@@ -160,6 +160,9 @@
 .rd-grid .rd-article .rd-c { padding: 0 calc(var(--rd-pad) * 1em); white-space: nowrap; }
 /* Full-width marks take half a cell. A closing mark has its ink on the left of its box and hugs the character before it;
    an opening mark has its ink on the right, so its empty left half is pulled over the character before, and it hugs the one after. */
+/* In a traditional book the marks are drawn from a simplified font, whose ink sits where these rules expect (see --rd-pu-font
+   in reader.ts). Curly quotes keep the text's font: their half cell comes from an advance measured in it. */
+.rd-grid .rd-article .rd-pu:not(.rd-pu-qo):not(.rd-pu-qc) { font-family: var(--rd-pu-font); }
 .rd-grid .rd-article .rd-pu-c { letter-spacing: -0.5em; margin-left: calc(var(--rd-pad) * -0.9em); }
 .rd-grid .rd-article .rd-pu-o { margin-left: -0.5em; margin-right: calc(var(--rd-pad) * -0.9em); }
 /* Curly quotes are narrow proportional glyphs in most fonts, not full-width marks, so they must not be trimmed like the ones above:
@@ -208,6 +211,9 @@
 .rd-quote { margin: 0.7em 0; padding: 0 0 0 1em; border-left: 3px solid var(--border); color: var(--text-2); }
 .rd-grid .rd-quote { padding-left: calc(var(--rd-cell) * 1em); }
 .rd-h { font-weight: 700; line-height: 1.6; margin: 1.8em 0 0.7em; text-indent: 0; }
+/* A heading breaks at its spaces when it can: 第五回 開生面夢演紅樓夢 立新場情傳幻境情 wraps between the two halves of the
+   couplet, not in the middle of one. One that has no space to break at still wraps (overflow-wrap on the article). */
+.rd-h { word-break: keep-all; }
 /* With pinyin a heading needs the room between lines that the text has (its pinyin is bigger too). */
 .rd-grid .rd-h { line-height: calc(var(--rd-lh) * 0.9); }
 /* A name in a heading is not split across two lines. */
@@ -215,6 +221,7 @@
 .rd-h1 { font-size: 1.5em; text-align: center; margin-top: 0.4em; margin-bottom: 1.1em; }
 .rd-h2 { font-size: 1.3em; }
 .rd-h3 { font-size: 1.15em; }
+.rd-h-num { text-align: center; }
 .rd-fig { margin: 1.2em 0; text-align: center; text-indent: 0; }
 .rd-img { max-width: 100%; height: auto; border-radius: var(--radius-s); }
 .rd-img-missing { color: var(--text-3); font-size: 14px; font-family: var(--font-ui); }

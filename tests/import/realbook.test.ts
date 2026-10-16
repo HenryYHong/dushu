@@ -6,7 +6,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { importFile } from '../../src/import';
-import { chapterHan, totalHan } from '../../src/import/chapters';
+import { BIG_CHAPTER_HAN, chapterHan, totalHan } from '../../src/import/chapters';
 
 const path = join(homedir(), 'Downloads', '活着.epub');
 
@@ -22,13 +22,10 @@ describe.skipIf(!existsSync(path))('活着.epub (real book)', () => {
     expect(book.format).toBe('epub');
     expect(book.script).toBe('simplified');
 
-    // prefaces, then 第一章 to 第三章 (the long second one is cut into pieces)
+    // prefaces, then 第一章 to 第三章 (the long second one kept whole: no "第二章 (2)" heading in the middle of the story)
     const titles = book.chapters.map((c) => c.title);
-    expect(titles.slice(0, 5)).toEqual(['中文版自序', '日文版自序', '韩文版自序', '英文版自序', '麦田新版自序']);
-    expect(titles).toContain('第一章');
-    expect(titles.some((t) => t.startsWith('第二章'))).toBe(true);
-    expect(titles[titles.length - 1]).toBe('第三章');
-    expect(book.chapters.length).toBeGreaterThanOrEqual(8);
+    expect(titles).toEqual(['中文版自序', '日文版自序', '韩文版自序', '英文版自序', '麦田新版自序', '第一章', '第二章', '第三章']);
+    expect(book.chapters.some((c) => c.cont)).toBe(false);
 
     const han = totalHan(book.chapters);
     expect(han).toBeGreaterThan(70000);
@@ -37,7 +34,7 @@ describe.skipIf(!existsSync(path))('活着.epub (real book)', () => {
     for (const c of book.chapters) {
       expect(c.blocks.length, c.title).toBeGreaterThan(0);
       expect(c.blocks.some((b) => b.t === 'p'), c.title).toBe(true);
-      expect(chapterHan(c), c.title).toBeLessThan(30000);
+      expect(chapterHan(c), c.title).toBeLessThan(BIG_CHAPTER_HAN);
     }
 
     const text = book.chapters.flatMap((c) => c.blocks.map((b) => (b.t === 'p' || b.t === 'h' || b.t === 'quote' ? b.text : ''))).join('\n');
@@ -88,13 +85,22 @@ describe.skipIf(!existsSync(shediao))('射雕英雄传.epub (real book)', () => 
     expect(text).not.toMatch(/[<>]|&[a-z]+;|calibre|class=|原著：/);
     expect(text).not.toMatch(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/);
     expect(text).not.toMatch(/(^|\n)[\s　]/);
-    expect(text).toContain('钱塘江浩浩江水');
+    expect(book.chapters[0].blocks[1]).toMatchObject({ t: 'p' });
+    // The file breaks four paragraphs mid-sentence (two mid-word) at its page breaks: they are joined again.
+    let broken = 0;
+    for (const c of book.chapters) c.blocks.forEach((b, i) => {
+      const next = c.blocks[i + 1];
+      if (b.t === 'p' && next?.t === 'p' && b.text.length > 300 && /[\u4e00-\u9fff]$/.test(b.text) && /^[\u4e00-\u9fff]/.test(next.text)) broken++;
+    });
+    expect(broken).toBe(0);
+    // No small-form or ASCII punctuation between Han characters.
+    expect(text).not.toMatch(/[\ufe50-\ufe57]|[\u4e00-\u9fff][,;:?!][\u4e00-\u9fff]/);
   });
 
-  it('keeps going after the lookups it needs: 活着 still has its 11 chapters', async () => {
+  it('keeps going after the lookups it needs: 活着 still has its 8 chapters', async () => {
     const huozhe = join(homedir(), 'Downloads', '活着.epub');
     if (!existsSync(huozhe)) return;
     const book = await importFile(new File([readFileSync(huozhe)], '活着.epub'));
-    expect(book.chapters.length).toBe(11);
+    expect(book.chapters.length).toBe(8);
   });
 });

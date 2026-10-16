@@ -236,6 +236,16 @@ settings.sandhi is on (the caller decides).
   Error with a clear message ("This PDF has no text layer (it is scanned images)…").
 - **HTML/Markdown**: same block extraction as EPUB XHTML / simple line rules.
 - Sets `script` with `detectScript`. Rejects files that contain almost no Han text with a clear error.
+- Every format, last (`finish()` in `import/index.ts`): paragraphs a file broke mid-sentence are joined (`joinSplitParagraphs`: prose of 40+
+  characters ending on a Han character, or 60+ on ，、, runs on into prose of 20+ that starts with one; verse lines, headings and lines set
+  out with spaces stay apart), small-form marks (﹐﹔﹕﹖) and an ASCII , ; : ? ! between Han characters become full-width
+  (`normalizePunctuation`), and the book is stamped `importVersion` (`import/version.ts`). A chapter over 60,000 Han characters is cut in
+  parts of about 12,000; parts after the first carry `cont: true` and show no title. Sections marked only by bare numerals (一, 二 …) that
+  average under 1,500 Han characters stay in one chapter with the numerals as headings (狂人日记).
+- Raising `IMPORT_VERSION` re-imports the books the library can fetch again (`ui/library/upgrade.ts`): the Mac's books from the Mac and
+  the classics from the site, one at a time once the library has the Mac's list. `store.books.replace` keeps the id, name, notes and
+  history and moves the reading place to the same Han character (`core/place.ts`). Sync names an upgraded book with its version
+  (`bookKey`: `m<digest>.2`), so a place read in the old chapters never lands in the new ones; each device moves its own place.
 
 ### 4.6 `store/` — `openStore(name) → Store`, `store/settings.ts`, `core/srs.ts`
 - IndexedDB `dushu` (v2) stores: `books` (BookMeta), `chapters` (key `[bookId, index]`),
@@ -369,8 +379,9 @@ backup; `bridgeFetch`, `bridgeUrl`, `hasMacBridge`, event `dushu:bridge`). The C
 repo, the build or the public site). `GET /api/local-books` lists `{ id, name, size, sha256 }` (SHA-256 of the file bytes) and the book route
 sends `ETag` and `X-Dushu-Digest`. `src/ui/library/macBooks.ts` makes them permanent built-in books of every device that reaches the Mac: the
 library adds the missing ones in the background (serialized with Web Locks), marks them with note `mac-book:<sha>`, and requests persistent
-storage; after that they live in the device's IndexedDB (offline, kept over reloads and app updates, with progress and names). A book the
-person deletes is remembered on that device (localStorage) and offered back with "Restore"; "Add books from Mac" is the manual fallback.
+storage; after that they live in the device's IndexedDB (offline, kept over reloads and app updates, with progress and names). They are
+always there: the library offers no Delete for them, and one that went missing (storage cleared, Delete all data) is added again the next
+time the device reaches the Mac. "Add books from Mac" is the manual fallback.
 `start-local.mjs` also probes the installed Ollama service, launches it on loopback only if unreachable,
 and leaves an unrelated responding service on port 11434 untouched. It never downloads models or changes VPN/account settings.
 Offline speech discards cached Mac voices and chooses an available device voice; discovery expires after 30 seconds
@@ -546,7 +557,11 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   `<span class="rd-w" data-s=start data-e=end data-i=token>` containing `<ruby class="rd-c" data-o=offset>` per character with
   `<rt class="tone-n"><span class="rd-rtx">pinyin</span></rt>` (the text sits in a span because Safari ignores positioning on `rt`; tone class
   only when toneColors; `rt.textContent` is unchanged). `ruby` is `display: inline` in the reader. Full-width punctuation is wrapped in
-  `span.rd-pu.rd-pu-o` (opening) or `.rd-pu-c` (closing) so the grid can give it half a cell. Each `rt` is `aria-hidden` and each word is `role=button`
+  `span.rd-pu.rd-pu-o` (opening) or `.rd-pu-c` (closing) so the grid can give it half a cell. The half cell assumes the ink at the left of
+  the box (closing marks), as simplified fonts draw them; traditional fonts center ，。、：； (the Taiwan convention), so in a traditional
+  book the marks use the simplified stack of the same family (`--rd-pu-font`, set in `reader.ts`). A chapter's first heading is shown as
+  the chapter title (`rd-h1`) whatever level the file gave it; headings break at their spaces (`word-break: keep-all`), so a 回目 couplet
+  wraps between its halves; a bare section number (`rd-h-num`) is centered. Each `rt` is `aria-hidden` and each word is `role=button`
   with `aria-label="word, pinyin"`, so a screen reader says the word once and a double tap looks it up. In the Pages layout the `rt` nodes are
   left out until `view.ensurePinyin(block)` (`lazyPinyin`): the pinyin hangs out of the flow, so pagination does not depend on it, and only the
   pages near the reader carry it (about a third of the DOM). Characters from Ext B and later get `rd-rare` (a touch smaller, to even the line

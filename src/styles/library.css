@@ -191,12 +191,10 @@
   .lib-continue-progress { margin-top: 4px; }
 }
 
-/* The public copy's note about the Mac, and the "removed from this device" row for the owner's books. */
+/* The public copy's note about the Mac. */
 .lib-mac-note { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); padding: var(--space-3) var(--space-4); font-size: 14px; }
-.lib-mac-note[hidden], .lib-restore[hidden] { display: none; }
+.lib-mac-note[hidden] { display: none; }
 .lib-mac-note p { margin: 0; flex: 1 1 320px; max-width: 70ch; line-height: 1.5; }
 .lib-mac-note .lib-actions { width: auto; flex: none; }
 .lib-mac-note .lib-actions .btn { flex: none; text-decoration: none; }
-.lib-restore { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
-.lib-restore-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; font-size: 14px; color: var(--text-2); }
-@media (pointer: coarse) { .lib-mac-note .btn, .lib-restore .btn { min-height: 44px; } }
+@media (pointer: coarse) { .lib-mac-note .btn { min-height: 44px; } }

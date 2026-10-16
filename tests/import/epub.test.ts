@@ -3,7 +3,7 @@ import { strToU8 } from 'fflate';
 import { afterEach, describe, expect, it } from 'vitest';
 import { importFile } from '../../src/import';
 import { setDefaultSvgRasterizer } from '../../src/import/assets';
-import { chapterHan } from '../../src/import/chapters';
+import { BIG_CHAPTER_HAN, chapterHan } from '../../src/import/chapters';
 import { CONTAINER, PNG, SVG, asFile, makeEpub, navDoc, ncxDoc, opf, prose, xhtml } from './helpers';
 
 async function load(files: Parameters<typeof makeEpub>[0], name = 'book.epub') {
@@ -511,14 +511,26 @@ describe('huge single-file books', () => {
     expect(book.chapters.map((c) => c.title)).toEqual(['第1章', '第2章', '第3章']);
   });
 
-  it('cuts an oversize file with no headings into sized parts', async () => {
-    const body = Array.from({ length: 70 }, (_, i) => `<p>${prose(700, i)}</p>`).join('');
+  it('cuts an oversize file with no headings into sized parts that run on without a title', async () => {
+    const body = Array.from({ length: 120 }, (_, i) => `<p>${prose(700, i)}</p>`).join('');
     const book = await load({
       'META-INF/container.xml': CONTAINER('content.opf'),
       'content.opf': opf({ title: '巨', manifest: [['a', 'a.xhtml', 'application/xhtml+xml']], spine: ['a'] }),
       'a.xhtml': xhtml(body),
     });
     expect(book.chapters.length).toBeGreaterThanOrEqual(3);
-    for (const c of book.chapters) expect(chapterHan(c)).toBeLessThan(30000);
+    for (const c of book.chapters) expect(chapterHan(c)).toBeLessThan(BIG_CHAPTER_HAN);
+    expect(book.chapters.map((c) => !!c.cont)).toEqual(book.chapters.map((_, i) => i > 0));
+  });
+
+  it('keeps a long chapter whole (a novel\'s chapter of 49,000 characters)', async () => {
+    const body = Array.from({ length: 70 }, (_, i) => `<p>${prose(700, i)}</p>`).join('');
+    const book = await load({
+      'META-INF/container.xml': CONTAINER('content.opf'),
+      'content.opf': opf({ title: '长', manifest: [['a', 'a.xhtml', 'application/xhtml+xml']], spine: ['a'] }),
+      'a.xhtml': xhtml(`<h1>第二章</h1>${body}`),
+    });
+    expect(book.chapters.map((c) => c.title)).toEqual(['第二章']);
+    expect(book.chapters[0].cont).toBeUndefined();
   });
 });

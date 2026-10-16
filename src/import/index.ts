@@ -8,10 +8,11 @@ import { DAMAGED_MESSAGE } from './zip';
 import { importMobi, looksLikeMobi } from './mobi';
 import { ImportError, NO_CHINESE } from './errors';
 import { countHan } from './han';
-import { totalHan } from './chapters';
+import { joinSplitParagraphs, normalizePunctuation, totalHan } from './chapters';
 import { importHtml, importMarkdown } from './html';
 import { capChars } from './meta';
 import { bookFromText, importTxt } from './txt';
+import { IMPORT_VERSION } from './version';
 
 export { ImportError } from './errors';
 export const ACCEPT = '.epub,.mobi,.azw3,.azw,.prc,.txt,.text,.pdf,.html,.htm,.xhtml,.md';
@@ -23,6 +24,8 @@ function extension(name: string): string {
 }
 
 /** A file over this size is refused before it is read: it would not fit in memory on an iPad, and no book is this big. */
+export { IMPORT_VERSION } from './version';
+
 export const MAX_FILE_BYTES = 200 * 1024 * 1024;
 export const FILE_TOO_BIG = 'This file is larger than 200 MB, which is too big to import. Try a smaller edition of the book.';
 
@@ -101,9 +104,17 @@ function stripBidiChapters(chapters: ImportedBook['chapters']): ImportedBook['ch
   });
 }
 
+/** Clean-ups for every format: paragraphs broken mid-sentence are joined, odd punctuation is set full-width. */
+function tidyChapters(chapters: ImportedBook['chapters']): ImportedBook['chapters'] {
+  return chapters.map((c) => {
+    const blocks = joinSplitParagraphs(c.blocks).map((b) => ('text' in b ? { ...b, text: normalizePunctuation(b.text) } : b));
+    return { ...c, title: normalizePunctuation(c.title), blocks };
+  });
+}
+
 /** Last checks and the fields every importer leaves blank: reject non-Chinese files, detect the script. */
 function finish(book: ImportedBook): ImportedBook {
-  const chapters = stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0));
+  const chapters = tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0)));
   const han = totalHan(chapters);
   let letters = 0;
   for (const c of chapters) for (const b of c.blocks) if (b.t === 'p' || b.t === 'h' || b.t === 'quote') letters += b.text.replace(/\s/g, '').length;
@@ -116,7 +127,7 @@ function finish(book: ImportedBook): ImportedBook {
   }
   // A title or author is a label: no direction controls, and never a paragraph long.
   const title = capChars(book.title) || 'Untitled';
-  return { ...book, title, author: capChars(book.author), chapters, script: detectScript(sample) };
+  return { ...book, title, author: capChars(book.author), chapters, script: detectScript(sample), importVersion: IMPORT_VERSION };
 }
 
 /** EPUB, MOBI / AZW3, TXT (any common Chinese encoding), PDF (text layer), HTML, Markdown. Detects by extension + magic bytes. */

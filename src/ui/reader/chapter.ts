@@ -153,9 +153,12 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
   let synthetic = 0;
   const title = chapter.title?.trim();
   const firstText = first && (first.t === 'h' || first.t === 'p') ? first.text.trim() : '';
-  if (title && !(first && first.t === 'h' && (firstText === title || firstText.includes(title) || title.includes(firstText)))) {
+  if (title && !chapter.cont && !(first && first.t === 'h' && (firstText === title || firstText.includes(title) || title.includes(firstText)))) {
     pieces.unshift({ block: { t: 'h', level: 1, text: title }, src: -1, start: 0, cont: false, more: false });
     synthetic = 1;
+  } else if (!chapter.cont && first?.t === 'h' && first.level !== 1) {
+    // The book's own heading is the chapter title: it looks like every other chapter title, whatever level the file gave it.
+    pieces[0] = { ...pieces[0], block: { ...first, level: 1 } };
   }
   const sourceBlocks: Block[] = pieces.map((x) => x.block);
 
@@ -214,6 +217,8 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
         break;
       case 'h':
         el = h(`${HEADING_TAGS[block.level - 1] ?? 'h3'}.rd-b.rd-h.rd-h${block.level}`, { 'data-b': index });
+        // A section number alone (一, 二 … in 狂人日记) is set in the middle, as printed editions do.
+        if (/^[一二三四五六七八九十百〇零\d]{1,4}$/.test(block.text.trim())) el.classList.add('rd-h-num');
         text = block.text;
         break;
       case 'quote':

@@ -46,6 +46,23 @@ describe('reader screen', () => {
     expect(q('a[href="#/"]')).not.toBeNull();
   });
 
+  it('draws punctuation from the simplified font of the same family in a traditional book', async () => {
+    const { ctx, meta } = await setup({ fontFamily: 'serif' });
+    await ctx.store.books.update(meta.id, { script: 'traditional' });
+    await open(ctx, meta.id);
+    const rd = document.querySelector<HTMLElement>('.rd-root')!;
+    expect(rd.style.getPropertyValue('--rd-font')).toBe('var(--font-serif-hant)');
+    // Traditional fonts center ，。 in the box; the grid's half-cell marks need the ink at the left.
+    expect(rd.style.getPropertyValue('--rd-pu-font')).toBe('var(--font-serif)');
+  });
+
+  it('draws punctuation in the text font in a simplified book', async () => {
+    const { ctx, meta } = await setup({ fontFamily: 'kai' });
+    await open(ctx, meta.id);
+    const rd = document.querySelector<HTMLElement>('.rd-root')!;
+    expect(rd.style.getPropertyValue('--rd-pu-font')).toBe('var(--font-kai)');
+  });
+
   it('renders the first chapter with the title, pinyin and a progress bar', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);

@@ -119,6 +119,8 @@ export type Block =
 export interface Chapter {
   title: string;
   blocks: Block[];
+  /** A later part of a chapter too long to keep whole: the text runs on from the part before, so it shows no title. */
+  cont?: true;
 }
 
 export interface BookMeta {
@@ -141,6 +143,9 @@ export interface BookMeta {
   sourceName?: string;
   /** Free-form provenance (samples: source URL + public-domain note). */
   note?: string;
+  /** IMPORT_VERSION of the importer that made the stored chapters; missing = 1. A book from the Mac or a classic made by an
+   * older importer is imported again (ui/library/upgrade.ts). */
+  importVersion?: number;
 }
 
 /** What an importer returns; the store assigns id/addedAt and saves assets. */
@@ -155,6 +160,8 @@ export interface ImportedBook {
   cover?: string;
   sourceName?: string;
   note?: string;
+  /** IMPORT_VERSION of the importer that made it (src/import). */
+  importVersion?: number;
 }
 
 export interface Progress {
@@ -344,6 +351,9 @@ export interface Store {
     chapter(id: string, index: number): Promise<Chapter | undefined>;
     add(book: ImportedBook): Promise<BookMeta>;
     update(id: string, patch: Partial<BookMeta>): Promise<void>;
+    /** Put a new import of the same book in place of the stored one: same id, name and history, the reading place moved to
+     * the same character. */
+    replace(id: string, book: ImportedBook): Promise<BookMeta>;
     remove(id: string): Promise<void>;
     /** Object URL for an asset (cached per session; caller must not revoke). */
     assetUrl(bookId: string, asset: string): Promise<string | undefined>;

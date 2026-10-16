@@ -7,12 +7,13 @@ import { createBookShares } from './bookShare';
 import { bookCover, generatedCover } from './cover';
 import { confirmDialog, formDialog } from './dialogs';
 import { compactCount, plural, progressFraction, progressLabel } from './format';
-import { ACCEPT, createImporter, jobStage, prefetchImporters, type Importer, type Job } from './importer';
+import { ACCEPT, createImporter, jobStage, loadImporters, prefetchImporters, type Importer, type Job } from './importer';
 import { pasteDialog } from './paste';
-import { fetchSamples, sampleSourceName, type Sample } from './samples';
+import { fetchSamples, loadSampleBook, sampleSourceName, type Sample } from './samples';
 import { BRIDGE_EVENT, isMacOrigin } from '../../core/macBridge';
 import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
-import { addedMessage, fetchMacBookFile, fetchMacBooks, forgetRemoval, isMacBook, rememberRemoval, removedMacBooks, syncMacBooks, type MacBook, type MacState } from './macBooks';
+import { addedMessage, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
+import { upgradeBooks } from './upgrade';
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
 
@@ -103,7 +104,6 @@ export const mount: MountFn = (root, _params, ctx) => {
   let macState: MacState = 'none';
   let macItems: MacBook[] = [];
   const macNote = h('div.lib-mac-note.card', { role: 'status', hidden: true });
-  const restoreEl = h('section.lib-restore', { 'aria-label': 'Books from your Mac you removed', hidden: true });
   const head = h('div.page-head', null,
     h('div', null, h('h1.page-title', null, 'Library'), h('p.page-sub', null, 'Your books stay on this device.')),
     headActions);
@@ -125,7 +125,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   const samplesEl = h('div.lib-samples');
   const drop = h('div.lib-drop', { hidden: true, 'aria-hidden': 'true' },
     h('div.lib-drop-box', null, icon('upload', 'icon lib-drop-icon'), h('div.lib-drop-title', null, 'Drop to add to your library'), h('div.muted', null, 'EPUB, Kindle (MOBI or AZW3), TXT, PDF, HTML or Markdown')));
-  const page = h('div.page.lib-page', null, head, macNote, restoreEl, continueEl, libraryTools, gridEl, samplesEl, fileInput);
+  const page = h('div.page.lib-page', null, head, macNote, continueEl, libraryTools, gridEl, samplesEl, fileInput);
   root.append(page, drop);
 
   // Progress ticks many times a second: update the running cards in place, and rebuild the grid only when the set of jobs
@@ -243,9 +243,11 @@ export const mount: MountFn = (root, _params, ctx) => {
       type: 'button', 'aria-label': `Options for ${b.title}`, 'aria-haspopup': 'menu',
       onclick: (e: Event) => {
         e.preventDefault();
+        // The Mac's books are always in the library, so they have no Delete.
+        const fromMac = isMacBook(b) || !!macItemFor(b, macItems);
         openMenu(menuBtn, [
           { label: 'Rename', icon: 'pen', run: () => void rename(b) },
-          { label: 'Delete', icon: 'trash', danger: true, run: () => void remove(b) },
+          ...(fromMac ? [] : [{ label: 'Delete', icon: 'trash' as const, danger: true, run: () => void remove(b) }]),
         ], card);
       },
     }, icon('more'));
@@ -281,15 +283,13 @@ export const mount: MountFn = (root, _params, ctx) => {
   async function remove(b: BookMeta): Promise<void> {
     const ok = await confirmDialog({
       title: 'Delete this book?',
-      message: `“${b.title}” and your reading progress in it will be removed from this device. Your saved words stay.${isMacBook(b) || macItems.some((m) => m.name === b.sourceName) ? ' It is not added again; Restore brings it back.' : ''}`,
+      message: `“${b.title}” and your reading progress in it will be removed from this device. Your saved words stay.`,
       confirmLabel: 'Delete',
       danger: true,
     });
     if (!ok) return;
     try {
       await store.books.remove(b.id);
-      rememberRemoval(b, macItems);
-      if (alive) renderRestore();
       if (alive) ctx.toast(`Deleted “${b.title}”.`);
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not delete the book.');
@@ -378,8 +378,6 @@ export const mount: MountFn = (root, _params, ctx) => {
     fetchFile: fetchMacBookFile,
     add: (files: File[]) => importer.files(files, { quiet: true }),
     update: (id: string, patch: Partial<BookMeta>) => store.books.update(id, patch),
-    removed: removedMacBooks,
-    forget: forgetRemoval,
   };
 
   function renderMacNote(): void {
@@ -403,30 +401,6 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('div.lib-actions', null, h('button.btn.btn-sm', { type: 'button', onclick: () => void refreshMac(true) }, 'Try again')));
   }
 
-  function renderRestore(): void {
-    const gone = removedMacBooks();
-    restoreEl.hidden = !gone.length;
-    clear(restoreEl);
-    for (const r of gone) {
-      const title = r.name.replace(/\.[a-z0-9]{1,5}$/i, '');
-      restoreEl.appendChild(h('div.lib-restore-row', null,
-        h('span.lib-restore-text', null, h('span.zh', null, title), ' is removed from this device.'),
-        h('button.btn.btn-sm', { type: 'button', onclick: (e: Event) => void restore(r.name, e.currentTarget as HTMLButtonElement) }, 'Restore')));
-    }
-  }
-
-  async function restore(name: string, btn: HTMLButtonElement): Promise<void> {
-    btn.disabled = true;
-    try {
-      await refreshMac(false);
-      const item = macItems.find((m) => m.name === name);
-      if (macState !== 'ready' || !item) { ctx.toast(macState === 'ready' ? 'Your Mac no longer has that book.' : 'Connect to your Mac to restore it.'); return; }
-      forgetRemoval(name);
-      const { added } = await syncMacBooks([item], syncDeps);
-      if (added.length && alive) ctx.toast(addedMessage(added));
-    } finally { btn.disabled = false; renderRestore(); }
-  }
-
   /** Asks the Mac what it has. With `auto`, adds what this device is missing; the person never has to ask. */
   async function refreshMac(auto: boolean): Promise<void> {
     const listing = await fetchMacBooks();
@@ -435,16 +409,14 @@ export const mount: MountFn = (root, _params, ctx) => {
     macItems = listing.books;
     macBooks.hidden = !(macState === 'ready' && macItems.length);
     renderMacNote();
-    renderRestore();
     if (auto && macState === 'ready' && macItems.length) {
       if (!loaded) await load();
       const { added } = await syncMacBooks(macItems, syncDeps);
       if (added.length) ctx.toast(addedMessage(added), { ms: 6000 });
-      if (alive) renderRestore();
     }
   }
 
-  /** The manual button: also brings back books removed here, and says what happened. */
+  /** The manual button: adds what is missing now, and says what happened. */
   async function addMacBooks(): Promise<void> {
     if (macBooks.disabled || !alive) return;
     macBooks.disabled = true;
@@ -453,7 +425,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       if (!loaded) await load();
       await refreshMac(false);
       if (macState !== 'ready') { ctx.toast('Your Mac did not answer. Wake it and try again.', { ms: 9000 }); return; }
-      const { added, failed } = await syncMacBooks(macItems, syncDeps, true);
+      const { added, failed } = await syncMacBooks(macItems, syncDeps);
       if (added.length) ctx.toast(addedMessage(added));
       else if (failed) ctx.toast('Could not add the books from your Mac.', { ms: 9000 });
       else ctx.toast('The books on your Mac are already in your library.');
@@ -462,22 +434,41 @@ export const mount: MountFn = (root, _params, ctx) => {
     } finally {
       macBooks.disabled = false;
       macBooks.replaceChildren(icon('download'), 'Add books from Mac');
-      if (alive) renderRestore();
     }
   }
-  const onBridge = () => void refreshMac(true);
+  const samplesReady = fetchSamples().catch((): Sample[] => []).then((list) => {
+    if (alive) { samples = list; renderSamples(); }
+    return list;
+  });
+
+  /** Books made by an older importer are imported again, quietly, when they can be fetched (upgrade.ts). */
+  async function upgradeOld(): Promise<void> {
+    if (!alive) return;
+    await upgradeBooks({
+      books: () => store.books.list(),
+      macItems: macState === 'ready' ? macItems : [],
+      samples: await samplesReady,
+      fetchMacFile: fetchMacBookFile,
+      importFile: async (file) => (await loadImporters()).importFile(file),
+      importSample: async (s) => loadSampleBook(s, (await loadImporters()).importText),
+      replace: (id, book) => store.books.replace(id, book),
+      alive: () => alive,
+    }).catch(() => 0);
+  }
+
+  const onBridge = () => void refreshMac(true).then(upgradeOld);
   window.addEventListener(BRIDGE_EVENT, onBridge);
   void load().then(async () => {
     if (!alive) return;
     renderMacNote();
-    renderRestore();
+    forgetRemovedList();
     await refreshMac(true);
+    void upgradeOld();
     if (!alive || !new URLSearchParams(location.search).has('importLocalBooks')) return;
     // Explicit opt-in only. Home Screen users can also choose Add books from Mac in Library.
     history.replaceState(null, '', location.pathname + location.hash);
     await addMacBooks();
   });
-  void fetchSamples().then((list) => { if (!alive) return; samples = list; renderSamples(); });
 
   return () => {
     alive = false;

@@ -9,7 +9,7 @@ import { mount as mountLibrary } from '../../src/ui/library/library';
 import { createImporter } from '../../src/ui/library/importer';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { MAC_NOTE, addedMessage, planMacBooks, removedMacBooks, rememberRemoval } from '../../src/ui/library/macBooks';
+import { MAC_NOTE, addedMessage, planMacBooks } from '../../src/ui/library/macBooks';
 
 // Public-domain stand-ins for the owner's books: only the names, digests and sizes matter to the sync.
 const TEXT = '学而时习之，不亦说乎？有朋自远方来，不亦乐乎？人不知而不愠，不亦君子乎？\n\n'.repeat(20);
@@ -63,11 +63,12 @@ beforeEach(async () => {
   store = await openStore(`mac-${++n}-${Math.random().toString(36).slice(2)}`);
   root = document.createElement('div');
   document.body.appendChild(root);
-  toasts = [];
+  // Each test's toasts go to its own list: a library from an earlier test that finishes late cannot add to this one.
+  const sink: string[] = (toasts = []);
   const dict = await loadTestDictionary();
   ctx = {
     dict: () => Promise.resolve(dict), dictSync: () => dict, settings: createSettingsStore(), store,
-    navigate: () => {}, toast: (m: string) => toasts.push(m),
+    navigate: () => {}, toast: (m: string) => sink.push(m),
   } as unknown as AppContext;
   stubMac();
 }, 30000);
@@ -87,30 +88,19 @@ const meta = (over: Partial<BookMeta>): BookMeta => ({
 describe('planMacBooks', () => {
   it('asks for what is missing, by digest or file name', () => {
     const have = [meta({ id: 'a', sourceName: '论语一.txt', note: MAC_NOTE + 'a'.repeat(64) })];
-    const plan = planMacBooks(LIST, have, []);
+    const plan = planMacBooks(LIST, have);
     expect(plan.missing.map((b) => b.id)).toEqual(['two']);
     expect(plan.mark).toEqual([]);
   });
   it('marks a copy added by hand instead of adding it again', () => {
-    const plan = planMacBooks(LIST, [meta({ id: 'a', sourceName: '论语二.txt' })], []);
+    const plan = planMacBooks(LIST, [meta({ id: 'a', sourceName: '论语二.txt' })]);
     expect(plan.missing.map((b) => b.id)).toEqual(['one']);
     expect(plan.mark).toEqual([{ id: 'a', note: MAC_NOTE + 'b'.repeat(64) }]);
-  });
-  it('holds back a removed book, by name or digest', () => {
-    const plan = planMacBooks(LIST, [], [{ name: '论语一.txt' }, { name: 'renamed.epub', sha256: 'b'.repeat(64) }]);
-    expect(plan.missing).toEqual([]);
-    expect(plan.held.map((b) => b.id)).toEqual(['one', 'two']);
   });
   it('words the toast for one, two and many books', () => {
     expect(addedMessage([meta({ title: '甲' })])).toBe('Added “甲” from your Mac.');
     expect(addedMessage([meta({ title: '甲' }), meta({ title: '乙' })])).toBe('Added “甲” and “乙” from your Mac.');
     expect(addedMessage([meta({}), meta({}), meta({})])).toBe('Added 3 books from your Mac.');
-  });
-  it('only remembers a removal for a book that came from the Mac', () => {
-    rememberRemoval(meta({ sourceName: '我的.epub' }));
-    expect(removedMacBooks()).toEqual([]);
-    rememberRemoval(meta({ sourceName: '论语一.txt', note: MAC_NOTE + 'a'.repeat(64) }));
-    expect(removedMacBooks()).toEqual([{ name: '论语一.txt', sha256: 'a'.repeat(64) }]);
   });
 });
 
@@ -152,32 +142,35 @@ describe('owner books on the library screen', () => {
     expect((await store.books.list())).toHaveLength(3);
   });
 
-  it('keeps a deleted book gone and offers Restore', async () => {
+  it('offers no Delete for the Mac\'s books, and adds one back that went missing', async () => {
     onPrivateSite();
     await openLibrary();
-    await until(() => root.querySelectorAll('.lib-card').length === 2);
+    await until(() => toasts.length > 0 && root.querySelectorAll('.lib-card').length === 2);
     const card = root.querySelector<HTMLElement>('.lib-card[data-id]')!;
-    const gone = (await store.books.get(card.dataset.id!))!;
     card.querySelector<HTMLElement>('.lib-card-menu')!.click();
-    [...document.querySelectorAll<HTMLElement>('.lib-menu-item')].find((b) => b.textContent === 'Delete')!.click();
-    await until(() => !!document.querySelector('dialog'));
-    expect(document.querySelector('dialog')!.textContent).toContain('Restore');
-    [...document.querySelectorAll<HTMLElement>('dialog .btn')].find((b) => b.textContent === 'Delete')!.click();
-    await until(() => root.querySelectorAll('.lib-card').length === 1);
-    expect(removedMacBooks().map((r) => r.name)).toEqual([gone.sourceName]);
-    await until(() => !root.querySelector<HTMLElement>('.lib-restore')!.hidden);
+    const items = [...document.querySelectorAll<HTMLElement>('.lib-menu-item')].map((b) => b.textContent);
+    expect(items).toEqual(['Rename']);
+    document.querySelectorAll('.lib-menu').forEach((e) => e.remove());
 
-    // A later visit does not bring it back.
-    cleanup?.(); root.replaceChildren(); calls.length = 0;
+    // The browser cleared it (or an older version deleted it): the next visit adds it again.
+    const gone = (await store.books.get(card.dataset.id!))!;
+    await store.books.remove(gone.id);
+    cleanup?.(); root.replaceChildren(); toasts.length = 0;
     await openLibrary();
-    await until(() => calls.includes('/api/local-books'));
-    await flush(200);
-    expect(await titles()).toHaveLength(1);
+    await until(() => toasts.length > 0);
+    expect(await titles()).toEqual(['论语一.txt', '论语二.txt']);
+    expect(toasts).toEqual([`Added “${gone.title}” from your Mac.`]);
+  });
 
-    // Restore does.
-    [...root.querySelectorAll<HTMLElement>('.lib-restore .btn')].find((b) => b.textContent === 'Restore')!.click();
-    await until(() => root.querySelectorAll('.lib-card').length === 2);
-    await until(() => removedMacBooks().length === 0 && root.querySelector<HTMLElement>('.lib-restore')!.hidden);
+  it('still offers Delete for a book that is not from the Mac', async () => {
+    onPrivateSite();
+    await store.books.add({ title: '自己', author: '', format: 'txt', script: 'simplified', sourceName: 'mine.txt',
+      chapters: [{ title: '自己', blocks: [{ t: 'p', text: '学而时习之，不亦说乎？' }] }], assets: new Map() });
+    await openLibrary();
+    await until(() => toasts.length > 0 && root.querySelectorAll('.lib-card').length === 3);
+    const mine = [...root.querySelectorAll<HTMLElement>('.lib-card')].find((c) => c.textContent?.includes('自己'))!;
+    mine.querySelector<HTMLElement>('.lib-card-menu')!.click();
+    expect([...document.querySelectorAll<HTMLElement>('.lib-menu-item')].map((b) => b.textContent)).toEqual(['Rename', 'Delete']);
   });
 
   it('syncs on the public copy once the device is connected, using the Mac address', async () => {
@@ -225,15 +218,19 @@ describe('owner books on the library screen', () => {
     expect(await store.books.list()).toEqual([]);
   });
 
-  it('keeps the manual button as a fallback that also brings back removed books', async () => {
+  it('adds a book an older version left out on its removed list, and forgets that list', async () => {
     onPrivateSite();
     localStorage.setItem('dushu.mac-books.removed.v1', JSON.stringify([{ name: '论语一.txt' }]));
     await openLibrary();
-    await until(() => root.querySelectorAll('.lib-card').length === 1);
+    await until(() => toasts.length > 0);
+    expect(toasts).toEqual(['Added “论语一” and “论语二” from your Mac.']);
+    expect(localStorage.getItem('dushu.mac-books.removed.v1')).toBeNull();
     const button = [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Add books from Mac')!;
     await until(() => !button.hidden);
+    toasts.length = 0;
     button.click();
-    await until(() => root.querySelectorAll('.lib-card').length === 2 && removedMacBooks().length === 0);
+    await until(() => toasts.length > 0);
+    expect(toasts).toEqual(['The books on your Mac are already in your library.']);
   });
 });
 

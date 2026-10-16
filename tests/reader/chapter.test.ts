@@ -41,6 +41,25 @@ describe('chapter structure', () => {
     expect(view.blocks).toHaveLength(chapter.blocks.length);
   });
 
+  it('shows the book\'s own title heading as the chapter title, whatever level the file gave it', async () => {
+    const { view } = await setup({}, { title: '开始', blocks: chapter.blocks });
+    expect(view.blocks[0].el.tagName).toBe('H1');
+    expect(view.blocks[0].el.classList.contains('rd-h1')).toBe(true);
+    // Only for the display: the stored block is untouched.
+    expect(chapter.blocks[0]).toEqual({ t: 'h', level: 2, text: '开始' });
+  });
+
+  it('gives a later part of a split chapter no title: its text runs on from the part before', async () => {
+    const { view } = await setup({}, { title: '第二章 (2)', cont: true, blocks: [{ t: 'p', text: '我们见面。' }] });
+    expect(view.synthetic).toBe(0);
+    expect(view.blocks.map((b) => b.el.tagName)).toEqual(['P']);
+  });
+
+  it('sets a bare section number in the middle', async () => {
+    const { view } = await setup({}, { title: '狂人日记', blocks: [{ t: 'p', text: '某君。' }, { t: 'h', level: 3, text: '十二' }, { t: 'h', level: 3, text: '后记' }] });
+    expect(view.blocks.map((b) => b.el.classList.contains('rd-h-num'))).toEqual([false, false, true, false]);
+  });
+
   it('creates a shell per block with the right element and classes', async () => {
     const { view } = await setup();
     const tags = view.blocks.map((b) => b.el.tagName.toLowerCase());
