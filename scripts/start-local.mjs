@@ -4,6 +4,7 @@ import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'nod
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ensureModelService } from './start-model.mjs';
+import { ensureIpadAccess } from './ipad-access.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const state = join(root, '.dushu-local');
@@ -57,7 +58,10 @@ if (!process.exitCode) {
   try {
     const access = JSON.parse(readFileSync(join(state, 'ipad.json'), 'utf8'));
     if (typeof access.host === 'string' && /^[a-z0-9.-]+\.ts\.net:8443$/.test(access.host)) {
-      console.log(`Configured iPad address: https://${access.host}/ (connect Tailscale with the same account; keep this Mac awake).`);
+      // The iPad address stays up: Tailscale back on and the port served again if either went away.
+      try { for (const note of ensureIpadAccess(access.host)) console.log(note); }
+      catch (error) { console.error(`Could not check Tailscale: ${error.message}`); }
+      console.log(`Configured iPad address: https://${access.host}/ (keep this Mac awake).`);
     }
   } catch { /* Local-only installation: no private endpoint configured. */ }
 }

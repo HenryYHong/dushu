@@ -383,7 +383,11 @@ storage; after that they live in the device's IndexedDB (offline, kept over relo
 always there: the library offers no Delete for them, and one that went missing (storage cleared, Delete all data) is added again the next
 time the device reaches the Mac. "Add books from Mac" is the manual fallback.
 `start-local.mjs` also probes the installed Ollama service, launches it on loopback only if unreachable,
-and leaves an unrelated responding service on port 11434 untouched. It never downloads models or changes VPN/account settings.
+and leaves an unrelated responding service on port 11434 untouched. It never downloads models or changes the account. When iPad access
+is set up (`.dushu-local/ipad.json`) it runs `scripts/ipad-access.mjs`: Tailscale `Stopped` → `tailscale up` (re-run with exactly the
+non-default flags Tailscale names, so settings stay), the 8443 serve entry missing → served again; `NeedsLogin` or a port serving another
+target is only logged. The CLI is the app's binary and acts as a command line only when `TERM` is set (without it, as under launchd, it
+starts as the app and never returns), so TERM is always set for it.
 Offline speech discards cached Mac voices and chooses an available device voice; discovery expires after 30 seconds
 and temporary failures are not permanently cached. Mid-render connection errors explain recovery, rather than exposing a raw fetch error.
 

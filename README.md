@@ -35,9 +35,9 @@ If the Mac is asleep, the Library says so and everything else keeps working.
 
 You need Node.js 20 or newer. The launcher uses your installed Node.js and the versions pinned in `package-lock.json`.
 
-Easiest on a Mac: double-click `Dushu.command`. The first run installs the packages and builds the app, which takes a minute. After that it starts a local server on port 4317 and opens http://localhost:4317. It also starts the already-installed Ollama service on loopback when needed, without downloading models or changing Tailscale settings.
+Easiest on a Mac: double-click `Dushu.command`. The first run installs the packages and builds the app, which takes a minute. After that it starts a local server on port 4317 and opens http://localhost:4317. It also starts the already-installed Ollama service on loopback when needed, without downloading models. Once iPad access is set up (`npm run ipad`), it also keeps it up: if Tailscale was switched off it turns it back on, and if the iPad address is gone from Tailscale it serves it again. It never signs in, changes other Tailscale settings or takes over a port another app uses.
 
-To have Dushu start by itself when you log in, run `npm run autostart` once in this folder. It also checks every 15 minutes and starts Dushu again if it has stopped, so your iPad, sync and your Mac's books are there without opening anything. `npm run autostart -- status` shows whether it is set up, and `npm run autostart -- remove` turns it off. It is a LaunchAgent for your user only (`~/Library/LaunchAgents/com.dushu.reader.plist`, log in `~/Library/Logs/Dushu`).
+To have Dushu start by itself when you log in, run `npm run autostart` once in this folder. It also checks every 15 minutes and starts Dushu again if it has stopped, and turns Tailscale and the iPad address back on if they went away, so your iPad, sync and your Mac's books are there without opening anything. The Mac's Tailscale key still expires unless you turn off key expiry for this Mac in the Tailscale admin console. `npm run autostart -- status` shows whether it is set up, and `npm run autostart -- remove` turns it off. It is a LaunchAgent for your user only (`~/Library/LaunchAgents/com.dushu.reader.plist`, log in `~/Library/Logs/Dushu`).
 
 From a terminal:
 
