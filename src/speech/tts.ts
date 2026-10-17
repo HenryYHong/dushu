@@ -9,6 +9,8 @@ export interface SpeechOptions {
   lang?: string;
   onStart?: () => void;
   onError?: (message: string) => void;
+  /** Where the words of part `index` start (UTF-16 offsets into it): the Mac's Premium voices then time each word. */
+  wordStarts?: (index: number) => number[];
 }
 
 export function canSpeak(): boolean {
@@ -155,12 +157,24 @@ export function resumeSpeaking(): void {
   if (canSpeak()) speechSynthesis.resume();
 }
 
-async function renderNative(text: string, voice: SpeechSynthesisVoice, signal: AbortSignal): Promise<Blob> {
+/** When each marked word starts in a rendered sentence: [offset, ms] pairs, in order. */
+type Marks = [number, number][];
+
+function readMarks(header: string | null, length: number): Marks {
+  try {
+    const marks = JSON.parse(header || '[]') as unknown;
+    if (!Array.isArray(marks)) return [];
+    return marks.filter((m): m is [number, number] => Array.isArray(m) && Number.isInteger(m[0]) && m[0] >= 0 && m[0] < length
+      && Number.isFinite(m[1])).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+  } catch { return []; }
+}
+
+async function renderNative(text: string, voice: SpeechSynthesisVoice, signal: AbortSignal, marks: number[] = []): Promise<{ blob: Blob; marks: Marks }> {
   try {
     const response = await bridgeFetch('/api/native-speech', { method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(35000)]),
-      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voice: voice.voiceURI }) });
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(marks.length ? { text, voice: voice.voiceURI, marks } : { text, voice: voice.voiceURI }) });
     if (!response.ok) throw new Error('Could not prepare audio.');
-    return await response.blob();
+    return { blob: await response.blob(), marks: readMarks(response.headers.get('X-Dushu-Marks'), text.length) };
   } catch (error) {
     if (signal.aborted) throw error;
     throw new Error('The Premium voice could not prepare audio. Keep your Mac awake and connected, or choose an on-device Chinese voice in Settings.');
@@ -177,7 +191,14 @@ function primeTouchAudio(): HTMLAudioElement | undefined {
   return audio;
 }
 
-function playNative(blob: Blob, rate: number, opts?: SpeechOptions, reusable?: HTMLAudioElement): Promise<boolean> {
+/**
+ * Plays one rendered sentence. With word marks, reports each word as the audio reaches it: (offset, length up to the next
+ * word). The audio clock already counts the playback rate.
+ */
+function playNative(
+  blob: Blob, rate: number, opts?: SpeechOptions, reusable?: HTMLAudioElement,
+  marks: Marks = [], length = 0, onWord?: (offset: number, length: number) => void,
+): Promise<boolean> {
   return new Promise(resolve => {
     const url = URL.createObjectURL(blob);
     const audio = reusable ?? new Audio();
@@ -186,9 +207,22 @@ function playNative(blob: Blob, rate: number, opts?: SpeechOptions, reusable?: H
     audio.playbackRate = rate;
     audio.preservesPitch = true;
     let done = false;
+    let shown = -1;
+    const follow = () => {
+      if (done || !onWord) return;
+      const ms = audio.currentTime * 1000;
+      let k = shown;
+      while (k + 1 < marks.length && marks[k + 1][1] <= ms) k++;
+      if (k === shown) return;
+      shown = k;
+      const end = marks.find(m => m[0] > marks[k][0])?.[0] ?? length;
+      onWord(marks[k][0], end - marks[k][0]);
+    };
+    const clock = onWord && marks.length ? setInterval(follow, 40) : undefined;
     const finish = (ok: boolean) => {
       if (done) return;
       done = true;
+      clearInterval(clock);
       audio.pause();
       audio.onplaying = audio.onended = audio.onerror = null;
       audio.removeAttribute('src');
@@ -199,7 +233,7 @@ function playNative(blob: Blob, rate: number, opts?: SpeechOptions, reusable?: H
     };
     const cancel = () => finish(false);
     finishPending = cancel;
-    audio.onplaying = () => { if (!done) opts?.onStart?.(); };
+    audio.onplaying = () => { if (!done) { opts?.onStart?.(); follow(); } };
     audio.onended = () => finish(true);
     const fail = () => { if (!done) opts?.onError?.('The Premium voice could not play. Tap Read again, or choose an iPad voice in Settings.'); finish(false); };
     audio.onerror = fail;
@@ -212,6 +246,9 @@ function speakPiece(
   onBoundary?: (charIndex: number, charLength: number) => void,
   opts?: SpeechOptions,
 ): Promise<boolean> {
+  // A Premium (neural) voice reports words late, two phrases behind and then not at all: highlighting by those events would
+  // lag and stall, so it keeps to the paragraph.
+  if (voice && quality(voice) === 0) onBoundary = undefined;
   return new Promise(resolve => {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = voice?.lang || lang;
@@ -261,17 +298,29 @@ export async function speakSequence(
     const ctl = new AbortController();
     nativeCtl = ctl;
     const queue = parts.flatMap((text, index) => pieces(text).map(piece => ({ ...piece, index })));
-    let prepared = queue[0] ? renderNative(queue[0].text, voice, ctl.signal) : null;
+    // Word starts are asked for as each sentence is rendered, not for the whole chapter up front.
+    const starts = new Map<number, number[]>();
+    const render = (q: (typeof queue)[number]) => {
+      let words: number[] = [];
+      if (opts?.wordStarts && onBoundary) {
+        if (!starts.has(q.index)) starts.set(q.index, opts.wordStarts(q.index));
+        words = [0, ...starts.get(q.index)!.filter(o => o > q.start && o < q.start + q.text.length).map(o => o - q.start)];
+      }
+      return renderNative(q.text, voice, ctl.signal, words);
+    };
+    let prepared = queue[0] ? render(queue[0]) : null;
     try {
       for (let i = 0; i < queue.length; i++) {
-        const blob = await prepared!;
+        const { blob, marks } = await prepared!;
         if (mine !== generation) return false;
         // Render the next sentence during playback, so the listener is not waiting on synthesis.
-        prepared = queue[i + 1] ? renderNative(queue[i + 1].text, voice, ctl.signal) : null;
+        prepared = queue[i + 1] ? render(queue[i + 1]) : null;
         prepared?.catch(() => {}); // a stopped run may never await this prefetch
-        if (i === 0 || queue[i].index !== queue[i - 1].index) onPart?.(queue[i].index);
+        const q = queue[i];
+        if (i === 0 || q.index !== queue[i - 1].index) onPart?.(q.index);
         const rate = Math.min(2, Math.max(0.5, opts?.getRate?.() ?? opts?.rate ?? 1));
-        if (!await playNative(blob, rate, opts, touchAudio)) return false;
+        const onWord = onBoundary ? (at: number, len: number) => { if (mine === generation) onBoundary(q.index, q.start + at, len); } : undefined;
+        if (!await playNative(blob, rate, opts, touchAudio, marks, q.text.length, onWord)) return false;
       }
       return mine === generation;
     } catch (error) {

@@ -338,7 +338,18 @@ otherwise prefer Tingting / Meijia / Sinji over novelty voices. settings.ttsVoic
 Native voices use `/api/native-voices` and `/api/native-speech`: same-origin authenticated requests only,
 validated installed voice names, bounded text, subprocess timeout, at most two active renderers,
 temporary files removed after rendering. The client prefetches one sentence, preserves pitch,
-and cancels fetching/playback on stop. Native audio has paragraph highlighting, not invented word timestamps.
+and cancels fetching/playback on stop.
+Word highlighting with Premium voices: Apple's neural voices report word events late (two phrases behind, and the last ones
+never), in Safari, Chrome and AVSpeechSynthesizer alike, so those events are ignored and a Web Speech Premium voice highlights
+the paragraph. The Mac's renders are timed instead: `speakSequence` sends each sentence's word starts (`opts.wordStarts`, the
+reader's Han tokens), and `scripts/speech-marks.swift` reads the sentence twice at once, plain and with an SSML bookmark
+before each word. Bookmark times are exact, but bookmarks slow and break up a neural reading (up to a fifth longer on
+classical text), so the plain reading is what plays and dynamic time warping of the two readings' log-mel frames carries the
+bookmark times over to it (checked against pauses: within 40–90 ms, a little early). The times come back in
+`X-Dushu-Marks` ([[offset, ms], ...]) and the client follows `audio.currentTime`. The helper is compiled once per source
+version with the Mac's Swift compiler into ~/Library/Caches/Dushu (only when `xcode-select -p` finds the tools, since a
+missing compiler opens an install dialog); without it `say` renders and the paragraph is highlighted. The reader marks every
+shown word that overlaps the reported range.
 `speak` cancels anything playing.
 `speakSequence` reads chapter blocks in small chunks, reports utterance boundaries for word
 highlighting, and supports pause, resume and stop. `getRate` is read at each sentence chunk,

@@ -91,7 +91,7 @@ export function bridgeCors(req: IncomingMessage, res: ServerResponse, config = p
   const kind = crossOrigin(req, env);
   if (!kind) return false;
   res.setHeader('Access-Control-Allow-Origin', header(req, 'origin'));
-  res.setHeader('Access-Control-Expose-Headers', 'ETag, X-Dushu-Digest, Content-Length');
+  res.setHeader('Access-Control-Expose-Headers', 'ETag, X-Dushu-Digest, X-Dushu-Marks, Content-Length');
   if (req.method !== 'OPTIONS') return false;
   if (!header(req, 'access-control-request-method') || !bridgeRequest(req, config, env)) { res.writeHead(403).end(); return true; }
   res.setHeader('Vary', 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Access-Control-Request-Private-Network');

@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let speech: typeof import('../../src/speech/tts');
 let audio: FakeAudio[];
-let sent: { text: string; signal: AbortSignal }[];
+let sent: { text: string; signal: AbortSignal; marks?: number[] }[];
+let marksHeader: string | null;
 class FakeAudio {
   playbackRate = 1;
+  currentTime = 0;
   preservesPitch = false;
   onplaying: (() => void) | null = null;
   onended: (() => void) | null = null;
@@ -17,7 +19,7 @@ class FakeAudio {
 
 beforeEach(async () => {
   vi.resetModules();
-  audio = []; sent = [];
+  audio = []; sent = []; marksHeader = null;
   vi.stubGlobal('location', { hostname: 'localhost' });
   vi.stubGlobal('Audio', FakeAudio);
   vi.stubGlobal('SpeechSynthesisUtterance', class {});
@@ -28,8 +30,9 @@ beforeEach(async () => {
   vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     if (url.endsWith('native-voices')) return new Response(JSON.stringify([{ name: 'Lili (Premium)', lang: 'zh-CN', voiceURI: 'dushu-mac:Lili (Premium)' }]), { headers: { 'Content-Type': 'application/json' } });
-    sent.push({ text: JSON.parse(init!.body as string).text, signal: init!.signal as AbortSignal });
-    return new Response(new Blob(['audio'], { type: 'audio/wav' }));
+    const body = JSON.parse(init!.body as string);
+    sent.push({ text: body.text, signal: init!.signal as AbortSignal, marks: body.marks });
+    return new Response(new Blob(['audio'], { type: 'audio/wav' }), marksHeader ? { headers: { 'X-Dushu-Marks': marksHeader } } : {});
   }));
   speech = await import('../../src/speech/tts');
 });
@@ -109,6 +112,45 @@ describe('native Premium audio', () => {
     expect(sent.every(s => s.signal.aborted)).toBe(true);
     expect(audio).toHaveLength(1);
     expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
+  });
+
+  it('sends where each sentence\'s words start, and only when words are highlighted', async () => {
+    const wordStarts = vi.fn((i: number) => (i === 0 ? [0, 2, 3, 5, 7] : [0, 1]));
+    const run = speech.speakSequence(['你们好。学而时。', '再见。'], { wordStarts }, undefined, () => {});
+    await vi.waitFor(() => expect(sent).toHaveLength(2));
+    // Offsets are per sentence, and the second sentence of the first part starts at 4.
+    expect(sent.map(s => [s.text, s.marks])).toEqual([['你们好。', [0, 2, 3]], ['学而时。', [0, 1, 3]]]);
+    audio[0].onended?.();
+    await vi.waitFor(() => expect(sent).toHaveLength(3));
+    expect(sent[2].marks).toEqual([0, 1]);
+    audio[1].onended?.();
+    await vi.waitFor(() => expect(audio).toHaveLength(3));
+    audio[2].onended?.();
+    expect(await run).toBe(true);
+    expect(wordStarts.mock.calls.map(c => c[0])).toEqual([0, 1]);
+    sent = [];
+    const plain = speech.speakSequence(['你好。'], { wordStarts });
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0].marks).toBeUndefined();
+    speech.stopSpeaking();
+    expect(await plain).toBe(false);
+  });
+
+  it('moves the word highlight with the audio clock', async () => {
+    marksHeader = JSON.stringify([[0, 0], [2, 400], [3, 650], [99, 10]]);
+    const words: [number, number, number][] = [];
+    const run = speech.speakSequence(['。你们好。'], { wordStarts: () => [1, 3, 4] }, undefined, (part, at, len) => words.push([part, at, len]));
+    await vi.waitFor(() => expect(audio).toHaveLength(1));
+    // The sentence starts after the lone full stop, at 1; its words start at 0, 2 and 3 within it. A mark past its end is dropped.
+    expect(sent[0]).toMatchObject({ text: '你们好。', marks: [0, 2, 3] });
+    await vi.waitFor(() => expect(words).toEqual([[0, 1, 2]]));
+    audio[0].currentTime = 0.45;
+    await vi.waitFor(() => expect(words).toEqual([[0, 1, 2], [0, 3, 1]]));
+    audio[0].currentTime = 2;
+    await vi.waitFor(() => expect(words).toHaveLength(3));
+    expect(words[2]).toEqual([0, 4, 1]);
+    audio[0].onended?.();
+    expect(await run).toBe(true);
   });
 
   it('surfaces playback errors and resolves rather than leaving the reader stuck', async () => {

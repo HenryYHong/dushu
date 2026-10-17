@@ -295,6 +295,12 @@ export const mount: MountFn = async (root, params, ctx) => {
       await speakSequence(texts, {
         rate: s.ttsRate, voice: s.ttsVoice, lang: langOf(s) === 'zh-Hant' ? 'zh-TW' : 'zh-CN',
         getRate: () => ctx.settings.get().ttsRate,
+        // The words as the reader shows them, so the voice is timed word by word where it can be.
+        wordStarts: (i) => {
+          const b = blocks[i];
+          v.ensure(b.index);
+          return (b.rendered?.tokens ?? []).filter(t => t.kind === 'han' && t.start >= offsets[i]).map(t => t.start - offsets[i]);
+        },
         onStart: () => {
           if (mine !== speechRun || audioStarted) return;
           audioStarted = true;
@@ -315,18 +321,22 @@ export const mount: MountFn = async (root, params, ctx) => {
           const r = b.el.getBoundingClientRect();
           if (r.top < BAR_H + 8 || r.top > window.innerHeight * 0.8) scrollToBlock(b);
         }
-      }, (i, at) => {
+      }, (i, at, len) => {
         if (mine !== speechRun) return;
         const b = blocks[i];
-        const sourceAt = offsets[i] + at;
-        const token = b.rendered?.tokens[v.tokenIndexAt(b, sourceAt)];
-        if (!token) return;
+        // The words the voice is saying: every shown word that overlaps the range it reported.
+        const from = offsets[i] + at;
+        const to = from + Math.max(1, len);
+        const words = (b.rendered?.tokens ?? []).filter(t => t.kind === 'han' && t.start < to && t.end > from);
+        if (!words.length) return;
+        const start = words[0].start;
+        const end = words[words.length - 1].end;
         v.clearMarks('rd-speaking-word');
-        v.mark(b, token.start, token.end, 'rd-speaking-word');
+        v.mark(b, start, end, 'rd-speaking-word');
         if (paged) {
-          const r = v.rectOf(b, token.start, token.end);
-          if (!r || r.top < BAR_H || r.bottom > window.innerHeight - 24) pager?.reveal(b.index, token.start);
-        } else ensureInView(b, token.start);
+          const r = v.rectOf(b, start, end);
+          if (!r || r.top < BAR_H || r.bottom > window.innerHeight - 24) pager?.reveal(b.index, start);
+        } else ensureInView(b, start);
       });
     } finally {
       if (mine === speechRun) stopChapterSpeech();

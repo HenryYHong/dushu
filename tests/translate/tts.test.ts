@@ -94,6 +94,30 @@ describe('chapter speech', () => {
     expect(boundaries).toEqual([[0, 2, 1], [0, 8, 1]]);
   });
 
+  it('ignores the late word events of a Premium voice and keeps to the paragraph', async () => {
+    vi.stubGlobal('SpeechSynthesisUtterance', class {
+      onend: (() => void) | null = null;
+      onboundary: ((event: { charIndex: number; charLength: number }) => void) | null = null;
+      constructor(public text: string) {}
+    });
+    const premium = { ...v('Lili (Premium)', 'zh-CN'), voiceURI: 'Lili (Premium)' };
+    const said: (SpeechSynthesisUtterance & { onboundary: unknown })[] = [];
+    vi.stubGlobal('speechSynthesis', {
+      getVoices: () => [...voices, premium],
+      speak: (u: SpeechSynthesisUtterance & { onboundary: unknown }) => { said.push(u); queueMicrotask(() => u.onend?.(new Event('end') as SpeechSynthesisEvent)); },
+      cancel: vi.fn(),
+    });
+    const parts: number[] = [];
+    const boundary = vi.fn();
+    expect(await speakSequence(['你好。'], {}, (i) => parts.push(i), boundary)).toBe(true);
+    expect(said[0].voice).toBe(premium);
+    expect(said[0].onboundary).toBeNull();
+    expect(parts).toEqual([0]);
+    // A compact voice keeps its word events.
+    expect(await speakSequence(['你好。'], { voice: 'Tingting' }, undefined, boundary)).toBe(true);
+    expect(typeof said[1].onboundary).toBe('function');
+  });
+
   it('passes pause and resume to the browser speech engine', () => {
     const pause = vi.fn();
     const resume = vi.fn();
