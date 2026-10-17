@@ -346,7 +346,12 @@ reader's Han tokens), and `scripts/speech-marks.swift` reads the sentence twice 
 before each word. Bookmark times are exact, but bookmarks slow and break up a neural reading (up to a fifth longer on
 classical text), so the plain reading is what plays and dynamic time warping of the two readings' log-mel frames carries the
 bookmark times over to it (checked against pauses: within 40–90 ms, a little early). The times come back in
-`X-Dushu-Marks` ([[offset, ms], ...]) and the client follows `audio.currentTime`. The helper is compiled once per source
+`X-Dushu-Marks` ([[offset, ms], ...]) and the client follows `audio.currentTime` every animation frame (a 40 ms timer
+without frames), showing a sentence's first word as its audio is asked to play; measured in Chrome and WebKit, the highlight trails
+its word by under 90 ms, at 2× too. A render takes about 0.7 s plus a little per character, so a first sentence longer than 24
+characters is read as its first clause (a comma at 7–24) and the rest, which renders while the clause plays: speech starts
+in about 1.1–1.4 s. In Pages, the reader turns to the word's page when it is past `pager.shownRange()` (a word on the next
+page sits beside the spread, so a screen-position test missed it and the page did not turn mid-paragraph). The helper is compiled once per source
 version with the Mac's Swift compiler into ~/Library/Caches/Dushu (only when `xcode-select -p` finds the tools, since a
 missing compiler opens an install dialog); without it `say` renders and the paragraph is highlighted. The reader marks every
 shown word that overlaps the reported range.

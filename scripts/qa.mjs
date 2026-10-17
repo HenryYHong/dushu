@@ -741,7 +741,7 @@ scenarios.pages = async () => {
   await page.setViewport({ width: 820, height: 1100, deviceScaleFactor: 1 });
   await sleep(1500);
   const narrow = await info();
-  check(narrow.per === '1' && narrow.chapter === keep.chapter, `a portrait window shows one page (per=${narrow.per}) in the same chapter`);
+  check(narrow.per === "1" && narrow.chapter === keep.chapter, `a portrait window shows one page (per=${narrow.per}) in the same chapter (${keep.chapter}:${keep.block} -> ${narrow.chapter}:${narrow.block})`);
   await s.shot('portrait');
   await s.done();
 };

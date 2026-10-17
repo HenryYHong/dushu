@@ -136,6 +136,28 @@ describe('native Premium audio', () => {
     expect(await plain).toBe(false);
   });
 
+  it('reads a long first sentence\'s first clause on its own, so audio starts sooner', async () => {
+    const long = '天地之数有十二万九千六百岁，将一元分为十二会，乃子丑寅卯辰巳午未申酉戌亥之十二支也。';
+    const words: [number, number, number][] = [];
+    const run = speech.speakSequence([long, '再见。'], { wordStarts: () => [0, 14, 20] }, undefined, (part, at, len) => words.push([part, at, len]));
+    await vi.waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent.map(s => s.text)).toEqual(['天地之数有十二万九千六百岁，', long.slice(14)]);
+    // Word starts stay in the right place in each half.
+    expect(sent.map(s => s.marks)).toEqual([[0], [0, 6]]);
+    audio[0].onended?.();
+    await vi.waitFor(() => expect(sent).toHaveLength(3));
+    expect(sent[2].text).toBe('再见。');
+    speech.stopSpeaking();
+    expect(await run).toBe(false);
+    // A short first sentence is left whole.
+    sent = [];
+    const short = speech.speakSequence(['你好，再见。']);
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0].text).toBe('你好，再见。');
+    speech.stopSpeaking();
+    expect(await short).toBe(false);
+  });
+
   it('moves the word highlight with the audio clock', async () => {
     marksHeader = JSON.stringify([[0, 0], [2, 400], [3, 650], [99, 10]]);
     const words: [number, number, number][] = [];

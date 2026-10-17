@@ -579,10 +579,12 @@ try {
 
   // ---- 15. Chapter navigation on a book with many chapters (needs the imported book)
   if (existsSync(EPUB)) {
-    const huoId = await page.evaluate(async () => {
+    // Its chapter count comes from the book: importers cut it differently (11 pieces before importer v2, 8 chapters since).
+    const { id: huoId, chapters: huoChapters } = await page.evaluate(async () => {
       const { openStore } = await import('/src/store/index.ts');
       const list = await (await openStore('dushu')).books.list();
-      return list.find((b) => b.title === '活着')?.id;
+      const b = list.find((x) => x.title === '活着');
+      return { id: b?.id, chapters: b?.chapterCount ?? 0 };
     });
     await setSettings({ pinyin: 'unknown' });
     await openBook(huoId, '?ch=2');
@@ -591,7 +593,7 @@ try {
     await page.click('.rd-toc-btn');
     await settle(900);
     const tocItems = await page.$$eval('.rd-toc-item', (e) => e.map((x) => x.textContent));
-    check(tocItems.length === 11 && tocItems.every((t) => !/^\d+Chapter \d+$/.test(t) || true), `chapter drawer lists all 11 chapters (${tocItems.slice(0, 3).join(' / ')} ...)`);
+    check(huoChapters > 3 && tocItems.length === huoChapters, `chapter drawer lists all ${huoChapters} chapters (${tocItems.slice(0, 3).join(' / ')} ...)`);
     check(await page.$eval('.rd-toc-item[aria-current="true"]', (e, t) => e.textContent.includes(t), t3), 'the current chapter is highlighted in the drawer');
     await shot('24-toc-huozhe');
     await page.keyboard.press('Escape');
@@ -632,7 +634,7 @@ try {
     await settle(900);
     check((await page.$eval('.rd-chapter-title', (e) => e.textContent)) === t4, 'the Next chapter button opens the next chapter');
     // the last chapter ends the book
-    await openBook(huoId, '?ch=10');
+    await openBook(huoId, `?ch=${huoChapters - 1}`);
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await settle(300);
     check(await page.$('.rd-end-next') === null && (await page.$eval('.rd-end', (e) => e.textContent)).includes('end'), 'the last chapter shows the end of the book');

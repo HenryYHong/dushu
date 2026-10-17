@@ -218,11 +218,15 @@ function playNative(
       const end = marks.find(m => m[0] > marks[k][0])?.[0] ?? length;
       onWord(marks[k][0], end - marks[k][0]);
     };
-    const clock = onWord && marks.length ? setInterval(follow, 40) : undefined;
+    // Every frame where there are frames (a 40 ms timer elsewhere): at 2× a coarser clock let the highlight trail by a word.
+    let clock: ReturnType<typeof setInterval> | number | undefined;
+    const frames = typeof requestAnimationFrame === 'function';
+    const tick = () => { follow(); if (!done) clock = requestAnimationFrame(tick); };
+    if (onWord && marks.length) clock = frames ? requestAnimationFrame(tick) : setInterval(follow, 40);
     const finish = (ok: boolean) => {
       if (done) return;
       done = true;
-      clearInterval(clock);
+      if (frames) cancelAnimationFrame(clock as number); else clearInterval(clock);
       audio.pause();
       audio.onplaying = audio.onended = audio.onerror = null;
       audio.removeAttribute('src');
@@ -238,6 +242,7 @@ function playNative(
     const fail = () => { if (!done) opts?.onError?.('The Premium voice could not play. Tap Read again, or choose an iPad voice in Settings.'); finish(false); };
     audio.onerror = fail;
     if (!nativePaused) void audio.play().catch(fail);
+    follow(); // the sentence's first word, as its audio starts
   });
 }
 
@@ -298,6 +303,14 @@ export async function speakSequence(
     const ctl = new AbortController();
     nativeCtl = ctl;
     const queue = parts.flatMap((text, index) => pieces(text).map(piece => ({ ...piece, index })));
+    // The Mac takes about 0.7 s plus a little per character to render, so a long first sentence delays the start: read its
+    // first clause on its own, and the rest renders while that plays.
+    const first = queue[0];
+    const cut = first && first.text.length > 24 ? first.text.slice(6, 24).search(/[，、：；,:]/) : -1;
+    if (cut >= 0) {
+      const at = cut + 7;
+      queue.splice(0, 1, { ...first, text: first.text.slice(0, at) }, { ...first, text: first.text.slice(at), start: first.start + at });
+    }
     // Word starts are asked for as each sentence is rendered, not for the whole chapter up front.
     const starts = new Map<number, number[]>();
     const render = (q: (typeof queue)[number]) => {

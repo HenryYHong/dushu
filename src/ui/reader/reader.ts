@@ -334,8 +334,11 @@ export const mount: MountFn = async (root, params, ctx) => {
         v.clearMarks('rd-speaking-word');
         v.mark(b, start, end, 'rd-speaking-word');
         if (paged) {
-          const r = v.rectOf(b, start, end);
-          if (!r || r.top < BAR_H || r.bottom > window.innerHeight - 24) pager?.reveal(b.index, start);
+          // Turn to the page that holds the word once it is past the pages on show (a word on the next page sits beside them,
+          // not below, so a screen-position test misses it).
+          const shown = pager?.shownRange();
+          const upTo = (x: { block: number; offset: number }) => x.block < b.index || (x.block === b.index && x.offset <= start);
+          if (shown && !(upTo(shown.start) && (!shown.end || !upTo(shown.end)))) pager?.reveal(b.index, start);
         } else ensureInView(b, start);
       });
     } finally {
