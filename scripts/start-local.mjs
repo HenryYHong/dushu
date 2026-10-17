@@ -10,19 +10,31 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const state = join(root, '.dushu-local');
 const url = 'http://localhost:4317/';
 await ensureModelService();
-if (process.argv.includes('--restart')) {
+
+/** True when this PID is this folder's Dushu server. */
+function isDushu(pid) {
   try {
-    const saved = readFileSync(join(state, 'server.pid'), 'utf8').trim();
-    if (!/^\d+$/.test(saved)) throw new Error('Invalid saved server PID');
-    const command = execFileSync('/bin/ps', ['-p', saved, '-o', 'command='], { encoding: 'utf8' });
-    if (!command.includes(`${join(root, 'node_modules/vite/bin/vite.js')} preview --host `) || !command.includes('--port 4317 --strictPort')) {
-      throw new Error('The saved PID no longer belongs to Dushu; it was not stopped.');
-    }
-    process.kill(Number(saved), 'SIGTERM');
-    await new Promise(resolve => setTimeout(resolve, 400));
-  } catch (error) {
-    // An exited process is fine. Never stop an unrelated PID or all processes on a port.
-    if (error.status !== 1 && error.code !== 'ENOENT' && error.code !== 'ESRCH') throw error;
+    const command = execFileSync('/bin/ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' });
+    return command.includes(`${join(root, 'node_modules/vite/bin/vite.js')} preview --host `) && command.includes('--port 4317 --strictPort');
+  } catch { return false; }
+}
+/** The PID serving port 4317 when it is this folder's Dushu server, else null. */
+function listener() {
+  try {
+    const pids = execFileSync('/usr/sbin/lsof', ['-nP', '-t', '-iTCP:4317', '-sTCP:LISTEN'], { encoding: 'utf8' }).split('\n').filter(Boolean);
+    return pids.length === 1 && isDushu(pids[0]) ? Number(pids[0]) : null;
+  } catch { return null; }
+}
+
+if (process.argv.includes('--restart')) {
+  let saved = null;
+  try { saved = readFileSync(join(state, 'server.pid'), 'utf8').trim(); } catch { /* never started from here */ }
+  // The saved PID can be stale (a second start that lost the port to a running server): then the server on the port is
+  // stopped, but only after checking it is this Dushu. Never an unrelated PID, nor every process on a port.
+  const pid = saved && /^\d+$/.test(saved) && isDushu(saved) ? Number(saved) : listener();
+  if (pid) {
+    try { process.kill(pid, 'SIGTERM'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+    for (let i = 0; i < 25 && isDushu(pid); i++) await new Promise(resolve => setTimeout(resolve, 200));
   }
 }
 async function running() {
@@ -43,12 +55,14 @@ if (await running()) {
   closeSync(log);
   child.unref();
   child.on('error', error => { console.error(error.message); process.exitCode = 1; });
-  if (child.pid) writeFileSync(join(state, 'server.pid'), String(child.pid));
   let ready = false;
   for (let attempt = 0; attempt < 30; attempt++) {
     if (await running()) { ready = true; break; }
     await new Promise(resolve => setTimeout(resolve, 200));
   }
+  // Save the server that answers, which is not this child when one was already running but slow to answer.
+  const pid = (ready && listener()) || child.pid;
+  if (pid) writeFileSync(join(state, 'server.pid'), String(pid));
   if (!ready) {
     console.error(`Dushu could not start. See ${join(state, 'server.log')}`);
     process.exitCode = 1;

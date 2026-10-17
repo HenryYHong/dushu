@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ensureIpadAccess } from '../../scripts/ipad-access.mjs';
 
 const HOST = 'my-mac.example-tailnet.ts.net:8443';
-function fake(state: string, web: Record<string, unknown> | null) {
+function fake(state: string, web: Record<string, unknown> | null, self?: { DNSName: string; CertDomains: string[] | null }) {
   const calls: string[] = [];
   const run = (args: string[]) => {
     calls.push(args.join(' '));
@@ -16,7 +16,7 @@ function fake(state: string, web: Record<string, unknown> | null) {
       if (state === 'Stopped') state = 'Running';
       return '';
     }
-    if (args[0] === 'status') return JSON.stringify({ BackendState: state });
+    if (args[0] === 'status') return JSON.stringify(self ? { BackendState: state, Self: { DNSName: self.DNSName }, CertDomains: self.CertDomains } : { BackendState: state });
     if (args[0] === 'serve' && args[1] === 'status') return JSON.stringify(web ? { Web: web } : {});
     return '';
   };
@@ -48,5 +48,16 @@ describe('keeping the iPad address up', () => {
     const other = fake('Running', { [HOST]: { Handlers: { '/': { Proxy: 'http://127.0.0.1:9000' } } } });
     expect(ensureIpadAccess(HOST, other.run)[0]).toMatch(/left alone/);
     expect(other.calls.some((c) => c.startsWith('serve --bg'))).toBe(false);
+  });
+  it('says what to do, instead of waiting on Tailscale, when the Mac moved network or HTTPS is off', () => {
+    const name = HOST.replace(/:8443$/, '');
+    const fine = fake('Running', null, { DNSName: `${name}.`, CertDomains: [name] });
+    expect(ensureIpadAccess(HOST, fine.run)).toHaveLength(1);
+    expect(fine.calls).toContain('serve --bg --https=8443 http://127.0.0.1:4317');
+    const moved = fake('Running', null, { DNSName: 'my-mac.other-tailnet.ts.net.', CertDomains: null });
+    expect(ensureIpadAccess(HOST, moved.run)).toEqual([`This Mac's Tailscale address is now my-mac.other-tailnet.ts.net (Dushu has ${name}). Run npm run ipad on this Mac to use it.`]);
+    const noHttps = fake('Running', null, { DNSName: `${name}.`, CertDomains: null });
+    expect(ensureIpadAccess(HOST, noHttps.run)[0]).toMatch(/HTTPS certificates are off/);
+    for (const t of [moved, noHttps]) expect(t.calls.some((c) => c.startsWith('serve'))).toBe(false);
   });
 });

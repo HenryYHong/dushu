@@ -399,8 +399,13 @@ time the device reaches the Mac. "Add books from Mac" is the manual fallback.
 and leaves an unrelated responding service on port 11434 untouched. It never downloads models or changes the account. When iPad access
 is set up (`.dushu-local/ipad.json`) it runs `scripts/ipad-access.mjs`: Tailscale `Stopped` → `tailscale up` (re-run with exactly the
 non-default flags Tailscale names, so settings stay), the 8443 serve entry missing → served again; `NeedsLogin` or a port serving another
-target is only logged. The CLI is the app's binary and acts as a command line only when `TERM` is set (without it, as under launchd, it
+target is only logged. When the Mac's Tailscale name no longer matches ipad.json (it joined another network) or the network has HTTPS
+certificates off, that is logged with what to do and nothing is served: `tailscale serve` would otherwise wait for the fix until killed.
+The CLI is the app's binary and acts as a command line only when `TERM` is set (without it, as under launchd, it
 starts as the app and never returns), so TERM is always set for it.
+`--restart` stops the saved server PID, or, when that is stale, the one process listening on 4317, in both cases only after `ps` shows it
+is this folder's `vite preview --port 4317`. After a start, the PID saved is the listener's: a start that found the server slow to answer
+spawns a second one that loses the port and exits, and saving that one's PID once left restarts doing nothing for two days.
 Offline speech discards cached Mac voices and chooses an available device voice; discovery expires after 30 seconds
 and temporary failures are not permanently cached. Mid-render connection errors explain recovery, rather than exposing a raw fetch error.
 

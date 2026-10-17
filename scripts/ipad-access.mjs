@@ -22,7 +22,8 @@ export function tailscale(args) {
 /** `host` is "name.tailnet.ts.net:8443". Returns what it did or found, for the log; empty when all was well. */
 export function ensureIpadAccess(host, run = tailscale) {
   const notes = [];
-  const state = JSON.parse(run(['status', '--json'])).BackendState;
+  let status = JSON.parse(run(['status', '--json']));
+  const state = status.BackendState;
   if (state === 'NeedsLogin' || state === 'NeedsMachineAuth' || state === 'NoState') {
     return ['Tailscale needs you to sign in again on this Mac (open Tailscale), so your iPad cannot reach Dushu until then.'];
   }
@@ -33,8 +34,18 @@ export function ensureIpadAccess(host, run = tailscale) {
       const again = /^\s*tailscale (up(?: --?[\w-]+(?:=\S+)?)*)\s*$/m.exec(String(e?.stderr ?? ''))?.[1];
       if (again) { try { run(again.split(/\s+/)); } catch { /* the state below says whether it worked */ } }
     }
-    const now = JSON.parse(run(['status', '--json'])).BackendState;
+    status = JSON.parse(run(['status', '--json']));
+    const now = status.BackendState;
     notes.push(now === 'Running' ? 'Tailscale was off on this Mac, so it was turned back on.' : `Tailscale was off on this Mac and did not come back on (${now}).`);
+  }
+  // Serving cannot work, and `tailscale serve` would wait for someone to fix it, when the Mac is on another network now, or
+  // the network has HTTPS certificates off: say so instead.
+  const name = status.Self?.DNSName?.replace(/\.$/, '');
+  if (name && name !== host.replace(/:8443$/, '')) {
+    return [...notes, `This Mac's Tailscale address is now ${name} (Dushu has ${host.replace(/:8443$/, '')}). Run npm run ipad on this Mac to use it.`];
+  }
+  if (status.Self && !status.CertDomains?.length) {
+    return [...notes, 'HTTPS certificates are off for this Tailscale network, so the iPad address cannot be served. Turn them on in the Tailscale admin page under DNS.'];
   }
   const web = JSON.parse(run(['serve', 'status', '--json']) || '{}').Web?.[host];
   const target = web?.Handlers?.['/']?.Proxy;
