@@ -2,13 +2,17 @@
 import type { Dictionary, Settings, Token } from '../../types';
 import { readingFontSizeKey } from '../../store/settings';
 import { segment } from '../../core/segment';
-import { applySandhi, formatSyllable, toneOf } from '../../core/pinyin';
+import { formatSyllable, toneOf } from '../../core/pinyin';
 import { clear, h } from '../dom';
 import { effectiveLineHeight, gridMetrics, measureQuotes, measureSyllables, setQuoteVars, widthOfPinyin } from '../reader/grid';
-import { CURLY_QUOTES, punctSide } from '../reader/render';
+import { CURLY_QUOTES, displayTokens, pinyinVisible, punctSide } from '../reader/render';
+import { hskLevels } from '../../core/hskLevel';
 
-/** Has a measure word, 慢慢地, 一个 and 不大 so tone colors, sandhi and polyphones are all visible. */
-export const PREVIEW_TEXT = '我们慢慢地走进一个不大的院子，他说：“你好，这是我的家。”';
+/**
+ * Has a measure word, 慢慢地, 一个 and 不大 so tone colors, sandhi and polyphones are all visible, and a second sentence with words from
+ * HSK 2 to beyond the list, so each HSK level shows less pinyin than the one before.
+ */
+export const PREVIEW_TEXT = '我们慢慢地走进一个不大的院子，他说：“你好，这是我的家。”他神情温和，却难掩几分无奈与惆怅。';
 
 const FONT_VAR: Record<Settings['fontFamily'], string> = {
   serif: 'var(--font-serif)',
@@ -18,17 +22,9 @@ const FONT_VAR: Record<Settings['fontFamily'], string> = {
 
 type Visibility = Pick<Settings, 'pinyin' | 'hskThreshold'>;
 
-/** Should this word carry pinyin? Mirrors the reader's modes. `isKnown` is the user's known-words check. */
-export function showsPinyin(word: string, s: Visibility, dict: Dictionary, isKnown: (w: string) => boolean): boolean {
-  switch (s.pinyin) {
-    case 'off': return false;
-    case 'all': return true;
-    case 'unknown': return !isKnown(word);
-    case 'hsk': {
-      const level = dict.hsk(word)?.hsk3;
-      return level === undefined || level > s.hskThreshold;
-    }
-  }
+/** Should this word carry pinyin? The reader's rule. `isKnown` is the user's known-words check. */
+export function showsPinyin(word: string, s: Visibility, dict: Dictionary, isKnown: (w: string) => boolean, pinyin?: string[]): boolean {
+  return pinyinVisible(word, { mode: s.pinyin, hskThreshold: s.hskThreshold, isKnown, hskLevel: hskLevels(dict) }, pinyin);
 }
 
 /** Same structure as the reader: a plain inline character with its pinyin hung above it, every character in one cell width. */
@@ -79,9 +75,10 @@ export function renderPreview(target: HTMLElement, s: Settings, dict: Dictionary
   }
   const text = s.script === 'traditional' ? dict.toTraditional(PREVIEW_TEXT) : PREVIEW_TEXT;
   const tokens = segment(text, dict);
-  if (s.sandhi) applySandhi(tokens);
-  for (const t of tokens) {
-    if (t.kind === 'han') target.append(charSpans(t, s, showsPinyin(t.text, s, dict, isKnown), widthOf));
+  // Which words keep pinyin goes by the dictionary reading, as in the reader; the tone changes are only what is shown.
+  const shown = displayTokens(tokens, s.sandhi);
+  shown.forEach((t, i) => {
+    if (t.kind === 'han') target.append(charSpans(t, s, showsPinyin(t.text, s, dict, isKnown, tokens[i].pinyin), widthOf));
     else {
       const side = t.kind === 'punct' ? punctSide(t.text) : '';
       const quote = t.kind === 'punct' ? CURLY_QUOTES[t.text] : undefined;
@@ -89,5 +86,5 @@ export function renderPreview(target: HTMLElement, s: Settings, dict: Dictionary
       else if (side) target.append(h(`span.set-pu.set-pu-${side}`, null, t.text));
       else target.append(t.text);
     }
-  }
+  });
 }

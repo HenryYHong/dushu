@@ -489,7 +489,11 @@ class DictImpl implements Dictionary {
   }
 
   hsk(word: string): HskInfo | null {
-    const info = this.hskMap.get(this.normalizeWord(word));
+    const w = this.normalizeWord(word);
+    // The list's traditional column is often a rare variant for a single character (时 → 旹, 听 → 听), so a traditional
+    // spelling it misses looks up its simplified form: 聽, 時, 這個.
+    let info = this.hskMap.get(w);
+    if (!info) { const simp = this.toSimplified(w); if (simp !== w) info = this.hskMap.get(simp); }
     return info ? { ...info } : null;
   }
 

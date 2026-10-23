@@ -253,22 +253,22 @@ export interface VisibilityRule {
   mode: PinyinMode;
   hskThreshold: number;
   isKnown(word: string): boolean;
-  /** HSK 3.0 band of the word (7 = 7-9), if it is on the list. */
-  hskLevel(word: string): number | undefined;
+  /** HSK level a reader can read the word at (7 = 7-9), given its reading here; see core/hskLevel.ts. */
+  hskLevel(word: string, pinyin?: string[]): number | undefined;
 }
 
 /**
  * Should this word carry pinyin? off: never. all: always. unknown: unless marked known.
- * hsk: unless known, or on the HSK list at or below the threshold.
+ * hsk: unless known, or readable at or below the threshold.
  */
-export function pinyinVisible(word: string, rule: VisibilityRule): boolean {
+export function pinyinVisible(word: string, rule: VisibilityRule, pinyin?: string[]): boolean {
   switch (rule.mode) {
     case 'off': return false;
     case 'all': return true;
     case 'unknown': return !rule.isKnown(word);
     case 'hsk': {
       if (rule.isKnown(word)) return false;
-      const level = rule.hskLevel(word);
+      const level = rule.hskLevel(word, pinyin);
       return level === undefined || level > rule.hskThreshold;
     }
   }

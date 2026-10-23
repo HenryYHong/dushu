@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSettingsStore } from '../../src/store/settings';
+import { createSettingsStore, DEFAULT_SETTINGS } from '../../src/store/settings';
 import { openStore, type DushuStore } from '../../src/store';
 import type { AppContext, ImportedBook } from '../../src/types';
 import { loadTestDictionary, readDataFile } from '../helpers/data';
 import { mount as mountLibrary } from '../../src/ui/library/library';
 import { mount as mountSettings } from '../../src/ui/settings/settings';
 import { mount as mountAbout } from '../../src/ui/about/about';
-import { showsPinyin } from '../../src/ui/settings/preview';
+import { renderPreview, showsPinyin } from '../../src/ui/settings/preview';
 import { autoPick, statusText } from '../../src/ui/settings/translation';
 import { backupFileName, describeReport } from '../../src/ui/settings/data';
 import { coverageStats } from '../../src/ui/about/about';
@@ -376,6 +376,27 @@ describe('settings helpers', () => {
     expect(showsPinyin('阿姨', { pinyin: 'hsk', hskThreshold: 3 }, dict, () => false)).toBe(true); // HSK 4
     expect(showsPinyin('阿姨', { pinyin: 'hsk', hskThreshold: 4 }, dict, () => false)).toBe(false);
     expect(showsPinyin('𠀀', { pinyin: 'hsk', hskThreshold: 7 }, dict, known)).toBe(true);
+    // Like the reader, HSK mode hides known words too.
+    expect(showsPinyin('阿姨', { pinyin: 'hsk', hskThreshold: 1 }, dict, (w) => w === '阿姨')).toBe(false);
+  });
+
+  it('previews a sentence that loses pinyin at every HSK level, tone changes on or off', async () => {
+    const dict = await loadTestDictionary();
+    for (const sandhi of [true, false]) {
+      const target = document.createElement('div');
+      document.body.appendChild(target);
+      const counts = [1, 2, 3, 4, 5, 6, 7].map((n) => {
+        renderPreview(target, { ...DEFAULT_SETTINGS, pinyin: 'hsk', hskThreshold: n, sandhi }, dict, () => false);
+        return target.querySelectorAll('.set-w:has(rt)').length;
+      });
+      for (let i = 1; i < counts.length; i++) expect(counts[i]).toBeLessThan(counts[i - 1]);
+      // 一个 is HSK 1, whatever tone 一 is shown with.
+      renderPreview(target, { ...DEFAULT_SETTINGS, pinyin: 'hsk', hskThreshold: 1, sandhi }, dict, () => false);
+      const withPinyin = [...target.querySelectorAll('.set-w:has(rt)')].map((w) => [...w.querySelectorAll('.set-ruby')].map((r) => r.firstChild?.textContent).join(''));
+      expect(withPinyin.length).toBeGreaterThan(0);
+      expect(withPinyin).not.toContain('一个');
+      target.remove();
+    }
   });
 
   it('describes availability and what Automatic picks', () => {

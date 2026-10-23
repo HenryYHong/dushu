@@ -305,6 +305,29 @@ describe('the menus', () => {
     expect(labels(display.el)).not.toContain('Tone colors');
     expect(labels(pinyin.el)).toEqual(expect.arrayContaining(['Style', 'Tone colors', 'Tone changes']));
   });
+  it('in the Unknown and HSK modes, offer learning from reading and say how much of the chapter has pinyin', async () => {
+    const { ctx } = await makeCtx({ pinyin: 'all' });
+    let shown = 40;
+    const m = buildPinyinMenu(ctx, () => ({ words: 200, shown }));
+    const learn = [...m.el.querySelectorAll<HTMLElement>('.rd-row')].find((r) => r.textContent?.startsWith('Learn as I read'))!;
+    const share = m.el.querySelector<HTMLElement>('.rd-share')!;
+    expect(learn.hidden).toBe(true);
+    expect(share.hidden).toBe(true);
+    for (const mode of ['unknown', 'hsk'] as const) {
+      ctx.settings.set({ pinyin: mode });
+      m.sync();
+      expect(learn.hidden).toBe(false);
+      expect(share.hidden).toBe(false);
+      expect(share.textContent).toBe("Pinyin on 20% of this chapter's words");
+    }
+    shown = 9;
+    ctx.settings.set({ hskThreshold: 6 });
+    m.sync();
+    expect(share.textContent).toBe("Pinyin on 5% of this chapter's words");
+    // No chapter on screen: no line.
+    const bare = buildPinyinMenu(ctx, () => null);
+    expect(bare.el.querySelector<HTMLElement>('.rd-share')!.hidden).toBe(true);
+  });
   it('a slider shows its value as it moves but changes the setting once, after the pause or on release', async () => {
     vi.useFakeTimers();
     let value = 2;

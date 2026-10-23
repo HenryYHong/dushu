@@ -205,8 +205,11 @@ export function pinyinModeLabel(m: PinyinMode): string {
   return PINYIN_MODES.find((p) => p.value === m)?.label ?? 'Off';
 }
 
-/** Content of the pinyin menu: the mode, the HSK level, and how the pinyin looks. Returns the element and a function to refresh it. */
-export function buildPinyinMenu(ctx: AppContext): { el: HTMLElement; sync(): void } {
+/**
+ * Content of the pinyin menu: the mode, the HSK level, and how the pinyin looks. Returns the element and a function to refresh it.
+ * `coverage` counts the chapter's words and those showing pinyin, so the menu can say what a level does to this book.
+ */
+export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: number; shown: number } | null): { el: HTMLElement; sync(): void } {
   const get = () => ctx.settings.get();
   const set = (p: Partial<Settings>) => ctx.settings.set(p);
   const syncs: (() => void)[] = [];
@@ -230,15 +233,21 @@ export function buildPinyinMenu(ctx: AppContext): { el: HTMLElement; sync(): voi
   // Learning from reading changes what Unknown hides, so it sits under the modes while Unknown is the one chosen.
   const learnRow = row('Learn as I read', learn.el, 'Words you read past often lose their pinyin');
   const modes = h('div.rd-menu', { role: 'menu', 'aria-label': 'Show pinyin' }, items, stepper);
+  const share = h('p.rd-share', { 'aria-live': 'polite' });
   const el = h('div.rd-menu.rd-pinyin-menu', null,
-    section('Show pinyin', modes, learnRow),
+    section('Show pinyin', modes, share, learnRow),
     section('Look', row('Style', style.el), row('Tone colors', tones.el), row('Tone changes', sandhi.el, 'yí gè, bú shì')));
   const sync = () => {
     const s = get();
     items.forEach((b, i) => b.setAttribute('aria-checked', String(PINYIN_MODES[i].value === s.pinyin)));
     level.textContent = s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
     stepper.hidden = s.pinyin !== 'hsk';
-    learnRow.hidden = s.pinyin !== 'unknown';
+    // Both modes hide known words, so both learn from reading.
+    const filtered = s.pinyin === 'unknown' || s.pinyin === 'hsk';
+    learnRow.hidden = !filtered;
+    const c = filtered ? coverage?.() : null;
+    share.hidden = !c?.words;
+    if (c?.words) share.textContent = `Pinyin on ${Math.round((100 * c.shown) / c.words)}% of this chapter's words`;
     syncs.forEach((f) => f());
   };
   sync();

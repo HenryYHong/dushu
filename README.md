@@ -101,7 +101,9 @@ Press `P` in the reader, or use the eye button in the top bar.
 - **Off**: no pinyin.
 - **All**: pinyin over everything.
 - **Unknown**: pinyin only over words you have not marked as known. Turn on **Learn known words as I read** (in the pinyin menu or Settings) and a word you read past on 10 pages over 2 days without looking it up is marked known for you. Looking it up takes it back off.
-- **HSK**: pinyin only over words above an HSK level you choose (words outside HSK always count as above).
+- **HSK**: pinyin only over words you can't read yet at the HSK level you choose (the stepper in the pinyin menu, or the slider in Settings). A word loses its pinyin once you've met each of its characters, read the way it's read there, in an HSK word at or below your level. So 说道 goes at HSK 1, though the list puts it at 7-9, and so do names and words the list leaves out, like 一个. A word with a toneless syllable, like 本事 (běnshi), waits for its own HSK level, since its characters don't tell you which syllable goes toneless. Traditional characters count as their simplified forms. The menu shows how much of the chapter still has pinyin.
+
+To make the text bigger or smaller, use the **Aa** button in the reader's top bar, the `[` and `]` keys, or Text size in Settings. Pages and Scroll each remember their own size.
 
 In Settings you can choose tone marks (hǎo), numbers (hao3) or zhuyin, color the tones, and turn on tone changes for 一 and 不 (yí gè, bú shì). You can also display a book in simplified or traditional characters whatever it was written in.
 

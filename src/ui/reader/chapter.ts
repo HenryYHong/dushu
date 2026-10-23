@@ -1,6 +1,7 @@
 // One chapter on screen: a shell element per block, rendered in batches, with live updates for pinyin,
 // saved/known words and highlights. Segmentation happens once per block; settings changes touch existing nodes.
 import { buildLexicon } from '../../core/lexicon';
+import { hskLevels } from '../../core/hskLevel';
 import type { AppContext, Block, Chapter, Dictionary, Lexicon, Settings, Token } from '../../types';
 import { segment } from '../../core/segment';
 import { h } from '../dom';
@@ -174,10 +175,10 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
         if (v === undefined) { v = store.known.has(w); knownMemo.set(w, v); }
         return v;
       },
-      hskLevel: (w: string) => dict.hsk(w)?.hsk3,
+      hskLevel: hskLevels(dict),
     };
   };
-  const visible = (t: Token) => pinyinVisible(t.text, rule());
+  const visible = (t: Token) => pinyinVisible(t.text, rule(), t.pinyin);
   const renderOptions = (): RenderOptions => {
     const s = settings();
     return { style: s.pinyinStyle, toneColors: s.toneColors, sandhi: s.sandhi, visible, words: true };

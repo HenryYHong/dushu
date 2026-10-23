@@ -122,6 +122,13 @@ describe('pinyin visibility rule', () => {
     expect(pinyinVisible('朋友', r)).toBe(false);
     expect(pinyinVisible('稀有', r)).toBe(true); // not on the list
   });
+  it('hsk passes the reading in context to the level', () => {
+    const seen: (string[] | undefined)[] = [];
+    const r = { ...rule('hsk'), hskLevel: (_w: string, py?: string[]) => { seen.push(py); return py?.[0] === 'shi2' ? 1 : undefined; } };
+    expect(pinyinVisible('石', r, ['shi2'])).toBe(false);
+    expect(pinyinVisible('石', r, ['dan4'])).toBe(true);
+    expect(seen).toEqual([['shi2'], ['dan4']]);
+  });
 });
 
 describe('displayTokens and rtContent', () => {

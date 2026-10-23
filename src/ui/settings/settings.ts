@@ -43,9 +43,9 @@ export const mount: MountFn = (root, params, ctx) => {
 
   // ---- pinyin ----
   const pinyin = add(segmented('pinyin', 'Show pinyin', [
-    { value: 'off', label: 'Off' }, { value: 'all', label: 'All' }, { value: 'unknown', label: 'Unknown' }, { value: 'hsk', label: 'Above HSK' },
+    { value: 'off', label: 'Off' }, { value: 'all', label: 'All' }, { value: 'unknown', label: 'Unknown' }, { value: 'hsk', label: 'HSK' },
   ], set('pinyin')));
-  const hsk = add(slider('hskThreshold', 'HSK level', { min: 1, max: 7, step: 1, format: (n) => (n === 7 ? 'HSK 7-9' : `HSK ${n}`) }, set('hskThreshold')));
+  const hsk = add(slider('hskThreshold', 'Known up to', { min: 1, max: 7, step: 1, format: (n) => (n === 7 ? 'HSK 7-9' : `HSK ${n}`) }, set('hskThreshold')));
   const style = add(segmented('pinyinStyle', 'Pinyin style', [
     { value: 'marks', label: 'Tone marks' }, { value: 'numbers', label: 'Numbers' }, { value: 'zhuyin', label: 'Zhuyin' },
   ], set('pinyinStyle')));
@@ -60,7 +60,7 @@ export const mount: MountFn = (root, params, ctx) => {
   const paragraph = add(toggle('paragraphTranslate', 'Translate whole paragraphs', set('paragraphTranslate')));
 
   // Rows that only matter in one mode are hidden in the other (a dimmed row still looks like something you can change).
-  const hskRow = row('HSK level', 'Words at or below this level lose their pinyin. Applies to the Above HSK mode.', hsk);
+  const hskRow = row('Known up to', 'A word loses its pinyin once you have met each of its characters, read that way, in an HSK word at or below this level. A word with a toneless syllable, like 本事, waits for its own HSK level. Applies to the HSK mode.', hsk);
   const spreadRow = row('Pages shown', 'Applies to the Pages layout. Auto shows two pages side by side on a wide, landscape screen such as an iPad held sideways.', spread);
   const turnRow = row('Page turn', 'Applies to the Pages layout. A page flips around the spine like a leaf, slides, or just changes.', pageTurn);
   const reading = group('Reading', null,
@@ -73,7 +73,7 @@ export const mount: MountFn = (root, params, ctx) => {
     row('Line spacing', null, lineHeight),
     row('Page width', 'The widest the text column gets.', pageWidth),
     row('Characters', 'Convert the whole book on screen. Your saved words work in either form.', script));
-  const pinyinGroup = group('Pinyin', 'Words you mark as known never show pinyin in Unknown mode.',
+  const pinyinGroup = group('Pinyin', 'Words you mark as known never show pinyin in the Unknown and HSK modes.',
     row('Show pinyin', null, pinyin),
     hskRow,
     row('Style', null, style),

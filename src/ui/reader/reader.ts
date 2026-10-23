@@ -397,6 +397,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     pinyinLabel.textContent = s.pinyin === 'hsk' ? `HSK ${s.hskThreshold >= 7 ? '7-9' : s.hskThreshold}` : pinyinModeLabel(s.pinyin);
     pinyinBtn.setAttribute('aria-label', `Pinyin: ${pinyinLabel.textContent}`);
     pinyinBtn.dataset.mode = s.pinyin;
+    pinyinBtn.dataset.level = s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
     const shut = s.pinyin === 'off';
     if (pinyinIcon.dataset.off !== String(shut)) {
       pinyinIcon.dataset.off = String(shut);
@@ -537,7 +538,10 @@ export const mount: MountFn = async (root, params, ctx) => {
   // --------------------------------------------------------------- menus
   function togglePinyinMenu(): void {
     if (popoverOpenFor(pinyinBtn)) { closePopover(); return; }
-    const m = buildPinyinMenu(ctx);
+    const m = buildPinyinMenu(ctx, () => {
+      const el = view()?.el;
+      return el ? { words: el.querySelectorAll('.rd-w').length, shown: el.querySelectorAll('.rd-w:not(.rd-nopy)').length } : null;
+    });
     menuSync = m.sync;
     openPopover(pinyinBtn, m.el, () => { menuSync = null; }, { label: 'Pinyin' });
   }
@@ -1290,7 +1294,7 @@ export const mount: MountFn = async (root, params, ctx) => {
         : 'Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.',
     ];
     const s = ctx.settings.get();
-    if ((s.pinyin === 'unknown' || s.pinyin === 'hsk') && store.known.count() === 0) {
+    if (s.pinyin === 'unknown' && store.known.count() === 0) {
       lines.push('Pinyin shows on every word until you mark words as known. Mark one in its card, and it goes away.');
     }
     const stop = () => {

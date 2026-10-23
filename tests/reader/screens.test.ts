@@ -343,11 +343,11 @@ describe('settings rows that only apply to one layout', () => {
     const { ctx, row } = await screen({ layout: 'scroll', pinyin: 'all' });
     expect(row('Pages shown').hidden).toBe(true);
     expect(row('Page turn').hidden).toBe(true);
-    expect(row('HSK level').hidden).toBe(true);
+    expect(row('Known up to').hidden).toBe(true);
     ctx.settings.set({ layout: 'pages', pinyin: 'hsk' });
     expect(row('Pages shown').hidden).toBe(false);
     expect(row('Page turn').hidden).toBe(false);
-    expect(row('HSK level').hidden).toBe(false);
+    expect(row('Known up to').hidden).toBe(false);
     expect(row('Page turn').textContent).toContain('Applies to the Pages layout');
   });
 

@@ -91,6 +91,8 @@ Details:
   proper nouns capitalized ("Bei3 jing1"); non-syllable tokens (digits, Latin letters, `·`, `,`)
   appear as-is. Syllable count usually equals the code-point count; when it does not, fall back
   to per-character readings for alignment. Multiple rows can share a headword (one per reading).
+  The `hsk` trad column is often a rare variant for a single character (时 → 旹, 听 → 听), so `dict.hsk()` falls back to the simplified
+  form of a traditional spelling it misses.
   The final 30 rows are HSK words missing from CC-CEDICT. Those rows are NOT in the numbered format
   (they hold tone marks and run-together syllables such as `chènzhe`, `bu4 lìyú`); the loader repairs them with
   `normalizePinyinField`. A cleaner fix is for `build_data.py` to emit numbered pinyin for them.
@@ -599,6 +601,18 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   known words must not re-segment: keep tokens per block in memory and update classes or rt text.
   Pinyin visibility via classes (`.rd-py-off`, `.rd-known`), `rt` must not be selectable and must
   not leak into copied/selected text. Script conversion re-renders the chapter.
+- HSK mode (`pinyinVisible` in `render.ts`, levels from `core/hskLevel.ts`) hides a word's pinyin when the reader can say it at the
+  chosen level. Pinyin is for saying a word, so a word takes its hardest character's level, with the token's reading in context
+  (说道 is 7 on the list but 1 this way; names and words the list leaves out, like 一个, 放在, are graded the same way). A character's
+  level is the lowest level of the listed words it is read the same way in: same syllable and tone, or a neutral tone in the text (a
+  character learned only in a neutral tone, like 楚 in 清楚, does not teach its full tone), so a reading only one word has comes at
+  that word's level (银行 háng). A listed word read with a neutral tone keeps its list level, since which syllable goes neutral is the
+  word's (本事 běnshi), and a listed word falls back on its list level whenever a character has none. A listed word teaches only its usual reading
+  (`dict.pinyinFor`; 便宜 piányi says nothing of 宜 yí), and a bare character its neutral readings as well (地 de). A glyph variant
+  with no reading of its own and a Unihan simplified form t2s leaves alone (偸 → 偷, 著 → 着) read as the character they write; a
+  t2s fold into a character that never has the token's reading (乾 qián → 干) lends no level. It never shows more pinyin than the list
+  alone. The index is built once per dictionary (about 30 ms) and levels are memoized per word and reading. The pinyin menu shows the
+  share of the chapter's words that still carry pinyin in the Unknown and HSK modes.
 - Large chapters: render blocks in batches (first screenful synchronously, the rest in idle
   callbacks), keep scrolling smooth with 20k+ chars.
 - Interactions: click (or hover if settings.lookupTrigger = hover, with 250 ms delay) on a han
