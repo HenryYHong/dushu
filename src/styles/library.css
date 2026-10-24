@@ -149,8 +149,7 @@
 }
 
 /* ---------- book grid ---------- */
-/* Covers lead the page: about 240 px wide on an iPad (four across in landscape, three in portrait), two across on a phone. */
-.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--space-7) var(--space-6); }
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: var(--space-6) var(--space-5); }
 /* A container, so the card menu can sit beside the title, just under the cover (whose height is 140% of the width, the shape of a Chinese book). */
 .lib-card { position: relative; min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
 /* Cards in a row are as tall as the tallest, and each one's bar and meta line sit at its bottom, so rows stay level
