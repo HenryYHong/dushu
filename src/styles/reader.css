@@ -473,6 +473,7 @@
 .rd-row[hidden] { display: none; }
 .rd-row-label { display: flex; flex-direction: column; gap: 1px; flex: 0 0 auto; max-width: 52%; font-size: 13.5px; font-weight: 560; color: var(--text); }
 .rd-row-hint { font-weight: 400; font-size: 11.5px; line-height: 1.3; color: var(--text-3); }
+.rd-row-note { font-size: 12.5px; color: var(--text-2); white-space: nowrap; }
 .rd-row-ctl { flex: 1 1 auto; min-width: 0; display: flex; justify-content: flex-end; align-items: center; }
 .rd-row-ctl > .rd-seg { flex: 1 1 auto; }
 .rd-row-ctl > .rd-slider-wrap { flex: 1 1 auto; }

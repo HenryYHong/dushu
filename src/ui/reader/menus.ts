@@ -7,6 +7,7 @@ import { readingFontSizeKey } from '../../store/settings';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { openShortcuts } from '../shortcuts';
+import { fullscreenSupported, isFullscreen, isStandalone, setFullscreen } from '../fullscreen';
 import { rateLabel } from '../settings/speech';
 
 export interface Popover { el: HTMLElement; anchor: HTMLElement; close(): void }
@@ -306,6 +307,12 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
   const turnRow = row('Page turn', turn.el);
   const widthRow = row('Page width', width.el);
   const lookRow = row('Look up on', trigger.el, 'Drag always works');
+  // Full screen where the browser can do it; a Home Screen app already has no browser bars; elsewhere (an iPhone), say how.
+  const full = add(toggle(isFullscreen, (v) => { void setFullscreen(v).catch(() => {}).finally(() => full.sync()); }));
+  const fullRow = fullscreenSupported()
+    ? row('Full screen', full.el, 'Hides the browser and the system bar (F)')
+    : isStandalone() ? null
+    : row('Full screen', h('span.rd-row-note', null, 'Add to Home Screen'), 'In Safari: Share, then Add to Home Screen. Open Dushu from there to read without the browser bars.');
   const el = h('div.rd-menu.rd-display', null,
     section('Text',
       row('Text size', size),
@@ -316,7 +323,8 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
       row('Layout', layout.el),
       spreadRow,
       turnRow,
-      widthRow),
+      widthRow,
+      fullRow),
     section('Reading',
       row('Characters', script.el, '简体 or 繁體'),
       touch ? null : lookRow,

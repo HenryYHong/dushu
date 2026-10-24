@@ -11,6 +11,7 @@ import { chapterWords, type ChapterWords } from '../../core/chapterWords';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { closePopup, openWordPopup } from '../popup/popup';
+import { isFullscreen, setFullscreen } from '../fullscreen';
 import { createChapterView, type BlockState, type ChapterView } from './chapter';
 import { applyGridVars, effectiveLineHeight, readingSize } from './grid';
 import { createLearning } from './learning';
@@ -1246,6 +1247,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       case '[': ctx.settings.set({ [readingFontSizeKey(s)]: s[readingFontSizeKey(s)] - 2 }); break;
       case ']': ctx.settings.set({ [readingFontSizeKey(s)]: s[readingFontSizeKey(s)] + 2 }); break;
       case '?': e.preventDefault(); showShortcuts(); break;
+      case 'f': case 'F': e.preventDefault(); void setFullscreen(!isFullscreen()).catch(() => {}); break;
       case 'c': case 'C': e.preventDefault(); toc.open(chapterIndex); break;
       case 'n': case 'N': e.preventDefault(); toc.open(chapterIndex, 'names'); break;
       case 'w': case 'W': e.preventDefault(); toc.open(chapterIndex, 'words'); break;

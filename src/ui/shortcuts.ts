@@ -20,6 +20,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['Drag'], what: 'Select a phrase or sentence for pinyin and a translation' },
       { keys: ['P'], what: 'Cycle pinyin: off, all, unknown, HSK' },
       { keys: ['[ or ]'], what: 'Smaller and larger text' },
+      { keys: ['F'], what: 'Full screen on or off' },
       { keys: ['C'], what: 'Open the chapter list' },
       { keys: ['W'], what: 'Open the words of this chapter' },
       { keys: ['N'], what: 'Open the names and terms of this book' },
