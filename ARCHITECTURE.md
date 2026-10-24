@@ -633,8 +633,9 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   word of the page; ←/→ move by word and ↑/↓ by line, across page turns; Enter or Space opens the card; Esc closes the card (focus returns to the word),
   then ends the cursor. PageUp/PageDown still turn pages. The page itself (`.rd-stage` or the Scroll article) has `tabindex=0` and a label.
 - Touch: on a touch screen a second tap within 380 ms and 48 px (screen coordinates) of the first opens the sentence of the FIRST tap's word as a phrase popup (translation), whatever is under the finger by then: it is a capture-phase click listener (`onDoubleTap` in reader.ts), because the first tap's card or the lifted page can be under the second tap, and the Pages lift of a bottom sheet is held back 400 ms (`LIFT_HOLD_MS`) so the word stays put for it. Names found by the first-open scan wait while a word card is open and apply when it is closed. Pages turns the page
-  from the outer strips of the spread whatever is under the finger (`edgeWidth`: about 16% of a spread, 20% of one page, 56 px at least), and a word
-  there is looked up with a press and hold. A mouse click on a word always looks it up. The first time a book is opened on a device a hint says so
+  from a tap on the blank margin in the outer strips of the spread (`edgeWidth`: about 16% of a spread, 20% of one page, 56 px at least). A tap on
+  the text never turns: a word opens its card wherever it is, and the rest of a text line (`.rd-b`: punctuation, the gap between lines) shows or hides
+  the bar, so reaching for a word near the edge no longer turns the page. A mouse click on a word always looks it up. The first time a book is opened on a device a hint says so
   (`dushu.reader-hint.v1` in localStorage, dismissed by the first tap).
 - A chapter that cannot be loaded or drawn shows "Could not display this chapter" with Previous, Next, Open chapter list and (the first time) Try
   again; keys still turn chapters; the saved place is not overwritten. Failures are counted per chapter in localStorage (`dushu.chapter-failures`):
@@ -755,7 +756,7 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   hidden (known words in Unknown mode) keep the same cell so the column stays even. With pinyin off,
   normal CJK spacing. Selection/offset mapping must not change.
 - Progress in Pages is `{block, offset}` (§4.6). Neighbor chapters are laid out ahead of time. Page numbers restart in each chapter and the
-  footer counts pages within the chapter (no book-wide page number). Tap zones: the outer strips turn (touch: even over a word), a tap in the middle
+  footer counts pages within the chapter (no book-wide page number). Tap zones: the outer strips turn (touch: only on the blank margin, never over text), a tap in the middle
   toggles the bar and looks words up, and a tap that only closes a popup does not turn the page. The bar tucks away on the first turn; the mouse at the top
   edge brings it back. Swipes follow the finger and are ignored while text is selected. Flip rotates the leaf around the spine in 3D (one- and
   two-page modes); only transform and opacity animate.

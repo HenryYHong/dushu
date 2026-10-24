@@ -205,16 +205,24 @@ describe('taps near the edge of a spread', () => {
     el.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: x }));
   }
 
-  it('with a finger, a tap in the outer strip turns the page even where a word is; a tap in the middle looks the word up', async () => {
+  it('with a finger, a word opens its card even in the outer strip; only the blank margin there turns the page', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);
-    const word = q('.rd-article.rd-live .rd-p .rd-w ruby')!;
     // The fake stage starts at x = 100 and is 800 wide: strips are 160 px, so x 790 is in the right one, x 150 in the left, x 450 in the middle.
-    tap(word, 790, 'touch');
-    expect(stage().page).toBe('2');
+    tap(q('.rd-article.rd-live .rd-p .rd-w ruby')!, 790, 'touch');
+    expect(q('.pp-pop')).not.toBeNull();
+    expect(stage().page).toBe('1');
+    tap(q('.rd-stage')!, 150, 'touch'); // only closes the card
     expect(q('.pp-pop')).toBeNull();
-    tap(q('.rd-article.rd-live .rd-p .rd-w ruby')!, 150, 'touch');
+    expect(stage().page).toBe('1');
+    await new Promise((r) => setTimeout(r, 420)); // past the double-tap window, so the next tap near the word is a tap of its own
+    tap(q('.rd-stage')!, 790, 'touch');
+    expect(stage().page).toBe('2');
+    tap(q('.rd-stage')!, 150, 'touch');
     await tick(5);
+    expect(stage().page).toBe('1');
+    // The rest of a text line in the strip (punctuation, the gap between lines) does not turn the page either.
+    tap(q('.rd-article.rd-live .rd-p')!, 790, 'touch');
     expect(stage().page).toBe('1');
     tap(q('.rd-article.rd-live .rd-p .rd-w ruby')!, 450, 'touch');
     expect(q('.pp-pop')).not.toBeNull();

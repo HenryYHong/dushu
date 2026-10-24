@@ -953,9 +953,11 @@ export const mount: MountFn = async (root, params, ctx) => {
       return;
     }
     const inStage = paged && !!pager && pager.stage.contains(target) && !target.closest('[data-rd-ui], button, a, input, .pp-pop');
-    // Pages, touch or pen: the outer strips of the spread turn the page whatever is under the finger, words included.
-    // (A word near the edge is looked up with a press and hold.) The middle looks words up and shows or hides the bar.
-    if (inStage && touchy && pager!.zoneAt(e.clientX) !== 'middle') {
+    // Pages, touch or pen: a tap on the blank margin of the outer strips turns the page. A tap on the text never does, since
+    // reaching for a word near the edge used to turn the page instead: a word opens its card wherever it is, and the rest of a
+    // text line (punctuation, the gap between lines) shows or hides the bar. Swipes turn the page from anywhere.
+    const onText = !!target.closest?.('.rd-b');
+    if (inStage && touchy && !onText && pager!.zoneAt(e.clientX) !== 'middle') {
       if (popupWasOpen) { popupWasOpen = false; closePopup(); return; } // the tap only closed the popup
       pager!.tapAt(e.clientX);
       return;
@@ -971,6 +973,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     // Pages with a mouse: a click on the margins and gaps turns the page (outer strips) or shows and hides the bar (middle).
     if (inStage) {
       if (popupWasOpen) return; // the tap only closed the popup
+      if (touchy && onText) { toggleChrome(); return; }
       if (pager!.tapAt(e.clientX) === 'middle') toggleChrome();
     }
   };
