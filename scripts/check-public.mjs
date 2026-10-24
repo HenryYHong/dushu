@@ -32,10 +32,11 @@ const fail = (where, rule, extra = '') => problems.push(`${where}: ${rule}${extr
 
 // ---------------------------------------------------------------- patterns ---
 
-const TEXT_EXT = new Set(['.js', '.mjs', '.cjs', '.ts', '.css', '.html', '.json', '.txt', '.tsv', '.md', '.svg', '.webmanifest', '.yml', '.yaml', '.command', '.py', '.map', '.d.ts', '']);
+const TEXT_EXT = new Set(['.js', '.mjs', '.cjs', '.ts', '.css', '.html', '.json', '.txt', '.tsv', '.md', '.svg', '.webmanifest', '.yml', '.yaml', '.toml', '.command', '.py', '.map', '.d.ts', '']);
 const EMAIL = /[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})/g;
 // Test fixtures use made-up tailnets with a four-digit id (name.tail1234.ts.net); a real tailnet id has six hex characters.
-const BENIGN_EMAIL_DOMAIN = /(^|\.)(example\.(com|org|net)|invalid|localhost|test|users\.noreply\.github\.com|noreply\.github\.com)$|\.tail\d{4}\.ts\.net$/i;
+// resend.dev is the email service's shared sender for the sync server's sign-in codes (cloud/), nobody's own address.
+const BENIGN_EMAIL_DOMAIN = /(^|\.)(example\.(com|org|net)|invalid|localhost|test|users\.noreply\.github\.com|noreply\.github\.com|resend\.dev)$|\.tail\d{4}\.ts\.net$/i;
 const TAILNET = /[a-z0-9-]+\.tail[0-9a-f]{5,}\.ts\.net/gi;
 // A real key is long and random. Test fixtures spell out a placeholder word in theirs.
 const API_KEY = /sk-ant-[A-Za-z0-9_-]{16,}/g;

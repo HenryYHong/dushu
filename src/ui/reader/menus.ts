@@ -1,6 +1,6 @@
 // Popover menus for the reader's top bar: pinyin mode and the Aa display menu, plus the shortcuts sheet.
-// On a touch screen or a narrow one a menu is a bottom sheet with a grabber and a Done button; on a computer it is a
-// panel under its button. Both are dialogs: focus moves into them on open and returns to the button on close.
+// On a phone (a narrow screen) a menu is a bottom sheet with a grabber and a Done button; on an iPad or a computer it is a
+// bubble under its button, which leaves the page in view beside it. Both are dialogs: focus moves into them on open and returns to the button on close.
 import type { AppContext, PinyinMode, Settings } from '../../types';
 import { AUTO_KNOWN_HELP } from '../../core/autoKnown';
 import { readingFontSizeKey } from '../../store/settings';
@@ -23,8 +23,8 @@ export function popoverOpenFor(anchor: HTMLElement): boolean {
 }
 
 const media = (q: string): boolean => typeof matchMedia === 'function' && matchMedia(q).matches;
-/** Touch screens and narrow windows get a bottom sheet. */
-const useSheet = (): boolean => media('(pointer: coarse)') || window.innerWidth < 640;
+/** Phones (narrow windows) get a bottom sheet; an iPad gets the bubble a computer does. */
+const useSheet = (): boolean => window.innerWidth < 640;
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
 
 export interface PopoverOptions {
@@ -307,11 +307,16 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
   const turnRow = row('Page turn', turn.el);
   const widthRow = row('Page width', width.el);
   const lookRow = row('Look up on', trigger.el, 'Drag always works');
-  // Full screen where the browser can do it; a Home Screen app already has no browser bars; elsewhere (an iPhone), say how.
-  const full = add(toggle(isFullscreen, (v) => { void setFullscreen(v).catch(() => {}).finally(() => full.sync()); }));
+  // Full screen where the browser can do it (Safari on an iPad, a computer); a Home Screen app already has no browser bars,
+  // and says so; elsewhere (an iPhone), say how.
+  const full = add(toggle(isFullscreen, (v) => {
+    void setFullscreen(v)
+      .catch(() => ctx.toast(isStandalone() ? 'Opened from the Home Screen, Dushu already reads without the browser bars.' : 'This browser would not go full screen. In Safari: Share, then Add to Home Screen.'))
+      .finally(() => full.sync());
+  }));
   const fullRow = fullscreenSupported()
-    ? row('Full screen', full.el, 'Hides the browser and the system bar (F)')
-    : isStandalone() ? null
+    ? row('Full screen', full.el, 'Hides the browser bars (F)')
+    : isStandalone() ? row('Full screen', h('span.rd-row-note', null, 'On'), 'Opened from the Home Screen: no browser bars')
     : row('Full screen', h('span.rd-row-note', null, 'Add to Home Screen'), 'In Safari: Share, then Add to Home Screen. Open Dushu from there to read without the browser bars.');
   const el = h('div.rd-menu.rd-display', null,
     section('Text',

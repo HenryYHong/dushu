@@ -15,5 +15,5 @@
     "noEmit": true,
     "allowImportingTsExtensions": false
   },
-  "include": ["src", "tests", "vite.config.ts"]
+  "include": ["src", "tests", "cloud/src", "vite.config.ts"]
 }

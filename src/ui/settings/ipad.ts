@@ -3,10 +3,12 @@ import { isMacOrigin } from '../../core/macBridge';
 import { group, row } from './controls';
 import { macRows } from './mac';
 import { syncRow } from './sync';
+import { accountRow } from './account';
 
 /** The Mac connection and the iPad setup: how a device reaches the Mac's private services. */
 export function ipadGroup(params: Record<string, string>): { el: HTMLElement; dispose(): void } {
   const mac = macRows(params);
+  const account = accountRow();
   const sync = syncRow();
   const status = h('div.set-help', { role: 'status' }, 'Checking private connection…');
   const link = h('a.btn.btn-sm', { hidden: true }, 'Open private iPad link') as HTMLAnchorElement;
@@ -21,11 +23,14 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     link.hidden = false;
     status.textContent = `Private address: ${url.origin}. Only the Mac owner's Tailscale account can connect.`;
   }).catch(() => { status.textContent = 'Connect Tailscale on your Mac and run npm run ipad in Dushu to prepare private HTTPS access.'; });
-  const el = group('Your Mac and iPad', 'Connect each device to your Mac once. Your words and reading places then sync through the Mac, and your Mac books are added by themselves.',
-    ...mac.rows,
+  const el = group('Your Mac and iPad', account
+    ? 'Sign in with your email on each device to sync your words, reading places and bookmarks anywhere. Connect a device to your Mac once for Claude, Mac voices and your Mac books.'
+    : 'Connect each device to your Mac once. Your words and reading places then sync through the Mac, and your Mac books are added by themselves.',
+    account?.el ?? null,
     sync.el,
+    ...mac.rows,
     row('Connect', 'Install/connect Tailscale on your iPad using the same account as this Mac. Open the private link in Safari. Keep this Mac awake for Premium voices and private AI.', h('div', null, link, status)),
     row('Install', 'In Safari, tap Share → Add to Home Screen, then open that icon. Downloaded books and dictionary lookups work offline; Mac AI and Mac voices need the connection.', h('span', null, 'Safari → Share → Add to Home Screen')),
     row('Books', 'Your own books on your Mac are added automatically the first time a device reaches it, and stay on the device after that. Library → Add books from Mac is the manual fallback. For other books use Import book → Files; your place in them syncs once the same file is on each device.', h('span', null, 'Your Mac keeps a daily copy of your synced words for two weeks.')));
-  return { el, dispose() { mac.dispose(); sync.dispose(); } };
+  return { el, dispose() { mac.dispose(); sync.dispose(); account?.dispose(); } };
 }

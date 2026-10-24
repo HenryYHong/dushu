@@ -409,8 +409,8 @@
   .rd-pop:not(.rd-sheet) { animation: none; transition: opacity var(--dur) var(--ease), transform var(--dur-pop) var(--ease-pop); }
   @starting-style { .rd-pop:not(.rd-sheet) { opacity: 0; transform: translateY(-4px) scale(0.97); } }
 }
-/* Solid where glass could hurt reading: an engine without blur, any bottom sheet (it sits over the text on a phone or an
-   iPad, where an unblurred 10% of the page ghosts through), and anything opened in Pages. */
+/* Solid where glass could hurt reading: an engine without blur, any bottom sheet (it sits over the text on a phone, where an
+   unblurred 10% of the page ghosts through), and anything opened in Pages. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .rd-pop { background: var(--elev); } }
 .rd-pop.rd-sheet, body:has(.rd-paged) .rd-pop { background: var(--elev); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .rd-pop:focus { outline: none; }
@@ -419,7 +419,7 @@
   content: ''; position: sticky; bottom: -6px; display: block; height: 36px; margin: -36px -6px -6px; pointer-events: none;
   background: linear-gradient(to bottom, transparent, var(--elev) 85%);
 }
-/* On a touch screen or a narrow one the menu is a bottom sheet: compact, with the top of the page left in view so a change shows. */
+/* On a phone the menu is a bottom sheet: compact, with the top of the page left in view so a change shows. */
 .rd-pop.rd-sheet {
   top: auto !important; bottom: 0; left: 50% !important; right: auto !important; width: min(560px, 100%) !important;
   transform: translateX(-50%);

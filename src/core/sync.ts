@@ -1,5 +1,6 @@
 // Keeps saved words, known words, reading places, looked-up words and bookmarks the same on every device the owner connects
-// to their Mac.
+// to their Mac, or signs in to their sync account online (core/cloud.ts) with. A device signed in syncs with the account;
+// the account and the Mac merge the same way (core/syncExchange.ts), so the rest of this file does not tell them apart.
 // The Mac holds the shared copy (scripts/sync-bridge.ts). Each device keeps one row per record in the store's sync table
 // saying what it last agreed on with the Mac, so it can tell its own changes (sent with the time they happened) from the
 // Mac's (applied when newer). Those rows live in the same database as the data: a wipe or an eviction clears both, so a
@@ -8,6 +9,7 @@ import type { Bookmark, BookMeta, LookupRow, Progress, Store, SyncRow, VocabItem
 import { cleanBookmark, cleanLookup, cleanProgress, cleanVocab } from '../store';
 import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeFetch, hasMacBridge } from './macBridge';
+import { CLOUD_EVENT, cloudFetch, cloudSession, forgetSession } from './cloud';
 import { bookKey, canonical, hash, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 
 export { bookKey, canonical, hash };
@@ -23,9 +25,11 @@ const META = '#meta';
 const CHUNK = 1000;
 const MAX_KEY = 160;
 
-export type SyncState = 'off' | 'none' | 'idle' | 'syncing' | 'asleep' | 'refused' | 'error' | 'memory';
+export type SyncState = 'off' | 'none' | 'idle' | 'syncing' | 'asleep' | 'refused' | 'signedout' | 'error' | 'memory';
 export interface SyncStatus {
   state: SyncState;
+  /** What this device syncs with: the sync account online, or the Mac. */
+  hub?: 'cloud' | 'mac';
   /** When this device last finished a sync with the Mac. */
   lastOk?: number;
   /** Changes made here that the Mac has not received yet. */
@@ -149,10 +153,15 @@ let active: Syncer | null = null;
 /** The running syncer (main.ts starts it), or null. */
 export function currentSyncer(): Syncer | null { return active; }
 
+/** Whether this device has anything to sync with: signed in, or connected to the Mac. */
+export function hasSyncHub(): boolean {
+  return !!cloudSession() || hasMacBridge();
+}
+
 /** Before a book opens: a quick sync so the place read on another device is here. Waits at most `ms`. */
 export async function syncBeforeOpen(ms = 1500): Promise<void> {
   const s = active;
-  if (!s || !syncEnabled() || !hasMacBridge()) return;
+  if (!s || !syncEnabled() || !hasSyncHub()) return;
   await Promise.race([s.run(), new Promise<void>((r) => setTimeout(r, ms))]);
 }
 
@@ -174,9 +183,11 @@ export function startSync(store: Store, opts: SyncOptions = {}): Syncer {
 /** A syncer for one store. startSync is the app's way in; tests make several, one per device. */
 export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   const now = opts.now ?? (() => Date.now());
-  const send = opts.send ?? ((body: string, keepalive: boolean) => (hasMacBridge()
-    ? bridgeFetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive, signal: AbortSignal.timeout(20_000) })
-    : null));
+  const send = opts.send ?? ((body: string, keepalive: boolean) => {
+    const init: RequestInit = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive, signal: AbortSignal.timeout(20_000) };
+    if (cloudSession()) return cloudFetch('/sync', init);
+    return hasMacBridge() ? bridgeFetch('/api/sync', init) : null;
+  });
   let status: SyncStatus = { state: store.backend === 'memory' ? 'memory' : 'idle', pending: 0 };
   let running: Promise<void> | null = null;
   let again = false;
@@ -292,20 +303,27 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         epoch: meta.epoch, since: meta.cursor,
         changes: outgoing.map((r) => ({ key: r.key, at: r.at, data: r.sig === '-' ? null : current.get(r.key)?.data ?? null })),
       });
+      const hub = cloudSession() ? 'cloud' : 'mac';
       const request = send(body, leaving && body.length < 60_000);
-      if (!request) { setStatus({ state: 'none' }); return; }
+      if (!request) { setStatus({ state: 'none', hub: undefined }); return; }
       let response: Response;
-      try { response = await request; } catch { setStatus({ state: 'asleep' }); return; }
-      if (response.status === 403) { setStatus({ state: 'refused' }); return; }
+      try { response = await request; } catch { setStatus({ state: 'asleep', hub }); return; }
+      if (response.status === 401 && hub === 'cloud') {
+        // Signed out on the server (from another device, or long unused): signed out here too, so Settings offers to sign in.
+        setStatus({ state: 'signedout', hub });
+        if (!opts.send) forgetSession();
+        return;
+      }
+      if (response.status === 403) { setStatus({ state: 'refused', hub }); return; }
       if (!response.ok) {
         // The Mac says why when it can: a server started without its sync folder answers that it does not sync.
         const why = await response.json().then((b: { error?: unknown } | null) => b?.error, () => undefined);
-        setStatus({ state: 'error', message: typeof why === 'string' && why && why.length <= 300 ? why : `Your Mac answered ${response.status}.` });
+        setStatus({ state: 'error', hub, message: typeof why === 'string' && why && why.length <= 300 ? why : `${hub === 'cloud' ? 'The sync server' : 'Your Mac'} answered ${response.status}.` });
         return;
       }
       const reply = await response.json().catch(() => null) as Reply | null;
       if (!reply || typeof reply.epoch !== 'string' || !Number.isInteger(reply.version) || !Array.isArray(reply.records)) {
-        setStatus({ state: 'error', message: 'Your Mac sent an answer Dushu did not understand.' });
+        setStatus({ state: 'error', hub, message: `${hub === 'cloud' ? 'The sync server' : 'Your Mac'} sent an answer Dushu did not understand.` });
         return;
       }
       if (meta.epoch && reply.epoch !== meta.epoch && !restarted) {
@@ -332,7 +350,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       });
       await store.sync.write([...cleared, { key: META, at: 0, sig: '', held: meta }], [], rows);
       for (const r of cleared) rows.set(r.key, r);
-      setStatus({ state: 'idle', lastOk: now(), pending: dirty().length, counts: reply.counts });
+      setStatus({ state: 'idle', hub, lastOk: now(), pending: dirty().length, counts: reply.counts });
       if (!dirty().length) break;
     }
   }
@@ -517,7 +535,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     if (stopped) return Promise.resolve();
     if (running) { again = true; return running; }
     const go = async () => {
-      if (syncEnabled() && hasMacBridge()) setStatus({ state: 'syncing' });
+      if (syncEnabled() && hasSyncHub()) setStatus({ state: 'syncing' });
       try {
         const locks = (globalThis.navigator as Navigator | undefined)?.locks;
         // One tab at a time: two tabs of the same site share the rows.
@@ -559,6 +577,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   doc?.addEventListener('visibilitychange', onVisible);
   globalThis.addEventListener?.('online', onWake);
   globalThis.addEventListener?.(BRIDGE_EVENT, onWake);
+  globalThis.addEventListener?.(CLOUD_EVENT, onWake);
   globalThis.addEventListener?.('hashchange', onRoute);
   const every = opts.everyMs ?? 45_000;
   const interval = every > 0 ? setInterval(() => { if (!doc || doc.visibilityState === 'visible') void run(); }, every) : undefined;
@@ -576,6 +595,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       doc?.removeEventListener('visibilitychange', onVisible);
       globalThis.removeEventListener?.('online', onWake);
       globalThis.removeEventListener?.(BRIDGE_EVENT, onWake);
+      globalThis.removeEventListener?.(CLOUD_EVENT, onWake);
       globalThis.removeEventListener?.('hashchange', onRoute);
       if (active === syncer) active = null;
     },

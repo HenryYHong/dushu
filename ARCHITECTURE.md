@@ -706,8 +706,9 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   to it: a "Words in this chapter" button in Scroll; in Pages a quiet button on the blank page after an odd chapter, "Words in this chapter"
   in the right page's footer when the chapter fills its spread, and "Words" beside the way on in one-page mode (`onChapterWords`).
 - Dialogs: the chapter drawer is a modal `role=dialog` (focus goes to the current chapter, Tab stays inside, Esc and close return focus to the opener;
-  its list is windowed, so 2,000 chapters draw about 30 rows); the Aa and pinyin menus are labeled dialogs that take focus and give it back. On a
-  touch screen or under 640 px they are bottom sheets (grabber, Done, at most 60% of the height, so the top of the page stays in view).
+  its list is windowed, so 2,000 chapters draw about 30 rows); the Aa and pinyin menus are labeled dialogs that take focus and give it back. Under
+  640 px (a phone) they are bottom sheets (grabber, Done, at most 60% of the height, so the top of the page stays in view); on an iPad or a
+  computer, a bubble under the button. The Full screen row always says what applies: a switch, "On" in a Home Screen app, or how to add one.
 - Everything the chrome shows from the book (bar titles, running heads, chapter list, names, the end-of-chapter button) goes through the same
   script conversion as the text (`text()` in reader.ts, `opts.text` in the pager and the drawer).
 - `#/read/<id>?ch=<n>`: `n` is the 0-based chapter index, matching `Progress.chapter` and `VocabItem.context.chapter`.

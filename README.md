@@ -89,7 +89,7 @@ The speaker button reads from your current position to the end of the chapter, w
 
 - **Click a word** (or hover, if you pick that in Settings) to open its card: pinyin, definitions, the characters inside it, radical and stroke count, stroke-order animation, and links to MDBG, Wiktionary and 汉典. Use the arrow keys to step to the neighboring words, and Shift with the arrows to make the selection shorter or longer.
 - **Double-click** does the same. On a touch screen, tap a word twice to open its whole sentence with the translation.
-- **On an iPad** the card is a small bubble at the word; the page stays where it is. On a phone it is a sheet at the bottom.
+- **On an iPad** the card is a small bubble at the word; the page stays where it is. The Aa and pinyin menus are bubbles under their buttons too. On a phone they are sheets at the bottom.
 - **Keyboard:** press Enter to put a cursor on the first word of the page, move it with the arrow keys (up and down by line), and press Enter again to open the card. Escape puts the cursor away. In Pages, tap the blank margin at the outer edge of the spread to turn the page, or swipe. A tap on a word always opens its card, even near the edge.
 - **Drag across text** to open the phrase card: pinyin over the whole phrase, a translation, and a word-by-word list. On a phone, press and hold, then adjust the selection.
 - Star a word to save it with the sentence you found it in. Mark it known and its pinyin stays hidden.

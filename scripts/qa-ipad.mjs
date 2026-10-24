@@ -551,6 +551,30 @@ try {
     await ctx.close();
   }
 
+  // ============================================================ menus: bubbles under their buttons on an iPad
+  if (want('menus')) {
+    for (const device of ['iPad Pro 11', 'iPad Pro 11 landscape']) {
+      const { ctx, page } = await openReader(device);
+      for (const btn of ['.rd-aa-btn', '.rd-pinyin-btn']) {
+        await page.locator(btn).tap();
+        await settle(500);
+        const m = await page.evaluate((sel) => {
+          const p = document.querySelector('.rd-pop');
+          const b = document.querySelector(sel).getBoundingClientRect();
+          const r = p?.getBoundingClientRect();
+          return p ? { sheet: p.classList.contains('rd-sheet'), top: r.top, left: r.left, right: r.right, bottom: r.bottom, b: { bottom: b.bottom, left: b.left, right: b.right }, vw: innerWidth, vh: innerHeight } : null;
+        }, btn);
+        check(!!m && !m.sheet && m.top >= m.b.bottom && m.top - m.b.bottom < 16 && m.left >= 0 && m.right <= m.vw && m.bottom <= m.vh && m.right >= m.b.left && m.left <= m.b.right,
+          `${device}: ${btn} opens a bubble just under its button, not a sheet (${m ? `top ${Math.round(m.top)}, button bottom ${Math.round(m.b.bottom)}` : 'no menu'})`);
+        await page.screenshot({ path: `${OUT}menus-${device.replace(/\s+/g, '-')}-${btn.slice(4, -4)}.png` });
+        await page.locator(btn).tap();
+        await settle(300);
+        check(await page.evaluate(() => !document.querySelector('.rd-pop')), `${device}: tapping ${btn} again closes it`);
+      }
+      await ctx.close();
+    }
+  }
+
   // ============================================================ other sizes
   if (want('sizes')) {
     const { ctx, page } = await openReader('iPad Mini');

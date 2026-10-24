@@ -1,0 +1,23 @@
+# Dushu's sync account online (cloud/src/worker.ts). Deploy: npm run cloud:deploy. Secrets, never in this file:
+#   RESEND_API_KEY  the sign-in emails (resend.com)
+#   ALLOWED_EMAILS  who may sign in, comma separated (everyone when unset)
+name = "dushu-sync"
+main = "src/worker.ts"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "ACCOUNTS"
+class_name = "Account"
+
+[[durable_objects.bindings]]
+name = "LIMITS"
+class_name = "Limits"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Account", "Limits"]
+
+[vars]
+MAIL_FROM = "Dushu <onboarding@resend.dev>"
+DAILY_EMAILS = "90"
