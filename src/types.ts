@@ -206,6 +206,39 @@ export interface VocabItem {
   srs: SrsState;
 }
 
+/** A word looked up in the reader on one local day: one row per word per day, kept for practice (Vocabulary, Looked up). */
+export interface LookupRow {
+  /** Local day, YYYY-MM-DD. */
+  day: string;
+  /** Simplified headword. */
+  id: string;
+  /** The word as it was on the page (either script). */
+  word: string;
+  /** Numbered pinyin as read on the page. */
+  pinyin: string;
+  gloss: string;
+  /** Times it was looked up that day. */
+  count: number;
+  first: number;
+  last: number;
+  context?: VocabItem['context'];
+}
+
+/** A bookmarked place in a book: a stored block and offset, like a reading place. */
+export interface Bookmark {
+  id: string;
+  bookId: string;
+  chapter: number;
+  block: number;
+  offset: number;
+  /** The first words on the page, to recognize it by. */
+  label: string;
+  createdAt: number;
+}
+
+/** What a store change was about (Store.onChange). */
+export type StoreChange = 'vocab' | 'known' | 'books' | 'lookups' | 'bookmarks';
+
 /** One word's sightings on pages read without looking it up (settings.autoKnown). */
 export interface SeenRow {
   word: string;
@@ -393,6 +426,19 @@ export interface Store {
     /** How many known words reading marked. */
     autoCount(): number;
   };
+  /** Words looked up in the reader, one row per word per day. Kept on this device. */
+  lookups: {
+    /** Counts a lookup of `row.id` on `row.day` (adds the row, or bumps its count and last time). */
+    log(row: Omit<LookupRow, 'count' | 'first' | 'last'>, at: number): Promise<void>;
+    list(): Promise<LookupRow[]>;
+    remove(day: string, id: string): Promise<void>;
+  };
+  /** Bookmarked places. Kept on this device. */
+  bookmarks: {
+    list(bookId?: string): Promise<Bookmark[]>;
+    put(b: Bookmark): Promise<void>;
+    remove(id: string): Promise<void>;
+  };
   /** Sightings per word for settings.autoKnown. Disposable: a wipe clears it, nothing syncs it. */
   seen: {
     get(words: string[]): Promise<SeenRow[]>;
@@ -437,7 +483,7 @@ export interface Store {
    * Fires on any vocab/known/books change so open screens can refresh. `info.remote` is true when another tab made the
    * change (the store has already reloaded what it keeps in memory by then).
    */
-  onChange(fn: (what: 'vocab' | 'known' | 'books', info?: { remote: boolean }) => void): () => void;
+  onChange(fn: (what: StoreChange, info?: { remote: boolean }) => void): () => void;
   /**
    * Called by main.ts once the dictionary loads (dict.toSimplified). vocab.has / known.has then
    * also match a word written in the other script. Before that, matching is exact.

@@ -2,7 +2,7 @@
 // Two layouts share everything else: Scroll (one long column) and Pages (paginated like a book, ARCHITECTURE.md 5.7).
 // Contract: ARCHITECTURE.md 5.3 and 5.7.
 import '../../styles/reader.css';
-import type { Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, Progress, Settings } from '../../types';
+import type { Bookmark, Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, Progress, Settings } from '../../types';
 import { readingFontSizeKey } from '../../store/settings';
 import { canSpeak, pauseSpeaking, resumeSpeaking, setSpeakingRate, speakSequence, stopSpeaking } from '../../speech/tts';
 import { EMPTY_LEXICON, isDetecting, loadLexicon } from '../../core/lexicon';
@@ -162,10 +162,13 @@ export const mount: MountFn = async (root, params, ctx) => {
     audioStatus, audioSpeed, audioPause,
     h('button.icon-btn', { type: 'button', 'aria-label': 'Stop audio', title: 'Stop audio', onclick: () => stopChapterSpeech() }, icon('stop')));
   const tocBtn = h('button.icon-btn.rd-toc-btn', { type: 'button', title: 'Chapters (C)', 'aria-label': 'Chapters', onclick: () => toc.open(chapterIndex) }, icon('list'));
+  // Bookmarks: the button is filled when the page on screen has one, and takes it away again.
+  const markBtn = h('button.icon-btn.rd-mark-btn', { type: 'button', title: 'Bookmark this page (B)', 'aria-label': 'Bookmark this page', 'aria-pressed': 'false',
+    onclick: () => void toggleBookmark() }, icon('bookmark')) as HTMLButtonElement;
   const bar = h('header.rd-bar', null,
     h('a.icon-btn.rd-back', { href: '#/', title: 'Back to the library', 'aria-label': 'Back to the library' }, icon('arrowLeft')),
     h('div.rd-titles', null, titleBook, titleChapter),
-    h('div.rd-bar-actions', null, tocBtn, speechBtn, pauseBtn, pinyinBtn, aaBtn, pct),
+    h('div.rd-bar-actions', null, tocBtn, markBtn, speechBtn, pauseBtn, pinyinBtn, aaBtn, pct),
     h('div.rd-progress', { 'aria-hidden': 'true' }, fill));
   const page: HTMLElement = h('main.rd-page');
   const rd: HTMLElement = h('div.rd-root', null, bar, page, audio);
@@ -187,6 +190,11 @@ export const mount: MountFn = async (root, params, ctx) => {
     },
   }, {
     text,
+    bookmarks: {
+      list: () => store.bookmarks.list(book.id),
+      pick: (b) => void loadChapter(b.chapter, b.block > 0 || b.offset > 0 ? { block: b.block, offset: b.offset } : { top: true }),
+      remove: (b) => void removeBookmark(b),
+    },
     words: {
       load(i) {
         let got = chapterWordCache.get(i);
@@ -525,7 +533,58 @@ export const mount: MountFn = async (root, params, ctx) => {
       view()?.refreshMarks();
       if (paged) pager?.invalidate();
     }
+    if (what === 'bookmarks') void loadBookmarks();
   });
+
+  // --------------------------------------------------------------- bookmarks
+  let bookmarks: Bookmark[] = [];
+  async function loadBookmarks(): Promise<void> {
+    try { bookmarks = await store.bookmarks.list(book!.id); } catch { bookmarks = []; }
+    if (disposed) return;
+    syncMarkBtn();
+    toc.refreshBookmarks();
+  }
+  /** The bookmark on the page or spread on screen (Pages), or in a paragraph in view (Scroll). */
+  function markOnScreen(): Bookmark | undefined {
+    const v = view();
+    if (!v) return undefined;
+    for (const b of bookmarks) {
+      if (b.chapter !== chapterIndex) continue;
+      const at = v.fromStored(b.block, b.offset);
+      if (paged) {
+        const shown = pager?.shownRange();
+        if (!shown) continue;
+        const upTo = (x: { block: number; offset: number }) => x.block < at.block || (x.block === at.block && x.offset <= at.offset);
+        if (upTo(shown.start) && (!shown.end || !upTo(shown.end))) return b;
+      } else {
+        const r = v.blocks[at.block]?.el.getBoundingClientRect();
+        if (r && r.bottom > BAR_H && r.top < window.innerHeight) return b;
+      }
+    }
+    return undefined;
+  }
+  function syncMarkBtn(): void {
+    const on = !!markOnScreen();
+    markBtn.setAttribute('aria-pressed', String(on));
+    markBtn.setAttribute('aria-label', on ? 'Remove the bookmark on this page' : 'Bookmark this page');
+    markBtn.title = on ? 'Remove bookmark (B)' : 'Bookmark this page (B)';
+  }
+  async function toggleBookmark(): Promise<void> {
+    const here = markOnScreen();
+    if (here) { await removeBookmark(here); return; }
+    const p = currentPlace();
+    const v = view();
+    if (!p || !v) return;
+    const at = v.fromStored(p.block, p.offset);
+    const label = [...(v.blocks[at.block]?.text ?? '').slice(at.offset).replace(/\s+/g, ' ').trim()].slice(0, 28).join('');
+    const mark: Bookmark = { id: `${book!.id}:${Date.now().toString(36)}`, bookId: book!.id, chapter: p.chapter, block: p.block, offset: p.offset, label, createdAt: Date.now() };
+    try { await store.bookmarks.put(mark); } catch (e) { ctx.toast(e instanceof Error ? e.message : 'Could not save the bookmark.'); return; }
+    ctx.toast('Page bookmarked. Find it under Bookmarks in the chapter list.', { ms: 4000 });
+  }
+  async function removeBookmark(b: Bookmark): Promise<void> {
+    try { await store.bookmarks.remove(b.id); } catch (e) { ctx.toast(e instanceof Error ? e.message : 'Could not remove the bookmark.'); return; }
+    ctx.toast('Bookmark removed', { ms: 6000, action: { label: 'Undo', run: () => { void store.bookmarks.put(b).catch(() => {}); } } });
+  }
 
   // ----------------------------------------------------------- lexicon
   /** Re-segment the chapter with a new lexicon and keep the reading position. */
@@ -916,6 +975,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       const p = percent();
       fill.style.width = `${(p * 100).toFixed(1)}%`;
       pct.textContent = `${Math.floor(p * 100)}%`;
+      syncMarkBtn();
     });
   }
 
@@ -1248,6 +1308,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       case ']': ctx.settings.set({ [readingFontSizeKey(s)]: s[readingFontSizeKey(s)] + 2 }); break;
       case '?': e.preventDefault(); showShortcuts(); break;
       case 'f': case 'F': e.preventDefault(); void setFullscreen(!isFullscreen()).catch(() => {}); break;
+      case 'b': case 'B': e.preventDefault(); void toggleBookmark(); break;
       case 'c': case 'C': e.preventDefault(); toc.open(chapterIndex); break;
       case 'n': case 'N': e.preventDefault(); toc.open(chapterIndex, 'names'); break;
       case 'w': case 'W': e.preventDefault(); toc.open(chapterIndex, 'words'); break;
@@ -1351,6 +1412,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     await loadChapter(0, { top: true });
   }
   if (!disposed && failing === null) showReaderHint();
+  void loadBookmarks();
 
   /** The first time a book is opened on this device: how to look things up, once. */
   function showReaderHint(): void {

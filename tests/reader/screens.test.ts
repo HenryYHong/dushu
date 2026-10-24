@@ -382,3 +382,45 @@ describe('settings rows that only apply to one layout', () => {
     expect(root.querySelector<HTMLElement>('.set-page')!.style.getPropertyValue('--set-stick')).toBe('0px');
   });
 });
+
+describe('words looked up and bookmarks', () => {
+  it('keeps a tapped word for practice, but not the words stepped through with Next', async () => {
+    const { ctx, meta } = await setup();
+    await open(ctx, meta.id);
+    const log = vi.spyOn(ctx.store.lookups, 'log');
+    (q('.rd-article.rd-live .rd-p .rd-w') as HTMLElement).click();
+    await vi.waitFor(() => expect(log).toHaveBeenCalledTimes(1));
+    expect(log.mock.calls[0][0]).toMatchObject({ context: { bookId: meta.id, chapter: 0 } });
+    key('ArrowRight'); // with a card open, the arrows step through words
+    await tick(5);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
+  it('B bookmarks the page, the button shows it, the drawer lists it and jumps back, and B again takes it away', async () => {
+    const { ctx, meta } = await setup();
+    await open(ctx, meta.id);
+    closePopup();
+    const btn = q('.rd-mark-btn')!;
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    key('b');
+    await vi.waitFor(async () => expect(await ctx.store.bookmarks.list(meta.id)).toHaveLength(1));
+    const [mark] = await ctx.store.bookmarks.list(meta.id);
+    expect(mark).toMatchObject({ chapter: 0, bookId: meta.id });
+    expect(mark.label).toContain('第0段');
+    await vi.waitFor(() => expect(btn.getAttribute('aria-pressed')).toBe('true'));
+    key('ArrowRight'); // the next page has no bookmark
+    await tick(5);
+    await vi.waitFor(() => expect(btn.getAttribute('aria-pressed')).toBe('false'));
+    // The drawer's Bookmarks tab lists it; picking it goes back to the page.
+    key('c');
+    const tab = [...document.querySelectorAll<HTMLElement>('.rd-toc-tab')].find((t) => t.textContent === 'Bookmarks')!;
+    tab.click();
+    await vi.waitFor(() => expect(q('.rd-mark-go')).not.toBeNull());
+    (q('.rd-mark-go') as HTMLElement).click();
+    await tick(10);
+    await vi.waitFor(() => expect(btn.getAttribute('aria-pressed')).toBe('true'));
+    key('b');
+    await vi.waitFor(async () => expect(await ctx.store.bookmarks.list(meta.id)).toHaveLength(0));
+  });
+});

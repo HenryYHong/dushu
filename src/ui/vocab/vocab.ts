@@ -8,9 +8,20 @@ import { openWordPopup } from '../popup/popup';
 import { confirmDialog } from './confirm';
 import { ankiTsv, dueLabel, filterAndSort, vocabCsv, type SortKey } from './model';
 import { contextEl, pinyinEl, scriptView } from './render';
+import { createLookupsView } from './lookups';
 
 const SORT_LABELS: Record<SortKey, string> = { added: 'Newest first', due: 'Due soonest', pinyin: 'Pinyin A to Z' };
 const SORT_KEY = 'dushu.vocab.sort';
+const TAB_KEY = 'dushu.vocab.tab';
+type Tab = 'saved' | 'lookups';
+
+function savedTab(): Tab | null {
+  try {
+    const v = localStorage.getItem(TAB_KEY);
+    if (v === 'saved' || v === 'lookups') return v;
+  } catch { /* storage blocked */ }
+  return null;
+}
 
 function savedSort(): SortKey {
   try {
@@ -288,13 +299,27 @@ export const mount: MountFn = (root, _params, ctx) => {
       knownDetails),
   );
 
+  // ------------------------------------------------------------- tabs ---
+  // Saved words (flashcards) and every word looked up while reading, by day.
+  const lookups = createLookupsView(ctx);
+  let tab: Tab = savedTab() ?? 'saved';
+  const tabBtn = (t: Tab, label: string) => h('button.rd-seg-btn', { type: 'button', onclick: () => setTab(t, true) }, label);
+  const tabSaved = tabBtn('saved', 'Saved');
+  const tabLookups = tabBtn('lookups', 'Looked up');
+  const tabs = h('div.rd-seg.voc-tabs', { role: 'group', 'aria-label': 'Words to show' }, tabSaved, tabLookups);
+  const savedPane = h('div.voc-saved', null, knownPanel, h('div.voc-bar', null, toolbar, tools), count, list);
+  function setTab(t: Tab, remember = false): void {
+    tab = t;
+    tabSaved.setAttribute('aria-pressed', String(t === 'saved'));
+    tabLookups.setAttribute('aria-pressed', String(t === 'lookups'));
+    savedPane.hidden = t !== 'saved';
+    lookups.el.hidden = t !== 'lookups';
+    if (remember) { try { localStorage.setItem(TAB_KEY, t); } catch { /* ignore */ } }
+  }
+  setTab(tab);
+
   // ------------------------------------------------------------ mount ---
-  const page = h('div.page.voc-page', null,
-    head,
-    knownPanel,
-    h('div.voc-bar', null, toolbar, tools),
-    count, list,
-  );
+  const page = h('div.page.voc-page', null, head, tabs, savedPane, lookups.el);
   root.appendChild(page);
 
   async function load(): Promise<void> {
@@ -313,15 +338,19 @@ export const mount: MountFn = (root, _params, ctx) => {
     reviewLink.append(icon('cards'), due ? `Review ${due}` : 'Review');
     renderList();
     renderKnown();
+    // With nothing saved yet, open on what was looked up (unless a tab was chosen before).
+    if (!items.length && !savedTab()) setTab('lookups');
   }
 
   // Also fires for a change made in another tab (the store tells every tab), so words saved there show up here.
   const offChange = store.onChange((what) => {
-    if (what === 'vocab') void load();
+    if (what === 'vocab') { void load(); lookups.render(); }
     if (what === 'known') renderKnown();
+    if (what === 'lookups') void lookups.refresh();
   });
-  const offSettings = ctx.settings.subscribe((s) => { settings = s; renderList(); });
+  const offSettings = ctx.settings.subscribe((s) => { settings = s; renderList(); lookups.render(); });
   void load();
+  void lookups.refresh();
   // Converting sentences to the reader's script needs the dictionary; draw again once it is there.
   if (settings.script !== 'original' && !ctx.dictSync()) void ctx.dict().then(() => { if (alive) renderList(); }, () => {});
 

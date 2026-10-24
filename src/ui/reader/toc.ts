@@ -2,16 +2,16 @@
 // (the book record only has counts) and cached. Both lists are windowed: only the rows near the visible part exist,
 // so a book with 2,000 chapters opens as fast as one with twenty.
 // The drawer is a modal dialog: focus moves into it on open, Tab stays inside it, and focus returns to its opener on close.
-import type { AppContext, BookMeta, LexiconEntry, PinyinStyle } from '../../types';
+import type { AppContext, Bookmark, BookMeta, LexiconEntry, PinyinStyle } from '../../types';
 import { isDetecting } from '../../core/lexicon';
 import { capitalizePinyin } from '../../core/names';
 import { formatSyllable } from '../../core/pinyin';
-import { h } from '../dom';
+import { clear, h } from '../dom';
 import { icon } from '../icons';
 import { windowed } from './windowed';
 import { createWordsTab, type TocWords } from './wordsTab';
 
-export type TocTab = 'chapters' | 'words' | 'names';
+export type TocTab = 'chapters' | 'words' | 'names' | 'bookmarks';
 
 export interface TocDrawer {
   open(current: number, tab?: TocTab): void;
@@ -22,6 +22,8 @@ export interface TocDrawer {
   refreshNames(): void;
   /** The names and terms in use changed: the words are counted again. */
   refreshWords(): void;
+  /** The bookmarks changed: redraw the Bookmarks tab if it is showing. */
+  refreshBookmarks(): void;
   /** The script setting changed: titles and names are drawn again in the new script. */
   refreshText(): void;
   dispose(): void;
@@ -42,6 +44,14 @@ export interface TocOptions {
   text?(s: string): string;
   /** The Words tab: the words of a chapter. Without it the tab is not shown. */
   words?: TocWords;
+  /** The Bookmarks tab: the book's bookmarks, a jump to one, and taking one away. */
+  bookmarks?: TocBookmarks;
+}
+
+export interface TocBookmarks {
+  list(): Promise<Bookmark[]>;
+  pick(b: Bookmark): void;
+  remove(b: Bookmark): void;
 }
 
 /** Book metadata may carry titles already (optional field); otherwise they are read from the chapters. */
@@ -83,13 +93,16 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   const status = h('div.rd-toc-status', { role: 'status' });
   const tabChapters = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('chapters') }, 'Chapters') as HTMLButtonElement;
   const tabWords = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('words') }, 'Words') as HTMLButtonElement;
-  const tabNames = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('names') }, 'Names & terms') as HTMLButtonElement;
+  const tabNames = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('names') }, 'Names') as HTMLButtonElement;
+  const marks = opts.bookmarks;
+  const tabMarks = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('bookmarks') }, 'Bookmarks') as HTMLButtonElement;
+  const markList = h('div.rd-toc-list.rd-marks', { role: 'list', 'aria-label': 'Bookmarks' });
   const label = (i: number) => text(titles[i] || `Chapter ${i + 1}`);
   const words = opts.words
     ? createWordsTab(ctx, book, opts.words, { text, rowH: nameRowH, chapterTitle: (i) => titles[i] || `Chapter ${i + 1}` })
     : null;
-  const tabs = names || words
-    ? h('div.rd-toc-tabs', { role: 'tablist' }, tabChapters, words ? tabWords : null, names ? tabNames : null)
+  const tabs = names || words || marks
+    ? h('div.rd-toc-tabs', { role: 'tablist' }, tabChapters, words ? tabWords : null, marks ? tabMarks : null, names ? tabNames : null)
     : null;
   const closeBtn = h('button.icon-btn', { type: 'button', 'aria-label': 'Close chapters', onclick: () => close() }, icon('close'));
   const panel = h('aside.rd-toc', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Chapters', tabindex: '-1' },
@@ -103,6 +116,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     status,
     list,
     words?.list ?? null,
+    marks ? markList : null,
     names ? nameList : null);
   const backdrop = h('div.rd-backdrop', { onclick: () => close() });
   const root = h('div.rd-toc-root', { hidden: true }, backdrop, panel);
@@ -194,21 +208,25 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   }
 
   function setTab(next: TocTab) {
-    tab = next === 'names' && names ? 'names' : next === 'words' && words ? 'words' : 'chapters';
+    tab = next === 'names' && names ? 'names' : next === 'words' && words ? 'words' : next === 'bookmarks' && marks ? 'bookmarks' : 'chapters';
     const isNames = tab === 'names';
     const isWords = tab === 'words';
+    const isMarks = tab === 'bookmarks';
     const isChapters = tab === 'chapters';
     tabChapters.setAttribute('aria-selected', String(isChapters));
     tabWords.setAttribute('aria-selected', String(isWords));
     tabNames.setAttribute('aria-selected', String(isNames));
+    tabMarks.setAttribute('aria-selected', String(isMarks));
+    markList.hidden = !isMarks;
     list.hidden = !isChapters;
     filter.hidden = !isChapters;
     status.hidden = !isChapters;
     nameList.hidden = !isNames;
     nameFilter.hidden = !isNames;
     if (words) { words.head.hidden = !isWords; words.list.hidden = !isWords; words.setVisible(isWords && !root.hidden); }
-    panel.setAttribute('aria-label', isNames ? 'Names and terms' : isWords ? 'Words in this chapter' : 'Chapters');
-    if (isNames) { paintNames(); void loadNames(); }
+    panel.setAttribute('aria-label', isNames ? 'Names and terms' : isWords ? 'Words in this chapter' : isMarks ? 'Bookmarks' : 'Chapters');
+    if (isMarks) void paintMarks();
+    else if (isNames) { paintNames(); void loadNames(); }
     else if (isWords) words!.show(currentIndex);
     else { paint(); scrollToCurrent(); }
   }
@@ -282,6 +300,30 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     else if (e.key === 'End') { e.preventDefault(); moveRove(0, 'end'); }
   }
 
+  // ---------------------------------------------------------- bookmarks tab
+  async function paintMarks(): Promise<void> {
+    if (!marks) return;
+    let list: Bookmark[] = [];
+    try { list = await marks.list(); } catch { /* shown as empty */ }
+    await loadTitles().catch(() => {});
+    if (tab !== 'bookmarks') return;
+    clear(markList);
+    if (!list.length) {
+      markList.appendChild(h('div.rd-toc-empty', null, 'No bookmarks yet. Tap the bookmark at the top of a page to keep your place there.'));
+      return;
+    }
+    for (const b of list) {
+      const date = new Date(b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      markList.appendChild(h('div.rd-mark', { role: 'listitem' },
+        h('button.rd-mark-go', { type: 'button', onclick: () => { close(); marks.pick(b); } },
+          h('span.rd-mark-chapter', null, label(b.chapter)),
+          h('span.rd-mark-label.zh', { lang: 'zh' }, text(b.label) || '…'),
+          h('span.rd-mark-date', null, date)),
+        h('button.icon-btn.rd-mark-remove', { type: 'button', 'aria-label': `Remove the bookmark in ${label(b.chapter)}`, title: 'Remove',
+          onclick: () => { marks.remove(b); void paintMarks(); } }, icon('trash'))));
+    }
+  }
+
   function open(current: number, which: TocTab = 'chapters') {
     opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     currentIndex = current;
@@ -296,7 +338,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (tab === 'chapters') {
       const row = chapterWindow.rowAt(rove)?.querySelector<HTMLElement>('button');
       (row ?? panel).focus({ preventScroll: true });
-    } else (tab === 'words' ? tabWords : tabNames).focus({ preventScroll: true });
+    } else (tab === 'words' ? tabWords : tab === 'bookmarks' ? tabMarks : tabNames).focus({ preventScroll: true });
   }
 
   function close() {
@@ -321,6 +363,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     setCurrent(i) { currentIndex = i; },
     refreshNames() { if (!root.hidden && tab === 'names') void loadNames(); else { rows = []; namesLoaded = false; } },
     refreshWords() { words?.reload(); },
+    refreshBookmarks() { if (!root.hidden && tab === 'bookmarks') void paintMarks(); },
     refreshText() {
       if (root.hidden) return;
       if (tab === 'chapters') chapterWindow.repaint(); else if (tab === 'words') words!.refreshText(); else paintNames();

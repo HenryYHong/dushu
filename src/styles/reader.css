@@ -786,3 +786,19 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 
 /* A sideways trackpad swipe turns the page; it must not also make the browser go Back. */
 html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x: none; }
+
+/* ---------- bookmarks ---------- */
+.rd-mark-btn[aria-pressed='true'] { color: var(--accent); }
+.rd-mark-btn[aria-pressed='true'] svg { fill: currentColor; }
+.rd-marks { padding-top: var(--space-1); }
+.rd-mark { display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-s); }
+@media (hover: hover) { .rd-mark:hover { background: var(--wash); } }
+.rd-mark-go {
+  flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; row-gap: 2px; align-items: baseline;
+  padding: 10px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; border-radius: var(--radius-s);
+}
+.rd-mark-chapter { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rd-mark-date { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.rd-mark-label { grid-column: 1 / -1; font-size: 18px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rd-mark-remove { opacity: 0.55; flex: none; }
+.rd-toc-empty { padding: var(--space-5) var(--space-4); color: var(--text-3); font-size: 14px; line-height: 1.5; }

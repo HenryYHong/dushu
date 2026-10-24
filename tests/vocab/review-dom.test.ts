@@ -140,8 +140,9 @@ describe('vocab screen', () => {
     const panel = root.querySelector<HTMLDetailsElement>('details.voc-known')!;
     expect(panel).toBeTruthy();
     expect(panel.open).toBe(false);
-    const page = root.querySelector('.voc-page')!;
-    expect([...page.children].indexOf(panel)).toBeLessThan([...page.children].indexOf(root.querySelector('.voc-list')!));
+    // Above the list of saved words (both sit in the Saved tab).
+    const list = root.querySelector('.voc-saved .voc-list')!;
+    expect(panel.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('shows how many known words reading marked, and clears only those', async () => {

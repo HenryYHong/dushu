@@ -1,6 +1,6 @@
 // Persistence over IndexedDB (memory fallback). Contract: ARCHITECTURE.md §4.6.
 import type {
-  BackupReport, BookMeta, Chapter, Grade, ImportedBook, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, SyncRow, VocabItem, LexiconEntry,
+  BackupReport, Bookmark, BookMeta, Chapter, Grade, ImportedBook, LookupRow, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, StoreChange, SyncRow, VocabItem, LexiconEntry,
 } from '../types';
 import { hanBefore, moveByPercent, placeAt, textHan } from '../core/place';
 import { bookKey, canonical, olderKeys, progressWire } from '../core/syncKeys';
@@ -162,7 +162,7 @@ const stamp = (v: VocabItem) => Math.max(v.srs.last ?? 0, v.addedAt);
 export const IDB_OPEN_TIMEOUT_MS = 4000;
 
 /** Messages between tabs (or between stores of one name in one page) when something was saved. */
-interface ChangeMessage { db: string; from: string; what: 'vocab' | 'known' | 'books'; removed?: string }
+interface ChangeMessage { db: string; from: string; what: StoreChange; removed?: string }
 const CHANNEL = 'dushu';
 /** Used when BroadcastChannel does not exist: stores in the same page still hear each other. */
 const inPage = new Set<(m: ChangeMessage) => void>();
@@ -190,8 +190,8 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
   const write = (ops: Parameters<Backend['commit']>[0]) => db.commit(ops).catch((e) => { throw friendlyError(e); });
 
   // ---- events
-  const listeners = new Set<(what: 'vocab' | 'known' | 'books', info?: { remote: boolean }) => void>();
-  const notify = (what: 'vocab' | 'known' | 'books', remote: boolean) => {
+  const listeners = new Set<(what: StoreChange, info?: { remote: boolean }) => void>();
+  const notify = (what: StoreChange, remote: boolean) => {
     for (const fn of [...listeners]) {
       try { fn(what, { remote }); } catch (e) { console.error('store listener failed', e); }
     }
@@ -208,10 +208,10 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
   };
   const onRemote = async (m: ChangeMessage) => {
     if (!m || typeof m !== 'object' || m.db !== name || m.from === tabId) return;
-    if (m.what !== 'vocab' && m.what !== 'known' && m.what !== 'books') return;
+    if (!['vocab', 'known', 'books', 'lookups', 'bookmarks'].includes(m.what)) return;
     try {
       if (m.what === 'vocab') rebuildVocab(await db.getAll<VocabItem>('vocab'));
-      else if (m.what === 'known') loadKnown(await db.getAll<KnownRow>('known')); else if (typeof m.removed === 'string') dropUrls(m.removed);
+      else if (m.what === 'known') loadKnown(await db.getAll<KnownRow>('known')); else if (m.what === 'books' && typeof m.removed === 'string') dropUrls(m.removed);
     } catch (e) { console.error('Dushu: could not refresh after a change in another tab', e); return; }
     notify(m.what, true);
   };
@@ -225,7 +225,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     }
     if (!channel) inPage.add((m) => { void onRemote(m); });
   }
-  const emit = (what: 'vocab' | 'known' | 'books', removed?: string) => {
+  const emit = (what: StoreChange, removed?: string) => {
     notify(what, false);
     post(removed === undefined ? { db: name, from: tabId, what } : { db: name, from: tabId, what, removed });
   };
@@ -545,6 +545,39 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         });
       },
       logs: () => db.getAll<ReviewLog>('reviews'),
+    },
+
+    lookups: {
+      log(row, at) {
+        return exclusive(async () => {
+          const cur = await db.get<LookupRow>('lookups', [row.day, row.id]);
+          const next: LookupRow = cur
+            ? { ...cur, word: row.word, pinyin: row.pinyin || cur.pinyin, gloss: row.gloss || cur.gloss, count: cur.count + 1, last: at, context: row.context ?? cur.context }
+            : { ...row, count: 1, first: at, last: at };
+          await write([{ op: 'put', table: 'lookups', value: next }]);
+          emit('lookups');
+        });
+      },
+      list: () => db.getAll<LookupRow>('lookups'),
+      async remove(day, id) {
+        await write([{ op: 'del', table: 'lookups', key: [day, id] }]);
+        emit('lookups');
+      },
+    },
+
+    bookmarks: {
+      async list(bookId) {
+        const all = await db.getAll<Bookmark>('bookmarks');
+        return (bookId ? all.filter((b) => b.bookId === bookId) : all).sort((a, b) => a.chapter - b.chapter || a.block - b.block || a.offset - b.offset);
+      },
+      async put(b) {
+        await write([{ op: 'put', table: 'bookmarks', value: b }]);
+        emit('bookmarks');
+      },
+      async remove(id) {
+        await write([{ op: 'del', table: 'bookmarks', key: id }]);
+        emit('bookmarks');
+      },
     },
 
     known: {

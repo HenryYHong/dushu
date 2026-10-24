@@ -595,8 +595,9 @@ K = known, P = play audio.
   `restoreFocus()`) on close unless the user already moved it. It does not clip, so a 10 px caret (`data-side`, `--pp-caret`) can point at the word;
   the scrolling is done by `.pp-scroll` inside it, and a scroll inside the popup never triggers a placement (it used to reset `scrollTop`). The
   Prev/Next/Shorter/Longer control is a sticky footer with a fade while there is more to scroll. Placement (`position.ts`): under 640 px a bottom sheet
-  capped at 45% of the screen; on a touch screen of any width a centered sheet (600 px, up to 60%) when `onSheetTop` is passed (the reader lifts the page by
-  the sheet height), otherwise a floating card that, on a spread (touch, 900 px or wider), goes over the other page. Safe-area insets are honored
+  capped at 45% of the screen; wider, a floating card at the word with its caret under it, below the word or above when there is no room. On a touch
+  screen (an iPad) it is a small bubble (at most 360 px wide and 340 px tall, the rest scrolls inside) and the page never moves for it; the
+  reader's `onSheetTop` lift only applies to a phone sheet now. Safe-area insets are honored
   (not verifiable in headless WebKit). Definitions show four senses per reading and a "N more" button; the characters are 40 px chips.
 - **Phrase popup**: the selected text with pinyin (12 px per character, even grid), speak, Copy, translation from
   `pickTranslator` (shows provider name, streaming text, error states, "Explain" button for
@@ -763,6 +764,18 @@ and opens it. Empty state explains what the app does in two sentences.
   Good/Easy (keys 1–4) with the next interval shown on each button. Session summary at the end.
   Empty state when nothing is due (next due time).
 
+- Looked up (`ui/vocab/lookups.ts`, `practice.ts`; store table `lookups`, keyPath [day, id], DB_VERSION 4): `lookup.ts` openWord calls
+  `logLookup` (`ui/popup/lookupLog.ts`) after the card opens, in a timeout, so a lookup never waits on it; stepping with Prev/Next passes
+  `log: false`. One row per simplified headword per local day (count, first, last, reading as read, gloss, sentence, book). The
+  Vocabulary screen has Saved | Looked up tabs (`dushu.vocab.tab`); Looked up groups by day, newest first, each day with Practice, plus
+  "Practice the last 7 days" (one row per word). Practice is a run of its own (Again puts the word at the end, Got it moves on) and
+  never touches the SRS schedule; its star saves to the flashcards. Not synced yet.
+- Bookmarks (store table `bookmarks`; reader top-bar button and `B`; drawer tab): stored like a reading place (chapter, stored block,
+  offset) plus the first 28 characters as a label. The button is pressed when a bookmark lies on the spread on screen (Pages,
+  `pager.shownRange()`) or in a block in view (Scroll), checked on every progress update. Not synced yet.
+- Full screen (`ui/fullscreen.ts`, Aa menu row and `F`): the Fullscreen API with WebKit-prefixed fallbacks; where the browser has
+  none (an iPhone) and the app is not a Home Screen app, the row says how to add it to the Home Screen.
+
 ### 5.6 Settings and About
 Settings: every `Settings` field grouped (Reading, Pinyin, Lookup, Translation, Speech, Data),
 live preview sentence rendered with the reader's renderer if exported, otherwise simple ruby.
@@ -912,7 +925,7 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   10-character Han windows from the owner's EPUBs (prints file, line and rule only); `scripts/serve-subpath.mjs` serves a build under `/dushu/`
   like GitHub Pages; `scripts/qa-public.mjs` checks the manifest, icons, service worker scope and offline reload on that subpath;
   `scripts/qa-popup.mjs` checks word and phrase popups at iPad and iPhone size (WebKit): the footer is reachable by scrolling to the bottom,
-  controls are 44 px, a tablet sheet spans the screen.
+  controls are 44 px.
 - `npm run typecheck` clean, `npm test` green, `npm run build` succeeds — before reporting done.
 - Unit tests live in `tests/<area>/`. Use the real data files (loader in
   `tests/helpers/data.ts`, owned by core: `loadTestDictionary()` caches one instance per worker).

@@ -3,6 +3,7 @@
 import type { AppContext, BookMeta, Dictionary, Lexicon } from '../../types';
 import { hasHan, sentenceAround } from '../../core/text';
 import { openPhrasePopup, openWordPopup } from '../popup/popup';
+import { logLookup } from '../popup/lookupLog';
 import type { BlockState, ChapterView } from './chapter';
 import { rangeToSpans, spansText, type BlockSpan } from './selection';
 
@@ -35,7 +36,8 @@ export interface LookupHost {
 }
 
 export interface Lookup {
-  openWord(b: BlockState, start: number, end: number): void;
+  /** `log: false` keeps it out of the Looked up history (stepping through words is not looking one up). */
+  openWord(b: BlockState, start: number, end: number, opts?: { log?: boolean }): void;
   openToken(w: Element): void;
   step(dir: -1 | 1): void;
   resize(delta: -1 | 1): void;
@@ -59,7 +61,7 @@ export function createLookup(host: LookupHost): Lookup {
   const fallbackRect = () => new DOMRect(window.innerWidth / 2, window.innerHeight / 2, 0, 0);
   const lexiconProps = () => ({ lexicon: host.lexicon(), bookId: book.id, onLexiconChange: () => host.onLexiconChange() });
 
-  function openWord(b: BlockState, s: number, e: number): void {
+  function openWord(b: BlockState, s: number, e: number, opts: { log?: boolean } = {}): void {
     const v = host.view();
     if (!v || !b.rendered) return;
     if (active && active.kind === 'word' && active.bi === b.index && active.s === s && active.e === e) return;
@@ -94,6 +96,10 @@ export function createLookup(host: LookupHost): Lookup {
       ...lexiconProps(),
     });
     host.onWordShown?.(b, s, e);
+    if (opts.log !== false) {
+      logLookup(ctx, dict, { word, syllables: token?.pinyin ?? [], around: { prev: prev?.text, next: next?.text },
+        context: { sentence, bookId: book.id, bookTitle: book.title, chapter: host.chapterIndex() } });
+    }
   }
 
   function openToken(w: Element): void {
@@ -129,7 +135,7 @@ export function createLookup(host: LookupHost): Lookup {
     if (!active || !v) return;
     const found = adjacentHan(active.bi, dir === 1 ? active.e : active.s, dir);
     if (!found) return;
-    openWord(found.b, found.s, found.e);
+    openWord(found.b, found.s, found.e, { log: false });
   }
 
   function resize(delta: -1 | 1): void {

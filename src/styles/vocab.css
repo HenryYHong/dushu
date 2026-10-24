@@ -85,3 +85,50 @@
 }
 
 .voc-page a.btn, .voc-page a.btn:hover { text-decoration: none; }
+
+/* ---------- Saved | Looked up ---------- */
+.voc-tabs { margin: 0 0 var(--space-5); max-width: 100%; }
+.voc-tabs .rd-seg-btn { padding: 8px 18px; font-size: 14px; }
+
+/* ---------- Looked up: words by day ---------- */
+.voc-lk-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
+.voc-lk-top:empty { display: none; }
+.voc-lk-summary { margin: 0; font: italic 400 15px/1.4 var(--font-display); }
+.voc-lk-day { margin-bottom: var(--space-6); }
+.voc-lk-head { display: flex; align-items: baseline; gap: var(--space-3); padding-bottom: var(--space-2); border-bottom: 1px solid var(--rule-strong); }
+.voc-lk-title { margin: 0; font: 400 24px/1.2 var(--font-display); letter-spacing: -0.005em; }
+.voc-lk-count { font-size: 13px; }
+.voc-lk-practice { margin-left: auto; }
+.voc-lk-save { color: var(--text-3); }
+.voc-lk-save[aria-pressed='true'] { color: var(--accent); }
+.voc-lk-save[aria-pressed='true'] svg { fill: currentColor; }
+
+/* ---------- Practice ---------- */
+.prc-overlay {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: color-mix(in oklab, var(--text) 38%, transparent);
+}
+.prc-card {
+  width: min(520px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--elev); color: var(--text); border-radius: var(--radius-l); box-shadow: var(--shadow-pop);
+}
+.prc-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5); border-bottom: 1px solid var(--rule); }
+.prc-title { font: 400 18px/1.2 var(--font-display); }
+.prc-progress { margin-left: auto; font-size: 13px; font-variant-numeric: tabular-nums; }
+.prc-body { flex: 1; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-7) var(--space-5) var(--space-5); text-align: center; min-height: 220px; }
+.prc-word { font: 400 64px/1.15 var(--font-serif); letter-spacing: 0.06em; }
+.prc-py { font-family: var(--font-pinyin); font-size: 22px; }
+.prc-gloss { font: 400 18px/1.45 var(--font-book); max-width: 40ch; }
+.prc-ctx { color: var(--text-2); font-size: 17px; line-height: 1.7; max-width: 32em; }
+.prc-ctx b { color: var(--text); font-weight: 600; }
+.prc-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }
+.prc-save[aria-pressed='true'] { color: var(--accent); }
+.prc-foot { display: flex; justify-content: center; gap: var(--space-3); padding: var(--space-4) var(--space-5) var(--space-5); }
+.prc-foot .btn { min-width: 120px; min-height: 44px; justify-content: center; }
+.prc-end { display: grid; gap: var(--space-2); }
+.prc-end-title { margin: 0; font: 400 32px/1.2 var(--font-display); }
+@media (max-width: 640px) {
+  .prc-word { font-size: 52px; }
+  .prc-body { padding-top: var(--space-6); }
+}

@@ -2,10 +2,10 @@
 // when IndexedDB is missing or refuses to open, e.g. some private-browsing modes).
 // All writes go through commit(), which is atomic.
 
-export type Table = 'books' | 'chapters' | 'assets' | 'progress' | 'vocab' | 'known' | 'reviews' | 'lexicon' | 'lexiconScopes' | 'sync' | 'seen';
+export type Table = 'books' | 'chapters' | 'assets' | 'progress' | 'vocab' | 'known' | 'reviews' | 'lexicon' | 'lexiconScopes' | 'sync' | 'seen' | 'lookups' | 'bookmarks';
 
 /** Bump when a table is added or changed; openDb's upgrade step creates what is missing, so v1 data is kept. */
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 
 export const TABLES: Record<Table, { keyPath: string | string[]; autoIncrement?: boolean }> = {
   books: { keyPath: 'id' },
@@ -24,6 +24,10 @@ export const TABLES: Record<Table, { keyPath: string | string[]; autoIncrement?:
   sync: { keyPath: 'key' },
   /** How often each word went by on a page without being looked up (known words learned from reading). */
   seen: { keyPath: 'word' },
+  /** Words looked up in the reader, one row per [day, word]. */
+  lookups: { keyPath: ['day', 'id'] },
+  /** Bookmarked places. */
+  bookmarks: { keyPath: 'id' },
 };
 
 export type Op =

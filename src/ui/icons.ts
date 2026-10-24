@@ -40,6 +40,7 @@ const P: Record<string, string> = {
   play: '<path d="m7 4 13 8-13 8z"/>',
   pause: '<path d="M8 5v14M16 5v14"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="1.5"/>',
+  bookmark: '<path d="M6.5 3h11v18l-5.5-4-5.5 4z"/>',
   keyboard: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M8 16h8M10 13h4"/>',
 };
 

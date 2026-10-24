@@ -89,6 +89,7 @@ The speaker button reads from your current position to the end of the chapter, w
 
 - **Click a word** (or hover, if you pick that in Settings) to open its card: pinyin, definitions, the characters inside it, radical and stroke count, stroke-order animation, and links to MDBG, Wiktionary and 汉典. Use the arrow keys to step to the neighboring words, and Shift with the arrows to make the selection shorter or longer.
 - **Double-click** does the same. On a touch screen, tap a word twice to open its whole sentence with the translation.
+- **On an iPad** the card is a small bubble at the word; the page stays where it is. On a phone it is a sheet at the bottom.
 - **Keyboard:** press Enter to put a cursor on the first word of the page, move it with the arrow keys (up and down by line), and press Enter again to open the card. Escape puts the cursor away. In Pages, tap the blank margin at the outer edge of the spread to turn the page, or swipe. A tap on a word always opens its card, even near the edge.
 - **Drag across text** to open the phrase card: pinyin over the whole phrase, a translation, and a word-by-word list. On a phone, press and hold, then adjust the selection.
 - Star a word to save it with the sentence you found it in. Mark it known and its pinyin stays hidden.
@@ -123,6 +124,14 @@ The translation panel says which one answered. You can stop a translation, switc
 
 Machine translation is a help, not a proof. Names keep their readings, and the dictionary stays the source of truth for pinyin. A real-model evaluation script is in `scripts/evaluate-translations.mjs`.
 
+## Words you looked up
+
+Every word you tap while reading is kept on the Vocabulary page under **Looked up**, day by day (Today, Yesterday, then dates), with its pinyin, meaning, the sentence it was in and the book. Tap one for its card, star it to add it to your flashcards, or remove it. **Practice** runs quick flashcards over one day or the last 7 days: Show (or Space), then Again or Got it (1 or 2). Practice does not change your flashcards' schedule. Stepping through words with Prev and Next in a card does not add them.
+
+## Bookmarks and full screen
+
+Tap the bookmark at the top of a page (or press `B`) to bookmark it; the button fills in on a bookmarked page, and tapping it again takes the bookmark away. Your bookmarks are listed under **Bookmarks** in the chapter list, and a tap takes you back. **Full screen** is in the Aa menu (or press `F`). On an iPad, Safari can go full screen; added to the Home Screen, Dushu opens without the browser bars anyway. Bookmarks and the Looked up list stay on the device you made them on.
+
 ## Review
 
 Saved words come back as flashcards. Press Space to reveal, then 1 to 4 for Again, Hard, Good, Easy. The intervals are shown on each button. Export your words for Anki from the Vocabulary page (Anki text or CSV).
@@ -135,6 +144,8 @@ Saved words come back as flashcards. Press Space to reveal, then 1 to 4 for Agai
 | `P` | Cycle the pinyin mode (in a word card: speak) |
 | `[` and `]` | Smaller and larger text |
 | `C` | Chapter list |
+| `B` | Bookmark this page, or take its bookmark away |
+| `F` | Full screen on or off |
 | `Page Down`, `Page Up` | Next or previous chapter when you are at the end or start of one |
 | `Shift` + `→` or `←` | Next or previous chapter from anywhere |
 | `←` `→` in a word card | Previous or next word |

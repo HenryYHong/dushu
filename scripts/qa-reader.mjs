@@ -1027,7 +1027,7 @@ try {
   await page.keyboard.press('Escape');
   await page.keyboard.press('n');
   await settle(500);
-  check(await page.$('.rd-toc-tab') !== null && (await page.$$eval('.rd-toc-tab', (t) => t.map((x) => x.textContent))).includes('Names & terms'), 'the chapter drawer has a Names & terms tab');
+  check(await page.$('.rd-toc-tab') !== null && (await page.$$eval('.rd-toc-tab', (t) => t.map((x) => x.textContent))).includes('Names'), 'the chapter drawer has a Names tab');
   await shot('41-names-tab');
   await page.keyboard.press('Escape');
   await page.evaluate(() => { location.hash = '#/settings'; });
