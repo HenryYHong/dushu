@@ -25,7 +25,7 @@ describe('the Mac copy (createSyncStore)', () => {
     const c = s.exchange({ epoch: a.epoch, since: 1, changes: [{ key: 'v:银行', at: 200, data: null }] });
     expect(c.version).toBe(2);
     expect(s.exchange({ epoch: a.epoch, since: 2, changes: [] }).records).toEqual([]);
-    expect(c.counts).toEqual({ words: 0, known: 0, places: 0 });
+    expect(c.counts).toEqual({ words: 0, known: 0, places: 0, lookups: 0, bookmarks: 0 });
   });
 
   it('breaks a tie the same way whatever the order', () => {

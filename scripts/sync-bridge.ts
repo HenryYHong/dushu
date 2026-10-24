@@ -1,8 +1,8 @@
-// Saved words, known words and reading places, kept on the Mac so every device the owner connects shows the same ones.
+// Saved words, known words, reading places, looked-up words and bookmarks, kept on the Mac so every device the owner connects shows the same ones.
 // Owner-only (bridgeRequest). The shared copy is one JSON file in the folder DUSHU_SYNC_DIR names (the owner's is
 // .dushu-local/sync, never in the repo, the build or the public site), written atomically, with one copy per day kept for
-// two weeks. Each record is last-writer-wins by the time the change happened on the device that made it; src/core/sync.ts
-// is the other half. Only the launcher (scripts/start-local.mjs) names the owner's folder: a server started any other way
+// two weeks. Each record is last-writer-wins by the time the change happened on the device that made it, except a word's
+// lookups on a day, which merge (every device's count); src/core/sync.ts is the other half. Only the launcher (scripts/start-local.mjs) names the owner's folder: a server started any other way
 // (npm run dev, a QA script) answers that sync is off, so it can never read or overwrite the owner's words.
 import { randomUUID } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -10,6 +10,7 @@ import { isAbsolute, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { bridgeRequest } from './private-access';
+import { canonical, isLookupRecord, mergeLookups } from '../src/core/syncKeys';
 
 /** A record as it travels: `data` null means deleted. */
 export interface WireRecord { key: string; at: number; data: unknown }
@@ -19,14 +20,14 @@ export interface SyncReply {
   epoch: string;
   version: number;
   records: WireRecord[];
-  counts: { words: number; known: number; places: number };
+  counts: { words: number; known: number; places: number; lookups: number; bookmarks: number };
 }
 
 export const SYNC_LIMITS = { body: 8 * 1024 * 1024, records: 5000, key: 160, record: 32 * 1024 };
 /** How far ahead of the Mac's clock a change may claim to be. A device with a clock far in the future would otherwise win forever. */
 const MAX_SKEW_MS = 10 * 60_000;
 const BACKUP_DAYS = 14;
-const KEY = /^[vkp]:./s;
+const KEY = /^[vkplb]:./s;
 
 const two = (n: number) => String(n).padStart(2, '0');
 const day = (d: Date) => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
@@ -94,12 +95,14 @@ export function createSyncStore(opts: SyncStoreOptions = {}) {
   }
 
   function counts(s: SyncState): SyncReply['counts'] {
-    const c = { words: 0, known: 0, places: 0 };
+    const c = { words: 0, known: 0, places: 0, lookups: 0, bookmarks: 0 };
     for (const [key, r] of Object.entries(s.records)) {
       if (r.data === null) continue;
       if (key[0] === 'v') c.words++;
       else if (key[0] === 'k') c.known++;
-      else c.places++;
+      else if (key[0] === 'p') c.places++;
+      else if (key[0] === 'l') c.lookups++;
+      else if (key[0] === 'b') c.bookmarks++;
     }
     return c;
   }
@@ -139,7 +142,18 @@ export function createSyncStore(opts: SyncStoreOptions = {}) {
         // Too large to keep: answered like a change that lost, with the Mac's copy, so the device does not take it as sent.
         if (value !== null && JSON.stringify(value).length > SYNC_LIMITS.record) { lost.add(key); continue; }
         const when = Math.min(at, limit);
-        if (wins(when, value, s.records[key])) {
+        const cur = s.records[key];
+        if (key[0] === 'l' && isLookupRecord(value) && isLookupRecord(cur?.data)) {
+          // Both devices looked the word up that day: one copy with both, sent back to the device when it is not its own.
+          const merged = mergeLookups(value, cur.data);
+          if (canonical(merged) !== canonical(cur.data)) {
+            s.records[key] = { at: Math.max(when, cur.at), data: merged, rev: ++s.version };
+            changed = true;
+          }
+          if (canonical(merged) !== canonical(value)) lost.add(key);
+          continue;
+        }
+        if (wins(when, value, cur)) {
           s.records[key] = { at: when, data: value, rev: ++s.version };
           changed = true;
         } else lost.add(key);

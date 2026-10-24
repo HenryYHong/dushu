@@ -420,6 +420,113 @@ describe('sync between two devices', () => {
   });
 });
 
+describe('looked-up words and bookmarks', () => {
+  const DAY = '2026-10-24';
+  const log = (s: Store, id: string, at: number, extra: { word?: string; gloss?: string } = {}) =>
+    s.lookups.log({ day: DAY, id, word: extra.word ?? id, pinyin: 'yin2 hang2', gloss: extra.gloss ?? 'bank' }, at);
+
+  it('brings words looked up on either device to both, keeps both devices\' lookups of the same word, and removals', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const sa = device(a, m);
+    const sb = device(b, m);
+    await log(a, '银行', 2_000_000);
+    await log(a, '银行', 2_100_000);
+    await log(a, '银行', 2_200_000);
+    await sa.run();
+    // b looked the same word up that day before it heard of a's, and another word too.
+    await log(b, '银行', 1_500_000, { word: '銀行' });
+    await log(b, '水', 1_600_000, { gloss: 'water' });
+    await sb.run(); await sa.run(); await sb.run();
+    for (const s of [a, b]) {
+      const rows = await s.lookups.list();
+      expect(rows.map((r) => r.id).sort()).toEqual(['水', '银行']);
+      // The most lookups either device made, from the first to the last of all of them, with the last one's words.
+      expect(rows.find((r) => r.id === '银行')).toMatchObject({ count: 3, first: 1_500_000, last: 2_200_000, word: '银行' });
+    }
+    expect(m.server.status().counts.lookups).toBe(2);
+    // A lookup made here after the merge still counts.
+    await log(b, '银行', 2_500_000);
+    await sb.run(); await sa.run();
+    expect((await a.lookups.list()).find((r) => r.id === '银行')).toMatchObject({ count: 4, last: 2_500_000 });
+
+    // Settled: nothing goes back and forth.
+    const before = m.sent.length;
+    await sa.run(); await sb.run(); await sa.run();
+    expect(m.sent.slice(before).every((c) => c.length === 0)).toBe(true);
+
+    await b.lookups.remove(DAY, '水');
+    await sb.run(); await sa.run();
+    expect((await a.lookups.list()).map((r) => r.id)).toEqual(['银行']);
+  });
+
+  it('a lookup made while the Mac was asleep is not lost to the copy the Mac sends back', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const [ca, cb] = [{ t: 1_000_000 }, { t: 1_000_000 }];
+    const sa = device(a, m, ca);
+    const sb = device(b, m, cb);
+    await log(a, '书', 2_000_000);
+    await sa.run(); await sb.run();
+    m.down = true;
+    cb.t = 3_000_000;
+    await log(b, '书', 3_000_000);
+    await log(b, '书', 3_100_000);
+    await sb.run();
+    m.down = false;
+    // a looks it up again later, and syncs first: its copy (2 lookups) is newer than b's offline one (3 lookups).
+    ca.t = 4_000_000;
+    await log(a, '书', 4_000_000);
+    await sa.run(); await sb.run(); await sa.run();
+    for (const s of [a, b]) expect((await s.lookups.list())[0]).toMatchObject({ count: 3, first: 2_000_000, last: 4_000_000 });
+  });
+
+  it('puts a bookmark in the same book on the other device, and removes it there', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const ba = await a.books.add(book());
+    const bb = await b.books.add(book());
+    expect(ba.id).not.toBe(bb.id);
+    const sa = device(a, m);
+    const sb = device(b, m);
+    await a.bookmarks.put({ id: `${ba.id}:1`, bookId: ba.id, chapter: 1, block: 0, offset: 3, label: '获得了', createdAt: 2_000_000, bookKey: bookKey(ba) });
+    await sa.run(); await sb.run();
+    expect(await b.bookmarks.list(bb.id)).toEqual([expect.objectContaining({ id: `${ba.id}:1`, bookId: bb.id, chapter: 1, offset: 3, label: '获得了' })]);
+    expect(m.server.status().counts.bookmarks).toBe(1);
+    const before = m.sent.length;
+    await sa.run(); await sb.run(); await sa.run();
+    expect(m.sent.slice(before).every((c) => c.length === 0)).toBe(true);
+    await b.bookmarks.remove(`${ba.id}:1`);
+    await sb.run(); await sa.run();
+    expect(await a.bookmarks.list()).toEqual([]);
+  });
+
+  it('keeps a bookmark for a book that is not on the device yet, and deleting the book keeps it on the other device', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const ba = await a.books.add(book());
+    const sa = device(a, m);
+    const sb = device(b, m);
+    // Made before bookmarks carried their book's key: it gets it from the book here.
+    await a.bookmarks.put({ id: 'm1', bookId: ba.id, chapter: 0, block: 0, offset: 0, label: '我比现在', createdAt: 2_000_000 });
+    await sa.run(); await sb.run();
+    expect(await b.bookmarks.list()).toHaveLength(1);
+    const bb = await b.books.add(book());
+    await sb.run();
+    expect((await b.bookmarks.list(bb.id)).map((x) => x.id)).toEqual(['m1']);
+    // Deleting the book on b (bookmarks stay with it, for when it is added again) sends nothing, and a keeps the bookmark.
+    const sent = m.sent.length;
+    await b.books.remove(bb.id);
+    await sb.run(); await sa.run();
+    expect(m.sent.slice(sent).flat()).toEqual([]);
+    expect((await a.bookmarks.list(ba.id)).map((x) => x.id)).toEqual(['m1']);
+    // Added again (a new id here): the bookmark is in it.
+    const again = await b.books.add(book());
+    await sb.run();
+    expect((await b.bookmarks.list(again.id)).map((x) => x.id)).toEqual(['m1']);
+  });
+});
+
 describe('QA pages on a server the script did not start', () => {
   it('keep sync off, even after the page clears its storage', async () => {
     const src = (await import('node:fs')).readFileSync('scripts/qa.mjs', 'utf8');

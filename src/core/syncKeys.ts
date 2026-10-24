@@ -57,3 +57,38 @@ export function progressWire(p: Progress): Omit<Progress, 'bookId'> {
   void _id;
   return rest;
 }
+
+/** A looked-up word's record key: 'l:<day>:<word>'. */
+export const lookupKey = (day: string, id: string): string => `l:${day}:${id}`;
+export function parseLookupKey(key: string): { day: string; id: string } | null {
+  const m = /^l:(\d{4}-\d{2}-\d{2}):(.+)$/s.exec(key);
+  return m ? { day: m[1], id: m[2] } : null;
+}
+
+interface Lookupish { count: number; first: number; last: number; word?: unknown; pinyin?: unknown; gloss?: unknown; context?: unknown }
+
+/** A looked-up word's record the Mac can merge: the counts and times are numbers. */
+export function isLookupRecord(v: unknown): v is Lookupish {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as Record<string, unknown>;
+  return [o.count, o.first, o.last].every((n) => typeof n === 'number' && Number.isFinite(n));
+}
+
+/**
+ * Two copies of a word's lookups on one day, as one: a word looked up on the iPad and on the Mac the same day keeps both,
+ * instead of the later copy replacing the other. The answer is the same whatever the order, on the Mac and every device.
+ * The words of the copy looked up last win; a tie is settled without the book's id, which each device names its own way.
+ */
+export function mergeLookups<T extends Lookupish>(a: T, b: T): T {
+  const plain = (x: T) => {
+    const c = x.context as { sentence?: unknown; bookTitle?: unknown; chapter?: unknown } | undefined;
+    return canonical({ word: x.word, pinyin: x.pinyin, gloss: x.gloss, s: c?.sentence, t: c?.bookTitle, c: c?.chapter });
+  };
+  const later = a.last !== b.last ? (a.last > b.last ? a : b) : plain(a) >= plain(b) ? a : b;
+  const other = later === a ? b : a;
+  const out: T = { ...later, count: Math.max(a.count, b.count), first: Math.min(a.first, b.first), last: Math.max(a.last, b.last) };
+  if (!out.pinyin && other.pinyin) out.pinyin = other.pinyin;
+  if (!out.gloss && other.gloss) out.gloss = other.gloss;
+  if (out.context === undefined && other.context !== undefined) out.context = other.context;
+  return out;
+}

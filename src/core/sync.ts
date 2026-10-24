@@ -1,13 +1,14 @@
-// Keeps saved words, known words and reading places the same on every device the owner connects to their Mac.
+// Keeps saved words, known words, reading places, looked-up words and bookmarks the same on every device the owner connects
+// to their Mac.
 // The Mac holds the shared copy (scripts/sync-bridge.ts). Each device keeps one row per record in the store's sync table
 // saying what it last agreed on with the Mac, so it can tell its own changes (sent with the time they happened) from the
 // Mac's (applied when newer). Those rows live in the same database as the data: a wipe or an eviction clears both, so a
 // device that lost its data looks new and only receives; it never tells the Mac its words were deleted.
-import type { BookMeta, Progress, Store, SyncRow, VocabItem } from '../types';
-import { cleanProgress, cleanVocab } from '../store';
+import type { Bookmark, BookMeta, LookupRow, Progress, Store, SyncRow, VocabItem } from '../types';
+import { cleanBookmark, cleanLookup, cleanProgress, cleanVocab } from '../store';
 import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeFetch, hasMacBridge } from './macBridge';
-import { bookKey, canonical, hash, olderKeys, progressWire } from './syncKeys';
+import { bookKey, canonical, hash, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 
 export { bookKey, canonical, hash };
 
@@ -30,7 +31,7 @@ export interface SyncStatus {
   /** Changes made here that the Mac has not received yet. */
   pending: number;
   /** What the Mac holds, from its last answer. */
-  counts?: { words: number; known: number; places: number };
+  counts?: { words: number; known: number; places: number; lookups?: number; bookmarks?: number };
   message?: string;
 }
 
@@ -66,6 +67,32 @@ function vocabLocal(item: VocabItem, books: Books): VocabItem {
   return { ...item, context: { ...item.context, bookId: books.idOf.get(item.context.bookId) ?? item.context.bookId } };
 }
 
+/** A looked-up word as it travels: its day and word are in its key, its book is named by book key. */
+function lookupWire(r: LookupRow, books: Books): Omit<LookupRow, 'day' | 'id'> {
+  const { day: _d, id: _i, ...rest } = r;
+  void _d; void _i;
+  if (!rest.context?.bookId) return rest;
+  return { ...rest, context: { ...rest.context, bookId: books.keyOf.get(rest.context.bookId) ?? rest.context.bookId } };
+}
+function lookupLocal(key: string, data: unknown, books: Books): LookupRow | null {
+  const at = parseLookupKey(key);
+  const r = at && cleanLookup({ ...(data as object), ...at });
+  if (!r) return null;
+  if (r.context?.bookId) r.context = { ...r.context, bookId: books.idOf.get(r.context.bookId) ?? r.context.bookId };
+  return r;
+}
+
+/** A bookmark as it travels: its id is in its key, its book is named by book key (kept on the bookmark, so deleting the
+ * book here changes nothing). */
+function bookmarkWire(b: Bookmark, books: Books): { book: string; chapter: number; block: number; offset: number; label: string; createdAt: number } {
+  return { book: b.bookKey ?? books.keyOf.get(b.bookId) ?? b.bookId, chapter: b.chapter, block: b.block, offset: b.offset, label: b.label, createdAt: b.createdAt };
+}
+function bookmarkLocal(id: string, data: unknown, books: Books): Bookmark | null {
+  const book = (data as { book?: unknown }).book;
+  if (typeof book !== 'string' || !book) return null;
+  return cleanBookmark({ ...(data as object), id, bookKey: book, bookId: books.idOf.get(book) ?? books.newer.get(book) ?? book });
+}
+
 /** Everything this device would send, by record key, with the time each record says it last changed. */
 type Snapshot = Map<string, { data: unknown; sig: string; at: number; bare?: string }>;
 async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>): Promise<Snapshot> {
@@ -78,6 +105,8 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>):
     put(`v:${item.id}`, wire, Math.max(item.srs?.last ?? 0, item.addedAt ?? 0), bareOf(wire));
   }
   for (const word of store.known.all()) put(`k:${word}`, store.known.isAuto(word) ? { a: 1 } : {}, 0);
+  for (const r of await store.lookups.list()) put(lookupKey(r.day, r.id), lookupWire(r, books), r.last);
+  for (const b of await store.bookmarks.list()) put(`b:${b.id}`, bookmarkWire(b, books), b.createdAt);
   for (const [id, key] of books.keyOf) {
     const p = await store.progress.get(id);
     if (p) put(`p:${key}`, progressWire(p), p.updatedAt);
@@ -173,6 +202,16 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     }
     const rows = new Map((await store.sync.rows()).map((r) => [r.key, r]));
     const meta: Meta = { cursor: 0, ...(rows.get(META)?.held as Meta | undefined) };
+
+    // 0. Bookmarks that name their book by key: on the book here, once it is here (it arrived, or was added again).
+    const remapped: Bookmark[] = [];
+    for (const b of await store.bookmarks.list()) {
+      const key = b.bookKey ?? books.keyOf.get(b.bookId);
+      if (!key) continue;
+      const id = books.idOf.get(key) ?? books.newer.get(key) ?? b.bookId;
+      if (key !== b.bookKey || id !== b.bookId) remapped.push({ ...b, bookKey: key, bookId: id });
+    }
+    if (remapped.length) await store.sync.apply({ bookmarksPut: remapped });
 
     // 1. Places held for books that have arrived since (store.books.add lands most of them as the book arrives).
     const arrived = new Map<string, Progress>();
@@ -317,6 +356,11 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const knownPut: { word: string; auto?: true }[] = [];
     const knownDel: string[] = [];
     const progressPut: Progress[] = [];
+    const lookupsPut: LookupRow[] = [];
+    const lookupsDel: { day: string; id: string }[] = [];
+    const bookmarksPut: Bookmark[] = [];
+    const bookmarksDel: string[] = [];
+    let resend = false;
     const moved = new Map<string, Progress>();
     const next: SyncRow[] = [];
     /** The signature this device gives the Mac's copy of a record (as in its rows); null when the copy is unusable. */
@@ -327,6 +371,14 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         return item && item.id === id ? sigOf(vocabWire(item, books)) : null;
       }
       if (kind === 'k') return sigOf((data as { a?: unknown }).a ? { a: 1 } : {});
+      if (kind === 'l') {
+        const r = lookupLocal(`l:${id}`, data, books);
+        return r ? sigOf(lookupWire(r, books)) : null;
+      }
+      if (kind === 'b') {
+        const b = bookmarkLocal(id, data, books);
+        return b ? sigOf(bookmarkWire(b, books)) : null;
+      }
       const wire = cleanProgress({ ...(data as object), bookId: 'held' });
       return wire ? sigOf(progressWire(wire)) : null;
     };
@@ -334,8 +386,21 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       if (!r || typeof r.key !== 'string' || r.key.length > MAX_KEY || typeof r.at !== 'number' || !Number.isFinite(r.at)) continue;
       const kind = r.key[0];
       const id = r.key.slice(2);
-      if (r.key[1] !== ':' || !id || (kind !== 'v' && kind !== 'k' && kind !== 'p')) continue;
+      if (r.key[1] !== ':' || !id || !'vkplb'.includes(kind)) continue;
       const base = rows.get(r.key);
+      if (kind === 'l' && r.data !== null && r.data !== undefined) {
+        // Lookups merge (mergeLookups), so the Mac's copy is always taken: the store merges it with the row here, and what
+        // only this device had is sent next time (the row records the Mac's copy, which no longer matches the one here).
+        const item = lookupLocal(r.key, r.data, books);
+        if (!item) continue;
+        const wire = lookupWire(item, books);
+        const sig = sigOf(wire);
+        const mine = current.get(r.key)?.data as Omit<LookupRow, 'day' | 'id'> | undefined;
+        if (mine && sigOf(mergeLookups(mine, wire)) !== sig) resend = true;
+        if (base?.sig !== sig) lookupsPut.push(item);
+        next.push({ key: r.key, at: r.at, sig });
+        continue;
+      }
       if (base?.dirty && sent.has(r.key) && r.at < base.at && sigHere(kind, id, r.data ?? null) === base.sig) {
         // Our own change, back with the Mac's time: a device clock ahead of the Mac's is held back to it. That time is the one
         // every device compares, so it is taken; kept ahead, a newer change from elsewhere would look older and be skipped.
@@ -381,6 +446,23 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         const sig = sigOf(wire);
         if (base?.sig !== sig) knownPut.push(auto ? { word: id, auto: true } : { word: id });
         next.push({ key: r.key, at: r.at, sig });
+      } else if (kind === 'l') {
+        // Deleted there (a copy that is not deleted was taken above).
+        const at = parseLookupKey(r.key);
+        if (!at) continue;
+        if (base?.sig !== '-') lookupsDel.push(at);
+        next.push({ key: r.key, at: r.at, sig: '-' });
+      } else if (kind === 'b') {
+        if (data === null) {
+          if (base?.sig !== '-') bookmarksDel.push(id);
+          next.push({ key: r.key, at: r.at, sig: '-' });
+          continue;
+        }
+        const b = bookmarkLocal(id, data, books);
+        if (!b) continue;
+        const sig = sigOf(bookmarkWire(b, books));
+        if (base?.sig !== sig) bookmarksPut.push(b);
+        next.push({ key: r.key, at: r.at, sig });
       } else {
         if (data === null) continue;
         const wire = cleanProgress({ ...(data as object), bookId: 'held' });
@@ -404,9 +486,9 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     }
     if (!next.length) return kept;
     for (const p of moved.values()) if (!progressPut.some((q) => q.bookId === p.bookId && q.updatedAt >= p.updatedAt)) progressPut.push(p);
-    await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, rows: next, seen: rows });
-    // A moved place is this device's to send, under the book's key here.
-    if (moved.size) soon();
+    await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, lookupsPut, lookupsDel, bookmarksPut, bookmarksDel, rows: next, seen: rows });
+    // A moved place is this device's to send, under the book's key here; so are lookups only this device had.
+    if (moved.size || resend) soon();
     for (const r of next) rows.set(r.key, r);
     announceProgress(progressPut);
     return kept;

@@ -402,7 +402,7 @@ Serve removes spoofed identity headers; direct remote requests cannot reach the 
 limits, two active generations, timeouts and disconnect cancellation. It never exposes Ollama model management.
 The browser requests its own origin, not iPad localhost:11434. Books are exact opt-in owner files, not a Downloads browser.
 API responses are no-store and the service worker does not intercept them. Books stay device/browser-specific; saved words,
-known words and reading places sync through the Mac (§4.11). New v1 backups include only SHA-256 book-content identities, not the content itself.
+known words, reading places, looked-up words and bookmarks sync through the Mac (§4.11). New v1 backups include only SHA-256 book-content identities, not the content itself.
 Progress, book-specific terms and vocab book context are remapped only to an exact, unambiguous imported copy;
 different editions/duplicate copies are not guessed, and older backups remain readable. Import books before the backup.
 Mac services require an awake, connected Mac.
@@ -530,16 +530,18 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   clears the counts). An added word updates the open page in place (the store's `known` change → `refreshMarks`), never re-segmenting.
 
 ### 4.11 Sync through the Mac (`core/sync.ts`, `scripts/sync-bridge.ts`)
-Saved words (with their SRS state), known words (with the learned-from-reading mark) and the reading place in each book are the same on
-every device connected to the Mac. Books, settings, review logs and names are not synced.
+Saved words (with their SRS state), known words (with the learned-from-reading mark), the reading place in each book, looked-up words and
+bookmarks are the same on every device connected to the Mac. Books, settings, review logs and names are not synced.
 - **The Mac** (`scripts/sync-bridge.ts`, route `POST /api/sync`, owner-only through `bridgeRequest`, CORS like the other bridge routes)
   keeps one file, `state.json` in the folder `DUSHU_SYNC_DIR` names (an absolute path; the owner's is `.dushu-local/sync`):
   `{ epoch, version, records: { key: { at, data, rev } } }`. There is no default folder: only `scripts/start-local.mjs` (Dushu.command,
   `npm start`, the login item) sets it, and a server started any other way (`npm run dev`, `npm run preview`, a QA script) answers 503
   `{ off: true }`. A save by another process on the same folder (a new inode) is read before the next merge, never overwritten.
-  Keys: `v:<word id>`, `k:<word>`, `p:<book key>`; `data: null` is a deletion. A request sends `{ epoch, since, changes: [{ key, at, data }] }`;
+  Keys: `v:<word id>`, `k:<word>`, `p:<book key>`, `l:<day>:<word id>` (a looked-up word), `b:<bookmark id>`; `data: null` is a deletion. A request sends `{ epoch, since, changes: [{ key, at, data }] }`;
   each change wins when its `at` is later (a tie goes to the larger JSON, so every copy agrees; an `at` more than 10 minutes ahead of the
-  Mac's clock is clamped). `at: 0` means a copy the device never synced: it lands only where the Mac has nothing. The reply holds every
+  Mac's clock is clamped). Looked-up words are the exception: two copies of a word's day merge (`mergeLookups` in `core/syncKeys.ts`: the
+  larger count, the earliest first and latest last lookup, the words of the copy looked up last), and the device gets the merged copy back
+  when it differs from its own; a deletion is still last-writer-wins. `at: 0` means a copy the device never synced: it lands only where the Mac has nothing. The reply holds every
   record with `rev > since` plus the current value of every change that lost, the new `version`, and counts. A different `epoch` (or a
   cursor past the end) gets everything. Writes are atomic; before the first write of a day the previous file is kept as
   `state-YYYY-MM-DD.json` (14 kept); a file that cannot be parsed is set aside, never overwritten. Limits: 8 MB body (a larger one is read
@@ -554,9 +556,12 @@ every device connected to the Mac. Books, settings, review logs and names are no
   transaction, heard by screens as a remote change). Places are never deleted by sync, and a held place is sent like any other. A fresh word that meets the Mac's copy keeps the one
   studied more (`srs.last`), or itself when it was saved after the Mac's deletion, and is sent again stamped to win.
 - **Book keys** (`bookKey`): `m<file digest>` for the Mac's books, `s<id>` for the classics, else `b<hash of chapter count, Han count and
-  chapter titles>` (the same import of the same file matches; a rename does not change it). Saved words travel with `context.bookId` as the
-  book key and are mapped back to the local id.
-- **When**: at start, 1.5 s after a word or known-word change, 5 s after a place is saved, on every screen change, when the page is hidden (keepalive when small) or
+  chapter titles>` (the same import of the same file matches; a rename does not change it). Saved words and looked-up words travel with
+  `context.bookId` as the book key and are mapped back to the local id. A bookmark keeps its book's key (`Bookmark.bookKey`, set when it is
+  made, or by the first sync for older ones), travels as `book`, and is moved onto the local book whenever that book is here (it arrived, or
+  was deleted and added again); deleting a book keeps its bookmarks and sends nothing. A device always takes the Mac's copy of a looked-up word
+  (the store merges it with its own row in `store.sync.apply`) and sends again what only it had.
+- **When**: at start, 1.5 s after a change to words, known words, lookups or bookmarks, 5 s after a place is saved, on every screen change, when the page is hidden (keepalive when small) or
   shown again, when the connected Mac changes, when back online, and every 45 s while visible. The reader waits up to 1.5 s for a sync
   before it reads the saved place (`syncBeforeOpen`), never saves a place that did not move (so opening a book on a stale device cannot
   overwrite a newer place), and when another device's place arrives for the open book it offers "Go there" (`dushu:remote-progress`).
@@ -769,10 +774,10 @@ and opens it. Empty state explains what the app does in two sentences.
   `log: false`. One row per simplified headword per local day (count, first, last, reading as read, gloss, sentence, book). The
   Vocabulary screen has Saved | Looked up tabs (`dushu.vocab.tab`); Looked up groups by day, newest first, each day with Practice, plus
   "Practice the last 7 days" (one row per word). Practice is a run of its own (Again puts the word at the end, Got it moves on) and
-  never touches the SRS schedule; its star saves to the flashcards. Not synced yet.
+  never touches the SRS schedule; its star saves to the flashcards. Synced through the Mac (§4.11).
 - Bookmarks (store table `bookmarks`; reader top-bar button and `B`; drawer tab): stored like a reading place (chapter, stored block,
   offset) plus the first 28 characters as a label. The button is pressed when a bookmark lies on the spread on screen (Pages,
-  `pager.shownRange()`) or in a block in view (Scroll), checked on every progress update. Not synced yet.
+  `pager.shownRange()`) or in a block in view (Scroll), checked on every progress update. Synced through the Mac (§4.11).
 - Full screen (`ui/fullscreen.ts`, Aa menu row and `F`): the Fullscreen API with WebKit-prefixed fallbacks; where the browser has
   none (an iPhone) and the app is not a Home Screen app, the row says how to add it to the Home Screen.
 

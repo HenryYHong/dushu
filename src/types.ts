@@ -234,6 +234,8 @@ export interface Bookmark {
   /** The first words on the page, to recognize it by. */
   label: string;
   createdAt: number;
+  /** The book's sync key (core/syncKeys bookKey), so the bookmark finds the book on another device or after it is added again. */
+  bookKey?: string;
 }
 
 /** What a store change was about (Store.onChange). */
@@ -250,7 +252,10 @@ export interface SeenRow {
   lastDay: number;
 }
 
-/** Sync bookkeeping: the record `key` ('v:<word>', 'k:<word>', 'p:<book key>') as this device last agreed with the Mac. */
+/**
+ * Sync bookkeeping: the record `key` ('v:<word>', 'k:<word>', 'p:<book key>', 'l:<day>:<word>' for a looked-up word,
+ * 'b:<bookmark id>') as this device last agreed with the Mac.
+ */
 export interface SyncRow {
   key: string;
   /** When the record last changed, on the device that changed it (ms epoch). */
@@ -273,6 +278,11 @@ export interface SyncApply {
   knownPut?: { word: string; auto?: true }[];
   knownDel?: string[];
   progressPut?: Progress[];
+  /** Merged with the row here (mergeLookups): every device's lookups of a word on a day count. */
+  lookupsPut?: LookupRow[];
+  lookupsDel?: { day: string; id: string }[];
+  bookmarksPut?: Bookmark[];
+  bookmarksDel?: string[];
   rows?: SyncRow[];
   /** The rows as the syncer last read or wrote them, so a held place changed since is kept (see Store['sync'].write). */
   seen?: ReadonlyMap<string, SyncRow>;
@@ -426,14 +436,14 @@ export interface Store {
     /** How many known words reading marked. */
     autoCount(): number;
   };
-  /** Words looked up in the reader, one row per word per day. Kept on this device. */
+  /** Words looked up in the reader, one row per word per day. Synced through the Mac (core/sync.ts). */
   lookups: {
     /** Counts a lookup of `row.id` on `row.day` (adds the row, or bumps its count and last time). */
     log(row: Omit<LookupRow, 'count' | 'first' | 'last'>, at: number): Promise<void>;
     list(): Promise<LookupRow[]>;
     remove(day: string, id: string): Promise<void>;
   };
-  /** Bookmarked places. Kept on this device. */
+  /** Bookmarked places. Synced through the Mac (core/sync.ts). */
   bookmarks: {
     list(bookId?: string): Promise<Bookmark[]>;
     put(b: Bookmark): Promise<void>;

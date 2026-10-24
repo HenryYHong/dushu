@@ -28,7 +28,8 @@ export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date
   if (st.state === 'syncing' && !st.lastOk) return 'Syncing with your Mac…';
   if (!st.lastOk) return 'Not synced yet.';
   const c = st.counts;
-  const held = c ? ` Your Mac holds ${n(c.words, 'saved word')}, ${n(c.known, 'known word')} and your place in ${n(c.places, 'book')}.` : '';
+  const marks = c?.bookmarks ? `, ${n(c.bookmarks, 'bookmark')}` : '';
+  const held = c ? ` Your Mac holds ${n(c.words, 'saved word')}, ${n(c.known, 'known word')}${marks} and your place in ${n(c.places, 'book')}.` : '';
   return `Up to date, synced ${ago(st.lastOk, now)}.${held}${waiting}`;
 }
 
@@ -50,7 +51,7 @@ export function syncRow(): { el: HTMLElement; dispose(): void } {
   const tick = window.setInterval(show, 30_000);
   show();
   const el = row('Sync',
-    'Saved words (with their review schedule), known words and your place in each book stay the same on every device connected to this Mac. Changes made while the Mac is asleep sync when it wakes.',
+    'Saved words (with their review schedule), known words, the words you looked up, bookmarks and your place in each book stay the same on every device connected to this Mac. Changes made while the Mac is asleep sync when it wakes.',
     h('div.set-sync', null, h('div.set-sync-top', null, toggle, now), status));
   return { el, dispose() { window.removeEventListener(SYNC_EVENT, show); window.clearInterval(tick); } };
 }

@@ -130,7 +130,7 @@ Every word you tap while reading is kept on the Vocabulary page under **Looked u
 
 ## Bookmarks and full screen
 
-Tap the bookmark at the top of a page (or press `B`) to bookmark it; the button fills in on a bookmarked page, and tapping it again takes the bookmark away. Your bookmarks are listed under **Bookmarks** in the chapter list, and a tap takes you back. **Full screen** is in the Aa menu (or press `F`). On an iPad, Safari can go full screen; added to the Home Screen, Dushu opens without the browser bars anyway. Bookmarks and the Looked up list stay on the device you made them on.
+Tap the bookmark at the top of a page (or press `B`) to bookmark it; the button fills in on a bookmarked page, and tapping it again takes the bookmark away. Your bookmarks are listed under **Bookmarks** in the chapter list, and a tap takes you back. **Full screen** is in the Aa menu (or press `F`). On an iPad, Safari can go full screen; added to the Home Screen, Dushu opens without the browser bars anyway. Bookmarks and the Looked up list sync through your Mac like your saved words.
 
 ## Review
 
@@ -157,7 +157,7 @@ Saved words come back as flashcards. Press Space to reveal, then 1 to 4 for Agai
 
 ## Privacy
 
-On the hosted site, everything is local to your browser. Books, saved words, progress and settings live in the browser's own storage, and the dictionary is served with the app. If you connect your own Mac, your words and reading places are also kept on that Mac, never anywhere else. The app contacts another site only when you ask it to: the stroke-order data for a character (from jsDelivr), the selected text if you choose MyMemory, and your own Mac if you connect one. Settings has a backup export and a Delete all data button. Backups hold your words, progress and settings, but not your books or any key.
+On the hosted site, everything is local to your browser. Books, saved words, progress and settings live in the browser's own storage, and the dictionary is served with the app. If you connect your own Mac, your words, reading places and bookmarks are also kept on that Mac, never anywhere else. The app contacts another site only when you ask it to: the stroke-order data for a character (from jsDelivr), the selected text if you choose MyMemory, and your own Mac if you connect one. Settings has a backup export and a Delete all data button. Backups hold your words, progress and settings, but not your books or any key.
 
 ## Data sources and licenses
 

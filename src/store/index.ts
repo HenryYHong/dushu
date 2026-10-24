@@ -3,7 +3,7 @@ import type {
   BackupReport, Bookmark, BookMeta, Chapter, Grade, ImportedBook, LookupRow, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, StoreChange, SyncRow, VocabItem, LexiconEntry,
 } from '../types';
 import { hanBefore, moveByPercent, placeAt, textHan } from '../core/place';
-import { bookKey, canonical, olderKeys, progressWire } from '../core/syncKeys';
+import { bookKey, canonical, mergeLookups, olderKeys, progressWire } from '../core/syncKeys';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
 import { TABLES, createIdbBackend, createMemoryBackend, friendlyError, type Backend, type Table } from './db';
@@ -128,12 +128,8 @@ export function cleanVocab(v: unknown): VocabItem | null {
     id, simp: simp || id, trad: trad.length > LIMITS.key ? simp || id : trad, pinyin: cut(v.pinyin, LIMITS.pinyin),
     gloss: cut(v.gloss, LIMITS.gloss), addedAt, srs: sanitizeSrs(v.srs, addedAt),
   };
-  if (isObj(v.context) && typeof v.context.sentence === 'string') {
-    item.context = { sentence: v.context.sentence.slice(0, LIMITS.sentence) };
-    if (typeof v.context.bookId === 'string' && v.context.bookId.length <= LIMITS.key) item.context.bookId = v.context.bookId;
-    if (typeof v.context.bookTitle === 'string') item.context.bookTitle = v.context.bookTitle.slice(0, LIMITS.title);
-    if (typeof v.context.chapter === 'number' && Number.isFinite(v.context.chapter)) item.context.chapter = v.context.chapter;
-  }
+  const context = cleanContext(v.context);
+  if (context) item.context = context;
   return item;
 }
 
@@ -147,6 +143,48 @@ export function cleanProgress(v: unknown): Progress | null {
     updatedAt: fin(v.updatedAt, 0),
   };
   if (typeof v.offset === 'number' && Number.isFinite(v.offset) && v.offset > 0) out.offset = Math.round(v.offset);
+  return out;
+}
+
+function cleanContext(v: unknown): VocabItem['context'] | undefined {
+  if (!isObj(v) || typeof v.sentence !== 'string') return undefined;
+  const c: NonNullable<VocabItem['context']> = { sentence: v.sentence.slice(0, LIMITS.sentence) };
+  if (typeof v.bookId === 'string' && v.bookId.length <= LIMITS.key) c.bookId = v.bookId;
+  if (typeof v.bookTitle === 'string') c.bookTitle = v.bookTitle.slice(0, LIMITS.title);
+  if (typeof v.chapter === 'number' && Number.isFinite(v.chapter)) c.chapter = v.chapter;
+  return c;
+}
+
+/** A looked-up word's row from another device, or null when it is not one. */
+export function cleanLookup(v: unknown): LookupRow | null {
+  if (!isObj(v) || typeof v.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v.day)) return null;
+  const id = str(v.id);
+  if (!id || id.length > LIMITS.word) return null;
+  const last = fin(v.last, 0);
+  const out: LookupRow = {
+    day: v.day, id, word: str(v.word, id).slice(0, LIMITS.word) || id, pinyin: cut(v.pinyin, LIMITS.pinyin), gloss: cut(v.gloss, LIMITS.gloss),
+    count: Math.max(1, Math.round(fin(v.count, 1))), first: fin(v.first, last), last,
+  };
+  const context = cleanContext(v.context);
+  if (context) out.context = context;
+  return out;
+}
+
+/** A bookmark from another device, or null when it is not one. */
+export function cleanBookmark(v: unknown): Bookmark | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id);
+  const bookId = str(v.bookId);
+  if (!id || id.length > LIMITS.key || !bookId || bookId.length > LIMITS.key) return null;
+  const out: Bookmark = {
+    id, bookId,
+    chapter: Math.max(0, Math.round(fin(v.chapter, 0))),
+    block: Math.max(0, Math.round(fin(v.block, 0))),
+    offset: Math.max(0, Math.round(fin(v.offset, 0))),
+    label: cut(v.label, LIMITS.title),
+    createdAt: fin(v.createdAt, 0),
+  };
+  if (typeof v.bookKey === 'string' && v.bookKey && v.bookKey.length <= LIMITS.key) out.bookKey = v.bookKey;
   return out;
 }
 
@@ -650,6 +688,19 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
             const clean = cleanProgress(p);
             if (clean) ops.push({ op: 'put', table: 'progress', value: clean });
           }
+          for (const r of change.lookupsPut ?? []) {
+            const clean = cleanLookup(r);
+            if (!clean) continue;
+            // Merged with the row here, read in this turn: a lookup made here while the sync ran is kept.
+            const here = await db.get<LookupRow>('lookups', [clean.day, clean.id]);
+            ops.push({ op: 'put', table: 'lookups', value: here ? mergeLookups(here, clean) : clean });
+          }
+          for (const { day, id } of change.lookupsDel ?? []) ops.push({ op: 'del', table: 'lookups', key: [day, id] });
+          for (const b of change.bookmarksPut ?? []) {
+            const clean = cleanBookmark(b);
+            if (clean) ops.push({ op: 'put', table: 'bookmarks', value: clean });
+          }
+          for (const id of change.bookmarksDel ?? []) ops.push({ op: 'del', table: 'bookmarks', key: id });
           for (const row of await mergeHeld(change.rows ?? [], change.seen)) ops.push({ op: 'put', table: 'sync', value: row });
           // One transaction: the records and the rows that say they are in step can never disagree.
           await write(ops);
@@ -658,7 +709,9 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           if (vocab) rebuildVocab(await db.getAll<VocabItem>('vocab'));
           if (known) loadKnown(await db.getAll<KnownRow>('known'));
           // Heard here as remote (another device made the change) and told to the other tabs like any save.
-          for (const what of [vocab && 'vocab', known && 'known'] as const) {
+          const lookups = !!(change.lookupsPut?.length || change.lookupsDel?.length);
+          const bookmarks = !!(change.bookmarksPut?.length || change.bookmarksDel?.length);
+          for (const what of [vocab && 'vocab', known && 'known', lookups && 'lookups', bookmarks && 'bookmarks'] as const) {
             if (!what) continue;
             notify(what, true);
             post({ db: name, from: tabId, what });

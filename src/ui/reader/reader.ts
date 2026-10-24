@@ -6,7 +6,7 @@ import type { Bookmark, Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, 
 import { readingFontSizeKey } from '../../store/settings';
 import { canSpeak, pauseSpeaking, resumeSpeaking, setSpeakingRate, speakSequence, stopSpeaking } from '../../speech/tts';
 import { EMPTY_LEXICON, isDetecting, loadLexicon } from '../../core/lexicon';
-import { REMOTE_PROGRESS_EVENT, syncBeforeOpen } from '../../core/sync';
+import { REMOTE_PROGRESS_EVENT, bookKey, syncBeforeOpen } from '../../core/sync';
 import { chapterWords, type ChapterWords } from '../../core/chapterWords';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
@@ -577,7 +577,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (!p || !v) return;
     const at = v.fromStored(p.block, p.offset);
     const label = [...(v.blocks[at.block]?.text ?? '').slice(at.offset).replace(/\s+/g, ' ').trim()].slice(0, 28).join('');
-    const mark: Bookmark = { id: `${book!.id}:${Date.now().toString(36)}`, bookId: book!.id, chapter: p.chapter, block: p.block, offset: p.offset, label, createdAt: Date.now() };
+    const mark: Bookmark = { id: `${book!.id}:${Date.now().toString(36)}`, bookId: book!.id, chapter: p.chapter, block: p.block, offset: p.offset, label, createdAt: Date.now(), bookKey: bookKey(book!) };
     try { await store.bookmarks.put(mark); } catch (e) { ctx.toast(e instanceof Error ? e.message : 'Could not save the bookmark.'); return; }
     ctx.toast('Page bookmarked. Find it under Bookmarks in the chapter list.', { ms: 4000 });
   }
