@@ -78,6 +78,8 @@ const AFTER_DUO = '年歲岁天日月次人回遍斤里位个個';
  * two words (他用船 is 他 + 用 + 船, 但聞人語響 is 聞 + 人語, 驚的士奇 is 驚 + 的 + 士奇). Each loses 8 nats.
  */
 const UNLIKELY_WORDS: ReadonlySet<string> = new Set(['他用', '聞人', '闻人', '的士', '先見', '先见', '報上', '报上', '與非', '与非']);
+/** Words after which 了得 is liǎode "remarkable" (十分了得, 武藝了得, 還了得), not 了 le + 得. */
+const BEFORE_LIAODE = ['十分', '好生', '端的', '還', '还', '英雄', '武藝', '武艺', '真個', '真个', '恁地', '恁般', '如此'];
 
 /** AABB or ABAB at `pos` built from a two-character dictionary word AB, with the score it gets as one token. */
 function reduplication(text: string, pos: number, b: number, dict: Dictionary): { word: string; score: number } | null {
@@ -159,6 +161,15 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
       if (w.length === 2 && '里裡裏'.includes(w[1]) && '面边邊头頭'.includes(text[end] ?? '')) own -= 4;
       // 三十多年才能輪到: 才能 after a time word is 才 + 能 (not the noun "talent").
       if (w === '才能' && pos > a && '年月日天時时次回歲岁'.includes(text[pos - 1])) own -= 12;
+      // 有一行字: a line of writing (一 + 行 háng + 字), not the travelling party 一行 (yìxíng) of 一行人.
+      if (w === '一行' && text[end] === '字') own -= 12;
+      // 背著 is bēi (carrying) by default (WORD_READINGS); turned away from (背著臉), behind someone's back (偷背著我們, 背著人) and
+      // 倒背著兩手 are bèi: cut there, and 背 alone keeps its bèi.
+      if ((w === '背著' || w === '背着') && ('臉脸人眾众'.includes(text[end] ?? '') || (pos > a && '偷倒'.includes(text[pos - 1])))) own -= 12;
+      // 那還了得！ 好生了得: 了得 (liǎode) ends its clause or follows a word of praise; 了 and 得 are so common they would split it.
+      // A longer dictionary word that ends in it (這還了得) is left to win on its own.
+      if (w === '了得' && (end === b || BEFORE_LIAODE.some((p) => pos - p.length >= a && text.startsWith(p, pos - p.length)))
+        && ![1, 2, 3].some((k) => pos - k >= a && dict.hasWord(text.slice(pos - k, end)))) own += 8;
       // 三十多年: the 多 goes with the number.
       if (w.length >= 2 && w[0] === '多' && pos > a && NUMERAL_BEFORE_DUO.includes(text[pos - 1]) && AFTER_DUO.includes(w[1])) own -= 12;
       const s = own - logTotal + score[end - a];

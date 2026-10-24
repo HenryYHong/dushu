@@ -196,3 +196,35 @@ describe('vocab screen', () => {
     expect(toasts.at(-1)).toContain('Could not open');
   });
 });
+
+describe('page heads', () => {
+  // One h1 per screen: the Chinese name first (lang zh-Hans, hidden from screen readers), then the English title.
+  const head = (root: HTMLElement) => {
+    const h1 = root.querySelector('h1.page-title')!;
+    const zh = h1.querySelector('.page-title-zh')!;
+    return { count: root.querySelectorAll('h1').length, zh: zh.textContent, lang: zh.getAttribute('lang'), hidden: zh.getAttribute('aria-hidden'), en: h1.querySelector('.page-title-en')?.textContent };
+  };
+  it('Vocabulary is 生词', async () => {
+    const { ctx, root } = await setup([item('你好', 'ni3 hao3', 'hello')]);
+    const cleanup = await mountVocab(root, {}, ctx) as () => void;
+    await until(() => !!root.querySelector('.voc-row'));
+    expect(head(root)).toEqual({ count: 1, zh: '生词', lang: 'zh-Hans', hidden: 'true', en: 'Vocabulary' });
+    cleanup();
+  });
+  it('Review is 复习 over the empty state and the summary, and a session shows only the card', async () => {
+    const empty = await setup([]);
+    let cleanup = await mountReview(empty.root, {}, empty.ctx) as () => void;
+    await until(() => !!empty.root.querySelector('.rev-empty'));
+    expect(head(empty.root)).toEqual({ count: 1, zh: '复习', lang: 'zh-Hans', hidden: 'true', en: 'Review' });
+    expect(empty.root.querySelector('.rev-empty-title')?.tagName).toBe('H2');
+    cleanup();
+    const one = await setup([item('爱', 'ai4', 'to love')]);
+    cleanup = await mountReview(one.root, {}, one.ctx) as () => void;
+    await until(() => !!one.root.querySelector('.rev-word'));
+    expect(one.root.querySelector('.page-head')).toBeNull();
+    key(' '); key('4');
+    await until(() => !!one.root.querySelector('.rev-summary-title'));
+    expect(head(one.root).zh).toBe('复习');
+    cleanup();
+  });
+});

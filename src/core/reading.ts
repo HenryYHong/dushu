@@ -11,12 +11,14 @@ const SURNAME = /^(japanese |korean |chinese )?surname\b/i;
 /** "abbr. for Xinjiang", "short name for Guizhou". */
 const ABBR = /^(abbr\.|abbreviation|short (name )?for|short form)/i;
 /** "variant of 煮[zhu3]", "old variant of 因[yin1]", "same as", "see": the row points at another headword. */
-const VARIANT = /^((old|archaic|ancient|japanese|unofficial|erhua|euphemistic|dialectal|taiwan|korean) )*(variant|form)( of| pronunciation)?\b|^(also written|same as|see |see also|also pr\.|taiwan pr\.|pr\. )/i;
+const VARIANT = /^((old|archaic|ancient|japanese|unofficial|erhua|euphemistic|dialectal|taiwan|korean) )*(variant|form)( of| pronunciation)?\b|^(also written|same as|see |see also|also pr\.|taiwan pr\.|colloquial pr\.|commonly pr\.|pr\. )/i;
 const ONOM = /^\(onom\.\)/i;
 const USED_IN = /^used in /i;
 const NOTE_VARIANT = /^\((variant|old variant) of /i;
 /** "hemp (variant of 麻[ma2])": a meaning, but said of a variant spelling; the entry of the real word leads. */
 const TRAILING_VARIANT = /\((?:old |archaic )?variant of [^)]*\)\s*$/i;
+/** "that; those (colloquial pr. [nei4])", "to confess (Taiwan pr. [gong1])": a note on the sound at the end of a meaning. */
+const TRAILING_PRONUNCIATION = /\s*\(((?:colloquial|commonly|also|taiwan) pr\. \[[^\]]*\][^()]*)\)\s*$/i;
 
 /**
  * How unattractive one definition is as the lead sense of a word (0 = a real meaning).
@@ -36,8 +38,15 @@ export function defWeakness(def: string): number {
 
 const isClassifier = (d: string) => /^CL:/.test(d);
 
-/** Definitions with the weak ones moved behind the real meanings (stable; classifier lines keep their place). */
-export function rankedDefs(defs: readonly string[]): string[] {
+/**
+ * Definitions with the weak ones moved behind the real meanings (stable; classifier lines keep their place). A note on the
+ * sound at the end of a meaning becomes a line of its own and goes last too, so a short gloss of 那 says "that; those".
+ */
+export function rankedDefs(raw: readonly string[]): string[] {
+  const defs = raw.flatMap((d) => {
+    const m = TRAILING_PRONUNCIATION.exec(d);
+    return m && m.index > 0 ? [d.slice(0, m.index), m[1]] : [d];
+  });
   const idx = defs.map((d, i) => ({ d, i, w: isClassifier(d) ? -1 : defWeakness(d) }));
   if (idx.every((x) => x.w <= 0)) return defs.slice();
   // Classifier lines are pulled out by the popup anyway; keep them where they were relative to their neighbors.

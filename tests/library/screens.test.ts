@@ -39,6 +39,24 @@ function book(title: string, author = '作者'): ImportedBook {
   };
 }
 
+/**
+ * Each screen's title is one h1: the Chinese name first, as real text in lang="zh-Hans" but hidden from screen readers,
+ * then the English title, which is what a screen reader announces.
+ */
+function expectPageHead(zh: string, en: string): void {
+  const h1s = root.querySelectorAll('h1');
+  expect(h1s).toHaveLength(1);
+  const h1 = h1s[0];
+  expect(h1.classList.contains('page-title')).toBe(true);
+  const kicker = h1.querySelector<HTMLElement>('.page-title-zh')!;
+  expect(kicker.textContent).toBe(zh);
+  expect(kicker.getAttribute('lang')).toBe('zh-Hans');
+  expect(kicker.getAttribute('aria-hidden')).toBe('true');
+  expect(h1.firstElementChild).toBe(kicker); // Chinese first
+  const spoken = [...h1.childNodes].filter((n) => !(n instanceof HTMLElement && n.getAttribute('aria-hidden') === 'true')).map((n) => n.textContent).join('').trim();
+  expect(spoken).toBe(en);
+}
+
 let store: DushuStore;
 let root: HTMLElement;
 let toasts: string[];
@@ -93,6 +111,7 @@ describe('library screen', () => {
   it('shows the empty state, with no classics section when the index is missing', async () => {
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => !!root.querySelector('.lib-empty'));
+    expectPageHead('书架', 'Library');
     expect(root.querySelector('.lib-empty-title')?.textContent).toMatch(/Read real Chinese books/);
     await flush(50);
     expect(root.querySelector('.lib-samples')?.children.length).toBe(0);
@@ -112,6 +131,30 @@ describe('library screen', () => {
     expect(forB.textContent).toContain('42%');
     expect(cards.find((c) => c.getAttribute('data-id') === a.id)!.textContent).toContain('Not started');
     expect((root.querySelector('.lib-empty') as HTMLElement | null)).toBeNull();
+  });
+
+  it('gives a classic a thread-bound cover and a modern book a contemporary one, and the card menu changes it', async () => {
+    const old = await store.books.add(book('西遊記', '〔明〕吳承恩'));
+    await store.books.add(book('故乡', '鲁迅'));
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => root.querySelectorAll('.lib-card').length === 2);
+    const coverOf = (title: string) => [...root.querySelectorAll('.lib-card')].find((c) => c.querySelector('.lib-card-title')?.textContent === title)!.querySelector('.lib-cover')!;
+    expect(coverOf('西遊記').classList.contains('lib-cover-classic')).toBe(true);
+    expect(coverOf('故乡').classList.contains('lib-cover-modern')).toBe(true);
+    const card = root.querySelector<HTMLElement>(`.lib-card[data-id="${old.id}"]`)!;
+    card.querySelector<HTMLElement>('.lib-card-menu')!.click();
+    const choices = [...document.querySelectorAll<HTMLElement>('.lib-menu [role="group"] [role="menuitemradio"]')];
+    expect(document.querySelector('.lib-menu [role="group"]')?.getAttribute('aria-label')).toBe('Cover');
+    expect(choices.map((c) => c.textContent)).toEqual(['Automatic (Classic)', 'Classic', 'Modern']);
+    expect(choices.map((c) => c.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+    choices[2].click();
+    await until(() => coverOf('西遊記').classList.contains('lib-cover-modern'));
+    expect(JSON.parse(localStorage.getItem('dushu.cover-style.v1')!)).toEqual({ [old.id]: 'modern' });
+    root.querySelector<HTMLElement>(`.lib-card[data-id="${old.id}"] .lib-card-menu`)!.click();
+    const again = [...document.querySelectorAll<HTMLElement>('.lib-menu [role="menuitemradio"]')];
+    expect(again.map((c) => c.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);
+    again[0].click();
+    await until(() => coverOf('西遊記').classList.contains('lib-cover-classic'));
   });
 
   it('says how much of each book\'s words are known once some are, and follows changes', async () => {
@@ -134,6 +177,18 @@ describe('library screen', () => {
     root.textContent = '';
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => /You know \d+%/.test(root.querySelector('.lib-card-known')?.textContent ?? ''), 1000);
+  });
+
+  it('says under 1%, not 0%, once a few of a book\'s words are known', async () => {
+    // 公园 once among about 400 other words.
+    const text = '清晨的阳光照进窗子，他慢慢地走到桌边，拿起那本旧书，轻轻地翻开了第一页。'.repeat(30) + '我们去公园。';
+    const a = await store.books.add({ ...book('长书'), chapters: [{ title: '一', blocks: [{ t: 'p', text }] }] });
+    await store.known.add(['公园']);
+    cleanup = await mountLibrary(root, {}, ctx);
+    const line = () => root.querySelector<HTMLElement>(`.lib-card[data-id="${a.id}"] .lib-card-known`);
+    await until(() => /You know/.test(line()?.textContent ?? ''));
+    expect(line()!.textContent).toBe('You know <1% of its words');
+    expect(root.querySelector(`.lib-card[data-id="${a.id}"] .lib-card-main`)!.getAttribute('aria-label')).toContain('You know <1% of its words');
   });
 
   it('renames through the menu and dialog', async () => {
@@ -248,6 +303,10 @@ describe('library screen', () => {
 describe('settings screen', () => {
   it('renders every group and a live preview that follows the settings', async () => {
     cleanup = await mountSettings(root, {}, ctx);
+    expectPageHead('设置', 'Settings');
+    // The section list marks where you are from the start, before any scrolling.
+    expect([...root.querySelectorAll('.set-nav-link')].map((b) => b.getAttribute('aria-current'))[0]).toBe('true');
+    expect(root.querySelectorAll('.set-nav-link[aria-current="true"]')).toHaveLength(1);
     for (const t of ['Reading', 'Pinyin', 'Lookup', 'Translation', 'Speech', 'Data']) {
       expect([...root.querySelectorAll('.section-title')].some((e) => e.textContent === t)).toBe(true);
     }
@@ -304,6 +363,18 @@ describe('settings screen', () => {
     choose('Scroll');
     expect(size.value).toBe('32');
     expect(preview.style.fontSize).toBe('32px');
+  });
+
+  it('names the settings as the reader menus do, and says the text size belongs to the layout', async () => {
+    ctx.settings.set({ ttsRate: 0.9 });
+    cleanup = await mountSettings(root, {}, ctx);
+    const row = (label: string) => [...root.querySelectorAll<HTMLElement>('.set-row')].find((r) => r.querySelector('.set-label')?.textContent === label);
+    const options = (label: string) => [...row(label)!.querySelectorAll('.set-seg-btn')].map((b) => b.textContent);
+    expect(options('Theme')).toEqual(['Auto', 'Light', 'Sepia', 'Dark']);
+    expect(options('Characters')).toEqual(['As written', 'Simplified', 'Traditional']);
+    expect(row('Learn known words as I read')).toBeDefined();
+    expect(row('Read-aloud speed')!.querySelector('.set-range-out')!.textContent).toBe('0.9×');
+    expect(row('Text size')!.querySelector('.set-help')!.textContent).toMatch(/layout.*Pages and Scroll each keep their own/);
   });
 
   it('only enables the HSK slider in HSK mode', async () => {
@@ -424,6 +495,7 @@ describe('about screen', () => {
   it('shows coverage from meta.json, every source, and the CC-CEDICT attribution', async () => {
     cleanup = await mountAbout(root, {}, { ...ctx, dictSync: () => null, dict: () => new Promise(() => {}) });
     await until(() => !!root.querySelector('.ab-stat'));
+    expectPageHead('关于', 'About Dushu');
     expect(root.textContent).toContain('101,997');
     expect(root.textContent).toContain('CC-CEDICT');
     expect(root.textContent).toContain('Creative Commons Attribution-ShareAlike 4.0');

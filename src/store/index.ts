@@ -3,7 +3,7 @@ import type {
   BackupReport, BookMeta, Chapter, Grade, ImportedBook, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, SyncRow, VocabItem, LexiconEntry,
 } from '../types';
 import { hanBefore, moveByPercent, placeAt, textHan } from '../core/place';
-import { bookKey, olderKeys, progressWire } from '../core/syncKeys';
+import { bookKey, canonical, olderKeys, progressWire } from '../core/syncKeys';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
 import { TABLES, createIdbBackend, createMemoryBackend, friendlyError, type Backend, type Table } from './db';
@@ -299,6 +299,24 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     return [{ op: 'put', table: 'sync', value: { ...(row ?? { key, at: place.updatedAt, sig: '' }), held: progressWire(place) } }];
   }
   /**
+   * Sync rows a sync round writes back, merged with the rows as they are stored now. The round built them from the rows it
+   * read when it began, and a book deleted (keepPlace) or added again (keptPlace) meanwhile changes a row's held place. A
+   * round only changes `held` from the one in `seen`, so a held place that is no longer that stands. Called inside
+   * `exclusive`, as books.remove runs, so nothing can change a row between this read and the write that follows it.
+   */
+  async function mergeHeld(put: SyncRow[], seen: ReadonlyMap<string, SyncRow> | undefined): Promise<SyncRow[]> {
+    if (!seen) return put;
+    const out: SyncRow[] = [];
+    for (const row of put) {
+      const stored = row.key.startsWith('p:') ? await db.get<SyncRow>('sync', row.key) : undefined;
+      if (!stored || canonical(stored.held) === canonical(seen.get(row.key)?.held)) { out.push(row); continue; }
+      const { held: _h, ...rest } = row;
+      void _h;
+      out.push(stored.held === undefined ? rest : { ...rest, held: stored.held });
+    }
+    return out;
+  }
+  /**
    * The place kept for a book, once the book is here under its key (just added, or just marked as the Mac's): as it was, or
    * from an older importer's key moved by its percent. The newest wins, and only over an older place here.
    */
@@ -449,19 +467,23 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         await write([{ op: 'put', table: 'books', value: next }, ...kept]);
         emit('books');
       },
-      async remove(id) {
-        const kept = await keepPlace(await db.get<BookMeta>('books', id));
-        await write([
-          ...kept,
-          { op: 'del', table: 'books', key: id },
-          { op: 'delBook', table: 'chapters', bookId: id },
-          { op: 'delBook', table: 'assets', bookId: id },
-          { op: 'delBook', table: 'lexicon', bookId: id },
-          { op: 'del', table: 'lexiconScopes', key: id },
-          { op: 'del', table: 'progress', key: id },
-        ]);
-        dropUrls(id);
-        emit('books', id);
+      remove(id) {
+        // In turn with the rows a sync writes back (mergeHeld), so the place kept here is never overwritten by a sync that
+        // was running.
+        return exclusive(async () => {
+          const kept = await keepPlace(await db.get<BookMeta>('books', id));
+          await write([
+            ...kept,
+            { op: 'del', table: 'books', key: id },
+            { op: 'delBook', table: 'chapters', bookId: id },
+            { op: 'delBook', table: 'assets', bookId: id },
+            { op: 'delBook', table: 'lexicon', bookId: id },
+            { op: 'del', table: 'lexiconScopes', key: id },
+            { op: 'del', table: 'progress', key: id },
+          ]);
+          dropUrls(id);
+          emit('books', id);
+        });
       },
       assetUrl(bookId, asset) {
         const key = urlKey(bookId, asset);
@@ -569,12 +591,14 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
 
     sync: {
       rows: () => db.getAll<SyncRow>('sync'),
-      async write(put, del = []) {
-        const ops: Parameters<Backend['commit']>[0] = [
-          ...del.map((key) => ({ op: 'del' as const, table: 'sync' as const, key })),
-          ...put.map((value) => ({ op: 'put' as const, table: 'sync' as const, value })),
-        ];
-        for (let i = 0; i < ops.length; i += 2000) await write(ops.slice(i, i + 2000));
+      write(put, del = [], seen) {
+        return exclusive(async () => {
+          const ops: Parameters<Backend['commit']>[0] = [
+            ...del.map((key) => ({ op: 'del' as const, table: 'sync' as const, key })),
+            ...(await mergeHeld(put, seen)).map((value) => ({ op: 'put' as const, table: 'sync' as const, value })),
+          ];
+          for (let i = 0; i < ops.length; i += 2000) await write(ops.slice(i, i + 2000));
+        });
       },
       apply(change) {
         return exclusive(async () => {
@@ -593,7 +617,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
             const clean = cleanProgress(p);
             if (clean) ops.push({ op: 'put', table: 'progress', value: clean });
           }
-          for (const row of change.rows ?? []) ops.push({ op: 'put', table: 'sync', value: row });
+          for (const row of await mergeHeld(change.rows ?? [], change.seen)) ops.push({ op: 'put', table: 'sync', value: row });
           // One transaction: the records and the rows that say they are in step can never disagree.
           await write(ops);
           const vocab = !!(change.vocabPut?.length || change.vocabDel?.length);

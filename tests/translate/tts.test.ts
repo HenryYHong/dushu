@@ -181,4 +181,24 @@ describe('chapter speech', () => {
     expect(spoken[0]).toBe('甲'.repeat(130) + '，');
     expect(positions).toEqual([0, 131]);
   });
+
+  it('never speaks a closing quote or a separator on its own', async () => {
+    const spoken: string[] = [];
+    const words: [number, number][] = [];
+    vi.stubGlobal('SpeechSynthesisUtterance', class { constructor(public text: string) {} });
+    vi.stubGlobal('speechSynthesis', {
+      getVoices: () => voices, cancel: vi.fn(),
+      speak: (u: SpeechSynthesisUtterance) => {
+        spoken.push(u.text);
+        queueMicrotask(() => { u.onboundary?.({ charIndex: 0, charLength: 1 } as SpeechSynthesisEvent); u.onend?.(new Event('end') as SpeechSynthesisEvent); });
+      },
+    });
+    const parts: number[] = [];
+    expect(await speakSequence(['他说：“好。”', '“走吧。”他说。', '○○○', '他说："好。"', '「来！」』'], {}, (i) => parts.push(i),
+      (part, at) => words.push([part, at]))).toBe(true);
+    expect(spoken).toEqual(['他说：“好。”', '“走吧。”', '他说。', '他说："好。"', '「来！」』']);
+    expect(parts).toEqual([0, 1, 3, 4]);
+    // Each sentence's first word is where it is in the paragraph: 他 at 5.
+    expect(words.filter((w) => w[0] === 1)).toEqual([[1, 0], [1, 5]]);
+  });
 });

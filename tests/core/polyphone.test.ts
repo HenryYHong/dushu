@@ -105,6 +105,82 @@ describe('polyphones in context (end to end through segment)', () => {
   }
 });
 
+describe('还: huán (give back, return) or hái (still)', () => {
+  const cases: [string, string, string][] = [
+    // 还了 + what is given back, or 还了 ending the clause: the adverb never stands right before 了.
+    ['他还了酒钱。', '还', 'huan2'],
+    ['他還了銀子，便走了。', '還', 'huan2'],
+    ['我已经还了。', '还', 'huan2'],
+    // 还 ending its clause after another word is the verb.
+    ['借了不还。', '还', 'huan2'],
+    ['引军北还。', '还', 'huan2'],
+    ['你几时还？', '还', 'huan2'],
+    ['天道好還，復何言哉。', '還', 'huan2'],
+    // 还了得 (how dreadful) and the adverb before a verb stay hái.
+    ['那還了得！', '還', 'hai2'],
+    ['他还没来。', '还', 'hai2'],
+    ['他还回来了。', '还', 'hai2'],
+    ['还，还有一事。', '还', 'hai2'],
+  ];
+  for (const [text, part, expected] of cases) {
+    it(`${text}: ${part} = ${expected}`, async () => {
+      expect(await inSentence(text, part)).toBe(expected);
+    });
+  }
+  it('a bare 还 with nothing around it is hái', async () => {
+    const d = await dictP;
+    expect(d.pinyinFor('还')).toEqual(['hai2']);
+    expect(d.pinyinFor('還', { prev: '北' })).toEqual(['hai2']); // nothing said about what follows
+  });
+  it('还了得 stays hái however the segmenter cuts it', async () => {
+    const d = await dictP;
+    expect(d.pinyinFor('还', { prev: '那', next: '了', after: '得' })).toEqual(['hai2']);
+    expect(d.pinyinFor('还', { prev: '那', next: '了', after: '书' })).toEqual(['huan2']);
+  });
+});
+
+describe('中了: zhòng (hit, fall for, pass) or zhōng (in)', () => {
+  const cases: [string, string][] = [
+    ['晁盖中了箭。', 'zhong4'],
+    ['他中了计。', 'zhong4'],
+    ['他中了一箭。', 'zhong4'],
+    ['他中了举人。', 'zhong4'],
+    ['她中了邪。', 'zhong4'],
+    ['他中了。', 'zhong4'],
+    // "in" at the end of a clause, or before a particle that asks about it
+    ['都到山寨中了。', 'zhong1'],
+    ['都到山寨中了么？', 'zhong1'],
+  ];
+  for (const [text, expected] of cases) {
+    it(`${text}: 中 = ${expected}`, async () => {
+      expect(await inSentence(text, '中')).toBe(expected);
+    });
+  }
+});
+
+describe('行 in a line of writing, 数 counting money, 背 carrying', () => {
+  const cases: [string, string, string][] = [
+    // 一行字 is a line of writing; 一行人 is a travelling party.
+    ['这一行字写得很好。', '行', 'hang2'],
+    ['上面有一行字，乃是', '行', 'hang2'],
+    ['一行人马到了', '行', 'xing2'],
+    ['他在数钱。', '数', 'shu3'],
+    // 背着 is carrying on the back, unless it turns away from something or goes behind someone's back.
+    ['他背着书包。', '背', 'bei1'],
+    ['背著一口劍', '背', 'bei1'],
+    ['他偷背着我们看', '背', 'bei4'],
+    ['他背著臉，一言不發', '背', 'bei4'],
+    ['倒背着两手', '背', 'bei4'],
+    ['他背着手走。', '背', 'bei4'],
+    ['他的背很痛。', '背', 'bei4'],
+  ];
+  for (const [text, part, expected] of cases) {
+    it(`${text}: ${part} = ${expected}`, async () => {
+      expect(await inSentence(text, part)).toBe(expected);
+    });
+  }
+});
+
 describe('explicit context rules (pinyinFor with prev/next)', () => {
   type C = [string, { prev?: string; next?: string; after?: string }, string | undefined];
   const rules: C[] = [

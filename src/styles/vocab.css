@@ -5,56 +5,57 @@
 .voc-bar { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-3); }
 .voc-toolbar { display: flex; gap: var(--space-2); }
 .voc-search { position: relative; flex: 1; min-width: 0; }
-.voc-search .icon { position: absolute; left: 10px; top: 9px; color: var(--text-3); pointer-events: none; }
-.voc-search-input { padding-left: 34px; }
+.voc-search .icon { position: absolute; left: 11px; top: 50%; width: 15px; height: 15px; margin-top: -7.5px; color: var(--text-3); pointer-events: none; }
+.voc-search-input { padding-left: 33px; }
 .voc-sort { width: auto; min-width: 150px; }
 .voc-tools { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.voc-count { min-height: 20px; margin-bottom: var(--space-2); font-size: 13px; }
+.voc-count { min-height: 20px; margin-bottom: var(--space-2); font: italic 400 15px/1.3 var(--font-display); }
 .voc-count:empty { display: none; }
 
-.voc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: var(--space-2) var(--space-3); align-items: start; }
+.voc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 0 var(--space-6); align-items: start; }
 .voc-list > .empty { grid-column: 1 / -1; }
+/* Words as a ruled list, like the entries of a word book. */
 .voc-row {
   display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: var(--shadow-s); cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
+  padding: var(--space-4) var(--space-1);
+  background: none; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0;
+  box-shadow: none; cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
 }
-.voc-row:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+@media (hover: hover) { .voc-row:hover { background: linear-gradient(to right, var(--wash), transparent 75%); } }
 .voc-main { min-width: 0; flex: 1; }
 .voc-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px var(--space-3); }
-.voc-word { font-size: 26px; line-height: 1.3; font-weight: 600; }
+.voc-word { font-size: 26px; line-height: 1.3; font-weight: 400; letter-spacing: 0.04em; }
 .voc-py { font-family: var(--font-pinyin); font-size: 16px; }
-.voc-gloss { margin-top: 2px; color: var(--text); overflow-wrap: anywhere; }
+.voc-gloss { margin-top: 2px; color: var(--text); font: 400 16px/1.45 var(--font-book); overflow-wrap: anywhere; }
 .voc-ctx {
-  margin-top: 6px; padding-left: var(--space-3); border-left: 2px solid var(--border);
+  margin-top: 6px; padding-left: var(--space-3); border-left: 2px solid var(--rule);
   color: var(--text-2); font-size: 15px; line-height: 1.6; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .voc-ctx b { color: var(--text); font-weight: 700; }
-.voc-meta { margin-top: 6px; font-size: 12px; }
+.voc-meta { margin-top: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
 .voc-side { display: flex; align-items: center; gap: var(--space-1); flex: none; }
-.voc-due-new { background: var(--accent-soft); color: var(--accent); }
+.voc-due-new { background: var(--wash-2); color: var(--text-2); }
 .voc-due-due { background: var(--hl); color: var(--text); }
 .voc-remove { opacity: 0.55; }
 .voc-row:hover .voc-remove, .voc-remove:focus-visible { opacity: 1; }
 
 .voc-empty { padding: var(--space-7) var(--space-4); }
-.voc-empty-title { margin: 0 0 var(--space-2); font-size: 20px; color: var(--text-2); }
+.voc-empty-title { margin: 0 0 var(--space-2); font: 400 26px/1.2 var(--font-display); color: var(--text); }
 .voc-empty p { max-width: 440px; margin: 0 auto var(--space-4); line-height: 1.6; }
 
 /* known words: a collapsed card above the list */
 .voc-known { padding: 0; margin-bottom: var(--space-4); }
 .voc-known-summary { display: flex; align-items: center; gap: var(--space-2); min-height: 48px; padding: 0 var(--space-4); cursor: pointer; list-style: none; border-radius: var(--radius); }
 .voc-known-summary::-webkit-details-marker { display: none; }
-.voc-known-summary:hover { background: var(--surface-2); }
+@media (hover: hover) { .voc-known-summary:hover { background: var(--wash); } }
 .voc-known-summary > .icon:first-child { color: var(--ok); }
-.voc-known-title { font-size: 15px; font-weight: 650; }
+.voc-known-title { font-size: 14.5px; font-weight: 600; }
 .voc-known-total { font-variant-numeric: tabular-nums; }
 .voc-known-chev { margin-left: auto; color: var(--text-3); transition: transform 0.15s var(--ease); }
 .voc-known[open] .voc-known-chev { transform: rotate(180deg); }
-.voc-known-body { padding: 0 var(--space-4) var(--space-4); border-top: 1px solid var(--border); }
+.voc-known-body { padding: 0 var(--space-4) var(--space-4); border-top: 1px solid var(--hairline); }
 .voc-known-sub { margin: var(--space-3) 0 0; font-size: 13px; max-width: 520px; }
 .voc-known-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
 .voc-known-clear { display: contents; }
@@ -63,17 +64,17 @@
 .voc-known-details { margin-top: var(--space-4); font-size: 14px; }
 .voc-known-details summary { cursor: pointer; color: var(--text-2); }
 .voc-known-words { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-3); max-height: 220px; overflow: auto; }
-.voc-known-words .chip { height: 26px; font-size: 14px; }
+.voc-known-words .chip { height: 26px; font: 400 15px/1 var(--font-serif); letter-spacing: 0.02em; color: var(--text); }
 
 .voc-dialog-body { padding: var(--space-5) var(--space-5) var(--space-3); }
-.voc-dialog-title { margin: 0 0 var(--space-2); font-size: 18px; }
+.voc-dialog-title { margin: 0 0 var(--space-2); font: 400 24px/1.2 var(--font-display); }
 .voc-dialog-text { margin: 0; color: var(--text-2); line-height: 1.6; }
 .voc-dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); padding: var(--space-3) var(--space-5) var(--space-4); }
 
 @media (max-width: 640px) {
   .voc-toolbar { flex-direction: column; }
   .voc-sort { width: 100%; }
-  .voc-row { padding: var(--space-3); gap: var(--space-2); }
+  .voc-row { padding: var(--space-3) 0; gap: var(--space-2); }
   .voc-side { flex-direction: column; align-items: flex-end; gap: 2px; }
   .voc-word { font-size: 24px; }
   .voc-remove { opacity: 1; }

@@ -16,7 +16,7 @@ const MAX_TICK_MS = 2000;
 const LOOKUP_GRACE_MS = 2000;
 
 /** What the setting does, in the words Settings and the reader's pinyin menu use. */
-export const AUTO_KNOWN_HELP = `A word you read past on ${AUTO_KNOWN_PAGES} pages over ${AUTO_KNOWN_DAYS} days without looking it up is marked known, so Unknown mode stops showing its pinyin. Looking it up takes it back off.`;
+export const AUTO_KNOWN_HELP = `A word you read past on ${AUTO_KNOWN_PAGES} pages over ${AUTO_KNOWN_DAYS} days without looking it up is marked known, so it gets no pinyin in the Unknown and HSK pinyin modes. Looking it up takes it back off.`;
 
 /** How long text of this many characters has to stay on screen to count as read. */
 export function readingDwell(chars: number): number {

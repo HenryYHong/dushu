@@ -14,7 +14,11 @@ beforeAll(async () => {
 describe('hskLevels', () => {
   it('gives a listed word the level of its characters when that is lower: they are what you say', () => {
     expect(dict.hsk('说道')?.hsk3).toBe(7);
-    expect(level('说道', ['shuo1', 'dao4'])).toBe(Math.max(level('说', ['shuo1'])!, level('道', ['dao4'])!));
+    // 说 shuō is listed at 1, and 知道, also at 1, reads 道 as dào: so 1, not 7.
+    expect(dict.hsk('说')?.hsk3).toBe(1);
+    expect(dict.hsk('知道')?.hsk3).toBe(1);
+    expect(dict.lookup('知道').map((e) => e.pinyin)).toContain('zhi1 dao4');
+    expect(level('说道', ['shuo1', 'dao4'])).toBe(1);
     expect(level('說道', ['shuo1', 'dao4'])).toBeLessThan(3);
     expect(level('阿姨', ['a1', 'yi2'])).toBe(4); // 姨 comes only with 阿姨
   });
@@ -108,6 +112,23 @@ describe('hskLevels', () => {
     expect(dict.char('沈')?.variants).toContain('沉');
     expect(level('沉', ['chen2'])).toBeDefined();
     expect(level('沈', ['chen2'])).toBeUndefined();
+  });
+
+  it('does not read a variant with another radical, or two strokes off, as the character it points at', () => {
+    // 仝 (朱仝) points at 同 and reads tóng like it, with as many strokes beside the radical, but the radical is 人, not 口.
+    expect(dict.char('仝')?.variants).toContain('同');
+    expect(dict.char('仝')!.readings.every((r) => dict.char('同')!.readings.includes(r))).toBe(true);
+    expect(dict.char('仝')?.radical?.num).not.toBe(dict.char('同')?.radical?.num);
+    expect(dict.char('仝')?.radical?.residual).toBe(dict.char('同')?.radical?.residual);
+    expect(level('同', ['tong2'])).toBe(1);
+    expect(level('仝', ['tong2'])).toBeUndefined();
+    // 呌 points at 叫 with the same reading and radical 口, but four strokes beside it against two.
+    expect(dict.char('呌')?.variants).toContain('叫');
+    expect(dict.char('呌')!.readings.every((r) => dict.char('叫')!.readings.includes(r))).toBe(true);
+    expect(dict.char('呌')?.radical?.num).toBe(dict.char('叫')?.radical?.num);
+    expect(Math.abs(dict.char('呌')!.radical!.residual - dict.char('叫')!.radical!.residual)).toBe(2);
+    expect(level('叫', ['jiao4'])).toBe(1);
+    expect(level('呌', ['jiao4'])).toBeUndefined();
   });
 
   it('does not lend a character the level of the one t2s folds it into, in a reading that one never has', () => {

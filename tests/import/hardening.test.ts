@@ -2,13 +2,13 @@
 // Defensive limits on what a file can do to the app: size caps, zip bombs, giant blocks, markup and control characters
 // in titles, binary files named .txt, and error text that blames the right thing. All fixtures are small and generated.
 import { strToU8, zipSync } from 'fflate';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { importFile, importText, MAX_FILE_BYTES } from '../../src/import';
 import { splitLongParagraph, textToBlocks } from '../../src/import/chapters';
 import { plausibleText, stripBidi, decodeText } from '../../src/import/encoding';
 import { ImportError } from '../../src/import/errors';
 import { cleanAuthors, cleanTitle } from '../../src/import/meta';
-import { isPdfHostFailure, importPdf, PDF_HOST_MESSAGE, type PdfRuntime } from '../../src/import/pdf';
+import { isPdfHostFailure, importPdf, PDF_HOST_MESSAGE, PDF_OFFLINE_MESSAGE, type PdfRuntime } from '../../src/import/pdf';
 import { Archive, DAMAGED_MESSAGE, TOO_BIG_MESSAGE, ZIP_LIMITS } from '../../src/import/zip';
 import { buildMobi } from './mobiWriter';
 import { CONTAINER, PNG, asFile, makeEpub, opf, prose, xhtml } from './helpers';
@@ -280,6 +280,49 @@ describe('error text', () => {
     const runtime = {
       pdfjs: { getDocument: () => ({ promise: Promise.reject(hostError) }) },
     } as unknown as PdfRuntime;
-    await expect(importPdf(new Uint8Array(20), 'x.pdf', undefined, runtime)).rejects.toThrow(PDF_HOST_MESSAGE);
+    // The server answers, so the worker file itself is the problem.
+    vi.stubGlobal('fetch', async () => new Response(null, { status: 200 }));
+    try {
+      await expect(importPdf(new Uint8Array(20), 'x.pdf', undefined, runtime)).rejects.toThrow(PDF_HOST_MESSAGE);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  describe('offline', () => {
+    afterEach(() => { vi.unstubAllGlobals(); });
+    const hostError = Object.assign(new Error('Setting up fake worker failed: "Failed to fetch dynamically imported module: http://x/pdf.worker.mjs".'), { name: 'UnknownErrorException' });
+    const runtime = { pdfjs: { getDocument: () => ({ promise: Promise.reject(hostError) }) } } as unknown as PdfRuntime;
+
+    it('says a PDF needs a connection the first time when the device is offline, not that Dushu is served wrong', async () => {
+      vi.stubGlobal('navigator', { ...navigator, onLine: false });
+      const err = await importPdf(new Uint8Array(20), 'x.pdf', undefined, runtime).catch((e) => e);
+      expect(err).toBeInstanceOf(ImportError);
+      expect(err.message).toBe(PDF_OFFLINE_MESSAGE);
+      expect(err.message).toBe('PDF import needs a connection the first time. Connect once and try again.');
+    });
+
+    it('says the same when the browser thinks it is online but the server does not answer (a Mac asleep)', async () => {
+      const calls: string[] = [];
+      vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => { calls.push(init?.method ?? 'GET'); throw new TypeError('Failed to fetch'); });
+      await expect(importPdf(new Uint8Array(20), 'x.pdf', undefined, runtime)).rejects.toThrow(PDF_OFFLINE_MESSAGE);
+      // A HEAD request: the service worker answers GET only, so it cannot hide that the server is gone.
+      expect(calls).toEqual(['HEAD']);
+    });
+
+    it('says the same when the PDF reader\'s own code cannot load', async () => {
+      vi.stubGlobal('navigator', { ...navigator, onLine: false });
+      vi.resetModules();
+      vi.doMock('../../src/import/pdf', () => { throw new TypeError('Failed to fetch dynamically imported module: http://x/assets/pdf-abc.js'); });
+      try {
+        const fresh = await import('../../src/import');
+        const err = await fresh.importFile(asFile(new TextEncoder().encode('%PDF-1.4\n'), 'book.pdf')).catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(fresh.ImportError);
+        expect((err as Error).message).toBe(PDF_OFFLINE_MESSAGE);
+      } finally {
+        vi.doUnmock('../../src/import/pdf');
+        vi.resetModules();
+      }
+    });
   });
 });

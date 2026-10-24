@@ -1,5 +1,6 @@
 // Turns files, pasted text and samples into stored books, with progress and readable errors.
 import type { AppContext, BookMeta, ImportedBook } from '../../types';
+import { bookKey } from '../../core/syncKeys';
 import { loadSampleBook, type Sample } from './samples';
 import { isMacBook } from './macBooks';
 
@@ -64,10 +65,29 @@ export function macCopyOf<B extends Pick<BookMeta, 'note' | 'sourceName'>>(file:
   return books.find((b) => isMacBook(b) && b.sourceName === file.name);
 }
 
+/** The shape bookKey names a book added from a file by (chapter count, size, chapter titles), for any book: a rename keeps it. */
+const shapeKey = (b: Pick<BookMeta, 'title' | 'chapterCount' | 'charCount' | 'chapterTitles'>) =>
+  bookKey({ title: b.title, chapterCount: b.chapterCount, charCount: b.charCount, chapterTitles: b.chapterTitles });
+
+/** The book in `books` that a new import would copy: the same chapters and size, whatever either is called. */
+export function sameBookIn<B extends BookMeta>(book: Pick<ImportedBook, 'title' | 'chapters'>, countHan: (s: string) => number, books: B[]): B | undefined {
+  // BookMeta.charCount as store.books.add counts it: chapter titles and the text of every block.
+  let charCount = 0;
+  for (const c of book.chapters) {
+    charCount += countHan(c.title);
+    for (const b of c.blocks) if ('text' in b) charCount += countHan(b.text);
+  }
+  const key = shapeKey({ title: book.title, chapterCount: book.chapters.length, charCount, chapterTitles: book.chapters.map((c) => c.title) });
+  return books.find((b) => shapeKey(b) === key);
+}
+
 export interface Importer {
   jobs: Job[];
-  /** `quiet` skips the "Added" toast, for a caller that says it once for a whole batch. */
-  files(files: File[], opts?: { quiet?: boolean }): Promise<BookMeta[]>;
+  /**
+   * `quiet` skips the "Added" toast, for a caller that says it once for a whole batch. `mac` is for the Mac's own books
+   * (syncMacBooks): they are always added, even beside a copy imported by hand.
+   */
+  files(files: File[], opts?: { quiet?: boolean; mac?: boolean }): Promise<BookMeta[]>;
   text(text: string, title: string, author: string): Promise<BookMeta | null>;
   sample(s: Sample): Promise<BookMeta | null>;
 }
@@ -77,7 +97,13 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
   let nextId = 1;
   const jobs: Job[] = [];
 
-  async function run(label: string, who: { title: string; author?: string }, make: (m: ImportModule, onProgress: (f: number) => void) => Promise<ImportedBook> | ImportedBook): Promise<BookMeta | null> {
+  /** `twinOf` finds a book already in the library that this one would copy: then nothing is added and the toast offers it. */
+  async function run(
+    label: string,
+    who: { title: string; author?: string },
+    make: (m: ImportModule, onProgress: (f: number) => void) => Promise<ImportedBook> | ImportedBook,
+    twinOf?: (book: ImportedBook, m: ImportModule) => BookMeta | undefined,
+  ): Promise<BookMeta | null> {
     const job: Job = { id: nextId++, label, fraction: 0, title: who.title, author: who.author ?? '' };
     jobs.push(job);
     onJobs();
@@ -86,6 +112,11 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       await nextFrame();
       m = await loadImporters();
       const book = await make(m, (f) => { job.fraction = Math.min(1, Math.max(0, f)) * 0.9; onJobs(); });
+      const twin = twinOf?.(book, m);
+      if (twin) {
+        ctx.toast(`“${twin.title}” is already in your library.`, { action: { label: 'Open', run: () => ctx.navigate(`/read/${encodeURIComponent(twin.id)}`) }, ms: 7000 });
+        return null;
+      }
       job.fraction = 0.92;
       job.title = book.title || job.title;
       job.author = book.author || job.author;
@@ -107,14 +138,16 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       const added: BookMeta[] = [];
       const have = await ctx.store.books.list().catch(() => [] as BookMeta[]);
       for (const f of files) {
-        // Picking the same file again would make a second card with its own progress.
+        // The Mac's own copy of this file is already here, with its progress.
         const existing = macCopyOf(f, have);
         if (existing) {
           ctx.toast(`“${existing.title}” is already in your library from your Mac.`, { action: { label: 'Read', run: () => ctx.navigate(`/read/${encodeURIComponent(existing.id)}`) }, ms: 7000 });
           continue;
         }
-        const meta = await run(`“${f.name}”`, { title: titleFromFileName(f.name) }, (m, onProgress) => m.importFile(f, { onProgress }));
-        if (meta) added.push(meta);
+        // A file picked again would be a second card with its own progress: the book it copies is offered instead.
+        const twinOf = opts?.mac ? undefined : (book: ImportedBook, m: ImportModule) => sameBookIn(book, m.countHan, have);
+        const meta = await run(`“${f.name}”`, { title: titleFromFileName(f.name) }, (m, onProgress) => m.importFile(f, { onProgress }), twinOf);
+        if (meta) { added.push(meta); have.push(meta); }
       }
       if (opts?.quiet) return added;
       if (added.length === 1) {
@@ -125,6 +158,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       return added;
     },
     text(text, title, author) {
+      // Same words as PASTED_TITLE in src/import, which names the saved book when the text has no title of its own.
       return run('that text', { title: title.trim() || 'Pasted text', author }, (m) => m.importText(text, title, author));
     },
     sample(s) {

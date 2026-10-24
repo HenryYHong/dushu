@@ -148,7 +148,7 @@ describe('owner books on the library screen', () => {
     await until(() => toasts.length > 0 && root.querySelectorAll('.lib-card').length === 2);
     const card = root.querySelector<HTMLElement>('.lib-card[data-id]')!;
     card.querySelector<HTMLElement>('.lib-card-menu')!.click();
-    const items = [...document.querySelectorAll<HTMLElement>('.lib-menu-item')].map((b) => b.textContent);
+    const items = [...document.querySelectorAll<HTMLElement>('.lib-menu-item[role="menuitem"]')].map((b) => b.textContent);
     expect(items).toEqual(['Rename']);
     document.querySelectorAll('.lib-menu').forEach((e) => e.remove());
 
@@ -170,7 +170,7 @@ describe('owner books on the library screen', () => {
     await until(() => toasts.length > 0 && root.querySelectorAll('.lib-card').length === 3);
     const mine = [...root.querySelectorAll<HTMLElement>('.lib-card')].find((c) => c.textContent?.includes('自己'))!;
     mine.querySelector<HTMLElement>('.lib-card-menu')!.click();
-    expect([...document.querySelectorAll<HTMLElement>('.lib-menu-item')].map((b) => b.textContent)).toEqual(['Rename', 'Delete']);
+    expect([...document.querySelectorAll<HTMLElement>('.lib-menu-item[role="menuitem"]')].map((b) => b.textContent)).toEqual(['Rename', 'Delete']);
   });
 
   it('syncs on the public copy once the device is connected, using the Mac address', async () => {

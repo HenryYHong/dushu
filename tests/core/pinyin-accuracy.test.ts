@@ -106,6 +106,10 @@ describe('readings fixed after sampling the books', () => {
     ['忽見十餘騎馬旗號翩翻', '騎馬', 'jì mǎ'], ['花容嬝娜', '娜', 'nuó'], ['罷咧', '咧', 'lie'], ['咧嘴笑', '咧嘴', 'liě zuǐ'], ['我教給你，記著', '教', 'jiāo'], ['而好作亂者', '好', 'hào'], ['講一兩章書', '一兩章', 'yì liǎng zhāng'],
     ['孫策把槍挑太史慈的小戟', '挑', 'tiǎo'], ['挑水去', '挑', 'tiāo'], ['入則孝，出則弟', '弟', 'tì'], ['兄弟二人', '弟', 'dì'], ['眾兵將得令', '得', 'dé'],
     ['切思伊父子不忍', '切', 'qiè'], ['玄德望公甚切', '切', 'qiè'], ['細細切絲', '切', 'qiē'],
+    // 了得 (liǎode, remarkable) at the end of a clause or after a word of praise; 還了得 (how dreadful) keeps hái
+    ['那還了得！', '還了得', 'hái liǎo de'], ['這廝武藝了得，', '了得', 'liǎo de'], ['二人十分了得', '了得', 'liǎo de'], ['好生了得。', '了得', 'liǎo de'],
+    // 還了 + what is given back is huán; 中了 + what hits is zhòng; 一 before 百 千 萬 changes tone
+    ['算還了房錢', '還', 'huán'], ['借了不還。', '還', 'huán'], ['晁蓋中了箭', '中', 'zhòng'], ['一百單八將', '一百', 'yì bǎi'], ['一萬人馬', '一萬', 'yí wàn'],
   ];
   for (const [text, part, want] of cases) it(`${text}: ${part} = ${want}`, async () => expect(await py(text, part)).toBe(want));
 });
@@ -154,6 +158,13 @@ describe('segmentation fixed after sampling the books', () => {
     ['三十多年才能輪到一回', ['三十', '多', '年', '才', '能', '輪', '到', '一', '回']],
     ['他有才能', ['他', '有', '才能']],
     ['現在應天府案下審理', ['現在', '應天府', '案', '下', '審理']],
+    // 了得 is one word where it ends the clause or follows a word of praise; elsewhere 了 + 得意 stays apart
+    ['那還了得！', ['那', '還', '了得', '！']],
+    ['十分了得，', ['十分', '了得', '，']],
+    ['這廝手腳了得，', ['這', '廝', '手腳', '了得', '，']],
+    ['還了得呢', ['還', '了得', '呢']],
+    ['這還了得！', ['這還了得', '！']],
+    ['姥姥聽了得意', ['姥姥', '聽', '了', '得意']],
   ];
   for (const [text, want] of cuts) {
     it(text, async () => {

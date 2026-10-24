@@ -3,14 +3,15 @@
 // no iPad keyboard. It checks layout, taps, swipes, popups, selection handling and rotation.
 //
 //   node scripts/qa-ipad.mjs                        starts `vite --port 5191 --strictPort` itself and stops it at the end
-//   QA_BASE=http://localhost:5191/ node scripts/qa-ipad.mjs   use a server that is already running
+//   QA_BASE=http://localhost:5191/ node scripts/qa-ipad.mjs   use a server that is already running (sync off in the browser)
 //
 // Screenshots go to qa-out/ipad/. Needs the isolated Playwright install in .cache/qa-webkit (see its package.json).
 // Headless only: it never opens a window.
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { mkdirSync, existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { mkdirSync, mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const ROOT = new URL('../', import.meta.url).pathname;
 const require = createRequire(`${ROOT}.cache/qa-webkit/package.json`);
@@ -20,18 +21,33 @@ const PORT = 5191;
 const BASE = process.env.QA_BASE ?? `http://localhost:${PORT}/`;
 const OUT = `${ROOT}qa-out/ipad/`;
 mkdirSync(OUT, { recursive: true });
+// The server started here gets an empty sync folder of its own (removed at the end), never the owner's.
+const SYNC_DIR = process.env.QA_BASE ? null : mkdtempSync(join(tmpdir(), 'dushu-qa-sync-'));
+const dropSyncDir = () => { if (SYNC_DIR) rmSync(SYNC_DIR, { recursive: true, force: true }); };
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
 
 let server = null;
 async function startServer() {
   if (process.env.QA_BASE) return;
-  server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+  server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, DUSHU_SYNC_DIR: SYNC_DIR } });
   await new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('vite did not start')), 30000);
     server.stdout.on('data', (d) => { if (String(d).includes('Local:')) { clearTimeout(t); resolve(); } });
     server.stderr.on('data', (d) => { if (String(d).includes('Error')) { clearTimeout(t); reject(new Error(String(d))); } });
   });
 }
-const stopServer = () => { if (server) { server.kill('SIGTERM'); server = null; } };
+const stopServer = () => { if (server) { server.kill('SIGTERM'); server = null; } dropSyncDir(); };
 process.on('exit', stopServer);
 
 const failures = [];
@@ -43,6 +59,8 @@ const errors = [];
 
 await startServer();
 const browser = await webkit.launch({ headless: true });
+// Every browser context gets SYNC_OFF when the server was not started here.
+if (!SYNC_DIR) { const make = browser.newContext.bind(browser); browser.newContext = async (o) => { const c = await make(o); await c.addInitScript(SYNC_OFF); return c; }; }
 
 /** Open a fresh iPad context, seed a book through the app's own modules, open it in Pages. */
 async function openReader(device, settings = {}, chapter = 1, contextOptions = {}) {
@@ -90,6 +108,48 @@ async function openReader(device, settings = {}, chapter = 1, contextOptions = {
 }
 
 const info = (page) => page.evaluate(() => ({ ...document.querySelector('.rd-stage').dataset, w: innerWidth, h: innerHeight }));
+
+/**
+ * A point on the blank margin of an outer strip (`side`: 'prev' or 'next'), in viewport px: inside the strip, not on text
+ * (.rd-b) and not on a control. Only a tap there turns the page; a word opens its card wherever it is, and the rest of a
+ * text line shows or hides the bar. Prefers points near the middle of the height.
+ */
+const marginPoint = (page, side) => page.evaluate((side) => {
+  const st = document.querySelector('.rd-stage');
+  const r = st.getBoundingClientRect();
+  const per = st.dataset.per === '2' ? 2 : 1;
+  const edge = Math.min(Math.max(56, r.width * (per === 2 ? 0.16 : 0.2)), per === 2 ? 220 : 160);
+  const blank = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return !!el && st.contains(el) && !el.closest('.rd-b, [data-rd-ui], button, a, input, .pp-pop, .rd-bar');
+  };
+  for (const f of [0.5, 0.45, 0.55, 0.4, 0.6, 0.35, 0.65]) {
+    const y = Math.round(innerHeight * f);
+    for (let i = 6; i < edge - 4; i += 4) {
+      const x = side === 'prev' ? r.left + i : r.right - i;
+      if (blank(x, y)) return { x, y };
+    }
+  }
+  return null;
+}, side);
+
+/**
+ * Characters of words that lie wholly inside the left outer strip, in viewport px: the one nearest the edge, one in the
+ * middle and the one nearest the strip's inner border (distinct x).
+ */
+const stripWords = (page) => page.evaluate(() => {
+  const st = document.querySelector('.rd-stage');
+  const r = st.getBoundingClientRect();
+  const per = st.dataset.per === '2' ? 2 : 1;
+  const edge = Math.min(Math.max(56, r.width * (per === 2 ? 0.16 : 0.2)), per === 2 ? 220 : 160);
+  const cs = [...document.querySelectorAll('.rd-article.rd-live .rd-p .rd-w ruby')].map((c) => c.getBoundingClientRect())
+    .filter((q) => q.width > 0 && q.left >= r.left && q.right < r.left + edge - 2 && q.top > 120 && q.bottom < innerHeight - 100)
+    .map((q) => ({ x: Math.round(q.left + q.width / 2), y: Math.round(q.top + q.height * 0.7) }))
+    .sort((a, b) => a.x - b.x);
+  const xs = [...new Set(cs.map((c) => c.x))];
+  const pick = [xs[0], xs[Math.floor(xs.length / 2)], xs[xs.length - 1]].filter((x, i, a) => x !== undefined && a.indexOf(x) === i);
+  return pick.map((x) => cs.find((c) => c.x === x));
+});
 
 /** A touch swipe as pointer events on the stage. `hold` leaves the finger down so a mid-turn frame can be captured. */
 async function swipe(page, x0, y0, x1, y1, { steps = 10, hold = false, gap = 16 } = {}) {
@@ -142,6 +202,8 @@ async function doubleTapHalves(page, label, gap = 200, { hold = true } = {}) {
     const r = el.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height * 0.7 };
   }, half);
+  // The page's own time stamps of the taps' clicks: the reader counts a double tap by them (DOUBLE_TAP_MS in reader.ts).
+  await page.evaluate(() => { if (!window.__clicks) { window.__clicks = []; addEventListener('click', (e) => window.__clicks.push(e.timeStamp), true); } });
   for (const half of ['upper', 'lower']) {
     let w = await findWord(half);
     if (!w && half === 'upper' && await page.evaluate(() => !document.querySelector('.rd-article.rd-live'))) {
@@ -150,18 +212,35 @@ async function doubleTapHalves(page, label, gap = 200, { hold = true } = {}) {
       await settle(300);
       w = await findWord(half);
     }
+    if (!w && half === 'upper') {
+      // Pages: a phone's first page can be all title down to below the middle. The next page starts with text at the top.
+      await page.keyboard.press('ArrowRight');
+      await settle(1000);
+      w = await findWord(half);
+    }
     if (!w) { check(false, `${label}: a word in the ${half} half to double tap`); continue; }
-    await page.touchscreen.tap(w.x, w.y);
-    await settle(gap);
-    // The page holds still while a second tap could still come: the word is still under the finger.
-    const held = await page.evaluate(([x, y]) => { const r = document.querySelector('.rd-c.rd-active')?.getBoundingClientRect(); return !!r && r.top - 4 <= y && y <= r.bottom + 4 && r.left - 4 <= x && x <= r.right + 4; }, [w.x, w.y]);
-    if (hold) check(held, `${label}: the ${half} word is still under the finger ${gap} ms after the first tap`);
-    await page.touchscreen.tap(w.x, w.y);
-    await settle(900);
-    const kind = await page.evaluate(() => document.querySelector('.pp-pop')?.className.match(/pp-k-\w+/)?.[0] ?? 'none');
-    check(kind === 'pp-k-phrase', `${label}: a double tap on a word in the ${half} half gives the sentence popup (${kind})`);
-    await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
-    await settle(400);
+    // The second tap must reach the page within DOUBLE_TAP_MS (380) of the first. The harness can be slower than that
+    // under load (a round trip for the hold check, WebKit's touch emulation): then the pair was not a double tap at all,
+    // and it is tried again. Within the window it must give the sentence.
+    let kind = 'none';
+    let apart = 0;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await page.touchscreen.tap(w.x, w.y);
+      await settle(gap);
+      // The page holds still while a second tap could still come: the word is still under the finger.
+      const held = await page.evaluate(([x, y]) => { const r = document.querySelector('.rd-c.rd-active')?.getBoundingClientRect(); return !!r && r.top - 4 <= y && y <= r.bottom + 4 && r.left - 4 <= x && x <= r.right + 4; }, [w.x, w.y]);
+      if (hold && attempt === 0) check(held, `${label}: the ${half} word is still under the finger ${gap} ms after the first tap`);
+      await page.touchscreen.tap(w.x, w.y);
+      await settle(900);
+      kind = await page.evaluate(() => document.querySelector('.pp-pop')?.className.match(/pp-k-\w+/)?.[0] ?? 'none');
+      // (Unrounded: the reader compares the same two time stamps.)
+      apart = await page.evaluate(() => { const c = window.__clicks; return c.length > 1 ? c[c.length - 1] - c[c.length - 2] : -1; });
+      await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+      await settle(400);
+      if (kind === 'pp-k-phrase' || apart <= 380) break;
+      console.log(`   ${label}: the two taps reached the page ${apart.toFixed(1)} ms apart (over 380 ms, not a double tap); trying again`);
+    }
+    check(kind === 'pp-k-phrase', `${label}: a double tap on a word in the ${half} half gives the sentence popup (${kind}, taps ${apart.toFixed(1)} ms apart)`);
   }
 }
 
@@ -254,36 +333,53 @@ try {
     check(!touchChecks.hoverRuleActive, 'no hover-only rules are active on a touch screen');
     check(!touchChecks.ptBtn, 'no margin translate buttons in Pages');
 
-    // Tap the right outer third: next spread. (The chrome tucks away on the first turn.)
+    // Tap the blank margin of the right outer strip: next spread. (The chrome tucks away on the first turn.)
     const before = await info(page);
-    await page.touchscreen.tap(1100, 420);
+    const right = await marginPoint(page, 'next');
+    check(!!right, `the right strip has a blank margin to tap (x=${right?.x})`);
+    await page.touchscreen.tap(right?.x ?? 1190, right?.y ?? 420);
     await settle(900);
     const after = await info(page);
-    check(Number(after.page) === Number(before.page) + 2, `tap on the right third turns to the next spread (page ${before.page} -> ${after.page})`);
+    check(Number(after.page) === Number(before.page) + 2, `a tap on the blank margin of the right strip turns to the next spread (page ${before.page} -> ${after.page})`);
     await page.screenshot({ path: `${OUT}02-landscape-after-tap.png` });
 
-    // Tap the left outer third: back.
-    await page.touchscreen.tap(90, 420);
+    // The blank margin of the left outer strip: back.
+    const left = await marginPoint(page, 'prev');
+    check(!!left, `the left strip has a blank margin to tap (x=${left?.x})`);
+    await page.touchscreen.tap(left?.x ?? 4, left?.y ?? 420);
     await settle(900);
     const back = await info(page);
-    check(back.page === before.page, 'tap on the left third turns back');
+    check(Number(after.page) === Number(before.page) + 2 && back.page === before.page, `a tap on the blank margin of the left strip turns back (page ${after.page} -> ${back.page})`);
 
-    // The outer strips turn the page even where there are words under the finger; the middle looks the word up.
-    // (Taps at 60, 90, 150 and 1114 px from the left on a 1194 px spread; a word is under the finger at each.)
-    await page.touchscreen.tap(1114, 420); await settle(700);
-    await page.touchscreen.tap(1114, 420); await settle(700);
-    await page.touchscreen.tap(1114, 420); await settle(700);
+    // Three margin taps go three spreads in, so a wrong turn back below would show.
+    for (let i = 0; i < 3; i++) {
+      const m = await marginPoint(page, 'next');
+      await page.touchscreen.tap(m?.x ?? 1190, m?.y ?? 420);
+      await settle(700);
+    }
     const deep = await info(page);
-    for (const x of [150, 90, 60]) {
-      const under = await page.evaluate(([x]) => { for (let y = 120; y < innerHeight - 100; y += 6) { const el = document.elementFromPoint(x, y); if (el?.closest('.rd-w')) return y; } return -1; }, [x]);
+    check(Number(deep.page) === Number(before.page) + 6, `three taps on the right margin turn three spreads (page ${before.page} -> ${deep.page})`);
+    // A word in an outer strip opens its card and never turns the page: reaching for a word near the edge used to turn it.
+    const inStrip = await stripWords(page);
+    check(inStrip.length === 3, `three words to tap in the left strip (x=${inStrip.map((c) => c.x).join(', ')})`);
+    for (const c of inStrip) {
       const p0 = (await info(page)).page;
-      await page.touchscreen.tap(x, under > 0 ? under : 420);
+      await page.touchscreen.tap(c.x, c.y);
       await settle(700);
       const p1 = (await info(page)).page;
-      check(under > 0 && Number(p1) === Number(p0) - 2, `a tap at x=${x} over a word turns the page back (page ${p0} -> ${p1})`);
-      check(await page.evaluate(() => !document.querySelector('.pp-pop')), `x=${x}: and no word popup opens`);
+      const kind = await page.evaluate(() => document.querySelector('.pp-pop')?.className.match(/pp-k-\w+/)?.[0] ?? 'none');
+      check(kind === 'pp-k-word', `a tap at x=${c.x} on a word in the left strip opens its card (${kind})`);
+      check(p1 === p0, `x=${c.x}: and does not turn the page (page ${p0} -> ${p1})`);
+      await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+      await settle(500);
     }
-    check(Number((await info(page)).page) < Number(deep.page), 'the three strip taps went back');
+    // The blank margin of the same strip still turns back, once per tap.
+    for (let i = 0; i < 3; i++) {
+      const m = await marginPoint(page, 'prev');
+      await page.touchscreen.tap(m?.x ?? 4, m?.y ?? 420);
+      await settle(700);
+    }
+    check(Number((await info(page)).page) === Number(deep.page) - 6, `three taps on the left margin turn three spreads back (page ${deep.page} -> ${(await info(page)).page})`);
     // Words at 250 and 380 px are in the middle: they open the popup and the page stays.
     for (const x of [250, 380]) {
       const target = await page.evaluate(([x]) => {
@@ -730,8 +826,12 @@ try {
         at = (await visibleName()) ?? at; // measure again right before the tap: nothing may be moving
         await page.touchscreen.tap(at.x, at.y);
         await settle(700);
-        const card = await page.evaluate(() => document.querySelector('.pp-book')?.innerText ?? '');
-        check(/In this book/i.test(card) && /Person/.test(card), `${device}: tapping the name opens the In this book card`);
+        // (The labels are set in capitals by CSS, so read the text the card holds, not how it is drawn.)
+        const card = await page.evaluate(() => {
+          const b = document.querySelector('.pp-book');
+          return { section: b?.querySelector('.pp-section')?.textContent ?? '', kind: b?.querySelector('.chip')?.textContent ?? '', pop: document.querySelector('.pp-pop')?.className.match(/pp-k-\w+/)?.[0] ?? 'none' };
+        });
+        check(card.section === 'In this book' && card.kind === 'Person', `${device}: tapping the name opens the In this book card (${card.pop}: ${card.section || '-'} / ${card.kind || '-'})`);
         const box = await page.evaluate(() => { const r = document.querySelector('.pp-pop')?.getBoundingClientRect(); return r ? { l: r.left, r: r.right, t: r.top, b: r.bottom, w: innerWidth, h: innerHeight } : null; });
         check(!!box && box.l >= 0 && box.r <= box.w + 1 && box.t >= -1 && box.b <= box.h + 1, `${device}: the popup stays on screen`);
         await page.screenshot({ path: `${OUT}${shot}-popup.png` });

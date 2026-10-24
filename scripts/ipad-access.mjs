@@ -19,6 +19,8 @@ export function tailscale(args) {
   throw missing ?? new Error('Tailscale is not installed.');
 }
 
+export const HTTPS_OFF = 'HTTPS certificates are off for this Tailscale network, so the iPad address cannot be served. Turn them on in the Tailscale admin page under DNS.';
+
 /** `host` is "name.tailnet.ts.net:8443". Returns what it did or found, for the log; empty when all was well. */
 export function ensureIpadAccess(host, run = tailscale) {
   const notes = [];
@@ -39,13 +41,17 @@ export function ensureIpadAccess(host, run = tailscale) {
     notes.push(now === 'Running' ? 'Tailscale was off on this Mac, so it was turned back on.' : `Tailscale was off on this Mac and did not come back on (${now}).`);
   }
   // Serving cannot work, and `tailscale serve` would wait for someone to fix it, when the Mac is on another network now, or
-  // the network has HTTPS certificates off: say so instead.
+  // the network has HTTPS certificates off: say so instead. Both are said when both are true, HTTPS first (npm run ipad
+  // needs it).
   const name = status.Self?.DNSName?.replace(/\.$/, '');
-  if (name && name !== host.replace(/:8443$/, '')) {
-    return [...notes, `This Mac's Tailscale address is now ${name} (Dushu has ${host.replace(/:8443$/, '')}). Run npm run ipad on this Mac to use it.`];
-  }
-  if (status.Self && !status.CertDomains?.length) {
-    return [...notes, 'HTTPS certificates are off for this Tailscale network, so the iPad address cannot be served. Turn them on in the Tailscale admin page under DNS.'];
+  const noHttps = status.Self && !status.CertDomains?.length;
+  const moved = name && name !== host.replace(/:8443$/, '');
+  if (noHttps || moved) {
+    return [
+      ...notes,
+      ...(noHttps ? [HTTPS_OFF] : []),
+      ...(moved ? [`This Mac's Tailscale address is now ${name} (Dushu has ${host.replace(/:8443$/, '')}). Run npm run ipad on this Mac to use it.`] : []),
+    ];
   }
   const web = JSON.parse(run(['serve', 'status', '--json']) || '{}').Web?.[host];
   const target = web?.Handlers?.['/']?.Proxy;

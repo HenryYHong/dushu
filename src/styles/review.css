@@ -2,24 +2,28 @@
 .rev-page { max-width: 640px; }
 .rev-top { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); font-size: 14px; }
 .rev-exit { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); text-decoration: none; margin-right: auto; }
-.rev-exit:hover { color: var(--text); }
-.rev-counter { font-weight: 600; }
-.rev-progress { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; margin-bottom: var(--space-5); }
-.rev-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.25s var(--ease); }
+@media (hover: hover) { .rev-exit:hover { color: var(--text); } }
+.rev-counter { font-weight: 600; font-variant-numeric: tabular-nums; }
+.rev-left { font-variant-numeric: tabular-nums; }
+.rev-progress { height: 3px; border-radius: 2px; background: var(--wash-2); overflow: hidden; margin-bottom: var(--space-5); }
+/* A session's progress is ink: vermilion is kept for your place in a book. */
+.rev-progress-fill { height: 100%; background: var(--text-2); border-radius: 2px; transition: width 0.25s var(--ease); }
+.rev-head { margin-bottom: var(--space-5); }
 
-.rev-card { padding: var(--space-6) var(--space-5); min-height: 280px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: center; }
+/* The card: an index card, raised on the paper. */
+.rev-card { padding: var(--space-6) var(--space-5); min-height: 280px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: center; border-radius: var(--radius-l); box-shadow: var(--shadow); }
 .rev-card-revealed { cursor: default; }
-.rev-word { font-size: 84px; line-height: 1.2; font-weight: 600; overflow-wrap: anywhere; }
+.rev-word { font-size: 84px; line-height: 1.2; font-weight: 400; letter-spacing: 0.04em; overflow-wrap: anywhere; }
 .rev-word-mid { font-size: 64px; }
 .rev-word-long { font-size: 40px; }
 .rev-ctx { margin: var(--space-4) auto 0; max-width: 480px; color: var(--text-2); font-size: 18px; line-height: 1.8; text-align: left; overflow-wrap: anywhere; }
 .rev-ctx mark { background: var(--hl); color: var(--text); font-weight: 700; padding: 0 2px; border-radius: 3px; }
-.rev-back { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.rev-back { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--hairline); }
 /* The answer keeps its room before it is shown, so the word does not jump up when it appears. */
 .rev-back[hidden] { display: block !important; visibility: hidden; }
 .rev-answer { display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
 .rev-py { font-family: var(--font-pinyin); font-size: 28px; font-weight: 500; }
-.rev-gloss { margin: var(--space-2) 0 0; font-size: 18px; line-height: 1.5; }
+.rev-gloss { margin: var(--space-2) 0 0; font: 400 19px/1.5 var(--font-book); }
 .rev-source { margin: var(--space-2) 0 0; font-size: 13px; }
 
 .rev-reveal { display: flex; width: auto; min-width: 220px; height: 48px; margin: var(--space-4) auto 0; padding: 0 var(--space-5); font-size: 16px; }
@@ -27,14 +31,14 @@
 .rev-grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); margin-top: var(--space-4); }
 .rev-grade {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 10px 4px 8px; border-radius: var(--radius); cursor: pointer;
-  border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-s);
-  transition: background 0.12s, transform 0.06s;
+  padding: 12px 4px 8px; border-radius: var(--radius); cursor: pointer;
+  border: 0; background: var(--elev); box-shadow: var(--shadow-s), inset 0 2px 0 var(--rev-tone, var(--rule));
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
-.rev-grade:hover { background: var(--surface-2); }
-.rev-grade:active { transform: translateY(1px); }
-.rev-grade { box-shadow: var(--shadow-s), inset 0 3px 0 var(--rev-tone, var(--border)); padding-top: 12px; }
-.rev-grade-label { font-weight: 700; font-size: 15px; }
+:root[data-theme='dark'] .rev-grade { background: var(--surface-2); }
+@media (hover: hover) { .rev-grade:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); } }
+.rev-grade:active { transform: scale(0.98); }
+.rev-grade-label { font-weight: 600; font-size: 14.5px; }
 .rev-grade-iv { font-size: 13px; color: var(--text-2); }
 .rev-grade-key { margin-top: 4px; color: var(--text-3); }
 /* Each grade has a color bar and a label in the same color: red, amber, green, blue, from "again" to "easy". */
@@ -48,11 +52,12 @@
 .rev-grade-easy .rev-grade-label { color: var(--ink); }
 
 .rev-empty, .rev-summary { padding: var(--space-7) var(--space-5); text-align: center; }
-.rev-empty-title, .rev-summary-title { margin: 0 0 var(--space-2); font-size: 24px; }
+.rev-empty-title, .rev-summary-title { margin: 0 0 var(--space-2); font: 400 30px/1.2 var(--font-display); letter-spacing: -0.01em; }
+.rev-empty, .rev-summary { border-radius: var(--radius-l); }
 .rev-empty p { color: var(--text-2); margin: 0 0 var(--space-4); }
 .rev-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); margin: var(--space-5) 0; }
-.rev-stat { padding: var(--space-3) 4px; border-radius: var(--radius); background: var(--surface-2); }
-.rev-stat-value { font-size: 24px; font-weight: 700; }
+.rev-stat { padding: var(--space-3) 4px; border-radius: var(--radius-s); background: var(--wash); }
+.rev-stat-value { font: 400 28px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
 .rev-stat-label { font-size: 12px; color: var(--text-3); }
 .rev-next { color: var(--text-2); margin: 0 0 var(--space-4); }
 .rev-summary-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; }

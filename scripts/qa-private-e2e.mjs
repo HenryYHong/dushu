@@ -31,17 +31,31 @@ const check = (pass, name, info = '') => { results.push(pass); console.log(`${pa
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const errors = [];
 
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
 let browser, ctx, page, offline;
 if (engine === 'chrome') {
   const puppeteer = (await import('puppeteer-core')).default;
   browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--no-sandbox'], defaultViewport: { width: 1280, height: 800 } });
   ctx = await browser.createBrowserContext();
   page = await ctx.newPage();
+  await page.evaluateOnNewDocument(SYNC_OFF);
   offline = (on) => page.setOfflineMode(on);
 } else {
   const { webkit, devices } = require('playwright');
   browser = await webkit.launch({ headless: true });
   ctx = await browser.newContext({ ...devices[deviceName] });
+  await ctx.addInitScript(SYNC_OFF);
   page = await ctx.newPage();
   offline = (on) => ctx.setOffline(on);
 }

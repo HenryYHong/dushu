@@ -70,7 +70,7 @@ describe('reader screen', () => {
     expect(text('.rd-chapter-title')).toBe('第一章');
     expect(document.querySelectorAll('.rd-article .rd-w').length).toBeGreaterThan(4);
     expect(document.querySelector('.rd-article rt')).not.toBeNull();
-    expect(text('.rd-pinyin-btn')).toBe('All');
+    expect(text('.rd-pinyin-btn .rd-pill-label')).toBe('All');
     expect(q('.rd-article')!.getAttribute('lang')).toBe('zh-Hans');
   });
 
@@ -113,10 +113,33 @@ describe('reader screen', () => {
     document.querySelectorAll<HTMLElement>('.rd-pop .rd-opt')[0].click(); // Off
     expect(ctx.settings.get().pinyin).toBe('off');
     expect(q('.rd-root')!.classList.contains('rd-py-off')).toBe(true);
-    expect(text('.rd-pinyin-btn')).toBe('Off');
+    expect(text('.rd-pinyin-btn .rd-pill-label')).toBe('Off');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', bubbles: true }));
     expect(ctx.settings.get().pinyin).toBe('all');
     expect(q('.rd-root')!.classList.contains('rd-py-off')).toBe(false);
+  });
+
+  it('the pinyin button is a 拼 seal (solid when pinyin shows, an outline when off) followed by the mode, and keeps its name', async () => {
+    const { ctx, meta } = await setup();
+    await open(ctx, meta.id);
+    const btn = q('.rd-pinyin-btn')!;
+    const seal = btn.querySelector<HTMLElement>('.rd-seal')!;
+    expect(seal.textContent).toBe('拼');
+    expect(seal.getAttribute('aria-hidden')).toBe('true');
+    expect(btn.querySelector('svg')).toBeNull(); // no eye icon any more
+    const state = () => [btn.dataset.mode, text('.rd-pinyin-btn .rd-pill-label'), btn.getAttribute('aria-label')];
+    expect(state()).toEqual(['all', 'All', 'Pinyin: All']);
+    ctx.settings.set({ pinyin: 'off' });
+    expect(state()).toEqual(['off', 'Off', 'Pinyin: Off']);
+    ctx.settings.set({ pinyin: 'unknown' });
+    expect(state()).toEqual(['unknown', 'Unknown', 'Pinyin: Unknown']);
+    ctx.settings.set({ pinyin: 'hsk', hskThreshold: 3 });
+    expect(state()).toEqual(['hsk', 'HSK 3', 'Pinyin: HSK 3']);
+    // On the narrowest phones only the level stays beside the seal: "HSK " is its own span the stylesheet can hide.
+    expect(btn.querySelector('.rd-pill-pre')?.textContent).toBe('HSK ');
+    expect(btn.dataset.level).toBe('3');
+    ctx.settings.set({ hskThreshold: 7 });
+    expect(state()).toEqual(['hsk', 'HSK 7-9', 'Pinyin: HSK 7-9']);
   });
 
   it('typography settings become CSS variables', async () => {

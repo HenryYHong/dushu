@@ -6,7 +6,14 @@ import { icon } from '../icons';
 const DATA_URL = 'https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1/';
 const cache = new Map<string, Promise<unknown>>();
 
-function loadStrokes(ch: string): Promise<unknown> {
+/** The data holds single BMP characters; code points above U+FFFF and the compatibility blocks are not in it. */
+export function strokeDataPossible(ch: string): boolean {
+  const cp = ch.codePointAt(0);
+  if (cp === undefined || cp > 0xFFFF || ch.length !== 1) return false;
+  return !((cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x3300 && cp <= 0x33FF) || (cp >= 0xFE30 && cp <= 0xFE4F));
+}
+
+export function loadStrokes(ch: string): Promise<unknown> {
   let p = cache.get(ch);
   if (!p) {
     const ctl = new AbortController();
@@ -14,7 +21,8 @@ function loadStrokes(ch: string): Promise<unknown> {
     p = fetch(`${DATA_URL}${encodeURIComponent(ch)}.json`, { signal: ctl.signal })
       .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .finally(() => clearTimeout(timer));
-    p.catch(() => cache.delete(ch)); // allow a retry later
+    // A 404 is remembered for the session; a network failure is retried on the next open.
+    p.catch((e: Error) => { if (e.message !== '404') cache.delete(ch); });
     cache.set(ch, p);
   }
   return p;
@@ -27,7 +35,7 @@ function loadStrokes(ch: string): Promise<unknown> {
 export function createStrokeOrder(ch: string, onShown: () => void): HTMLElement {
   const box = h('div.pp-stroke-box');
   const section = h('section.pp-stroke', { hidden: true }, h('span.pp-section', null, 'Stroke order'), box);
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) return section;
+  if (!strokeDataPossible(ch) || (typeof navigator !== 'undefined' && navigator.onLine === false)) return section;
 
   void (async () => {
     try {

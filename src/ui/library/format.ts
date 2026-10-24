@@ -44,11 +44,75 @@ export function titleLayout(title: string): TitleLayout {
 /** Title font size on a generated cover, in percent of the cover width. */
 export const titleSize = (title: string): number => titleLayout(title).size;
 
-/** "Not started", "42%", "Finished". Never "0%" or "100%" for a book that is not quite there. */
-export function progressLabel(p: Pick<Progress, 'percent'> | undefined): string {
+/**
+ * The dye of a generated cover: an oklch hue from a short list of book-cloth colors (indigo, plum, umber, pine, slate,
+ * madder, violet), picked by a hash of title and author and nudged a few degrees, so neighbors differ and none turns muddy.
+ */
+const DYES = [262, 332, 50, 166, 222, 22, 292];
+export function coverDye(title: string, author = ''): number {
+  const h = hashString(`${title}\u0000${author}`);
+  return DYES[h % DYES.length] + ((h >>> 8) % 13) - 6;
+}
+
+/** How wide a title sets: a CJK character is 1, a Latin letter or digit about half, a space a third. */
+export function titleUnits(title: string): number {
+  let n = 0;
+  for (const ch of title.trim()) n += /[\u3000-\u9fff\uf900-\ufaff\uff00-\uffef]|[\u{20000}-\u{3ffff}]/u.test(ch) ? 1 : /\s/.test(ch) ? 0.3 : 0.56;
+  return n;
+}
+
+/** True for a title that cannot stand in a vertical slip: it has Latin letters or a run of digits. */
+export const hasLatin = (title: string): boolean => /[A-Za-z]|\d{2,}/.test(title);
+
+export interface ClassicLayout {
+  /** 'v': the title set vertically on a narrow slip (题签); 'h': a horizontal slip, for long or Latin titles. */
+  slip: 'v' | 'h';
+  /** Title size, in percent of the cover width. */
+  size: number;
+  /** False when the author would not fit on a vertical slip under the title. */
+  author: boolean;
+}
+
+/** Vertical title sizes by character count (the slip holds about 82% of the cover width in length). */
+const VERTICAL = [0, 15, 14, 13, 12, 11, 10, 9.5, 8.5];
+
+/** How a thread-bound cover sets its title: vertically for up to eight CJK characters, otherwise on a horizontal slip. */
+export function classicLayout(title: string, author = ''): ClassicLayout {
+  const chars = [...title.trim()];
+  const n = chars.length;
+  if (n >= 1 && n < VERTICAL.length && !hasLatin(title)) {
+    const size = VERTICAL[n];
+    const a = [...author.trim()].length;
+    const fits = n * size * 1.1 + 5 + a * 5.5 * 1.08 <= 82;
+    return { slip: 'v', size, author: a > 0 && fits };
+  }
+  return { slip: 'h', size: horizontalSize(titleUnits(title), [12, 11, 10, 9, 8, 7, 6, 5.2]), author: !!author.trim() };
+}
+
+/** A contemporary cover: the title set horizontally, larger while it is short. */
+export function modernSize(title: string): number {
+  const u = titleUnits(title);
+  if (u <= 2) return 17;
+  if (u <= 3) return 15;
+  if (u <= 4) return 14;
+  return horizontalSize(u, [13, 12, 10.5, 9, 8, 7, 6, 5.2]);
+}
+
+/** Sizes for 4, 6, 9, 14, 20, 30, 45 and more units: enough lines stay on the cover however long the title is. */
+function horizontalSize(units: number, sizes: number[]): number {
+  const steps = [4, 6, 9, 14, 20, 30, 45];
+  const i = steps.findIndex((s) => units <= s);
+  return sizes[i < 0 ? sizes.length - 1 : i];
+}
+
+/**
+ * "Not started", "42%", "Finished". Never "0%" or "100%" for a book that is not quite there. A long book read a few screens
+ * in is under half a percent, but its place is past the start, so it says 1%.
+ */
+export function progressLabel(p: (Pick<Progress, 'percent'> & Partial<Pick<Progress, 'chapter' | 'block' | 'offset'>>) | undefined): string {
   const v = p?.percent ?? 0;
   if (v >= 0.995) return 'Finished';
-  if (v < 0.005) return 'Not started';
+  if (v < 0.005) return (p?.chapter ?? 0) > 0 || (p?.block ?? 0) > 0 || (p?.offset ?? 0) > 0 ? '1%' : 'Not started';
   return `${Math.min(99, Math.max(1, Math.round(v * 100)))}%`;
 }
 

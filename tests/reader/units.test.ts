@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
 // Smaller pieces of the reader that the screen tests do not reach: long blocks, lazy pinyin, the chapter list window,
 // the menus, name capitalization and the stylesheet rules that carry the typography.
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { Chapter, LexiconEntry } from '../../src/types';
+import type { Chapter, LexiconEntry, PinyinStyle } from '../../src/types';
 import { createChapterView, MAX_BLOCK_CHARS, splitLongText } from '../../src/ui/reader/chapter';
-import { buildDisplayMenu, buildPinyinMenu, closePopover, openPopover, slider } from '../../src/ui/reader/menus';
+import { MIN_CELL_EM } from '../../src/ui/reader/grid';
+import { buildDisplayMenu, buildPinyinMenu, closePopover, openPopover, showShortcuts, slider } from '../../src/ui/reader/menus';
 import { renderParagraph } from '../../src/ui/reader/render';
-import { capitalizePinyin, createToc } from '../../src/ui/reader/toc';
+import { createToc } from '../../src/ui/reader/toc';
+import { capitalizePinyin } from '../../src/core/names';
+import { formatSyllable } from '../../src/core/pinyin';
 import { loadTestDictionary } from '../helpers/data';
 import { makeCtx, stubBrowser, tick } from './helpers';
 
@@ -159,7 +162,7 @@ describe('the stylesheets', () => {
     expect(reader).toMatch(/@supports \(hanging-punctuation: first\) \{ \.rd-p, \.rd-quote \{ text-wrap: wrap; \} \}/);
   });
   it('makes the way on at the end of a chapter 44 px high under a finger, and the page bar in Pages solid', () => {
-    expect(reader).toMatch(/@media \(pointer: coarse\) \{ \.rd-endbtn \{ min-height: 44px; border-radius: 22px; \} \}/);
+    expect(reader).toMatch(/@media \(pointer: coarse\) \{ \.rd-endbtn \{ min-height: 44px; \} \}/);
     expect(reader).toMatch(/\.rd-paged \.rd-bar \{ background: var\(--bg\);/);
   });
   it('keeps zhuyin tone marks inside their row and takes the room between squeezed syllables from one variable', () => {
@@ -180,20 +183,73 @@ describe('the stylesheets', () => {
     expect(reader).toMatch(/\.rd-spine \{[^}]*var\(--rd-spine-core\)/);
     expect(reader).not.toMatch(/\.rd-spine \{[^}]*color-mix\(in srgb, var\(--text\)/);
   });
-  it('keeps the top bar nearly opaque and the pinyin pill one width', () => {
-    expect(reader).toMatch(/background: color-mix\(in srgb, var\(--bg\) 9[5-9]%, transparent\)/);
-    expect(reader).toMatch(/\.rd-pinyin-btn \{ min-width: 110px;/);
+  it('keeps the top bar opaque paper with no blur (text ghosted through the translucent one) and the pinyin pill one width', () => {
+    const bar = reader.match(/\n\.rd-bar \{([^}]*)\}/)![1];
+    expect(bar).toMatch(/background: var\(--bg\);/);
+    expect(bar).toMatch(/(^|\s)backdrop-filter: none;/);
+    expect(bar).toMatch(/-webkit-backdrop-filter: none;/);
+    expect(reader).toMatch(/\.rd-pinyin-btn \{ min-width: \d+px;/);
+  });
+  it('draws the 拼 seal solid while pinyin shows and as an outline when it is off, and no HSK badge on the old eye', () => {
+    expect(reader).toMatch(/\.rd-seal \{[^}]*background: var\(--accent-fill\);[^}]*color: var\(--accent-fill-text\);/);
+    expect(reader).toMatch(/\.rd-pinyin-btn\[data-mode='off'\] \.rd-seal \{ background: transparent; color: var\(--accent\); box-shadow: inset 0 0 0 [\d.]+px var\(--accent\);/);
+    expect(reader).not.toMatch(/content: attr\(data-level\)/);
+  });
+  it('marks a saved word with one stroke under the whole word, never in the chapter title, and moves no text', () => {
+    expect(reader).not.toMatch(/\.rd-saved \.rd-c \{ box-shadow/);
+    const stroke = reader.match(/\.rd-saved \.rd-c::before \{([^}]*)\}/)![1];
+    expect(stroke).toMatch(/position: absolute;/);
+    expect(stroke).toMatch(/left: 0; right: 0;/);
+    expect(reader).toMatch(/\.rd-h1 \.rd-saved \.rd-c::before \{ display: none; \}/);
+    // The chapter rule is drawn in the margin, out of the flow.
+    expect(reader).toMatch(/\.rd-article \.rd-h1::after \{[^}]*position: absolute;/);
+  });
+  it('balances headings only, never a short prose paragraph', () => {
+    expect(reader).toMatch(/\n\.rd-h \{ text-wrap: balance; \}/);
+    expect(reader).not.toMatch(/\n[^\n{]*\.rd-short[^\n{]*\{[^}]*text-wrap: balance/);
+  });
+  it('keeps a 回目 half on one line in Safari only where the column holds the longest half of the classics', () => {
+    // Safari has no fallback break inside a run held together with nowrap, so below this width it breaks between words.
+    expect(reader).toMatch(/\.rd-h \{ word-break: keep-all; container: rd-h \/ inline-size; \}/);
+    expect(reader).toMatch(/\.rd-h \.rd-w, \.rd-h \.rd-c \{ white-space: nowrap; \}/);
+    const narrow = Number(reader.match(/@container rd-h \(max-width: ([\d.]+)em\) \{[^}]*word-break: normal;/)?.[1]);
+    let longest = 0;
+    for (const file of readdirSync(resolve(process.cwd(), 'public/samples')).filter((f) => f.endsWith('.txt'))) {
+      for (const line of readFileSync(resolve(process.cwd(), 'public/samples', file), 'utf8').split('\n')) {
+        if (!/^第[〇零一二三四五六七八九十百千0-9]+回[\u3000 ]/.test(line) || line.length > 40) continue;
+        for (const half of line.trim().split(/[\u3000 ]+/).slice(1)) longest = Math.max(longest, [...half].length);
+      }
+    }
+    expect(longest).toBeGreaterThanOrEqual(7);
+    expect(longest * MIN_CELL_EM).toBeLessThanOrEqual(narrow);
+    // A word of five characters or more breaks there; render.ts marks it with a class (see the next test for why not :has).
+    expect(reader).toMatch(/@container rd-h \(max-width: [\d.]+em\) \{\n[^@]*?\.rd-h \.rd-w-long, \.rd-h \.rd-w-long > \.rd-c \{ white-space: normal; \}/);
+  });
+  it('never puts a position-counting selector inside :has(), which makes Chrome restyle the whole chapter on every DOM change', () => {
+    // .rd-w:has(> .rd-c:nth-child(5)) restyled about 50,000 elements per frame while a long chapter scrolled (67 ms frames).
+    for (const file of readdirSync(resolve(process.cwd(), 'src/styles')).filter((f) => f.endsWith('.css'))) {
+      const text = readFileSync(resolve(process.cwd(), 'src/styles', file), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+      expect(text, file).not.toMatch(/:has\([^)]*:(nth-|first-child|last-child|only-child|first-of-type|last-of-type)/);
+    }
+  });
+  it('frames the page on focus only when Tab brought it there, not when a closed word card hands focus back', () => {
+    expect(reader).toMatch(/\.rd-stage:focus, \.rd-stage:focus-visible \{ outline: none; \}/);
+    expect(reader).toMatch(/\.rd-stage\[data-tabbed\]:focus-visible \{ box-shadow: inset 0 0 0 2px var\(--focus\); \}/);
+    expect(reader).toMatch(/\.rd-article:focus, \.rd-article:focus-visible \{ outline: none; \}/);
+    expect(reader).toMatch(/\.rd-article\[data-tabbed\]:focus-visible \{ outline: 2px solid var\(--focus\)/);
   });
 });
 
 describe('names written as names', () => {
-  it('capitalizes each syllable of a person, joins a place and sets its kind apart, and leaves a term alone', () => {
-    expect(capitalizePinyin('guang1 rui3', 'name')).toBe('Guāng Ruǐ');
-    expect(capitalizePinyin('tao2 hua1 dao3', 'place')).toBe('Táohuā Dǎo');
-    expect(capitalizePinyin('jia1 xing1', 'place')).toBe('Jiāxīng');
-    expect(capitalizePinyin('xiang2 long2 shi2 ba1 zhang3', 'term')).toBe('xiáng lóng shí bā zhǎng');
-    expect(capitalizePinyin('guo1 jing4', 'name', 'numbers')).toBe('Guo1 Jing4');
-    expect(capitalizePinyin('guo1 jing4', 'name', 'zhuyin')).not.toMatch(/[A-Z]/);
+  it('capitalizes a person as surname and given name, joins a place and sets its kind apart, and leaves a term alone', () => {
+    const py = (numbered: string, kind: LexiconEntry['kind'], word: string, style: PinyinStyle = 'marks') =>
+      capitalizePinyin(numbered.split(' ').map((s) => formatSyllable(s, style)), kind, word);
+    expect(py('huang2 rong2', 'name', '黄蓉')).toBe('Huáng Róng');
+    expect(py('tao2 hua1 dao3', 'place', '桃花岛')).toBe('Táohuā Dǎo');
+    expect(py('jia1 xing1', 'place', '嘉兴')).toBe('Jiāxīng');
+    expect(py('xiang2 long2 shi2 ba1 zhang3', 'term', '降龙十八掌')).toBe('xiáng lóng shí bā zhǎng');
+    expect(py('guo1 jing4', 'name', '郭靖', 'numbers')).toBe('Guo1 Jing4');
+    expect(py('guo1 jing4', 'name', '郭靖', 'zhuyin')).not.toMatch(/[A-Z]/);
   });
 });
 
@@ -309,7 +365,7 @@ describe('the menus', () => {
     const { ctx } = await makeCtx({ pinyin: 'all' });
     let shown = 40;
     const m = buildPinyinMenu(ctx, () => ({ words: 200, shown }));
-    const learn = [...m.el.querySelectorAll<HTMLElement>('.rd-row')].find((r) => r.textContent?.startsWith('Learn as I read'))!;
+    const learn = [...m.el.querySelectorAll<HTMLElement>('.rd-row')].find((r) => r.textContent?.startsWith('Learn known words as I read'))!;
     const share = m.el.querySelector<HTMLElement>('.rd-share')!;
     expect(learn.hidden).toBe(true);
     expect(share.hidden).toBe(true);
@@ -327,6 +383,49 @@ describe('the menus', () => {
     // No chapter on screen: no line.
     const bare = buildPinyinMenu(ctx, () => null);
     expect(bare.el.querySelector<HTMLElement>('.rd-share')!.hidden).toBe(true);
+  });
+  it('call the settings what Settings calls them', async () => {
+    const { ctx } = await makeCtx({ ttsRate: 0.9 });
+    const m = buildDisplayMenu(ctx);
+    const row = (label: string) => [...m.el.querySelectorAll<HTMLElement>('.rd-row')].find((r) => r.querySelector('.rd-row-label')?.firstChild?.textContent === label);
+    const options = (label: string) => [...row(label)!.querySelectorAll('.rd-seg-btn')].map((b) => b.textContent);
+    expect(options('Theme')).toEqual(['Auto', 'Light', 'Sepia', 'Dark']);
+    expect(options('Characters')).toEqual(['As written', 'Simplified', 'Traditional']);
+    expect(row('Read-aloud speed')!.querySelector('.rd-slider-out')!.textContent).toBe('0.9×');
+    expect(row('Reading speed')).toBeUndefined();
+  });
+  it('leave out Translate paragraphs on a touch screen, where the switch has nothing to show', async () => {
+    const { ctx } = await makeCtx();
+    const labels = (el: HTMLElement) => [...el.querySelectorAll('.rd-row-label')].map((x) => x.firstChild?.textContent);
+    expect(labels(buildDisplayMenu(ctx).el)).toContain('Translate paragraphs');
+    const real = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: q === '(hover: none)', media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    try {
+      expect(labels(buildDisplayMenu(ctx).el)).not.toContain('Translate paragraphs');
+    } finally { window.matchMedia = real; }
+  });
+  it('the ? sheet titles its groups, so P reads once per group, and gives focus back on close', () => {
+    // jsdom has no showModal or close on <dialog>.
+    const proto = HTMLDialogElement.prototype as unknown as { showModal?: () => void; close?: () => void };
+    proto.showModal ??= function (this: HTMLDialogElement) { this.setAttribute('open', ''); };
+    proto.close ??= function (this: HTMLDialogElement) { this.removeAttribute('open'); this.dispatchEvent(new Event('close')); };
+    const page = document.createElement('div');
+    page.tabIndex = 0;
+    document.body.appendChild(page);
+    page.focus();
+    showShortcuts();
+    const dlg = document.querySelector<HTMLDialogElement>('dialog.rd-keys')!;
+    expect([...dlg.querySelectorAll('.sc-group-title')].map((e) => e.textContent)).toEqual(['Reading', 'In a word card']);
+    for (const g of dlg.querySelectorAll('.sc-group')) {
+      const ps = [...g.querySelectorAll('dt')].filter((dt) => dt.textContent === 'P');
+      expect(ps.length).toBeLessThanOrEqual(1);
+    }
+    // Key caps, not "Shift + ← or →" in one box.
+    const chord = [...dlg.querySelectorAll('dt')].find((dt) => dt.textContent?.includes('Shift'))!;
+    expect(chord.querySelectorAll('kbd').length).toBe(3);
+    dlg.close();
+    expect(document.querySelector('dialog')).toBeNull();
+    expect(document.activeElement).toBe(page);
   });
   it('a slider shows its value as it moves but changes the setting once, after the pause or on release', async () => {
     vi.useFakeTimers();
@@ -375,6 +474,50 @@ describe('tone colors on small pinyin', () => {
         const tone = hex(b, `tone-${n}`, hex(base, `tone-${n}`));
         expect(ratio(mix(tone, text, share), bg), `${theme} tone ${n}`).toBeGreaterThanOrEqual(4.5);
       }
+    }
+  });
+  it('at night are pulled toward the quiet gray, and still read at 4.5:1', () => {
+    const base = block('light');
+    const b = block('dark');
+    for (let n = 1; n <= 5; n++) {
+      const m = reader.match(new RegExp(`:root\\[data-theme='dark'\\] \\.rd-article rt\\.tone-${n} \\{ color: color-mix\\(in srgb, var\\(--tone-${n}\\) (\\d+)%, var\\(--text-3\\)\\)`));
+      expect(m, `dark tone ${n} rule`).not.toBeNull();
+      const c = mix(hex(b, `tone-${n}`, hex(base, `tone-${n}`)), hex(b, 'text-3'), Number(m![1]) / 100);
+      expect(ratio(c, hex(b, 'bg')), `dark tone ${n}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+  it('on word cards, Vocabulary and Review (base.css .tone-N) read at 4.5:1 on every surface they sit on, in every theme', () => {
+    const baseCss = css('base.css');
+    const base = block('light');
+    for (const theme of ['light', 'sepia', 'dark']) {
+      const b = block(theme);
+      const text = hex(b, 'text', hex(base, 'text'));
+      for (let n = 1; n <= 5; n++) {
+        const m = baseCss.match(new RegExp(`\\n\\.tone-${n} \\{ color: color-mix\\(in srgb, var\\(--tone-${n}\\) (\\d+)%, var\\(--text\\)\\)`));
+        expect(m, `.tone-${n} is mixed toward the text`).not.toBeNull();
+        const c = mix(hex(b, `tone-${n}`, hex(base, `tone-${n}`)), text, Number(m![1]) / 100);
+        for (const surface of ['bg', 'surface', 'surface-2', 'elev']) {
+          expect(ratio(c, hex(b, surface, hex(base, surface))), `${theme} tone ${n} on --${surface}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+  });
+  it('keeps chosen menu options, filled red controls and red text readable in every theme', () => {
+    const base = block('light');
+    for (const theme of ['light', 'sepia', 'dark']) {
+      const b = block(theme);
+      const v = (k: string) => hex(b, k, hex(base, k));
+      // A chosen option is ink on the ink wash (--wash-2: 9% of the text, 12% at night) over the menu sheet; its hint
+      // steps up to --text-2 there. A chosen segment is ink on the raised thumb; the others are --text-2 on the track.
+      const wash = mix(v('text'), v('elev'), theme === 'dark' ? 0.12 : 0.09);
+      expect(reader).toMatch(/\.rd-opt\[aria-checked='true'\] \.rd-opt-hint \{ color: var\(--text-2\); \}/);
+      expect(ratio(v('text'), wash), `${theme} chosen option`).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(v('text-2'), wash), `${theme} chosen option hint`).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(v('text'), v('thumb')), `${theme} chosen segment`).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(v('text-2'), wash), `${theme} segment track`).toBeGreaterThanOrEqual(4.5);
+      // The seal, the primary button and the badges: silk on lacquer; thin red marks and red text on the page.
+      expect(ratio(v('accent-fill-text'), v('accent-fill')), `${theme} filled red`).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(v('accent'), v('bg')), `${theme} red text`).toBeGreaterThanOrEqual(4.5);
     }
   });
   it('really are different colors, so the setting is visible', () => {

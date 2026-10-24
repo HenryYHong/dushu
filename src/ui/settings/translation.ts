@@ -62,7 +62,7 @@ export function claudeStatusLines(status: ClaudeStatus | null, connected: boolea
     : { label: 'Claude key', value: status.problem ?? 'Not set up on the Mac', kind: 'warn' });
   if (status.usage) {
     const limits = status.limits ? ` of ${number(status.limits.requests)} requests and ${number(status.limits.inputTokens)} input tokens` : '';
-    lines.push({ label: 'Today', value: `${number(status.usage.requests)} requests, ${number(status.usage.inputTokens)} input and ${number(status.usage.outputTokens)} output tokens${limits}`,
+    lines.push({ label: 'Today', value: `${number(status.usage.requests)} ${status.usage.requests === 1 ? 'request' : 'requests'}, ${number(status.usage.inputTokens)} input and ${number(status.usage.outputTokens)} output tokens${limits}`,
       kind: status.limitMessage ? 'warn' : 'ok' });
   }
   if (status.limitMessage) lines.push({ label: 'Limit', value: status.limitMessage, kind: 'warn' });

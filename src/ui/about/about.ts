@@ -2,6 +2,7 @@
 import '../../styles/about.css';
 import type { DataMeta, MountFn } from '../../types';
 import { h, clear } from '../dom';
+import { pageTitle } from '../pageHead';
 import { icon } from '../icons';
 import { SHORTCUTS, keyCaps } from '../shortcuts';
 
@@ -12,6 +13,7 @@ export const EXTRA_SOURCES: { name: string; license: string; url: string; use: s
   { name: 'Wiktionary (via kaikki.org)', license: 'CC BY-SA 4.0', url: 'https://kaikki.org/', use: 'Readings and definitions for rare characters Unihan has none for.' },
   { name: 'Noto Serif SC and Noto Serif TC', license: 'SIL Open Font License 1.1', url: 'https://fonts.google.com/noto/specimen/Noto+Serif+SC', use: 'The book typeface on devices without a system Song font (iPad, Windows, Android). Simplified and traditional shapes.' },
   { name: 'LXGW WenKai', license: 'SIL Open Font License 1.1', url: 'https://github.com/lxgw/LxgwWenKai', use: 'The Kai (brush) reading typeface.' },
+  { name: 'Newsreader', license: 'SIL Open Font License 1.1', url: 'https://github.com/productiontype/Newsreader', use: 'The serif of the screen titles, folios and numbers (a Latin subset).' },
   { name: 'hanzi-writer', license: 'MIT', url: 'https://hanziwriter.org/', use: 'Stroke-order animation.' },
   { name: 'hanzi-writer-data (Make Me a Hanzi)', license: 'Arphic Public License', url: 'https://github.com/chanind/hanzi-writer-data', use: 'Stroke data, fetched when you open a character.' },
 ];
@@ -38,8 +40,8 @@ const HOW_TO: [string, string][] = [
 ];
 
 const PAGES: [string, string][] = [
-  ['Pages or scrolling', 'By default a chapter is one long scrolling column. If you prefer turning pages like a printed book, switch the layout to Pages in Settings.'],
-  ['Two pages at a time', 'On a wide screen held sideways, such as an iPad in landscape, you see a spread of two pages. In portrait you see one. You can force either one in Settings.'],
+  ['Pages or scrolling', 'By default a chapter is one long scrolling column. If you prefer turning pages like a printed book, switch the layout to Pages in Settings, or tap Aa, then Layout, in the reader.'],
+  ['Two pages at a time', 'On a wide screen held sideways, such as an iPad in landscape, you see a spread of two pages. In portrait you see one. You can force either one in Settings, or with Aa, then Layout, in the reader.'],
   ['Turning', 'Tap the left or right edge of a page, swipe, press the arrow keys or Space. Tap the middle to show or hide the controls. Choose a page flip, a slide or no animation.'],
   ['Where you were', 'Your place is kept by the text, not by the page number, so changing the text size or turning the screen lands you on the same line. It stays when Dushu updates, and when you delete a book and add it again.'],
 ];
@@ -53,7 +55,7 @@ const NAMES: [string, string][] = [
 const IPAD: [string, string][] = [
   ['Connect privately', 'Use the private HTTPS address shown in Settings, with Tailscale connected on your Mac and iPad under the same account. Keep the Mac awake for private AI and Premium audio. localhost only works on the Mac.'],
   ['Install it', 'Open the private address in Safari, tap Share, then Add to Home Screen. Imported books and downloaded dictionary data work offline. Mac AI and Mac voices still need the connection.'],
-  ['Translating sentences', 'Safari and iPadOS have no on-device translator, as Chrome does. On an iPad, sentence translation uses the private model on your Mac while it is reachable. Otherwise it needs a Claude key or MyMemory, both set in Settings.'],
+  ['Translating sentences', 'Safari and iPadOS have no on-device translator, as Chrome does. On an iPad, sentences go to Claude through your Mac, then the model on your Mac, then the dictionary gloss. MyMemory is used only if you pick it.'],
   ['Bring your books', 'Tap Import book in the Library, then Browse to pick a file from the Files app (iCloud Drive, On My iPad, or a download).'],
   ['Move your words', 'Settings has a backup export and import. Export on one device, open the file on the other, and your saved words, progress and settings come along. Books are not in the backup, so import them on each device.'],
 ];
@@ -128,7 +130,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
 
   return h('div.page.ab-page', null,
     h('div.page-head', null, h('div', null,
-      h('h1.page-title', null, 'About Dushu'),
+      pageTitle('about', 'About Dushu'),
       h('p.page-sub', null, 'Read real Chinese books, and look up any character.'))),
 
     h('section.ab-section', null,

@@ -93,7 +93,7 @@ const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
  */
 export const MAX_BLOCK_CHARS = 3000;
 
-/** A paragraph this short is verse or a line of dialogue: its lines are balanced rather than filled. */
+/** A paragraph this short is marked rd-short (verse or a line of dialogue). It is filled like any other: only headings are balanced. */
 const SHORT_PARAGRAPH = 28;
 
 const SENTENCE_END = '。！？；\n';

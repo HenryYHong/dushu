@@ -1,13 +1,48 @@
-// Headless QA for the vocabulary and review screens. Needs: npx vite --port 5183 --strictPort
+// Headless QA for the vocabulary and review screens.
+//   node scripts/qa-vocab.mjs            starts `vite --port 5183 --strictPort` itself and stops it at the end
+//   QA_BASE=http://localhost:5183/ node scripts/qa-vocab.mjs   use a server that is already running (sync off in the browser)
+// It deletes every saved and known word in the page's store before seeding, so it must never sync with the owner's folder.
 import puppeteer from 'puppeteer-core';
-import { mkdirSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-const BASE = process.env.QA_BASE ?? 'http://localhost:5183/';
+const PORT = 5183;
+const BASE = process.env.QA_BASE ?? `http://localhost:${PORT}/`;
+const ROOT = new URL('../', import.meta.url).pathname;
 const OUT = new URL('../qa-out/vocab/', import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
+// The server started here gets an empty sync folder of its own (removed at the end), never the owner's.
+const SYNC_DIR = process.env.QA_BASE ? null : mkdtempSync(join(tmpdir(), 'dushu-qa-sync-'));
+const dropSyncDir = () => { if (SYNC_DIR) rmSync(SYNC_DIR, { recursive: true, force: true }); };
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
+
+let server = null;
+if (!process.env.QA_BASE) {
+  server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, DUSHU_SYNC_DIR: SYNC_DIR } });
+  await new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('vite did not start')), 30000);
+    server.stdout.on('data', (d) => { if (String(d).includes('Local:')) { clearTimeout(t); resolve(); } });
+    server.stderr.on('data', (d) => { if (String(d).includes('Error')) { clearTimeout(t); reject(new Error(String(d))); } });
+  });
+}
+process.on('exit', () => { if (server) server.kill('SIGTERM'); dropSyncDir(); });
 
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: ['--no-first-run'] });
 const page = await browser.newPage();
+if (!SYNC_DIR) await page.evaluateOnNewDocument(SYNC_OFF);
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -116,6 +151,14 @@ await shot('vocab-known-after');
 // remove + undo
 await page.evaluate(() => window.scrollTo(0, 0));
 const before = (await page.$$('.voc-row')).length;
+// The first row's button can sit at the foot of the window, under the toast of the step before ("Marked ... as known"),
+// so bring it to the middle and make sure the click lands on the button itself, as a reader's would.
+await page.$eval('.voc-remove', (e) => e.scrollIntoView({ block: 'center' }));
+const removeHit = await page.waitForFunction(() => {
+  const b = document.querySelector('.voc-remove'); const r = b.getBoundingClientRect();
+  return b.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+}, { timeout: 8000 }).then(() => true, () => false);
+check(removeHit, 'the first row\'s remove button is clear to click');
 await page.click('.voc-remove'); await settle(400);
 check((await page.$$('.voc-row')).length === before - 1, 'remove drops a row');
 await shot('vocab-removed-toast');

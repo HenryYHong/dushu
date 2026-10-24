@@ -78,6 +78,32 @@ describe('detectTerms', () => {
     expect(detectTerms([], dict)).toEqual([]);
   });
 
+  // The synthetic novel plus a few dozen lines that put one string in front of a verb of speech.
+  const withLines = (make: (i: number) => string) => {
+    const filler = ['今天天气很好', '我们都知道这件事', '他慢慢地走了过来', '大家一起去吃饭', '没有人看见那个孩子', '外面下着大雨'];
+    const fill = (i: number) => filler[(i * 7) % filler.length];
+    return `${novel(5, 400)}\n${Array.from({ length: 60 }, (_, i) => make(i).replace(/F(\d)/g, (_, k) => fill(i + Number(k)))).join('\n')}`;
+  };
+
+  it('does not take a string that runs into the verb after it (操大 + 笑曰) for a speaker, but keeps 阮小二 + 道', async () => {
+    const dict = await dictP;
+    const text = withLines((i) => [`F0。操大笑曰：“F1。”`, `F0，操大怒，F2。`, `F0，操大喜，F3。`][i % 3]);
+    expect(detectTerms([text], dict).map((e) => e.word)).not.toContain('操大');
+    // 二道 is a word, but a person who speaks is followed by 道 all the time.
+    const spoken = withLines((i) => [`F0。阮小二道：“F1。”`, `F0，阮小二F2。`, `F0，阮小二和他F3。`][i % 3]);
+    expect(detectTerms([spoken], dict).find((e) => e.word === '阮小二')?.kind).toBe('name');
+  });
+
+  it('adds the dictionary name that holds a found name (关云长 around 云长), with its dictionary reading', async () => {
+    const dict = await dictP;
+    const text = withLines((i) => [`F0。云长道：“F1。”`, `F0，关云长F2。`, `F0，云长F3。`, `F0，云长F2。`][i % 4]);
+    const by = new Map(detectTerms([text], dict).map((e) => [e.word, e]));
+    expect(by.get('云长')?.kind).toBe('name');
+    expect(by.get('关云长')).toMatchObject({ kind: 'name', pinyin: 'guan1 yun2 chang2', count: 15 });
+    const lex = buildLexicon([...by.values()]);
+    expect(segment('关云长道', dict, lex)[0].text).toBe('关云长');
+  });
+
   it('works on traditional text', async () => {
     const dict = await dictP;
     const text = dict.toTraditional(novel(3, 700));

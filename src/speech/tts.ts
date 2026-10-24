@@ -7,7 +7,10 @@ export interface SpeechOptions {
   getRate?: () => number;
   voice?: string;
   lang?: string;
+  /** Audio started playing (each sentence, with the Mac's voices). */
   onStart?: () => void;
+  /** A sentence ended and the Mac has not rendered the next one yet: silence until the next onStart. */
+  onWaiting?: () => void;
   onError?: (message: string) => void;
   /** Where the words of part `index` start (UTF-16 offsets into it): the Mac's Premium voices then time each word. */
   wordStarts?: (index: number) => number[];
@@ -97,10 +100,18 @@ export function pickVoice(voices: SpeechSynthesisVoice[], lang: string, override
   return pool.find(v => v.localService) ?? pool[0] ?? zh[0] ?? null;
 }
 
-/** Long utterances stall in some Chrome voices. Keep source offsets for spoken-word highlighting. */
+/** Nothing a voice should say: alone, a closing quote or bracket is read out by its name. */
+const unspoken = (text: string) => /^[\s\p{P}\p{S}]*$/u.test(text);
+
+/**
+ * Long utterances stall in some Chrome voices. Keep source offsets for spoken-word highlighting. A sentence keeps the closers
+ * after its mark; a piece with nothing to say (a lone ” or ……) joins the one before it, or is dropped at a paragraph's start
+ * (a ○○○ separator).
+ */
 function pieces(text: string, max = 180): { text: string; start: number }[] {
   const out: { text: string; start: number }[] = [];
-  for (const match of text.matchAll(/[^。！？!?；;\n]+[。！？!?；;]*|\n+/g)) {
+  // Only marks that can only close: after a sentence mark, ASCII " and ' may open the next quote.
+  for (const match of text.matchAll(/[^。！？!?；;\n]+[。！？!?；;]*[」』”’）】〉》]*|\n+/g)) {
     const raw = match[0];
     const leading = raw.length - raw.trimStart().length;
     const clean = raw.trim();
@@ -116,7 +127,10 @@ function pieces(text: string, max = 180): { text: string; start: number }[] {
         }
       }
       const part = chars.slice(i, end).join('');
-      out.push({ text: part, start: (match.index ?? 0) + leading + offset });
+      const start = (match.index ?? 0) + leading + offset;
+      const prev = out[out.length - 1];
+      if (!unspoken(part)) out.push({ text: part, start });
+      else if (prev) prev.text = text.slice(prev.start, start + part.length); // the source between, so offsets still hold
       offset += part.length;
       i = end;
     }
@@ -157,6 +171,16 @@ export function resumeSpeaking(): void {
   if (canSpeak()) speechSynthesis.resume();
 }
 
+const clampRate = (rate: number) => Math.min(2, Math.max(0.5, rate));
+
+/**
+ * A new speed for the Mac's audio, at once: the word marks follow its clock, so they keep step. A Web Speech utterance
+ * cannot change speed; its next sentence reads `getRate`.
+ */
+export function setSpeakingRate(rate: number): void {
+  if (nativeAudio && Number.isFinite(rate)) nativeAudio.playbackRate = clampRate(rate);
+}
+
 /** When each marked word starts in a rendered sentence: [offset, ms] pairs, in order. */
 type Marks = [number, number][];
 
@@ -169,12 +193,29 @@ function readMarks(header: string | null, length: number): Marks {
   } catch { return []; }
 }
 
+function delay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) { reject(signal.reason); return; }
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener('abort', () => { clearTimeout(timer); reject(signal.reason); }, { once: true });
+  });
+}
+
+/** How long the Mac may take over a sentence: a render takes about 0.7 s plus 17 ms a character, so a stalled Mac fails in seconds. */
+export const renderTimeout = (text: string) => 5000 + 60 * text.length;
+
 async function renderNative(text: string, voice: SpeechSynthesisVoice, signal: AbortSignal, marks: number[] = []): Promise<{ blob: Blob; marks: Marks }> {
   try {
-    const response = await bridgeFetch('/api/native-speech', { method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(35000)]),
-      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(marks.length ? { text, voice: voice.voiceURI, marks } : { text, voice: voice.voiceURI }) });
-    if (!response.ok) throw new Error('Could not prepare audio.');
-    return { blob: await response.blob(), marks: readMarks(response.headers.get('X-Dushu-Marks'), text.length) };
+    const limit = AbortSignal.any([signal, AbortSignal.timeout(renderTimeout(text))]);
+    for (let wait = 100; ; wait *= 2) {
+      const response = await bridgeFetch('/api/native-speech', { method: 'POST', signal: limit,
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(marks.length ? { text, voice: voice.voiceURI, marks } : { text, voice: voice.voiceURI }) });
+      // The Mac renders two at a time, and a render just cancelled (Pronounce, Read from here) keeps its place until its
+      // process exits: ask again in a moment.
+      if (response.status === 429 && wait <= 800) { await delay(wait, limit); continue; }
+      if (!response.ok) throw new Error('Could not prepare audio.');
+      return { blob: await response.blob(), marks: readMarks(response.headers.get('X-Dushu-Marks'), text.length) };
+    }
   } catch (error) {
     if (signal.aborted) throw error;
     throw new Error('The Premium voice could not prepare audio. Keep your Mac awake and connected, or choose an on-device Chinese voice in Settings.');
@@ -307,7 +348,7 @@ export async function speakSequence(
     // first clause on its own, and the rest renders while that plays.
     const first = queue[0];
     const cut = first && first.text.length > 24 ? first.text.slice(6, 24).search(/[，、：；,:]/) : -1;
-    if (cut >= 0) {
+    if (cut >= 0 && !unspoken(first.text.slice(cut + 7))) {
       const at = cut + 7;
       queue.splice(0, 1, { ...first, text: first.text.slice(0, at) }, { ...first, text: first.text.slice(at), start: first.start + at });
     }
@@ -321,17 +362,28 @@ export async function speakSequence(
       }
       return renderNative(q.text, voice, ctl.signal, words);
     };
-    let prepared = queue[0] ? render(queue[0]) : null;
+    // The next two sentences render while one plays, the Mac's limit: with one, a long sentence after a short one was not
+    // ready in time at 2×.
+    const renders: (ReturnType<typeof render> | undefined)[] = [];
+    const ready = new Set<number>();
+    const ahead = (k: number) => {
+      if (k >= queue.length || renders[k]) return;
+      const p = renders[k] = render(queue[k]);
+      p.then(() => ready.add(k), () => {}); // a stopped run may never await this prefetch
+    };
+    ahead(0);
     try {
       for (let i = 0; i < queue.length; i++) {
-        const { blob, marks } = await prepared!;
+        // The sentence before has ended and this one is not ready: the reader says it is preparing, not reading, over the silence.
+        if (i > 0 && !ready.has(i)) opts?.onWaiting?.();
+        const { blob, marks } = await renders[i]!;
+        renders[i] = undefined;
         if (mine !== generation) return false;
-        // Render the next sentence during playback, so the listener is not waiting on synthesis.
-        prepared = queue[i + 1] ? render(queue[i + 1]) : null;
-        prepared?.catch(() => {}); // a stopped run may never await this prefetch
+        ahead(i + 1);
+        ahead(i + 2);
         const q = queue[i];
         if (i === 0 || q.index !== queue[i - 1].index) onPart?.(q.index);
-        const rate = Math.min(2, Math.max(0.5, opts?.getRate?.() ?? opts?.rate ?? 1));
+        const rate = clampRate(opts?.getRate?.() ?? opts?.rate ?? 1);
         const onWord = onBoundary ? (at: number, len: number) => { if (mine === generation) onBoundary(q.index, q.start + at, len); } : undefined;
         if (!await playNative(blob, rate, opts, touchAudio, marks, q.text.length, onWord)) return false;
       }
@@ -350,7 +402,7 @@ export async function speakSequence(
     if (mine !== generation) return false;
     onPart?.(i);
     for (const piece of chunks) {
-      const rate = Math.min(2, Math.max(0.5, opts?.getRate?.() ?? opts?.rate ?? 1));
+      const rate = clampRate(opts?.getRate?.() ?? opts?.rate ?? 1);
       if (mine !== generation || !await speakPiece(piece.text, lang, voice, rate,
         onBoundary ? (at, len) => { if (mine === generation) onBoundary(i, piece.start + at, len); } : undefined, opts)) return false;
     }

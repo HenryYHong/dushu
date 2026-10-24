@@ -1,7 +1,9 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
-  AUTO_KNOWN_DAYS, AUTO_KNOWN_PAGES, MIN_DWELL_MS, createAutoKnown, localDay, readingDwell, type AutoKnown, type ReadView,
+  AUTO_KNOWN_DAYS, AUTO_KNOWN_HELP, AUTO_KNOWN_PAGES, MIN_DWELL_MS, createAutoKnown, localDay, readingDwell, type AutoKnown, type ReadView,
 } from '../../src/core/autoKnown';
 import { newSrs } from '../../src/core/srs';
 import { openStore } from '../../src/store';
@@ -48,6 +50,16 @@ function readPages(words: string[], pages: number, from = 0): number {
   return from + pages;
 }
 const rowOf = async (w: string) => (await store.seen.get([w]))[0];
+
+describe('what the help says', () => {
+  // The pinyin modes are All, Unknown, HSK and Off; known words lose their pinyin in Unknown and HSK (render.ts pinyinVisible).
+  it('names the pinyin modes that hide a known word\'s pinyin, and no mode that does not exist', () => {
+    expect(AUTO_KNOWN_HELP).toMatch(/in the Unknown and HSK pinyin modes/);
+    const vocab = readFileSync(join(__dirname, '..', '..', 'src', 'ui', 'vocab', 'vocab.ts'), 'utf8');
+    expect(vocab).not.toMatch(/unknown words only/i);
+    expect(vocab.match(/in the Unknown and HSK pinyin modes/g)).toHaveLength(2);
+  });
+});
 
 describe('the rule', () => {
   it('needs a few seconds on screen, and longer for more text', () => {

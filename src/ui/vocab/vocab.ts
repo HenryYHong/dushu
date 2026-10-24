@@ -3,6 +3,7 @@ import '../../styles/vocab.css';
 import type { AppContext, MountFn, Settings, VocabItem } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
+import { pageTitle } from '../pageHead';
 import { openWordPopup } from '../popup/popup';
 import { confirmDialog } from './confirm';
 import { ankiTsv, dueLabel, filterAndSort, vocabCsv, type SortKey } from './model';
@@ -44,7 +45,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   const sub = h('p.page-sub');
   const reviewLink = h('a.btn.btn-primary', { href: '#/review' }, icon('cards'), 'Review');
   const head = h('div.page-head', null,
-    h('div', null, h('h1.page-title', null, 'Vocabulary'), sub),
+    h('div', null, pageTitle('vocab', 'Vocabulary'), sub),
     h('div.voc-head-actions', null, reviewLink),
   );
 
@@ -221,7 +222,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const already = words.length - fresh.length;
     const ok = await confirmDialog({
       title: `Mark ${label} as known?`,
-      body: `${plural(fresh.length, 'word')} will be added to your known words${already ? ` (${already.toLocaleString('en-US')} already known)` : ''}. Known words get no pinyin when you read with "unknown words only". Your saved flashcards are not changed.`,
+      body: `${plural(fresh.length, 'word')} will be added to your known words${already ? ` (${already.toLocaleString('en-US')} already known)` : ''}. Known words get no pinyin in the Unknown and HSK pinyin modes. Your saved flashcards are not changed.`,
       confirmLabel: `Add ${fresh.length.toLocaleString('en-US')}`,
     });
     if (!ok || !alive) return;
@@ -277,7 +278,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('span.chip.voc-known-total', null, knownCount),
       icon('chevronDown', 'icon voc-known-chev')),
     h('div.voc-known-body', null,
-      h('p.voc-known-sub.muted', null, 'Words you already know. Pinyin is hidden above them when you read with "unknown words only".'),
+      h('p.voc-known-sub.muted', null, 'Words you already know. Pinyin is hidden above them in the Unknown and HSK pinyin modes.'),
       learnedNote,
       h('div.voc-known-actions', null,
         levelSel,

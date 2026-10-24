@@ -3,6 +3,8 @@
 // so a book with 2,000 chapters opens as fast as one with twenty.
 // The drawer is a modal dialog: focus moves into it on open, Tab stays inside it, and focus returns to its opener on close.
 import type { AppContext, BookMeta, LexiconEntry, PinyinStyle } from '../../types';
+import { isDetecting } from '../../core/lexicon';
+import { capitalizePinyin } from '../../core/names';
 import { formatSyllable } from '../../core/pinyin';
 import { h } from '../dom';
 import { icon } from '../icons';
@@ -47,35 +49,20 @@ type MetaWithTitles = BookMeta & { chapterTitles?: string[] };
 
 const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: 'Person', place: 'Place', term: 'Term', user: 'Yours' };
 
-/** Syllables that end a place name as a kind of place (Táohuā Dǎo, Huáshān Shān is not one): written as a second word. */
-const PLACE_KIND = new Set(['dao', 'shan', 'cheng', 'cun', 'he', 'jiang', 'hu', 'si', 'gong', 'zhen', 'guo', 'xian', 'zhou', 'gu',
-  'feng', 'dong', 'guan', 'hai', 'zhuang', 'bao', 'lin', 'qiao', 'men', 'tai', 'ting', 'lou', 'ge', 'an', 'miao', 'chi', 'ling',
-  'yuan', 'pu', 'ba', 'fu', 'jun', 'sheng', 'xiang', 'ting']);
-
-const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
-
-/**
- * Pinyin of a lexicon entry as a name is written: a person's syllables each start with a capital (Guō Jìng); a place is one
- * word with its kind of place apart when it has one (Táohuā Dǎo); a term stays lowercase. Zhuyin has no capitals.
- * Same signature as the shared helper the language side adds to src/core; this copy is the fallback.
- */
-export function capitalizePinyin(numbered: string, kind: LexiconEntry['kind'], style: PinyinStyle = 'marks'): string {
-  const syl = numbered.split(/\s+/).filter(Boolean).map((s) => formatSyllable(s, style));
-  if (style === 'zhuyin' || (kind !== 'name' && kind !== 'place')) return syl.join(' ');
-  if (kind === 'name') return syl.map(cap).join(' ');
-  const bases = numbered.split(/\s+/).filter(Boolean).map((s) => s.replace(/[0-5]$/, '').toLowerCase());
-  if (syl.length >= 3 && PLACE_KIND.has(bases[bases.length - 1])) return `${cap(syl.slice(0, -1).join(''))} ${cap(syl[syl.length - 1])}`;
-  return cap(syl.join(''));
-}
-
 export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: number) => void, names?: TocNames, opts: TocOptions = {}): TocDrawer {
   const text = (s: string): string => (opts.text ? opts.text(s) : s);
+  /** A row's pinyin as the word card writes it (Xiàhóu Dūn, Táohuā Dǎo); a term stays lowercase. */
+  const namePinyin = (entry: LexiconEntry, style: PinyinStyle): string => capitalizePinyin(
+    entry.pinyin.split(/\s+/).filter(Boolean).map((s) => formatSyllable(s, style)), entry.kind, entry.word,
+    (s) => ctx.dictSync()?.toSimplified(s) ?? s);
   const titles: (string | undefined)[] = [...((book as MetaWithTitles).chapterTitles ?? [])];
   let loadingAll: Promise<void> | null = null;
   let disposed = false;
   let currentIndex = 0;
   let tab: TocTab = 'chapters';
   let rows: LexiconEntry[] = [];
+  /** The rows have been read at least once since the tab opened (an empty list before that says nothing). */
+  let namesLoaded = false;
   let namesSeq = 0;
   let opener: HTMLElement | null = null;
   /** Chapter indexes the filter lets through, in order. */
@@ -166,7 +153,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       onclick: (e: Event) => names!.onWord(entry, (e.currentTarget as HTMLElement).getBoundingClientRect()),
     },
     h('span.rd-name-word.zh', { lang: 'zh' }, word),
-    h('span.rd-name-py', null, capitalizePinyin(entry.pinyin, entry.kind, style)),
+    h('span.rd-name-py', null, namePinyin(entry, style)),
     h('span.rd-name-meta', null,
       h('span.rd-name-kind', { 'data-kind': entry.kind }, KIND_LABEL[entry.kind]),
       entry.count ? h('span.rd-name-count', null, `${entry.count}×`) : null));
@@ -180,14 +167,17 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     const q = nameFilter.value.trim().toLowerCase();
     const style = ctx.settings.get().pinyinStyle;
     shownNames = rows
-      .filter((r) => !q || r.word.includes(q) || text(r.word).includes(q) || capitalizePinyin(r.pinyin, r.kind, style).toLowerCase().includes(q) || r.gloss.toLowerCase().includes(q))
+      .filter((r) => !q || r.word.includes(q) || text(r.word).includes(q) || namePinyin(r, style).toLowerCase().includes(q) || r.gloss.toLowerCase().includes(q))
       .sort((a, b) => Number(b.enabled) - Number(a.enabled) || (b.count ?? 0) - (a.count ?? 0) || a.word.localeCompare(b.word));
     roveName = Math.max(0, Math.min(roveName, shownNames.length - 1));
     nameWindow.set(shownNames.length, nameRowH);
     nameList.querySelector('.rd-toc-none')?.remove();
     if (!shownNames.length) {
       nameList.appendChild(h('div.rd-toc-none', null,
-        rows.length ? 'Nothing matches.' : 'No names or terms found yet. Names of people and places in this book appear here once the book has been scanned.'));
+        rows.length ? 'Nothing matches.'
+          : !namesLoaded ? 'Loading names and terms…'
+            : isDetecting(book.id) ? 'No names or terms found yet. Names of people and places in this book appear here once the book has been scanned.'
+              : 'No names or terms were found in this book.'));
     }
   }
 
@@ -199,6 +189,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       if (seq !== namesSeq || disposed) return;
       rows = got;
     } catch { rows = []; }
+    namesLoaded = true;
     if (tab === 'names' && !root.hidden) paintNames();
   }
 
@@ -328,7 +319,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     close,
     isOpen: () => !root.hidden,
     setCurrent(i) { currentIndex = i; },
-    refreshNames() { if (!root.hidden && tab === 'names') void loadNames(); else rows = []; },
+    refreshNames() { if (!root.hidden && tab === 'names') void loadNames(); else { rows = []; namesLoaded = false; } },
     refreshWords() { words?.reload(); },
     refreshText() {
       if (root.hidden) return;

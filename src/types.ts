@@ -230,6 +230,8 @@ export interface SyncRow {
   fresh?: 1;
   /** A reading place for a book this device does not have yet, applied when the book arrives. */
   held?: unknown;
+  /** A saved word's signature without the book it names (core/sync.ts bareOf). */
+  bare?: string;
 }
 
 export interface SyncApply {
@@ -239,6 +241,8 @@ export interface SyncApply {
   knownDel?: string[];
   progressPut?: Progress[];
   rows?: SyncRow[];
+  /** The rows as the syncer last read or wrote them, so a held place changed since is kept (see Store['sync'].write). */
+  seen?: ReadonlyMap<string, SyncRow>;
 }
 
 export interface ReviewLog {
@@ -399,7 +403,11 @@ export interface Store {
   /** The sync bookkeeping (core/sync.ts). Nothing else reads or writes it. */
   sync: {
     rows(): Promise<SyncRow[]>;
-    write(put: SyncRow[], del?: string[]): Promise<void>;
+    /**
+     * Writes sync rows. With `seen` (the rows as the caller last read or wrote them), a place row keeps the held place stored
+     * now when it is no longer the one in `seen`: a book deleted or added again since changed it, and that stands.
+     */
+    write(put: SyncRow[], del?: string[], seen?: ReadonlyMap<string, SyncRow>): Promise<void>;
     /**
      * Saves what came from another device, together with the sync rows that record it, in one transaction. Open screens
      * hear it as a remote change (info.remote), the same as a save in another tab.

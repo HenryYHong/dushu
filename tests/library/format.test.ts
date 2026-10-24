@@ -32,6 +32,16 @@ describe('progress labels', () => {
     expect(progressLabel({ percent: 0.996 })).toBe('Finished');
   });
 
+  it('says 1%, not Not started, once a long book is read past its start', () => {
+    // A few screens into a 900,000-character novel is about 0.2%.
+    expect(progressLabel({ percent: 0.002, chapter: 0, block: 14 })).toBe('1%');
+    expect(progressLabel({ percent: 0, chapter: 2, block: 0 })).toBe('1%');
+    expect(progressLabel({ percent: 0.001, chapter: 0, block: 0, offset: 120 })).toBe('1%');
+    // Opened but still at the very start.
+    expect(progressLabel({ percent: 0, chapter: 0, block: 0 })).toBe('Not started');
+    expect(progressLabel({ percent: 0, chapter: 0, block: 0, offset: 0 })).toBe('Not started');
+  });
+
   it('clamps and survives bad numbers', () => {
     expect(progressFraction({ percent: 3 })).toBe(1);
     expect(progressFraction({ percent: -1 })).toBe(0);

@@ -14,7 +14,8 @@
 // - the swipe speeding up again after it had slowed well below its top speed, or after it stopped dead: fingers back on
 //   the trackpad while it still coasts stop the coasting at once, and the new swipe starts slow. (Coasting only fades, a
 //   few per cent a frame, and the speed of a moving finger wobbles, but never falls to a sixth in one event.)
-// A mouse wheel gives one event per notch: a pause between notches starts a new turn, a quick spin is one turn.
+// A mouse wheel gives one event per notch: a pause between notches starts a new turn, a quick spin is one turn. A notch
+// counts as a whole turn when the wheel reports lines or pages.
 
 export interface WheelInput {
   deltaX: number;
@@ -143,8 +144,11 @@ export function createWheelTurns(): WheelTurns {
         }
       }
 
-      acc += d;
-      if (Math.abs(acc) < (across ? TURN_X : TURN_Y)) return 0;
+      const need = across ? TURN_X : TURN_Y;
+      // Lines and pages come from a mouse wheel (Firefox; trackpads report pixels): a notch turns the page however few
+      // lines it scrolls (3 lines is 48 px, short of TURN_Y).
+      acc += e.deltaMode && d ? Math.sign(d) * Math.max(mag, need) : d;
+      if (Math.abs(acc) < need) return 0;
       dir = acc > 0 ? 1 : -1;
       locked = true;
       acc = 0;

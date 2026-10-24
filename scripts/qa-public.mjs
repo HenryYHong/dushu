@@ -13,6 +13,18 @@ import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 
 const BASE = (process.argv[2] ?? 'http://dushu.test:5243/dushu/').replace(/\/?$/, '/');
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
 const ORIGIN = new URL(BASE).origin;
 const ALLOWED_ORIGINS = [ORIGIN, ORIGIN.replace(/:\d+$/, ':5246')];
 const MAC = 'http://127.0.0.1:5245';
@@ -74,6 +86,7 @@ const browser = await puppeteer.launch({
 async function visit({ allowMac = false, connect = false, reuse = null } = {}) {
   const context = reuse ?? await browser.createBrowserContext();
   const page = await context.newPage();
+  await page.evaluateOnNewDocument(SYNC_OFF);
   const requests = [];
   const errors = [];
   page.on('request', (r) => requests.push(r.url()));
@@ -149,7 +162,7 @@ scene = 'csp-note';
   await context.close();
 }
 
-// ---- 4. connected: owner books sync, persist, no duplicates, delete, restore ----
+// ---- 4. connected: owner books sync, persist, no duplicates, no Delete, added again when missing ----
 scene = 'connected';
 {
   hits.list = 0; hits.file = 0; macUp = true;
@@ -182,20 +195,21 @@ scene = 'connected';
   check(await again.page.waitForSelector('.rd-article .rd-w', { timeout: 45000 }).then(() => true, () => false), 'the book opens with the Mac off');
   macUp = true;
 
-  // Delete it: it stays deleted after a reload, and Restore brings it back.
+  // The Mac's books are always in the library: the menu has no Delete, and one removed behind the app's back (storage
+  // cleared, Delete all data) is added again on the next visit.
   await again.page.goto(PATCHED, { waitUntil: 'load' });
   await sleep(800);
   await again.page.click('.lib-card-menu');
-  await again.page.evaluate(() => [...document.querySelectorAll('.lib-menu-item')].find((b) => b.textContent === 'Delete').click());
-  await again.page.waitForSelector('dialog .btn');
-  await again.page.evaluate(() => [...document.querySelectorAll('dialog .btn')].find((b) => b.textContent === 'Delete').click());
-  check(await waitCards(again.page, 0), 'deleting removes the book');
+  const items = await again.page.$$eval('.lib-menu-item', (e) => e.map((x) => x.textContent.trim()));
+  check(items.includes('Rename') && !items.includes('Delete'), `the Mac book's menu offers Rename and no Delete (${items.join(', ')})`);
+  await again.page.keyboard.press('Escape');
+  await again.page.evaluate((id) => new Promise((done) => {
+    const r = indexedDB.open('dushu');
+    r.onsuccess = () => { const tx = r.result.transaction('books', 'readwrite'); tx.objectStore('books').delete(id); tx.oncomplete = () => { r.result.close(); done(); }; };
+  }), bookId);
   await again.page.reload({ waitUntil: 'load' });
-  await sleep(1500);
-  check(await cards(again.page) === 0, 'it is not added again after a reload');
-  check(await again.page.$eval('.lib-restore', (e) => !e.hidden && /Restore/.test(e.textContent)).catch(() => false), 'the Library offers Restore');
-  await again.page.evaluate(() => [...document.querySelectorAll('.lib-restore .btn')].find((b) => b.textContent === 'Restore').click());
-  check(await waitCards(again.page, 1), 'Restore brings it back');
+  check(await waitCards(again.page, 1), "a Mac book removed behind the app's back is added again");
+  check(hits.file === 2, `by downloading it once more (${hits.file})`);
   await context.close();
 }
 

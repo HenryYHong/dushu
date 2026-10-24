@@ -2,6 +2,19 @@
 // Run after `npm run build` and `npm run preview -- --strictPort`.
 import puppeteer from 'puppeteer-core';
 
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
+
 const browser = await puppeteer.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   headless: true,
@@ -9,6 +22,8 @@ const browser = await puppeteer.launch({
 });
 try {
   const page = await browser.newPage();
+  // 4317 is the owner's server with his sync folder.
+  await page.evaluateOnNewDocument(SYNC_OFF);
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('http://localhost:4317/?importLocalBooks=1#/', { waitUntil: 'domcontentloaded' });

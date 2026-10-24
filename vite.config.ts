@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { join, resolve, sep } from 'node:path';
 import { defineConfig, type Plugin } from 'vitest/config';
 import { bridgeCsp } from './scripts/bridge-csp';
 import { claudeBridge } from './scripts/claude-bridge';
@@ -26,8 +26,26 @@ function woff2Only(): Plugin {
   };
 }
 
+/**
+ * One hash of the bytes of every file under these folders of the build. The static cache is named by it, so a release that
+ * changes only a classic or a font, or a data file whose size stays the same, still reaches installed apps.
+ */
+export function contentVersion(dist: string, dirs: string[]): string {
+  const hash = createHash('sha1');
+  for (const dir of dirs) {
+    const root = join(dist, dir);
+    if (!existsSync(root)) continue;
+    const files = (readdirSync(root, { recursive: true }) as string[]).map((f) => f.split(sep).join('/')).sort();
+    for (const f of files) {
+      if (!statSync(join(root, f)).isFile()) continue;
+      hash.update(`${dir}/${f}\0`).update(readFileSync(join(root, f))).update('\0');
+    }
+  }
+  return hash.digest('hex').slice(0, 10);
+}
+
 /** Fills the placeholders in the built sw.js: a build id, the data version, and the files to precache. */
-function serviceWorker(): Plugin {
+export function serviceWorker(): Plugin {
   let outDir = 'dist';
   return {
     name: 'dushu-sw',
@@ -40,11 +58,13 @@ function serviceWorker(): Plugin {
       const dist = outDir;
       const swPath = join(dist, 'sw.js');
       if (!existsSync(swPath)) return;
-      // Font slices are not precached: the ones a book uses are cached the first time they are fetched.
-      const assets = readdirSync(join(dist, 'assets')).filter((f) => /\.(js|css)$/.test(f) && !/pdf\.worker/.test(f));
+      // Font slices are not precached: the ones a book uses are cached the first time they are fetched. The PDF worker
+      // (1.4 MB) and the Chinese CMaps (0.8 MB) are, so a PDF imports offline; sw.js copies unchanged hashed files from the
+      // previous build's cache, so an update does not download them again.
+      const assets = readdirSync(join(dist, 'assets')).filter((f) => /\.(js|mjs|css|bcmap)$/.test(f));
       const data = readdirSync(join(dist, 'data'));
       const build = createHash('sha1').update(assets.join('|')).digest('hex').slice(0, 10);
-      const dataVersion = createHash('sha1').update(data.map((f) => readFileSync(join(dist, 'data', f)).length + f).join('|')).digest('hex').slice(0, 10);
+      const dataVersion = contentVersion(dist, ['data', 'samples', 'fonts']);
       const icons = existsSync(join(dist, 'icons')) ? readdirSync(join(dist, 'icons')).map((f) => `icons/${f}`) : [];
       // The classics (text and their index) are fetched ahead too, so adding one works without a connection.
       const samples = existsSync(join(dist, 'samples')) ? readdirSync(join(dist, 'samples')).filter((f) => /\.(?:txt|json)$/.test(f)).map((f) => `samples/${f}`) : [];

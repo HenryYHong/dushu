@@ -216,6 +216,7 @@ describe('errors say something short and never carry the key', () => {
     ['credit', new Anthropic.BadRequestError(400, { error: { message: 'Your credit balance is too low' } }, 'Your credit balance is too low', headers), 402, 'credit', /out of credit/],
     ['other bad request', new Anthropic.BadRequestError(400, { error: { message: `bad ${SECRET}` } }, `bad ${SECRET}`, headers), 502, 'upstream_request', /could not handle/],
     ['connection', new Anthropic.APIConnectionError({ message: 'down' }), 502, 'upstream_connection', /could not reach Claude/],
+    ['timeout', new Anthropic.APIConnectionTimeoutError(), 504, 'upstream_timeout', /took too long to answer/],
     ['server error', new Anthropic.InternalServerError(500, {}, 'boom', headers), 502, 'upstream_unavailable', /having trouble/],
     ['overloaded', new Anthropic.APIError(529, {}, 'busy', headers), 502, 'upstream_unavailable', /having trouble/],
   ];

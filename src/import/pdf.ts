@@ -1,7 +1,7 @@
 // PDF with a text layer, via pdf.js. Scanned PDFs (images only) are rejected with an explanation.
 import type { ImportedBook } from '../types';
 import { chaptersFromBlocks, paragraphsToBlocks } from './chapters';
-import { ImportError } from './errors';
+import { ImportError, pdfStartFailure } from './errors';
 import { countHan } from './han';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
 import { pagesToParagraphs, type PdfItem, type PdfPageItems } from './pdfLayout';
@@ -35,8 +35,7 @@ class BundledCMapReaderFactory {
   }
 }
 
-export const PDF_HOST_MESSAGE =
-  'The PDF reader could not start. This is a problem with how Dushu is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.';
+export { PDF_HOST_MESSAGE, PDF_OFFLINE_MESSAGE } from './errors';
 
 /** True when a pdf.js failure is about loading its own worker or code, not about the file. */
 export function isPdfHostFailure(e: unknown): boolean {
@@ -51,7 +50,7 @@ async function loadRuntime(): Promise<PdfRuntime> {
     pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
     return { pdfjs, cMapReaderFactory: BundledCMapReaderFactory };
   } catch {
-    throw new ImportError(PDF_HOST_MESSAGE);
+    throw await pdfStartFailure();
   }
 }
 
@@ -83,7 +82,7 @@ export async function importPdf(
   } catch (e) {
     const name = (e as { name?: string }).name;
     if (name === 'PasswordException') throw new ImportError('This PDF is password protected. Remove the password and import it again.');
-    if (isPdfHostFailure(e)) throw new ImportError(PDF_HOST_MESSAGE);
+    if (isPdfHostFailure(e)) throw await pdfStartFailure();
     throw new ImportError('This PDF could not be read. It may be damaged.');
   }
 

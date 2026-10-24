@@ -10,6 +10,7 @@ import { renderPreview } from './preview';
 import { speechGroup } from './speech';
 import { translationGroup } from './translation';
 import { ipadGroup } from './ipad';
+import { pageTitle } from '../pageHead';
 
 export const mount: MountFn = (root, params, ctx) => {
   const { settings, store } = ctx;
@@ -19,7 +20,7 @@ export const mount: MountFn = (root, params, ctx) => {
 
   // ---- reading ----
   const theme = add(segmented('theme', 'Theme', [
-    { value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'sepia', label: 'Sepia' }, { value: 'dark', label: 'Dark' },
+    { value: 'system', label: 'Auto' }, { value: 'light', label: 'Light' }, { value: 'sepia', label: 'Sepia' }, { value: 'dark', label: 'Dark' },
   ], set('theme')));
   const fontFamily = add(segmented('fontFamily', 'Font', [
     { value: 'serif', label: 'Serif' }, { value: 'sans', label: 'Sans' }, { value: 'kai', label: 'Kai' },
@@ -57,22 +58,22 @@ export const mount: MountFn = (root, params, ctx) => {
   const trigger = add(segmented('lookupTrigger', 'Look up words with', [
     { value: 'click', label: 'Click or tap' }, { value: 'hover', label: 'Hover' },
   ], set('lookupTrigger')));
-  const paragraph = add(toggle('paragraphTranslate', 'Translate whole paragraphs', set('paragraphTranslate')));
+  const paragraph = add(toggle('paragraphTranslate', 'Translate paragraphs', set('paragraphTranslate')));
 
   // Rows that only matter in one mode are hidden in the other (a dimmed row still looks like something you can change).
   const hskRow = row('Known up to', 'A word loses its pinyin once you have met each of its characters, read that way, in an HSK word at or below this level. A word with a toneless syllable, like 本事, waits for its own HSK level. Applies to the HSK mode.', hsk);
   const spreadRow = row('Pages shown', 'Applies to the Pages layout. Auto shows two pages side by side on a wide, landscape screen such as an iPad held sideways.', spread);
   const turnRow = row('Page turn', 'Applies to the Pages layout. A page flips around the spine like a leaf, slides, or just changes.', pageTurn);
   const reading = group('Reading', null,
-    row('Theme', 'System follows your device.', theme),
+    row('Theme', 'Auto follows your device.', theme),
     row('Layout', 'Pages turns like a book (tap the edges, swipe, or use the arrow keys). Scroll is one long column.', layout),
     spreadRow,
     turnRow,
     row('Font', null, fontFamily),
-    row('Text size', null, fontSize),
+    row('Text size', 'For the layout you’re using (Pages and Scroll each keep their own).', fontSize),
     row('Line spacing', null, lineHeight),
     row('Page width', 'The widest the text column gets.', pageWidth),
-    row('Characters', 'Convert the whole book on screen. Your saved words work in either form.', script));
+    row('Characters', 'Convert the whole book on screen to simplified (简体) or traditional (繁體) characters. Your saved words work in either form.', script));
   const pinyinGroup = group('Pinyin', 'Words you mark as known never show pinyin in the Unknown and HSK modes.',
     row('Show pinyin', null, pinyin),
     hskRow,
@@ -82,7 +83,7 @@ export const mount: MountFn = (root, params, ctx) => {
     row('Learn known words as I read', AUTO_KNOWN_HELP, autoKnown));
   const lookup = group('Lookup', 'Double-click and drag-select always work, whichever you choose.',
     row('Look up a word by', null, trigger),
-    row('Translate paragraphs', 'On a touch screen, tap a word twice to translate its sentence. With a mouse, a small translate button appears beside each paragraph in the Scroll layout; in Pages, drag across a sentence.', paragraph));
+    row('Translate paragraphs', 'With a mouse, a small translate button appears beside each paragraph in the Scroll layout. Dragging across a sentence, or tapping a word twice on a touch screen, translates it either way.', paragraph));
 
   const translation = translationGroup(ctx);
   const speech = speechGroup(ctx);
@@ -125,7 +126,7 @@ export const mount: MountFn = (root, params, ctx) => {
   const nav = h('nav.set-nav', { 'aria-label': 'Sections' }, navButtons);
 
   root.appendChild(h('div.page.set-page', null,
-    h('div.page-head', null, h('div', null, h('h1.page-title', null, 'Settings'), h('p.page-sub', null, 'Changes apply right away and are saved in this browser.'))),
+    h('div.page-head', null, h('div', null, pageTitle('settings', 'Settings'), h('p.page-sub', null, 'Changes apply right away and are saved in this browser.'))),
     h('div.set-layout', null, nav, h('div.set-main', null, preview, ...sections.map((sec) => sec.el)))));
 
   // The preview sticks under the top bar, so a section the list scrolls to must stop below it, not behind it. The sticky height is
@@ -142,16 +143,24 @@ export const mount: MountFn = (root, params, ctx) => {
   stickObserver?.observe(preview);
   window.addEventListener('resize', syncStick);
 
-  // The section being read lights up in the list.
+  // The section being read lights up in the list. At the top of the page that is the first section (before any heading has
+  // reached the band the observer watches), and at the bottom the last one (a short last section never reaches it).
+  const markCurrent = (id: string) => { for (const b of navButtons) b.setAttribute('aria-current', String(b.dataset.target === id)); };
+  markCurrent(sections[0].id);
   let observer: IntersectionObserver | null = null;
   if (typeof IntersectionObserver === 'function') {
     observer = new IntersectionObserver((entries) => {
       const seen = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      if (!seen) return;
-      for (const b of navButtons) b.setAttribute('aria-current', String(b.dataset.target === seen.target.id));
+      if (seen) markCurrent(seen.target.id);
     }, { rootMargin: '-20% 0px -65% 0px' });
     for (const sec of sections) observer.observe(sec.el);
   }
+  const onScrollEnds = () => {
+    const doc = document.documentElement;
+    if (window.scrollY < 8) markCurrent(sections[0].id);
+    else if (window.innerHeight + window.scrollY >= doc.scrollHeight - 4) markCurrent(sections[sections.length - 1].id);
+  };
+  window.addEventListener('scroll', onScrollEnds, { passive: true });
 
   const off = settings.subscribe((s) => sync(s));
   sync(settings.get());
@@ -163,6 +172,7 @@ export const mount: MountFn = (root, params, ctx) => {
     observer?.disconnect();
     stickObserver?.disconnect();
     window.removeEventListener('resize', syncStick);
+    window.removeEventListener('scroll', onScrollEnds);
     off();
     speech.dispose();
     translation.dispose();

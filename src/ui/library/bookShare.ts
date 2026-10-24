@@ -43,7 +43,8 @@ export function createBookShares(ctx: AppContext, opts: { delayMs?: number } = {
     if (!s || !store.known.count()) return '';
     const v = knownShare(s, isKnown);
     if (v === null) return '';
-    return `You know ${Math.floor(v * 100)}% of its words`;
+    // A few known words in a long book are under 1%, but not none.
+    return `You know ${v > 0 && v < 0.01 ? '<1' : Math.floor(v * 100)}% of its words`;
   }
 
   function fill(el: HTMLElement, bookId: string): void {

@@ -1,6 +1,9 @@
-/* Design tokens. Every stylesheet uses these variables, never raw colors. */
+/* Design tokens. Every stylesheet uses these variables, never raw colors.
+   The look is "Colophon": a finely printed Chinese-English edition. Paper or ink pages, hairline rules instead of boxes,
+   and one vermilion (朱) used only as the reader's brush: the seal, your place in the book, the words you saved and the
+   current chapter or setting. Everything else is ink. */
 
-/* The Jigmo @font-face rules (full CJK coverage, CC0) are injected by src/main.ts so the URLs follow the base path.
+/* The Jigmo and Newsreader @font-face rules are injected by src/main.ts so the URLs follow the base path.
    Noto Serif SC/TC and LXGW WenKai are bundled in slices (see main.ts): a page downloads only the slices it draws.
    On a Mac the system Songti is used first, so nothing is downloaded there unless Songti lacks a character. */
 
@@ -14,10 +17,18 @@
   --font-kai-hant: 'LXGW WenKai', 'Kaiti TC', 'BiauKai', 'Kaiti SC', 'STKaiti', 'KaiTi', 'Noto Serif TC', 'Jigmo', 'Jigmo2', 'Jigmo3', serif;
   --font-pinyin: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Newsreader (bundled, Latin-1 only) for the app's own English: screen titles, subtitles, folios, numbers. It has no
+     ǎ ǐ ǒ ǔ ǖ ǘ ǚ ǜ, so it never sets pinyin, Chinese, or any text from a book or the dictionary. */
+  --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino', Georgia, serif;
+  /* A book serif for English that may hold pinyin (definitions, translations): every font in it has the tone letters. */
+  --font-book: 'Iowan Old Style', 'Palatino', 'Palatino Linotype', 'Book Antiqua', Georgia, var(--font-serif);
 
-  --radius-s: 6px;
+  /* One radius per role: small controls, controls, cards, menus and the word card, sheets. Covers keep square book corners. */
+  --radius-xs: 5px;
+  --radius-s: 7px;
   --radius: 10px;
-  --radius-l: 16px;
+  --radius-l: 14px;
+  --radius-sheet: 18px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -30,79 +41,187 @@
   --safe-r: env(safe-area-inset-right, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
-  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Springs for menus, sheets, word cards and toasts (never for page turns). A cubic-bezier here, the real spring below
+     where linear() is supported; reduced motion turns them all into a 1 ms cut. */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-pop: 260ms;
+  --ease-pop: var(--ease-out);
+  --dur-sheet: 380ms;
+  --ease-sheet: var(--ease-out);
+  --dur-settle: 300ms;
+  --ease-settle: var(--ease-out);
 
-  /* light (default) */
+  /* light (default): warm uncoated paper, near-black ink */
   --bg: #f6f2ea;
-  --surface: #fffdf8;
-  --surface-2: #efe9dd;
-  --surface-3: #e6dfd0;
-  --text: #22201c;
-  --text-2: #544e44;
-  --text-3: #6a6154;        /* 5.4:1 on --bg, 4.6:1 on --surface-3: AA for the 11 to 13 px labels that use it */
-  --border: #ddd5c5;
-  --accent: #b8402e;        /* cinnabar seal red */
-  --accent-soft: #f3dcd4;
-  --accent-text: #fffaf3;
-  --danger: #a3262a;        /* errors and destructive actions; --accent stays for brand and primary actions */
-  --danger-soft: #f6dcd9;
-  --ink: #2d4a6b;           /* ink blue, links and secondary accent */
-  --ok: #3f7d4e;
-  --warn: #a8701c;
-  --hl: rgba(232, 178, 64, 0.32);       /* active word highlight */
-  --hl-select: rgba(184, 64, 46, 0.16); /* phrase selection */
-  --saved: #ead9a6;                      /* underline for saved words */
-  --shadow: 0 1px 2px rgba(40, 30, 10, 0.06), 0 8px 28px rgba(40, 30, 10, 0.14);
-  --shadow-s: 0 1px 2px rgba(40, 30, 10, 0.08);
-  --tone-1: #d13b2f;
-  --tone-2: #2f8a3e;
-  --tone-3: #2f62c4;
-  --tone-4: #8a3fb5;
-  --tone-5: #7c766c;
+  --surface: #fdfbf6;
+  --surface-2: #ede8df;
+  --surface-3: #e1dcd1;
+  --text: #1a1713;
+  --reader-text: #1a1713;   /* the book's characters; dimmed a little at night */
+  --text-2: #4c4741;
+  --text-3: #665f57;        /* 5.6:1 on --bg, 4.6:1 on --surface-3: AA for the 11 to 13 px labels that use it */
+  --border: #dad5cc;
+  --rule: #dad5cc;          /* hairlines between things */
+  --rule-strong: #a39e95;   /* control outlines */
+  --wash: color-mix(in srgb, var(--text) 5%, transparent);   /* hover, tonal fills */
+  --wash-2: color-mix(in srgb, var(--text) 9%, transparent); /* pressed, open, the track of a segmented control */
+  --accent: #c13616;        /* vermilion: thin marks and red text */
+  --accent-soft: #f3dcd2;
+  --accent-text: #fdfaf4;
+  --accent-fill: #c13616;   /* filled red: the seal, the one primary button, badges */
+  --accent-fill-text: #fdfaf4;
+  --danger: #a31b41;        /* errors and destructive actions, kept apart in hue from the vermilion */
+  --danger-soft: #f3dcdd;
+  --ink: #243554;           /* ink blue: links */
+  --focus: #243554;
+  --ok: #2b7440;
+  --warn: #8f5f12;
+  --moon: #e9edec;          /* 月白: translations, a cool layer apart from the warm page */
+  --hl: rgba(228, 176, 64, 0.30);       /* active word highlight */
+  --hl-select: rgba(193, 54, 22, 0.14); /* phrase selection */
+  --saved: #d98a72;                      /* the vermilion underline under saved words (朱笔) */
+  --shadow-book: 0 1px 1px rgba(26, 23, 19, 0.16), 0 10px 18px -10px rgba(26, 23, 19, 0.45);
+  /* Four tone inks at one lightness, so no tone shouts louder than another. */
+  --tone-1: #b12d23;
+  --tone-2: #09793d;
+  --tone-3: #2b62b6;
+  --tone-4: #84449e;
+  --tone-5: #6d6861;
+  /* Generated covers: dyed boards (oklch lightness and chroma), the paper of the title slip and its ink, the thread. */
+  --cover-l: 0.4;
+  --cover-c: 0.07;
+  --slip: #f5f0e3;
+  --slip-ink: #27201a;
+  --thread: rgba(246, 239, 226, 0.78);
+  /* The chrome around the page: menus, sheets and the word card sit on a slightly cooler, cleaner sheet than the paper,
+     edged by alpha rings and soft layered shadows made from the ink, so they work on every paper. */
+  --elev: #fbfaf7;
+  --wash-3: color-mix(in srgb, var(--text) 15%, transparent);
+  --hairline: color-mix(in srgb, var(--text) 11%, transparent);
+  --shade: #2a2016;
+  --ring: 0 0 0 1px color-mix(in srgb, var(--text) 9%, transparent);
+  --shadow-xs: 0 1px 1px color-mix(in srgb, var(--shade) 5%, transparent);
+  --shadow-s: var(--ring), 0 1px 2px color-mix(in srgb, var(--shade) 7%, transparent);
+  --shadow: var(--ring), 0 2px 4px -1px color-mix(in srgb, var(--shade) 7%, transparent), 0 12px 28px -6px color-mix(in srgb, var(--shade) 15%, transparent);
+  --shadow-pop: 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent), 0 4px 8px -2px color-mix(in srgb, var(--shade) 7%, transparent),
+    0 16px 40px -8px color-mix(in srgb, var(--shade) 18%, transparent), 0 40px 80px -24px color-mix(in srgb, var(--shade) 14%, transparent);
+  --thumb-shadow: 0 0 0 0.5px color-mix(in srgb, var(--shade) 14%, transparent), 0 1px 2px color-mix(in srgb, var(--shade) 14%, transparent), 0 2px 6px -1px color-mix(in srgb, var(--shade) 10%, transparent);
+  --thumb: #ffffff;
+  --shadow-card: var(--shadow-s);
+  /* Frosted menus stay legible with no blur at all: an engine that skips backdrop-filter shows 10% of the page, not more. */
+  --glass: color-mix(in srgb, var(--elev) 90%, transparent);
+  --scrim: rgba(28, 22, 14, 0.28);
   color-scheme: light;
 }
-
-:root[data-theme='sepia'] {
-  --bg: #f1e7d0;
-  --surface: #f8f0dc;
-  --surface-2: #e9dcbf;
-  --surface-3: #dfd0ad;
-  --text: #3b2f20;
-  --text-2: #5a4b36;
-  --text-3: #6c6046;
-  --border: #d6c6a2;
-  --accent-soft: #ecd3bf;
-  --danger-soft: #f1d3c6;
-  --shadow: 0 1px 2px rgba(60, 40, 10, 0.08), 0 8px 28px rgba(60, 40, 10, 0.16);
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --dur-pop: 500ms;
+    --ease-pop: linear(0, 0.14, 0.3956, 0.6311, 0.8032, 0.9116, 0.9714, 0.9995, 1.0096, 1.0109, 1.0088, 1.0059, 1.0035, 1.0018, 1.0008, 1.0002, 1);
+    --dur-sheet: 550ms;
+    --ease-sheet: linear(0, 0.0758, 0.2324, 0.4038, 0.5588, 0.6859, 0.7837, 0.8557, 0.9066, 0.9415, 0.9647, 0.9796, 0.9889, 0.9944, 0.9976, 0.9994, 1.0002, 1);
+    --dur-settle: 600ms;
+    --ease-settle: linear(0, 0.1061, 0.3018, 0.4922, 0.6466, 0.7613, 0.8422, 0.8975, 0.9342, 0.9582, 0.9737, 0.9836, 0.9898, 0.9937, 0.9961, 0.9976, 0.9985, 0.9991, 1, 1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-pop: 1ms; --dur-sheet: 1ms; --dur-settle: 1ms; --ease-pop: linear; --ease-sheet: linear; --ease-settle: linear; }
 }
 
+/* Sepia: bamboo paper, a warmer, deeper stock than Light. */
+:root[data-theme='sepia'] {
+  --bg: #f0e2c6;
+  --surface: #f8eedb;
+  --surface-2: #e6d5b6;
+  --surface-3: #dbc8a6;
+  --text: #2f2217;
+  --reader-text: #2f2217;
+  --text-2: #57452f;
+  --text-3: #65523a;
+  --border: #d8c6a4;
+  --rule: #d8c6a4;
+  --rule-strong: #a69173;
+  --accent: #b3311a;
+  --accent-soft: #edd0bb;
+  --accent-text: #fcf6eb;
+  --accent-fill: #b3311a;
+  --accent-fill-text: #fcf6eb;
+  --danger: #9a1d3c;
+  --danger-soft: #edd0c9;
+  --ink: #223956;
+  --focus: #223956;
+  --ok: #2a6a39;
+  --warn: #7f5410;
+  --moon: #e4e2d3;
+  --saved: #cd7f62;
+  --shadow-book: 0 1px 1px rgba(60, 40, 10, 0.18), 0 10px 18px -10px rgba(60, 40, 10, 0.5);
+  --tone-1: #a82f22;
+  --tone-2: #1d7339;
+  --tone-3: #2a5fab;
+  --tone-4: #7e4395;
+  --tone-5: #6f6457;
+  --slip: #f8efdc;
+  --elev: #faf3e5;
+  --shade: #3c2a12;
+  --scrim: rgba(50, 34, 12, 0.3);
+}
+
+/* Ink: a warm near-black page (pure black halates over a long night) with the book's text a little dimmed. */
 :root[data-theme='dark'] {
-  --bg: #161513;
-  --surface: #1f1e1b;
-  --surface-2: #2a2825;
-  --surface-3: #35322e;
-  --text: #ebe5d9;
-  --text-2: #c2baac;
-  --text-3: #9a9387;
-  --border: #3a3732;
-  --accent: #e0705c;
-  --accent-soft: #48261f;
-  --accent-text: #1a1210;
-  --danger: #ff8a7a;
-  --danger-soft: #4a2420;
-  --ink: #8fb3dc;
-  --ok: #79b788;
-  --warn: #d7a456;
-  --hl: rgba(232, 178, 64, 0.26);
-  --hl-select: rgba(224, 112, 92, 0.22);
-  --saved: #6b5a2c;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.5);
-  --shadow-s: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --tone-1: #ff7b6e;
-  --tone-2: #6cc97b;
-  --tone-3: #77a4ff;
-  --tone-4: #c48af0;
-  --tone-5: #9b948a;
+  --bg: #131210;
+  --surface: #1b1a17;
+  --surface-2: #24221f;
+  --surface-3: #2f2c28;
+  --text: #e8e2d6;
+  --reader-text: #dbd8d0;
+  --text-2: #bab3a6;
+  --text-3: #9a9389;
+  --border: #2e2b27;
+  --rule: #2e2b27;
+  --rule-strong: #5a554e;
+  --wash: color-mix(in srgb, var(--text) 7%, transparent);
+  --wash-2: color-mix(in srgb, var(--text) 12%, transparent);
+  --accent: #e96e50;        /* only for thin marks and red text at night */
+  --accent-soft: #3b211a;
+  --accent-text: #131210;
+  --accent-fill: #b23a23;   /* lacquer red with silk text: a filled control that does not glare */
+  --accent-fill-text: #f1ece1;
+  --danger: #f37986;
+  --danger-soft: #3d1d23;
+  --ink: #9ebade;
+  --focus: #9ebade;
+  --ok: #7cc58c;
+  --warn: #d9a75a;
+  --moon: #1b2023;
+  --hl: rgba(228, 176, 64, 0.22);
+  --hl-select: rgba(233, 110, 80, 0.22);
+  --saved: #a9553f;
+  --shadow-book: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 18px -10px rgba(0, 0, 0, 0.9);
+  --tone-1: #f98f81;
+  --tone-2: #72c78b;
+  --tone-3: #86b2f7;
+  --tone-4: #ce99e5;
+  --tone-5: #a29e98;
+  --cover-l: 0.33;
+  --cover-c: 0.06;
+  --slip: #cfc8b9;
+  --slip-ink: #1d1914;
+  --thread: rgba(232, 224, 208, 0.5);
+  --elev: #201f1d;
+  --shade: #000000;
+  --ring: 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent);
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-s: var(--ring), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: var(--ring), inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 32px -6px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 4px 12px rgba(0, 0, 0, 0.35),
+    0 20px 56px -8px rgba(0, 0, 0, 0.65);
+  --thumb-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+  --thumb: #4a4640;
+  --shadow-card: var(--ring), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --glass: color-mix(in srgb, var(--elev) 92%, transparent);
+  --scrim: rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 

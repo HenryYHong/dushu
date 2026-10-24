@@ -49,40 +49,55 @@
   height: calc(var(--rd-bar-h) + env(safe-area-inset-top, 0px));
   display: flex; align-items: center; gap: var(--space-2);
   padding: env(safe-area-inset-top, 0px) max(var(--space-3), env(safe-area-inset-right, 0px)) 0 max(var(--space-3), env(safe-area-inset-left, 0px));
-  transition: transform 0.22s var(--ease), opacity 0.18s;
-  /* Nearly opaque: scrolled text must not show through the title and the buttons. */
-  background: color-mix(in srgb, var(--bg) 97%, transparent);
-  backdrop-filter: saturate(1.4) blur(14px);
-  -webkit-backdrop-filter: saturate(1.4) blur(14px);
-  border-bottom: 1px solid var(--border);
+  transition: transform var(--dur-settle) var(--ease-settle), opacity var(--dur) var(--ease);
+  /* Opaque paper, no blur: through a translucent bar WebKit let the scrolled text ghost, and the blur cost the iPad's GPU
+     on every scroll. The same sheet in Scroll and in Pages. */
+  background: var(--bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 1px solid var(--hairline);
 }
 .rd-back { flex: none; text-decoration: none; }
 .rd-titles { flex: 1; min-width: 0; line-height: 1.25; }
-.rd-book-title { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rd-chapter-title { font-size: 14px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rd-bar-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+.rd-book-title { font-size: 11.5px; letter-spacing: 0.1em; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The chapter title is the book's own text: Songti, set a little wide, never the Latin display face. */
+.rd-chapter-title { font: 400 15px/1.3 var(--font-serif); letter-spacing: 0.05em; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-bar-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+.rd-bar .icon-btn { width: 34px; height: 34px; }
 .rd-pill {
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px;
-  border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text);
-  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px;
+  border: 0; border-radius: var(--radius-s); background: transparent; color: var(--text);
+  font-size: 13px; font-weight: 560; cursor: pointer; white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease);
 }
-.rd-pill:hover { background: var(--surface-2); }
-.rd-pill[aria-expanded='true'] { border-color: var(--accent); }
-.rd-pill .icon { width: 16px; height: 16px; color: var(--text-2); }
-/* The pinyin pill keeps one width whatever the mode is called, so the buttons beside it never move. */
-.rd-pinyin-btn { min-width: 110px; justify-content: center; position: relative; }
-.rd-aa { font-family: var(--font-serif); font-size: 15px; letter-spacing: 0.01em; }
-.rd-pct { min-width: 38px; text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--text-3); margin-left: 4px; }
+@media (hover: hover) { .rd-pill:hover { background: var(--wash); } }
+.rd-pill[aria-expanded='true'] { background: var(--wash-2); }
+.rd-pill .icon { width: 18px; height: 18px; color: var(--text-2); }
+/* The pinyin button: the 拼 seal, then the mode. It keeps one width whatever the mode is called, so the buttons beside it
+   never move. Solid seal while pinyin shows; an outline (朱文) when it is off. */
+.rd-pinyin-btn { min-width: 104px; justify-content: center; gap: 7px; padding: 0 10px 0 8px; position: relative; }
+.rd-seal {
+  display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 3px;
+  background: var(--accent-fill); color: var(--accent-fill-text);
+  font-size: 14px; font-weight: 700; line-height: 1;
+  box-shadow: inset 0 0 0 1.5px var(--accent-fill), inset 0 0 0 2.25px color-mix(in srgb, var(--accent-fill-text) 50%, transparent);
+}
+.rd-pinyin-btn[data-mode='off'] .rd-seal { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1.25px var(--accent); font-weight: 400; }
+.rd-pinyin-btn .rd-pill-label { font-variant-numeric: tabular-nums; color: var(--text); }
+.rd-pinyin-btn[data-mode='off'] .rd-pill-label { color: var(--text-2); }
+.rd-aa { font: 500 18px/1 var(--font-display); letter-spacing: 0; }
+.rd-aa-btn { min-width: 38px; justify-content: center; }
+.rd-pct { min-width: 38px; text-align: right; font: 400 13px/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--text-3); margin-left: 4px; }
 .rd-progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: transparent; }
 .rd-root:not(.rd-paged) .rd-progress { display: none; }
 .rd-progress-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.15s linear; }
 .rd-audio {
   position: fixed; z-index: 35; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
   width: max-content; max-width: calc(100% - 24px); display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px;
-  border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow);
+  border: 0; border-radius: var(--radius-l); background: var(--elev); box-shadow: var(--shadow-pop);
 }
-.rd-audio-status { min-width: 84px; color: var(--text-2); font-size: 13px; font-weight: 600; }
-.rd-audio-speed { width: 60px; border: 0; border-radius: 6px; background: var(--surface-2); padding: 5px 3px; font-size: 13px; cursor: pointer; }
+.rd-audio-status { min-width: 84px; color: var(--text-2); font-size: 13px; font-weight: 560; }
+.rd-audio-speed { width: 60px; border: 0; border-radius: var(--radius-xs); background: var(--wash-2); padding: 5px 3px; font-size: 13px; cursor: pointer; }
 .rd-audio-pause { min-width: 70px; }
 .rd-audio-pause .icon { width: 14px; height: 14px; }
 .rd-paged .rd-audio { display: none; }
@@ -106,6 +121,7 @@
   text-align: left;
   overflow-wrap: anywhere;
   font-kerning: none;
+  color: var(--reader-text);
   -webkit-user-select: text; user-select: text;
 }
 .rd-article ::selection { background: var(--hl-select); }
@@ -145,6 +161,12 @@
 .rd-article rt.tone-3 { color: color-mix(in srgb, var(--tone-3) 74%, var(--text)); }
 .rd-article rt.tone-4 { color: color-mix(in srgb, var(--tone-4) 74%, var(--text)); }
 .rd-article rt.tone-5 { color: color-mix(in srgb, var(--tone-5) 60%, var(--text)); }
+/* At night the pinyin is pulled toward the quiet gray, not the bright text, so it sits under the characters as in print. */
+:root[data-theme='dark'] .rd-article rt.tone-1 { color: color-mix(in srgb, var(--tone-1) 74%, var(--text-3)); }
+:root[data-theme='dark'] .rd-article rt.tone-2 { color: color-mix(in srgb, var(--tone-2) 74%, var(--text-3)); }
+:root[data-theme='dark'] .rd-article rt.tone-3 { color: color-mix(in srgb, var(--tone-3) 74%, var(--text-3)); }
+:root[data-theme='dark'] .rd-article rt.tone-4 { color: color-mix(in srgb, var(--tone-4) 74%, var(--text-3)); }
+:root[data-theme='dark'] .rd-article rt.tone-5 { color: color-mix(in srgb, var(--tone-5) 60%, var(--text-3)); }
 .rd-article .rd-rtx {
   position: absolute; left: 50%; bottom: calc(100% - 0.28em);
   /* A syllable wider than the cell (zhuāng, shuāng, chuáng) is squeezed to fit it; --rd-w is its width per em, set only
@@ -206,31 +228,53 @@
 .rd-grid .rd-p, .rd-grid .rd-quote { text-wrap: wrap; }
 /* Safari (the only engine with hanging-punctuation) does the same without the grid, so it never gets pretty. */
 @supports (hanging-punctuation: first) { .rd-p, .rd-quote { text-wrap: wrap; } }
-.rd-short, .rd-h { text-wrap: balance; }
+/* Only headings are balanced. A short prose paragraph is filled like any other (balanced, its first line stopped 8 to 10
+   cells early); .rd-short stays as a hook for verse if the importer ever marks it. */
+.rd-h { text-wrap: balance; }
 .rd-b.rd-speaking { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 4px; }
-.rd-quote { margin: 0.7em 0; padding: 0 0 0 1em; border-left: 3px solid var(--border); color: var(--text-2); }
+.rd-quote { margin: 0.7em 0; padding: 0 0 0 1em; border-left: 3px solid var(--rule); color: var(--text-2); }
 .rd-grid .rd-quote { padding-left: calc(var(--rd-cell) * 1em); }
 .rd-h { font-weight: 700; line-height: 1.6; margin: 1.8em 0 0.7em; text-indent: 0; }
 /* A heading breaks at its spaces when it can: 第五回 開生面夢演紅樓夢 立新場情傳幻境情 wraps between the two halves of the
-   couplet, not in the middle of one. One that has no space to break at still wraps (overflow-wrap on the article). */
-.rd-h { word-break: keep-all; }
+   couplet, not in the middle of one. Chrome does it with keep-all and still breaks inside a half that is wider than the column
+   (overflow-wrap on the article). Safari ignores keep-all between elements (here every character is one), so there the characters
+   are held together with nowrap below, and Safari has no fallback break inside such a run: a long half ran off the page. */
+.rd-h { word-break: keep-all; container: rd-h / inline-size; }
 /* With pinyin a heading needs the room between lines that the text has (its pinyin is bigger too). */
 .rd-grid .rd-h { line-height: calc(var(--rd-lh) * 0.9); }
-/* A name in a heading is not split across two lines. */
-.rd-h .rd-w { white-space: nowrap; }
+/* A name in a heading is not split across two lines, and no character leaves its neighbor except at a space (Safari's keep-all). */
+.rd-h .rd-w, .rd-h .rd-c { white-space: nowrap; }
+/* A narrow column, under 12em of the heading (nine 1.25em cells: the longest 回目 half in the classics is nine characters), may not
+   hold a half. There Safari breaks between words instead, and inside a word of five characters or more. Chrome reads word-break from
+   the heading itself, so it keeps keep-all and its own fallback. Only where a heading's lines break changes; the grid does not.
+   (render.ts marks a word of five characters or more with rd-w-long. Not :has(> .rd-c:nth-child(5)): Chrome then restyles the
+   whole chapter on every change to the page, and a long chapter scrolled at half speed.) */
+@container rd-h (max-width: 12em) {
+  .rd-h .rd-w, .rd-h .rd-c, .rd-h .rd-pu { word-break: normal; }
+  .rd-h .rd-w-long, .rd-h .rd-w-long > .rd-c { white-space: normal; }
+}
 .rd-h1 { font-size: 1.5em; text-align: center; margin-top: 0.4em; margin-bottom: 1.1em; }
+/* A short vermilion rule under the chapter title, drawn in the margin below it (absolutely placed: it moves no text). */
+.rd-article .rd-h1::after {
+  content: ''; position: absolute; left: 50%; bottom: -0.55em; width: 1.4em; height: 1.5px; margin-left: -0.7em;
+  background: var(--accent); opacity: 0.85; pointer-events: none;
+}
 .rd-h2 { font-size: 1.3em; }
 .rd-h3 { font-size: 1.15em; }
 .rd-h-num { text-align: center; }
 .rd-fig { margin: 1.2em 0; text-align: center; text-indent: 0; }
 .rd-img { max-width: 100%; height: auto; border-radius: var(--radius-s); }
 .rd-img-missing { color: var(--text-3); font-size: 14px; font-family: var(--font-ui); }
-.rd-hr { border: 0; border-top: 1px solid var(--border); margin: 2em auto; width: 40%; }
+.rd-hr { border: 0; border-top: 1px solid var(--rule-strong); margin: 2em auto; width: 40%; }
 
 /* words */
 .rd-w { cursor: pointer; }
 .rd-w:focus { outline: none; }
-.rd-w:focus-visible, .rd-w.rd-cursor { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.rd-w:focus-visible, .rd-w.rd-cursor { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+/* The page takes focus from code when a word card closes: no frame then. Tab to it and it is framed (reader.ts sets
+   data-tabbed only when Tab brought focus there). */
+.rd-article:focus, .rd-article:focus-visible { outline: none; }
+.rd-article[data-tabbed]:focus-visible { outline: 2px solid var(--focus); outline-offset: 8px; border-radius: 2px; }
 .rd-c { border-radius: 3px; }
 @media (hover: hover) {
   .rd-w.rd-dict:hover .rd-c { background: color-mix(in srgb, var(--hl) 55%, transparent); }
@@ -249,7 +293,19 @@
 .rd-article .rd-pu.rd-sel { position: relative; }
 /* The pseudo-elements sit behind the text: each block makes its own stacking context so z-index: -1 stays inside it. */
 .rd-article .rd-b { isolation: isolate; }
-.rd-saved .rd-c { box-shadow: inset 0 -3px 0 -1px var(--saved); }
+/* Saved words: one calm vermilion stroke under the whole word (朱笔), not a mark per character. Each character draws its
+   part across its cell, so the parts meet; the ends are pulled in a little, so two saved words side by side stay two. The
+   stroke is absolutely placed and moves nothing. */
+.rd-saved .rd-c::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -0.05em; height: max(1.5px, 0.065em);
+  background: var(--saved); pointer-events: none;
+}
+.rd-saved .rd-c:first-child::before { left: 0.08em; }
+.rd-saved .rd-c:last-child::before { right: 0.08em; }
+.rd-grid .rd-saved .rd-c:first-child::before { left: calc(var(--rd-pad) * 1em); }
+.rd-grid .rd-saved .rd-c:last-child::before { right: calc(var(--rd-pad) * 1em); }
+/* The chapter title has its own red rule: no second red mark stacked over it. */
+.rd-h1 .rd-saved .rd-c::before { display: none; }
 
 /* paragraph translation */
 .rd-pt-btn {
@@ -260,20 +316,20 @@
   text-indent: 0; line-height: 1;
 }
 .rd-pt-btn .icon { width: 16px; height: 16px; }
-.rd-pt-btn:hover, .rd-pt-btn[aria-pressed='true'] { background: var(--surface-2); color: var(--accent); }
+.rd-pt-btn:hover, .rd-pt-btn[aria-pressed='true'] { background: var(--wash); color: var(--text); }
 .rd-pt-on .rd-pt-btn { display: inline-flex; opacity: 0; transition: opacity 0.12s; }
 .rd-pt-on .rd-b:hover > .rd-pt-btn, .rd-pt-on .rd-pt-btn:focus-visible, .rd-pt-on .rd-pt-btn[aria-pressed='true'] { opacity: 1; }
 .rd-trans {
   margin: -0.2em 0 1em; padding: 0; font-family: var(--font-ui); font-size: 15px; line-height: 1.5; text-indent: 0; letter-spacing: 0;
 }
-.rd-trans .pp-tr { background: var(--surface); border: 1px solid var(--border); }
+.rd-trans .pp-tr { background: var(--moon); border: 0; box-shadow: none; }
 
 /* chapter end */
 .rd-end {
   max-width: var(--rd-width); margin: 56px auto 0; padding: 0 var(--space-5);
   display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3);
 }
-.rd-end-note { flex: 0 0 100%; text-align: center; color: var(--text-3); margin: 0; }
+.rd-end-note { flex: 0 0 100%; text-align: center; color: var(--text-3); margin: 0; font: italic 400 16px/1.4 var(--font-display); }
 .rd-end .btn { height: 42px; padding: 0 20px; text-decoration: none; }
 
 /* A chapter that could not be shown: a plain message and a way out, never a blank page. */
@@ -284,7 +340,7 @@
   position: absolute; inset: 0; z-index: 8; max-width: none; background: var(--bg); padding-top: calc(var(--rd-bar-h) + 72px);
   display: flex; flex-direction: column; align-items: center;
 }
-.rd-fail h2 { margin: 0 0 var(--space-2); font-size: 20px; }
+.rd-fail h2 { margin: 0 0 var(--space-2); font: 400 26px/1.2 var(--font-display); }
 .rd-fail p { margin: 0 0 var(--space-4); color: var(--text-2); line-height: 1.5; max-width: 420px; }
 .rd-fail-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; }
 .rd-fail .btn { height: 42px; padding: 0 16px; text-decoration: none; }
@@ -293,128 +349,147 @@
 .rd-coach {
   position: fixed; z-index: 40; left: 50%; bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px)); transform: translateX(-50%);
   width: min(460px, calc(100% - 24px)); padding: var(--space-3) var(--space-4); display: flex; align-items: flex-start; gap: var(--space-3);
-  border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow);
+  border: 0; border-radius: var(--radius-l); background: var(--elev); box-shadow: var(--shadow-pop);
   font: 14px/1.45 var(--font-ui); color: var(--text);
-  animation: rd-rise 0.28s var(--ease);
+  animation: rd-rise var(--dur-pop) var(--ease-pop);
 }
 .rd-coach p { margin: 0 0 4px; }
 .rd-coach p:last-child { margin: 0; color: var(--text-2); }
 .rd-coach .btn { flex: none; height: 34px; }
-@keyframes rd-rise { from { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes rd-rise { from { opacity: 0; transform: translate(-50%, 12px); } }
 
 /* ---------- chapter drawer ---------- */
 .rd-toc-root { position: fixed; inset: 0; z-index: 70; }
-.rd-backdrop { position: absolute; inset: 0; background: rgba(20, 15, 5, 0.35); animation: rd-fade 0.15s var(--ease); }
+.rd-backdrop { position: absolute; inset: 0; background: var(--scrim); animation: rd-fade var(--dur) var(--ease); }
+/* The chapter drawer: a floating panel on the chrome's cleaner sheet, sliding in on a spring. */
 .rd-toc {
-  position: absolute; top: 0; bottom: 0; left: 0; width: min(360px, 88vw);
-  display: flex; flex-direction: column;
-  background: var(--surface); border-right: 1px solid var(--border); box-shadow: var(--shadow);
-  animation: rd-slide 0.18s var(--ease);
+  position: absolute; top: max(8px, env(safe-area-inset-top, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); left: max(8px, env(safe-area-inset-left, 0px));
+  width: min(360px, calc(100vw - 40px));
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--elev); border: 0; border-radius: var(--radius-l); box-shadow: var(--shadow-pop);
+  animation: rd-drawer var(--dur-sheet) var(--ease-sheet);
 }
-.rd-toc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-4) var(--space-2); }
-.rd-toc-book { font-weight: 700; font-size: 16px; line-height: 1.3; }
-.rd-toc-count { font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+.rd-toc:focus { outline: none; }
+.rd-toc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding: var(--space-5) var(--space-4) var(--space-3) var(--space-5); }
+/* The book's title: its own Songti, set wide. */
+.rd-toc-book { font: 400 21px/1.3 var(--font-serif); letter-spacing: 0.05em; }
+.rd-toc-count { margin-top: 4px; font: italic 400 14px/1.3 var(--font-display); color: var(--text-3); }
 .rd-toc-filter { margin: 0 var(--space-4) var(--space-2); width: calc(100% - 2 * var(--space-4)); }
-.rd-toc-status { padding: 0 var(--space-4); font-size: 12.5px; color: var(--text-3); }
+.rd-toc-status { padding: 0 var(--space-5); font-size: 12px; color: var(--text-3); }
 .rd-toc-status:empty { display: none; }
 .rd-toc-list { list-style: none; margin: 0; padding: var(--space-2) var(--space-2) var(--space-5); overflow-y: auto; flex: 1; position: relative; }
 /* Long books: only the rows near the window exist (see toc.ts); the sizer gives the scrollbar its true length. */
 .rd-toc-sizer { position: relative; width: 100%; }
 .rd-toc-row { position: absolute; left: 0; right: 0; }
 .rd-toc-item {
-  display: flex; align-items: center; gap: 10px; width: 100%; height: 100%; padding: 0 12px; border: 0; border-radius: var(--radius-s);
+  position: relative; display: flex; align-items: center; gap: 10px; width: 100%; height: 100%; padding: 0 12px 0 16px; border: 0; border-radius: var(--radius-s);
   background: transparent; text-align: left; cursor: pointer; color: var(--text);
+  transition: background var(--dur-fast) var(--ease);
 }
-.rd-toc-item:hover { background: var(--surface-2); }
-.rd-toc-item[aria-current='true'] { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
-.rd-toc-t { font-family: var(--font-serif); font-size: 15.5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (hover: hover) { .rd-toc-item:hover { background: var(--wash); } }
+/* Where you are: a vermilion ribbon, like a bookmark, on an ink row. */
+.rd-toc-item[aria-current='true'] { background: var(--wash-2); color: var(--text); font-weight: 600; }
+.rd-toc-item[aria-current='true']::before { content: ''; position: absolute; left: 5px; top: 50%; width: 3px; height: 18px; margin-top: -9px; border-radius: 2px; background: var(--accent); }
+.rd-toc-t { font-family: var(--font-serif); font-size: 16px; letter-spacing: 0.04em; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rd-toc-none { padding: var(--space-4); color: var(--text-3); text-align: center; }
 @keyframes rd-fade { from { opacity: 0; } }
-@keyframes rd-slide { from { transform: translateX(-16px); opacity: 0.4; } }
+@keyframes rd-drawer { from { transform: translateX(calc(-100% - 16px)); } }
 
 /* ---------- popover menus ---------- */
+/* Menus: frosted chrome (a solid sheet where blur is not supported, and always in Pages, where nothing should cost the GPU
+   a frame), a ring and a layered shadow, opening on a spring. */
 .rd-pop {
   position: fixed; z-index: 75; width: 372px; overflow-y: auto; overscroll-behavior: contain;
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-l); box-shadow: var(--shadow);
-  padding: var(--space-2); animation: rd-fade 0.12s var(--ease);
+  background: var(--glass); -webkit-backdrop-filter: saturate(1.6) blur(28px); backdrop-filter: saturate(1.6) blur(28px);
+  border: 0; border-radius: var(--radius-l); box-shadow: var(--shadow-pop);
+  padding: 6px; transform-origin: top right;
+  animation: app-pop var(--dur-pop) var(--ease-pop);
 }
+@supports (transition-behavior: allow-discrete) {
+  .rd-pop:not(.rd-sheet) { animation: none; transition: opacity var(--dur) var(--ease), transform var(--dur-pop) var(--ease-pop); }
+  @starting-style { .rd-pop:not(.rd-sheet) { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+}
+/* Solid where glass could hurt reading: an engine without blur, any bottom sheet (it sits over the text on a phone or an
+   iPad, where an unblurred 10% of the page ghosts through), and anything opened in Pages. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .rd-pop { background: var(--elev); } }
+.rd-pop.rd-sheet, body:has(.rd-paged) .rd-pop { background: var(--elev); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .rd-pop:focus { outline: none; }
 /* A cue that there is more below. */
 .rd-pop.rd-pop-more::after {
-  content: ''; position: sticky; bottom: calc(var(--space-2) * -1); display: block; height: 36px; margin: -36px calc(var(--space-2) * -1) calc(var(--space-2) * -1); pointer-events: none;
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--surface) 0%, transparent), var(--surface) 85%);
+  content: ''; position: sticky; bottom: -6px; display: block; height: 36px; margin: -36px -6px -6px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--elev) 85%);
 }
 /* On a touch screen or a narrow one the menu is a bottom sheet: compact, with the top of the page left in view so a change shows. */
 .rd-pop.rd-sheet {
   top: auto !important; bottom: 0; left: 50% !important; right: auto !important; width: min(560px, 100%) !important;
   transform: translateX(-50%);
-  max-height: min(60dvh, 520px) !important; border-radius: var(--radius-l) var(--radius-l) 0 0; border-bottom: 0;
+  max-height: min(60dvh, 520px) !important; border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   padding: 0 var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
-  animation: rd-sheet-up 0.2s var(--ease);
+  animation: rd-sheet-up var(--dur-sheet) var(--ease-sheet);
   overflow-y: auto;
 }
-@keyframes rd-sheet-up { from { transform: translate(-50%, 24px); opacity: 0.5; } }
-.rd-grab { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; min-height: 36px; margin: 0 calc(var(--space-3) * -1); padding: 6px var(--space-3) 0; background: var(--surface); touch-action: none; }
-.rd-grab::before { content: ''; position: absolute; left: 50%; top: 8px; width: 38px; height: 5px; margin-left: -19px; border-radius: 3px; background: var(--border); }
-.rd-grab-title { font-size: 13px; font-weight: 700; color: var(--text-2); padding-top: 10px; }
-.rd-grab .btn { margin-top: 10px; height: 30px; padding: 0 12px; font-size: 13px; }
-.rd-menu { display: flex; flex-direction: column; gap: 2px; }
+@keyframes rd-sheet-up { from { transform: translate(-50%, 100%); } }
+.rd-grab { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; min-height: 40px; margin: 0 calc(var(--space-3) * -1); padding: 6px var(--space-3) 2px; background: var(--elev); touch-action: none; }
+.rd-grab::before { content: ''; position: absolute; left: 50%; top: 7px; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--wash-3); }
+.rd-grab-title { font: 400 19px/1.2 var(--font-display); color: var(--text); padding-top: 14px; }
+.rd-grab .btn { margin-top: 12px; height: 32px; padding: 0 12px; font-size: 13px; }
+.rd-menu { display: flex; flex-direction: column; gap: 1px; }
+/* The pinyin modes: a radio list; the chosen row is a tonal fill with an ink check at its end. */
 .rd-opt {
-  display: flex; flex-direction: column; align-items: flex-start; padding: 8px 10px; border: 0; border-radius: var(--radius-s);
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; padding: 8px 36px 8px 10px; border: 0; border-radius: var(--radius-s);
   background: transparent; text-align: left; cursor: pointer; color: var(--text);
+  transition: background var(--dur-fast) var(--ease);
 }
-.rd-opt:hover { background: var(--surface-2); }
-.rd-opt[aria-checked='true'] { background: var(--accent-soft); }
-.rd-opt[aria-checked='true'] .rd-opt-name { color: var(--accent); }
-.rd-opt-name { font-weight: 650; font-size: 14px; }
-.rd-opt-hint { font-size: 12px; color: var(--text-3); }
-.rd-stepper { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--border); margin-top: 4px; }
+@media (hover: hover) { .rd-opt:hover { background: var(--wash); } }
+.rd-opt[aria-checked='true'] { background: var(--wash-2); }
+.rd-opt[aria-checked='true']::after {
+  content: ''; position: absolute; right: 15px; top: 50%; width: 5px; height: 10px; margin-top: -7px;
+  border: solid var(--text); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.rd-opt-name { font-weight: 600; font-size: 13.5px; color: var(--text); }
+.rd-opt-hint { font-size: 12px; line-height: 1.4; color: var(--text-3); }
+/* On the chosen row's wash the quiet gray would drop under 4.5:1 at night: one step darker there. */
+.rd-opt[aria-checked='true'] .rd-opt-hint { color: var(--text-2); }
+.rd-stepper { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--hairline); margin-top: 4px; }
 .rd-stepper .rd-row-label { flex: 1; }
-.rd-level-val { min-width: 2.5em; text-align: center; font-weight: 650; font-variant-numeric: tabular-nums; }
+.rd-level-val { min-width: 2.5em; text-align: center; font: 500 18px/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .rd-share { margin: 2px 10px 4px; font-size: 11.5px; line-height: 1.3; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .rd-step {
   display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;
-  border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface); color: var(--text); cursor: pointer;
+  border: 0; border-radius: var(--radius-s); background: var(--elev); color: var(--text); cursor: pointer; box-shadow: var(--shadow-s);
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
-.rd-step:hover { background: var(--surface-2); }
-.rd-step-lg { width: 44px; height: 36px; font-family: var(--font-serif); }
+:root[data-theme='dark'] .rd-step { background: var(--surface-3); box-shadow: var(--ring); }
+@media (hover: hover) { .rd-step:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); } }
+.rd-step:active { transform: scale(0.95); }
+.rd-step-lg { width: 40px; height: 34px; font-family: var(--font-display); }
 
 .rd-display { gap: 0; }
 .rd-sec { padding: 4px 0 6px; }
-.rd-sec + .rd-sec { border-top: 1px solid var(--border); padding-top: 8px; }
-.rd-sec-title { margin: 4px 10px 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+.rd-sec + .rd-sec { border-top: 1px solid var(--hairline); padding-top: 8px; }
+.rd-sec-title { margin: 6px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
 /* One line per setting: the name on the left, the control on the right, at least 44 px tall. */
 .rd-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 4px 10px; }
 .rd-row[hidden] { display: none; }
-.rd-row-label { display: flex; flex-direction: column; gap: 1px; flex: 0 0 auto; max-width: 52%; font-size: 13.5px; font-weight: 650; color: var(--text); }
+.rd-row-label { display: flex; flex-direction: column; gap: 1px; flex: 0 0 auto; max-width: 52%; font-size: 13.5px; font-weight: 560; color: var(--text); }
 .rd-row-hint { font-weight: 400; font-size: 11.5px; line-height: 1.3; color: var(--text-3); }
 .rd-row-ctl { flex: 1 1 auto; min-width: 0; display: flex; justify-content: flex-end; align-items: center; }
 .rd-row-ctl > .rd-seg { flex: 1 1 auto; }
 .rd-row-ctl > .rd-slider-wrap { flex: 1 1 auto; }
-.rd-sep { border: 0; border-top: 1px solid var(--border); margin: 4px 8px; }
+.rd-sep { border: 0; border-top: 1px solid var(--hairline); margin: 4px 8px; }
 .rd-size { display: flex; align-items: center; gap: 10px; }
-.rd-size-val { min-width: 3.4em; text-align: center; font-variant-numeric: tabular-nums; font-weight: 650; font-size: 13px; }
-.rd-seg { display: flex; border: 1px solid var(--border); border-radius: var(--radius-s); overflow: hidden; }
-.rd-seg-btn {
-  flex: 1; min-height: 34px; padding: 0 8px; border: 0; border-left: 1px solid var(--border); background: var(--surface); color: var(--text-2);
-  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
-}
-.rd-seg-btn:first-child { border-left: 0; }
-.rd-seg-btn:hover { background: var(--surface-2); }
-.rd-seg-btn[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent); }
-.rd-f-serif { font-family: var(--font-serif); font-size: 15px; }
-.rd-f-sans { font-family: var(--font-sans); font-size: 15px; }
-.rd-f-kai { font-family: var(--font-kai); font-size: 15px; }
+.rd-size-val { min-width: 3.4em; text-align: center; font: 500 15px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.rd-seg { display: flex; }
+.rd-seg-btn { flex: 1; min-height: 30px; padding: 0 8px; }
+.rd-f-serif { font-family: var(--font-serif); font-size: 14.5px; }
+.rd-f-sans { font-family: var(--font-sans); font-size: 14.5px; }
+.rd-f-kai { font-family: var(--font-kai); font-size: 14.5px; }
 .rd-slider-wrap { display: flex; align-items: center; gap: 10px; }
-.rd-slider { flex: 1; min-width: 0; accent-color: var(--accent); height: 28px; }
-.rd-slider-out { min-width: 3.4em; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text-2); }
-.rd-switch {
-  position: relative; flex: none; width: 46px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 14px;
-  background: var(--surface-3); cursor: pointer;
-}
-.rd-switch-dot { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-s); transition: transform 0.14s var(--ease); }
-.rd-switch[aria-checked='true'] { background: var(--accent); border-color: var(--accent); }
-.rd-switch[aria-checked='true'] .rd-switch-dot { transform: translateX(18px); }
+.rd-slider { flex: 1; min-width: 0; height: 28px; }
+.rd-slider-out { min-width: 3.4em; text-align: right; font: 400 14px/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--text-2); }
+.rd-switch { position: relative; flex: none; width: 40px; height: 24px; padding: 0; cursor: pointer; }
+.rd-switch-dot { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; }
+.rd-switch[aria-checked='true'] .rd-switch-dot { transform: translateX(16px); }
 
 /* ---------- shortcuts sheet ---------- */
 .rd-keys-body { padding: var(--space-4) var(--space-5) var(--space-5); }
@@ -439,20 +514,16 @@
   .rd-pt-btn { right: -1.7rem; }
   .rd-page { padding-top: calc(var(--rd-bar-h) + 16px); }
   .rd-toc-t { font-size: 16px; }
-  /* In the bar the pinyin button is just the eye and Aa is just "Aa": the mode is in the eye (shut = off) and the dot, which in
-     HSK mode is a badge with the level. */
-  .rd-pinyin-btn { min-width: 0; width: 38px; padding: 0; justify-content: center; }
-  .rd-pinyin-btn .rd-pill-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .rd-pinyin-btn[data-mode='unknown']::after, .rd-pinyin-btn[data-mode='hsk']::after {
-    content: ''; position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%;
-    background: var(--accent); border: 1.5px solid var(--surface);
-  }
-  .rd-pinyin-btn[data-mode='hsk']::after {
-    content: attr(data-level); top: 1px; right: 0; width: auto; height: 14px; min-width: 14px; padding: 0 3px; box-sizing: border-box;
-    border-radius: 7px; background: var(--ink); color: var(--surface); font: 700 9px/11px var(--font-sans); text-align: center;
-    font-variant-numeric: tabular-nums;
-  }
-  .rd-aa-btn { width: 38px; padding: 0; justify-content: center; }
+  /* A phone: the seal and a compact mode ("All", "HSK 3", "Unknown") in small type, no fixed width. */
+  .rd-pinyin-btn { min-width: 0; gap: 5px; padding: 0 7px 0 5px; }
+  .rd-pinyin-btn .rd-pill-label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.01em; }
+  .rd-aa-btn { width: 38px; min-width: 0; padding: 0; justify-content: center; }
+}
+/* The narrowest phones: the seal alone says on or off; beside it only what it cannot say, the HSK level or Unknown's dot. */
+@media (max-width: 360px) {
+  .rd-pinyin-btn[data-mode='off'] .rd-pill-label, .rd-pinyin-btn[data-mode='all'] .rd-pill-label, .rd-pinyin-btn[data-mode='unknown'] .rd-pill-label,
+  .rd-pinyin-btn .rd-pill-pre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .rd-pinyin-btn[data-mode='unknown']::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-2); margin-left: -1px; }
 }
 
 /* ======================================================================
@@ -465,7 +536,7 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   height: 100vh; height: 100dvh;
 }
 /* In Pages nothing scrolls under the bar except while the page is lifted for a word card, and then the big title and the pinyin
-   showed through it as ghosts. The bar is a solid sheet there (no blur to pay for during turns either). */
+   showed through it as ghosts. The bar is a solid sheet there too (no blur to pay for during turns either). */
 .rd-paged .rd-bar { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
 .rd-chrome-off .rd-bar { transform: translateY(-100%); opacity: 0; visibility: hidden; transition: transform 0.22s var(--ease), opacity 0.18s, visibility 0s 0.22s; }
 
@@ -477,8 +548,9 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   --pg-w: 1000px; --pg-h: 700px; --pg-paper: 1000px; --pg-cw: 640px; --pg-gap: 120px; --pg-left: 180px;
   --pg-top: 66px; --pg-th: 580px; --pg-cols: 1; --pg-header-top: 22px; --pg-footer-bottom: 18px;
 }
-.rd-stage:focus { outline: none; }
-.rd-stage:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.rd-stage:focus, .rd-stage:focus-visible { outline: none; }
+/* Framed only when Tab brought focus here, never when a closed word card hands it back (see .rd-article above). */
+.rd-stage[data-tabbed]:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
 .rd-pager { position: absolute; inset: 0; overflow: hidden; overflow: clip; }
 .rd-safe {
   position: absolute; left: 0; top: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
@@ -518,26 +590,31 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-hf { position: absolute; inset: 0; pointer-events: none; z-index: 2; transition: opacity 0.12s; }
 .rd-pc-slot { position: absolute; top: 0; height: 100%; }
 .rd-pc { position: absolute; inset: 0; pointer-events: none; }
+/* A printed book's furniture: a running head tracked wide in the book's own Songti, Newsreader folios, and an italic
+   "N pages left". The way on (it names the next chapter) stays in the UI face, never italic. */
 .rd-hdr, .rd-ftr {
   position: absolute; left: var(--pg-left); width: var(--pg-cw);
-  font: 12px/1.2 var(--font-ui); letter-spacing: 0.04em; color: var(--text-3);
+  font: 400 13px/1.2 var(--font-display); letter-spacing: 0.01em; color: var(--text-3);
   -webkit-user-select: none; user-select: none;
 }
+.rd-hdr { font: 400 12px/1.2 var(--font-serif); letter-spacing: 0.22em; }
+.rd-ftr-left { font-style: italic; }
 .rd-hdr { top: var(--pg-header-top); text-align: center; white-space: nowrap; overflow: hidden; }
 .rd-hdr span { display: block; overflow: hidden; text-overflow: ellipsis; }
 .rd-ftr { bottom: var(--pg-footer-bottom); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-variant-numeric: tabular-nums; }
 .rd-ftr[data-side='right'] { flex-direction: row-reverse; }
 .rd-ftr[data-side='left'] { justify-content: flex-start; }
 .rd-ftr-next {
-  pointer-events: auto; border: 0; background: transparent; padding: 6px 0 6px 12px; margin: -6px 0; font: inherit; letter-spacing: inherit;
-  color: var(--ink); cursor: pointer; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  pointer-events: auto; border: 0; background: transparent; padding: 6px 0 6px 12px; margin: -6px 0; font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.01em;
+  color: var(--text-2); cursor: pointer; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px;
 }
-.rd-ftr-next:hover { text-decoration: underline; }
 .rd-ftr-words {
-  pointer-events: auto; border: 0; background: transparent; padding: 6px 0; margin: -6px 0; font: inherit; letter-spacing: inherit;
-  color: var(--ink); cursor: pointer; white-space: nowrap; flex: none;
+  pointer-events: auto; border: 0; background: transparent; padding: 6px 0; margin: -6px 0; font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.01em;
+  color: var(--text-2); cursor: pointer; white-space: nowrap; flex: none;
+  text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px;
 }
-.rd-ftr-words:hover { text-decoration: underline; }
+@media (hover: hover) { .rd-ftr-next:hover, .rd-ftr-words:hover { color: var(--text); text-decoration-color: var(--text); } }
 /* The last page in one-page mode: the chapter's words, then the way on. */
 .rd-ftr-end { display: flex; align-items: baseline; justify-content: flex-end; gap: 14px; min-width: 0; }
 .rd-ftr-end .rd-ftr-next { max-width: none; min-width: 0; }
@@ -550,18 +627,20 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   position: absolute; left: var(--pg-left); width: var(--pg-cw); top: var(--pg-top); height: var(--pg-th);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; pointer-events: none;
 }
-.rd-endmark { width: 36px; height: 1px; background: var(--border); position: relative; }
-.rd-endmark::after { content: ''; position: absolute; left: 50%; top: -3px; width: 7px; height: 7px; margin-left: -3.5px; transform: rotate(45deg); background: var(--bg); border: 1px solid var(--text-3); }
-.rd-endnote { margin: 0; font: 13px/1.4 var(--font-ui); color: var(--text-3); }
+.rd-endmark { width: 48px; height: 1px; background: var(--rule-strong); position: relative; }
+.rd-endmark::after { content: ''; position: absolute; left: 50%; top: -3.5px; width: 7px; height: 7px; margin-left: -3.5px; transform: rotate(45deg); background: var(--bg); border: 1px solid var(--text-2); }
+.rd-endnote { margin: 0; font: italic 400 17px/1.4 var(--font-display); color: var(--text-2); }
 .rd-endbtn {
   pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; max-width: 100%; padding: 0 18px;
-  border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--ink); text-decoration: none;
-  font: 600 14px/1.2 var(--font-ui); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border: 0; border-radius: var(--radius-s); background: var(--elev); color: var(--text); text-decoration: none; box-shadow: var(--shadow-s);
+  font: 560 14px/1.2 var(--font-ui); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease);
 }
-.rd-endbtn:hover { background: var(--surface-2); }
-.rd-endbtn-quiet { border-color: transparent; background: transparent; color: var(--text-2); font-weight: 500; }
+:root[data-theme='dark'] .rd-endbtn { background: var(--surface-2); }
+@media (hover: hover) { .rd-endbtn:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); } }
+.rd-endbtn-quiet, :root[data-theme='dark'] .rd-endbtn-quiet { background: transparent; box-shadow: none; color: var(--text-2); font-weight: 500; }
 /* The way on to the next chapter is the main thing to tap here: a full 44 px target under a finger. */
-@media (pointer: coarse) { .rd-endbtn { min-height: 44px; border-radius: 22px; } }
+@media (pointer: coarse) { .rd-endbtn { min-height: 44px; } }
 
 /* The fold in the middle of a spread: a soft shadow on both sides, and a thin light line beside the crease. */
 .rd-spine {
@@ -581,7 +660,7 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-stage-busy {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6;
   display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 999px;
-  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-s);
+  background: var(--elev); border: 0; box-shadow: var(--shadow);
   color: var(--text-3); font: 13px var(--font-ui);
 }
 .rd-stage-busy[hidden] { display: none; }
@@ -621,15 +700,11 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-turn, .rd-turn * { pointer-events: none !important; }
 
 /* ---------- names and terms ---------- */
-.rd-toc-tabs { display: flex; gap: 4px; margin: 0 var(--space-4) var(--space-2); padding: 3px; border-radius: var(--radius); background: var(--surface-2); }
-.rd-toc-tab {
-  flex: 1; height: 30px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2);
-  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
-}
-.rd-toc-tab[aria-selected='true'] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-s); }
+.rd-toc-tabs { display: flex; margin: 0 var(--space-4) var(--space-2); }
+.rd-toc-tab { flex: 1; height: 30px; }
 .rd-names { padding-top: var(--space-1); }
 .rd-name { display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-s); }
-.rd-name:hover { background: var(--surface-2); }
+@media (hover: hover) { .rd-name:hover { background: var(--wash); } }
 .rd-name[data-off] .rd-name-main { opacity: 0.5; }
 .rd-name-main {
   flex: 1; min-width: 0; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: baseline;
@@ -638,36 +713,34 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-name-word { grid-row: 1 / 3; font-size: 20px; line-height: 1.3; align-self: center; }
 .rd-name-py { font-family: var(--font-pinyin); font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rd-name-meta { display: flex; gap: 8px; align-items: baseline; font-size: 12px; color: var(--text-3); }
-.rd-name-kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 700; }
-.rd-name-kind[data-kind='name'] { color: var(--accent); }
+.rd-name-kind { text-transform: uppercase; letter-spacing: 0.1em; font-size: 10.5px; font-weight: 600; }
+.rd-name-kind[data-kind='name'] { color: var(--text-2); }
 .rd-name-kind[data-kind='place'] { color: var(--ink); }
 .rd-name-count { font-variant-numeric: tabular-nums; }
 .rd-name-switch { position: relative; flex: none; width: 40px; height: 24px; margin-right: 8px; cursor: pointer; }
 .rd-sw-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.rd-sw-track { position: absolute; inset: 0; border-radius: 12px; background: var(--surface-3); transition: background 0.15s; pointer-events: none; }
-.rd-sw-thumb { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-s); transition: transform 0.15s var(--ease); }
-/* On is a quiet gray-blue; the red of the accent stays for the chapter you are in. */
-.rd-sw-input:checked + .rd-sw-track { background: color-mix(in srgb, var(--ink) 62%, var(--surface-3)); }
+.rd-sw-track { position: absolute; inset: 0; pointer-events: none; }
+.rd-sw-thumb { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; }
+/* The switch is the shared one (base.css): on is inked with a check; the red of the accent stays for the chapter you are in. */
 .rd-sw-input:checked + .rd-sw-track .rd-sw-thumb { transform: translateX(16px); }
-.rd-sw-input:focus-visible + .rd-sw-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rd-sw-input:focus-visible + .rd-sw-track { outline: 2px solid var(--focus); outline-offset: 2px; }
 .rd-sw-input:disabled + .rd-sw-track { opacity: 0.6; }
 
 /* ---------- words of a chapter (wordsTab.ts) ---------- */
 .rd-words-head { padding: 0 var(--space-4) var(--space-2); }
 .rd-words-head .rd-toc-filter { margin: var(--space-2) 0; width: 100%; }
 .rd-words-nav { display: flex; align-items: center; gap: 4px; margin: 0 -6px; }
-.rd-words-chapter { flex: 1; min-width: 0; text-align: center; font-family: var(--font-serif); font-size: 15px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-words-chapter { flex: 1; min-width: 0; text-align: center; font-family: var(--font-serif); font-size: 15.5px; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rd-words-step:disabled { opacity: 0.3; cursor: default; }
 .rd-words-share { margin-top: var(--space-2); min-height: 44px; }
-.rd-words-meter { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
-.rd-words-meter > span { display: block; height: 100%; border-radius: 3px; background: color-mix(in srgb, var(--ink) 70%, var(--surface-3)); transition: width 0.25s var(--ease); }
-.rd-words-big { margin: 6px 0 0; font-size: 13.5px; color: var(--text-2); line-height: 1.4; }
-.rd-words-big strong { font-size: 17px; color: var(--text); font-variant-numeric: tabular-nums; }
+.rd-words-meter { height: 4px; border-radius: 2px; background: var(--wash-2); overflow: hidden; }
+.rd-words-meter > span { display: block; height: 100%; border-radius: 2px; background: var(--text-2); transition: width 0.25s var(--ease); }
+.rd-words-big { margin: 8px 0 0; font-size: 13.5px; color: var(--text-2); line-height: 1.4; }
+.rd-words-big strong { font: 500 20px/1 var(--font-display); color: var(--text); font-variant-numeric: tabular-nums; }
 .rd-words-note { margin: 2px 0 0; font-size: 12.5px; color: var(--text-3); line-height: 1.4; }
 .rd-words-chips { display: flex; justify-content: space-between; gap: var(--space-2); }
-.rd-words-group { display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--surface-2); }
-.rd-words-chip { height: 26px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: var(--text-2); font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.rd-words-chip[aria-pressed='true'] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-s); }
+.rd-words-group { display: flex; }
+.rd-words-chip { height: 26px; padding: 0 9px; }
 .rd-words { padding-top: var(--space-1); }
 .rd-word { gap: 0; }
 .rd-word-main { grid-template-rows: auto auto; }
@@ -677,18 +750,18 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-word-gloss { font-size: 12.5px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rd-word-hsk { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
 .rd-word-act { flex: none; width: 36px; height: 36px; color: var(--text-3); }
-.rd-word-act[aria-pressed='true'] { color: var(--accent); }
+.rd-word-act[aria-pressed='true'] { color: var(--text); background: transparent; }
+.rd-word-act[data-k='save'][aria-pressed='true'] { color: var(--accent); }
 .rd-word-act:last-child { margin-right: 4px; }
 .rd-word[data-known] .rd-word-main { opacity: 0.5; }
 
 /* ---------- touch screens (iPad) ---------- */
 @media (hover: none) {
-  .rd-pill:hover, .icon-btn:hover { background: inherit; }
   .rd-pt-btn { display: none !important; }
 }
 @media (pointer: coarse) {
-  .rd-pill { height: 38px; padding: 0 14px; }
-  .rd-bar .icon-btn { width: 42px; height: 42px; }
+  .rd-pill { height: 40px; padding: 0 12px; }
+  .rd-bar .icon-btn { width: 40px; height: 40px; }
   .rd-toc-item { padding: 0 12px; }
   .rd-name-main { padding: 12px 10px; }
   .rd-word-act { width: 42px; height: 42px; }
@@ -702,11 +775,12 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   .rd-slider::-moz-range-thumb { width: 26px; height: 26px; }
 }
 @media (pointer: coarse) and (max-width: 640px) {
-  .rd-pinyin-btn, .rd-aa-btn { width: 42px; padding: 0; }
+  .rd-pinyin-btn { padding: 0 8px 0 6px; }
+  .rd-aa-btn { width: 40px; padding: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .rd-bar, .rd-hf { transition: none; }
-  .rd-pop, .rd-pop.rd-sheet, .rd-coach { animation: none; }
+  .rd-pop, .rd-pop.rd-sheet, .rd-coach, .rd-toc { animation: rd-fade 1ms; transition: none; }
 }
 
 /* A sideways trackpad swipe turns the page; it must not also make the browser go Back. */

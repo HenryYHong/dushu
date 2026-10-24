@@ -8,8 +8,8 @@
 // It starts `vite preview` itself, lets the service worker install, then STOPS the server and loads every screen again.
 // page.setOfflineMode cannot see the real failure: it never changes the Vary headers a cache lookup depends on.
 import puppeteer from 'puppeteer-core';
-import { mkdirSync, existsSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -18,7 +18,20 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'qa-out', 'shell');
 mkdirSync(out, { recursive: true });
 const BASE = process.env.QA_URL ?? 'http://localhost:5182/';
-const EPUB = join(homedir(), 'Downloads', '活着.epub');
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
+// A real book with a cover that any machine has: Project Gutenberg's 道德經 (public domain), never the owner's own books.
+const COVER_BOOK = join(root, 'tests/fixtures/import/daodejing.gutenberg.azw3');
 
 const problems = [];
 const check = (ok, msg) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${msg}`); if (!ok) problems.push(msg); };
@@ -32,7 +45,10 @@ async function offlineStep() {
   if (/(^|\/)dist\/?$/.test(dist)) { console.log('FAIL refusing to preview dist/: build into .cache/ instead'); process.exit(1); }
   const base = `http://localhost:${port}/`;
   const up = async () => { try { return (await fetch(base, { signal: AbortSignal.timeout(1500) })).ok; } catch { return false; } };
-  const server = spawn(process.execPath, [join(root, 'node_modules/vite/bin/vite.js'), 'preview', '--outDir', dist, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' });
+  // The preview started here gets an empty sync folder of its own (removed on exit), never the owner's.
+  const syncDir = mkdtempSync(join(tmpdir(), 'dushu-qa-sync-'));
+  process.on('exit', () => rmSync(syncDir, { recursive: true, force: true }));
+  const server = spawn(process.execPath, [join(root, 'node_modules/vite/bin/vite.js'), 'preview', '--outDir', dist, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore', env: { ...process.env, DUSHU_SYNC_DIR: syncDir } });
   const stopServer = async () => { server.kill('SIGTERM'); for (let i = 0; i < 40 && await up(); i++) await sleep(150); };
   for (let i = 0; i < 60 && !(await up()); i++) await sleep(250);
   check(await up(), 'preview server is up');
@@ -115,6 +131,8 @@ const browser = await puppeteer.launch({
   args: ['--no-first-run', '--no-default-browser-check'],
 });
 const page = await browser.newPage();
+// QA_URL names a server this script did not start.
+await page.evaluateOnNewDocument(SYNC_OFF);
 // On the dev server the Mac bridge lists the owner's books and a fresh profile adds them at once, so the library would never
 // start empty. Answer the list with "no books"; the bridge and the owner books are checked in qa-local-books.mjs.
 await page.setRequestInterception(true);
@@ -181,25 +199,23 @@ await goto('#/');
 await page.waitForSelector('.lib-card');
 ignoreErrors = false;
 
-// Files through the real file input: a txt sample and 活着.
+// Files through the real file input: a txt sample and a Kindle book with a cover.
 const input = await page.$('input[type=file]');
 await input.uploadFile(join(root, 'public/samples/kong-yiji.txt'));
 await page.waitForFunction(() => document.querySelectorAll('.lib-card').length >= 3, { timeout: 15000 });
-if (existsSync(EPUB)) {
-  await input.uploadFile(EPUB);
-  await page.waitForFunction(() => [...document.querySelectorAll('.lib-card-title')].some((e) => e.textContent === '活着'), { timeout: 30000 });
-  check(true, '活着.epub imports through the file input');
-}
+await input.uploadFile(COVER_BOOK);
+const coverAdded = await page.waitForFunction(() => [...document.querySelectorAll('.lib-card-title')].some((e) => e.textContent === '道德經'), { timeout: 30000 }).then(() => true, () => false);
+check(coverAdded, '道德經.azw3 imports through the file input');
 await sleep(500);
 const titles = await page.$$eval('.lib-card-title', (els) => els.map((e) => e.textContent));
 console.log('     books:', titles.join(' | '));
 check(titles.length >= 4, `library has ${titles.length} books`);
-const huoCover = await page.waitForFunction(() => {
-  const c = [...document.querySelectorAll('.lib-card')].find((x) => x.querySelector('.lib-card-title')?.textContent === '活着');
+const realCover = await page.waitForFunction(() => {
+  const c = [...document.querySelectorAll('.lib-card')].find((x) => x.querySelector('.lib-card-title')?.textContent === '道德經');
   const img = c?.querySelector('img.lib-cover-img');
   return !!img && img.complete && img.naturalWidth > 0;
 }, { timeout: 5000 }).then(() => true, () => false);
-check(huoCover, '活着 shows its real cover image');
+check(realCover, '道德經 shows its real cover image');
 
 // Fake some reading progress so the Continue card and bars show.
 await page.evaluate(async () => {
@@ -207,7 +223,7 @@ await page.evaluate(async () => {
   const books = await new Promise((res) => { const r = db.transaction('books').objectStore('books').getAll(); r.onsuccess = () => res(r.result); });
   const tx = db.transaction(['books', 'progress'], 'readwrite');
   books.forEach((b, i) => {
-    if (b.title === '活着') { b.lastOpenedAt = Date.now(); tx.objectStore('progress').put({ bookId: b.id, chapter: 5, block: 40, percent: 0.37, updatedAt: Date.now() }); }
+    if (b.title === '道德經') { b.lastOpenedAt = Date.now(); tx.objectStore('progress').put({ bookId: b.id, chapter: 5, block: 0, percent: 0.37, updatedAt: Date.now() }); }
     else if (i % 2 === 0) { b.lastOpenedAt = Date.now() - 1e6; tx.objectStore('progress').put({ bookId: b.id, chapter: 0, block: 2, percent: i === 2 ? 1 : 0.12, updatedAt: Date.now() }); }
     tx.objectStore('books').put(b);
   });
@@ -215,7 +231,7 @@ await page.evaluate(async () => {
 });
 await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForSelector('.lib-continue');
-check((await text('.lib-continue-title')) === '活着', 'Continue card shows the most recently opened book');
+check((await text('.lib-continue-title')) === '道德經', 'Continue card shows the most recently opened book');
 await shot('03-library-books', { fullPage: true });
 
 // Card menu, rename, delete.

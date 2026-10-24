@@ -5,6 +5,9 @@ import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { createBookShares } from './bookShare';
 import { bookCover, generatedCover } from './cover';
+import { coverChoice, coverStyleFor, setCoverChoice, type CoverChoice } from './coverStyle';
+import { bookEra } from './era';
+import { pageTitle } from '../pageHead';
 import { confirmDialog, formDialog } from './dialogs';
 import { compactCount, plural, progressFraction, progressLabel } from './format';
 import { ACCEPT, createImporter, jobStage, loadImporters, prefetchImporters, type Importer, type Job } from './importer';
@@ -34,15 +37,24 @@ function setJobBar(bar: HTMLElement, job: Job): void {
 // ------------------------------------------------------------------ menu ---
 
 interface MenuItem { label: string; icon: string; danger?: boolean; run: () => void }
+/** A set of choices shown as radio items under a small heading, the chosen one checked. */
+interface MenuChoices { heading: string; options: { label: string; checked: boolean; run: () => void }[] }
 
 /** One floating menu at a time, anchored under a button; closes on outside click, Esc, scroll or resize. */
-function openMenu(anchor: HTMLElement, items: MenuItem[], within?: HTMLElement): void {
+function openMenu(anchor: HTMLElement, items: (MenuItem | MenuChoices)[], within?: HTMLElement): void {
   closeMenu();
   const menu = h('div.lib-menu', { role: 'menu' },
-    items.map((it) => h('button.lib-menu-item' + (it.danger ? '.lib-menu-danger' : ''), {
-      type: 'button', role: 'menuitem',
-      onclick: () => { closeMenu(); it.run(); },
-    }, icon(it.icon), it.label)));
+    items.map((it) => 'heading' in it
+      ? h('div.lib-menu-group', { role: 'group', 'aria-label': it.heading },
+        h('div.lib-menu-heading', { 'aria-hidden': 'true' }, it.heading),
+        it.options.map((o) => h('button.lib-menu-item.lib-menu-choice', {
+          type: 'button', role: 'menuitemradio', 'aria-checked': String(o.checked),
+          onclick: () => { closeMenu(); o.run(); },
+        }, o.checked ? icon('check') : h('span.lib-menu-blank'), o.label)))
+      : h('button.lib-menu-item' + (it.danger ? '.lib-menu-danger' : ''), {
+        type: 'button', role: 'menuitem',
+        onclick: () => { closeMenu(); it.run(); },
+      }, icon(it.icon), it.label)));
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
   const w = menu.offsetWidth;
@@ -105,12 +117,13 @@ export const mount: MountFn = (root, _params, ctx) => {
   let macItems: MacBook[] = [];
   const macNote = h('div.lib-mac-note.card', { role: 'status', hidden: true });
   const head = h('div.page-head', null,
-    h('div', null, h('h1.page-title', null, 'Library'), h('p.page-sub', null, 'Your books stay on this device.')),
+    h('div', null, pageTitle('library', 'Library'), h('p.page-sub', null, 'Your books stay on this device.')),
     headActions);
   const continueEl = h('div.lib-continue-slot');
   const libraryTitle = h('h2', null, 'Your books');
   const libraryCount = h('span.lib-count', { role: 'status', 'aria-live': 'polite' });
-  const search = h('input.input.lib-search', { type: 'search', placeholder: 'Search books or authors', 'aria-label': 'Search your library', autocomplete: 'off' }) as HTMLInputElement;
+  // A short placeholder: on a phone the field is about 200 px wide beside the sort menu, and a long one was cut off.
+  const search = h('input.input.lib-search', { type: 'search', placeholder: 'Title or author', 'aria-label': 'Search your library', autocomplete: 'off' }) as HTMLInputElement;
   search.addEventListener('input', () => { query = search.value.trim().toLocaleLowerCase(); renderGrid(); });
   const sort = h('select.select.lib-sort', { 'aria-label': 'Sort library' },
     h('option', { value: 'recent' }, 'Recently read'),
@@ -119,7 +132,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   sort.addEventListener('change', () => { order = sort.value as typeof order; renderGrid(); });
   const libraryTools = h('section.lib-toolbar', { 'aria-label': 'Your library' },
     h('div.lib-toolbar-head', null, libraryTitle, libraryCount),
-    h('div.lib-filters', null, search, sort));
+    h('div.lib-filters', null, h('div.lib-search-wrap', null, icon('search'), search), sort));
   libraryTools.hidden = true;
   const gridEl = h('div.lib-body');
   const samplesEl = h('div.lib-samples');
@@ -218,7 +231,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     setJobBar(bar, job);
     return h('article.lib-card.lib-card-pending', { 'aria-busy': 'true', 'data-job': job.id },
       h('div.lib-cover-wrap.lib-cover-wrap-md', null,
-        generatedCover(job.title, job.author, 'md'),
+        generatedCover(job.title, job.author, 'md', bookEra({ title: job.title, author: job.author })),
         h('div.lib-cover-busy', null, h('div.app-spinner'))),
       h('div.lib-card-info', null,
         h('div.lib-card-title.zh', null, job.title),
@@ -245,9 +258,17 @@ export const mount: MountFn = (root, _params, ctx) => {
         e.preventDefault();
         // The Mac's books are always in the library, so they have no Delete.
         const fromMac = isMacBook(b) || !!macItemFor(b, macItems);
+        const chosen = coverChoice(b.id);
+        const auto = bookEra(b) === 'classic' ? 'Classic' : 'Modern';
+        const pick = (c: CoverChoice) => ({
+          label: c === 'auto' ? `Automatic (${auto})` : c === 'classic' ? 'Classic' : 'Modern',
+          checked: chosen === c,
+          run: () => { setCoverChoice(b.id, c); renderContinue(); renderGrid(); },
+        });
         openMenu(menuBtn, [
           { label: 'Rename', icon: 'pen', run: () => void rename(b) },
           ...(fromMac ? [] : [{ label: 'Delete', icon: 'trash' as const, danger: true, run: () => void remove(b) }]),
+          { heading: 'Cover', options: [pick('auto'), pick('classic'), pick('modern')] },
         ], card);
       },
     }, icon('more'));
@@ -332,7 +353,8 @@ export const mount: MountFn = (root, _params, ctx) => {
           },
         }, busy ? 'Adding…' : 'Add and read');
     return h('article.lib-sample.card', null,
-      h('div.lib-sample-cover', null, generatedCover(s.title, s.author, 'sm')),
+      h('div.lib-sample-cover', null, generatedCover(s.title, s.author, 'sm',
+        existing ? coverStyleFor(existing) : bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }))),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
           h('div.lib-sample-title.zh', null, s.title),
@@ -376,7 +398,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   const syncDeps = {
     list: () => store.books.list(),
     fetchFile: fetchMacBookFile,
-    add: (files: File[]) => importer.files(files, { quiet: true }),
+    add: (files: File[]) => importer.files(files, { quiet: true, mac: true }),
     update: (id: string, patch: Partial<BookMeta>) => store.books.update(id, patch),
   };
 

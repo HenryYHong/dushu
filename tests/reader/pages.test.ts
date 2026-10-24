@@ -88,6 +88,36 @@ const q = (sel: string) => document.querySelector(sel) as HTMLElement | null;
 const stage = () => q('.rd-stage')!.dataset;
 const key = (k: string, init: KeyboardEventInit = {}) => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...init }));
 
+/** A pointer event (jsdom has no PointerEvent: a mouse event that says what kind of pointer it came from). */
+function pointer(type: string, x: number, pointerType = 'touch'): MouseEvent {
+  const e = new MouseEvent(type, { bubbles: true, cancelable: true, detail: 1, clientX: x, clientY: 400 });
+  Object.defineProperties(e, { pointerType: { value: pointerType }, isPrimary: { value: true }, pointerId: { value: pointerType === 'mouse' ? 1 : 7 } });
+  return e;
+}
+const touch = (type: string, x: number) => q('.rd-stage')!.dispatchEvent(pointer(type, x));
+/** A quick tap with a finger. WebKit reports the click after a touch as a mouse click; the reader goes by the pointerdown. */
+function tap(x: number) {
+  touch('pointerdown', x);
+  touch('pointerup', x);
+  q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, clientX: x, clientY: 400 }));
+}
+/** A swipe with a finger from `from` to `to`, a few px per frame. */
+async function swipeTo(from: number, to: number) {
+  touch('pointerdown', from);
+  for (let i = 1; i <= 6; i++) { touch('pointermove', from + ((to - from) * i) / 6); await tick(8); }
+  touch('pointerup', to);
+}
+/** Counts the page turns that start (the stage's data-turn appearing). */
+function countTurns() {
+  const s = q('.rd-stage')!;
+  let n = 0;
+  const add = (recs: MutationRecord[]) => { n += recs.filter((r) => r.oldValue === null).length; };
+  const mo = new MutationObserver(add);
+  mo.observe(s, { attributes: true, attributeFilter: ['data-turn'], attributeOldValue: true });
+  return { started: () => { add(mo.takeRecords()); return n; }, stop: () => mo.disconnect() };
+}
+const turnEnded = () => vi.waitFor(() => expect(stage().turn).toBeUndefined(), { timeout: 3000, interval: 5 });
+
 describe('pages layout', () => {
   it('opens in Pages when selected and lays the chapter out in pages', async () => {
     const { ctx, meta } = await setup();
@@ -242,6 +272,142 @@ describe('pages layout', () => {
     expect(stage().page).toBe('3');
   });
 
+  for (const pageTurn of ['slide', 'flip'] as const) {
+    it(`${pageTurn}: a quick tap mid-turn waits for the turn instead of cutting it short, and only the latest waits`, async () => {
+      const { ctx, meta } = await setup({ pageTurn });
+      await open(ctx, meta.id);
+      const turns = countTurns();
+      tap(790);
+      expect(stage().turn).toBe(pageTurn);
+      // While it turns, the text passing under the finger takes no taps: they reach the stage, which turns the page.
+      expect(q('.rd-article.rd-live')!.style.pointerEvents).toBe('none');
+      tap(790);
+      tap(790);
+      // The fingers did not end the first turn (that would have started a turn for each tap): it is still the only one.
+      expect(turns.started()).toBe(1);
+      expect(stage().turn).toBe(pageTurn);
+      // Then the latest tap's turn plays, animated; the second tap's was replaced by it.
+      await vi.waitFor(() => expect(turns.started()).toBe(2), { timeout: 3000, interval: 5 });
+      expect(stage().turn).toBe(pageTurn);
+      await turnEnded();
+      expect(stage().page).toBe('3');
+      expect(q('.rd-article.rd-live')!.style.pointerEvents).toBe('');
+      await tick(700);
+      expect(turns.started()).toBe(2);
+      expect(stage().page).toBe('3');
+      turns.stop();
+    });
+
+    it(`${pageTurn}: a tap on a word in the outer strip mid-turn does nothing: no extra turn, no word card`, async () => {
+      const { ctx, meta } = await setup({ pageTurn });
+      await open(ctx, meta.id);
+      const turns = countTurns();
+      // The browser's hit test (jsdom has none): at x = 790 a word of page 2, the page being turned to; blank elsewhere.
+      const word = q('.rd-article.rd-live [data-b="3"] .rd-w')!;
+      const hitTest = vi.fn((x: number) => (x === 790 ? word : q('.rd-stage')));
+      Object.defineProperty(document, 'elementFromPoint', { value: hitTest, configurable: true });
+      try {
+        key('ArrowRight');
+        // The click lands on the stage (the turning text takes no taps), or on the word itself where a browser lets it.
+        tap(790);
+        touch('pointerdown', 790);
+        touch('pointerup', 790);
+        word.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, clientX: 790, clientY: 400 }));
+        expect(hitTest).toHaveBeenCalled();
+        expect(stage().turn).toBe(pageTurn); // not cut short to show a word either
+        await turnEnded();
+        await tick(700);
+        expect(turns.started()).toBe(1);
+        expect(stage().page).toBe('2');
+        expect(q('.pp-pop')).toBeNull();
+        // A tap on the blank margin mid-turn still waits for the turn and then turns.
+        key('ArrowRight');
+        tap(780);
+        await vi.waitFor(() => expect(turns.started()).toBe(3), { timeout: 3000, interval: 5 });
+        await turnEnded();
+        expect(stage().page).toBe('4');
+        // At rest nothing changes: the hit test is not even asked.
+        hitTest.mockClear();
+        touch('pointerdown', 790);
+        touch('pointerup', 790);
+        expect(hitTest).not.toHaveBeenCalled();
+      } finally {
+        delete (document as { elementFromPoint?: unknown }).elementFromPoint;
+        turns.stop();
+      }
+    });
+
+    it(`${pageTurn}: a swipe that starts mid-turn takes hold of the page`, async () => {
+      const { ctx, meta } = await setup({ pageTurn });
+      await open(ctx, meta.id);
+      const turns = countTurns();
+      key('ArrowRight');
+      touch('pointerdown', 790);
+      expect(stage().turn).toBe(pageTurn); // a finger alone does not stop the turn
+      await swipeTo(790, 600);
+      await turnEnded();
+      // The running turn ended where it was going and the swipe turned the next page.
+      expect(stage().page).toBe('3');
+      expect(turns.started()).toBe(2);
+      expect(document.querySelectorAll('.rd-turn:not([data-idle])').length).toBe(0);
+      turns.stop();
+    });
+  }
+
+  it('quick clicks under the default flip: each turn plays in full and only the latest click waits', async () => {
+    const { ctx, meta } = await setup({ pageTurn: 'flip' });
+    await open(ctx, meta.id);
+    const turns = countTurns();
+    // Three quick clicks on the outer strip (the browser counts them as a double and a triple click).
+    for (const detail of [1, 2, 3]) {
+      q('.rd-stage')!.dispatchEvent(pointer('pointerdown', 790, 'mouse'));
+      q('.rd-stage')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, detail, clientX: 790 }));
+      q('.rd-stage')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail, clientX: 790 }));
+    }
+    expect(turns.started()).toBe(1);
+    expect(stage().turn).toBe('flip');
+    await vi.waitFor(() => expect(turns.started()).toBe(2), { timeout: 3000, interval: 5 });
+    await turnEnded();
+    // Two turns for three clicks, by design: a turn asked for mid-turn waits, and only the latest one.
+    expect(stage().page).toBe('3');
+    await tick(700);
+    expect(turns.started()).toBe(2);
+    expect(stage().page).toBe('3');
+    turns.stop();
+  });
+
+  it('drops the waiting turn when a finger lands on the page, the text is laid out again, or another chapter opens', async () => {
+    const { ctx, meta } = await setup({ pageTurn: 'slide' });
+    await open(ctx, meta.id);
+    // A finger lands mid-turn and stays: the turn plays on, and the one waiting is dropped.
+    key('ArrowRight');
+    key('ArrowRight');
+    touch('pointerdown', 400);
+    await turnEnded();
+    await tick(700);
+    expect(stage().page).toBe('2');
+    expect(stage().turn).toBeUndefined();
+    touch('pointerup', 400);
+    // A new font size lays the text out again: the turn ends where it was going, and the one waiting does not follow.
+    key('ArrowRight');
+    key('ArrowRight');
+    ctx.settings.set({ fontSize: 30 });
+    await tick(200);
+    await turnEnded();
+    await tick(700);
+    expect(stage().page).toBe('3');
+    expect(stage().turn).toBeUndefined();
+    // Another chapter opens mid-turn: the waiting turn does not play there (or back in the chapter it left).
+    key('ArrowLeft');
+    key('ArrowLeft');
+    key('ArrowRight', { shiftKey: true });
+    await vi.waitFor(() => expect(stage().chapter).toBe('1'));
+    await tick(800);
+    expect(stage().turn).toBeUndefined();
+    expect(stage().chapter).toBe('1');
+    expect(stage().page).toBe('1');
+  });
+
   it('turns once per trackpad swipe, and again for a quick second swipe while the first is still coasting', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);
@@ -288,6 +454,33 @@ describe('pages layout', () => {
     await vi.waitFor(() => expect(stage().turn).toBe('slide'), { timeout: 2000, interval: 2 });
     await vi.waitFor(() => expect(stage().chapter).toBe('1'));
   });
+
+  for (const pageTurn of ['slide', 'flip'] as const) {
+    it(`${pageTurn}: a swipe toward a chapter that is still loading turns to it, animated, once it is ready`, async () => {
+      const { ctx, meta } = await setup({ pageTurn });
+      let release!: () => void;
+      const gate = new Promise<void>((r) => { release = r; });
+      const chapter = ctx.store.books.chapter.bind(ctx.store.books);
+      ctx.store.books.chapter = async (id, i) => { if (i === 1) await gate; return chapter(id, i); };
+      await open(ctx, meta.id);
+      for (let i = 0; i < 3; i++) { key('ArrowRight'); await turnEnded(); }
+      expect(stage().page).toBe('4');
+      const turns = countTurns();
+      await swipeTo(700, 500);
+      await tick(20);
+      expect(stage().chapter).toBe('0');
+      expect(turns.started()).toBe(0);
+      release();
+      await vi.waitFor(() => expect(stage().turn).toBe(pageTurn), { timeout: 2000, interval: 2 });
+      await turnEnded();
+      expect(stage().chapter).toBe('1');
+      expect(stage().page).toBe('1');
+      await tick(700);
+      expect(turns.started()).toBe(1);
+      expect(stage().chapter).toBe('1');
+      turns.stop();
+    });
+  }
 
   it('a click in the middle toggles the bar, and turning a page tucks it away', async () => {
     const { ctx, meta } = await setup();

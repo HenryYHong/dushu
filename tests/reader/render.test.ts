@@ -57,6 +57,13 @@ describe('renderParagraph', () => {
     expect(blockText(p.el)).toBe(text);
   });
 
+  it('marks a word of five characters or more (a heading may break inside it in a narrow column)', () => {
+    const p = renderParagraph('中华人民共和国成立了。', dict, opts());
+    const words = [...p.el.querySelectorAll('.rd-w')];
+    expect(words.map(baseText)).toEqual(['中华人民共和国', '成立', '了']);
+    expect(words.map((w) => w.classList.contains('rd-w-long'))).toEqual([true, false, false]);
+  });
+
   it('keeps Latin, numbers and spaces as plain text', () => {
     const p = renderParagraph('他有 3 本 book。', dict, opts());
     expect(blockText(p.el)).toBe('他有 3 本 book。');

@@ -8,8 +8,22 @@ const { host } = JSON.parse(readFileSync(`${root}.dushu-local/ipad.json`, 'utf8'
 const base = `https://${host}/`;
 const out = `${root}qa-out/ipad/`;
 mkdirSync(out, { recursive: true });
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
 const browser = await webkit.launch({ headless: true });
 const ctx = await browser.newContext({ ...devices['iPad Pro 11'] });
+// The private address is the owner's server with his sync folder.
+await ctx.addInitScript(SYNC_OFF);
 const page = await ctx.newPage();
 const errors = [];
 page.on('response', response => { if (response.url().includes('/api/')) console.log('api', new URL(response.url()).pathname, response.status()); });

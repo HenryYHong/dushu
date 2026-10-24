@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { zipSync, strToU8 } from 'fflate';
 import { describe, expect, it } from 'vitest';
-import { ACCEPT, ImportError, importFile, importText } from '../../src/import';
+import { ACCEPT, ImportError, importFile, importText, PASTED_TITLE } from '../../src/import';
 import { CONTAINER, asFile, makeEpub, opf, prose, xhtml } from './helpers';
 
 const enc = (s: string) => new TextEncoder().encode(s);
@@ -76,5 +76,13 @@ describe('importText', () => {
     const book = importText(prose(100), '标题', '作者');
     expect(book).toMatchObject({ title: '标题', author: '作者', format: 'paste' });
     expect(book.assets.size).toBe(0);
+  });
+
+  it('calls text with no title of its own "Pasted text", as the card said while it was added', () => {
+    expect(importText(prose(100)).title).toBe('Pasted text');
+    expect(importText(prose(100), '  ', '').title).toBe(PASTED_TITLE);
+    expect(importText(prose(100)).chapters[0].title).toBe('Pasted text');
+    // A short first line that reads as a title still wins.
+    expect(importText(`春天的故事\n${prose(100)}`).title).toBe('春天的故事');
   });
 });

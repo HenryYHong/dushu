@@ -176,6 +176,8 @@ export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOption
       offset += ch.length;
       k++;
     }
+    // A heading in a narrow column may break inside a word this long (reader.css, @container rd-h).
+    if (chars.length >= 5) el.classList.add('rd-w-long');
     const view: TokenView = { index, token, el, chars };
     if (opts.words) decorateWord(view, shown[index], opts.style);
     if (opts.visible && !opts.visible(token)) el.classList.add('rd-nopy');

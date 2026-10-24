@@ -6,7 +6,8 @@ import { AUTO_KNOWN_HELP } from '../../core/autoKnown';
 import { readingFontSizeKey } from '../../store/settings';
 import { h } from '../dom';
 import { icon } from '../icons';
-import { SHORTCUTS as SHORTCUT_GROUPS } from '../shortcuts';
+import { openShortcuts } from '../shortcuts';
+import { rateLabel } from '../settings/speech';
 
 export interface Popover { el: HTMLElement; anchor: HTMLElement; close(): void }
 
@@ -175,9 +176,12 @@ function toggle(get: () => boolean, set: (v: boolean) => void): { el: HTMLElemen
 export function slider(min: number, max: number, step: number, get: () => number, set: (v: number) => void, fmt: (v: number) => string, delay = 250) {
   const out = h('span.rd-slider-out');
   const input = h('input.rd-slider', { type: 'range', min, max, step, value: get() }) as HTMLInputElement;
+  // The track is inked up to the thumb (base.css reads --fill), so the value reads at a glance.
+  const fill = () => input.style.setProperty('--fill', `${((Number(input.value) - min) / (max - min || 1)) * 100}%`);
   let timer = 0;
   const flush = () => { window.clearTimeout(timer); timer = 0; if (Number(input.value) !== get()) set(Number(input.value)); };
   input.addEventListener('input', () => {
+    fill();
     out.textContent = fmt(Number(input.value));
     window.clearTimeout(timer);
     timer = window.setTimeout(flush, delay);
@@ -188,6 +192,7 @@ export function slider(min: number, max: number, step: number, get: () => number
     // Do not fight the finger: while a change is pending the slider shows what the reader chose.
     if (timer) return;
     input.value = String(get());
+    fill();
     out.textContent = fmt(get());
   };
   sync();
@@ -231,7 +236,7 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const learn = add(toggle(() => get().autoKnown, (v) => set({ autoKnown: v })));
   learn.el.title = AUTO_KNOWN_HELP;
   // Learning from reading changes what Unknown hides, so it sits under the modes while Unknown is the one chosen.
-  const learnRow = row('Learn as I read', learn.el, 'Words you read past often lose their pinyin');
+  const learnRow = row('Learn known words as I read', learn.el, 'Words you read past often lose their pinyin');
   const modes = h('div.rd-menu', { role: 'menu', 'aria-label': 'Show pinyin' }, items, stepper);
   const share = h('p.rd-share', { 'aria-live': 'polite' });
   const el = h('div.rd-menu.rd-pinyin-menu', null,
@@ -279,7 +284,7 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
     [{ value: 'system', label: 'Auto' }, { value: 'light', label: 'Light' }, { value: 'sepia', label: 'Sepia' }, { value: 'dark', label: 'Dark' }],
     () => get().theme, (v) => set({ theme: v })));
   const script = add(segmented<Settings['script']>(
-    [{ value: 'original', label: 'Original' }, { value: 'simplified', label: '简体' }, { value: 'traditional', label: '繁體' }],
+    [{ value: 'original', label: 'As written' }, { value: 'simplified', label: 'Simplified', title: '简体' }, { value: 'traditional', label: 'Traditional', title: '繁體' }],
     () => get().script, (v) => set({ script: v })));
   const trigger = add(segmented<Settings['lookupTrigger']>(
     [{ value: 'click', label: 'Click' }, { value: 'hover', label: 'Hover' }],
@@ -294,14 +299,13 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
   const turn = add(segmented<Settings['pageTurn']>(
     [{ value: 'flip', label: 'Flip' }, { value: 'slide', label: 'Slide' }, { value: 'none', label: 'None' }],
     () => get().pageTurn, (v) => set({ pageTurn: v })));
-  const rate = add(slider(0.5, 2, 0.05, () => get().ttsRate, v => set({ ttsRate: v }), v => `${v.toFixed(2)}×`));
+  const rate = add(slider(0.5, 2, 0.05, () => get().ttsRate, v => set({ ttsRate: v }), rateLabel));
 
   // Rows that do not apply are not shown (a dimmed row still looks like something you can change).
   const spreadRow = row('Pages shown', spread.el, 'Auto: two on a wide screen');
   const turnRow = row('Page turn', turn.el);
   const widthRow = row('Page width', width.el);
   const lookRow = row('Look up on', trigger.el, 'Drag always works');
-  const ptHint = touch ? 'Tap a word twice' : 'Drag across a sentence (Pages) or use the button (Scroll)';
   const el = h('div.rd-menu.rd-display', null,
     section('Text',
       row('Text size', size),
@@ -314,10 +318,11 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
       turnRow,
       widthRow),
     section('Reading',
-      row('Characters', script.el, 'Convert the book text'),
+      row('Characters', script.el, '简体 or 繁體'),
       touch ? null : lookRow,
-      row('Translate paragraphs', ptrans.el, ptHint),
-      row('Reading speed', rate.el)),
+      // The switch only shows the hover button beside each paragraph; a touch screen has no hover (a double tap translates anyway).
+      touch ? null : row('Translate paragraphs', ptrans.el, 'Drag across a sentence (Pages) or use the button (Scroll)'),
+      row('Read-aloud speed', rate.el)),
   );
   syncs.push(() => {
     const s = get();
@@ -333,17 +338,8 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
 
 // --------------------------------------------------------------- shortcuts ---
 
-const SHORTCUTS = SHORTCUT_GROUPS.flatMap((g) => g.rows).map((r): [string, string] => [r.keys.join(' + '), r.what]);
-
+/** The reader's `?` sheet: the reading and word-card keys under their group titles (P means one thing in each). */
 export function showShortcuts(): void {
-  const opener = document.activeElement as HTMLElement | null;
-  const dialog: HTMLDialogElement = h('dialog.modal.rd-keys', { 'aria-label': 'Keyboard shortcuts' },
-    h('div.rd-keys-body', null,
-      h('div.rd-keys-head', null, h('h2', null, 'Keyboard shortcuts'),
-        h('button.icon-btn', { type: 'button', 'aria-label': 'Close', onclick: () => dialog.close() }, icon('close'))),
-      h('dl.rd-keys-list', null, SHORTCUTS.flatMap(([k, d]) => [h('dt', null, h('span.kbd', null, k)), h('dd', null, d)])))) as HTMLDialogElement;
-  dialog.addEventListener('close', () => { dialog.remove(); opener?.isConnected && opener.focus({ preventScroll: true }); });
-  dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
-  document.body.appendChild(dialog);
-  dialog.showModal();
+  // rd-keys stays as the hook the QA scripts look for.
+  openShortcuts({ groups: ['Reading', 'In a word card'] }).classList.add('rd-keys');
 }

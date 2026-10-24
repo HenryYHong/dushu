@@ -69,8 +69,14 @@ export function parseMarks(stdout: string, length: number): [number, number][] |
   } catch { return null; }
 }
 
+/** How long the helper may take: it renders 180 characters in 3.3-4.0 s, so a stalled one leaves time for `say`. */
+export const helperTimeout = (length: number) => 3000 + 30 * length;
+/** After the helper stalls, `say` renders for this long (the paragraph is highlighted), rather than every sentence waiting on it. */
+const HELPER_REST = 3 * 60_000;
+
 export function nativeSpeech(): Plugin {
   let active = 0;
+  let helperStalledAt = -Infinity;
   async function handle(req: IncomingMessage, res: ServerResponse, next: () => void) {
     const path = new URL(req.url || '/', 'http://localhost').pathname;
     if (path !== '/api/native-voices' && path !== '/api/native-speech') { next(); return; }
@@ -112,16 +118,17 @@ export function nativeSpeech(): Plugin {
       const input = join(folder, 'input.txt');
       const output = join(folder, 'speech.wav');
       let timed: [number, number][] | null = null;
-      const bin = Array.isArray(marks) && marks.length ? await markHelper() : null;
+      const bin = Array.isArray(marks) && marks.length && Date.now() - helperStalledAt > HELPER_REST ? await markHelper() : null;
       if (bin) {
         const request = join(folder, 'request.json');
         await writeFile(request, JSON.stringify({ voice: voice.name, lang: voice.lang, text, marks }), 'utf8');
         try {
-          const { stdout } = await execute(bin, [request, output], { timeout: 30000, signal: ctl.signal });
+          const { stdout } = await execute(bin, [request, output], { timeout: helperTimeout(text.length), signal: ctl.signal });
           timed = parseMarks(stdout, text.length);
         } catch (error) {
           if (ctl.signal.aborted) throw error;
-          // The helper failed on this text: `say` reads it, without word times.
+          // The helper failed on this text: `say` reads it, without word times. Killed for its time, it is left alone a while.
+          if ((error as { killed?: boolean }).killed) helperStalledAt = Date.now();
         }
       }
       if (!timed) {

@@ -7,6 +7,9 @@ import { group, nextId, row, slider } from './controls';
 
 export const TEST_SENTENCE = '你好，欢迎使用读书。今天我们一起读一本书。';
 
+/** The read-aloud speed as the reader's menu and audio strip show it: 0.9×, 1×, 1.25×. */
+export const rateLabel = (n: number): string => `${Number(n.toFixed(2))}×`;
+
 export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Settings): void; dispose(): void } {
   const { settings } = ctx;
   const voiceId = nextId('voice');
@@ -25,7 +28,7 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
   };
   select.addEventListener('change', () => settings.set({ ttsVoice: select.value }));
 
-  const rate = slider('ttsRate', 'Speaking speed', { min: 0.5, max: 2, step: 0.05, format: (n) => `${n.toFixed(2)}x` }, (v) => settings.set({ ttsRate: v }));
+  const rate = slider('ttsRate', 'Read-aloud speed', { min: 0.5, max: 2, step: 0.05, format: rateLabel }, (v) => settings.set({ ttsRate: v }));
 
   const test = h('button.btn.btn-sm', { type: 'button' }, icon('speaker'), 'Test voice') as HTMLButtonElement;
   const testStatus = h('div.set-help', { role: 'status', 'aria-live': 'polite' });
@@ -74,9 +77,9 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
     }).catch(() => { listed = true; });
   }
 
-  const el = group('Speech', 'Read words, sentences, or the current chapter aloud. Premium Mac voices highlight the current paragraph; browser voices may also highlight individual words.',
+  const el = group('Speech', 'Read words, sentences, or the current chapter aloud. Voices on your Mac highlight each word as it is spoken. Premium voices built into the browser highlight only the paragraph.',
     row('Voice', null, h('div.set-voice', null, select, note), voiceId),
-    row('Speed', null, rate),
+    row('Read-aloud speed', null, rate),
     row('Try it', 'Plays a short sentence with the voice and speed above.', h('div', null, test, testStatus)));
   fill('');
 

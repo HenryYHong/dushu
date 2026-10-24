@@ -6,6 +6,7 @@ import type { Grade, MountFn, VocabItem } from '../../types';
 import { clear, h } from '../dom';
 import { icon } from '../icons';
 import { contextEl, pinyinEl, scriptView } from '../vocab/render';
+import { pageTitle } from '../pageHead';
 import { describeNextDue, ReviewSession } from './queue';
 
 const GRADES: { grade: Grade; key: 'again' | 'hard' | 'good' | 'easy'; label: string }[] = [
@@ -28,6 +29,9 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   const screen = h('div.page.rev-page');
   root.appendChild(screen);
+
+  /** The screen's title over the empty state and the summary (a session in progress shows only the card). */
+  const head = () => h('div.page-head.rev-head', null, h('div', null, pageTitle('review', 'Review'), h('p.page-sub', null, 'Your saved words, one card at a time.')));
 
   const nextDueAmongAll = async (): Promise<number | undefined> => {
     const now = Date.now();
@@ -58,13 +62,13 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!alive) return;
     clear(screen);
     const msg = total === 0
-      ? [h('h1.rev-empty-title', null, 'No cards yet'),
+      ? [h('h2.rev-empty-title', null, 'No cards yet'),
          h('p', null, 'Save words while reading and they appear here as flashcards.'),
          h('a.btn.btn-primary', { href: '#/' }, icon('book'), 'Open the library')]
-      : [h('h1.rev-empty-title', null, 'Nothing due right now'),
+      : [h('h2.rev-empty-title', null, 'Nothing due right now'),
          h('p', null, next ? `Your next card is due ${describeNextDue(next, Date.now())}.` : 'You are all caught up.'),
          h('a.btn', { href: '#/vocab' }, icon('list'), 'See your words')];
-    screen.appendChild(h('div.card.rev-empty', null, ...msg));
+    screen.append(head(), h('div.card.rev-empty', null, ...msg));
   }
 
   // -------------------------------------------------------------- card ---
@@ -165,8 +169,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!alive) return;
     clear(screen);
     const stat = (value: string, label: string) => h('div.rev-stat', null, h('div.rev-stat-value', null, value), h('div.rev-stat-label', null, label));
-    screen.appendChild(h('div.card.rev-summary', null,
-      h('h1.rev-summary-title', null, 'Session complete'),
+    screen.append(head(), h('div.card.rev-summary', null,
+      h('h2.rev-summary-title', null, 'Session complete'),
       h('p.muted', null, `${count(s.cards, 'card')}, ${count(s.reviews, 'answer')}`),
       h('div.rev-stats', null,
         stat(pct(s.recall), 'Remembered'),

@@ -20,12 +20,17 @@ const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   about: () => import('./ui/about/about'),
 };
 
+/** Newsreader (OFL-1.1, public/fonts/Newsreader-OFL.txt) is a Latin-1 subset for the app's own English; precached by sw.js. */
+const NEWSREADER_RANGE = 'U+0020-007E, U+00A0-00FF, U+2013-2014, U+2018-201D, U+2022, U+2026, U+2032-2033, U+2039-203A, U+2192';
+
 function injectFonts(): void {
   const url = (f: string) => new URL(`fonts/${f}`, document.baseURI).href;
   const css = `
 @font-face { font-family: 'Jigmo'; src: url('${url('Jigmo.woff2')}') format('woff2'); font-display: swap; unicode-range: U+2E80-2FDF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF; }
 @font-face { font-family: 'Jigmo2'; src: url('${url('Jigmo2.woff2')}') format('woff2'); font-display: swap; unicode-range: U+20000-2FFFF; }
-@font-face { font-family: 'Jigmo3'; src: url('${url('Jigmo3.woff2')}') format('woff2'); font-display: swap; unicode-range: U+30000-3FFFF; }`;
+@font-face { font-family: 'Jigmo3'; src: url('${url('Jigmo3.woff2')}') format('woff2'); font-display: swap; unicode-range: U+30000-3FFFF; }
+@font-face { font-family: 'Newsreader'; src: url('${url('newsreader-roman.woff2')}') format('woff2'); font-style: normal; font-weight: 400 500; font-display: swap; unicode-range: ${NEWSREADER_RANGE}; }
+@font-face { font-family: 'Newsreader'; src: url('${url('newsreader-italic.woff2')}') format('woff2'); font-style: italic; font-weight: 400 500; font-display: swap; unicode-range: ${NEWSREADER_RANGE}; }`;
   document.head.appendChild(h('style', { 'data-fonts': '' }, css));
 }
 
@@ -77,9 +82,13 @@ async function boot(): Promise<void> {
 
   const ctx: AppContext = {
     dict() {
+      // A failed download is not kept: the next use (a lookup, opening a book) downloads it again.
       dictPromise ??= loadDictionary(new URL('data/', document.baseURI).href).then((d) => {
         store.setNormalizer((w) => d.toSimplified(w));
         return (dictReady = d);
+      }, (e: unknown) => {
+        dictPromise = null;
+        throw e;
       });
       return dictPromise;
     },
@@ -116,7 +125,7 @@ async function boot(): Promise<void> {
     ctx.toast('This browser is blocking local storage, so books and words will be lost when you close the tab.', { ms: 9000 });
   }
   // Start parsing the dictionary right away; the library does not wait for it.
-  ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not load the dictionary data. Run `npm run data`.'); });
+  ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not download the dictionary. Check your connection; Dushu will try again.', { ms: 8000 }); });
   // Saved words, known words and reading places, kept the same on every device connected to the Mac.
   startSync(store);
 
@@ -160,13 +169,15 @@ async function boot(): Promise<void> {
   const render = async () => {
     const seq = ++navSeq;
     const { route, params } = parseHash();
+    // The old screen goes first, under its own route: the reader saves its place while body[data-route=read] still hides
+    // the nav. With the nav back in the flow the text sits lower, and the place it measured was a line early on every visit.
+    try { cleanup?.(); } catch (e) { console.error(e); }
+    cleanup = undefined;
     document.body.dataset.route = route || 'library';
     for (const a of nav.querySelectorAll<HTMLAnchorElement>('.app-navlink')) {
       a.toggleAttribute('aria-current', a.dataset.route === route);
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page');
     }
-    try { cleanup?.(); } catch (e) { console.error(e); }
-    cleanup = undefined;
     clear(screen);
     screen.appendChild(h('div.app-loading', null, h('div.app-spinner'), 'Loading…'));
     let mod: { mount: MountFn };
@@ -185,8 +196,10 @@ async function boot(): Promise<void> {
     if (seq !== navSeq) return;
     clear(screen);
     window.scrollTo(0, 0);
-    cleanup = await mod.mount(screen, params, ctx);
-    if (seq !== navSeq) { try { cleanup?.(); } catch { /* ignore */ } }
+    const done = await mod.mount(screen, params, ctx);
+    // The route moved on while this screen was mounting: put it away now, and keep the newer screen's cleanup for its turn.
+    if (seq !== navSeq) { try { done?.(); } catch { /* ignore */ } return; }
+    cleanup = done;
   };
   window.addEventListener('hashchange', () => void render());
   await render();

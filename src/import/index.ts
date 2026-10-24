@@ -6,7 +6,7 @@ import { decodeText, stripBidi } from './encoding';
 import { importEpub } from './epub';
 import { DAMAGED_MESSAGE } from './zip';
 import { importMobi, looksLikeMobi } from './mobi';
-import { ImportError, NO_CHINESE } from './errors';
+import { ImportError, NO_CHINESE, pdfStartFailure } from './errors';
 import { countHan } from './han';
 import { joinSplitParagraphs, normalizePunctuation, totalHan } from './chapters';
 import { importHtml, importMarkdown } from './html';
@@ -15,6 +15,7 @@ import { bookFromText, importTxt } from './txt';
 import { IMPORT_VERSION } from './version';
 
 export { ImportError } from './errors';
+export { countHan } from './han';
 export const ACCEPT = '.epub,.mobi,.azw3,.azw,.prc,.txt,.text,.pdf,.html,.htm,.xhtml,.md';
 
 type Kind = 'epub' | 'mobi' | 'pdf' | 'txt' | 'html' | 'md';
@@ -148,7 +149,8 @@ export async function importFile(file: Blob & { name: string }, opts?: { onProgr
       book = await importMobi(bytes, name, onProgress);
       break;
     case 'pdf': {
-      const { importPdf } = await import('./pdf');
+      // The PDF reader is a chunk of its own, loaded on first use.
+      const { importPdf } = await import('./pdf').catch(async () => { throw await pdfStartFailure(); });
       book = await importPdf(bytes, name, onProgress);
       break;
     }
@@ -166,6 +168,9 @@ export async function importFile(file: Blob & { name: string }, opts?: { onProgr
   return done;
 }
 
+/** What pasted text with no title of its own is called. ui/library/importer.ts shows the same words while it is added. */
+export const PASTED_TITLE = 'Pasted text';
+
 /** Pasted text → one book; chapters detected like TXT. */
 export function importText(text: string, title?: string, author?: string): ImportedBook {
   const trimmed = text.trim();
@@ -175,6 +180,7 @@ export function importText(text: string, title?: string, author?: string): Impor
       format: 'paste',
       title: title?.trim() || undefined,
       author: author?.trim() || undefined,
+      fallbackTitle: PASTED_TITLE,
     }),
   );
 }

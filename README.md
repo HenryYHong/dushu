@@ -70,7 +70,7 @@ Your library can be searched by title or author, in simplified or traditional ch
 
 Once you have marked some words known, each book in your library says how much of its vocabulary you know ("You know 82% of its words"), estimated from six chapters spread through it. Use it to pick a book at your level.
 
-- **Import book**, or drop a file anywhere on the Library page. Supported: EPUB, MOBI and AZW3 (Kindle files without DRM), TXT (UTF-8, GBK, Big5 and UTF-16 are detected), PDF with a text layer, HTML and Markdown.
+- **Import book**, or drop a file anywhere on the Library page. Supported: EPUB, MOBI and AZW3 (Kindle files without DRM), TXT (UTF-8, GBK, Big5 and UTF-16 are detected), PDF with a text layer, HTML and Markdown. Importing a book that is already in your library offers to open it instead of adding a second copy.
 - **Paste text** for an article or a chapter you copied from the web.
 - **Start with a classic** adds a public-domain text in one click.
 - **Books from your Mac** arrive on their own on a connected device (see Connect your own Mac).
@@ -83,7 +83,7 @@ Novels are full of names the dictionary does not have. The first time you open a
 
 ## Read aloud
 
-The speaker button reads from your current position to the end of the chapter, with Pause, Resume and a speed control. To start at an exact spot, tap a word or select a passage and choose **Read from here**. A browser voice highlights each word as it is spoken. Connected to your Mac, Automatic prefers its Premium Mandarin voices, which highlight by paragraph; speech is rendered on the Mac and no text goes to a cloud speech service. Choose a voice in Settings, then Speech.
+The speaker button reads from your current position to the end of the chapter, with Pause, Resume and a speed control. To start at an exact spot, tap a word or select a passage and choose **Read from here**. Voices played through your Mac highlight each word as it is spoken, and so do ordinary browser voices. Premium voices built into the browser highlight only the paragraph. Connected to your Mac, Automatic prefers its Premium Mandarin voices; speech is rendered on the Mac and no text goes to a cloud speech service. Choose a voice in Settings, then Speech.
 
 ## Look things up
 
@@ -161,6 +161,7 @@ On the hosted site, everything is local to your browser. Books, saved words, pro
 | Jigmo fonts | Glyphs for rare characters, so nothing shows as an empty box | CC0 |
 | Noto Serif SC and TC (@fontsource) | The book typeface where there is no system Song font | SIL OFL 1.1 |
 | LXGW WenKai | The Kai reading typeface | SIL OFL 1.1 |
+| Newsreader (Production Type) | The serif of screen titles, folios and numbers (a Latin subset in `public/fonts/`) | SIL OFL 1.1 |
 | hanzi-writer, hanzi-writer-data | Stroke-order animation | MIT, Arphic Public License |
 | Wikisource | The bundled classics (all public domain) | public domain |
 
@@ -169,6 +170,8 @@ The About page in the app lists the same sources with links.
 ## Fonts and icons
 
 Book text uses the system Songti on a Mac and the bundled Noto Serif SC or TC elsewhere. The Kai option uses LXGW WenKai. The fonts are bundled as small slices, so a page downloads only the pieces it draws, and each slice is kept for offline reading once fetched. Rare characters fall back to Jigmo.
+
+The interface is set like a printed Chinese-English edition: screen titles, folios and numbers in Newsreader (two small Latin files, 118 KB together, `public/fonts/newsreader-*.woff2` with `Newsreader-OFL.txt`, stored for offline use when the app installs), the rest in the system font. Newsreader has no third-tone or ü-tone letters, so it never sets pinyin, Chinese or any text from a book.
 
 The app icons in `public/icons/` are drawn from `public/icon.svg` by `npm run icons` (headless Chrome).
 

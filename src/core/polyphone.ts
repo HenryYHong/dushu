@@ -78,6 +78,7 @@ export const WORD_READINGS: Readonly<Record<string, string>> = {
   大方: 'da4 fang5', // generous
   结实: 'jie1 shi5', // sturdy
   空地: 'kong4 di4', // vacant land
+  背着: 'bei1 zhe5', // carrying on the back (背着包袱, 背着娘); bèi "behind someone's back" is cut off in segment.ts
   // Added from a frequency pass over the words CEDICT lists with several readings (the file puts the rarer one first).
   结果: 'jie2 guo3', // outcome (not "bear fruit")
   重点: 'zhong4 dian3',
@@ -167,10 +168,14 @@ const RULES: Record<string, Rule> = {
     if (has('阳', c.nextChar) || (has('往回复返', c.prevChar) && !has('还', c.nextChar))) return 'huan2'; // 还阳 往还 回还
     // 他还回来: "still came back" after a pronoun; 还回去 after a verb or by itself is "give back".
     if (c.nextChar === '回' && has(PRONOUNS, c.prevChar)) return 'hai2';
+    // 还了酒钱, 我已经还了。: the adverb never stands right before 了, so this is "give back"; 还了得 (how dreadful) is hái.
+    if (c.nextTok === '了') return c.afterChar === '得' ? 'hai2' : 'huan2';
+    // 借了不还。 引军北还。 天道好还: a 还 that ends its clause after another word is the verb. Without neighbors, keep hái.
+    if (c.nextKnown !== false && !isHan(c.nextChar) && isHan(c.prevChar)) return 'huan2';
     return has('书钱给回债款账原本愿手价礼俗乡魂', c.nextChar) ? 'huan2' : 'hai2';
   },
   都: (c) => (has('首京古故旧陪帝', c.prevChar) ? 'du1' : 'dou1'),
-  行: (c) => (has('银同排各商内外米数两几', c.prevChar) || has('业列当家话情', c.nextChar) ? 'hang2' : 'xing2'),
+  行: (c) => (has('银同排各商内外米数两几', c.prevChar) || has('业列当家话情字', c.nextChar) ? 'hang2' : 'xing2'),
   长: (c) => {
     if (has('道夫', c.prevChar) && !has('老', c.nextChar)) return 'zhang3'; // 道长 (a Daoist master) 万夫长 (a commander of ten thousand)
     if (has('生成增涨助滋', c.prevChar)) return 'zhang3';
@@ -210,6 +215,11 @@ const RULES: Record<string, Rule> = {
     if (c.prevChar === '说' && /(小|传|听|据|所|常|众|话|评|解|言|书)说$/.test(c.prevTok)) return 'zhong1';
     if (has('击射看猜选命考投打说刺砸又必便竟被', c.prevChar)) return 'zhong4'; // 又中一枪 必中诸葛亮之计
     if (['奖', '毒', '弹', '标', '风', '计', '枪', '暑', '邪', '蛊', '魔', '招'].includes(c.nextTok)) return 'zhong4';
+    // 中了计, 中了一箭, 中了举人, 中了他的计: what hits (or the exam passed) comes after the 了. 家中了。 and 家中了么 stay "in".
+    if (c.nextTok === '了') {
+      const after = c.afterChar ?? '';
+      if (isHan(after) ? !has('么吗吧罢呢啊呀哩啦哪', after) : has(PRONOUNS, c.prevChar)) return 'zhong4';
+    }
     return 'zhong1';
   },
   看: (c) => (['守', '护', '管', '门', '家', '押', '犬'].includes(c.nextTok) ? 'kan1' : 'kan4'),
@@ -227,7 +237,7 @@ const RULES: Record<string, Rule> = {
     // 数十 数百 数招: "several" (shù), also right after 了 (了数十招). 数个山头 数次 数日: "several" before a measure word.
     if (has('十百千万招余个次日天年月回遍里步丈尺寸条只场家处种般样位名件项头匹口门张套载辈代杯盏碗壶', c.nextChar)) return 'shu4';
     if (has('历', c.prevChar) && !isHan(c.nextChar)) return 'shu4'; // 历数 (the years), 气数
-    if (has('一数不得遍着起清了去来', c.nextChar) || has('一数胜了', c.prevChar)) return 'shu3'; // 数去更无君傲世, 数来数去
+    if (has('一数不得遍着起清了去来钱', c.nextChar) || has('一数胜了', c.prevChar)) return 'shu3'; // 数去更无君傲世, 数来数去, 数钱
     return 'shu4';
   },
   乐: (c) => (has('器队曲团谱章坛府师手理', c.nextChar) || has('音配器声国管弦民奏鼓细', c.prevChar) ? 'yue4' : 'le4'),

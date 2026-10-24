@@ -36,7 +36,8 @@ export function normalizePunctuation(text: string): string {
  * Join paragraphs a file broke in the middle of a sentence, even in the middle of a word (a page break in the edition an
  * EPUB was made from; 998-character pieces in a Wikisource text). A paragraph of prose that ends on a Han character, or on
  * ， 、 when it is long, runs on into a following paragraph of prose that starts with one. Short lines are verse, headings
- * or list items and stay apart, and so do lines set out with spaces (a letter's signature).
+ * or list items and stay apart, and so do lines set out with spaces (a letter's signature). A paragraph that starts with a
+ * closing mark (，。、；：！？」』) always joins the one before: no paragraph starts with one.
  */
 export function joinSplitParagraphs(blocks: Block[]): Block[] {
   const out: Block[] = [];
@@ -51,7 +52,11 @@ export function joinSplitParagraphs(blocks: Block[]): Block[] {
   return changed ? out : blocks;
 }
 
+/** Marks that end a clause, a sentence or a quote. */
+const CLOSING_START = /^[，。、；：！？」』]/;
+
 function runsOn(a: string, b: string): boolean {
+  if (CLOSING_START.test(b.trimStart())) return true;
   // Never past the length a long paragraph is cut at (splitLongParagraph): that cut is on purpose.
   if (a.length + b.length > LONG_PARAGRAPH) return false;
   const t = a.trimEnd();
@@ -303,6 +308,25 @@ export function textToBlocks(text: string): Block[] {
   return paragraphsToBlocks(linesToParagraphs(lines, detectWrapWidth(prose)));
 }
 
+/** "學而第一", "勸學篇第一": a classical section title, a name and its place in the book. */
+const ORDINAL_TITLE = /^[\u3400-\u9fff]{1,6}第([〇零一二三四五六七八九十百]{1,4})$/u;
+
+/**
+ * Classical books name their sections "學而第一, 爲政第二 …" (論語, 莊子, 荀子). Such a line is a heading when the text opens
+ * with the first one, or when two or more count up from 第一 in order; a stray "天下第一" in prose is neither.
+ */
+function markOrdinalTitles(blocks: Block[]): Block[] {
+  const at: number[] = [];
+  blocks.forEach((b, i) => {
+    const m = b.t === 'p' ? ORDINAL_TITLE.exec(b.text) : null;
+    if (m && numeralValue(m[1]) === at.length + 1) at.push(i);
+  });
+  if (!at.length || (at.length === 1 && at[0] !== 0)) return blocks;
+  const out = blocks.slice();
+  for (const i of at) out[i] = { t: 'h', level: 2, text: (blocks[i] as { text: string }).text };
+  return out;
+}
+
 export function paragraphsToBlocks(paras: string[]): Block[] {
   const blocks: Block[] = [];
   for (const p of paras) {
@@ -319,7 +343,7 @@ export function paragraphsToBlocks(paras: string[]): Block[] {
     for (const piece of splitLongParagraph(p)) blocks.push({ t: 'p', text: piece });
   }
   while (blocks.length && blocks[blocks.length - 1].t === 'hr') blocks.pop();
-  return blocks;
+  return markOrdinalTitles(blocks);
 }
 
 const DIGIT: Record<string, number> = { 零: 0, 〇: 0, 一: 1, 二: 2, 两: 2, 兩: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
@@ -480,6 +504,15 @@ export function splitBySize(blocks: Block[], target = PART_HAN): Block[][] {
 }
 
 /**
+ * The title of a text kept as one chapter: its own first heading when it opens with one (第一回 …, 學而第一), as the reader
+ * shows a chapter's first heading as its title (ARCHITECTURE.md 5.3); else the book's title. Section numerals (level 3) are not titles.
+ */
+function wholeTitle(blocks: Block[], title: string): string {
+  const first = blocks[0];
+  return first && isHead(first) && first.level <= 2 ? headingText(first) || title : title;
+}
+
+/**
  * Chapters for a flat run of blocks (TXT, pasted text, PDF, HTML, Markdown): by chapter-style
  * headings if there are any, else by heading level, else sections of about 4,000 characters.
  */
@@ -488,15 +521,40 @@ export function chaptersFromBlocks(input: Block[], opts: { title: string }): Cha
   const cuts = boundaries(blocks);
   let chapters: Chapter[];
   if (cuts && !cuts.length) {
-    chapters = [{ title: opts.title, blocks }];
+    chapters = [{ title: wholeTitle(blocks, opts.title), blocks }];
   } else if (cuts) {
     chapters = cutAt(blocks, cuts, opts.title);
   } else {
     const han = blocks.reduce((n, b) => n + blockHan(b), 0);
-    if (han <= PART_HAN * 1.5) chapters = [{ title: opts.title, blocks }];
+    if (han <= PART_HAN * 1.5) chapters = [{ title: wholeTitle(blocks, opts.title), blocks }];
     else chapters = splitBySize(blocks).map((p, i) => ({ title: `Part ${i + 1}`, blocks: p }));
   }
-  return finalizeChapters(chapters);
+  return finalizeChapters(chapters).map((c) => {
+    const blocks = markPoemTitles(c.blocks);
+    return blocks === c.blocks ? c : { ...c, blocks };
+  });
+}
+
+/** "靜夜思　李白": a title, a wide space and the poet's name. */
+const POEM_TITLE = /^[\u3400-\u9fff]{1,12}[\u3000 ]+[\u3400-\u9fff]{2,4}$/u;
+/** A line of verse: short clauses, each closed by a mark, the last by a full stop. */
+const VERSE_LINE = /^(?:[\u3400-\u9fff]{1,9}[，、；：])+[\u3400-\u9fff]{1,9}[。！？]$/u;
+
+/**
+ * Poems typed as plain text set each title and its poet on a line of their own over the verse. Two or more such lines,
+ * each followed by a line of verse, are headings (level 3) inside the chapter. They are marked after chapters are cut, so
+ * an anthology stays one chapter instead of a chapter per poem.
+ */
+function markPoemTitles(blocks: Block[]): Block[] {
+  const at: number[] = [];
+  blocks.forEach((b, i) => {
+    const next = blocks[i + 1];
+    if (b.t === 'p' && POEM_TITLE.test(b.text) && next?.t === 'p' && VERSE_LINE.test(next.text)) at.push(i);
+  });
+  if (at.length < 2) return blocks;
+  const out = blocks.slice();
+  for (const i of at) out[i] = { t: 'h', level: 3, text: (blocks[i] as { text: string }).text };
+  return out;
 }
 
 function hasProse(c: Chapter): boolean {

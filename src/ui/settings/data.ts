@@ -46,7 +46,8 @@ export async function eraseAllData(ctx: AppContext): Promise<void> {
 
 async function wipe(ctx: AppContext): Promise<void> {
   await eraseAllData(ctx);
-  location.hash = '#/';
+  // replaceState fires no hashchange: setting the hash would mount the Library (and start a Mac download) just before the reload.
+  history.replaceState(null, '', location.pathname + location.search + '#/');
   location.reload();
 }
 

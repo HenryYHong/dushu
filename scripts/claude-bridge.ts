@@ -159,6 +159,8 @@ export function describeError(e: unknown): Failure {
       ? { status: 402, code: 'credit', message: 'The Anthropic account behind the key on your Mac is out of credit.' }
       : { status: 502, code: 'upstream_request', message: 'Claude could not handle that request.' };
   }
+  // A timeout is also a connection error to the SDK, but the Mac did reach Claude: the answer took over 90 s (after retries).
+  if (e instanceof Anthropic.APIConnectionTimeoutError) return { status: 504, code: 'upstream_timeout', message: 'Claude took too long to answer. Try again, or pick a faster model in Settings.' };
   if (e instanceof Anthropic.APIConnectionError) return { status: 502, code: 'upstream_connection', message: 'Your Mac could not reach Claude. Check its internet connection.' };
   if (e instanceof Anthropic.APIError && typeof e.status === 'number' && e.status >= 500) return { status: 502, code: 'upstream_unavailable', message: 'Claude is having trouble right now. Try again in a minute.' };
   if (e instanceof Anthropic.APIError) return { status: 502, code: 'upstream_error', message: `Claude returned an error (${e.status ?? 'unknown'}).` };

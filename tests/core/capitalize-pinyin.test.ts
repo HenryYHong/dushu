@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { capitalizePinyin, pinyinGroups } from '../../src/core/names';
+import { pinyinOf } from '../../src/core/lexicon';
 import { formatSyllable } from '../../src/core/pinyin';
+import { loadTestDictionary } from '../helpers/data';
 
 const marks = (numbered: string) => numbered.split(' ').map((s) => formatSyllable(s, 'marks'));
 
@@ -32,5 +34,14 @@ describe('capitalizePinyin', () => {
     expect(capitalizePinyin(marks('ou1 yang2 wu2 ji4'), 'name', '歐陽無忌', fold)).toBe('Ōuyáng Wújì');
     expect(capitalizePinyin(marks('guo1 jing4 xx5'), 'name', '郭靖')).toBe('Guō Jìng Xx');
     expect(pinyinGroups('郭靖', 'term')).toBeNull();
+  });
+});
+
+describe('surname readings', () => {
+  it('reads 燕 as the surname Yān in a name (燕青, 燕順), not the swallow yàn', async () => {
+    const dict = await loadTestDictionary();
+    expect(dict.pinyinFor('燕')).toEqual(['yan4']); // the precondition: the bare character is the swallow
+    expect(pinyinOf('燕青', 'name', dict)).toBe('yan1 qing1');
+    expect(pinyinOf('燕順', 'name', dict)).toBe('yan1 shun4');
   });
 });

@@ -9,10 +9,11 @@ const swSource = readFileSync(join(root, 'public/sw.js'), 'utf8');
 type Handler = (event: unknown) => void;
 
 /** Loads sw.js with a fake browser. `strict` makes a cache lookup miss unless it passes ignoreVary, like a host that sends Vary: Origin. */
-function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<string, { type: string; body: string }> }) {
+function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<string, { type: string; body: string }>; precache?: string[] }) {
   const handlers: Record<string, Handler> = {};
   const stores = new Map<string, Map<string, Response>>();
   const lookups: Array<Record<string, unknown> | undefined> = [];
+  const added: string[] = [];
   const files = opts.files ?? {};
   let fetched = 0;
   const key = (r: Request | string) => new URL(typeof r === 'string' ? r : r.url, 'https://app.test/').href;
@@ -28,7 +29,7 @@ function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<st
         return hit?.clone();
       },
       put: async (r: Request | string, res: Response) => { m.set(key(r), res); },
-      add: async () => {},
+      add: async (r: Request | string) => { added.push(key(r)); },
     };
   };
   const fakeCaches = {
@@ -55,8 +56,10 @@ function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<st
     addEventListener: (t: string, fn: Handler) => { handlers[t] = fn; },
     skipWaiting() {}, clients: { claim: async () => {} },
   };
-  const src = swSource.replace('__BUILD__', 't').replace('__DATA_VERSION__', 'd').replace('__PRECACHE__', '[]');
-  new Function('self', 'caches', 'fetch', src)(self, fakeCaches, fakeFetch);
+  const src = swSource.replace('__BUILD__', 't').replace('__DATA_VERSION__', 'd').replace('__PRECACHE__', JSON.stringify(opts.precache ?? []));
+  // A worker resolves a relative Request against its own URL.
+  const SwRequest = class extends Request { constructor(input: string, init?: RequestInit) { super(new URL(input, 'https://app.test/').href, init); } };
+  new Function('self', 'caches', 'fetch', 'Request', src)(self, fakeCaches, fakeFetch, SwRequest);
   async function request(path: string, init: { navigate?: boolean } = {}): Promise<Response | undefined> {
     const url = new URL(path, 'https://app.test/').href;
     const mode = init.navigate ? 'navigate' : 'cors';
@@ -64,7 +67,12 @@ function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<st
     handlers.fetch({ request: { method: 'GET', url, mode, headers: new Headers() }, respondWith: (p: Promise<Response>) => { answer = Promise.resolve(p); } });
     return answer;
   }
-  return { request, stores, lookups, handlers, get fetched() { return fetched; } };
+  async function install(): Promise<void> {
+    let done: Promise<unknown> = Promise.resolve();
+    handlers.install({ waitUntil: (p: Promise<unknown>) => { done = p; } });
+    await done;
+  }
+  return { request, install, stores, lookups, added, handlers, get fetched() { return fetched; } };
 }
 
 describe('service worker', () => {
@@ -119,6 +127,41 @@ describe('service worker', () => {
     expect(await (await off.request('samples/kong-yiji.txt'))!.text()).toBe('孔乙己');
   });
 
+  it('precaches the bundled Newsreader files at install, and they ship with their license', async () => {
+    expect(swSource).toMatch(/const UI_FONTS = \['fonts\/newsreader-roman\.woff2', 'fonts\/newsreader-italic\.woff2'\];/);
+    expect(swSource).toMatch(/await add\(stat, \[\.\.\.PRECACHE\.filter\(isStatic\), \.\.\.UI_FONTS\]\);/);
+    let total = 0;
+    for (const f of ['newsreader-roman.woff2', 'newsreader-italic.woff2']) {
+      const bytes = readFileSync(join(root, 'public/fonts', f));
+      expect(bytes.subarray(0, 4).toString('latin1'), f).toBe('wOF2');
+      total += bytes.length;
+    }
+    expect(total).toBeLessThan(125_000);
+    expect(readFileSync(join(root, 'public/fonts/Newsreader-OFL.txt'), 'utf8')).toMatch(/SIL OPEN FONT LICENSE Version 1\.1/);
+    // Loaded from this origin only, never from a font CDN.
+    const main = readFileSync(join(root, 'src/main.ts'), 'utf8');
+    expect(main).toMatch(/url\('newsreader-roman\.woff2'\)/);
+    for (const f of ['src/main.ts', 'src/styles/tokens.css', 'src/styles/base.css', 'index.html']) {
+      expect(readFileSync(join(root, f), 'utf8'), f).not.toMatch(/fonts\.googleapis|fonts\.gstatic/);
+    }
+  });
+
+  it('copies hashed files an earlier build stored instead of downloading them again (the PDF worker is 1.4 MB)', async () => {
+    const worker = 'assets/pdf.worker.min-yatZIOMy.mjs';
+    const sw = loadWorker({ online: true, precache: [worker, 'assets/index-N3wHash1.js', 'data/cedict.tsv.gz'] });
+    sw.stores.set('dushu-app-old', new Map([[`https://app.test/${worker}`, new Response('worker bytes')]]));
+    await sw.install();
+    expect(await sw.stores.get('dushu-app-t')!.get(`https://app.test/${worker}`)!.text()).toBe('worker bytes');
+    // Only what changed is downloaded: the shell and the new chunk, and the data into its own cache.
+    const appFiles = (w: typeof sw) => w.added.filter((u) => !/\/(data|fonts)\//.test(u));
+    expect(appFiles(sw)).toEqual(['https://app.test/', 'https://app.test/assets/index-N3wHash1.js']);
+    expect(sw.added).toContain('https://app.test/data/cedict.tsv.gz');
+    // A first install has nothing to copy, so it downloads everything.
+    const first = loadWorker({ online: true, precache: [worker] });
+    await first.install();
+    expect(appFiles(first)).toEqual(['https://app.test/', `https://app.test/${worker}`]);
+  });
+
   it('never touches private API paths or other origins', async () => {
     const sw = loadWorker({ online: true });
     expect(await sw.request('api/local-books')).toBeUndefined();
@@ -150,10 +193,22 @@ const lum = (hex: string) => {
 const ratio = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 
 describe('color tokens', () => {
+  it('dark is a warm near-black, not pure black, and the book text a little dimmer than the interface', () => {
+    const d = themes.dark;
+    expect(lum(d['--bg'])).toBeGreaterThan(lum('#0b0a08'));
+    expect(d['--bg']).not.toBe('#000000');
+    expect(lum(d['--reader-text'])).toBeLessThan(lum(d['--text']));
+    expect(ratio(d['--reader-text'], d['--bg'])).toBeGreaterThanOrEqual(12);
+    // At night a filled control is lacquer red, darker than the red of thin marks, so nothing glares.
+    expect(lum(d['--accent-fill'])).toBeLessThan(lum(d['--accent']));
+  });
   for (const [name, t] of Object.entries(themes)) {
     it(`${name}: small secondary text (--text-3) is AA on every surface it sits on`, () => {
       for (const bg of ['--bg', '--surface', '--surface-2']) expect(ratio(t['--text-3'], t[bg]), `${name} --text-3 on ${bg}`).toBeGreaterThanOrEqual(4.5);
       expect(ratio(t['--text-2'], t['--bg'])).toBeGreaterThanOrEqual(6);
+    });
+    it(`${name}: the filled red (seal, primary button, badges) carries its text at 4.5:1`, () => {
+      expect(ratio(t['--accent-fill-text'], t['--accent-fill'])).toBeGreaterThanOrEqual(4.5);
     });
     it(`${name}: --danger reads as text and is not the brand accent`, () => {
       expect(t['--danger']).toBeTruthy();

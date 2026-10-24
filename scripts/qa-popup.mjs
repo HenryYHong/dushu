@@ -2,14 +2,16 @@
 // It is the Safari engine at device size, not real iPadOS: no real safe areas, no home-screen mode.
 //
 //   node scripts/qa-popup.mjs                       starts `vite --port 5193 --strictPort` itself and stops it at the end
-//   QA_BASE=http://localhost:5211/ node scripts/qa-popup.mjs   use a server that is already running
+//   QA_BASE=http://localhost:5211/ node scripts/qa-popup.mjs   use a server that is already running (sync off in the browser)
 //
 // Checks: the popup scrolls and stays scrolled, the footer (Prev / Next / Shorter / Longer) is reachable (on screen, or on
 // screen once the card is scrolled to the bottom: a short sheet lets it scroll with the definitions) and Next works by touch, focus is in the dialog and comes back, controls are 44 px, the phone sheet is at most 45% of the screen, and
 // a phrase with no translator says so in one line. Screenshots go to qa-out/popup/. Headless only.
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const ROOT = new URL('../', import.meta.url).pathname;
 const require = createRequire(`${ROOT}.cache/qa-webkit/package.json`);
@@ -18,17 +20,32 @@ const PORT = 5193;
 const BASE = process.env.QA_BASE ?? `http://localhost:${PORT}/`;
 const OUT = process.env.QA_OUT ?? `${ROOT}qa-out/popup/`;
 mkdirSync(OUT, { recursive: true });
+// The server started here gets an empty sync folder of its own (removed at the end), never the owner's.
+const SYNC_DIR = process.env.QA_BASE ? null : mkdtempSync(join(tmpdir(), 'dushu-qa-sync-'));
+const dropSyncDir = () => { if (SYNC_DIR) rmSync(SYNC_DIR, { recursive: true, force: true }); };
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
 
 let server = null;
 if (!process.env.QA_BASE) {
-  server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+  server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, DUSHU_SYNC_DIR: SYNC_DIR } });
   await new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('vite did not start')), 30000);
     server.stdout.on('data', (d) => { if (String(d).includes('Local:')) { clearTimeout(t); resolve(); } });
     server.stderr.on('data', (d) => { if (String(d).includes('Error')) { clearTimeout(t); reject(new Error(String(d))); } });
   });
 }
-const stop = () => { if (server) { server.kill('SIGTERM'); server = null; } };
+const stop = () => { if (server) { server.kill('SIGTERM'); server = null; } dropSyncDir(); };
 process.on('exit', stop);
 
 const fails = [];
@@ -36,6 +53,8 @@ const check = (c, m) => { console.log(c ? 'ok  ' : 'FAIL', m); if (!c) fails.pus
 const settle = (ms = 500) => new Promise((r) => setTimeout(r, ms));
 const errors = [];
 const browser = await webkit.launch({ headless: true });
+// Every browser context gets SYNC_OFF when the server was not started here.
+if (!SYNC_DIR) { const make = browser.newContext.bind(browser); browser.newContext = async (o) => { const c = await make(o); await c.addInitScript(SYNC_OFF); return c; }; }
 
 async function openReader(device) {
   const ctx = await browser.newContext({ ...devices[device] });

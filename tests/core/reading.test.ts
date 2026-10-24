@@ -54,4 +54,17 @@ describe('gloss matches the pinyin it sits beside', () => {
     expect(g).toMatch(/说[^·]*shuō[^·]*speak|说[^·]*speak/);
     expect(g).not.toMatch(/persuade/);
   });
+  it('a note on how a word is also said (colloquial pr. [nei4], Taiwan pr. [han4]) does not lead the gloss', async () => {
+    const d = await loadTestDictionary();
+    // Preconditions: CEDICT still ends the first meaning of 那 and 和 with such a note.
+    expect(d.lookup('那').find((e) => e.pinyin === 'na4')?.defs[0]).toMatch(/\(colloquial pr\. \[nei4\]\)$/);
+    expect(d.lookup('和').flatMap((e) => e.defs)).toContain('(joining two nouns) and; together with; with (Taiwan pr. [han4])');
+    const na = entriesForReading(d.lookup('那'), ['na4'])[0];
+    expect(na.defs[0]).toBe('(specifier) that; the; those');
+    expect(na.defs.at(-1)).toBe('colloquial pr. [nei4]'); // kept, at the end
+    const g = glossText('那人和他', d);
+    expect(g).toContain('那 (nà): (specifier) that; the; those ·');
+    expect(g).toContain('和 (hé): (joining two nouns) and; together with; with ·');
+    expect(g).not.toMatch(/pr\. \[/);
+  });
 });

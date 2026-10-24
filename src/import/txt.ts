@@ -14,6 +14,8 @@ export interface TextBookOptions {
   sourceName?: string;
   title?: string;
   author?: string;
+  /** The title when neither the caller, a file name nor the first line gives one. */
+  fallbackTitle?: string;
 }
 
 /** Text to a book. A title/author passed in wins; then the file name; then the first lines. */
@@ -56,7 +58,7 @@ export function bookFromText(text: string, opts: TextBookOptions): ImportedBook 
     }
   }
 
-  title = title || 'Untitled';
+  title = title || opts.fallbackTitle || 'Untitled';
   const blocks = stripGutenbergBlocks(textToBlocks(lines.join('\n')));
   return {
     title,

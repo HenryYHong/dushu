@@ -4,7 +4,7 @@
 import '../../styles/reader.css';
 import type { Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, Progress, Settings } from '../../types';
 import { readingFontSizeKey } from '../../store/settings';
-import { canSpeak, pauseSpeaking, resumeSpeaking, speakSequence, stopSpeaking } from '../../speech/tts';
+import { canSpeak, pauseSpeaking, resumeSpeaking, setSpeakingRate, speakSequence, stopSpeaking } from '../../speech/tts';
 import { EMPTY_LEXICON, isDetecting, loadLexicon } from '../../core/lexicon';
 import { REMOTE_PROGRESS_EVENT, syncBeforeOpen } from '../../core/sync';
 import { chapterWords, type ChapterWords } from '../../core/chapterWords';
@@ -131,9 +131,11 @@ export const mount: MountFn = async (root, params, ctx) => {
   const pct = h('span.rd-pct');
   const fill = h('div.rd-progress-fill');
   const pinyinLabel = h('span.rd-pill-label');
-  const pinyinIcon = h('span.rd-pill-icon', { 'aria-hidden': 'true' }, icon('eye'));
+  // The 拼 seal: solid while pinyin shows, an outline (朱文) when it is off. The mode follows it ("All", "HSK 3"); on a
+  // phone the label is set smaller, and on the narrowest only the HSK level stays beside the seal.
+  const pinyinSeal = h('span.rd-seal.zh', { 'aria-hidden': 'true' }, '拼');
   const pinyinBtn = h('button.rd-pill.rd-pinyin-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Pinyin (P)', onclick: () => togglePinyinMenu() },
-    pinyinIcon, pinyinLabel) as HTMLButtonElement;
+    pinyinSeal, pinyinLabel) as HTMLButtonElement;
   const aaBtn = h('button.rd-pill.rd-aa-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': 'Display settings', title: 'Display settings', onclick: () => toggleDisplayMenu() },
     h('span.rd-aa', { 'aria-hidden': 'true' }, 'Aa')) as HTMLButtonElement;
   const speechBtn = h('button.icon-btn.rd-speech-btn', {
@@ -152,7 +154,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   }, icon('pause')) as HTMLButtonElement;
   pauseBtn.hidden = true;
   const audioStatus = h('span.rd-audio-status', { role: 'status', 'aria-live': 'polite' }, 'Reading aloud');
-  const audioSpeed = h('select.rd-audio-speed', { 'aria-label': 'Reading speed', title: 'Audio speed; applies at the next sentence' }) as HTMLSelectElement;
+  const audioSpeed = h('select.rd-audio-speed', { 'aria-label': 'Read-aloud speed', title: 'Read-aloud speed' }) as HTMLSelectElement;
   audioSpeed.addEventListener('change', () => ctx.settings.set({ ttsRate: Number(audioSpeed.value) }));
   const audioPause = h('button.btn.btn-sm.rd-audio-pause', { type: 'button', 'aria-label': 'Pause audio', onclick: () => pauseBtn.click() }, icon('pause'), 'Pause') as HTMLButtonElement;
   const audio = h('aside.rd-audio', { hidden: true, 'data-rd-ui': true, 'aria-label': 'Read-aloud controls' },
@@ -261,8 +263,11 @@ export const mount: MountFn = async (root, params, ctx) => {
     audioSpeed.value = String(rate);
   }
 
-  function stopChapterSpeech(): void {
-    const wasSpeaking = speaking;
+  /**
+   * Puts the read-aloud controls back, leaving the speech engine alone: a run that has ended may have ended because a word
+   * card's Pronounce took the voice, and stopping again would silence the word.
+   */
+  function endChapterSpeech(): void {
     speechRun++;
     speaking = false;
     paused = false;
@@ -270,15 +275,36 @@ export const mount: MountFn = async (root, params, ctx) => {
     spokenBlock?.el.classList.remove('rd-speaking');
     view()?.clearMarks('rd-speaking-word');
     spokenBlock = null;
-    if (wasSpeaking) stopSpeaking();
     syncSpeechButton();
+  }
+
+  function stopChapterSpeech(): void {
+    const wasSpeaking = speaking;
+    endChapterSpeech();
+    if (wasSpeaking) stopSpeaking();
+  }
+
+  /**
+   * Where the Read button starts: the first word that begins on show. Text before it is on a page already turned (Pages would
+   * turn back to read it) or under the bar; a word start, as Read from here uses, rather than half a word.
+   */
+  function speechStart(v: ChapterView): { block: number; offset: number } {
+    const a = paged ? pager?.anchor() : null;
+    const b = paged ? v.blocks[a?.block ?? 0] : firstVisible();
+    if (!b) return { block: 0, offset: 0 };
+    const at = paged ? a?.offset ?? 0 : scrollOffsetAtTop(b);
+    if (at <= 0) return { block: b.index, offset: 0 };
+    v.ensure(b.index);
+    const word = b.rendered?.tokens.find(t => t.start >= at && t.kind !== 'punct' && t.kind !== 'space');
+    return { block: b.index, offset: word?.start ?? b.text.length };
   }
 
   async function startChapterSpeech(from?: { block: number; offset: number }): Promise<void> {
     const v = view();
     if (disposed || !v || !canSpeak()) return;
-    const start = from?.block ?? (paged ? (pager?.anchor()?.block ?? 0) : (firstVisible()?.index ?? 0));
-    const offset = from ? snapToCodePoint(v.blocks[start]?.text || '', from.offset, -1) : 0;
+    const here = from ? { block: from.block, offset: snapToCodePoint(v.blocks[from.block]?.text || '', from.offset, -1) } : speechStart(v);
+    const start = here.block;
+    const offset = here.offset;
     const blocks = v.blocks.filter(b => b.kind === 'text' && b.text.trim() && b.index >= start);
     if (!blocks.length) { ctx.toast('No text left to read in this chapter.'); return; }
     const offsets = blocks.map(b => b.index === start ? offset : 0);
@@ -306,6 +332,11 @@ export const mount: MountFn = async (root, params, ctx) => {
           audioStarted = true;
           syncSpeechButton();
         },
+        onWaiting: () => {
+          if (mine !== speechRun || !audioStarted) return;
+          audioStarted = false;
+          syncSpeechButton();
+        },
         onError: message => ctx.toast(message),
       }, (i) => {
         if (mine !== speechRun) return;
@@ -316,8 +347,13 @@ export const mount: MountFn = async (root, params, ctx) => {
         spokenBlock = b;
         b.el.classList.add('rd-speaking');
         if (paged) pager?.reveal(b.index, offsets[i]);
-        else if (offsets[i]) ensureInView(b, offsets[i]);
-        else {
+        else if (offsets[i]) {
+          // The Read button starts on the top line, often half under the bar: bring it just clear of the bar rather than a
+          // third of the way down.
+          const r = from ? null : v.rectOf(b, offsets[i], offsets[i] + 1);
+          if (r && r.top < BAR_H + 24) scrollToOffset(b, offsets[i], BAR_H + 32);
+          else ensureInView(b, offsets[i]);
+        } else {
           const r = b.el.getBoundingClientRect();
           if (r.top < BAR_H + 8 || r.top > window.innerHeight * 0.8) scrollToBlock(b);
         }
@@ -342,7 +378,7 @@ export const mount: MountFn = async (root, params, ctx) => {
         } else ensureInView(b, start);
       });
     } finally {
-      if (mine === speechRun) stopChapterSpeech();
+      if (mine === speechRun) endChapterSpeech();
     }
   }
 
@@ -394,27 +430,31 @@ export const mount: MountFn = async (root, params, ctx) => {
     rd.classList.toggle('rd-hover-mode', s.lookupTrigger === 'hover');
     // The cell, the pinyin size and the paragraph indent for the grid (both layouts use them).
     if (rd.isConnected) applyGridVars(rd, readingSize(s), s.pinyinStyle);
-    pinyinLabel.textContent = s.pinyin === 'hsk' ? `HSK ${s.hskThreshold >= 7 ? '7-9' : s.hskThreshold}` : pinyinModeLabel(s.pinyin);
+    const level = s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
+    if (s.pinyin === 'hsk') pinyinLabel.replaceChildren(h('span.rd-pill-pre', null, 'HSK '), level);
+    else pinyinLabel.textContent = pinyinModeLabel(s.pinyin);
     pinyinBtn.setAttribute('aria-label', `Pinyin: ${pinyinLabel.textContent}`);
     pinyinBtn.dataset.mode = s.pinyin;
-    pinyinBtn.dataset.level = s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
-    const shut = s.pinyin === 'off';
-    if (pinyinIcon.dataset.off !== String(shut)) {
-      pinyinIcon.dataset.off = String(shut);
-      pinyinIcon.replaceChildren(icon(shut ? 'eyeOff' : 'eye'));
-    }
+    pinyinBtn.dataset.level = level;
   }
   applyLayout(ctx.settings.get());
 
-  /** Run a change that reflows the scrolling page and keep the same line of text under the top bar. */
-  function keepPlace(fn: () => void): void {
+  /**
+   * Run a change that reflows the scrolling page and keep the same line of text where it was under the top bar. The line, not
+   * the paragraph: deep in a long paragraph a re-wrap moves the line by however much the text above it grew or shrank. `fn`
+   * gets the block at the top, measured before the change, and must draw down to it before returning (the restore measures it).
+   */
+  function keepPlace(fn: (top: BlockState | null) => void): void {
     const b = scrollView ? firstVisible() : null;
-    const before = b ? b.el.getBoundingClientRect().top : 0;
-    fn();
-    if (b) {
-      const after = b.el.getBoundingClientRect().top;
-      if (Math.abs(after - before) > 1) window.scrollBy(0, after - before);
-    }
+    if (!b) { fn(null); return; }
+    const offset = scrollOffsetAtTop(b);
+    const lineTop = () => (offset > 0 ? view()?.rectOf(b, offset, offset + 1)?.top : undefined);
+    const line = lineTop();
+    const blockTop = b.el.getBoundingClientRect().top;
+    fn(b);
+    if (line !== undefined && lineTop() !== undefined) { scrollToOffset(b, offset, line); return; }
+    const d = b.el.getBoundingClientRect().top - blockTop;
+    if (Math.abs(d) > 1) window.scrollBy(0, d);
   }
 
   let menuSync: (() => void) | null = null;
@@ -422,12 +462,16 @@ export const mount: MountFn = async (root, params, ctx) => {
   const LAYOUT_KEYS: (keyof Settings)[] = ['fontSize', 'fontFamily', 'lineHeight', 'pageWidth', 'spread', 'pinyinStyle'];
 
   const unsubSettings = ctx.settings.subscribe((s, changed) => {
-    if (changed.includes('ttsRate')) syncSpeechButton();
+    if (changed.includes('ttsRate')) {
+      syncSpeechButton();
+      if (speaking) setSpeakingRate(s.ttsRate);
+    }
     if (changed.every(key => key === 'ttsRate' || key === 'ttsVoice')) { menuSync?.(); return; }
     const v = view();
     if (changed.includes('script')) refreshChromeText();
     if (changed.includes('layout')) {
-      applyLayout(s);
+      // No re-styling here: switchLayout reads the place first. Under the other layout's text size the text moves, and Scroll
+      // measured a line pages further on, Pages the start of the paragraph.
       void switchLayout();
       menuSync?.();
       return;
@@ -457,14 +501,15 @@ export const mount: MountFn = async (root, params, ctx) => {
       menuSync?.();
       return;
     }
-    keepPlace(() => {
+    keepPlace((top) => {
       applyLayout(s);
       if (changed.includes('script')) {
         v.el.lang = langOf(s);
         closePopup();
+        // reconvert empties every drawn block. Nothing may measure the page until the blocks down to the place are drawn again:
+        // measured empty, the page is short, the browser clamps the scroll and the next save stores a place near the start.
         v.reconvert();
-        const anchorIdx = Math.max(0, (firstVisible()?.index ?? 0));
-        v.renderTo(anchorIdx + 6);
+        renderAround(v, top?.index ?? 0);
         void v.renderRest();
       } else if (changed.some((k) => k === 'pinyinStyle' || k === 'toneColors' || k === 'sandhi')) {
         v.refreshPinyin();
@@ -678,11 +723,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     v.el.setAttribute('aria-label', 'Book text. Press Enter to choose words with the arrow keys.');
     const place = at.block !== undefined ? v.fromStored(at.block, at.offset ?? 0) : { block: 0, offset: 0 };
     const target = clamp(place.block, 0, v.blocks.length - 1);
-    // Render down to the target, then about two screens past it; the rest follows in idle time.
-    let last = target;
-    let chars = 0;
-    while (last < v.blocks.length - 1 && chars < 1400) { last++; chars += v.blocks[last].text.length || 40; }
-    v.renderTo(last);
+    renderAround(v, target);
     if (at.end) v.renderTo(v.blocks.length - 1);
     // Nothing above can throw after this point, so the old chapter is replaced only by one that drew.
     scrollView = v;
@@ -692,7 +733,8 @@ export const mount: MountFn = async (root, params, ctx) => {
     chapterShown(index, v);
     clearFail(book!.id, index);
     window.scrollTo(0, 0);
-    if (at.block !== undefined && target > 0) scrollToBlock(v.blocks[target]);
+    // The first stored block is right under the chapter title (a synthetic block): its top is the top of the chapter, title in view.
+    if (at.block !== undefined && target > v.synthetic) scrollToBlock(v.blocks[target]);
     if (at.block !== undefined && place.offset > 0) scrollToOffset(v.blocks[target], place.offset);
     if (at.end) window.scrollTo(0, document.documentElement.scrollHeight);
     updateProgressUi();
@@ -700,6 +742,14 @@ export const mount: MountFn = async (root, params, ctx) => {
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(saveProgressNow, 800);
     void v.renderRest().then(() => { if (scrollView === v) updateProgressUi(); });
+  }
+
+  /** Draw down to block `target` and about two screens past it now; the rest follows in idle time (renderRest). */
+  function renderAround(v: ChapterView, target: number): void {
+    let last = target;
+    let chars = 0;
+    while (last < v.blocks.length - 1 && chars < 1400) { last++; chars += v.blocks[last].text.length || 40; }
+    v.renderTo(last);
   }
 
   function buildEnd(index: number): HTMLElement {
@@ -777,8 +827,9 @@ export const mount: MountFn = async (root, params, ctx) => {
 
   async function switchLayout(): Promise<void> {
     const want = ctx.settings.get().layout === 'pages';
-    if (want === paged) return;
-    const place = currentPlace() ?? (saved ? { chapter: saved.chapter, block: saved.block, offset: 0 } : { chapter: 0, block: 0, offset: 0 });
+    if (want === paged) { applyLayout(ctx.settings.get()); return; }
+    // Measured while the text still has the old layout's styles (applyLayout comes after), as is the save below.
+    const place = currentPlace() ?? { ...lastSaved };
     stopChapterSpeech();
     closePopup();
     clearCursor();
@@ -819,10 +870,10 @@ export const mount: MountFn = async (root, params, ctx) => {
     return found < 0 ? 0 : Number(rubies[found].dataset.o) || 0;
   }
 
-  /** Scroll so the line holding `offset` of a block is just under the top bar. */
-  function scrollToOffset(b: BlockState, offset: number): void {
+  /** Scroll so the line holding `offset` of a block is at `y`: by default just under the top bar. */
+  function scrollToOffset(b: BlockState, offset: number, y = BAR_H + 16): void {
     const r = view()?.rectOf(b, offset, offset + 1);
-    if (r) window.scrollBy(0, r.top - (BAR_H + 16));
+    if (r) window.scrollBy(0, r.top - y);
   }
 
   function ensureInView(b: BlockState, start: number): void {
@@ -1262,6 +1313,18 @@ export const mount: MountFn = async (root, params, ctx) => {
   document.addEventListener('mouseup', onMouseUp);
   document.addEventListener('selectionchange', onSelectionChange);
   document.addEventListener('keydown', onKey);
+  // The page itself (the Scroll text or the Pages stage) shows a focus ring only when Tab brought focus to it. A word card
+  // closed with Esc hands focus back to it from code, and that must not frame the whole page (reader.css, data-tabbed).
+  let lastKeyTab = false;
+  const onAnyKey = (e: KeyboardEvent) => { lastKeyTab = e.key === 'Tab'; };
+  const onAnyPointer = () => { lastKeyTab = false; };
+  const onFocusIn = (e: FocusEvent) => {
+    const t = e.target as HTMLElement | null;
+    if (t?.matches?.('.rd-article, .rd-stage')) t.toggleAttribute('data-tabbed', lastKeyTab);
+  };
+  window.addEventListener('keydown', onAnyKey, true);
+  window.addEventListener('pointerdown', onAnyPointer, true);
+  rd.addEventListener('focusin', onFocusIn);
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('pagehide', saveProgressNow);
   window.addEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
@@ -1291,14 +1354,17 @@ export const mount: MountFn = async (root, params, ctx) => {
   function showReaderHint(): void {
     if (coachSeen()) return;
     const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
-    const lines = [
-      touch
+    const lines: (string | Node)[][] = [
+      [touch
         ? 'Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.'
-        : 'Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.',
+        : 'Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.'],
+      // The seal as the bar draws it, so the button is easy to find.
+      [touch ? 'Tap ' : 'Click ', h('span.rd-seal.zh', null, '拼'), touch ? ' at the top' : ' at the top (or press P)',
+        " to show pinyin on every word, on words you don't know yet, or only above your HSK level."],
     ];
     const s = ctx.settings.get();
     if (s.pinyin === 'unknown' && store.known.count() === 0) {
-      lines.push('Pinyin shows on every word until you mark words as known. Mark one in its card, and it goes away.');
+      lines.push(['Pinyin shows on every word until you mark words as known. Mark one in its card, and it goes away.']);
     }
     const stop = () => {
       document.removeEventListener('pointerdown', close, true);
@@ -1312,7 +1378,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       box.remove();
     };
     const box = h('div.rd-coach', { role: 'note', 'data-rd-ui': '' },
-      h('div', null, lines.map((l) => h('p', null, l))),
+      h('div', null, lines.map((l) => h('p', null, ...l))),
       h('button.btn.btn-sm', { type: 'button', onclick: close }, 'Got it'));
     rd.appendChild(box);
     const timer = window.setTimeout(close, 20000);
@@ -1344,6 +1410,9 @@ export const mount: MountFn = async (root, params, ctx) => {
     document.removeEventListener('mouseup', onMouseUp);
     document.removeEventListener('selectionchange', onSelectionChange);
     document.removeEventListener('keydown', onKey);
+    window.removeEventListener('keydown', onAnyKey, true);
+    window.removeEventListener('pointerdown', onAnyPointer, true);
+    rd.removeEventListener('focusin', onFocusIn);
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', saveProgressNow);
     window.removeEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);

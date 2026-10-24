@@ -105,4 +105,56 @@ describe('wheel turns', () => {
     expect(turns([notch(0), notch(60), notch(120), notch(180)])).toEqual([1]);
     expect(turns([notch(0), notch(400, -100)])).toEqual([1, -1]);
   });
+
+  it('turns once per notch of a wheel that counts in lines or pages (Firefox), however few lines a notch is', () => {
+    const notch = (t: number, lines = 3): WheelInput => ({ deltaX: 0, deltaY: lines, deltaMode: 1, timeStamp: t });
+    expect(turns([notch(0)])).toEqual([1]); // 3 lines: 48 px, less than an up-and-down swipe needs
+    expect(turns([notch(0, 1)])).toEqual([1]);
+    expect(turns([notch(0), notch(400), notch(800, -3)])).toEqual([1, 1, -1]);
+    expect(turns([notch(0), notch(60), notch(120), notch(180)])).toEqual([1]); // a quick spin
+    expect(turns([{ deltaX: 0, deltaY: 1, deltaMode: 2, timeStamp: 0 }])).toEqual([1]);
+  });
+
+  it('turns again for a slow new swipe that stops the coasting dead', () => {
+    const first = swipe(safari);
+    const lift = first.find((e) => e.deltaX === 150)!.timeStamp;
+    // Short new swipes with no coasting of their own: slow and steady, 4 px a frame, or one that gets going quickly.
+    const slow: Swipe = { finger: Array(30).fill(4) };
+    const brisk: Swipe = { finger: [5, 10, 20, 30, 40, 50, 60] };
+    for (const after of [30, 100, 300]) {
+      const head = until(first, lift + after);
+      const t = end(head);
+      // The fingers land: the coasting stops with a near-zero event, then the new swipe.
+      const stop: WheelInput = { deltaX: 0, deltaY: 0, deltaMode: 0, timeStamp: t + 16 };
+      expect(turns([...head, stop, ...swipe(slow, t + 30)]), `${after} ms after the lift`).toEqual([1, 1]);
+      expect(turns([...head, stop, ...swipe(brisk, t + 30)]), `${after} ms after the lift, brisk`).toEqual([1, 1]);
+    }
+  });
+
+  it('a pixel or two back is a wobble, not a swipe back; a reversal in small steps turns back once it has gone far enough', () => {
+    // A slow drag that wobbles back by 2 px after it has turned the page, then goes on: still one swipe.
+    const ev = swipe(drag);
+    const at = 31; // well after the turn (about 40 px in, at event 10)
+    const wobble: WheelInput = { ...ev[at], deltaX: -2, timeStamp: ev[at].timeStamp - 4 };
+    expect(turns([...ev.slice(0, at), wobble, ...ev.slice(at)])).toEqual([1]);
+    // A swipe back in 5 px steps while the first one still coasts: back once it has moved TURN_X, not before.
+    const first = swipe(safari);
+    const head = until(first, first.find((e) => e.deltaX === 150)!.timeStamp + 200);
+    const back = (n: number) => Array.from({ length: n }, (_, i): WheelInput => ({ deltaX: -5, deltaY: 0, deltaMode: 0, timeStamp: end(head) + 16 + 8 * i }));
+    expect(turns([...head, ...back(10)])).toEqual([1, -1]);
+    expect(turns([...head, ...back(7)])).toEqual([1]);
+  });
+
+  it('needs more travel up and down than across', () => {
+    const steps = (n: number, axis: 'x' | 'y') => swipe({ finger: Array(n).fill(10) }, 0, 1, axis);
+    expect(turns(steps(5, 'y'))).toEqual([]); // 50 px up and down
+    expect(turns(steps(5, 'x'))).toEqual([1]); // 50 px across
+    expect(turns(steps(8, 'y'))).toEqual([1]);
+  });
+
+  it('stays one swipe when a busy page gets 400 ms of its events folded into one', () => {
+    expect(turnsWhenBusy(swipe(safari), 400)).toEqual([1]);
+    expect(turnsWhenBusy(swipe(chrome), 400)).toEqual([1]);
+    expect(turnsWhenBusy(swipe(safari, 0, -1), 400)).toEqual([-1]);
+  });
 });

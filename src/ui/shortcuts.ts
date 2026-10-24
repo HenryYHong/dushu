@@ -71,6 +71,7 @@ export interface OpenShortcutsOptions {
 /** The shortcut sheet: one titled section per group. The dialog itself takes focus, so Close shows no ring until Tab. */
 export function openShortcuts(opts: OpenShortcutsOptions = {}): HTMLDialogElement {
   const groups = opts.groups ? SHORTCUTS.filter((g) => opts.groups!.includes(g.group)) : SHORTCUTS;
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   const dialog = h('dialog.modal.sc-dialog', { 'aria-labelledby': 'sc-title', tabindex: -1 }) as HTMLDialogElement;
   dialog.append(h('div.sc-body', null,
     h('div.sc-head', null,
@@ -81,7 +82,8 @@ export function openShortcuts(opts: OpenShortcutsOptions = {}): HTMLDialogElemen
       h('dl.sc-list', null, g.rows.map((r) => h('div.sc-row', null,
         h('dt', null, keyCaps(r)),
         h('dd', null, r.what))))))));
-  dialog.addEventListener('close', () => dialog.remove());
+  // Closing hands focus back to whatever had it (the reader's page, or a button), not to the top of the document.
+  dialog.addEventListener('close', () => { dialog.remove(); if (opener?.isConnected) opener.focus({ preventScroll: true }); });
   dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
   document.body.appendChild(dialog);
   if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');

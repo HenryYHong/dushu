@@ -107,7 +107,7 @@ describe('learning known words while reading', () => {
     const { ctx, meta } = await setup({ autoKnown: false });
     await open(ctx, meta.id);
     document.querySelector<HTMLElement>('.rd-pinyin-btn')!.click();
-    const sw = [...document.querySelectorAll<HTMLElement>('.rd-pinyin-menu .rd-switch')].find((b) => b.getAttribute('aria-label') === 'Learn as I read')!;
+    const sw = [...document.querySelectorAll<HTMLElement>('.rd-pinyin-menu .rd-switch')].find((b) => b.getAttribute('aria-label') === 'Learn known words as I read')!;
     expect(sw.closest<HTMLElement>('.rd-row')!.hidden).toBe(false);
     sw.click();
     expect(ctx.settings.get().autoKnown).toBe(true);

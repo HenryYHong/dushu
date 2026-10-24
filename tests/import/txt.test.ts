@@ -136,6 +136,38 @@ describe('TXT chapters', () => {
     expect(book.format).toBe('paste');
   });
 
+  it('titles a one-chapter text by its own first heading, so the reader does not show two titles', () => {
+    const book = importText(`第一回　靈根育孕源流出　心性修持大道生\n${prose(300)}`, '西遊記 第一回');
+    expect(book.chapters).toHaveLength(1);
+    expect(book.chapters[0].title).toBe('第一回 靈根育孕源流出 心性修持大道生');
+    expect(book.chapters[0].blocks[0]).toMatchObject({ t: 'h', text: '第一回 靈根育孕源流出 心性修持大道生' });
+    // A text that opens with prose, or with a section numeral, keeps the book's title.
+    expect(importText(prose(300), '短篇').chapters[0].title).toBe('短篇');
+  });
+
+  it('reads classical section titles (學而第一) as headings when the text opens with one or they count up', () => {
+    const one = importText(`學而第一\n${prose(200)}`, '論語·學而');
+    expect(one.chapters.map((c) => c.title)).toEqual(['學而第一']);
+    expect(one.chapters[0].blocks[0]).toMatchObject({ t: 'h', level: 2, text: '學而第一' });
+    const whole = importText(`學而第一\n${prose(200)}\n爲政第二\n${prose(200, 1)}\n八佾第三\n${prose(200, 2)}`, '論語');
+    expect(whole.chapters.map((c) => c.title)).toEqual(['學而第一', '爲政第二', '八佾第三']);
+    // A stray line in prose, or numbers that do not count up from 第一, stay text.
+    const stray = importText(`${prose(200)}\n天下第一\n${prose(200, 1)}`, '书');
+    expect(stray.chapters[0].blocks.every((b) => b.t === 'p')).toBe(true);
+    const odd = importText(`${prose(200)}\n天下第二\n${prose(200, 1)}\n名列第三\n${prose(200, 2)}`, '书');
+    expect(odd.chapters[0].blocks.every((b) => b.t === 'p')).toBe(true);
+  });
+
+  it('marks poem titles over their verse as headings inside one chapter', () => {
+    const book = importText('靜夜思　李白\n牀前明月光，疑是地上霜。\n舉頭望明月，低頭思故鄉。\n詠鵝　駱賓王\n鵝，鵝，鵝，曲項向天歌。\n白毛浮綠水，紅掌撥清波。', '唐詩');
+    expect(book.chapters).toHaveLength(1);
+    const heads = book.chapters[0].blocks.filter((b) => b.t === 'h');
+    expect(heads).toEqual([{ t: 'h', level: 3, text: '靜夜思　李白' }, { t: 'h', level: 3, text: '詠鵝　駱賓王' }]);
+    // One such line in prose (a letter's signature) is text.
+    const letter = importText(`${prose(200)}\n某月某日　煥章再拜\n${prose(200, 1)}`, '书');
+    expect(letter.chapters[0].blocks.every((b) => b.t === 'p')).toBe(true);
+  });
+
   it('does not make chapters out of a typed table of contents', () => {
     const toc = Array.from({ length: 6 }, (_, i) => `第${i + 1}章 标题${i + 1}`).join('\n');
     const body = Array.from({ length: 6 }, (_, i) => `第${i + 1}章 标题${i + 1}\n${prose(200, i)}`).join('\n');

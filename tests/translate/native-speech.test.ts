@@ -117,12 +117,11 @@ describe('native Premium audio', () => {
   it('sends where each sentence\'s words start, and only when words are highlighted', async () => {
     const wordStarts = vi.fn((i: number) => (i === 0 ? [0, 2, 3, 5, 7] : [0, 1]));
     const run = speech.speakSequence(['你们好。学而时。', '再见。'], { wordStarts }, undefined, () => {});
-    await vi.waitFor(() => expect(sent).toHaveLength(2));
-    // Offsets are per sentence, and the second sentence of the first part starts at 4.
-    expect(sent.map(s => [s.text, s.marks])).toEqual([['你们好。', [0, 2, 3]], ['学而时。', [0, 1, 3]]]);
-    audio[0].onended?.();
     await vi.waitFor(() => expect(sent).toHaveLength(3));
-    expect(sent[2].marks).toEqual([0, 1]);
+    // Offsets are per sentence, and the second sentence of the first part starts at 4.
+    expect(sent.map(s => [s.text, s.marks])).toEqual([['你们好。', [0, 2, 3]], ['学而时。', [0, 1, 3]], ['再见。', [0, 1]]]);
+    audio[0].onended?.();
+    await vi.waitFor(() => expect(audio).toHaveLength(2));
     audio[1].onended?.();
     await vi.waitFor(() => expect(audio).toHaveLength(3));
     audio[2].onended?.();
@@ -140,13 +139,10 @@ describe('native Premium audio', () => {
     const long = '天地之数有十二万九千六百岁，将一元分为十二会，乃子丑寅卯辰巳午未申酉戌亥之十二支也。';
     const words: [number, number, number][] = [];
     const run = speech.speakSequence([long, '再见。'], { wordStarts: () => [0, 14, 20] }, undefined, (part, at, len) => words.push([part, at, len]));
-    await vi.waitFor(() => expect(sent).toHaveLength(2));
-    expect(sent.map(s => s.text)).toEqual(['天地之数有十二万九千六百岁，', long.slice(14)]);
-    // Word starts stay in the right place in each half.
-    expect(sent.map(s => s.marks)).toEqual([[0], [0, 6]]);
-    audio[0].onended?.();
     await vi.waitFor(() => expect(sent).toHaveLength(3));
-    expect(sent[2].text).toBe('再见。');
+    expect(sent.map(s => s.text)).toEqual(['天地之数有十二万九千六百岁，', long.slice(14), '再见。']);
+    // Word starts stay in the right place in each half.
+    expect(sent.slice(0, 2).map(s => s.marks)).toEqual([[0], [0, 6]]);
     speech.stopSpeaking();
     expect(await run).toBe(false);
     // A short first sentence is left whole.
@@ -183,5 +179,125 @@ describe('native Premium audio', () => {
     expect(await run).toBe(false);
     expect(error).toHaveBeenCalledWith(expect.stringContaining('Premium voice'));
     expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
+  });
+
+  /** Holds each render until the test lets it go; counts the renders asked for and how many were open at once. */
+  function holdRenders() {
+    const plain = vi.mocked(fetch).getMockImplementation()!;
+    const held: { text: string; go: () => void }[] = [];
+    const asked: string[] = [];
+    let open = 0;
+    let most = 0;
+    vi.mocked(fetch).mockImplementation(async (url, init) => {
+      if (String(url).endsWith('native-voices')) return plain(url, init);
+      const text = JSON.parse(init!.body as string).text as string;
+      asked.push(text);
+      most = Math.max(most, ++open);
+      await new Promise<void>((go) => held.push({ text, go }));
+      open--;
+      return plain(url, init);
+    });
+    const release = (text: string) => { const i = held.findIndex((h) => h.text === text); held.splice(i, 1)[0].go(); };
+    return { asked, held, release, most: () => most };
+  }
+
+  it('keeps closing quotes with their sentence, so the voice never reads a mark by its name', async () => {
+    marksHeader = JSON.stringify([[0, 0], [1, 300]]);
+    const words: [number, number, number][] = [];
+    // 走吧 at 1, 他 at 5 and 说 at 6 in the second paragraph.
+    const starts = [[0, 1, 4], [1, 5, 6], [], [0, 1, 4]];
+    const run = speech.speakSequence(['他说：“好。”', '“走吧。”他说。', '○○○', '他说："好。"'], { wordStarts: (i) => starts[i] },
+      undefined, (part, at, len) => words.push([part, at, len]));
+    for (let k = 0; k < 4; k++) {
+      await vi.waitFor(() => expect(audio).toHaveLength(k + 1));
+      audio[k].onended?.();
+    }
+    expect(await run).toBe(true);
+    expect(sent.map((s) => s.text)).toEqual(['他说：“好。”', '“走吧。”', '他说。', '他说："好。"']);
+    // The sentence after a closer starts at its first word, and its words light up where they are.
+    expect(sent[2].marks).toEqual([0, 1]);
+    expect(words.filter((w) => w[0] === 1)).toEqual([[1, 0, 1], [1, 5, 1]]);
+  });
+
+  it('renders the next two sentences while one plays, never more than two at once', async () => {
+    const r = holdRenders();
+    const run = speech.speakSequence(['一。', '二。', '三。', '四。']);
+    await vi.waitFor(() => expect(r.held).toHaveLength(1));
+    r.release('一。');
+    await vi.waitFor(() => expect(audio).toHaveLength(1));
+    await vi.waitFor(() => expect(r.asked).toEqual(['一。', '二。', '三。']));
+    r.release('二。');
+    audio[0].onended?.();
+    await vi.waitFor(() => expect(audio).toHaveLength(2));
+    await vi.waitFor(() => expect(r.asked).toHaveLength(4));
+    r.release('三。');
+    r.release('四。');
+    audio[1].onended?.();
+    await vi.waitFor(() => expect(audio).toHaveLength(3));
+    audio[2].onended?.();
+    await vi.waitFor(() => expect(audio).toHaveLength(4));
+    audio[3].onended?.();
+    expect(await run).toBe(true);
+    expect(r.most()).toBe(2);
+  });
+
+  it('says it is preparing again when a sentence ends before the next is ready', async () => {
+    const r = holdRenders();
+    const start = vi.fn();
+    const waiting = vi.fn();
+    const run = speech.speakSequence(['一。', '二。', '三。'], { onStart: start, onWaiting: waiting });
+    await vi.waitFor(() => expect(r.held).toHaveLength(1));
+    r.release('一。');
+    await vi.waitFor(() => expect(start).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(r.held).toHaveLength(2));
+    r.release('二。');
+    await new Promise((done) => setTimeout(done, 50)); // its audio arrives
+    audio[0].onended?.(); // the next one was ready
+    await vi.waitFor(() => expect(start).toHaveBeenCalledTimes(2));
+    expect(waiting).not.toHaveBeenCalled();
+    audio[1].onended?.(); // the next one is not
+    await vi.waitFor(() => expect(waiting).toHaveBeenCalledOnce());
+    r.release('三。');
+    await vi.waitFor(() => expect(start).toHaveBeenCalledTimes(3));
+    audio[2].onended?.();
+    expect(await run).toBe(true);
+    expect(waiting).toHaveBeenCalledOnce();
+  });
+
+  it('gives a render time in proportion to its text, so a stalled Mac fails in seconds', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+    const run = speech.speakSequence(['你好。', '天'.repeat(100) + '。']);
+    await vi.waitFor(() => expect(sent).toHaveLength(2));
+    expect(timeout).toHaveBeenCalledWith(5000 + 60 * 3);
+    expect(timeout).toHaveBeenCalledWith(5000 + 60 * 101);
+    expect(timeout).not.toHaveBeenCalledWith(35000);
+    speech.stopSpeaking();
+    expect(await run).toBe(false);
+  });
+
+  it('asks again while the Mac is still finishing a render that was just cancelled', async () => {
+    const plain = vi.mocked(fetch).getMockImplementation()!;
+    let busy = 2;
+    vi.mocked(fetch).mockImplementation(async (url, init) => (String(url).endsWith('native-speech') && busy-- > 0 ? new Response('', { status: 429 }) : plain(url, init)));
+    const error = vi.fn();
+    const run = speech.speakSequence(['你好。'], { onError: error });
+    await vi.waitFor(() => expect(audio).toHaveLength(1));
+    audio[0].onended?.();
+    expect(await run).toBe(true);
+    expect(error).not.toHaveBeenCalled();
+    expect(sent).toHaveLength(1);
+  });
+
+  it('changes the speed of the sentence that is playing at once', async () => {
+    const run = speech.speakSequence(['你好。'], { rate: 1 });
+    await vi.waitFor(() => expect(audio).toHaveLength(1));
+    speech.setSpeakingRate(1.5);
+    expect(audio[0].playbackRate).toBe(1.5);
+    speech.setSpeakingRate(9);
+    expect(audio[0].playbackRate).toBe(2);
+    audio[0].onended?.();
+    expect(await run).toBe(true);
+    speech.setSpeakingRate(0.75); // nothing playing
+    expect(audio[0].playbackRate).toBe(2);
   });
 });

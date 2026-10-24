@@ -157,7 +157,9 @@ Details:
   unless followed by a verb in 得到/得出 style words (CEDICT handles most) — keep rules simple
   and explicit; 地 → de5 when prev ends with a reduplicated char (慢慢地) or is a 2+ char
   adverb/adjective (heuristic: prev token length ≥ 2 and next token is not a noun-ish word —
-  document whatever heuristic you choose and test it), else dì; 还 → hái; 都 → dōu;
+  document whatever heuristic you choose and test it), else dì; 还 → hái, but huán before 了 (还了酒钱; 还了得 stays hái) and
+  ending its clause after a word (借了不还); 中了 → zhòng (中了计, 中了举人) unless a particle follows (山寨中了么); 行 → háng
+  before 字; 数钱 → shǔ; 背着 → bēi (`WORD_READINGS`; segment.ts cuts the bèi cases: 背着脸, 背着人, 偷背着, 倒背着); 都 → dōu;
   行/长/重/为/得/觉/分/便/传/少/好/种/中/看/相/应/空 → standalone defaults from Unihan order.
   For multi-reading multi-char words (e.g. 银行 has one reading, 长大 one; 好好 several) prefer
   the entry whose defs are not "variant of"/"old variant"/surname-only, then the most common.
@@ -174,7 +176,9 @@ Details:
   log(count+1) − log(total) scores (unseen single chars get count 0 → still valid). Ties favor
   fewer tokens. Each han token gets `pinyin` from `dict.pinyinFor(word, {prev, next})`.
 - Reduplication: AABB and ABAB built from a dictionary word AB (吆吆喝喝, 研究研究) are one token; 一一 stays together (一一应); a 只 after a numeral is
-  a measure word, so 只用 after 一 is cut 只|用. Not handled: 着落/上爬 after a verb (the dictionary word wins).
+  a measure word, so 只用 after 一 is cut 只|用. 了得 (liǎode) is one token at the end of a clause or after 十分 好生 端的 還 英雄 武藝
+  (那還了得, 十分了得) and stays 了|得 elsewhere (聽了得意); 一行 before 字 is cut (一|行|字, a line of writing). Not handled: 着落/上爬 after a
+  verb (the dictionary word wins).
 - Traditional text segments exactly as well as simplified (both scripts are in `words`).
 - Performance: 10,000 Han chars in < 60 ms on this Mac (test it).
 - Tests on real sentences, e.g. 我们在银行门口见面。 → 我们|在|银行|门口|见面|。;
@@ -186,7 +190,8 @@ Details:
 ü; `r5` → `r`; keep capitalization), `markedToNumbered`, `numberedToZhuyin` (full table,
 tone marks ˊˇˋ˙), `formatSyllable(s, style)`, `formatPinyin(numbered, style)`,
 `applySandhi(tokens)`: 不 before a 4th tone → bu2; 一 → yi2 before 4th, yi4 before 1/2/3,
-unchanged as a number (第一, 一月, 十一, 一二三, 唯一, end of phrase). Also: 一/不 between identical characters are
+unchanged as a number (第一, 一月, 十一, 一二三, 唯一, end of phrase). Only digits keep it yī: before the place values 百 千 万 亿 it
+changes like before any word (一百 yìbǎi, 一万 yíwàn, 一百一十一 yìbǎi yīshíyī). Also: 一/不 between identical characters are
 neutral (看一看, 好不好) unless the character is a measure word (一个一个, 一次一次, 一遍一遍 are yí ge, yí cì, yí biàn), and 一 before a neutral
 个/個 is yi2 (一个, 一個 are yí ge); 一两个 is yì liǎng gè (一两银子 stays yī liǎng). Only applied when
 settings.sandhi is on (the caller decides).
@@ -223,8 +228,10 @@ settings.sandhi is on (the caller decides).
   Chinese. HTML and Markdown report `format: 'html'` / `'md'`. TOC fragments: chapters are cut at the anchor
   blocks a TOC points to; generated contents pages are dropped; chapters over 30k Han characters are split by
   headings, else into 12k pieces. `<br>` handling is decided per document (hard-wrapped lines are joined). PDF
-  CJK CMaps (GB/CNS/B5/HK) are bundled (about 87 files, 1.2 MB, fetched only when needed). The TXT heading
-  regex below is a floor: the importer also accepts 節, 卷/部/集 (level 1), diary-style numeral sections and more.
+  CJK CMaps (GB/CNS/B5/HK) are bundled (87 files, 0.8 MB) and precached with the PDF worker, so a PDF imports offline; when they
+  could not load and the server does not answer, the error says "PDF import needs a connection the first time. Connect once and try
+  again." The TXT heading regex below is a floor: the importer also accepts 節, 卷/部/集 (level 1), diary-style numeral sections, a
+  classical section title (學而第一, 勸學篇第一) when the text opens with one or several count up from 第一 (level 2), and more.
 - **TXT**: detect encoding — BOMs (UTF-8/16LE/16BE), else try UTF-8 fatal; else score
   GB18030 vs Big5 vs UTF-16 decodes by the share of common CJK chars (top-3000 by frequency)
   and pick the best. Normalize CRLF. Paragraphs = non-empty lines (also split on blank lines
@@ -240,10 +247,13 @@ settings.sandhi is on (the caller decides).
 - Sets `script` with `detectScript`. Rejects files that contain almost no Han text with a clear error.
 - Every format, last (`finish()` in `import/index.ts`): paragraphs a file broke mid-sentence are joined (`joinSplitParagraphs`: prose of 40+
   characters ending on a Han character, or 60+ on ，、, runs on into prose of 20+ that starts with one; verse lines, headings and lines set
-  out with spaces stay apart), small-form marks (﹐﹔﹕﹖) and an ASCII , ; : ? ! between Han characters become full-width
+  out with spaces stay apart; a paragraph that starts with a closing mark ，。、；：！？」』 always joins the one before), small-form marks
+  (﹐﹔﹕﹖) and an ASCII , ; : ? ! between Han characters become full-width
   (`normalizePunctuation`), and the book is stamped `importVersion` (`import/version.ts`). A chapter over 60,000 Han characters is cut in
   parts of about 12,000; parts after the first carry `cont: true` and show no title. Sections marked only by bare numerals (一, 二 …) that
-  average under 1,500 Han characters stay in one chapter with the numerals as headings (狂人日记).
+  average under 1,500 Han characters stay in one chapter with the numerals as headings (狂人日记). A text kept as one chapter is titled by
+  its own first heading when it opens with one (西遊記 第一回 shows its 回目 once). Two or more "title　poet" lines each over a line of
+  verse (靜夜思　李白) become level-3 headings inside the chapter, marked after chapters are cut so an anthology stays one chapter.
 - Raising `IMPORT_VERSION` re-imports the books the library can fetch again (`ui/library/upgrade.ts`): the Mac's books from the Mac and
   the classics from the site, one at a time once the library has the Mac's list. `store.books.replace` keeps the id, name, notes and
   history and moves the reading place to the same Han character (`core/place.ts`). Sync names an upgraded book with its version
@@ -339,8 +349,14 @@ Prefer installed Premium/Enhanced zh-CN voices for simplified text, zh-TW for tr
 otherwise prefer Tingting / Meijia / Sinji over novelty voices. settings.ttsVoice overrides.
 Native voices use `/api/native-voices` and `/api/native-speech`: same-origin authenticated requests only,
 validated installed voice names, bounded text, subprocess timeout, at most two active renderers,
-temporary files removed after rendering. The client prefetches one sentence, preserves pitch,
-and cancels fetching/playback on stop.
+temporary files removed after rendering. The client keeps the next two sentences rendering while one plays (with one, a long
+sentence after a short one was not ready in time at 2×), asks again after a 429 (a render just cancelled keeps its place until
+its process exits), gives each render 5 s plus 60 ms a character (a stalled Mac fails in seconds and the toast offers an
+on-device voice), preserves pitch, and cancels fetching/playback on stop. When a sentence ends before the next is ready,
+`opts.onWaiting` fires and the strip says Preparing audio… until the next one plays.
+Sentences: a sentence keeps the closers after its mark (」』”’）】〉》; not ASCII quotes, which may open the next quote), and a piece
+of only punctuation, symbols or spaces joins the piece before it, or is dropped at a paragraph's start (a ○○○ separator): a
+voice reads a lone ” by its name. Both the Mac and Web Speech read these pieces.
 Word highlighting with Premium voices: Apple's neural voices report word events late (two phrases behind, and the last ones
 never), in Safari, Chrome and AVSpeechSynthesizer alike, so those events are ignored and a Web Speech Premium voice highlights
 the paragraph. The Mac's renders are timed instead: `speakSequence` sends each sentence's word starts (`opts.wordStarts`, the
@@ -355,12 +371,19 @@ characters is read as its first clause (a comma at 7–24) and the rest, which r
 in about 1.1–1.4 s. In Pages, the reader turns to the word's page when it is past `pager.shownRange()` (a word on the next
 page sits beside the spread, so a screen-position test missed it and the page did not turn mid-paragraph). The helper is compiled once per source
 version with the Mac's Swift compiler into ~/Library/Caches/Dushu (only when `xcode-select -p` finds the tools, since a
-missing compiler opens an install dialog); without it `say` renders and the paragraph is highlighted. The reader marks every
-shown word that overlaps the reported range.
+missing compiler opens an install dialog); without it `say` renders and the paragraph is highlighted. The helper gets 3 s plus
+30 ms a character; one killed for its time is skipped for three minutes, so sentences do not each wait it out. The reader marks
+every shown word that overlaps the reported range.
 `speak` cancels anything playing.
 `speakSequence` reads chapter blocks in small chunks, reports utterance boundaries for word
 highlighting, and supports pause, resume and stop. `getRate` is read at each sentence chunk,
-so speed changes need no chapter restart. Scroll shows a floating playback strip; Pages keeps the header controls.
+so speed changes need no chapter restart, and `setSpeakingRate` changes the Mac's playing audio at once (the marks follow its
+clock). Scroll shows a floating playback strip; Pages keeps the header controls.
+The bar's Read button starts at the first word that begins on show: in Pages at or after `pager.anchor()`, in Scroll at or
+after the top line's first character (`scrollOffsetAtTop`), which is brought just clear of the bar. Earlier text is on a page
+already turned (the voice would turn back to it) or under the bar, and a word start avoids reading half a word.
+A chapter run that has ended resets only the reader's controls (`endChapterSpeech`): it may have ended because a word card's
+Pronounce took the voice, and stopping the engine again silenced the word. Stop, a new chapter or leaving stops the engine.
 Reader word and selected-passage popups offer **Read from here**. The lookup supplies a block and UTF-16 source
 offset; chapter speech slices only its first block and translates boundary events back to the original offsets.
 It continues through the chapter, reveals the chosen offset in Pages, and safely replaces previous playback.
@@ -448,6 +471,12 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   person (赤老温, 合撒儿) from a technique by how often it is addressed or ordered (对 向 问 命 …). A dictionary proper noun keeps its own first sense as
   the gloss. Offices (郡侯, 功曹) are not persons, 亭 and 郡 end a place. Detection yields every 8 ms of work (`detectGen`); `loadLexicon` waits for
   an idle moment and works in 10 ms slices, so no task is longer than a frame. Known misses: 小紅, 长根 (too rare or too common a first character).
+- Detection v6 (`DETECTOR_VERSION` 6): a speaker string that makes a word with the verb after it (操大+笑, 替天行+道) does not count, except that
+  道 alone does not disqualify a last character (王夫人道). Strings that open with 谓/此/转 or a doubled character are phrases. A final pass
+  (`boundaries()`) checks each entry against its neighbors: a name whose usual next character makes a more frequent word with it (大兒|子), or an
+  entry whose usual previous character does (拍|馬舞刀), is dropped, as is one that often cuts a dictionary person name (曹|操大, 吳主孫|權) or wraps
+  one in a title (先鋒使宋江). A dictionary proper noun that holds a found name (關雲長 around 雲長, 孫悟空 around 悟空) is added with its dictionary
+  reading. On the four classics: 11 false entries dropped, 10 real names added, none lost.
 - `capitalizePinyin(syllables, kind, word, fold?)` and `pinyinGroups` (exported from `names.ts` and `lexicon.ts`): a name is written Guō Jìng,
   Hán Xiǎoyíng, Ōuyáng Wújì, Lǎo Wántóng; a place Táohuā Dǎo, Guīyún Zhuāng; a term, a user word and zhuyin stay as they are. The word popup and the
   "In this book" card use it (`ui/popup/pinyinText.ts`); ruby over the text stays lowercase.
@@ -504,13 +533,17 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
 Saved words (with their SRS state), known words (with the learned-from-reading mark) and the reading place in each book are the same on
 every device connected to the Mac. Books, settings, review logs and names are not synced.
 - **The Mac** (`scripts/sync-bridge.ts`, route `POST /api/sync`, owner-only through `bridgeRequest`, CORS like the other bridge routes)
-  keeps one file, `.dushu-local/sync/state.json` (`DUSHU_SYNC_DIR` overrides it for tests): `{ epoch, version, records: { key: { at, data, rev } } }`.
+  keeps one file, `state.json` in the folder `DUSHU_SYNC_DIR` names (an absolute path; the owner's is `.dushu-local/sync`):
+  `{ epoch, version, records: { key: { at, data, rev } } }`. There is no default folder: only `scripts/start-local.mjs` (Dushu.command,
+  `npm start`, the login item) sets it, and a server started any other way (`npm run dev`, `npm run preview`, a QA script) answers 503
+  `{ off: true }`. A save by another process on the same folder (a new inode) is read before the next merge, never overwritten.
   Keys: `v:<word id>`, `k:<word>`, `p:<book key>`; `data: null` is a deletion. A request sends `{ epoch, since, changes: [{ key, at, data }] }`;
   each change wins when its `at` is later (a tie goes to the larger JSON, so every copy agrees; an `at` more than 10 minutes ahead of the
   Mac's clock is clamped). `at: 0` means a copy the device never synced: it lands only where the Mac has nothing. The reply holds every
   record with `rev > since` plus the current value of every change that lost, the new `version`, and counts. A different `epoch` (or a
   cursor past the end) gets everything. Writes are atomic; before the first write of a day the previous file is kept as
-  `state-YYYY-MM-DD.json` (14 kept); a file that cannot be parsed is set aside, never overwritten. Limits: 8 MB body, 5,000 changes, 32 KB per record.
+  `state-YYYY-MM-DD.json` (14 kept); a file that cannot be parsed is set aside, never overwritten. Limits: 8 MB body (a larger one is read
+  to the end, then refused with 413), 5,000 changes, 32 KB per record (a larger record is answered like a change that lost).
 - **A device** keeps one row per record in the store's `sync` table (`SyncRow`: `at`, `sig` = hash of the record, `dirty` when not yet sent,
   `fresh` for a word saved before it ever synced, `held` for a place in a book the device does not have: sent by the Mac before the book
   arrived, or kept by `store.books.remove`; `#meta` holds `epoch` and the cursor). `store.books.add` (and `update`, when marking a book as
@@ -536,7 +569,11 @@ every device connected to the Mac. Books, settings, review logs and names are no
 Routes: `#/` library · `#/read/<bookId>?ch=<n>` reader · `#/vocab` · `#/review` ·
 `#/settings` · `#/about`. Each screen module exports `mount: MountFn` and returns a cleanup.
 The reader hides the nav (`body[data-route=read]`) and draws its own top bar.
-`ctx.dict()` is a cached promise; `ctx.dictSync()` is non-null once loaded.
+On a route change the old screen's cleanup runs before `body[data-route]` changes, so the reader saves its place under its own
+layout (with the nav back in the flow it measured a line early on every visit). A screen that finishes mounting after the route
+moved on is cleaned up at once and never replaces the current screen's cleanup.
+`ctx.dict()` is a cached promise; `ctx.dictSync()` is non-null once loaded. A failed download is not cached: the next use tries
+again, and the toast says "Could not download the dictionary. Check your connection; Dushu will try again."
 
 ### 5.2 Popups (`ui/popup/popup.ts`, signatures in the stub)
 One popup at a time (opening one closes the other). Positioned near the anchor, flips
@@ -582,7 +619,12 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
 ### 5.3 Reader (`ui/reader/`)
 - Top bar: back to library, book title + chapter title, chapter menu (TOC drawer),
   pinyin mode quick toggle (Off / All / Unknown / HSK), Aa menu (font size, family, line height,
-  width, theme), progress %.
+  width, theme), progress %. The bar is opaque paper with no backdrop blur in both layouts (scrolled text ghosted through a
+  translucent one in WebKit). The pinyin button is a 拼 seal (`span.rd-seal`, set in `--font-serif`, aria-hidden) followed by the mode
+  label: a solid seal while pinyin shows, an outline (朱文) when it is off. Its accessible name stays `Pinyin: <mode>`. On a phone the label
+  is set smaller; at 360 px and below only the HSK level stays beside the seal (`span.rd-pill-pre` holds the "HSK " that hides).
+- The page itself (`.rd-article` in Scroll, `.rd-stage` in Pages) is framed on focus only when Tab brought focus there: `reader.ts` sets
+  `data-tabbed` on focusin after a Tab key, so a word card closed with Esc hands focus back without a frame.
 - Render the current chapter only. Paragraph → tokens → one element per han token:
   `<span class="rd-w" data-s=start data-e=end data-i=token>` containing `<ruby class="rd-c" data-o=offset>` per character with
   `<rt class="tone-n"><span class="rd-rtx">pinyin</span></rt>` (the text sits in a span because Safari ignores positioning on `rt`; tone class
@@ -590,8 +632,10 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   `span.rd-pu.rd-pu-o` (opening) or `.rd-pu-c` (closing) so the grid can give it half a cell. The half cell assumes the ink at the left of
   the box (closing marks), as simplified fonts draw them; traditional fonts center ，。、：； (the Taiwan convention), so in a traditional
   book the marks use the simplified stack of the same family (`--rd-pu-font`, set in `reader.ts`). A chapter's first heading is shown as
-  the chapter title (`rd-h1`) whatever level the file gave it; headings break at their spaces (`word-break: keep-all`), so a 回目 couplet
-  wraps between its halves; a bare section number (`rd-h-num`) is centered. Each `rt` is `aria-hidden` and each word is `role=button`
+  the chapter title (`rd-h1`) whatever level the file gave it; headings break at their spaces (`word-break: keep-all`, plus `nowrap` on each
+  character for Safari, which ignores keep-all between elements), so a 回目 couplet wraps between its halves. Safari has no fallback break
+  inside a half that is wider than the column, so in a column under 12em of the heading (`@container rd-h`) it breaks between words
+  instead (Chrome breaks inside the half through overflow-wrap); a bare section number (`rd-h-num`) is centered. Each `rt` is `aria-hidden` and each word is `role=button`
   with `aria-label="word, pinyin"`, so a screen reader says the word once and a double tap looks it up. In the Pages layout the `rt` nodes are
   left out until `view.ensurePinyin(block)` (`lazyPinyin`): the pinyin hangs out of the flow, so pagination does not depend on it, and only the
   pages near the reader carry it (about a third of the DOM). Characters from Ext B and later get `rd-rare` (a touch smaller, to even the line
@@ -623,20 +667,24 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   (mouse up with a non-collapsed selection containing Han) → map the DOM range to block
   offsets via the token spans (never use Selection.toString — it would include rt), highlight
   it, open the phrase popup. Mobile: tap = click; long-press selection works the same way.
-- Saved words get a subtle underline (`--saved`); known words lose their pinyin in Unknown mode.
+- Saved words get one continuous vermilion stroke under the whole word (`--saved`, an absolutely placed `::before` on each character
+  cell, ends pulled in so neighbors stay apart; never inside the chapter title, which carries its own short red rule). It moves no text.
+  Known words lose their pinyin in Unknown mode. Only headings are balanced (`text-wrap: balance`); short prose paragraphs fill like any other.
 - Paragraph translate (settings.paragraphTranslate): a small translate icon appears in the
   margin on hover; click → translation block under the paragraph (toggle). Scroll layout only: Pages hides the margin buttons and has no
-  in-flow translation block (select a sentence instead).
+  in-flow translation block (select a sentence instead). The Aa menu leaves the switch out on a touch screen: it only shows the hover
+  button, and a double tap translates either way.
 - Keys: ←/→ or PageUp/PageDown at chapter edges = prev/next chapter, `p` cycles pinyin mode,
-  `[`/`]` font size, Esc closes popups, `?` shows a shortcut sheet.
+  `[`/`]` font size, Esc closes popups, `?` shows the shortcut sheet (`openShortcuts` with the Reading and In a word card groups, titled).
 - Keyboard word cursor (Switch Control, VoiceOver, a Bluetooth keyboard on an iPad): Enter puts a cursor (real focus, class `rd-cursor`) on the first
   word of the page; ←/→ move by word and ↑/↓ by line, across page turns; Enter or Space opens the card; Esc closes the card (focus returns to the word),
   then ends the cursor. PageUp/PageDown still turn pages. The page itself (`.rd-stage` or the Scroll article) has `tabindex=0` and a label.
 - Touch: on a touch screen a second tap within 380 ms and 48 px (screen coordinates) of the first opens the sentence of the FIRST tap's word as a phrase popup (translation), whatever is under the finger by then: it is a capture-phase click listener (`onDoubleTap` in reader.ts), because the first tap's card or the lifted page can be under the second tap, and the Pages lift of a bottom sheet is held back 400 ms (`LIFT_HOLD_MS`) so the word stays put for it. Names found by the first-open scan wait while a word card is open and apply when it is closed. Pages turns the page
   from a tap on the blank margin in the outer strips of the spread (`edgeWidth`: about 16% of a spread, 20% of one page, 56 px at least). A tap on
   the text never turns: a word opens its card wherever it is, and the rest of a text line (`.rd-b`: punctuation, the gap between lines) shows or hides
-  the bar, so reaching for a word near the edge no longer turns the page. A mouse click on a word always looks it up. The first time a book is opened on a device a hint says so
-  (`dushu.reader-hint.v1` in localStorage, dismissed by the first tap).
+  the bar, so reaching for a word near the edge no longer turns the page. A mouse click on a word always looks it up. The first time a book is opened on a device a hint says so, and points to
+  the 拼 button (drawn as the seal) for pinyin on every word, unknown words or above an HSK level (`dushu.reader-hint.v1` in localStorage,
+  dismissed by the first tap).
 - A chapter that cannot be loaded or drawn shows "Could not display this chapter" with Previous, Next, Open chapter list and (the first time) Try
   again; keys still turn chapters; the saved place is not overwritten. Failures are counted per chapter in localStorage (`dushu.chapter-failures`):
   after two, opening the book shows the error and the chapter list instead of trying that chapter again.
@@ -661,8 +709,13 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   Shortcuts live in `ui/shortcuts.ts`, shared by the reader's `?` sheet and the About page.
 - Progress: save `{chapter, block, offset?, percent}` (debounced on scroll; on every page turn in Pages); restore on open (scroll the
   block into view, or open the page that holds the offset). Scroll also saves the offset of the first line under the bar, so a reload comes back to
-  the line, not the paragraph. A link with `?ch=n` opens that chapter at its start; a plain book link restores the saved place. Update `lastOpenedAt`. Chapter end: "Next chapter" button (Scroll), or the
+  the line, not the paragraph. A link with `?ch=n` opens that chapter at its start; a plain book link restores the saved place. A saved
+  `{block 0, offset 0}` is the top of the chapter, so the chapter title stays in view. Update `lastOpenedAt`. Chapter end: "Next chapter" button (Scroll), or the
   next page flows into the next chapter (Pages).
+- Keeping the place in Scroll (`keepPlace`): a change that reflows the text (text size, spacing, script, names) keeps the first character of
+  the line under the bar at the same height, not just its paragraph. A script change empties the drawn blocks (`reconvert`), so the place is
+  measured first and the blocks down to it are drawn again before anything measures the page. A layout switch reads the place
+  (`currentPlace`) and saves it before `applyLayout` gives the text the other layout's size.
 - Script and fonts: the article's `lang` is `zh-Hant` or `zh-Hans` from the script setting (original = the book's script). `--rd-font` is set
   to the matching stack (`--font-serif`, `--font-sans`, `--font-kai`, and the `-hant` variants for traditional) because a `var()` set on the
   container resolves there, so the `:lang(zh-Hant)` override in tokens.css never reaches the text by itself. Line height is raised to at
@@ -677,16 +730,25 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
 Samples are stored with `format: 'sample'`, `sourceName: 'sample:<id>'` and the index note plus source URL.
 `public/samples/index.json` entries carry id, title, author, script, file, level, blurb, source, note and optional
 `group` (the four classical novels are grouped), chapters and chars.
-Grid of book cards (cover image or a generated cover: title in large serif on a tinted
-background derived from the title hash; author; progress bar; "Continue" on the most recent). Once any word is marked known, each card
-also says "You know N% of its words" (`ui/library/bookShare.ts`, `core/bookWords.ts`): six chapters spread over the book, the first 4,000
+Grid of book cards (cover image or a generated cover; author; progress bar; "Continue" on the most recent). Generated covers come in two
+families drawn in CSS (`cover.ts`, `library.css`): **classic**, a thread-bound book (线装书) with a paper title slip (题签), four-hole stitching
+on the right-hand spine and silk corner caps (the title set down the slip for up to eight CJK characters, across a horizontal slip for longer
+or Latin titles: `classicLayout`), and **modern**, a cloth hardcover with the title set across in the book serif, a hairline rule, the author
+on its own line and a band at the foot. Both are dyed from a short list of book cloths (`coverDye`). `era.ts` `bookEra()` picks the family: the
+bundled classics by sample id (title and author when the id is lost), then classic for an author field with a dynasty marker (〔清〕, [明], 唐·,
+清 …) or a classical author in either script, modern for everything else. The card's "…" menu (beside the title, never on the cover) has
+Cover: Automatic / Classic / Modern, kept per browser in `dushu.cover-style.v1` (`coverStyle.ts`). Once any word is marked known, each card
+also says "You know N% of its words" ("<1%" when some but under 1%) (`ui/library/bookShare.ts`, `core/bookWords.ts`): six chapters spread over the book, the first 4,000
 characters of each, counted like the Words tab (names left out), share of occurrences known. Samples are counted one book at a time in the
 background a moment after the library opens and kept per device (`dushu.book-words.v1`, keyed by chapter count, size and the number of names),
 so the share follows known-word changes without reading the book again.
 Title/author search normalizes simplified/traditional text; the grid can be sorted by recently read,
 title or date added. Filtering never changes stored books and has a clear empty-result state.
 Import: button + drag-and-drop anywhere on the page + "Paste text" dialog. Progress UI during
-import; errors as clear toasts. Card menu: rename, delete (confirm). "Start with a classic"
+import; errors as clear toasts. Pasted text with no title of its own is saved as "Pasted text", the name its card showed. A file whose
+import reproduces a book already here (same chapter count, size and chapter titles, as `bookKey` names a file-added book) is not added
+again: a toast says it is already in the library and offers Open (the Mac's own books are always added; `macCopyOf` covers a pick of the
+Mac's file). A progress row past the start of a long book shows at least 1%, never "Not started". Card menu: rename, delete (confirm), cover (Automatic, Classic, Modern). "Start with a classic"
 section listing `public/samples/index.json` (title, author, level hint, blurb) → one click adds
 and opens it. Empty state explains what the app does in two sentences.
 
@@ -713,7 +775,7 @@ field with Connect and Disconnect plus a confirm card for `#/settings?connect=<u
 data (confirm). Layout, Pages shown and Page turn are in Settings and in the reader's Aa menu; rows that only apply to one layout are hidden in the
 other (Pages shown and Page turn in Scroll, the page width in Pages) and Settings says "Applies to the Pages layout". How the pinyin looks (style, tone
 colors, tone changes) is in the reader's pinyin menu; the Aa menu has Text, Page and Reading sections. Settings lists its sections at the left on a wide
-screen. About: what the app is, data sources + licenses from `meta.json` (CC-CEDICT
+screen, the one being read marked with a vermilion ribbon (the first at the top of the page, the last at the bottom). About: what the app is, data sources + licenses from `meta.json` (CC-CEDICT
 CC BY-SA attribution is required; Noto Serif SC/TC and LXGW WenKai are OFL 1.1), coverage counts, keyboard shortcuts, what can be imported
 (EPUB, MOBI and AZW3 without DRM, TXT, PDF, HTML, Markdown), reading like a book, names and terms, iPad, and a storage card (is the data
 protected from eviction, with an ask button; `navigator.storage.persist()` is requested once after the first import, or at boot when books exist).
@@ -734,11 +796,19 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   events' own time stamps over about 64 ms (events with one time stamp count as one): deltas jump when the fingers lift (the events space
   out) and when a busy page gets several folded into one, while the speed holds. A new swipe is a pause of 160 ms (unless the event carries
   the movement the swipe would have made in it: a busy page), a delta the other way, or the swipe speeding up again after it slowed below
-  60% of its top speed or stopped dead (fingers landing on a coasting swipe). Every turn plays its whole animation: one asked for while a
-  page is still turning (fast scrolling, quick taps, a held key) waits for it and then plays; only the latest waits, so turns come no faster
-  than the animation and stop when the reader stops. A finger on the page, a relayout or a new chapter drops the waiting turn.
+  60% of its top speed or stopped dead (fingers landing on a coasting swipe). A wheel that reports lines or pages (Firefox) turns a page per
+  notch. Every turn plays its whole animation: one asked for while a page is still turning (fast scrolling, quick taps or clicks, a held
+  key) waits for it and then plays; only the latest waits, so turns come no faster than the animation and stop when the reader stops (three
+  quick clicks under a flip are two turns). A finger landing mid-turn does not stop it: a tap waits like a key press, and only a swipe takes
+  hold of the page, ending the running turn where it was going once the finger moves. While a page turns, a tap or click is judged against
+  the page it goes to, as that page will rest (`tapOnText`: a hit test with the destination put in place): on text (inside `.rd-b`) it does
+  nothing at all, neither a turn nor a word card, since the reader may be reaching for a word on the page coming in; on the blank margin of
+  an outer strip it waits to turn; in the middle it shows the bar. The turning text itself takes no taps (they go to the stage), so words
+  are looked up on a page at rest. A finger on the page, a relayout or a new chapter drops the waiting turn. Read-aloud going on to the next spread turns it the same way, animated and waiting for a running turn; a jump
+  further than one spread is shown at once (`reveal`, which goes by the block the reader marks as being read).
   Under prefers-reduced-motion the old pages cross-fade out (about 180 ms) instead of flipping or cutting.
   Chapter edges flow into the next/previous chapter (the next chapter's first pages, and a short previous chapter, are ready in idle time).
+  A key, a tap or a swipe toward a chapter that is not ready yet gets it ready and then turns to it, animated.
 - Position: progress keeps the first block on the current page; resizing, rotating, changing font size or
   pinyin re-paginates and lands on the page that contains that block. 60 fps turns (transform/opacity only).
 - **Even pinyin grid (both layouts):** when a paragraph shows pinyin, every Han character occupies the same
@@ -789,13 +859,22 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   pinyin one block at a time made it more frames, not cheaper ones. Real iPad GPU and CPU numbers are not measured.
 
 ### 5.8 Shell, fonts, PWA
+- Page heads: `ui/pageHead.ts` `pageTitle(screen, english)` builds each screen's one `h1`: the Chinese name first (书架 生词 复习 设置 关于,
+  `span.page-title-zh[lang=zh-Hans][aria-hidden=true]`), then the English title, which is what a screen reader announces.
+- Interface fonts: Newsreader (OFL 1.1, `public/fonts/newsreader-roman.woff2` with the optical-size axis and `newsreader-italic.woff2`,
+  wght 400 to 500, Latin-1 plus typographic punctuation, 118 KB together, `Newsreader-OFL.txt` beside them) is declared in `injectFonts()`
+  with a matching `unicode-range` and `font-display: swap`, and precached by `sw.js` (`UI_FONTS`). It sets only the app's own English
+  (`--font-display`): screen titles, italic subtitles, folios, numbers. It has no ǎ ǐ ǒ ǔ ǖ ǘ ǚ ǜ, so pinyin, Chinese, book titles and
+  dictionary text never use it; definitions and translations use `--font-book` (Iowan Old Style, Palatino, Georgia: all have the tone letters).
 - Fonts: Noto Serif SC and TC (400, 700) and LXGW WenKai (regular) from the installed packages, woff2 slices only (a vite plugin strips the woff
   fallbacks from their CSS; `dist/assets` holds about 500 slices). The 527 KB of `@font-face` CSS lives in `src/fonts.ts`, a separate chunk
   `main.ts` imports after the first render, with `font-display: swap`. `tokens.css` has the stacks `--font-serif`, `-serif-hant`, `-sans`,
   `-sans-hant`, `-kai`, `-kai-hant` (Songti first on a Mac) and a Jigmo last resort; the plain ones switch to the Hant ones under `:lang(zh-Hant|zh-TW|zh-HK)`.
 - Service worker (`public/sw.js`; build id, data version and precache list are filled in by `serviceWorker()` in vite.config.ts): three caches.
-  `dushu-app-<build>` (index.html network first, `assets/` cache first; replaced on every build), `dushu-static-<data version>` (`data/`, `samples/`,
-  survives app updates) and `dushu-fonts-v1` (the woff2 slices, cached on first use, never cleared by app or data updates). It does not call `skipWaiting` at install; it handles a
+  `dushu-app-<build>` (index.html network first, `assets/` cache first, the PDF worker and CMaps included; replaced on every build, but a hashed
+  file the previous build stored is copied from its cache instead of downloaded), `dushu-static-<data version>` (`data/`, `samples/`,
+  the two Newsreader files; survives app updates; the data version hashes the bytes of `data/`, `samples/` and `fonts/`, so a release that
+  changes only a classic still reaches installed apps) and `dushu-fonts-v1` (the woff2 slices, cached on first use, never cleared by app or data updates). It does not call `skipWaiting` at install; it handles a
   `SKIP_WAITING` message. `main.ts` shows a persistent "A new version of Dushu is ready. Reload" toast when a worker is waiting, and checks for updates
   when the page becomes visible. Every cache lookup passes `ignoreVary` (a static host's `Vary: Origin` otherwise hides cached module chunks from `import()`), and only an HTML response is ever stored as the app shell. `qa-shell.mjs` with `QA_ONLY=offline` stops a preview server and reloads every screen from the cache. HTTPS is required for install and offline on an iPad (README, "Read on your iPad"); the private Serve endpoint provides it without a public deployment.
 - Safe areas: `#screen` and the reader use `env(safe-area-inset-*)` and `dvh`. Coarse pointers get 44 px buttons (Apple's minimum target), 40 px icon buttons and fields, and 16 px inputs.
@@ -810,10 +889,22 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   settings `set-`, about `ab-`, vocab `voc-`, review `rev-`. Shared: `.btn .card .chip .input
   .select .textarea .icon .icon-btn .page .page-head .page-title .page-sub .section-title
   .muted .empty .kbd .zh .tone-1…5 .modal`. Import your stylesheet from your screen module.
-- Look: calm, paper-like, generous whitespace, one accent color (cinnabar) used sparingly.
-  Reading column centered; UI chrome quiet. Popups are cards with `--shadow`, 12–16 px radius.
-  Respect light/sepia/dark themes (test all three). Must work at 390 px wide.
+- Look ("Colophon", with a crisp chrome): a finely printed Chinese-English edition. Warm paper (light, a deeper bamboo sepia) or a warm
+  near-black ink page (`#131210`, the book text dimmed to `--reader-text`). The type decorates: Newsreader for the app's English titles,
+  wide-set Songti for Chinese names, hairline rules (`--rule`) instead of boxes where the rule is typography (page heads, lists).
+  Vermilion is the reader's brush and nothing else: the seal (`--accent-fill`, a deeper lacquer red with silk text at night), your place in
+  a book (progress, Continue reading, the current chapter's ribbon), saved words, and the current Settings section. Everything else is ink.
+  The chrome around the page (menus, sheets, the word card, dialogs, toasts) sits on `--elev`, a slightly cooler sheet than the paper, edged
+  by alpha rings and layered shadows made from the ink (`--ring`, `--shadow-s`, `--shadow`, `--shadow-pop`), and opens on a spring
+  (`--ease-pop`, `--ease-sheet`: `linear()` springs with a cubic-bezier fallback, a 1 ms cut under reduced motion; never on page turns).
+  Desktop menus are frosted (`--glass` with a blur, solid without one); sheets, the word card and anything in Pages are solid.
+  One control system in `base.css`: a tonal track with a raised paper segment (`.rd-seg`, `.set-seg`, drawer tabs, Words chips, the word
+  card's step bar), a pill switch (on is inked with a check, so the state never rests on position alone), sliders inked up to the thumb.
+  Hover washes sit inside `@media (hover: hover)`. Italic only on English the app writes, never on an element that can hold Chinese.
+  Respect light/sepia/dark themes (test all four, system dark too). Must work at 390 px wide.
 - Icons: `icon(name)` from `ui/icons.ts`. No emoji in the UI.
+- The reading grid (the reading fonts and sizes, the cell, every `--rd-*` variable, `--font-pinyin`) is not styled from outside it, and
+  nothing sets `font-feature-settings` on `body` (it inherits into `rt` and moves the pinyin).
 
 ## 7. Testing and QA
 
@@ -825,6 +916,8 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
 - `npm run typecheck` clean, `npm test` green, `npm run build` succeeds — before reporting done.
 - Unit tests live in `tests/<area>/`. Use the real data files (loader in
   `tests/helpers/data.ts`, owned by core: `loadTestDictionary()` caches one instance per worker).
+  `tests/reader/layoutFake.ts` gives jsdom a layout that follows `--rd-size` (Scroll column with a real scroll position, Pages by
+  character), for tests of where the place lands; `tests/shell/bootApp.ts` boots the real `main.ts` router on it.
 - Browser QA is headless only (`scripts/qa.mjs`, puppeteer-core + system Chrome,
   `headless: true`). **Never open visible windows, never run `open`, never bring an app to the
   foreground** — the owner is working on this machine.
@@ -832,8 +925,10 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
 - Sample books in `public/samples/` must be public domain in the US (published before 1931,
   or classical texts) and record their source URL.
 
-- `node scripts/qa.mjs <url> <outDir> <scenario>` runs against `npx vite --port 5190 --strictPort` and against
-  `npm run build` + `npx vite preview --port 4317 --strictPort`. Scenarios: smoke, read (Scroll layout), epub (QA_EPUB, default
+- `node scripts/qa.mjs [url|-] <outDir> <scenario>` starts its own `vite --port 5190 --strictPort` when no URL is given (`-`), or uses
+  the server a URL names (for the build: `npm run build` + `vite preview` on a scratch port; never 4317, the owner's). Every QA script
+  gives a server it starts an empty mkdtemp `DUSHU_SYNC_DIR` (removed at the end) and switches sync off in the browser (`SYNC_OFF`, kept
+  over `localStorage.clear()`) for a server it did not start (`QA_BASE`, `QA_URL`, a URL, the private address). Scenarios: smoke, read (Scroll layout), epub (QA_EPUB, default
   ~/Downloads/活着.epub; Scroll), vocab, rare, themes (includes WCAG contrast), mobile (390 px), **pages** (two-page spread at 1440x900, turning by key and
   tap, chapter flow, position kept over a reload, a portrait window), **lexicon** (QA_SHEDIAO, default ~/Downloads/射雕英雄传.epub, skipped if
   missing: import through the file input, wait for detection, 郭靖 and 黄蓉 render as single words with name pinyin, the In this book card, Not a
@@ -849,4 +944,5 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
 ## 8. Licenses
 CC-CEDICT (CC BY-SA 4.0, attribution required in About), Unihan (Unicode License v3), jieba
 (MIT), complete-hsk-vocabulary (MIT), OpenCC (Apache-2.0), Jigmo (CC0), Wiktionary via kaikki
-(CC BY-SA), hanzi-writer (MIT) + hanzi-writer-data (Arphic Public License, fetched at runtime).
+(CC BY-SA), hanzi-writer (MIT) + hanzi-writer-data (Arphic Public License, fetched at runtime),
+Newsreader (SIL OFL 1.1, no Reserved Font Name; `public/fonts/Newsreader-OFL.txt`).

@@ -72,6 +72,35 @@ describe('loadSampleBook', () => {
     expect(book.script).toBe('traditional');
   });
 
+  it('has no paragraph that starts with a closing mark, in the files or in the books made from them', () => {
+    // A line that starts with ，。」 … was cut from the line before it (水滸傳 came from Wikisource in 998-character pieces).
+    const closing = /^[\s\u3000]*[，。、；：！？」』]/;
+    for (const s of parseSampleIndex(realIndex)) {
+      const text = readFileSync(join(samplesDir, s.file), 'utf8');
+      const lines = text.split('\n').map((l, i) => ({ l, i: i + 1 })).filter(({ l }) => closing.test(l));
+      expect(lines.map(({ l, i }) => `${s.file}:${i} ${l.slice(0, 12)}`)).toEqual([]);
+      const starts = importText(text, s.title, s.author).chapters.flatMap((c) => c.blocks)
+        .filter((b) => b.t === 'p' && closing.test(b.text)).map((b) => ('text' in b ? b.text.slice(0, 12) : ''));
+      expect(starts, s.file).toEqual([]);
+    }
+  });
+
+  it('draws each sample\'s own headings as headings: poem titles, 學而第一, and the 回目 as the title of 西遊記 第一回', () => {
+    const book = (id: string) => {
+      const s = parseSampleIndex(realIndex).find((x) => x.id === id)!;
+      return importText(readFileSync(join(samplesDir, s.file), 'utf8'), s.title, s.author);
+    };
+    const heads = (id: string) => book(id).chapters.flatMap((c) => c.blocks).filter((b) => b.t === 'h').map((b) => ('text' in b ? b.text : ''));
+    expect(heads('tang-poems')).toEqual(['靜夜思　李白', '春曉　孟浩然', '登鸛雀樓　王之渙', '相思　王維', '江雪　柳宗元', '遊子吟　孟郊', '詠鵝　駱賓王', '鹿柴　王維']);
+    expect(book('tang-poems').chapters).toHaveLength(1);
+    expect(heads('lunyu-xue-er')).toEqual(['學而第一']);
+    expect(book('lunyu-xue-er').chapters.map((c) => c.title)).toEqual(['學而第一']);
+    // The chapter's title is its own 回目, so the reader does not add 西遊記 第一回 above it.
+    const xi = book('xiyouji-1').chapters;
+    expect(xi.map((c) => c.title)).toEqual(['第一回 靈根育孕源流出 心性修持大道生']);
+    expect(xi[0].blocks[0]).toMatchObject({ t: 'h', text: xi[0].title });
+  });
+
   it('explains failures in plain words', async () => {
     const s = parseSampleIndex(realIndex)[0];
     await expect(loadSampleBook(s, importText, () => res(false, ''))).rejects.toThrow(/Could not download/);

@@ -29,6 +29,19 @@ describe('paragraphs broken mid-sentence', () => {
     const a = run(70) + '，';
     expect(texts(joinSplitParagraphs([p(a), p(run(25, 3)), p(run(25, 5))]))).toEqual([a + run(25, 3) + run(25, 5)]);
   });
+  it('joins a paragraph that starts with a closing mark to the one before, whatever their lengths', () => {
+    // 水滸傳 on Wikisource was cut every 998 characters, sometimes just before a comma or a full stop.
+    const cut = run(998, 1) + '總管做媒';
+    expect(texts(joinSplitParagraphs([p(cut), p('。我有個好見識。')]))).toEqual([`${cut}。我有個好見識。`]);
+    expect(texts(joinSplitParagraphs([p('短句'), p('，只得收拾了行仗。')]))).toEqual(['短句，只得收拾了行仗。']);
+    for (const mark of ['，', '。', '、', '；', '：', '！', '？', '」', '』']) {
+      expect(texts(joinSplitParagraphs([p(run(30) + '。'), p(`${mark}${run(5)}`)])), mark).toHaveLength(1);
+    }
+    // An opening mark starts a paragraph as usual.
+    const quote = [p(run(30) + '。'), p('「' + run(30) + '」')];
+    expect(joinSplitParagraphs(quote)).toBe(quote);
+  });
+
   it('leaves verse, short lines, finished sentences and spaced-out lines apart', () => {
     const verse = [p('滿紙荒唐言，'), p('一把辛酸淚！'), p('都云作者痴，'), p('誰解其中味？')];
     expect(joinSplitParagraphs(verse)).toBe(verse);

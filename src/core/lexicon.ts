@@ -15,7 +15,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 5;
+export const DETECTOR_VERSION = 6;
 
 /** Lexicon over the given rows (disabled rows ignored). */
 export function buildLexicon(rows: LexiconEntry[]): Lexicon {
@@ -37,6 +37,8 @@ export const EMPTY_LEXICON: Lexicon = buildLexicon([]);
 
 /** Never start or end a word: particles, pronouns, the commonest adverbs and conjunctions. */
 const EDGE_STOP = new Set([...'的了着过是在和与就也都把被我你他她它们这那个不很又还而但却才并将已正之其所'.replace('之', '').replace('其', '')]);
+/** Never start a name or term: they open a clause or a verb phrase (谓之, 此机会, 转过山), and none is a surname. */
+const PHRASE_START = new Set([...'谓此转']);
 /** Characters that rarely start a name or term but can (有庆, 向问天): accepted only when strongly bound. */
 const SOFT_START = new Set([...'有没要会能可以对给从向跟说道笑问叫看听想去来到为让见只便然至往自于在此其本该該回']);
 /** Characters that rarely end a name or term: verbs of speech, direction and locatives. */
@@ -283,15 +285,113 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   yield;
   out.push(...(yield* speakers(out, text, dict, minCount, due)));
   out.push(...(yield* siblings(out, text, dict, minCount, due)));
-  return out;
+  const bigram = (a: string, b: string): number => bi.get(a.charCodeAt(0) * 65536 + b.charCodeAt(0)) ?? 0;
+  return yield* boundaries(out, text, dict, statsByWord, bigram, due);
+}
+
+// ---------------------------------------------------------- boundaries ---
+
+/**
+ * A dictionary word for one person that the segmenter knows (曹操, 孙权, 宋江). CC-CEDICT writes a person as surname and
+ * given name, both capitalized (Cao2 Cao1, Zhu1 ge3 Liang4); a place or a title is one capitalized word (Liang2 shan1,
+ * Long2 wang2). A mountain is the exception (Hua4 Shan1).
+ */
+function personName(w: string, dict: Dictionary): boolean {
+  const sur = dict.freq(w) > 0 ? surnameSplit(w, dict) : null;
+  if (!sur || dict.toSimplified(w.slice(-1)) === '山') return false;
+  const k = [...sur.surname].length;
+  const senses = dict.lookup(w);
+  return senses.length > 0 && senses.every((e) => { const syl = e.pinyin.split(' '); return /^[A-Z]/.test(syl[0]) && /^[A-Z]/.test(syl[k] ?? ''); });
+}
+
+/** A dictionary entry made only of proper nouns (关云长, 猪悟能). */
+function properNoun(w: string, dict: Dictionary): boolean {
+  const senses = dict.lookup(w);
+  return senses.length > 0 && senses.every((e) => /^[A-Z]/.test(e.pinyin));
+}
+
+/**
+ * Last checks of every entry against its neighbors in the text. A lexicon word wins segmentation over the dictionary,
+ * so an entry that keeps cutting real words is worse than a missed one. Dropped:
+ * - one character after it most of the time that makes a word with its last character (替天行|道, 大儿|子), for a person;
+ *   or one character before it most of the time that makes a word with its first (大|闹天宫, 拍|马舞刀), for any kind;
+ * - a dictionary person name across its edge (曹|操大, 吴主孙|权) often, or beside two or more other characters (先锋使宋江).
+ * Added: a dictionary name that holds a found name (关云长 holds 云长, 孙悟空 holds 悟空), so the name never cuts it.
+ */
+function* boundaries(found: LexiconEntry[], text: string, dict: Dictionary, stats: Map<string, Stat>, bigram: (a: string, b: string) => number, due: () => boolean): Generator<void, LexiconEntry[], void> {
+  const have = new Set(found.map((e) => e.word));
+  const around = (w: string): Stat => {
+    const st: Stat = { left: new Map(), right: new Map() };
+    for (let i = text.indexOf(w); i >= 0; i = text.indexOf(w, i + 1)) {
+      const lc = i > 0 ? text.charCodeAt(i - 1) : 10;
+      const rc = i + w.length < text.length ? text.charCodeAt(i + w.length) : 10;
+      st.left.set(lc, (st.left.get(lc) ?? 0) + 1);
+      st.right.set(rc, (st.right.get(rc) ?? 0) + 1);
+    }
+    return st;
+  };
+  const out: LexiconEntry[] = [];
+  for (const e of found) {
+    if (due()) yield;
+    const w = e.word;
+    const st = stats.get(w) ?? around(w);
+    let n = 0;
+    for (const v of st.right.values()) n += v;
+    if (!n) { out.push(e); continue; }
+    const first = w[0];
+    const last = w[w.length - 1];
+    const top = (m: Map<number, number>): [string, number] => {
+      let best = 0, key = 10;
+      for (const [k, v] of m) if (v > best) { best = v; key = k; }
+      return [String.fromCharCode(key), best];
+    };
+    // "More frequent than the entry": the neighbor word also lives outside it, so it is the real word there.
+    const [r, rn] = top(st.right);
+    if (e.kind === 'name' && rn >= 0.6 * n && isHanUnit(r.charCodeAt(0)) && dict.hasWord(last + r) && bigram(last, r) > n) continue;
+    const [l, ln] = top(st.left);
+    if (ln >= 0.6 * n && isHanUnit(l.charCodeAt(0)) && dict.hasWord(l + first) && bigram(l, first) > n) continue;
+    let cut = 0;
+    for (const [k, v] of st.right) { const ch = String.fromCharCode(k); if (isHanUnit(k) && !have.has(w + ch) && personName(last + ch, dict)) cut += v; }
+    for (const [k, v] of st.left) { const ch = String.fromCharCode(k); if (isHanUnit(k) && !have.has(ch + w) && personName(ch + first, dict)) cut += v; }
+    if (cut >= 0.25 * n) continue;
+    // 先锋使宋江: a title or a phrase of two or more characters around a known person. (小李广 is a nickname, 王善保家的
+    // his wife.)
+    let hides = false;
+    for (let k = 2; k <= w.length - 2 && !hides && !w.endsWith('家的'); k++) hides = personName(w.slice(0, k), dict) || personName(w.slice(w.length - k), dict);
+    if (hides) continue;
+    out.push(e);
+  }
+
+  // 关云长 around 云长: count the dictionary proper nouns that end in a found name.
+  const kept = new Set(out.map((e) => e.word));
+  const added: LexiconEntry[] = [];
+  for (const e of out) {
+    if (e.kind !== 'name') continue;
+    if (due()) yield;
+    const w = e.word;
+    const longer = new Map<string, number>();
+    for (let i = text.indexOf(w); i >= 0; i = text.indexOf(w, i + 1)) {
+      for (let a = 1; a <= 2 && i - a >= 0 && isHanUnit(text.charCodeAt(i - a)); a++) {
+        const x = text.slice(i - a, i + w.length);
+        longer.set(x, (longer.get(x) ?? 0) + 1);
+      }
+    }
+    for (const [x, count] of longer) {
+      if (count < 3 || kept.has(x) || !dict.hasWord(x) || !properNoun(x, dict)) continue;
+      const syl = dict.pinyinFor(x);
+      kept.add(x);
+      added.push({ word: x, pinyin: syl.every(Boolean) ? syl.join(' ') : pinyinOf(x, 'name', dict), gloss: glossFor(x, 'name', 'entry', dict), kind: 'name', count, enabled: true, origin: 'auto' });
+    }
+  }
+  return [...out, ...added];
 }
 
 // ------------------------------------------------------------ speakers ---
 
 /** A string that starts a clause and is followed by a verb of speech: 平兒笑道, 麝月便道, 周瑞家的說. */
-const SPEAKER_RE = /(?:^|[\s，。！？；：、「」『』“”‘’（）—…])([\u3400-\u4dbf\u4e00-\u9fff]{2,5}?)[笑便又忙因只也都却卻则則還还仍再]?(?:說道|说道|笑道|問道|问道|答道|道|說|说|問|问|答|喊|叫|哭|嘆|叹|罵|骂|應|应|笑|曰)/gmu;
+const SPEAKER_RE = /(?:^|[\s，。！？；：、「」『』“”‘’（）—…])([\u3400-\u4dbf\u4e00-\u9fff]{2,5}?)([笑便又忙因只也都却卻则則還还仍再]?(?:說道|说道|笑道|問道|问道|答道|道|說|说|問|问|答|喊|叫|哭|嘆|叹|罵|骂|應|应|笑|曰))/gmu;
 /** A string that starts with one of these is a phrase (這丫頭, 既如此, 向寶玉, 話未), not a name. */
-const SPEAKER_BAD_START = new Set([...'這这那哪某各每眾众諸诸一二三四五六七八九十两兩几幾半只又还還便就也都却卻则則的了是在有无無不既且莫待方自如雖虽話话快忙對对向因以此然縱纵倘若旣又更再仍已正才并將将把被從从往跟與与及連连為为']);
+const SPEAKER_BAD_START = new Set([...'這这那哪某各每眾众諸诸一二三四五六七八九十两兩几幾半只又还還便就也都却卻则則的了是在有无無不既且莫待方自如雖虽話话快忙對对向因以此然縱纵倘若旣又更再仍已正才并將将把被從从往跟與与及連连為为沒没謂谓轉转']);
 /** Characters that end a phrase or a verb rather than a name. */
 const SPEAKER_BAD_END = new Set([...'道说說笑問问答叫喊哭嘆叹罵骂應应聽听見见了着著的得地去来來等官丞怪妖魔僧声聲曰']);
 
@@ -344,10 +444,16 @@ function* siblings(found: LexiconEntry[], text: string, dict: Dictionary, minCou
  */
 function* speakers(found: LexiconEntry[], text: string, dict: Dictionary, minCount: number, due: () => boolean): Generator<void, LexiconEntry[], void> {
   const counts = new Map<string, number>();
+  const raw = new Map<string, number>();
   const re = new RegExp(SPEAKER_RE.source, SPEAKER_RE.flags);
   for (let m = re.exec(text), k = 0; m; m = re.exec(text)) {
-    counts.set(m[1], (counts.get(m[1]) ?? 0) + 1);
     if ((++k & 0x3ff) === 0 && due()) yield;
+    const [, word, verb] = m;
+    raw.set(word, (raw.get(word) ?? 0) + 1);
+    // 操大 + 笑, 替天行 + 道: the string ends inside a word that runs into the verb (大笑, 替天行道), so it does not speak.
+    // 道 is left out of the first test: 人道 公道 二道 顺道 are words, but 王夫人道 and 阮小二道 are a person speaking.
+    if ((verb[0] !== '道' && dict.hasWord(word[word.length - 1] + verb[0])) || dict.hasWord(word + verb[0])) continue;
+    counts.set(word, (counts.get(word) ?? 0) + 1);
   }
   const have = new Set(found.map((e) => e.word));
   const need = Math.max(5, Math.round(minCount * 0.8));
@@ -362,7 +468,7 @@ function* speakers(found: LexiconEntry[], text: string, dict: Dictionary, minCou
     const simp = [...dict.toSimplified(word)];
     const maid = word.endsWith('家的') && len >= 4;
     const erhua = simp[len - 1] === '儿';
-    if (SPEAKER_BAD_START.has(simp[0]) || EDGE_STOP.has(simp[0])) continue;
+    if (SPEAKER_BAD_START.has(simp[0]) || EDGE_STOP.has(simp[0]) || (len >= 3 && cps[0] === cps[1])) continue;
     if (!maid && (SPEAKER_BAD_END.has(simp[len - 1]) || EDGE_STOP.has(simp[len - 1]))) continue;
     if (!maid && simp.some((c, i) => i > 0 && i < len - 1 && '的了着著過过得地'.includes(c))) continue;
     const f = dict.freq(word);
@@ -384,7 +490,7 @@ function* speakers(found: LexiconEntry[], text: string, dict: Dictionary, minCou
     if (MEASURE_START.has(simp[0]) && !(surnameSplit(word, dict) && len >= 3)) continue;
     // Names are mentioned everywhere, not only before a verb of speech.
     const all = total(word);
-    if (all < 2 * count) continue;
+    if (all < 2 * (raw.get(word) ?? count)) continue;
     // A dictionary word the segmenter never sees is a name only when it is a main character.
     if (listed && f === 0 && (count < 20 || all < 40)) continue;
     const kind: LexiconEntry['kind'] = 'name';
@@ -498,6 +604,8 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
   const simp = [...dict.toSimplified(w)];
   const first = simp[0];
   const last = simp[len - 1];
+  // 谓之, 此机会, 单单只: a function word or a doubled character opens a phrase, not a name or a term.
+  if (PHRASE_START.has(first) || (len >= 3 && cps[0] === cps[1])) return null;
   const strongSpeech = c.speech >= 0.06;
   const bracketed = c.left >= 9 && c.right >= 9;
   /** Characters that almost never appear outside this string, seen often: 福贵, 有庆, 凤霞. */

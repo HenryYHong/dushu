@@ -2,8 +2,8 @@
 //
 //   node scripts/qa.mjs <url> <outDir> <scenario>
 //
-//   url       http://localhost:5190/ (npx vite --port 5190 --strictPort)
-//             http://localhost:4317/ (npx vite preview --port 4317 --strictPort, after npm run build)
+//   url       - (or nothing): starts `vite --port 5190 --strictPort` itself, with an empty sync folder, and stops it at the end
+//             a URL: uses that server, with sync switched off in the browser (its sync folder may be the owner's)
 //   outDir    where screenshots go (created if missing)
 //   scenario  smoke | read | epub | vocab | rare | themes | mobile | pages | lexicon | mobi | offline | all (comma-separate to pick several)
 //
@@ -12,12 +12,41 @@
 // QA_SHEDIAO overrides the book for the lexicon scenario (default ~/Downloads/射雕英雄传.epub, skipped if absent).
 // Everything goes through the UI, so the same script works against the dev server and the build.
 import puppeteer from 'puppeteer-core';
-import { existsSync, mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { spawn } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const [, , urlArg = 'http://localhost:4317/', outArg = 'qa-out/run', scenarioArg = 'all'] = process.argv;
-const BASE = urlArg.endsWith('/') ? urlArg : urlArg + '/';
+const [, , urlArg = '-', outArg = 'qa-out/run', scenarioArg = 'all'] = process.argv;
+const OWN = !urlArg || urlArg === '-';
+const PORT = 5190;
+const BASE = OWN ? `http://localhost:${PORT}/` : urlArg.endsWith('/') ? urlArg : urlArg + '/';
+// The server started here gets an empty sync folder of its own (removed at the end), never the owner's.
+const SYNC_DIR = !OWN ? null : mkdtempSync(join(tmpdir(), 'dushu-qa-sync-'));
+const dropSyncDir = () => { if (SYNC_DIR) rmSync(SYNC_DIR, { recursive: true, force: true }); };
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
+let server = null;
+if (OWN) {
+  const ROOT = new URL('../', import.meta.url).pathname;
+  server = spawn(process.execPath, [join(ROOT, 'node_modules/vite/bin/vite.js'), '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, DUSHU_SYNC_DIR: SYNC_DIR } });
+  await new Promise((done, fail) => {
+    const t = setTimeout(() => fail(new Error('vite did not start')), 30000);
+    server.stdout.on('data', (d) => { if (String(d).includes('Local:')) { clearTimeout(t); done(); } });
+    server.stderr.on('data', (d) => { if (String(d).includes('Error')) { clearTimeout(t); fail(new Error(String(d))); } });
+  });
+}
+process.on('exit', () => { if (server) server.kill('SIGTERM'); dropSyncDir(); });
 const OUT = resolve(outArg);
 const EPUB = process.env.QA_EPUB ?? join(homedir(), 'Downloads', '活着.epub');
 const SHEDIAO = process.env.QA_SHEDIAO ?? join(homedir(), 'Downloads', '射雕英雄传.epub');
@@ -37,16 +66,18 @@ function check(cond, msg) {
   return !!cond;
 }
 
-const browser = await puppeteer.launch({
+const launch = () => puppeteer.launch({
   executablePath: CHROME,
   headless: true,
   args: ['--no-first-run', '--no-default-browser-check', '--mute-audio'],
 });
+let browser = await launch();
 
 /** A fresh incognito context per scenario, so IndexedDB and localStorage start empty. */
 async function session({ width = 1100, height = 860, mobile = false, settings = {}, ownerBooks = false } = {}) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
+  if (!SYNC_DIR) await page.evaluateOnNewDocument(SYNC_OFF);
   // On the dev server and on 4317 the Mac bridge lists the owner's books and every fresh profile adds them in the background,
   // so the library is never empty and a card can appear while a scenario is importing its own file. Answer the list with
   // "no books" unless the scenario asks for them; the bridge itself is checked in qa-local-books.mjs.
@@ -345,6 +376,9 @@ scenarios.read = async () => {
   check(!!speech, 'the reader has a chapter read-aloud button');
   if (speech) {
     await speech.click();
+    // The first read-aloud asks the Mac for its voices before it picks one: on the fresh server this script starts, that is
+    // `say -v ?` (most of a second). The page gives up on the Mac after 2 s, so the start must come within 3 s.
+    await page.waitForFunction(() => window.__qaSpoken.length > 0, { timeout: 3000 }).catch(() => {});
     await sleep(150);
     const started = await page.evaluate(() => ({ active: document.querySelector('.rd-speech-btn')?.getAttribute('aria-pressed'), count: window.__qaSpoken.length }));
     check(started.active === 'true' && started.count > 0, 'read-aloud starts at the current chapter position');
@@ -928,6 +962,12 @@ for (const name of names) {
   if (!scenarios[name]) { console.log(`FAIL unknown scenario "${name}" (try: ${Object.keys(scenarios).join(', ')}, all)`); failed++; continue; }
   current = name;
   console.log(`\n== ${name} (${BASE})`);
+  // If Chrome itself went away in the scenario before (it did once in a full run on a busy machine: "Target closed" in
+  // [pages], then "Connection closed" for every scenario after it), that scenario has already failed; start a new Chrome.
+  if (!browser.connected) {
+    console.log('   (Chrome was gone after the last scenario; starting a new one)');
+    browser = await launch();
+  }
   try {
     await scenarios[name]();
   } catch (e) {

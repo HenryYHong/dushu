@@ -259,6 +259,16 @@ describe('applySandhi', () => {
     expect(sandhi(han('一', 0, 'yi1'), han('月', 1, 'yue4'))).toEqual([['yi1'], ['yue4']]);
     expect(sandhi(han('一', 0, 'yi1'), han('号', 1, 'hao4'))).toEqual([['yi1'], ['hao4']]);
   });
+  it('一 before a place value (百 千 万 亿) changes like before any word: yìbǎi, yìqiān, yíwàn, yíyì', () => {
+    expect(sandhi(han('一', 0, 'yi1'), han('百', 1, 'bai3'))).toEqual([['yi4'], ['bai3']]);
+    expect(sandhi(han('一', 0, 'yi1'), han('千', 1, 'qian1'))).toEqual([['yi4'], ['qian1']]);
+    expect(sandhi(han('一', 0, 'yi1'), han('万', 1, 'wan4'))).toEqual([['yi2'], ['wan4']]);
+    expect(sandhi(han('一', 0, 'yi1'), han('萬', 1, 'wan4'))).toEqual([['yi2'], ['wan4']]);
+    expect(sandhi(han('一', 0, 'yi1'), han('億', 1, 'yi4'))).toEqual([['yi2'], ['yi4']]);
+    // 一百一十一: the 一 after 百 and the last one are digits read in a row (yìbǎi yīshíyī).
+    expect(sandhi(han('一', 0, 'yi1'), han('百', 1, 'bai3'), han('一', 2, 'yi1'), han('十一', 3, 'shi2', 'yi1')))
+      .toEqual([['yi4'], ['bai3'], ['yi1'], ['shi2', 'yi1']]);
+  });
   it('一 stays yi1 at the end of a word or phrase', () => {
     expect(sandhi(han('唯一', 0, 'wei2', 'yi1'), han('的', 2, 'de5'))).toEqual([['wei2', 'yi1'], ['de5']]);
     expect(sandhi(han('统一', 0, 'tong3', 'yi1'), han('战线', 2, 'zhan4', 'xian4'))).toEqual([['tong3', 'yi1'], ['zhan4', 'xian4']]);

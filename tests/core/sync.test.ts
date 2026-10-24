@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { newSrs } from '../../src/core/srs';
-import { REMOTE_PROGRESS_EVENT, bookKey, canonical, createSyncer, setSyncEnabled, type Syncer } from '../../src/core/sync';
+import { REMOTE_PROGRESS_EVENT, bookKey, canonical, createSyncer, setSyncEnabled, syncEnabled, type Syncer } from '../../src/core/sync';
 import { openStore } from '../../src/store';
 import type { ImportedBook, Store, VocabItem } from '../../src/types';
 import { createSyncStore } from '../../scripts/sync-bridge';
@@ -13,9 +13,13 @@ import { createSyncStore } from '../../scripts/sync-bridge';
 let n = 0;
 const open = () => openStore(`sync-${++n}-${Math.random().toString(36).slice(2)}`);
 
+const dirs: string[] = [];
+const tempDir = () => { const d = mkdtempSync(join(tmpdir(), 'dushu-sync-')); dirs.push(d); return d; };
+afterAll(() => { for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
+
 /** The Mac: the real merge, called in process. `down` makes it act asleep. */
 function mac() {
-  const server = createSyncStore({ dir: mkdtempSync(join(tmpdir(), 'dushu-sync-')) });
+  const server = createSyncStore({ dir: tempDir() });
   const m = {
     server,
     down: false,
@@ -128,10 +132,13 @@ describe('sync between two devices', () => {
     window.removeEventListener(REMOTE_PROGRESS_EVENT, listen);
     expect(await b.progress.get(bb.id)).toEqual({ bookId: bb.id, chapter: 1, block: 0, offset: 4, percent: 0.6, updatedAt: 2_000_000 });
     expect(heard).toEqual([{ bookId: bb.id, progress: expect.objectContaining({ chapter: 1, offset: 4 }) }]);
-    // An older place never replaces a newer one.
-    await b.progress.set({ bookId: bb.id, chapter: 0, block: 0, percent: 0.1, updatedAt: 1_500_000 });
-    await sb.run(); await sa.run();
-    expect((await a.progress.get(ba.id))?.chapter).toBe(1);
+    // A place read before a newer one elsewhere (saved here before the newer one arrived) never replaces it. A place saved
+    // here after a newer one arrived is a later read, whatever this device's clock says (see the clock-behind test).
+    await a.progress.set({ bookId: ba.id, chapter: 1, block: 1, percent: 0.65, updatedAt: 3_000_000 });
+    await b.progress.set({ bookId: bb.id, chapter: 0, block: 0, percent: 0.1, updatedAt: 2_500_000 });
+    await sa.run(); await sb.run(); await sa.run();
+    expect(await a.progress.get(ba.id)).toMatchObject({ chapter: 1, block: 1 });
+    expect(await b.progress.get(bb.id)).toMatchObject({ chapter: 1, block: 1 });
   });
 
   it('keeps a place for a book that is not on the device yet, and uses it when the book arrives', async () => {
@@ -173,6 +180,31 @@ describe('sync between two devices', () => {
     expect(m.sent.flat().length).toBe(before);
   });
 
+  it('keeps the place of a book deleted while a sync is running, and opens the book there when it is added again', async () => {
+    const m = mac();
+    const a = await open();
+    const ba = await a.books.add(book());
+    const sa = device(a, m);
+    await a.progress.set({ bookId: ba.id, chapter: 0, block: 0, percent: 0.2, updatedAt: 2_000_000 });
+    await sa.run();
+    // Read further, then a sync sends the new place; the book is deleted while the Mac's answer is on its way.
+    await a.progress.set({ bookId: ba.id, chapter: 1, block: 0, offset: 3, percent: 0.8, updatedAt: 3_000_000 });
+    const send = m.send;
+    let asked!: () => void;
+    let answer!: () => void;
+    const sending = new Promise<void>((r) => { asked = r; });
+    const held = new Promise<void>((r) => { answer = r; });
+    m.send = async (body) => { asked(); await held; return send(body); };
+    const round = sa.run();
+    await sending;
+    await a.books.remove(ba.id);
+    answer();
+    await round;
+    m.send = send;
+    const again = await a.books.add(book());
+    expect(await a.progress.get(again.id)).toMatchObject({ chapter: 1, block: 0, offset: 3, updatedAt: 3_000_000 });
+  });
+
   it('a place read in an older import lands in the new one by its percent, until the device that read it moves it exactly', async () => {
     const m = mac();
     const [a, b] = [await open(), await open()];
@@ -191,6 +223,108 @@ describe('sync between two devices', () => {
     expect(await b.progress.get(bb.id)).toEqual({ bookId: bb.id, chapter: 0, block: 2, percent: 0.5, updatedAt: 5_000_000 });
     await sa.run();
     expect(await a.progress.get(ba.id)).toEqual({ bookId: ba.id, chapter: 0, block: 2, percent: 0.5, updatedAt: 5_000_000 });
+  });
+
+  it('a place moved from an older import never replaces a newer place here, nor does a held place on a book that arrived', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const ba = await a.books.add(lunyu());
+    const sa = device(a, m);
+    await a.progress.set({ bookId: ba.id, chapter: 1, block: 0, percent: 0.5, updatedAt: 5_000_000 });
+    await sa.run();
+    // b read further in its new import before the older-key place arrives: its place stays.
+    const bb = await b.books.add(lunyu(2));
+    await b.progress.set({ bookId: bb.id, chapter: 0, block: 3, percent: 0.9, updatedAt: 6_000_000 });
+    const sb = device(b, m);
+    await sb.run();
+    expect(await b.progress.get(bb.id)).toEqual({ bookId: bb.id, chapter: 0, block: 3, percent: 0.9, updatedAt: 6_000_000 });
+    // A held place for a book that is here now (as after books.replace under a new key) lands only when it is newer.
+    const c = await open();
+    const bc = await c.books.add(book());
+    await c.progress.set({ bookId: bc.id, chapter: 1, block: 0, percent: 0.9, updatedAt: 6_000_000 });
+    const key = `p:${bookKey(bc)}`;
+    await c.sync.write([{ key, at: 5_000_000, sig: 'older', held: { chapter: 0, block: 0, percent: 0.1, updatedAt: 5_000_000 } }]);
+    await device(c, m).run();
+    expect(await c.progress.get(bc.id)).toMatchObject({ chapter: 1, updatedAt: 6_000_000 });
+    expect((await c.sync.rows()).find((r) => r.key === key)?.held).toBeUndefined();
+  });
+
+  it('a word marked known on a device that synced before beats an older un-mark made elsewhere', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const [ca, cb] = [{ t: 1_000_000 }, { t: 1_000_000 }];
+    const sa = device(a, m, ca);
+    const sb = device(b, m, cb);
+    await sa.run();
+    await b.known.add(['书']);
+    await sb.run();
+    cb.t = 2_000_000;
+    await b.known.remove(['书']);
+    await sb.run();
+    // a has not synced since, and marks the word later.
+    ca.t = 3_000_000;
+    await a.known.add(['书']);
+    await sa.run(); await sb.run();
+    expect(a.known.has('书')).toBe(true);
+    expect(b.known.has('书')).toBe(true);
+  });
+
+  it('deleting a book does not send its saved words again over a newer review made elsewhere', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const [ca, cb] = [{ t: 1_000_000 }, { t: 1_000_000 }];
+    const ba = await a.books.add(book());
+    await a.vocab.put(word('银行', { context: { sentence: '去银行', bookTitle: '活着', bookId: ba.id } }));
+    const sa = device(a, m, ca);
+    const sb = device(b, m, cb);
+    await sa.run(); await sb.run();
+    cb.t = 2_000_000;
+    await b.vocab.review('银行', 2, 2_000_000);
+    await sb.run();
+    // a has not heard of the review when it deletes the book.
+    ca.t = 3_000_000;
+    const sent = m.sent.length;
+    await a.books.remove(ba.id);
+    await sa.run(); await sb.run();
+    expect(m.sent.slice(sent).flat().map((c) => (c as { key: string }).key)).not.toContain('v:银行');
+    expect((await b.vocab.get('银行'))?.srs.last).toBe(2_000_000);
+    expect((await a.vocab.get('银行'))?.srs.last).toBe(2_000_000);
+  });
+
+  it('a device whose clock is ahead takes the Mac\'s time for its change, so it still receives newer ones', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const fast = { t: Date.now() + 86_400_000 };
+    const normal = { t: Date.now() };
+    const sa = device(a, m, fast);
+    const sb = device(b, m, normal);
+    await a.vocab.put(word('银行'));
+    await sa.run(); await sb.run();
+    // The Mac stores a's review at its own time plus ten minutes at most.
+    await a.vocab.review('银行', 2, fast.t);
+    await sa.run(); await sb.run();
+    normal.t += 1000;
+    await b.vocab.review('银行', 3, normal.t);
+    await sb.run(); await sa.run();
+    expect((await a.vocab.get('银行'))?.srs).toEqual((await b.vocab.get('银行'))?.srs);
+    expect((await a.vocab.get('银行'))?.srs.last).toBe(normal.t);
+  });
+
+  it('a device whose clock is behind keeps a place read after the one it received', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const ba = await a.books.add(book());
+    const bb = await b.books.add(book());
+    const sa = device(a, m);
+    const sb = device(b, m);
+    await a.progress.set({ bookId: ba.id, chapter: 1, block: 0, percent: 0.6, updatedAt: 5_000_000 });
+    await sa.run(); await sb.run();
+    expect((await b.progress.get(bb.id))?.updatedAt).toBe(5_000_000);
+    // b's clock is an hour behind: the place it reads next carries an earlier time than the one it has.
+    await b.progress.set({ bookId: bb.id, chapter: 1, block: 0, offset: 6, percent: 0.7, updatedAt: 5_000_000 - 3_600_000 });
+    await sb.run(); await sa.run();
+    expect(await b.progress.get(bb.id)).toMatchObject({ offset: 6 });
+    expect(await a.progress.get(ba.id)).toMatchObject({ offset: 6 });
   });
 
   it('a device that lost its data only receives: it never deletes words on the Mac', async () => {
@@ -263,7 +397,7 @@ describe('sync between two devices', () => {
     await a.known.add(['一', '二']);
     await sa.run();
     // The Mac's file was lost: a new copy with a new epoch.
-    const replaced = createSyncStore({ dir: mkdtempSync(join(tmpdir(), 'dushu-sync-')) });
+    const replaced = createSyncStore({ dir: tempDir() });
     m.server.exchange = replaced.exchange;
     await a.known.add(['三']);
     await sa.run();
@@ -283,6 +417,25 @@ describe('sync between two devices', () => {
     setSyncEnabled(true);
     await sa.run();
     expect(m.server.status().counts.known).toBe(1);
+  });
+});
+
+describe('QA pages on a server the script did not start', () => {
+  it('keep sync off, even after the page clears its storage', async () => {
+    const src = (await import('node:fs')).readFileSync('scripts/qa.mjs', 'utf8');
+    const body = /const SYNC_OFF = \(\) => \{([\s\S]*?)\n\};/.exec(src)?.[1];
+    expect(body).toBeTruthy();
+    const clear = Storage.prototype.clear;
+    try {
+      new Function(body!)();
+      expect(syncEnabled()).toBe(false);
+      localStorage.clear();
+      expect(syncEnabled()).toBe(false);
+    } finally {
+      Storage.prototype.clear = clear;
+      localStorage.clear();
+    }
+    expect(syncEnabled()).toBe(true);
   });
 });
 

@@ -41,6 +41,11 @@ interface Meta { epoch?: string; cursor: number }
 // ------------------------------------------------------------------ keys ---
 
 const sigOf = (data: unknown) => (data === null ? '-' : hash(canonical(data)));
+/**
+ * A saved word's signature without its book. Deleting the book here, or importing it again under a new key, changes only
+ * the book a word names, which is not a change to the word: compared with the row's `bare`, it is never sent stamped now.
+ */
+const bareOf = (wire: VocabItem) => sigOf(wire.context?.bookId === undefined ? wire : { ...wire, context: { ...wire.context, bookId: undefined } });
 
 // ------------------------------------------------------------- records ---
 
@@ -62,10 +67,16 @@ function vocabLocal(item: VocabItem, books: Books): VocabItem {
 }
 
 /** Everything this device would send, by record key, with the time each record says it last changed. */
-async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>): Promise<Map<string, { data: unknown; sig: string; at: number }>> {
-  const out = new Map<string, { data: unknown; sig: string; at: number }>();
-  const put = (key: string, data: unknown, at: number) => { if (key.length <= MAX_KEY) out.set(key, { data, sig: sigOf(data), at }); };
-  for (const item of await store.vocab.list()) put(`v:${item.id}`, vocabWire(item, books), Math.max(item.srs?.last ?? 0, item.addedAt ?? 0));
+type Snapshot = Map<string, { data: unknown; sig: string; at: number; bare?: string }>;
+async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>): Promise<Snapshot> {
+  const out: Snapshot = new Map();
+  const put = (key: string, data: unknown, at: number, bare?: string) => {
+    if (key.length <= MAX_KEY) out.set(key, { data, sig: sigOf(data), at, ...(bare ? { bare } : {}) });
+  };
+  for (const item of await store.vocab.list()) {
+    const wire = vocabWire(item, books);
+    put(`v:${item.id}`, wire, Math.max(item.srs?.last ?? 0, item.addedAt ?? 0), bareOf(wire));
+  }
   for (const word of store.known.all()) put(`k:${word}`, store.known.isAuto(word) ? { a: 1 } : {}, 0);
   for (const [id, key] of books.keyOf) {
     const p = await store.progress.get(id);
@@ -173,12 +184,14 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       const { held: _h, ...rest } = row;
       void _h;
       settled.push(rest);
-      rows.set(row.key, rest);
       const here = p && (arrived.get(p.bookId) ?? await store.progress.get(p.bookId));
       if (p && (!here || here.updatedAt < p.updatedAt)) arrived.set(p.bookId, p);
     }
+    // Every write of rows below passes `rows` as seen: what this round read, so a place kept by a book deleted or added
+    // meanwhile is not overwritten (store.sync.write). `rows` is updated only after each write.
     if (arrived.size || settled.length) {
-      await store.sync.apply({ progressPut: [...arrived.values()], rows: settled });
+      await store.sync.apply({ progressPut: [...arrived.values()], rows: settled, seen: rows });
+      for (const r of settled) rows.set(r.key, r);
       announceProgress([...arrived.values()]);
     }
 
@@ -187,18 +200,34 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const current = await snapshot(store, books, rows);
     const t = now();
     const changed: SyncRow[] = [];
+    const bare = (cur: { bare?: string }) => (cur.bare ? { bare: cur.bare } : {});
     for (const [key, cur] of current) {
       const base = rows.get(key);
-      if (base && base.sig === cur.sig) continue;
+      if (base && base.sig === cur.sig) {
+        // A row written before words kept `bare` gets it now, so a later change of only the book is recognized.
+        if (cur.bare && base.bare !== cur.bare) changed.push({ ...base, bare: cur.bare });
+        continue;
+      }
+      if (base && cur.bare && base.bare === cur.bare) {
+        // Only the book the word names changed (deleted here, or imported again under a new key): nothing to send. The Mac
+        // keeps the book's key, and a newer copy of the word elsewhere is not overwritten by this one stamped now.
+        changed.push({ ...base, sig: cur.sig });
+        continue;
+      }
       if (!base && key.startsWith('v:')) {
         // A word this device saved before it ever synced: sent as the oldest possible change, so it only lands where the Mac
         // has no copy. If the Mac has one, take() keeps whichever copy was studied more.
-        changed.push({ key, at: 0, sig: cur.sig, dirty: 1, fresh: 1 });
+        changed.push({ key, at: 0, sig: cur.sig, dirty: 1, fresh: 1, ...bare(cur) });
         continue;
       }
-      // A place carries the time it was read; anything else changed just now (this runs within seconds of a change).
-      const at = !base || key.startsWith('p:') ? cur.at : Math.max(t, base.at + 1);
-      changed.push({ key, at, sig: cur.sig, dirty: 1, ...(base?.held !== undefined ? { held: base.held } : {}) });
+      // A change after the last agreement is stamped after it (a hybrid clock: the device's time, but never before the time
+      // of the copy it changed), so a later change on a device whose clock is behind still wins. A place carries the time it
+      // was read, so one read offline before a newer place elsewhere does not win. A known word with no row is time 0 (only
+      // where the Mac has none) on a device's first sync, and stamped now once it has synced: it was marked here since.
+      const at = !base
+        ? (key.startsWith('k:') && meta.epoch ? t : cur.at)
+        : key.startsWith('p:') ? Math.max(cur.at, base.at + 1) : Math.max(t, base.at + 1);
+      changed.push({ key, at, sig: cur.sig, dirty: 1, ...bare(cur), ...(base?.held !== undefined ? { held: base.held } : {}) });
     }
     for (const [key, base] of rows) {
       // Places are never deleted by sync: removing a book here must not lose the place on the other devices.
@@ -206,7 +235,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       changed.push({ key, at: Math.max(t, base.at + 1), sig: '-', dirty: 1 });
     }
     if (changed.length) {
-      await store.sync.write(changed);
+      await store.sync.write(changed, [], rows);
       for (const r of changed) rows.set(r.key, r);
     }
     const dirty = () => [...rows.values()].filter((r) => r.dirty);
@@ -229,7 +258,12 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       let response: Response;
       try { response = await request; } catch { setStatus({ state: 'asleep' }); return; }
       if (response.status === 403) { setStatus({ state: 'refused' }); return; }
-      if (!response.ok) { setStatus({ state: 'error', message: `Your Mac answered ${response.status}.` }); return; }
+      if (!response.ok) {
+        // The Mac says why when it can: a server started without its sync folder answers that it does not sync.
+        const why = await response.json().then((b: { error?: unknown } | null) => b?.error, () => undefined);
+        setStatus({ state: 'error', message: typeof why === 'string' && why && why.length <= 300 ? why : `Your Mac answered ${response.status}.` });
+        return;
+      }
       const reply = await response.json().catch(() => null) as Reply | null;
       if (!reply || typeof reply.epoch !== 'string' || !Number.isInteger(reply.version) || !Array.isArray(reply.records)) {
         setStatus({ state: 'error', message: 'Your Mac sent an answer Dushu did not understand.' });
@@ -243,7 +277,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
           .map((r) => ({ ...r, dirty: 1 as const }));
         meta.epoch = reply.epoch;
         meta.cursor = 0;
-        await store.sync.write([...all, { key: META, at: 0, sig: '', held: meta }]);
+        await store.sync.write([...all, { key: META, at: 0, sig: '', held: meta }], [], rows);
         for (const r of all) rows.set(r.key, r);
         first = true;
         continue;
@@ -257,7 +291,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         void _d;
         return rest;
       });
-      await store.sync.write([...cleared, { key: META, at: 0, sig: '', held: meta }]);
+      await store.sync.write([...cleared, { key: META, at: 0, sig: '', held: meta }], [], rows);
       for (const r of cleared) rows.set(r.key, r);
       setStatus({ state: 'idle', lastOk: now(), pending: dirty().length, counts: reply.counts });
       if (!dirty().length) break;
@@ -285,12 +319,31 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const progressPut: Progress[] = [];
     const moved = new Map<string, Progress>();
     const next: SyncRow[] = [];
+    /** The signature this device gives the Mac's copy of a record (as in its rows); null when the copy is unusable. */
+    const sigHere = (kind: string, id: string, data: unknown): string | null => {
+      if (data === null || data === undefined) return '-';
+      if (kind === 'v') {
+        const item = cleanVocab(vocabLocal(data as VocabItem, books));
+        return item && item.id === id ? sigOf(vocabWire(item, books)) : null;
+      }
+      if (kind === 'k') return sigOf((data as { a?: unknown }).a ? { a: 1 } : {});
+      const wire = cleanProgress({ ...(data as object), bookId: 'held' });
+      return wire ? sigOf(progressWire(wire)) : null;
+    };
     for (const r of reply.records) {
       if (!r || typeof r.key !== 'string' || r.key.length > MAX_KEY || typeof r.at !== 'number' || !Number.isFinite(r.at)) continue;
       const kind = r.key[0];
       const id = r.key.slice(2);
       if (r.key[1] !== ':' || !id || (kind !== 'v' && kind !== 'k' && kind !== 'p')) continue;
       const base = rows.get(r.key);
+      if (base?.dirty && sent.has(r.key) && r.at < base.at && sigHere(kind, id, r.data ?? null) === base.sig) {
+        // Our own change, back with the Mac's time: a device clock ahead of the Mac's is held back to it. That time is the one
+        // every device compares, so it is taken; kept ahead, a newer change from elsewhere would look older and be skipped.
+        const { dirty: _d, fresh: _f, ...rest } = base;
+        void _d; void _f;
+        next.push({ ...rest, at: r.at });
+        continue;
+      }
       // A change of ours that is newer stays ours; it was just sent, or goes with the next sync.
       if (base?.dirty && (base.at > r.at || (base.at === r.at && !sent.has(r.key)))) continue;
       if (base && !base.dirty && base.at > r.at) continue;
@@ -313,9 +366,10 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         }
         const item = cleanVocab(vocabLocal(data as VocabItem, books));
         if (!item || item.id !== id) continue;
-        const sig = sigOf(vocabWire(item, books));
+        const wire = vocabWire(item, books);
+        const sig = sigOf(wire);
         if (base?.sig !== sig) vocabPut.push(item);
-        next.push({ key: r.key, at: r.at, sig });
+        next.push({ key: r.key, at: r.at, sig, bare: bareOf(wire) });
       } else if (kind === 'k') {
         if (data === null) {
           if (base?.sig !== '-') knownDel.push(id);
@@ -350,7 +404,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     }
     if (!next.length) return kept;
     for (const p of moved.values()) if (!progressPut.some((q) => q.bookId === p.bookId && q.updatedAt >= p.updatedAt)) progressPut.push(p);
-    await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, rows: next });
+    await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, rows: next, seen: rows });
     // A moved place is this device's to send, under the book's key here.
     if (moved.size) soon();
     for (const r of next) rows.set(r.key, r);

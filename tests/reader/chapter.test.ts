@@ -146,6 +146,21 @@ describe('live updates', () => {
     expect(view.el.querySelectorAll('.rd-w:not(.rd-nopy)')).toHaveLength(0);
   });
 
+  it('grades a word in HSK mode by its characters as read here, not by its place on the list', async () => {
+    const { ctx, dict, view } = await setup({ pinyin: 'hsk', hskThreshold: 1 }, { title: '说', blocks: [{ t: 'p', text: '他说道：不行，我们去银行，这是行话。' }] });
+    // 说道 is on the 7-9 list, but 说 shuō and 道 dào are HSK 1. 行 is xíng at HSK 1 (不行); háng comes only with 银行 (HSK 2),
+    // so 行话, which the list leaves out, keeps its pinyin where 不行 does not.
+    expect(dict.hsk('说道')?.hsk3).toBe(7);
+    expect(dict.hsk('银行')?.hsk3).toBe(2);
+    expect(dict.hsk('行话')).toBeNull();
+    await view.renderRest();
+    const visible = () => [...view.el.querySelectorAll('p .rd-w:not(.rd-nopy)')].map((w) => [...w.querySelectorAll('ruby')].map((r) => (r.firstChild as Text).data).join(''));
+    expect(visible()).toEqual(['银行', '行话']);
+    ctx.settings.set({ hskThreshold: 2 });
+    view.refreshVisibility();
+    expect(visible()).toEqual([]);
+  });
+
   it('marks saved words and updates when the vocabulary changes', async () => {
     const { ctx, view } = await setup();
     await view.renderRest();

@@ -1,11 +1,12 @@
 // Headless QA for the reader (Scroll and Pages layouts) and the word/phrase popups.
 //   node scripts/qa-reader.mjs            starts `vite --port 5181 --strictPort` itself and stops it at the end
-//   QA_BASE=http://localhost:5181/ node scripts/qa-reader.mjs   use a server that is already running
+//   QA_BASE=http://localhost:5181/ node scripts/qa-reader.mjs   use a server that is already running (sync off in the browser)
 // Screenshots go to qa-out/reader/. Needs Google Chrome; never opens a visible window.
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, existsSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { mkdirSync, mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const PORT = 5181;
 const BASE = process.env.QA_BASE ?? `http://localhost:${PORT}/`;
@@ -13,19 +14,34 @@ const OUT = new URL('../qa-out/reader/', import.meta.url).pathname;
 const ROOT = new URL('../', import.meta.url).pathname;
 const EPUB = `${homedir()}/Downloads/活着.epub`;
 mkdirSync(OUT, { recursive: true });
+// The server started here gets an empty sync folder of its own (removed at the end), never the owner's.
+const SYNC_DIR = process.env.QA_BASE ? null : mkdtempSync(join(tmpdir(), 'dushu-qa-sync-'));
+const dropSyncDir = () => { if (SYNC_DIR) rmSync(SYNC_DIR, { recursive: true, force: true }); };
+/**
+ * For a server this script did not start (its sync folder may be the owner's): sync is switched off in the page before the
+ * app starts, and again after any localStorage.clear(), so nothing this run saves reaches the Mac's copy.
+ */
+const SYNC_OFF = () => {
+  try {
+    const key = 'dushu.sync.off.v1';
+    localStorage.setItem(key, '1');
+    const clear = Storage.prototype.clear;
+    Storage.prototype.clear = function () { clear.call(this); try { if (this === localStorage) this.setItem(key, '1'); } catch { /* blocked */ } };
+  } catch { /* storage blocked: the app cannot sync either */ }
+};
 
 // ------------------------------------------------------------------ server
 let server = null;
 async function startServer() {
   if (process.env.QA_BASE) return;
-  server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+  server = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, DUSHU_SYNC_DIR: SYNC_DIR } });
   await new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('vite did not start')), 30000);
     server.stdout.on('data', (d) => { if (String(d).includes('Local:')) { clearTimeout(t); resolve(); } });
     server.stderr.on('data', (d) => { if (String(d).includes('Error')) { clearTimeout(t); reject(new Error(String(d))); } });
   });
 }
-const stopServer = () => { if (server) { server.kill('SIGTERM'); server = null; } };
+const stopServer = () => { if (server) { server.kill('SIGTERM'); server = null; } dropSyncDir(); };
 process.on('exit', stopServer);
 
 // ----------------------------------------------------------------- helpers
@@ -43,6 +59,7 @@ const browser = await puppeteer.launch({
 
 try {
   const page = await browser.newPage();
+  if (!SYNC_DIR) await page.evaluateOnNewDocument(SYNC_OFF);
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
     const text = m.text();
@@ -61,10 +78,13 @@ try {
   const hosts = [];
   const claudeCalls = [];
   const strays = [];
+  /** Stroke-order data files the page asked the CDN for (section 17). */
+  const strokeAsks = [];
   const KEY_REJECTED = 'Anthropic rejected the key on your Mac. Replace it in ~/.config/dushu/anthropic-api-key.';
   page.on('request', (req) => {
     const u = new URL(req.url());
     const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+    if (u.pathname.includes('hanzi-writer-data')) strokeAsks.push(decodeURIComponent(u.pathname.split('/').pop()));
     if (u.hostname === 'api.anthropic.com') { strays.push(u.hostname); return req.abort(); }
     if (u.pathname === '/api/claude/status') {
       if (stub.claude) claudeCalls.push('status');
@@ -682,6 +702,21 @@ try {
   await setSettings({ pinyin: 'off' });
   await openBook(ids.kong);
   await clickWord('酒店');
+  // The card's sticky footer (Prev / Next / Shorter / Longer) can lie over the first character card while the card is still
+  // inside the scroll box, so the browser counts it as visible and the click would land on the footer. Scroll it clear of the
+  // footer first, as a reader would, and make sure the click reaches the card itself.
+  const cardClear = await page.evaluate(() => {
+    const card = document.querySelector('.pp-card');
+    const sc = card?.closest('.pp-scroll');
+    const foot = document.querySelector('.pp-foot');
+    if (!card || !sc) return false;
+    const limit = (foot ? foot.getBoundingClientRect().top : sc.getBoundingClientRect().bottom) - 8;
+    const over = card.getBoundingClientRect().bottom - limit;
+    if (over > 0) sc.scrollTop += over;
+    const r = card.getBoundingClientRect();
+    return card.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+  });
+  check(cardClear, 'the first character card can be scrolled clear of the card footer');
   await page.click('.pp-card');
   const stroke = await page.waitForSelector('.pp-stroke:not([hidden]) svg', { timeout: 10000 }).catch(() => null);
   check(stroke !== null, 'stroke-order animation loads for a common character');
@@ -692,7 +727,13 @@ try {
   const rr = await wordRect('𠀀');
   await page.mouse.click(rr.x, rr.y);
   await settle(1800);
-  check(await page.$('.pp-stroke') === null, 'a character with no stroke data hides the stroke-order section quietly');
+  // The data has no character above U+FFFF: the section is never shown (it stays hidden, or is gone after a failed load)
+  // and the CDN is not even asked.
+  const noStroke = await page.evaluate(() => {
+    const s = document.querySelector('.pp-pop .pp-stroke');
+    return { pop: !!document.querySelector('.pp-pop'), shown: !!s && (!s.hidden || s.getBoundingClientRect().height > 0) };
+  });
+  check(noStroke.pop && !noStroke.shown && !strokeAsks.includes('𠀀.json'), `a character with no stroke data hides the stroke-order section quietly (popup ${noStroke.pop}, section shown ${noStroke.shown}, asked ${strokeAsks.includes('𠀀.json')})`);
   await page.keyboard.press('p'); // speak must not throw even with no voices
   await settle(200);
   await page.keyboard.press('Escape');

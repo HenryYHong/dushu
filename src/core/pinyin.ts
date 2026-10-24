@@ -280,6 +280,8 @@ export function formatPinyin(numbered: string, style: PinyinStyle): string {
 // ----------------------------------------------------------------- sandhi ---
 
 const NUMERAL_CHARS = new Set([...'零〇一二三四五六七八九十百千万萬亿億两兩']);
+/** Digits that keep 一 as yī when they follow it (一二三, 一十一). The place values 百千万亿 do not: yìbǎi, yìqiān, yíwàn. */
+const DIGIT_CHARS = new Set([...'零〇一二三四五六七八九十两兩']);
 /** Measure words (traditional and simplified) that are often repeated after 一: 一个一个, 一次一次, 一步一步. */
 const MEASURE_WORDS = new Set([...'个個次遍回趟下件张張条條只隻位名些点點天年月日本册冊口句步场場样樣种種双雙对對家间間座层層块塊片份群队隊批支根颗顆粒封首道把章篇段頁页卷行棵杯碗盞盏']);
 
@@ -341,7 +343,7 @@ export function applySandhi(tokens: Token[]): void {
       // 一两个, 一两天: "a couple of" is yì liǎng (a number only when 两 is the unit: 一两银子).
       const after = r[k + 2];
       const couple = (next.ch === '两' || next.ch === '兩') && !!after && MEASURE_WORDS.has(after.ch);
-      if (!couple && (NUMERAL_CHARS.has(next.ch) || next.ch === '月' || next.ch === '号')) continue;
+      if (!couple && (DIGIT_CHARS.has(next.ch) || next.ch === '月' || next.ch === '号')) continue;
       if (nextTone === 4) set(2);
       else if (nextTone !== 5) set(4);
     }
