@@ -17,14 +17,14 @@
    A real cover image, or one of two generated covers (cover.ts picks the family from era.ts or the card menu):
    classic, a thread-bound book (线装书) bound on the right; modern, a cloth hardcover bound on the left. Pure CSS, sized
    by the cover's own width (cqw), so the same rules draw a 58 px list cover and a 170 px phone cover. */
-.lib-cover-wrap { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: 2px; overflow: hidden; box-shadow: var(--shadow-book); background: var(--surface-2); }
+.lib-cover-wrap { position: relative; width: 100%; aspect-ratio: 5 / 7; border-radius: 2px; overflow: hidden; box-shadow: var(--shadow-book); background: var(--surface-2); }
 .lib-cover-img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .lib-cover {
   container-type: inline-size; position: relative; display: block;
   width: 100%; height: 100%; overflow: hidden;
   background-color: oklch(var(--cover-l) var(--cover-c) var(--lib-dye, 262));
 }
-.lib-cover-md, .lib-cover-sm { aspect-ratio: 2 / 3; }
+.lib-cover-md, .lib-cover-sm { aspect-ratio: 5 / 7; }
 .lib-cover-title { margin: 0; }
 .lib-cover-blank { background: var(--surface-2); color: var(--text-3); }
 .lib-cover-busy { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--surface) 38%, transparent); }
@@ -130,7 +130,7 @@
   padding: var(--space-1) 0 var(--space-6); background: none; border: 0; border-radius: 0; box-shadow: none;
   border-bottom: 1px solid var(--rule);
 }
-.lib-continue-cover { flex: none; width: 96px; display: block; text-decoration: none; }
+.lib-continue-cover { flex: none; width: 140px; display: block; text-decoration: none; }
 .lib-continue-info { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 /* Your place in a book: the one label in vermilion. */
 .lib-continue .chip-accent { color: var(--accent); font-size: 11px; }
@@ -149,8 +149,9 @@
 }
 
 /* ---------- book grid ---------- */
-.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: var(--space-6) var(--space-5); }
-/* A container, so the card menu can sit beside the title, just under the cover (whose height is 150% of the width). */
+/* Covers lead the page: about 240 px wide on an iPad (four across in landscape, three in portrait), two across on a phone. */
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--space-7) var(--space-6); }
+/* A container, so the card menu can sit beside the title, just under the cover (whose height is 140% of the width, the shape of a Chinese book). */
 .lib-card { position: relative; min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
 /* Cards in a row are as tall as the tallest, and each one's bar and meta line sit at its bottom, so rows stay level
    whether a title takes one line or two. */
@@ -172,7 +173,7 @@
 .lib-card-known { font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* The "…" menu sits beside the title, off the cover and its stitching. */
 .lib-card-menu {
-  position: absolute; top: calc(150cqw + 9px); right: -7px; width: 30px; height: 30px; border-radius: var(--radius-s);
+  position: absolute; top: calc(140cqw + 9px); right: -7px; width: 30px; height: 30px; border-radius: var(--radius-s);
   display: inline-flex; align-items: center; justify-content: center;
   border: 0; cursor: pointer; color: var(--text-3); background: transparent;
   opacity: 0; transition: opacity var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
@@ -180,7 +181,7 @@
 .lib-card-menu .icon { width: 18px; height: 18px; }
 .lib-card:hover .lib-card-menu, .lib-card:focus-within .lib-card-menu, .lib-card-menu[aria-expanded='true'] { opacity: 1; }
 @media (hover: hover) { .lib-card-menu:hover { background: var(--wash); color: var(--text); } }
-@media (hover: none) { .lib-card-menu { opacity: 1; width: 36px; height: 36px; top: calc(150cqw + 6px); right: -9px; } }
+@media (hover: none) { .lib-card-menu { opacity: 1; width: 36px; height: 36px; top: calc(140cqw + 6px); right: -9px; } }
 .lib-card-pending .lib-pending-stage { font-variant-numeric: tabular-nums; }
 
 /* ---------- empty state: the seal, large ---------- */
@@ -211,8 +212,9 @@
   display: flex; gap: var(--space-4); min-width: 0; padding: var(--space-4) 0;
   background: none; box-shadow: none; border-radius: 0; border-bottom: 1px solid var(--rule);
 }
-.lib-sample-cover { flex: none; width: 58px; }
-.lib-sample-cover .lib-cover { border-radius: 1px; box-shadow: var(--shadow-book); }
+/* The row is as tall as its text; the cover keeps the shape of a book instead of stretching to it. */
+.lib-sample-cover { flex: none; align-self: flex-start; width: 84px; }
+.lib-sample-cover .lib-cover { height: auto; aspect-ratio: 5 / 7; border-radius: 1px; box-shadow: var(--shadow-book); }
 .lib-sample-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .lib-sample-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .lib-sample-title { font: 400 19px/1.3 var(--font-serif); letter-spacing: 0.04em; }
@@ -286,6 +288,7 @@
   .lib-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6) var(--space-4); }
   .lib-continue.card { flex-wrap: wrap; gap: var(--space-4); }
   .lib-continue-cover { width: 76px; }
+  .lib-sample-cover { width: 68px; }
   .lib-continue-go { width: 100%; }
   .lib-continue-title { font-size: 25px; }
   /* As wide as its longest choice, so "Recently read" is never cut; the search takes the rest. */
