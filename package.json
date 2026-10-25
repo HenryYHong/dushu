@@ -18,7 +18,9 @@
     "icons": "node scripts/make-icons.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "data": "python3 scripts/build_data.py"
+    "data": "python3 scripts/build_data.py",
+    "cloud:dev": "cd cloud && npx -y wrangler@4.152.0 dev --var MAIL_MODE:log",
+    "cloud:deploy": "cd cloud && npx -y wrangler@4.152.0 deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",

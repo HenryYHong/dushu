@@ -173,12 +173,19 @@
 .set-link-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); width: 420px; max-width: 100%; }
 .set-link-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; width: 100%; }
 .set-link, .set-address { flex: 1 1 200px; min-width: 0; font-family: var(--font-mono); font-size: 13px; }
+/* The sync account's sign-in: laid out like the Mac address, in the body font (an email is not code). */
+.set-cloud { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); width: 420px; max-width: 100%; }
+.set-cloud-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; width: 100%; }
+.set-cloud-input { flex: 1 1 200px; min-width: 0; }
+.set-cloud-code { font-variant-numeric: tabular-nums; letter-spacing: 0.12em; }
+.set-cloud-status { text-align: right; }
 .set-pending { padding: var(--space-4) 0; border-top: 1px solid var(--hairline); }
 .set-pending[hidden] { display: none; }
 .set-pending .set-btn-row { justify-content: flex-start; margin-top: var(--space-3); }
 @media (max-width: 640px) {
-  .set-status-wrap, .set-link-wrap { width: 100%; align-items: flex-start; }
-  .set-link-row { justify-content: flex-start; }
+  .set-status-wrap, .set-link-wrap, .set-cloud { width: 100%; align-items: flex-start; }
+  .set-link-row, .set-cloud-row { justify-content: flex-start; }
+  .set-cloud-status { text-align: left; }
 }
 
 /* Sync row: the switch and Sync now on one line, the status under them. */

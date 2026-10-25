@@ -529,7 +529,7 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   reading". The known-words panel on the Words screen shows how many reading marked and has **Clear learned words** (removes only those and
   clears the counts). An added word updates the open page in place (the store's `known` change → `refreshMarks`), never re-segmenting.
 
-### 4.11 Sync through the Mac (`core/sync.ts`, `scripts/sync-bridge.ts`)
+### 4.11 Sync through the Mac or a sync account (`core/sync.ts`, `core/syncExchange.ts`, `scripts/sync-bridge.ts`, `cloud/`)
 Saved words (with their SRS state), known words (with the learned-from-reading mark), the reading place in each book, looked-up words and
 bookmarks are the same on every device connected to the Mac. Books, settings, review logs and names are not synced.
 - **The Mac** (`scripts/sync-bridge.ts`, route `POST /api/sync`, owner-only through `bridgeRequest`, CORS like the other bridge routes)
@@ -546,6 +546,19 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   cursor past the end) gets everything. Writes are atomic; before the first write of a day the previous file is kept as
   `state-YYYY-MM-DD.json` (14 kept); a file that cannot be parsed is set aside, never overwritten. Limits: 8 MB body (a larger one is read
   to the end, then refused with 413), 5,000 changes, 32 KB per record (a larger record is answered like a change that lost).
+- **The merge** (`core/syncExchange.ts` `exchange`, over a `RecordTable`) is shared by both hubs: the Mac's table is the JSON file, the
+  account's is SQLite. A device syncs with one hub: the account when signed in (`core/cloud.ts` `cloudSession`), else the Mac. Switching
+  is an epoch change, so the device sends everything to the new hub and takes what it has (the restart path below).
+- **The sync account** (`cloud/`, a Cloudflare Worker; `npm run cloud:deploy`, Node 22 for wrangler): `POST /auth/code {email}` emails a
+  six-digit code through Resend (`RESEND_API_KEY`; `ALLOWED_EMAILS` limits who may sign in; `MAIL_MODE=log` prints codes, local only);
+  `POST /auth/verify {email, code}` returns a bearer token `<account id>.<secret>`; `GET|POST /sync` is the exchange, `GET /me`,
+  `POST /auth/signout`. One Durable Object per email (`idFromName('email:<email>')`) holds `meta` (epoch, version, email, the current
+  code), `records` (key, at, data, rev) and `sessions` (SHA-256 of the secret, created, used) in its SQLite database; every operation
+  is synchronous over it (`AccountCore`, `account.ts`), so each runs as one transaction; hashing happens before. Codes: 10 minutes,
+  5 tries, one per 30 s, 5 per hour; a global Durable Object caps emails per day (`DAILY_EMAILS`, 90). Sessions: 20 per account,
+  dropped after a year unused; a 401 signs the device out (`signedout` state). CORS answers only henryyhong.com, loopback and
+  `*.ts.net`; the page's CSP adds `CLOUD_URL`'s origin to connect-src at build (`scripts/bridge-csp.ts`; the dev server also allows
+  wrangler dev on port 8787). Settings → Your Mac and iPad → Sync account (`ui/settings/account.ts`) appears once `CLOUD_URL` is set.
 - **A device** keeps one row per record in the store's `sync` table (`SyncRow`: `at`, `sig` = hash of the record, `dirty` when not yet sent,
   `fresh` for a word saved before it ever synced, `held` for a place in a book the device does not have: sent by the Mac before the book
   arrived, or kept by `store.books.remove`; `#meta` holds `epoch` and the cursor). `store.books.add` (and `update`, when marking a book as

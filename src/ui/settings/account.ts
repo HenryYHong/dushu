@@ -7,19 +7,19 @@ import { nextId, row } from './controls';
 export function accountRow(): { el: HTMLElement; dispose(): void } | null {
   if (!cloudBase()) return null;
   const emailId = nextId('cloud-email');
-  const email = h('input.input.set-address.set-cloud-email', { id: emailId, type: 'email', inputmode: 'email', autocomplete: 'email', autocapitalize: 'none',
+  const email = h('input.input.set-cloud-input.set-cloud-email', { id: emailId, type: 'email', inputmode: 'email', autocomplete: 'email', autocapitalize: 'none',
     spellcheck: 'false', placeholder: 'you@example.com', 'aria-label': 'Email' }) as HTMLInputElement;
   const sendBtn = h('button.btn.btn-sm.btn-primary', { type: 'button' }, 'Email me a code') as HTMLButtonElement;
-  const code = h('input.input.set-address.set-cloud-code', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6,
+  const code = h('input.input.set-cloud-input.set-cloud-code', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6,
     placeholder: '6-digit code', 'aria-label': 'Code from the email' }) as HTMLInputElement;
   const signInBtn = h('button.btn.btn-sm.btn-primary', { type: 'button' }, 'Sign in') as HTMLButtonElement;
   const againBtn = h('button.btn.btn-sm', { type: 'button' }, 'Another email') as HTMLButtonElement;
   const signOutBtn = h('button.btn.btn-sm', { type: 'button' }, 'Sign out') as HTMLButtonElement;
-  const status = h('div.set-help', { role: 'status', 'aria-live': 'polite' });
+  const status = h('div.set-help.set-cloud-status', { role: 'status', 'aria-live': 'polite' });
   const result = h('div.set-test-out.set-cloud-result', { role: 'status', 'aria-live': 'polite' });
-  const emailRow = h('div.set-link-row', null, email, sendBtn);
-  const codeRow = h('div.set-link-row', null, code, signInBtn, againBtn);
-  const outRow = h('div.set-link-row', null, signOutBtn);
+  const emailRow = h('div.set-cloud-row', null, email, sendBtn);
+  const codeRow = h('div.set-cloud-row', null, code, signInBtn, againBtn);
+  const outRow = h('div.set-cloud-row', null, signOutBtn);
   let asked = ''; // the email a code was sent to
 
   const say = (text: string, kind: '' | 'good' | 'bad' = '') => {
@@ -81,6 +81,6 @@ export function accountRow(): { el: HTMLElement; dispose(): void } | null {
   window.addEventListener(CLOUD_EVENT, onChange);
   paint();
   const el = row('Sync account', 'Sign in with your email to sync between your devices from anywhere. Devices signed in sync with each other; ones that are not still sync through your Mac.',
-    h('div.set-link-wrap', null, emailRow, codeRow, outRow, status, result), emailId);
+    h('div.set-cloud', null, emailRow, codeRow, outRow, status, result), emailId);
   return { el, dispose() { window.removeEventListener(CLOUD_EVENT, onChange); } };
 }

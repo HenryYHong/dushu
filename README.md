@@ -31,6 +31,18 @@ When a device is connected, the Library adds any book the Mac shares in the back
 
 If the Mac is asleep, the Library says so and everything else keeps working.
 
+## Sync without Tailscale
+
+Sign in with your email under Settings, Your Mac and iPad, Sync account, and type the six-digit code it emails you. Every device signed in with that email keeps the same saved words (with their review schedule), known words, reading places, looked-up words and bookmarks, from anywhere, without Tailscale and with the Mac asleep. Books, settings and translation are not part of it: your Mac books are added to a device the first time it reaches the Mac and stay on it, and Claude still runs on the Mac. A device that is not signed in keeps syncing through the Mac.
+
+The sync server is a Cloudflare Worker in `cloud/` (one small SQLite database per account, merged exactly as the Mac merges). To run your own, with Node 22 or later:
+
+1. Make free accounts at Cloudflare and Resend (resend.com, which sends the codes), then `npx wrangler login`.
+2. `npm run cloud:deploy`, then add the secrets: `npx wrangler secret put RESEND_API_KEY` and, to let only you sign in, `npx wrangler secret put ALLOWED_EMAILS` (both run in `cloud/`).
+3. Put the Worker's address in `CLOUD_URL` (`src/core/cloud.ts`) and build. Until it is set, Settings does not offer to sign in.
+
+Resend's shared sender only delivers to the email you signed up with. To let other people sign in, verify a domain at Resend and set `MAIL_FROM` in `cloud/wrangler.toml`. `npm run cloud:dev` runs the server locally and prints codes instead of emailing them.
+
 ## Run it yourself
 
 You need Node.js 20 or newer. The launcher uses your installed Node.js and the versions pinned in `package-lock.json`.
@@ -157,7 +169,7 @@ Saved words come back as flashcards. Press Space to reveal, then 1 to 4 for Agai
 
 ## Privacy
 
-On the hosted site, everything is local to your browser. Books, saved words, progress and settings live in the browser's own storage, and the dictionary is served with the app. If you connect your own Mac, your words, reading places and bookmarks are also kept on that Mac, never anywhere else. The app contacts another site only when you ask it to: the stroke-order data for a character (from jsDelivr), the selected text if you choose MyMemory, and your own Mac if you connect one. Settings has a backup export and a Delete all data button. Backups hold your words, progress and settings, but not your books or any key.
+On the hosted site, everything is local to your browser. Books, saved words, progress and settings live in the browser's own storage, and the dictionary is served with the app. If you connect your own Mac, your words, reading places and bookmarks are also kept on that Mac. If you sign in to a sync account, they are kept in it, on Cloudflare, with your email; no book or book text ever goes there. The app contacts another site only when you ask it to: the stroke-order data for a character (from jsDelivr), the selected text if you choose MyMemory, your own Mac if you connect one, and the sync server if you sign in. Settings has a backup export and a Delete all data button. Backups hold your words, progress and settings, but not your books or any key.
 
 ## Data sources and licenses
 

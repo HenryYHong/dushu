@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BRIDGE_CONNECT, withBridgeConnectSrc } from '../../scripts/bridge-csp';
+import { BRIDGE_CONNECT, cloudConnect, withBridgeConnectSrc } from '../../scripts/bridge-csp';
 
 const sample = '<head><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; connect-src \'self\' https://api.anthropic.com https://api.mymemory.translated.net https://cdn.jsdelivr.net; object-src \'none\'" /></head>';
 const connect = (html: string) => /connect-src ([^;"]*)/.exec(html)![1].split(' ');
@@ -26,5 +26,13 @@ describe('the page policy lets the public copy reach the Mac, and nothing else n
     expect(sources.filter(s => s.includes('*'))).toEqual([BRIDGE_CONNECT]);
     expect(sources.some(s => s.startsWith('http:'))).toBe(false);
     expect(out).toMatch(/script-src 'self';/);
+  });
+  it('lets the page reach the sync server: its exact origin in a build, and wrangler dev only on the dev server', () => {
+    expect(cloudConnect('')).toEqual([]);
+    expect(cloudConnect('https://dushu-sync.someone.workers.dev')).toEqual(['https://dushu-sync.someone.workers.dev']);
+    expect(cloudConnect('https://dushu-sync.someone.workers.dev', true)).toEqual(['https://dushu-sync.someone.workers.dev', 'http://127.0.0.1:8787', 'http://localhost:8787']);
+    const out = withBridgeConnectSrc(sample, cloudConnect('https://dushu-sync.someone.workers.dev'));
+    expect(connect(out)).toEqual(["'self'", BRIDGE_CONNECT, 'https://dushu-sync.someone.workers.dev', 'https://api.mymemory.translated.net', 'https://cdn.jsdelivr.net']);
+    expect(withBridgeConnectSrc(out, cloudConnect('https://dushu-sync.someone.workers.dev'))).toBe(out);
   });
 });

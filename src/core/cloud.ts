@@ -2,7 +2,7 @@
 // device signed in syncs with the account instead of the Mac (core/sync.ts). The session is kept in this browser only.
 
 /** The sync server. Empty: this build has none, and Settings does not offer to sign in. */
-export const CLOUD_URL = '';
+export const CLOUD_URL = 'https://dushu-sync.henryhong.workers.dev';
 const URL_KEY = 'dushu.cloud.url.v1';
 const SESSION_KEY = 'dushu.cloud.v1';
 /** Fired on window when this device signs in or out. */
