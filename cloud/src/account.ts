@@ -56,6 +56,9 @@ export class CloudError extends Error {
   constructor(readonly status: number, message: string, readonly code?: string) { super(message); }
 }
 
+/** Read-aloud through the account: characters read per UTC day, against the limit the Worker passes in. */
+export interface SpeechUsage { day: string; chars: number }
+
 /** Claude through the account: requests and tokens per UTC day, against the limits the Worker passes in. */
 export interface ClaudeUsage { day: string; requests: number; inputTokens: number; outputTokens: number }
 export interface ClaudeLimits { requests: number; inputTokens: number }
@@ -234,6 +237,25 @@ export class AccountCore {
     const usage = this.claudeUsage(now);
     const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
     this.store.setMeta('claude', JSON.stringify({ ...usage, inputTokens: usage.inputTokens + n(input), outputTokens: usage.outputTokens + n(output) }));
+  }
+
+  private speechUsage(now: number): SpeechUsage {
+    const day = new Date(now).toISOString().slice(0, 10);
+    try {
+      const u = JSON.parse(this.store.getMeta('speech') ?? 'null') as SpeechUsage | null;
+      if (u && u.day === day) return u;
+    } catch { /* a damaged count starts again */ }
+    return { day, chars: 0 };
+  }
+
+  /** Counts a sentence read aloud before it is read, or refuses it once today's characters are used up. */
+  speechStart(sessionHash: string, chars: number, limit: number, now: number): void {
+    this.authorize(sessionHash, now);
+    const usage = this.speechUsage(now);
+    if (usage.chars + chars > limit) {
+      throw new CloudError(429, `Today's read-aloud on your account (${limit.toLocaleString('en-US')} characters) is used up. It resets at midnight (UTC); until then Dushu reads with this device's voice.`, 'daily_limit');
+    }
+    this.store.setMeta('speech', JSON.stringify({ ...usage, chars: usage.chars + chars }));
   }
 
   private table(): RecordTable {

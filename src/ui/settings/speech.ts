@@ -72,12 +72,12 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
       listed = true;
       fill(settings.get().ttsVoice);
       note.textContent = list.length
-        ? 'Automatic prefers Premium or Enhanced voices. “Your Mac” voices use your private connection; “on-device” voices run on the device you are reading on. On iPad, add Chinese voices in Settings > Accessibility > Read & Speak (Spoken Content on older iPadOS).'
+        ? 'Automatic prefers Premium or Enhanced voices, then your account’s voice. “Your Mac” voices use your private connection; “your account” reads through the sync server while you are signed in and online (free, within a daily allowance); “on-device” voices run on the device you are reading on. On iPad, add Chinese voices in Settings > Accessibility > Read & Speak (Spoken Content on older iPadOS).'
         : 'No Chinese voices found. Add a Chinese voice in your device’s Accessibility > Read & Speak settings, or connect to your Mac’s private Dushu link, then reopen Dushu.';
     }).catch(() => { listed = true; });
   }
 
-  const el = group('Speech', 'Read words, sentences, or the current chapter aloud. Voices on your Mac highlight each word as it is spoken. Premium voices built into the browser highlight only the paragraph.',
+  const el = group('Speech', 'Read words, sentences, or the current chapter aloud. Voices on your Mac and your account’s voice highlight each word as it is spoken. Premium voices built into the browser highlight only the paragraph.',
     row('Voice', null, h('div.set-voice', null, select, note), voiceId),
     row('Read-aloud speed', null, rate),
     row('Try it', 'Plays a short sentence with the voice and speed above.', h('div', null, test, testStatus)));

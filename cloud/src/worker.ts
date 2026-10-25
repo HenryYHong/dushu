@@ -1,7 +1,8 @@
 // Dushu's sync account online: a device signs in with an emailed code and then syncs exactly as it would with the owner's
 // Mac (src/core/sync.ts speaks the same exchange). One Durable Object per email holds that account (account.ts), so its
 // requests run one at a time; another holds the daily count of emails sent. Sessions are bearer tokens
-// '<account id>.<secret>': only the secret's SHA-256 is stored. Nothing here holds a book or any book text.
+// '<account id>.<secret>': only the secret's SHA-256 is stored. Read-aloud uses Workers AI, kept under its free daily
+// allowance (SPEECH_MAX_CHARS).
 import Anthropic from '@anthropic-ai/sdk';
 import { AccountCore, BOOK_CHUNK, CloudError, allowedEmail, normalEmail, type ClaudeLimits } from './account';
 import { sqlStore, type SqlStorage } from './sqlStore';
@@ -38,7 +39,23 @@ export interface Env {
   CLAUDE_MAX_INPUT_TOKENS?: string;
   /** Tests make the Anthropic client; the Worker makes the real one. */
   claudeClient?: (apiKey: string) => ServerClient;
+  /** Workers AI (wrangler.toml [ai]), for read-aloud through the account. */
+  AI?: { run(model: string, input: Record<string, unknown>, options?: { returnRawResponse?: boolean }): Promise<unknown> };
+  /** Characters read aloud per account per day. */
+  SPEECH_MAX_CHARS?: string;
 }
+
+/** The account's voice: MeloTTS on Workers AI, Mandarin (a WAV file, 44.1 kHz). */
+const SPEECH_MODEL = '@cf/myshell-ai/melotts';
+/**
+ * Never billed: Workers AI gives every account 10,000 neurons a day for nothing, and MeloTTS costs about 19 a minute of
+ * audio ($0.000205 a minute at $0.011 per 1,000). At 3.5 characters a second (slower than it reads), 90,000 characters is
+ * about 430 minutes, 8,000 neurons: under the free allowance with room to spare. Past it the app reads with the device's voice.
+ */
+const SPEECH_MAX_CHARS = 90_000;
+/** A sentence at most (src/speech/tts.ts sends one at a time, 180 characters or fewer). */
+const SPEECH_TEXT = 400;
+const speechLimit = (env: Env) => Math.min(SPEECH_MAX_CHARS, Number(env.SPEECH_MAX_CHARS) > 0 ? Number(env.SPEECH_MAX_CHARS) : SPEECH_MAX_CHARS);
 
 const claudeLimits = (env: Env): ClaudeLimits => ({
   requests: Number(env.CLAUDE_MAX_REQUESTS) > 0 ? Number(env.CLAUDE_MAX_REQUESTS) : 3000,
@@ -150,6 +167,31 @@ async function claudeTranslate(request: Request, env: Env, ctx: ExecutionContext
   return new Response(readable, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 
+/** Read-aloud through the account: one sentence read by Workers AI, counted against the day before it is read. */
+async function speech(request: Request, env: Env): Promise<Response> {
+  const { stub, secret: s } = bearer(request, env);
+  if (!env.AI) throw new CloudError(503, 'Read-aloud is not set up on the sync server.', 'no_voice');
+  const body = await readJson(request, 8192);
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) throw new CloudError(400, 'There is nothing to read.');
+  const chars = [...text].length;
+  if (chars > SPEECH_TEXT) throw new CloudError(413, 'That is too long to read at once.');
+  const gate = await call(stub, 'speech-start', { chars, limit: speechLimit(env) }, s);
+  if (!gate.ok) return gate;
+  // The model's answer as it comes, { audio: base64 WAV }: decoding megabytes here would take the Worker past the free plan's
+  // CPU time, so the device decodes it (src/speech/tts.ts).
+  let res: unknown;
+  try { res = await env.AI.run(SPEECH_MODEL, { prompt: text, lang: 'zh' }, { returnRawResponse: true }); } catch (e) {
+    console.error('Dushu speech', e);
+    throw new CloudError(502, 'The sync server could not read that aloud. Try again in a moment.', 'voice_failed');
+  }
+  if (!(res instanceof Response) || !res.ok || !res.body) {
+    console.error('Dushu speech', res instanceof Response ? res.status : typeof res);
+    throw new CloudError(502, 'The sync server could not read that aloud. Try again in a moment.', 'voice_failed');
+  }
+  return new Response(res.body, { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+}
+
 async function claudeStatus(request: Request, env: Env): Promise<Response> {
   const { stub, secret: s } = bearer(request, env);
   const res = await call(stub, 'claude-status', { limits: claudeLimits(env) }, s);
@@ -225,6 +267,7 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   }
   if (path === '/claude/status' && request.method === 'GET') return claudeStatus(request, env);
   if (path === '/claude/translate' && request.method === 'POST') return claudeTranslate(request, env, ctx);
+  if (path === '/speech' && request.method === 'POST') return speech(request, env);
   if (path === '/sync') {
     const { stub, secret: s } = bearer(request, env);
     if (request.method === 'GET') return call(stub, 'status', {}, s);
@@ -288,6 +331,7 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'claude-status': return json(200, core.claudeStatus(session, body.limits as ClaudeLimits, now));
       case 'claude-start': core.claudeStart(session, body.limits as ClaudeLimits, now); return json(200, { ok: true });
       case 'claude-used': core.claudeUsed(session, Number(body.input), Number(body.output), now); return json(200, { ok: true });
+      case 'speech-start': core.speechStart(session, Number(body.chars) || 0, Number(body.limit) || 0, now); return json(200, { ok: true });
       case 'chunk-get': return new Response(core.getBookChunk(session, key, index, now) as Uint8Array<ArrayBuffer>, { headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' } });
       default: return json(404, { error: 'Not found.' });
     }

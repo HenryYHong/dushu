@@ -1,6 +1,7 @@
 // Text to speech with the Web Speech API. Contract: ARCHITECTURE.md §4.8.
 import { detectScript } from '../core/text';
 import { bridgeFetch, hasMacBridge } from '../core/macBridge';
+import { cloudFetch, cloudSession } from '../core/cloud';
 
 export interface SpeechOptions {
   rate?: number;
@@ -34,7 +35,7 @@ export function voiceLabel(v: SpeechSynthesisVoice): string {
   const tier = quality(v);
   const suffix = tier === 0 ? 'Premium' : tier === 1 ? 'Enhanced' : '';
   const name = suffix && !v.name.toLowerCase().includes(suffix.toLowerCase()) ? `${v.name} (${suffix})` : v.name;
-  return `${name} · ${v.lang}${v.voiceURI.startsWith('dushu-mac:') ? ' · your Mac' : v.localService ? ' · on-device' : ' · online'}`;
+  return `${name} · ${v.lang}${v.voiceURI.startsWith('dushu-mac:') ? ' · your Mac' : isAccountVoice(v) ? ' · your account' : v.localService ? ' · on-device' : ' · online'}`;
 }
 
 /** Chrome fills getVoices() asynchronously; wait for voiceschanged, but never hang. */
@@ -70,9 +71,23 @@ function nativeVoices(): Promise<SpeechSynthesisVoice[]> {
       .map(v => ({ ...v, localService: true, default: false }) as SpeechSynthesisVoice) : [];
   }).catch(() => { nativeVoiceCache = null; return []; });
 }
+/**
+ * The account's voice: the sync server reads each sentence (MeloTTS on Workers AI, free within a daily allowance), so a
+ * device signed in has a natural Chinese voice without the Mac. It needs the internet; without it this device's voice reads.
+ */
+export const ACCOUNT_VOICE = 'dushu-cloud:zh';
+const isAccountVoice = (v: SpeechSynthesisVoice) => v.voiceURI.startsWith('dushu-cloud:');
+/** A voice whose audio is made elsewhere (the Mac, the sync server) and played here, rather than spoken by this browser. */
+const isRendered = (v: SpeechSynthesisVoice) => v.voiceURI.startsWith('dushu-mac:') || isAccountVoice(v);
+function accountVoices(): SpeechSynthesisVoice[] {
+  if (!cloudSession() || typeof Audio === 'undefined') return [];
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return [];
+  return [{ voiceURI: ACCOUNT_VOICE, name: 'Melo', lang: 'zh-CN', localService: false, default: false } as SpeechSynthesisVoice];
+}
+
 async function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   const [browser, native] = await Promise.all([browserVoices(), nativeVoices()]);
-  return [...native, ...browser];
+  return [...native, ...accountVoices(), ...browser];
 }
 
 /** Chinese voices, zh-CN first, then zh-TW, zh-HK, others; on-device voices before network ones. */
@@ -95,6 +110,9 @@ export function pickVoice(voices: SpeechSynthesisVoice[], lang: string, override
   const preferred = want === 'zh-tw' ? 'meijia' : want === 'zh-hk' ? 'sinji' : 'tingting';
   const upgraded = pool.filter(v => v.localService && quality(v) < 2).sort((a, b) => quality(a) - quality(b));
   if (upgraded.length) return upgraded[0];
+  // The account's voice reads better than a compact on-device voice, though not than a Premium or Enhanced one.
+  const account = pool.find(isAccountVoice);
+  if (account) return account;
   const native = pool.find(v => v.localService && v.name.toLowerCase() === preferred);
   if (native) return native;
   return pool.find(v => v.localService) ?? pool[0] ?? zh[0] ?? null;
@@ -222,6 +240,40 @@ async function renderNative(text: string, voice: SpeechSynthesisVoice, signal: A
   }
 }
 
+/** The sync server reads a sentence. Its answer is the model's own, { audio: base64 WAV }: decoded here, not on the server. */
+async function renderAccount(text: string, signal: AbortSignal): Promise<{ blob: Blob; marks: Marks }> {
+  let response: Response | null;
+  try {
+    response = await cloudFetch('/speech', { method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(renderTimeout(text) + 10_000)]),
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+  } catch (error) {
+    if (signal.aborted) throw error;
+    throw new Error('Could not reach the sync server to read aloud.');
+  }
+  if (!response) throw new Error('This device is signed out, so the account voice cannot read.');
+  const data = await response.json().catch(() => null) as { audio?: unknown; error?: unknown } | null;
+  if (!response.ok || typeof data?.audio !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : 'The account voice could not prepare audio.');
+  const bin = atob(data.audio);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return { blob: new Blob([bytes], { type: 'audio/wav' }), marks: [] };
+}
+
+/**
+ * When each word starts in audio that has no word marks (the account's voice): each Chinese character is one syllable, a
+ * comma or a full stop a pause, spread over the audio less a little quiet at each end. `words` are offsets into `text`.
+ */
+export function estimateMarks(text: string, words: number[], ms: number): Marks {
+  const weight = (ch: string) => /\p{Script=Han}/u.test(ch) ? 1 : /[，、；：,;:]/.test(ch) ? 0.8 : /[。！？!?…]/.test(ch) ? 1.2
+    : /[\p{L}\p{N}]/u.test(ch) ? 0.35 : 0;
+  const before: number[] = [0];
+  for (let i = 0; i < text.length; i++) before.push(before[i] + weight(text[i]));
+  const total = before[text.length] || 1;
+  const quiet = Math.min(200, ms * 0.05);
+  // The first word is lit as the audio starts.
+  return words.filter(o => o >= 0 && o < text.length).map((o, i) => [o, i === 0 ? 0 : quiet + (ms - 2 * quiet) * before[o] / total] as [number, number]);
+}
+
 function primeTouchAudio(): HTMLAudioElement | undefined {
   // iPadOS can use a desktop user agent. Start the same media element inside the tap,
   // before voice discovery/rendering yields; reuse it throughout this reading run.
@@ -239,6 +291,7 @@ function primeTouchAudio(): HTMLAudioElement | undefined {
 function playNative(
   blob: Blob, rate: number, opts?: SpeechOptions, reusable?: HTMLAudioElement,
   marks: Marks = [], length = 0, onWord?: (offset: number, length: number) => void,
+  estimate?: { text: string; words: number[] },
 ): Promise<boolean> {
   return new Promise(resolve => {
     const url = URL.createObjectURL(blob);
@@ -251,6 +304,10 @@ function playNative(
     let shown = -1;
     const follow = () => {
       if (done || !onWord) return;
+      // Audio without marks: estimated once its length is known.
+      if (!marks.length && estimate?.words.length && Number.isFinite(audio.duration) && audio.duration > 0) {
+        marks = estimateMarks(estimate.text, estimate.words, audio.duration * 1000);
+      }
       const ms = audio.currentTime * 1000;
       let k = shown;
       while (k + 1 < marks.length && marks[k + 1][1] <= ms) k++;
@@ -263,7 +320,7 @@ function playNative(
     let clock: ReturnType<typeof setInterval> | number | undefined;
     const frames = typeof requestAnimationFrame === 'function';
     const tick = () => { follow(); if (!done) clock = requestAnimationFrame(tick); };
-    if (onWord && marks.length) clock = frames ? requestAnimationFrame(tick) : setInterval(follow, 40);
+    if (onWord && (marks.length || estimate?.words.length)) clock = frames ? requestAnimationFrame(tick) : setInterval(follow, 40);
     const finish = (ok: boolean) => {
       if (done) return;
       done = true;
@@ -280,7 +337,7 @@ function playNative(
     finishPending = cancel;
     audio.onplaying = () => { if (!done) { opts?.onStart?.(); follow(); } };
     audio.onended = () => finish(true);
-    const fail = () => { if (!done) opts?.onError?.('The Premium voice could not play. Tap Read again, or choose an iPad voice in Settings.'); finish(false); };
+    const fail = () => { if (!done) opts?.onError?.('The voice could not play. Tap Read again, or choose an iPad voice in Settings.'); finish(false); };
     audio.onerror = fail;
     if (!nativePaused) void audio.play().catch(fail);
     follow(); // the sentence's first word, as its audio starts
@@ -334,13 +391,16 @@ export async function speakSequence(
   const touchAudio = primeTouchAudio();
   const mine = generation;
   const lang = opts?.lang ?? (detectScript(parts.join('')) === 'traditional' ? 'zh-TW' : 'zh-CN');
-  const voice = pickVoice(await loadVoices(), lang, opts?.voice);
+  let voice = pickVoice(await loadVoices(), lang, opts?.voice);
   if (mine !== generation) return false;
   if (!voice) {
     opts?.onError?.('No Chinese voice is available. Choose or install a Chinese voice in Settings.');
     return false;
   }
-  if (voice.voiceURI.startsWith('dushu-mac:')) {
+  // The paragraph this browser's own voice reads from: 0, or where the account's voice stopped.
+  let from = 0;
+  if (isRendered(voice)) {
+    const rendered = voice;
     const ctl = new AbortController();
     nativeCtl = ctl;
     const queue = parts.flatMap((text, index) => pieces(text).map(piece => ({ ...piece, index })));
@@ -360,7 +420,7 @@ export async function speakSequence(
         if (!starts.has(q.index)) starts.set(q.index, opts.wordStarts(q.index));
         words = [0, ...starts.get(q.index)!.filter(o => o > q.start && o < q.start + q.text.length).map(o => o - q.start)];
       }
-      return renderNative(q.text, voice, ctl.signal, words);
+      return (isAccountVoice(rendered) ? renderAccount(q.text, ctl.signal) : renderNative(q.text, rendered, ctl.signal, words)).then(r => ({ ...r, words }));
     };
     // The next two sentences render while one plays, the Mac's limit: with one, a long sentence after a short one was not
     // ready in time at 2×.
@@ -372,11 +432,13 @@ export async function speakSequence(
       p.then(() => ready.add(k), () => {}); // a stopped run may never await this prefetch
     };
     ahead(0);
+    let at = 0;
     try {
       for (let i = 0; i < queue.length; i++) {
+        at = queue[i].index;
         // The sentence before has ended and this one is not ready: the reader says it is preparing, not reading, over the silence.
         if (i > 0 && !ready.has(i)) opts?.onWaiting?.();
-        const { blob, marks } = await renders[i]!;
+        const { blob, marks, words } = await renders[i]!;
         renders[i] = undefined;
         if (mine !== generation) return false;
         ahead(i + 1);
@@ -385,18 +447,28 @@ export async function speakSequence(
         if (i === 0 || q.index !== queue[i - 1].index) onPart?.(q.index);
         const rate = clampRate(opts?.getRate?.() ?? opts?.rate ?? 1);
         const onWord = onBoundary ? (at: number, len: number) => { if (mine === generation) onBoundary(q.index, q.start + at, len); } : undefined;
-        if (!await playNative(blob, rate, opts, touchAudio, marks, q.text.length, onWord)) return false;
+        if (!await playNative(blob, rate, opts, touchAudio, marks, q.text.length, onWord, isAccountVoice(rendered) ? { text: q.text, words } : undefined)) return false;
       }
       return mine === generation;
     } catch (error) {
-      if (mine === generation && !ctl.signal.aborted) opts?.onError?.(error instanceof Error ? error.message : 'Could not prepare Premium audio.');
-      return false;
+      if (mine !== generation || ctl.signal.aborted) return false;
+      // The account's voice could not read (no internet on a train, today's allowance used up): this device's own voice reads
+      // on from the paragraph it stopped in.
+      const own = isAccountVoice(rendered) ? pickVoice(await browserVoices(), lang) : null;
+      if (mine !== generation) return false;
+      if (!own) {
+        opts?.onError?.(error instanceof Error ? error.message : 'Could not prepare Premium audio.');
+        return false;
+      }
+      console.warn('Dushu: the account voice could not read, so this device’s voice reads instead', error);
+      voice = own;
+      from = at;
     } finally {
       ctl.abort();
       if (nativeCtl === ctl) nativeCtl = null;
     }
   }
-  for (let i = 0; i < parts.length; i++) {
+  for (let i = from; i < parts.length; i++) {
     const chunks = pieces(parts[i]);
     if (!chunks.length) continue;
     if (mine !== generation) return false;

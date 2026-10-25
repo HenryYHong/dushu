@@ -177,7 +177,7 @@ describe('native Premium audio', () => {
     await vi.waitFor(() => expect(audio).toHaveLength(1));
     audio[0].onerror?.();
     expect(await run).toBe(false);
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('Premium voice'));
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('could not play'));
     expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
   });
 

@@ -19,6 +19,10 @@ class_name = "Limits"
 tag = "v1"
 new_sqlite_classes = ["Account", "Limits"]
 
+# Read-aloud through the account (MeloTTS), capped under the free daily allowance in src/worker.ts (SPEECH_MAX_CHARS).
+[ai]
+binding = "AI"
+
 [vars]
 MAIL_FROM = "Dushu <onboarding@resend.dev>"
 DAILY_EMAILS = "90"
