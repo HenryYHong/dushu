@@ -133,9 +133,11 @@ async function route(request: Request, env: Env): Promise<Response> {
     const { stub, secret: s } = bearer(request, env);
     return call(stub, 'signout', {}, s);
   }
-  if (path === '/me' && request.method === 'GET') {
+  if (path === '/me') {
     const { stub, secret: s } = bearer(request, env);
-    return call(stub, 'me', {}, s);
+    if (request.method === 'GET') return call(stub, 'me', {}, s);
+    if (request.method !== 'POST') throw new CloudError(405, 'Not allowed.');
+    return call(stub, 'mac', await readJson(request, 4096), s);
   }
   if (path === '/sync') {
     const { stub, secret: s } = bearer(request, env);
@@ -183,6 +185,7 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'code': core.storeCode(str(body.email), str(body.hash), now); return json(200, { ok: true });
       case 'verify': return json(200, core.verify(str(body.codeHash), str(body.sessionHash), now));
       case 'me': return json(200, core.me(session, now));
+      case 'mac': return json(200, core.setMac(session, str(body.mac), now));
       case 'signout': core.signOut(session); return json(200, { ok: true });
       case 'status': return json(200, core.status(session, now));
       case 'sync': return json(200, core.sync(session, body, now));

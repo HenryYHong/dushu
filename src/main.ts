@@ -10,6 +10,9 @@ import { parseRoute } from './ui/route';
 import { icon } from './ui/icons';
 import { watchServiceWorker } from './swUpdate';
 import { startSync } from './core/sync';
+import { CLOUD_EVENT } from './core/cloud';
+import { linkMac } from './core/cloudLink';
+import { signInButton } from './ui/signIn';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -126,8 +129,11 @@ async function boot(): Promise<void> {
   }
   // Start parsing the dictionary right away; the library does not wait for it.
   ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not download the dictionary. Check your connection; Dushu will try again.', { ms: 8000 }); });
-  // Saved words, known words and reading places, kept the same on every device connected to the Mac.
+  // Saved words, known words, reading places, lookups and bookmarks, kept the same on every device signed in to the sync
+  // account (or connected to the Mac). Signed in, a device also learns where the Mac is, for the Mac's books.
   startSync(store);
+  void linkMac();
+  window.addEventListener(CLOUD_EVENT, () => void linkMac());
 
   const reviewBadge = h('span.app-badge', { hidden: true });
   const navLink = (href: string, label: string, ic: string, extra?: Node) =>
@@ -138,6 +144,7 @@ async function boot(): Promise<void> {
     navLink('#/vocab', 'Vocabulary', 'list'),
     navLink('#/review', 'Review', 'cards', reviewBadge),
     navLink('#/settings', 'Settings', 'settings'),
+    signInButton(),
   );
   const screen = h('main#screen');
   app.append(nav, screen, toasts);

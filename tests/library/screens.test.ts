@@ -133,14 +133,24 @@ describe('library screen', () => {
     expect((root.querySelector('.lib-empty') as HTMLElement | null)).toBeNull();
   });
 
+  it('shows titles in the characters the reader chose, simplified by default', async () => {
+    const b = await store.books.add(book('西遊記', '〔明〕吳承恩'));
+    cleanup = await mountLibrary(root, {}, ctx);
+    const title = () => root.querySelector(`.lib-card[data-id="${b.id}"] .lib-card-title`)?.textContent;
+    await until(() => title() === '西游记');
+    ctx.settings.set({ script: 'original' });
+    await until(() => title() === '西遊記');
+    ctx.settings.set({ script: 'simplified' });
+  });
+
   it('gives a classic a thread-bound cover and a modern book a contemporary one, and the card menu changes it', async () => {
     const old = await store.books.add(book('西遊記', '〔明〕吳承恩'));
-    await store.books.add(book('故乡', '鲁迅'));
+    const modern = await store.books.add(book('故乡', '鲁迅'));
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => root.querySelectorAll('.lib-card').length === 2);
-    const coverOf = (title: string) => [...root.querySelectorAll('.lib-card')].find((c) => c.querySelector('.lib-card-title')?.textContent === title)!.querySelector('.lib-cover')!;
-    expect(coverOf('西遊記').classList.contains('lib-cover-classic')).toBe(true);
-    expect(coverOf('故乡').classList.contains('lib-cover-modern')).toBe(true);
+    const coverOf = (id: string) => root.querySelector(`.lib-card[data-id="${id}"] .lib-cover`)!;
+    expect(coverOf(old.id).classList.contains('lib-cover-classic')).toBe(true);
+    expect(coverOf(modern.id).classList.contains('lib-cover-modern')).toBe(true);
     const card = root.querySelector<HTMLElement>(`.lib-card[data-id="${old.id}"]`)!;
     card.querySelector<HTMLElement>('.lib-card-menu')!.click();
     const choices = [...document.querySelectorAll<HTMLElement>('.lib-menu [role="group"] [role="menuitemradio"]')];
@@ -148,13 +158,13 @@ describe('library screen', () => {
     expect(choices.map((c) => c.textContent)).toEqual(['Automatic (Classic)', 'Classic', 'Modern']);
     expect(choices.map((c) => c.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
     choices[2].click();
-    await until(() => coverOf('西遊記').classList.contains('lib-cover-modern'));
+    await until(() => coverOf(old.id).classList.contains('lib-cover-modern'));
     expect(JSON.parse(localStorage.getItem('dushu.cover-style.v1')!)).toEqual({ [old.id]: 'modern' });
     root.querySelector<HTMLElement>(`.lib-card[data-id="${old.id}"] .lib-card-menu`)!.click();
     const again = [...document.querySelectorAll<HTMLElement>('.lib-menu [role="menuitemradio"]')];
     expect(again.map((c) => c.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);
     again[0].click();
-    await until(() => coverOf('西遊記').classList.contains('lib-cover-classic'));
+    await until(() => coverOf(old.id).classList.contains('lib-cover-classic'));
   });
 
   it('says how much of each book\'s words are known once some are, and follows changes', async () => {

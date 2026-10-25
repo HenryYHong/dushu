@@ -1,11 +1,19 @@
-// "Sync account": sign in with an emailed code, so this device syncs through the sync account online instead of the Mac.
+// Signing in to the sync account with an emailed code: the Sync account row in Settings, and the Sign in dialog the top bar
+// opens (ui/signIn.ts). Both are the same panel: email, then the six-digit code, then who is signed in and Sign out.
 import { h } from '../dom';
 import { CLOUD_EVENT, cloudBase, cloudSession, requestCode, signIn, signOut } from '../../core/cloud';
 import { nextId, row } from './controls';
 
-/** The sign-in row for the Mac and iPad group, or null when this build has no sync server. */
-export function accountRow(): { el: HTMLElement; dispose(): void } | null {
-  if (!cloudBase()) return null;
+export interface AccountPanel {
+  el: HTMLElement;
+  /** The email field's id, for a label. */
+  emailId: string;
+  focus(): void;
+  dispose(): void;
+}
+
+/** The sign-in panel. `onSignedIn` runs once a code has signed this device in. */
+export function accountPanel(onSignedIn?: () => void): AccountPanel {
   const emailId = nextId('cloud-email');
   const email = h('input.input.set-cloud-input.set-cloud-email', { id: emailId, type: 'email', inputmode: 'email', autocomplete: 'email', autocapitalize: 'none',
     spellcheck: 'false', placeholder: 'you@example.com', 'aria-label': 'Email' }) as HTMLInputElement;
@@ -34,7 +42,7 @@ export function accountRow(): { el: HTMLElement; dispose(): void } | null {
     outRow.hidden = !s;
     status.textContent = s ? `Signed in as ${s.email}. Your words, reading places, looked-up words and bookmarks sync with every device signed in with this email, wherever you are.`
       : asked ? `A code was sent to ${asked}. It works for 10 minutes.`
-      : 'Not signed in. Sign in with the same email on each device, and they sync anywhere, without Tailscale or your Mac.';
+      : 'Sign in with the same email on each device, and they sync anywhere, without Tailscale or your Mac.';
   }
 
   sendBtn.addEventListener('click', async () => {
@@ -60,7 +68,8 @@ export function accountRow(): { el: HTMLElement; dispose(): void } | null {
     try {
       await signIn(asked, digits);
       asked = '';
-      say('Signed in. Syncing now.', 'good');
+      say('Signed in. Your books’ places, words and bookmarks are on their way.', 'good');
+      onSignedIn?.();
     } catch (e) { say(e instanceof Error ? e.message : 'Could not sign in.', 'bad'); }
     finally { signInBtn.disabled = false; paint(); }
   });
@@ -80,7 +89,20 @@ export function accountRow(): { el: HTMLElement; dispose(): void } | null {
   const onChange = () => paint();
   window.addEventListener(CLOUD_EVENT, onChange);
   paint();
+  return {
+    el: h('div.set-cloud', null, emailRow, codeRow, outRow, status, result),
+    emailId,
+    focus: () => (asked ? code : email).focus({ preventScroll: true }),
+    dispose() { window.removeEventListener(CLOUD_EVENT, onChange); },
+  };
+}
+
+/** The Sync account row for the Mac and iPad group, or null when this build has no sync server. */
+export function accountRow(): { el: HTMLElement; dispose(): void } | null {
+  if (!cloudBase()) return null;
+  const panel = accountPanel();
   const el = row('Sync account', 'Sign in with your email to sync between your devices from anywhere. Devices signed in sync with each other; ones that are not still sync through your Mac.',
-    h('div.set-cloud', null, emailRow, codeRow, outRow, status, result), emailId);
-  return { el, dispose() { window.removeEventListener(CLOUD_EVENT, onChange); } };
+    panel.el, panel.emailId);
+  el.id = 'sync-account';
+  return { el, dispose: panel.dispose };
 }

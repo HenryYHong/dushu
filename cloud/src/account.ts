@@ -32,6 +32,8 @@ export class CloudError extends Error {
 interface CodeState { hash: string; expires: number; tries: number; sent: number[] }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** A Mac's private address: https on a Tailscale name, an optional port, nothing else. */
+export const MAC = /^https:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.ts\.net(:\d{1,5})?$/;
 
 /** An email as accounts are named by it, or null when it is not one. */
 export function normalEmail(input: unknown): string | null {
@@ -95,9 +97,19 @@ export class AccountCore {
     if (now - s.used > TOUCH_MS) this.store.putSession(sessionHash, { ...s, used: now });
   }
 
-  me(sessionHash: string, now: number): { email: string } {
+  /** Who is signed in, and the address of their Mac when a device on it said (so other devices can reach it for books). */
+  me(sessionHash: string, now: number): { email: string; mac?: string } {
     this.authorize(sessionHash, now);
-    return { email: this.store.getMeta('email') ?? '' };
+    const mac = this.store.getMeta('mac');
+    return { email: this.store.getMeta('email') ?? '', ...(mac ? { mac } : {}) };
+  }
+
+  /** Remembers the owner's Mac (its private Tailscale address); only a Tailscale https origin is kept. */
+  setMac(sessionHash: string, mac: string, now: number): { email: string; mac?: string } {
+    this.authorize(sessionHash, now);
+    if (!MAC.test(mac)) throw new CloudError(400, 'That is not a Mac address Dushu can use.');
+    this.store.setMeta('mac', mac);
+    return this.me(sessionHash, now);
   }
 
   signOut(sessionHash: string): void {

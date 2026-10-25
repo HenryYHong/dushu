@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   toneColors: true,
   sandhi: true,
   autoKnown: false,
-  script: 'original',
+  script: 'simplified',
   lookupTrigger: 'click',
   paragraphTranslate: true,
   translator: 'auto',
@@ -122,8 +122,22 @@ function load(storage: Storage | undefined): Settings {
   return { ...DEFAULT_SETTINGS };
 }
 
+/** Set once a device has moved to simplified characters, the default since 2026-10-24 (before, it was "As written"). */
+const SIMPLIFIED_KEY = 'dushu.settings.simplified.v1';
+
 export function createSettingsStore(storage: Storage | undefined = defaultStorage()): SettingsStore {
   let s = load(storage);
+  // Saved settings hold every value, so a device that kept the old default ("As written") moves to simplified once; a
+  // later choice of "As written" stays.
+  try {
+    if (storage && !storage.getItem(SIMPLIFIED_KEY)) {
+      if (s.script === 'original' && storage.getItem(SETTINGS_KEY)) {
+        s = { ...s, script: 'simplified' };
+        storage.setItem(SETTINGS_KEY, JSON.stringify(s));
+      }
+      storage.setItem(SIMPLIFIED_KEY, '1');
+    }
+  } catch { /* read-only storage: the saved choice stands */ }
   const subs = new Set<(s: Settings, changed: (keyof Settings)[]) => void>();
   const notify = (changed: (keyof Settings)[]) => {
     for (const fn of [...subs]) {

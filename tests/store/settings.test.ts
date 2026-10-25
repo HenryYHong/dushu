@@ -11,6 +11,18 @@ function memStorage(init: Record<string, string> = {}): Storage {
 }
 
 describe('settings', () => {
+  it('shows simplified characters by default, moves a device that kept the old default once, and keeps a later choice', () => {
+    expect(DEFAULT_SETTINGS.script).toBe('simplified');
+    const st = memStorage({ [SETTINGS_KEY]: JSON.stringify({ ...DEFAULT_SETTINGS, script: 'original', fontSize: 30 }) });
+    const first = createSettingsStore(st);
+    expect(first.get()).toMatchObject({ script: 'simplified', fontSize: 30 });
+    expect(JSON.parse(st.getItem(SETTINGS_KEY)!).script).toBe('simplified');
+    first.set({ script: 'original' });
+    expect(createSettingsStore(st).get().script).toBe('original');
+    // Traditional, chosen before, is left alone.
+    const trad = memStorage({ [SETTINGS_KEY]: JSON.stringify({ ...DEFAULT_SETTINGS, script: 'traditional' }) });
+    expect(createSettingsStore(trad).get().script).toBe('traditional');
+  });
   it('starts with defaults', () => {
     expect(createSettingsStore(memStorage()).get()).toEqual(DEFAULT_SETTINGS);
   });

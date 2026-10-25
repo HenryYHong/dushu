@@ -4,6 +4,8 @@
 // the settings or a backup. The server still decides who may use it (the owner's exact Tailscale identity).
 
 const STORE_KEY = 'dushu.mac-bridge.v1';
+/** Set when the person disconnected this device from the Mac: signing in never connects it again by itself. */
+const DECLINED_KEY = 'dushu.mac-bridge.declined.v1';
 /** Where the public copy of the app lives. The hand-off link opens it; nothing private is in this address. */
 export const PUBLIC_APP_URL = 'https://henryyhong.com/dushu/';
 /** Fired on window when the connected Mac changes, so open screens can try again. */
@@ -50,13 +52,17 @@ function announce(): void {
 export function connectMac(url: string): string | null {
   const origin = parseMacUrl(url);
   if (!origin) return null;
-  try { storage()?.setItem(STORE_KEY, origin); } catch { return null; }
+  try { storage()?.setItem(STORE_KEY, origin); storage()?.removeItem(DECLINED_KEY); } catch { return null; }
   announce();
   return origin;
 }
 export function disconnectMac(): void {
-  try { storage()?.removeItem(STORE_KEY); } catch { /* nothing stored */ }
+  try { storage()?.removeItem(STORE_KEY); storage()?.setItem(DECLINED_KEY, '1'); } catch { /* nothing stored */ }
   announce();
+}
+/** Whether the person disconnected this device from the Mac on purpose (core/cloudLink.ts leaves it so). */
+export function macDeclined(): boolean {
+  try { return storage()?.getItem(DECLINED_KEY) === '1'; } catch { return false; }
 }
 
 /**

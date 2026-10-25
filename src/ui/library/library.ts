@@ -17,6 +17,7 @@ import { BRIDGE_EVENT, isMacOrigin } from '../../core/macBridge';
 import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
 import { addedMessage, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
 import { upgradeBooks } from './upgrade';
+import { scriptView } from '../vocab/render';
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
 
@@ -174,6 +175,9 @@ export const mount: MountFn = (root, _params, ctx) => {
   }
 
   // ---- continue card ----
+  /** A title or author in the script the reader chose (Settings → Characters), as the reader shows it. */
+  const shown = (t: string): string => scriptView(ctx.settings.get().script, ctx.dictSync()).text(t);
+
   function renderContinue(): void {
     clear(continueEl);
     const opened = books.filter((b) => b.lastOpenedAt).sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0))[0];
@@ -187,8 +191,8 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('a.lib-continue-cover', { href: readHref(opened.id), tabindex: -1, 'aria-hidden': 'true' }, bookCover(opened, store, 'sm')),
       h('div.lib-continue-info', null,
         h('span.chip.chip-accent', null, 'Continue reading'),
-        h('h2.lib-continue-title.zh', null, opened.title),
-        opened.author ? h('div.lib-continue-author', null, opened.author) : null,
+        h('h2.lib-continue-title.zh', null, shown(opened.title)),
+        opened.author ? h('div.lib-continue-author', null, shown(opened.author)) : null,
         h('div.lib-continue-progress', null, progressBar(frac, `Progress in ${opened.title}`), h('span.muted', null, `${where}${progressLabel(p)}`))),
       h('a.btn.btn-primary.lib-continue-go', { href: readHref(opened.id) }, 'Continue', icon('chevronRight'))));
   }
@@ -278,8 +282,8 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('a.lib-card-main', { href: readHref(b.id), 'data-label': label, 'aria-label': known ? `${label}. ${known}.` : label },
         bookCover(b, store, 'md'),
         h('div.lib-card-info', null,
-          h('div.lib-card-title.zh', null, b.title),
-          h('div.lib-card-author', null, b.author || ' '),
+          h('div.lib-card-title.zh', null, shown(b.title)),
+          h('div.lib-card-author', null, b.author ? shown(b.author) : ' '),
           progressBar(progressFraction(p)),
           h('div.lib-card-meta', null, h('span', null, progressLabel(p)), h('span', null, `${compactCount(b.charCount)} chars`)),
           shares.line(b))),
@@ -357,9 +361,9 @@ export const mount: MountFn = (root, _params, ctx) => {
         existing ? coverStyleFor(existing) : bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }))),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
-          h('div.lib-sample-title.zh', null, s.title),
+          h('div.lib-sample-title.zh', null, shown(s.title)),
           s.level ? h('span.chip', null, s.level) : null),
-        s.author ? h('div.lib-sample-author', null, s.author) : null,
+        s.author ? h('div.lib-sample-author', null, shown(s.author)) : null,
         s.blurb ? h('p.lib-sample-blurb', null, s.blurb) : null,
         h('div.lib-sample-foot', null,
           h('span.muted.lib-sample-size', null, existing ? 'In your library' : size),
@@ -393,6 +397,10 @@ export const mount: MountFn = (root, _params, ctx) => {
   // A reading place from another device moves the progress bars.
   const onRemoteProgress = () => void load();
   window.addEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
+  // Titles follow the script setting: drawn again when it changes, and once the dictionary that converts them is in.
+  const redrawTitles = () => { if (!alive) return; renderContinue(); renderGrid(); renderSamples(); };
+  const offSettings = ctx.settings.subscribe((_s, changed) => { if (changed.includes('script')) redrawTitles(); });
+  if (!ctx.dictSync() && ctx.settings.get().script !== 'original') void ctx.dict().then(redrawTitles, () => {});
 
   // ---- the Mac's books ----
   const syncDeps = {
@@ -496,6 +504,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     alive = false;
     closeMenu();
     offChange();
+    offSettings();
     shares.dispose();
     window.removeEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
     window.removeEventListener(BRIDGE_EVENT, onBridge);

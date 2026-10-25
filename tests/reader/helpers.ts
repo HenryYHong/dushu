@@ -23,7 +23,8 @@ export async function makeCtx(settings: Partial<Settings> = {}, opts: { dictRead
   const store = await openStore(`reader-test-${++n}`);
   store.setNormalizer((w) => dict.toSimplified(w));
   const s = createSettingsStore(new MemoryStorage());
-  s.set({ translator: 'gloss', ...settings });
+  // The reader tests were written for the book as written; the app's default is simplified (store/settings.ts).
+  s.set({ translator: 'gloss', script: 'original', ...settings });
   const toasts: string[] = [];
   let ready = opts.dictReady !== false;
   const ctx: AppContext = {

@@ -33,7 +33,7 @@ If the Mac is asleep, the Library says so and everything else keeps working.
 
 ## Sync without Tailscale
 
-Sign in with your email under Settings, Your Mac and iPad, Sync account, and type the six-digit code it emails you. Every device signed in with that email keeps the same saved words (with their review schedule), known words, reading places, looked-up words and bookmarks, from anywhere, without Tailscale and with the Mac asleep. Books, settings and translation are not part of it: your Mac books are added to a device the first time it reaches the Mac and stay on it, and Claude still runs on the Mac. A device that is not signed in keeps syncing through the Mac.
+Tap **Sign in** at the top right (or Settings, Your Mac and iPad, Sync account), enter your email and type the six-digit code it emails you. Every device signed in with that email keeps the same saved words (with their review schedule), known words, reading places, looked-up words and bookmarks, from anywhere, without Tailscale and with the Mac asleep. Books, settings and translation are not part of it: your Mac books are added to a device the first time it reaches the Mac and stay on it, and Claude still runs on the Mac. A device that is not signed in keeps syncing through the Mac. The first time a signed-in device reaches your Mac, everything the Mac holds from your other devices is copied into the account (a newer change is never replaced), and a device on the Mac tells the account the Mac's private address, so your other signed-in devices connect to it and add your Mac books the next time Tailscale is on.
 
 The sync server is a Cloudflare Worker in `cloud/` (one small SQLite database per account, merged exactly as the Mac merges). To run your own, with Node 22 or later:
 
@@ -118,7 +118,7 @@ Press `P` in the reader, or use the eye button in the top bar.
 
 To make the text bigger or smaller, use the **Aa** button in the reader's top bar, the `[` and `]` keys, or Text size in Settings. Pages and Scroll each remember their own size.
 
-In Settings you can choose tone marks (hǎo), numbers (hao3) or zhuyin, color the tones, and turn on tone changes for 一 and 不 (yí gè, bú shì). You can also display a book in simplified or traditional characters whatever it was written in.
+In Settings you can choose tone marks (hǎo), numbers (hao3) or zhuyin, color the tones, and turn on tone changes for 一 and 不 (yí gè, bú shì). Books show in simplified characters by default, whatever they were written in, and so do titles in the Library; choose traditional, or the book as written, in the Aa menu or Settings.
 
 ## Translation
 

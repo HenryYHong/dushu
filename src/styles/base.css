@@ -68,6 +68,30 @@ a { color: var(--ink); }
   display: inline-flex; align-items: center; justify-content: center;
 }
 body[data-route='read'] .app-nav { display: none; }
+/* Sign in (ui/signIn.ts): at the end of the bar while this device is signed out of sync. */
+.app-signin {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; margin-left: 12px; padding: 0 12px;
+  border: 1px solid var(--rule); border-radius: 16px; background: transparent; color: var(--text);
+  font: 500 13.5px/1 var(--font-ui); cursor: pointer;
+}
+.app-signin .icon { width: 16px; height: 16px; }
+@media (hover: hover) { .app-signin:hover { background: var(--hover, color-mix(in srgb, var(--text) 6%, transparent)); } }
+
+/* The sync account's sign-in panel (ui/settings/account.ts), in Settings and in the Sign in dialog. */
+.set-cloud { display: flex; flex-direction: column; align-items: stretch; gap: var(--space-2); width: 100%; max-width: 100%; }
+.set-cloud-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-start; width: 100%; }
+.set-cloud-input { flex: 1 1 200px; min-width: 0; }
+.set-cloud-code { font-variant-numeric: tabular-nums; letter-spacing: 0.12em; }
+.signin-dialog { width: min(460px, calc(100vw - 32px)); }
+.signin-body { padding: var(--space-5) var(--space-5) var(--space-2); }
+.signin-title { margin: 0 0 var(--space-2); font: 400 24px/1.2 var(--font-display); }
+.signin-text { margin: 0 0 var(--space-4); color: var(--text-2); line-height: 1.55; font-size: 14.5px; }
+.signin-actions { display: flex; justify-content: flex-end; gap: var(--space-2); padding: var(--space-3) var(--space-5) var(--space-4); }
+.signin-dialog .set-help { font-size: 13px; line-height: 1.45; color: var(--text-3); }
+.signin-dialog .set-test-out { font-size: 13px; color: var(--text-2); overflow-wrap: anywhere; }
+.signin-dialog .set-test-out:empty { display: none; }
+.signin-dialog .set-good { color: var(--ok); }
+.signin-dialog .set-bad { color: var(--danger); }
 #screen { min-height: calc(100vh - var(--nav-h) - var(--safe-t)); min-height: calc(100dvh - var(--nav-h) - var(--safe-t)); padding-bottom: var(--safe-b); }
 body[data-route='read'] #screen { min-height: 100vh; min-height: 100dvh; padding-bottom: 0; }
 body[data-route='read'] { padding-left: 0; padding-right: 0; }
@@ -313,6 +337,8 @@ dialog.modal:focus { outline: none; }
   .app-brand-zh { width: 30px; height: 30px; font-size: 12px; }
   .app-navlink { margin: 0 6px; padding: 0 1px; font-size: 13.5px; gap: 3px; }
   .app-navlink:last-child { margin-right: 0; }
+  .app-signin { width: 34px; height: 34px; margin-left: 6px; padding: 0; justify-content: center; }
+  .app-signin-label { display: none; }
   .app-badge { min-width: 16px; height: 16px; font-size: 10px; }
   .app-toasts { bottom: calc(16px + var(--safe-b)); }
   .page { padding: var(--space-6) var(--space-4) var(--space-6); }

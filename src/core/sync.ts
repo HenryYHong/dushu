@@ -8,7 +8,7 @@
 import type { Bookmark, BookMeta, LookupRow, Progress, Store, SyncRow, VocabItem } from '../types';
 import { cleanBookmark, cleanLookup, cleanProgress, cleanVocab } from '../store';
 import { moveByPercent } from './place';
-import { BRIDGE_EVENT, bridgeFetch, hasMacBridge } from './macBridge';
+import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge';
 import { CLOUD_EVENT, cloudFetch, cloudSession, forgetSession } from './cloud';
 import { bookKey, canonical, hash, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 
@@ -20,6 +20,10 @@ export const SYNC_EVENT = 'dushu:sync';
 export const REMOTE_PROGRESS_EVENT = 'dushu:remote-progress';
 
 const OFF_KEY = 'dushu.sync.off.v1';
+/** The accounts each Mac's records were copied into (copyMacIntoAccount), as 'email|mac origin'. */
+const COPIED_KEY = 'dushu.cloud.mac-copied.v1';
+/** A copy that failed (the Mac asleep, Tailscale off) is tried again after this long, never on every sync. */
+const COPY_RETRY_MS = 5 * 60_000;
 const META = '#meta';
 /** Records per request; a new device's first sync sends its words in pieces. */
 const CHUNK = 1000;
@@ -123,6 +127,47 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>):
     put(row.key, row.held, typeof at === 'number' && Number.isFinite(at) ? at : row.at);
   }
   return out;
+}
+
+// ------------------------------------------------------- Mac to account ---
+
+let copying: Promise<boolean> | null = null;
+let copyFailedAt = 0;
+
+/**
+ * Once per account and Mac: everything the Mac holds (the words, places, lookups and bookmarks of every device that synced
+ * through it) goes into the account, each record with the time it changed. The account's merge keeps whichever copy is newer,
+ * so this never undoes a change made since. Resolves true when it copied (the caller syncs again to take the records).
+ */
+export function copyMacIntoAccount(now = Date.now()): Promise<boolean> {
+  const s = cloudSession();
+  const base = bridgeBase();
+  if (!s || base === null || copying || now - copyFailedAt < COPY_RETRY_MS) return copying ?? Promise.resolve(false);
+  const mark = `${s.email}|${base || globalThis.location?.origin}`;
+  let done: string[] = [];
+  try { done = JSON.parse(globalThis.localStorage?.getItem(COPIED_KEY) ?? '[]') as string[]; } catch { /* none yet */ }
+  if (!Array.isArray(done)) done = [];
+  if (done.includes(mark)) return Promise.resolve(false);
+  const json = { 'Content-Type': 'application/json' };
+  copying = (async () => {
+    try {
+      const res = await bridgeFetch('/api/sync', { method: 'POST', headers: json, body: JSON.stringify({ since: 0, changes: [] }), signal: AbortSignal.timeout(20_000) });
+      if (res.status === 503) return false; // a Mac without its sync folder holds nothing to copy
+      if (!res.ok) throw new Error(`The Mac answered ${res.status}`);
+      const reply = await res.json() as Partial<Reply>;
+      const records = Array.isArray(reply.records) ? reply.records : [];
+      for (let i = 0; i < records.length; i += CHUNK) {
+        const r = await cloudFetch('/sync', { method: 'POST', headers: json, body: JSON.stringify({ changes: records.slice(i, i + CHUNK) }), signal: AbortSignal.timeout(20_000) });
+        if (!r?.ok) throw new Error(`The sync server answered ${r?.status}`);
+      }
+      try { globalThis.localStorage?.setItem(COPIED_KEY, JSON.stringify([...done, mark])); } catch { /* copied again next time: harmless */ }
+      return records.length > 0;
+    } catch {
+      copyFailedAt = now;
+      return false;
+    } finally { copying = null; }
+  })();
+  return copying;
 }
 
 // ----------------------------------------------------------------- sync ---
@@ -291,6 +336,9 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const dirty = () => [...rows.values()].filter((r) => r.dirty);
     setStatus({ pending: dirty().length });
     if (!syncEnabled()) { setStatus({ state: 'off' }); return; }
+    // Signed in and able to reach the Mac: what the Mac holds goes into the account once, beside this sync (never in its
+    // way when the Mac is asleep), and a sync right after takes it.
+    if (!opts.send && cloudSession() && hasMacBridge()) void copyMacIntoAccount().then((copied) => { if (copied) soon(0); });
 
     // 3. Send what changed and take what the Mac has that is newer.
     let restarted = false;

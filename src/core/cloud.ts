@@ -83,6 +83,22 @@ export async function signOut(): Promise<void> {
   if (s) await post('/auth/signout', {}, s.token).catch(() => {});
 }
 
+/** The signed-in account: its email, and its Mac's private address when a device on the Mac told it (cloudLink.ts). */
+export async function accountInfo(): Promise<{ email: string; mac?: string } | null> {
+  const res = await cloudFetch('/me', { signal: AbortSignal.timeout(15_000) });
+  if (!res) return null;
+  if (res.status === 401) { forgetSession(); return null; }
+  if (!res.ok) throw new Error(`The sync server answered ${res.status}.`);
+  const data = await res.json() as { email?: unknown; mac?: unknown };
+  return { email: typeof data.email === 'string' ? data.email : '', ...(typeof data.mac === 'string' ? { mac: data.mac } : {}) };
+}
+
+/** Tells the account where its Mac is, so the owner's other devices can reach it for their books. */
+export async function shareMac(mac: string): Promise<void> {
+  const s = cloudSession();
+  if (s) await post('/me', { mac }, s.token);
+}
+
 /** fetch for a sync server path, signed in; null when this device is not signed in. */
 export function cloudFetch(path: string, init: RequestInit = {}): Promise<Response> | null {
   const s = cloudSession();

@@ -3,48 +3,14 @@
 // syncing through it with the app's own sign-in and syncer. The Worker runs in process; each account keeps its state in
 // memory instead of a Durable Object's SQLite database (that half is checked against wrangler dev).
 import 'fake-indexeddb/auto';
-import { createHash } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import worker, { accountRequest, type DurableObjectNamespace, type Env } from '../../cloud/src/worker';
+import worker from '../../cloud/src/worker';
 import { AccountCore, CODE_GAP_MS, CODE_TTL_MS, memoryStore } from '../../cloud/src/account';
+import { cloud, signedIn } from './helpers';
 import { cloudSession, requestCode, signIn, signOut } from '../../src/core/cloud';
 import { createSyncer, type Syncer } from '../../src/core/sync';
 import { openStore } from '../../src/store';
 import { newSrs } from '../../src/core/srs';
-
-const hex = (s: string) => createHash('sha256').update(s).digest('hex');
-
-function cloud(extra: Partial<Env> = {}) {
-  const cores = new Map<string, AccountCore>();
-  const names = new Set<string>();
-  const ACCOUNTS: DurableObjectNamespace = {
-    idFromName: (name) => { const id = hex(name); names.add(id); return { toString: () => id }; },
-    idFromString: (id) => { if (!names.has(id)) throw new TypeError('Invalid Durable Object ID'); return { toString: () => id }; },
-    get: (id) => {
-      const key = id.toString();
-      if (!cores.has(key)) cores.set(key, new AccountCore(memoryStore()));
-      return { fetch: (url, init) => accountRequest(cores.get(key)!, new Request(url, init)) };
-    },
-  };
-  let emails = 0;
-  const LIMITS: DurableObjectNamespace = {
-    idFromName: () => ({ toString: () => 'global' }),
-    idFromString: () => ({ toString: () => 'global' }),
-    get: () => ({ fetch: async () => (++emails > 3 ? new Response(JSON.stringify({ error: 'all sent today' }), { status: 429 }) : new Response('{"ok":true}')) }),
-  };
-  const env: Env = { ACCOUNTS, LIMITS, MAIL_MODE: 'log', ...extra };
-  const call = (path: string, init: RequestInit & { origin?: string } = {}) => worker.fetch(new Request(`https://sync.test${path}`, {
-    ...init, headers: { 'Content-Type': 'application/json', Origin: init.origin ?? 'https://henryyhong.com', ...(init.headers as Record<string, string>) },
-  }), env);
-  const post = (path: string, body: unknown, token?: string) => call(path, { method: 'POST', body: JSON.stringify(body), headers: token ? { Authorization: `Bearer ${token}` } : {} });
-  return { env, call, post };
-}
-
-async function signedIn(c: ReturnType<typeof cloud>, email = 'reader@example.com') {
-  const { devCode } = await (await c.post('/auth/code', { email })).json() as { devCode: string };
-  const res = await c.post('/auth/verify', { email, code: devCode });
-  return (await res.json() as { token: string }).token;
-}
 
 beforeEach(() => { vi.spyOn(console, 'log').mockImplementation(() => {}); });
 afterEach(() => { vi.restoreAllMocks(); localStorage.clear(); });
@@ -85,6 +51,19 @@ describe('signing in', () => {
     expect((await c.post('/auth/signout', {}, token)).status).toBe(200);
     expect((await c.call('/me', { headers: { Authorization: `Bearer ${token}` } })).status).toBe(401);
     expect((await (await c.call('/sync', { headers: { Authorization: `Bearer ${second}` } })).json() as { counts: { known: number } }).counts.known).toBe(1);
+  });
+
+  it('remembers the Mac’s private address for the account, and only a Tailscale https address', async () => {
+    const c = cloud();
+    const token = await signedIn(c);
+    const auth = { Authorization: `Bearer ${token}` };
+    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com' });
+    expect((await c.post('/me', { mac: 'https://my-mac.tail1234.ts.net:8443' }, token)).status).toBe(200);
+    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', mac: 'https://my-mac.tail1234.ts.net:8443' });
+    for (const bad of ['http://my-mac.tail1234.ts.net', 'https://evil.example', 'https://x.ts.net/path', 'javascript:alert(1)']) {
+      expect((await c.post('/me', { mac: bad }, token)).status).toBe(400);
+    }
+    expect((await c.post('/me', { mac: 'https://my-mac.tail1234.ts.net' })).status).toBe(401);
   });
 
   it('only lets the listed emails sign in, when there is a list', async () => {

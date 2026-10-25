@@ -558,7 +558,14 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   5 tries, one per 30 s, 5 per hour; a global Durable Object caps emails per day (`DAILY_EMAILS`, 90). Sessions: 20 per account,
   dropped after a year unused; a 401 signs the device out (`signedout` state). CORS answers only henryyhong.com, loopback and
   `*.ts.net`; the page's CSP adds `CLOUD_URL`'s origin to connect-src at build (`scripts/bridge-csp.ts`; the dev server also allows
-  wrangler dev on port 8787). Settings → Your Mac and iPad → Sync account (`ui/settings/account.ts`) appears once `CLOUD_URL` is set.
+  wrangler dev on port 8787). Sign in: the top bar's Sign in button (`ui/signIn.ts`, shown while signed out) and Settings → Your Mac
+  and iPad → Sync account, the same panel (`ui/settings/account.ts`); both appear once `CLOUD_URL` is set.
+- **Bringing a device everything**: `copyMacIntoAccount` (core/sync.ts) runs beside a sync on a signed-in device that reaches the Mac,
+  once per account and Mac (`dushu.cloud.mac-copied.v1`; a failure waits 5 minutes): it reads every Mac record (`since: 0`, no changes)
+  and sends them to the account with their own times, so the account's merge keeps whichever copy is newer; a sync right after takes
+  them. `core/cloudLink.ts`: a device on the Mac stores the Mac's private address in the account (`POST /me {mac}`, only an https
+  `*.ts.net` origin); a signed-in device elsewhere that is not connected learns it (`GET /me`) and connects, so the Library adds the
+  Mac's books when Tailscale is on. Disconnecting on purpose (`disconnectMac`) sets `dushu.mac-bridge.declined.v1`, and it stays so.
 - **A device** keeps one row per record in the store's `sync` table (`SyncRow`: `at`, `sig` = hash of the record, `dirty` when not yet sent,
   `fresh` for a word saved before it ever synced, `held` for a place in a book the device does not have: sent by the Mac before the book
   arrived, or kept by `store.books.remove`; `#meta` holds `epoch` and the cursor). `store.books.add` (and `update`, when marking a book as
@@ -736,7 +743,9 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   the line under the bar at the same height, not just its paragraph. A script change empties the drawn blocks (`reconvert`), so the place is
   measured first and the blocks down to it are drawn again before anything measures the page. A layout switch reads the place
   (`currentPlace`) and saves it before `applyLayout` gives the text the other layout's size.
-- Script and fonts: the article's `lang` is `zh-Hant` or `zh-Hans` from the script setting (original = the book's script). `--rd-font` is set
+- Script and fonts: the article's `lang` is `zh-Hant` or `zh-Hans` from the script setting (original = the book's script; the default is
+  simplified since 2026-10-24, and a device that kept the old default "As written" moves once, `dushu.settings.simplified.v1`). Library
+  titles and authors follow the setting too. `--rd-font` is set
   to the matching stack (`--font-serif`, `--font-sans`, `--font-kai`, and the `-hant` variants for traditional) because a `var()` set on the
   container resolves there, so the `:lang(zh-Hant)` override in tokens.css never reaches the text by itself. Line height is raised to at
   least 1.9 whenever pinyin can show.
