@@ -2,9 +2,12 @@
 // Mac (src/core/sync.ts speaks the same exchange). One Durable Object per email holds that account (account.ts), so its
 // requests run one at a time; another holds the daily count of emails sent. Sessions are bearer tokens
 // '<account id>.<secret>': only the secret's SHA-256 is stored. Nothing here holds a book or any book text.
-import { AccountCore, BOOK_CHUNK, CloudError, allowedEmail, normalEmail } from './account';
+import Anthropic from '@anthropic-ai/sdk';
+import { AccountCore, BOOK_CHUNK, CloudError, allowedEmail, normalEmail, type ClaudeLimits } from './account';
 import { sqlStore, type SqlStorage } from './sqlStore';
 import { SYNC_LIMITS, SyncError } from '../../src/core/syncExchange';
+import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
+import { describeError, parseTranslateBody, runClaude, type ServerClient } from '../../src/translate/claudeServer';
 
 export interface DurableObjectId { toString(): string }
 export interface DurableObjectStub { fetch(input: string, init?: RequestInit): Promise<Response> }
@@ -14,6 +17,7 @@ export interface DurableObjectNamespace {
   get(id: DurableObjectId): DurableObjectStub;
 }
 interface DurableObjectState { storage: { sql: SqlStorage } }
+export interface ExecutionContext { waitUntil(promise: Promise<unknown>): void }
 
 export interface Env {
   ACCOUNTS: DurableObjectNamespace;
@@ -27,7 +31,19 @@ export interface Env {
   MAIL_MODE?: string;
   /** Emails sent per day at most, across all accounts. */
   DAILY_EMAILS?: string;
+  /** The owner's Anthropic key, for Claude translation through the account: a secret, never in this repo. */
+  ANTHROPIC_API_KEY?: string;
+  /** Claude requests and input tokens per account per day (the Mac's defaults). */
+  CLAUDE_MAX_REQUESTS?: string;
+  CLAUDE_MAX_INPUT_TOKENS?: string;
+  /** Tests make the Anthropic client; the Worker makes the real one. */
+  claudeClient?: (apiKey: string) => ServerClient;
 }
+
+const claudeLimits = (env: Env): ClaudeLimits => ({
+  requests: Number(env.CLAUDE_MAX_REQUESTS) > 0 ? Number(env.CLAUDE_MAX_REQUESTS) : 3000,
+  inputTokens: Number(env.CLAUDE_MAX_INPUT_TOKENS) > 0 ? Number(env.CLAUDE_MAX_INPUT_TOKENS) : 3_000_000,
+});
 
 const TOKEN = /^([0-9a-f]{64})\.([A-Za-z0-9_-]{43})$/;
 const ORIGINS = [/^https:\/\/henryyhong\.com$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/, /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net(:\d+)?$/];
@@ -98,7 +114,57 @@ function bearer(request: Request, env: Env): { stub: DurableObjectStub; secret: 
   return { stub: env.ACCOUNTS.get(id), secret: m[2] };
 }
 
-async function route(request: Request, env: Env): Promise<Response> {
+/**
+ * Claude through the account: the same request checks, prompt and answer stream as the Mac (src/translate/claudeServer.ts),
+ * so the app reads it the same way (NDJSON events: text, then done or error).
+ */
+async function claudeTranslate(request: Request, env: Env, ctx: ExecutionContext | undefined): Promise<Response> {
+  const { stub, secret: s } = bearer(request, env);
+  if (!env.ANTHROPIC_API_KEY) throw new CloudError(503, 'Claude is not set up on the sync server yet.', 'no_key');
+  const parsed = parseTranslateBody(await readJson(request, 65536));
+  if (!parsed.ok) throw new CloudError(parsed.status, parsed.message, 'bad_request');
+  const gate = await call(stub, 'claude-start', { limits: claudeLimits(env) }, s);
+  if (!gate.ok) return gate;
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = writable.getWriter();
+  const encode = new TextEncoder();
+  const send = (event: object) => writer.write(encode.encode(JSON.stringify(event) + '\n')).catch(() => {});
+  const ctl = new AbortController();
+  request.signal?.addEventListener?.('abort', () => ctl.abort());
+  const client = env.claudeClient?.(env.ANTHROPIC_API_KEY) ?? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, timeout: 90_000 }) as unknown as ServerClient;
+  const work = (async () => {
+    try {
+      const r = await runClaude(client, parsed.request, 'low', ctl.signal, (delta) => void send({ type: 'text', text: delta }));
+      await call(stub, 'claude-used', { input: r.usage.input, output: r.usage.output }, s).catch(() => {});
+      await send(r.failure ? { type: 'error', code: r.failure.code, message: r.failure.message } : { type: 'done', stop: r.stop, usage: r.usage });
+    } catch (e) {
+      if (!ctl.signal.aborted) {
+        const f = describeError(e, 'cloud', 'Replace ANTHROPIC_API_KEY on the sync server.');
+        await send({ type: 'error', code: f.code, message: f.message });
+      }
+    } finally {
+      await writer.close().catch(() => {});
+    }
+  })();
+  ctx?.waitUntil(work);
+  return new Response(readable, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' } });
+}
+
+async function claudeStatus(request: Request, env: Env): Promise<Response> {
+  const { stub, secret: s } = bearer(request, env);
+  const res = await call(stub, 'claude-status', { limits: claudeLimits(env) }, s);
+  if (!res.ok) return res;
+  const { usage, limitMessage } = await res.json() as { usage: unknown; limitMessage: string | null };
+  const configured = !!env.ANTHROPIC_API_KEY;
+  return json(200, {
+    app: 'dushu', configured, problem: configured ? undefined : 'Claude is not set up on the sync server yet.',
+    models: CLAUDE_MODELS.map((m) => ({ id: m.value, label: m.label })), defaultModel: DEFAULT_CLAUDE_MODEL,
+    usage, limits: claudeLimits(env), limitReached: limitMessage !== null, limitMessage: limitMessage ?? undefined,
+    ready: configured && limitMessage === null,
+  });
+}
+
+async function route(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
   const path = new URL(request.url).pathname;
   if (path === '/' && request.method === 'GET') return json(200, { app: 'dushu-sync' });
 
@@ -157,6 +223,8 @@ async function route(request: Request, env: Env): Promise<Response> {
     if (bytes.byteLength > BOOK_CHUNK) throw new CloudError(413, 'That piece of the book is too large.');
     return stub.fetch(`https://account/chunk-put?${where}`, { method: 'POST', headers: { 'X-Secret': s, 'Content-Type': 'application/octet-stream' }, body: bytes });
   }
+  if (path === '/claude/status' && request.method === 'GET') return claudeStatus(request, env);
+  if (path === '/claude/translate' && request.method === 'POST') return claudeTranslate(request, env, ctx);
   if (path === '/sync') {
     const { stub, secret: s } = bearer(request, env);
     if (request.method === 'GET') return call(stub, 'status', {}, s);
@@ -167,20 +235,21 @@ async function route(request: Request, env: Env): Promise<Response> {
 }
 
 function failure(e: unknown): Response {
-  if (e instanceof CloudError || e instanceof SyncError) return json(e.status, { error: e.message });
+  if (e instanceof CloudError) return json(e.status, { error: e.message, ...(e.code ? { code: e.code } : {}) });
+  if (e instanceof SyncError) return json(e.status, { error: e.message });
   console.error('Dushu sync', e);
   return json(500, { error: 'The sync server could not do that. Try again in a minute.' });
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const origin = request.headers.get('Origin') ?? '';
     const cors: Record<string, string> = ORIGINS.some((r) => r.test(origin))
       ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE', 'Access-Control-Max-Age': '86400', Vary: 'Origin' }
       : { Vary: 'Origin' };
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     let res: Response;
-    try { res = await route(request, env); } catch (e) { res = failure(e); }
+    try { res = await route(request, env, ctx); } catch (e) { res = failure(e); }
     // A Durable Object's answer has fixed headers: copied into one that can carry CORS.
     const out = new Response(res.body, res);
     for (const [k, v] of Object.entries(cors)) out.headers.set(k, v);
@@ -216,6 +285,9 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'book-start': return json(200, core.startBook(session, body, now));
       case 'book-drop': core.dropBook(session, str(body.key), now); return json(200, { ok: true });
       case 'chunk-put': return json(200, core.putBookChunk(session, key, index, bytes!, now));
+      case 'claude-status': return json(200, core.claudeStatus(session, body.limits as ClaudeLimits, now));
+      case 'claude-start': core.claudeStart(session, body.limits as ClaudeLimits, now); return json(200, { ok: true });
+      case 'claude-used': core.claudeUsed(session, Number(body.input), Number(body.output), now); return json(200, { ok: true });
       case 'chunk-get': return new Response(core.getBookChunk(session, key, index, now) as Uint8Array<ArrayBuffer>, { headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' } });
       default: return json(404, { error: 'Not found.' });
     }

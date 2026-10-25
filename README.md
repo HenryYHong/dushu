@@ -40,6 +40,7 @@ The sync server is a Cloudflare Worker in `cloud/` (one small SQLite database pe
 1. Make free accounts at Cloudflare and Resend (resend.com, which sends the codes), then `npx wrangler login`.
 2. `npm run cloud:deploy`, then add the secrets: `npx wrangler secret put RESEND_API_KEY` and, to let only you sign in, `npx wrangler secret put ALLOWED_EMAILS` (both run in `cloud/`).
 3. Put the Worker's address in `CLOUD_URL` (`src/core/cloud.ts`) and build. Until it is set, Settings does not offer to sign in.
+4. For Claude through the account: `npx wrangler secret put ANTHROPIC_API_KEY < ~/.config/dushu/anthropic-api-key` (in `cloud/`). Each account gets the Mac's daily limit (3,000 requests or 3 million input tokens; `CLAUDE_MAX_REQUESTS`, `CLAUDE_MAX_INPUT_TOKENS`).
 
 Resend's shared sender only delivers to the email you signed up with. To let other people sign in, verify a domain at Resend and set `MAIL_FROM` in `cloud/wrangler.toml`. `npm run cloud:dev` runs the server locally and prints codes instead of emailing them.
 
@@ -124,7 +125,7 @@ In Settings you can choose tone marks (hǎo), numbers (hao3) or zhuyin, color th
 
 Single words always show the built-in dictionary, which works offline. For sentences, Automatic uses the first of these that is ready:
 
-1. **Claude through your Mac.** The Mac asks Claude (by Anthropic) to translate the selected sentence, with a little nearby context. The API key stays on the Mac. Skipped when Local only is on.
+1. **Claude**, through your sync account when you are signed in (so it works anywhere), or else through your Mac. The server asks Claude (by Anthropic) to translate the selected sentence, with a little nearby context. The API key stays on the server: a Cloudflare secret for the account, a file on the Mac. Skipped when Local only is on.
 2. **Qwen3.5 9B on your Mac**, when it is installed in Ollama. It runs on the Mac and nothing leaves it.
 3. **Chrome on-device translation** (Chrome 138 or newer), when its model is ready. The first use needs a one-time download.
 4. **A smaller local Ollama model**, when installed.

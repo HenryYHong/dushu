@@ -110,7 +110,7 @@ describe('claude translator (through the Mac)', () => {
     expect(await local.t.availability()).toBe('no');
     const none = setup(() => pieces(['']));
     none.hasBridge.mockReturnValue(false);
-    await expect(none.t.translate({ text: '好', mode: 'translate' })).rejects.toThrow(/Connect this device to your Mac/);
+    await expect(none.t.translate({ text: '好', mode: 'translate' })).rejects.toThrow(/Sign in, or connect this device to your Mac/);
     expect(await none.t.availability()).toBe('no');
     const long = setup(() => pieces(['']));
     await expect(long.t.translate({ text: '好'.repeat(8001), mode: 'translate' })).rejects.toThrow(/too long/);

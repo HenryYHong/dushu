@@ -52,7 +52,18 @@ export interface AccountStore {
 }
 
 export class CloudError extends Error {
-  constructor(readonly status: number, message: string) { super(message); }
+  /** `code` says what kind of failure it is, for a client that treats some as lasting (src/translate/claude.ts). */
+  constructor(readonly status: number, message: string, readonly code?: string) { super(message); }
+}
+
+/** Claude through the account: requests and tokens per UTC day, against the limits the Worker passes in. */
+export interface ClaudeUsage { day: string; requests: number; inputTokens: number; outputTokens: number }
+export interface ClaudeLimits { requests: number; inputTokens: number }
+
+export function claudeLimitMessage(u: ClaudeUsage, limits: ClaudeLimits): string | null {
+  if (u.requests >= limits.requests) return `Today's Claude limit on your account (${limits.requests.toLocaleString('en-US')} requests) is used up. It resets at midnight (UTC).`;
+  if (u.inputTokens >= limits.inputTokens) return `Today's Claude limit on your account (${limits.inputTokens.toLocaleString('en-US')} input tokens) is used up. It resets at midnight (UTC).`;
+  return null;
 }
 
 interface CodeState { hash: string; expires: number; tries: number; sent: number[] }
@@ -190,6 +201,39 @@ export class AccountCore {
   dropBook(sessionHash: string, key: string, now: number): void {
     this.authorize(sessionHash, now);
     this.store.dropBook(key);
+  }
+
+  private claudeUsage(now: number): ClaudeUsage {
+    const day = new Date(now).toISOString().slice(0, 10);
+    try {
+      const u = JSON.parse(this.store.getMeta('claude') ?? 'null') as ClaudeUsage | null;
+      if (u && u.day === day) return u;
+    } catch { /* a damaged count starts again */ }
+    return { day, requests: 0, inputTokens: 0, outputTokens: 0 };
+  }
+
+  /** Today's Claude use and whether it is under the limits. */
+  claudeStatus(sessionHash: string, limits: ClaudeLimits, now: number): { usage: ClaudeUsage; limitMessage: string | null } {
+    this.authorize(sessionHash, now);
+    const usage = this.claudeUsage(now);
+    return { usage, limitMessage: claudeLimitMessage(usage, limits) };
+  }
+
+  /** Counts a Claude request before it is sent (so a failing client cannot loop past the cap), or refuses it over the limit. */
+  claudeStart(sessionHash: string, limits: ClaudeLimits, now: number): void {
+    this.authorize(sessionHash, now);
+    const usage = this.claudeUsage(now);
+    const limit = claudeLimitMessage(usage, limits);
+    if (limit) throw new CloudError(429, limit, 'daily_limit');
+    this.store.setMeta('claude', JSON.stringify({ ...usage, requests: usage.requests + 1 }));
+  }
+
+  /** Adds the tokens a finished request used. */
+  claudeUsed(sessionHash: string, input: number, output: number, now: number): void {
+    this.authorize(sessionHash, now);
+    const usage = this.claudeUsage(now);
+    const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+    this.store.setMeta('claude', JSON.stringify({ ...usage, inputTokens: usage.inputTokens + n(input), outputTokens: usage.outputTokens + n(output) }));
   }
 
   private table(): RecordTable {

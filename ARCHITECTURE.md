@@ -568,6 +568,11 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   download. The first device signed in that has a book uploads it (`dushu.cloud.books-up.v1`, per email and key); one this device put
   there that is gone was deleted elsewhere and stays deleted. Library Delete calls `forgetBookInAccount` (`dushu.cloud.books-removed.v1`,
   retried until the server has it, and never downloaded again here). Classics (`s` keys) are not kept.
+- **Claude through the account** (`GET /claude/status`, `POST /claude/translate`): the same request checks, prompt, effort, fallback
+  and NDJSON stream as the Mac (`src/translate/claudeServer.ts`, used by `scripts/claude-bridge.ts` too), with the owner's key as the
+  Worker secret `ANTHROPIC_API_KEY`. A request is counted before it is sent (`claudeStart`, 429 `daily_limit` past the limits) and its
+  tokens after (`claudeUsed`), per account per UTC day. The app's translator (`src/translate/claude.ts`) goes through the account when
+  signed in, else the Mac; Local only turns Claude off either way.
 - **Bringing a device everything**: `copyMacIntoAccount` (core/sync.ts) runs beside a sync on a signed-in device that reaches the Mac,
   once per account and Mac (`dushu.cloud.mac-copied.v1`; a failure waits 5 minutes): it reads every Mac record (`since: 0`, no changes)
   and sends them to the account with their own times, so the account's merge keeps whichever copy is newer; a sync right after takes

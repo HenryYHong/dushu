@@ -80,7 +80,7 @@ describe('Settings on the public site', () => {
     expect(asked.filter(a => a.url.includes('/api/'))).toEqual([]);
     expect(statusLines().Mac).toMatch(/not connected to a Mac/);
     const claude = [...root.querySelectorAll('.set-prov')].find(r => r.querySelector('.set-prov-name')?.textContent?.startsWith('Claude'))!;
-    expect(claude.querySelector('.set-chip')?.textContent).toBe('Connect your Mac');
+    expect(claude.querySelector('.set-chip')?.textContent).toBe('Sign in or connect your Mac');
     expect(root.textContent).toMatch(/Not connected\. Without a Mac/);
     expect(q('.set-link').closest<HTMLElement>('.set-row')!.hidden).toBe(true);
     expect(button('Disconnect').hidden).toBe(true);

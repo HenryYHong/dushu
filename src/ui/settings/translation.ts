@@ -3,8 +3,9 @@ import type { AppContext, Settings, TranslatorId } from '../../types';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { BRIDGE_EVENT, hasMacBridge } from '../../core/macBridge';
+import { CLOUD_EVENT, cloudSession } from '../../core/cloud';
 import { getTranslator, listTranslators, chromeSupported, type ChromeTranslator } from '../../translate';
-import { CLAUDE_MODELS, fetchClaudeStatus, resetClaudeStatus, type ClaudeStatus } from '../../translate/claude';
+import { CLAUDE_MODELS, fetchClaudeStatus, hasClaudeRoute, resetClaudeStatus, type ClaudeStatus } from '../../translate/claude';
 import { qualityLocalAvailable } from '../../translate/localMeaning';
 import { group, nextId, row, toggle } from './controls';
 
@@ -27,10 +28,11 @@ export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | n
   if (a === 'yes') return { text: 'Ready', kind: 'ok' };
   if (a === 'download') return { text: 'Download needed', kind: 'warn' };
   if (id === 'claude') {
-    if (!hasMacBridge()) return { text: 'Connect your Mac', kind: 'off' };
-    if (claude?.denied) return { text: 'Mac refused this device', kind: 'warn' };
-    if (!claude?.reachable) return { text: 'Mac not reachable', kind: 'off' };
-    if (!claude.configured) return { text: 'No key on the Mac', kind: 'warn' };
+    const account = !!cloudSession();
+    if (!hasClaudeRoute()) return { text: 'Sign in or connect your Mac', kind: 'off' };
+    if (claude?.denied) return { text: account ? 'Signed out' : 'Mac refused this device', kind: 'warn' };
+    if (!claude?.reachable) return { text: account ? 'Sync server not reachable' : 'Mac not reachable', kind: 'off' };
+    if (!claude.configured) return { text: account ? 'No key on the sync server' : 'No key on the Mac', kind: 'warn' };
     if (claude.limitMessage) return { text: 'Daily limit used', kind: 'warn' };
     return { text: 'Unavailable', kind: 'off' };
   }
@@ -51,8 +53,25 @@ export function autoPick(avail: Record<TranslatorId, Avail>, qualityLocal = fals
 const number = (n: number) => n.toLocaleString('en-US');
 
 /** The lines under "Claude through your Mac": is the Mac there, is the key set up, how much was used today. */
-export function claudeStatusLines(status: ClaudeStatus | null, connected: boolean): { label: string; value: string; kind: 'ok' | 'warn' | 'off' }[] {
-  if (!connected) return [{ label: 'Mac', value: 'This device is not connected to a Mac. Connect it below.', kind: 'off' }];
+export function claudeStatusLines(status: ClaudeStatus | null, connected: boolean, account = false): { label: string; value: string; kind: 'ok' | 'warn' | 'off' }[] {
+  if (account) {
+    // Signed in: Claude goes through the account's server, wherever this device is.
+    if (!status) return [{ label: 'Account', value: 'Checking…', kind: 'off' }];
+    if (status.denied) return [{ label: 'Account', value: 'This device is signed out. Sign in again above.', kind: 'warn' }];
+    if (!status.reachable) return [{ label: 'Account', value: 'The sync server did not answer. Check this device’s internet connection.', kind: 'off' }];
+    const lines: { label: string; value: string; kind: 'ok' | 'warn' | 'off' }[] = [{ label: 'Account', value: 'Claude goes through your account, wherever you are', kind: 'ok' }];
+    lines.push(status.configured
+      ? { label: 'Claude key', value: 'Set up on the sync server', kind: 'ok' }
+      : { label: 'Claude key', value: status.problem ?? 'Not set up on the sync server', kind: 'warn' });
+    if (status.usage) {
+      const limits = status.limits ? ` of ${number(status.limits.requests)} requests and ${number(status.limits.inputTokens)} input tokens` : '';
+      lines.push({ label: 'Today', value: `${number(status.usage.requests)} ${status.usage.requests === 1 ? 'request' : 'requests'}, ${number(status.usage.inputTokens)} input and ${number(status.usage.outputTokens)} output tokens${limits}`,
+        kind: status.limitMessage ? 'warn' : 'ok' });
+    }
+    if (status.limitMessage) lines.push({ label: 'Limit', value: status.limitMessage, kind: 'warn' });
+    return lines;
+  }
+  if (!connected) return [{ label: 'Mac', value: 'This device is not connected to a Mac. Sign in, or connect it below.', kind: 'off' }];
   if (!status) return [{ label: 'Mac', value: 'Checking…', kind: 'off' }];
   if (status.denied) return [{ label: 'Mac', value: 'It answered but did not accept this device. Sign in to Tailscale with the Mac owner\'s account.', kind: 'warn' }];
   if (!status.reachable) return [{ label: 'Mac', value: 'Not reachable. Keep it awake and connected to Tailscale.', kind: 'off' }];
@@ -128,7 +147,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   // Claude status block
   const statusBox = h('dl.set-status', { role: 'status', 'aria-live': 'polite' });
   function paintStatus() {
-    statusBox.replaceChildren(...claudeStatusLines(claudeStatus, hasMacBridge()).flatMap(line => [
+    statusBox.replaceChildren(...claudeStatusLines(claudeStatus, hasMacBridge(), !!cloudSession()).flatMap(line => [
       h('dt', null, line.label),
       h('dd', { class: `set-status-${line.kind}` }, line.value),
     ]));
@@ -201,6 +220,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
 
   const onBridge = () => { resetClaudeStatus(); void refresh(true); };
   window.addEventListener(BRIDGE_EVENT, onBridge);
+  window.addEventListener(CLOUD_EVENT, onBridge);
   paintStatus();
   void refresh();
   // The gloss translator is only available once the dictionary has loaded.
@@ -219,6 +239,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
     dispose() {
       alive = false;
       window.removeEventListener(BRIDGE_EVENT, onBridge);
+      window.removeEventListener(CLOUD_EVENT, onBridge);
     },
   };
 }
