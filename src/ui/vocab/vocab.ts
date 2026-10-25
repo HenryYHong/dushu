@@ -9,6 +9,7 @@ import { confirmDialog } from './confirm';
 import { ankiTsv, dueLabel, filterAndSort, vocabCsv, type SortKey } from './model';
 import { contextEl, pinyinEl, scriptView } from './render';
 import { createLookupsView } from './lookups';
+import { reviewCount } from '../review/learning';
 
 const SORT_LABELS: Record<SortKey, string> = { added: 'Newest first', due: 'Due soonest', pinyin: 'Pinyin A to Z' };
 const SORT_KEY = 'dushu.vocab.sort';
@@ -329,13 +330,15 @@ export const mount: MountFn = (root, _params, ctx) => {
       ctx.toast(e instanceof Error ? e.message : 'Could not read your vocabulary.');
       return;
     }
+    // The button counts what Review will show: the saved words due and the looked-up words it adds (review/learning.ts).
+    const cards = await reviewCount(store).catch(() => 0);
     if (!alive) return;
     const due = items.filter((i) => i.srs.due <= Date.now()).length;
     sub.textContent = items.length
       ? `${plural(items.length, 'word')} saved, ${due ? `${due.toLocaleString('en-US')} due for review` : 'none due for review'}`
       : 'Words you save while reading collect here.';
     reviewLink.textContent = '';
-    reviewLink.append(icon('cards'), due ? `Review ${due}` : 'Review');
+    reviewLink.append(icon('cards'), cards ? `Review ${cards}` : 'Review');
     renderList();
     renderKnown();
     // With nothing saved yet, open on what was looked up (unless a tab was chosen before).

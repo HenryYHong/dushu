@@ -1,4 +1,5 @@
-// Flashcard review: due cards one at a time, reveal, grade with buttons or keys 1-4.
+// Flashcard review: due cards one at a time, reveal, grade with buttons or keys 1-4. The cards are the saved words that are
+// due and the words looked up while reading that are not saved or known yet (learning.ts): grading one of those saves it.
 import '../../styles/review.css';
 import { nextIntervals } from '../../core/srs';
 import { canSpeak, speak, stopSpeaking } from '../../speech/tts';
@@ -8,6 +9,7 @@ import { icon } from '../icons';
 import { contextEl, pinyinEl, scriptView } from '../vocab/render';
 import { pageTitle } from '../pageHead';
 import { describeNextDue, ReviewSession } from './queue';
+import { reviewCards, reviewCount } from './learning';
 
 const GRADES: { grade: Grade; key: 'again' | 'hard' | 'good' | 'easy'; label: string }[] = [
   { grade: 0, key: 'again', label: 'Again' },
@@ -26,12 +28,14 @@ export const mount: MountFn = (root, _params, ctx) => {
   let revealed = false;
   let busy = false;
   let settings = ctx.settings.get();
+  /** The looked-up words in this session, not saved yet: each is saved when it is first graded. */
+  let unsaved = new Map<string, VocabItem>();
 
   const screen = h('div.page.rev-page');
   root.appendChild(screen);
 
   /** The screen's title over the empty state and the summary (a session in progress shows only the card). */
-  const head = () => h('div.page-head.rev-head', null, h('div', null, pageTitle('review', 'Review'), h('p.page-sub', null, 'Your saved words, one card at a time.')));
+  const head = () => h('div.page-head.rev-head', null, h('div', null, pageTitle('review', 'Review'), h('p.page-sub', null, 'The words you look up and save, one card at a time.')));
 
   const nextDueAmongAll = async (): Promise<number | undefined> => {
     const now = Date.now();
@@ -43,7 +47,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(screen);
     let due: VocabItem[];
     try {
-      due = await store.vocab.due(Date.now());
+      const cards = await reviewCards(store, ctx.dict, Date.now());
+      unsaved = new Map(cards.fresh.map((v) => [v.id, v]));
+      due = [...cards.due, ...cards.fresh];
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not read your vocabulary.');
       return;
@@ -63,7 +69,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(screen);
     const msg = total === 0
       ? [h('h2.rev-empty-title', null, 'No cards yet'),
-         h('p', null, 'Save words while reading and they appear here as flashcards.'),
+         h('p', null, 'Look up words while reading, or save them with the star, and they appear here as flashcards.'),
          h('a.btn.btn-primary', { href: '#/' }, icon('book'), 'Open the library')]
       : [h('h2.rev-empty-title', null, 'Nothing due right now'),
          h('p', null, next ? `Your next card is due ${describeNextDue(next, Date.now())}.` : 'You are all caught up.'),
@@ -145,6 +151,12 @@ export const mount: MountFn = (root, _params, ctx) => {
     const cur = session.current;
     const now = Date.now();
     try {
+      // A looked-up word joins the saved words the first time it is graded (unless it was saved meanwhile).
+      const fresh = unsaved.get(cur.id);
+      if (fresh) {
+        if (!store.vocab.has(cur.id)) await store.vocab.put({ ...fresh, addedAt: now });
+        unsaved.delete(cur.id);
+      }
       const updated = await store.vocab.review(cur.id, g, now);
       session.answer(g, updated, now);
     } catch (e) {
@@ -165,7 +177,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!session) return;
     const s = session.summary();
     const next = await nextDueAmongAll();
-    const dueNow = (await store.vocab.due(Date.now())).length;
+    const dueNow = await reviewCount(store);
     if (!alive) return;
     clear(screen);
     const stat = (value: string, label: string) => h('div.rev-stat', null, h('div.rev-stat-value', null, value), h('div.rev-stat-label', null, label));

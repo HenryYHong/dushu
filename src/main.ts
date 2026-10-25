@@ -14,6 +14,7 @@ import { CLOUD_EVENT, accountInfo, cloudSession } from './core/cloud';
 import { BOOKS_EVENT, syncBooks, type BooksReport } from './core/cloudBooks';
 import { linkMac } from './core/cloudLink';
 import { signInButton } from './ui/signIn';
+import { reviewCount } from './ui/review/learning';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -181,12 +182,13 @@ async function boot(): Promise<void> {
   void store.books.list().then((b) => { if (b.length) void askPersist(); }, () => {});
 
   const refreshBadge = async () => {
-    const n = (await store.vocab.due(Date.now())).length;
+    // The due saved words and the looked-up words Review would add (review/learning.ts).
+    const n = await reviewCount(store);
     reviewBadge.hidden = n === 0;
     reviewBadge.textContent = n > 99 ? '99+' : String(n);
   };
   // Also fires for a save made in another tab.
-  store.onChange((what) => { if (what === 'vocab') void refreshBadge(); });
+  store.onChange((what) => { if (what === 'vocab' || what === 'lookups' || what === 'known') void refreshBadge(); });
   void refreshBadge();
 
   let cleanup: (() => void) | void;
