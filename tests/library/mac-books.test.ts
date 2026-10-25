@@ -186,8 +186,8 @@ describe('owner books on the library screen', () => {
     onPublicSite();
     await openLibrary();
     await until(() => !root.querySelector<HTMLElement>('.lib-mac-note')!.hidden);
-    expect(root.querySelector('.lib-mac-note')!.textContent).toMatch(/public copy/);
-    expect(root.querySelector('.lib-mac-note a')!.getAttribute('href')).toBe('#/settings');
+    expect(root.querySelector('.lib-mac-note')!.textContent).toMatch(/public copy.*Sign in with your email/);
+    expect([...root.querySelectorAll<HTMLElement>('.lib-mac-note .btn')].map((b) => b.textContent)).toEqual(['Sign in', 'Dismiss']);
     await flush(100);
     expect(calls.filter((c) => c.includes('local-books'))).toEqual([]);
     const button = [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Add books from Mac')!;
@@ -207,6 +207,17 @@ describe('owner books on the library screen', () => {
     stubMac();
     [...root.querySelectorAll<HTMLElement>('.lib-mac-note .btn')].find((b) => b.textContent === 'Try again')!.click();
     await until(() => root.querySelectorAll('.lib-card').length === 2);
+  });
+
+  it('says nothing about a Mac that does not answer once signed in: the account brings the books', async () => {
+    onPublicSite();
+    localStorage.setItem('dushu.mac-bridge.v1', PRIVATE_ORIGIN);
+    localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: 'a'.repeat(64) + '.x', email: 'reader@example.com' }));
+    stubMac({ status: 0 });
+    await openLibrary();
+    await until(() => calls.some((c) => c.includes('local-books')));
+    await flush(100);
+    expect(root.querySelector<HTMLElement>('.lib-mac-note')!.hidden).toBe(true);
   });
 
   it('says so when the Mac refuses this device', async () => {

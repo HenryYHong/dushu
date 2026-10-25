@@ -24,7 +24,7 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     status.textContent = `Private address: ${url.origin}. Only the Mac owner's Tailscale account can connect.`;
   }).catch(() => { status.textContent = 'Connect Tailscale on your Mac and run npm run ipad in Dushu to prepare private HTTPS access.'; });
   const el = group('Your Mac and iPad', account
-    ? 'Sign in with your email on each device to sync your words, reading places and bookmarks anywhere. Connect a device to your Mac once for Claude, Mac voices and your Mac books.'
+    ? 'Sign in with your email on each device: your books, words, reading places, bookmarks and Claude then go with your account, with no Mac or Tailscale needed. Connecting a device to your Mac only adds the Mac’s voices and its local AI.'
     : 'Connect each device to your Mac once. Your words and reading places then sync through the Mac, and your Mac books are added by themselves.',
     account?.el ?? null,
     sync.el,

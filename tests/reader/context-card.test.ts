@@ -43,11 +43,25 @@ it('shows the dictionary sense and exact evidence without an invented AI rationa
   });
   openWordPopup({ ctx, word: '浮', anchor: anchorRect(), context: { sentence: paragraph, paragraph } });
   const button = [...document.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent === 'Ask local AI about context')!;
-  expect(button).toBeTruthy();
+  // Offered once the Mac answers with its model.
+  await vi.waitFor(() => expect(button.closest('section')!.hidden).toBe(false));
   button.click();
   await vi.waitFor(() => expect(document.querySelector('.pp-context-result strong')?.textContent).toBe('to float'));
   const text = document.querySelector('.pp-context-result')!.textContent;
   expect(text).toContain(paragraph);
   expect(text).toContain('not a verified definition');
   expect(text).not.toContain('duck');
+});
+
+it('does not offer the local AI when the Mac does not answer', async () => {
+  const { ctx } = await makeCtx();
+  vi.stubGlobal('AbortSignal', { any: (signals: AbortSignal[]) => signals[0], timeout: () => new AbortController().signal });
+  vi.stubGlobal('location', { hostname: 'localhost' });
+  let asked = false;
+  vi.stubGlobal('fetch', async () => { asked = true; throw new TypeError('Load failed'); });
+  openWordPopup({ ctx, word: '浮', anchor: anchorRect(), context: { sentence: '白毛浮绿水。', paragraph: '白毛浮绿水。' } });
+  const button = [...document.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent === 'Ask local AI about context')!;
+  await vi.waitFor(() => expect(asked).toBe(true));
+  await new Promise((r) => setTimeout(r, 20));
+  expect(button.closest('section')!.hidden).toBe(true);
 });

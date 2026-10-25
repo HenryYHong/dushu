@@ -3,7 +3,7 @@
 import type { AppContext, CharInfo, Dictionary, DictEntry } from '../../types';
 import { formatSyllable, markedToNumbered, toneOf } from '../../core/pinyin';
 import { speak, stopSpeaking, canSpeak } from '../../speech/tts';
-import { suggestMeaning } from '../../translate/localMeaning';
+import { qualityLocalAvailable, suggestMeaning } from '../../translate/localMeaning';
 import { hasMacBridge } from '../../core/macBridge';
 import { dictionaryContextMeaning } from '../../translate/contextSense';
 import { h, clear } from '../dom';
@@ -342,7 +342,8 @@ export function mountWordView(
     if (contextual) contextTools.push(h('section.pp-context', null,
       h('span.pp-section', null, 'In this sentence'), h('strong', null, contextual.meaning), h('p.pp-muted', null, contextual.reason)));
 
-    // A local model can suggest a contextual sense, but the dictionary stays visible for checking it.
+    // A local model on the Mac can suggest a contextual sense, but the dictionary stays visible for checking it. It is offered
+    // once the Mac answers with its model, so a device away from the Mac (Tailscale off, the Mac asleep) is not offered it.
     if (!contextual && hasTargetContext && o.context?.sentence && o.context.paragraph && hasMacBridge()) {
       if (senses.length) {
         const result = h('div.pp-context-result');
@@ -371,7 +372,9 @@ export function mountWordView(
           host.reposition();
         });
         // The suggestion carries its own "AI suggestion" line once there is one; nothing is said before that.
-        contextTools.push(h('section.pp-context', null, h('span.pp-section', null, 'Context'), btn, result));
+        const section = h('section.pp-context', { hidden: true }, h('span.pp-section', null, 'Context'), btn, result);
+        contextTools.push(section);
+        void qualityLocalAvailable().then((ok) => { if (ok && section.isConnected) { section.hidden = false; host.reposition(); } });
       }
     }
 

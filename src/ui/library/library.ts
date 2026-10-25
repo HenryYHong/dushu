@@ -18,7 +18,8 @@ import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
 import { addedMessage, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
 import { upgradeBooks } from './upgrade';
 import { scriptView } from '../vocab/render';
-import { CLOUD_EVENT, cloudSession } from '../../core/cloud';
+import { CLOUD_EVENT, cloudBase, cloudSession } from '../../core/cloud';
+import { openSignIn } from '../signIn';
 import { forgetBookInAccount, syncBooks } from '../../core/cloudBooks';
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
@@ -416,16 +417,23 @@ export const mount: MountFn = (root, _params, ctx) => {
   };
 
   function renderMacNote(): void {
+    // Signed in, the account brings the books, Claude and sync, and a Mac that does not answer only means no Mac voices: the
+    // note is not shown.
+    const signedIn = !!cloudSession();
     const publicCopy = macState === 'none' && !isMacOrigin();
     const dismissed = (() => { try { return localStorage.getItem('dushu.public-note.v1') === '1'; } catch { return false; } })();
-    macNote.hidden = !((publicCopy && !dismissed) || macState === 'asleep' || macState === 'refused');
+    macNote.hidden = signedIn || !((publicCopy && !dismissed) || macState === 'asleep' || macState === 'refused');
     if (macNote.hidden) return;
     clear(macNote);
     if (publicCopy) {
       macNote.append(
-        h('p', null, 'This is the public copy of Dushu. Your books, words and progress stay in this browser. If you run Dushu on your own Mac, connect this device to it in Settings to use its translator and read-aloud voices, to bring your Mac books here, and to sync your words and reading places.'),
+        h('p', null, cloudBase()
+          ? 'This is the public copy of Dushu. Your books, words and progress stay in this browser. Sign in with your email to keep them, and Claude, the same on every device you sign in on.'
+          : 'This is the public copy of Dushu. Your books, words and progress stay in this browser. If you run Dushu on your own Mac, connect this device to it in Settings to use its translator and read-aloud voices, to bring your Mac books here, and to sync your words and reading places.'),
         h('div.lib-actions', null,
-          h('a.btn.btn-sm', { href: '#/settings' }, 'Open Settings'),
+          cloudBase()
+            ? h('button.btn.btn-sm', { type: 'button', onclick: () => openSignIn() }, 'Sign in')
+            : h('a.btn.btn-sm', { href: '#/settings' }, 'Open Settings'),
           h('button.btn.btn-sm', { type: 'button', onclick: () => { try { localStorage.setItem('dushu.public-note.v1', '1'); } catch { /* ignore */ } renderMacNote(); } }, 'Dismiss')));
       return;
     }
@@ -503,7 +511,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     clearTimeout(booksTimer);
     booksTimer = setTimeout(accountBooks, 3000);
   });
-  window.addEventListener(CLOUD_EVENT, accountBooks);
+  const onCloud = () => { renderMacNote(); accountBooks(); };
+  window.addEventListener(CLOUD_EVENT, onCloud);
   void load().then(async () => {
     if (!alive) return;
     renderMacNote();
@@ -524,7 +533,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     offSettings();
     offBooks();
     clearTimeout(booksTimer);
-    window.removeEventListener(CLOUD_EVENT, accountBooks);
+    window.removeEventListener(CLOUD_EVENT, onCloud);
     shares.dispose();
     window.removeEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
     window.removeEventListener(BRIDGE_EVENT, onBridge);
