@@ -16,6 +16,7 @@ function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<st
   const added: string[] = [];
   const files = opts.files ?? {};
   let fetched = 0;
+  const inits: (RequestInit | undefined)[] = [];
   const key = (r: Request | string) => new URL(typeof r === 'string' ? r : r.url, 'https://app.test/').href;
   const makeCache = (name: string) => {
     if (!stores.has(name)) stores.set(name, new Map());
@@ -43,10 +44,11 @@ function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<st
       return undefined;
     },
   };
-  const fakeFetch = async (r: Request) => {
+  const fakeFetch = async (r: Request | string, init?: RequestInit) => {
     fetched++;
+    inits.push(init);
     if (!opts.online) throw new TypeError('Failed to fetch');
-    const f = files[new URL(r.url).pathname];
+    const f = files[new URL(typeof r === 'string' ? r : r.url).pathname];
     if (!f) return new Response('nope', { status: 404 });
     return new Response(f.body, { status: 200, headers: { 'content-type': f.type } });
   };
@@ -72,7 +74,7 @@ function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<st
     handlers.install({ waitUntil: (p: Promise<unknown>) => { done = p; } });
     await done;
   }
-  return { request, install, stores, lookups, added, handlers, get fetched() { return fetched; } };
+  return { request, install, stores, lookups, added, handlers, inits, get fetched() { return fetched; } };
 }
 
 describe('service worker', () => {
@@ -104,6 +106,8 @@ describe('service worker', () => {
     };
     const sw = loadWorker({ online: true, files });
     await sw.request('', { navigate: true });
+    // The page is asked of the server, never reused from the browser's cache (GitHub Pages lets it be for 10 minutes).
+    expect(sw.inits.at(-1)).toMatchObject({ cache: 'no-cache' });
     await new Promise((r) => setTimeout(r, 10));
     const shell = () => sw.stores.get('dushu-app-t')?.get('https://app.test/');
     expect(shell()?.headers.get('content-type')).toContain('text/html');

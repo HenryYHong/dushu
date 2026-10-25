@@ -74,7 +74,10 @@ async function networkFirst(request, cacheName, timeoutMs, shell) {
   const cache = await caches.open(cacheName);
   try {
     const res = await Promise.race([
-      fetch(request),
+      // Asked of the server every time (no-cache revalidates), not taken from the browser's cache: GitHub Pages lets the
+      // page be reused for 10 minutes, which kept a new version from showing. A navigation can't be copied with options,
+      // so it is fetched by its address.
+      fetch(request.url, { cache: 'no-cache', credentials: 'same-origin' }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs)),
     ]);
     if (shell && res.ok && res.status === 200 && isHtml(res)) cache.put('./', res.clone()).catch(() => {});
