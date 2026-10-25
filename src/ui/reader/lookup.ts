@@ -3,6 +3,7 @@
 import type { AppContext, BookMeta, Dictionary, Lexicon } from '../../types';
 import { hasHan, sentenceAround } from '../../core/text';
 import { openPhrasePopup, openWordPopup } from '../popup/popup';
+import { anchorOf } from '../popup/position';
 import { logLookup } from '../popup/lookupLog';
 import type { BlockState, ChapterView } from './chapter';
 import { rangeToSpans, spansText, type BlockSpan } from './selection';
@@ -216,15 +217,8 @@ export function createLookup(host: LookupHost): Lookup {
 
     v.clearMarks();
     for (const sp of spans) v.mark(stateOf(sp), sp.start, sp.end, 'rd-sel');
-    const union = () => {
-      let r: DOMRect | null = null;
-      for (const sp of spans) {
-        const q = v.rectOf(stateOf(sp), sp.start, sp.end);
-        if (!q) continue;
-        r = r ? new DOMRect(Math.min(r.left, q.left), Math.min(r.top, q.top), Math.max(r.right, q.right) - Math.min(r.left, q.left), Math.max(r.bottom, q.bottom) - Math.min(r.top, q.top)) : q;
-      }
-      return r;
-    };
+    // The phrase's characters across its paragraphs; a phrase that runs on to the next page points at its larger part there.
+    const union = () => anchorOf(spans.flatMap((sp) => v.rectsOf(stateOf(sp), sp.start, sp.end)), { w: window.innerWidth, h: window.innerHeight });
     const first = stateOf(spans[0]);
     active = { bi: first.index, s: spans[0].start, e: spans[0].end, kind: 'phrase' };
     const seq = ++openSeq;

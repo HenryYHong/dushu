@@ -165,8 +165,9 @@ export const mount: MountFn = async (root, params, ctx) => {
   // Bookmarks: the button is filled when the page on screen has one, and takes it away again.
   const markBtn = h('button.icon-btn.rd-mark-btn', { type: 'button', title: 'Bookmark this page (B)', 'aria-label': 'Bookmark this page', 'aria-pressed': 'false',
     onclick: () => void toggleBookmark() }, icon('bookmark')) as HTMLButtonElement;
-  // Full screen, one tap away while reading (also F, and the Aa menu); always in the bar on an iPad or a computer (a phone's
-  // bar has no room). Where the browser cannot do it, the tap says why: a Home Screen app already has no browser bars.
+  // Full screen, one tap away while reading (also F, and the Aa menu); in the bar on an iPad or a computer (a phone's bar has
+  // no room). Where the browser cannot do it, the tap says how. A Home Screen app is already full screen: no button there
+  // (unless full screen is somehow on, so it can be left).
   const fullBtn = h('button.icon-btn.rd-full-btn', { type: 'button', onclick: () => {
     if (!fullscreenSupported()) {
       ctx.toast(isStandalone()
@@ -178,6 +179,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   } }) as HTMLButtonElement;
   const paintFull = () => {
     const on = isFullscreen();
+    fullBtn.hidden = isStandalone() && !on;
     fullBtn.replaceChildren(icon(on ? 'shrink' : 'expand'));
     fullBtn.setAttribute('aria-pressed', String(on));
     fullBtn.setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen');
@@ -1327,7 +1329,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       case '[': ctx.settings.set({ [readingFontSizeKey(s)]: s[readingFontSizeKey(s)] - 2 }); break;
       case ']': ctx.settings.set({ [readingFontSizeKey(s)]: s[readingFontSizeKey(s)] + 2 }); break;
       case '?': e.preventDefault(); showShortcuts(); break;
-      case 'f': case 'F': e.preventDefault(); void setFullscreen(!isFullscreen()).catch(() => {}); break;
+      case 'f': case 'F': e.preventDefault(); if (fullscreenSupported() || isFullscreen()) void setFullscreen(!isFullscreen()).catch(() => {}); break;
       case 'b': case 'B': e.preventDefault(); void toggleBookmark(); break;
       case 'c': case 'C': e.preventDefault(); toc.open(chapterIndex); break;
       case 'n': case 'N': e.preventDefault(); toc.open(chapterIndex, 'names'); break;

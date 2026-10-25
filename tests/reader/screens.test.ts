@@ -420,6 +420,24 @@ describe('words looked up and bookmarks', () => {
     }
   });
 
+  it('opened from the Home Screen, offers no full screen: the app has no browser bars, and Safari’s would only add its X', async () => {
+    let asked = 0;
+    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, get: () => true });
+    Object.defineProperty(navigator, 'standalone', { configurable: true, get: () => true });
+    document.documentElement.requestFullscreen = async () => { asked++; };
+    try {
+      const { ctx, meta } = await setup();
+      await open(ctx, meta.id);
+      closePopup();
+      expect((q('.rd-bar .rd-full-btn') as HTMLButtonElement).hidden).toBe(true);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', bubbles: true }));
+      expect(asked).toBe(0);
+    } finally {
+      delete (document as unknown as Record<string, unknown>).fullscreenEnabled;
+      delete (navigator as unknown as Record<string, unknown>).standalone;
+    }
+  });
+
   it('keeps a tapped word for practice, but not the words stepped through with Next', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);

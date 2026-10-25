@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_MAX_HEIGHT, computePlacement, PHONE_SHEET_SHARE, type Rect } from '../../src/ui/popup/position';
+import { anchorOf, BUBBLE_MAX_HEIGHT, computePlacement, PHONE_SHEET_SHARE, type Rect } from '../../src/ui/popup/position';
 
 const rect = (left: number, top: number, w = 40, h = 30): Rect => ({ left, top, right: left + w, bottom: top + h, width: w, height: h });
 
@@ -68,5 +69,37 @@ describe('safe area', () => {
     if (p.mode !== 'float') throw new Error('float');
     expect(p.left).toBeGreaterThanOrEqual(8 + 30);
     expect(p.left + p.width).toBeLessThanOrEqual(700 - 8 - 30);
+  });
+});
+
+describe('what a popup points at', () => {
+  // A two-page spread on an iPad held sideways: each character 28 px wide, lines 40 px apart.
+  const vp = { w: 1180, h: 820 };
+  const ch = (left: number, top: number) => rect(left, top, 28, 40);
+
+  it('is the word’s own box when it sits on one line, or on two lines of one page', () => {
+    expect(anchorOf([ch(100, 300), ch(128, 300)], vp)).toMatchObject({ left: 100, top: 300, right: 156, bottom: 340 });
+    // Wrapped from the end of a line to the start of the next, on the same page.
+    expect(anchorOf([ch(500, 300), ch(60, 340)], vp)).toMatchObject({ top: 300, bottom: 380 });
+  });
+
+  it('is the larger part of a word or sentence that runs on from the foot of the left page to the top of the right one', () => {
+    // 两 characters on the last line of the left page, three at the top of the right page.
+    const word = [ch(480, 740), ch(508, 740), ch(620, 60), ch(648, 60), ch(676, 60)];
+    const a = anchorOf(word, vp)!;
+    expect(a).toMatchObject({ left: 620, top: 60, bottom: 100 });
+    // Not a box as tall as the spread, so the bubble goes beside it, not at the top of the screen.
+    const p = computePlacement(a, 300, vp, { coarse: true });
+    expect(p).toMatchObject({ mode: 'float', side: 'below' });
+    if (p.mode === 'float') expect(p.top).toBeGreaterThan(100);
+    // A tie goes to the first part.
+    expect(anchorOf([ch(480, 740), ch(620, 60)], vp)).toMatchObject({ left: 480, top: 740 });
+  });
+
+  it('leaves out a part on a page that is not on screen', () => {
+    // Two characters on this page, three on the next page, drawn off to the right.
+    expect(anchorOf([ch(480, 740), ch(508, 740), ch(1300, 60), ch(1328, 60), ch(1356, 60)], vp)).toMatchObject({ left: 480, top: 740 });
+    expect(anchorOf([], vp)).toBeNull();
+    expect(anchorOf([rect(0, 0, 0, 0)], vp)).toBeNull();
   });
 });

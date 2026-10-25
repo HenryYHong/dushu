@@ -70,6 +70,31 @@ export function computePlacement(anchor: Rect, contentHeight: number, vp: Size, 
   return { mode: 'float', side: 'above', left, top: 0, bottom: Math.round(vp.h - (anchor.top - GAP)), width, maxHeight, caret };
 }
 
+/**
+ * The box a popup points at, from the boxes of a word's or a phrase's characters in reading order. Characters on one page
+ * (or column) make one box. Text that runs on from the foot of one page to the top of the next would make a box as tall as
+ * the spread, with no room above or below it, so the popup would go to the top of the screen: instead it points at the
+ * part with the most characters in view (the first part on a tie).
+ */
+export function anchorOf(rects: readonly Rect[], vp?: Size): DOMRect | null {
+  const parts: Rect[][] = [];
+  let prev: Rect | null = null;
+  for (const q of rects) {
+    if (!q.width && !q.height) continue;
+    // Back up the page: the text went on in the next column or page.
+    if (!prev || q.top < prev.top - prev.height / 2) parts.push([]);
+    parts[parts.length - 1].push(q);
+    prev = q;
+  }
+  const seen = (part: Rect[]) => !vp || part.some((q) => q.bottom > 0 && q.top < vp.h && q.right > 0 && q.left < vp.w);
+  const pool = parts.some(seen) ? parts.filter(seen) : parts;
+  const best = pool.reduce<Rect[] | null>((a, p) => (!a || p.length > a.length ? p : a), null);
+  if (!best) return null;
+  const l = Math.min(...best.map((q) => q.left)), t = Math.min(...best.map((q) => q.top));
+  const r = Math.max(...best.map((q) => q.right)), b = Math.max(...best.map((q) => q.bottom));
+  return new DOMRect(l, t, r - l, b - t);
+}
+
 /** True when the anchor has scrolled completely out of the viewport. */
 export function anchorGone(anchor: Rect, vp: Size): boolean {
   return anchor.bottom < 0 || anchor.top > vp.h || anchor.right < 0 || anchor.left > vp.w;

@@ -7,6 +7,7 @@ import { segment } from '../../core/segment';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { createTranslationPanel, type TranslationPanel } from '../popup/translation';
+import { anchorOf } from '../popup/position';
 import {
   buildPinyin, displayTokens, pinyinVisible, refreshPinyin, refreshVisibility, renderTokens,
   type RenderedParagraph, type RenderOptions,
@@ -71,7 +72,10 @@ export interface ChapterView {
   tokenIndexAt(b: BlockState, offset: number): number;
   mark(b: BlockState, start: number, end: number, cls: string): void;
   clearMarks(cls?: string): void;
+  /** Where characters start..end are on screen, for a popup to point at (popup/position.ts anchorOf). */
   rectOf(b: BlockState, start: number, end: number): DOMRect | null;
+  /** The box of each of those characters, in reading order. */
+  rectsOf(b: BlockState, start: number, end: number): DOMRect[];
   refreshPinyin(): void;
   refreshVisibility(): void;
   refreshMarks(): void;
@@ -417,17 +421,19 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     marked = keep;
   }
 
-  function rectOf(b: BlockState, start: number, end: number): DOMRect | null {
-    let l = Infinity, t = Infinity, r = -Infinity, bt = -Infinity;
+  function rectsOf(b: BlockState, start: number, end: number): DOMRect[] {
+    const out: DOMRect[] = [];
     for (const ruby of b.el.querySelectorAll<HTMLElement>('ruby.rd-c')) {
       const off = Number(ruby.dataset.o);
       if (off < start || off >= end) continue;
       const q = ruby.getBoundingClientRect();
-      if (!q.width && !q.height) continue;
-      l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); bt = Math.max(bt, q.bottom);
+      if (q.width || q.height) out.push(q);
     }
-    if (!Number.isFinite(l)) return null;
-    return new DOMRect(l, t, r - l, bt - t);
+    return out;
+  }
+
+  function rectOf(b: BlockState, start: number, end: number): DOMRect | null {
+    return anchorOf(rectsOf(b, start, end), { w: window.innerWidth, h: window.innerHeight });
   }
 
   function eachRendered(fn: (p: RenderedParagraph, b: BlockState) => void): void {
@@ -467,6 +473,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     mark,
     clearMarks,
     rectOf,
+    rectsOf,
     refreshPinyin() {
       const opts = renderOptions();
       eachRendered((p) => { refreshPinyin(p, opts); refreshVisibility(p, visible); });

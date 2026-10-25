@@ -10,9 +10,13 @@ type FsElement = HTMLElement & { webkitRequestFullscreen?: () => Promise<void> |
 
 const doc = (): FsDocument | null => (typeof document === 'undefined' ? null : (document as FsDocument));
 
+/**
+ * Whether Dushu offers full screen here. Not in a Home Screen app: it has no browser bars to hide, and the Fullscreen API
+ * there only adds Safari's own X button (the iPad's status bar and home bar stay, whatever a page does).
+ */
 export function fullscreenSupported(): boolean {
   const d = doc();
-  return !!d && !!(d.fullscreenEnabled || d.webkitFullscreenEnabled);
+  return !!d && !!(d.fullscreenEnabled || d.webkitFullscreenEnabled) && !isStandalone();
 }
 
 export function isFullscreen(): boolean {
