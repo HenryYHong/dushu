@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { watchServiceWorker } from '../../src/swUpdate';
+import { AUTO_UPDATE_MS, watchServiceWorker } from '../../src/swUpdate';
 
 type Listener = () => void;
 class Emitter {
@@ -14,7 +14,8 @@ class FakeReg extends Emitter {
   update = vi.fn(async () => {});
 }
 
-function setup(opts: { controller: boolean; reg?: FakeReg }) {
+function setup(opts: { controller: boolean; reg?: FakeReg; clock?: { t: number } }) {
+  const clock = opts.clock ?? { t: 0 };
   const reg = opts.reg ?? new FakeReg();
   const container = Object.assign(new Emitter(), {
     controller: opts.controller ? ({} as ServiceWorker) : null,
@@ -22,9 +23,11 @@ function setup(opts: { controller: boolean; reg?: FakeReg }) {
   });
   const toast = vi.fn();
   const reload = vi.fn();
-  watchServiceWorker({ toast }, container as unknown as ServiceWorkerContainer, reload);
+  watchServiceWorker({ toast }, container as unknown as ServiceWorkerContainer, reload, () => clock.t);
   const ready = () => new Promise((r) => setTimeout(r, 0));
-  return { reg, container, toast, reload, ready };
+  /** Time passes: past the opening, while someone reads. */
+  const later = () => { clock.t += AUTO_UPDATE_MS + 1; };
+  return { reg, container, toast, reload, ready, later };
 }
 
 describe('service worker update notice', () => {
@@ -61,6 +64,7 @@ describe('service worker update notice', () => {
     reg.active = new FakeWorker();
     const t = setup({ controller: true, reg });
     await t.ready();
+    t.later();
     const next = new FakeWorker();
     reg.installing = next;
     reg.emit('updatefound');
@@ -75,12 +79,35 @@ describe('service worker update notice', () => {
     expect(t.reload).toHaveBeenCalledTimes(1);
   });
 
-  it('offers a worker that was already waiting when the page opened', async () => {
+  it('takes a version that was already waiting when the page opened, without asking', async () => {
     const reg = new FakeReg();
     reg.active = new FakeWorker(); reg.waiting = new FakeWorker();
     const t = setup({ controller: true, reg });
     await t.ready();
-    expect(t.toast).toHaveBeenCalledTimes(1);
+    expect(t.toast).not.toHaveBeenCalled();
+    expect(reg.waiting.postMessage).toHaveBeenCalledWith('SKIP_WAITING');
+    t.container.emit('controllerchange');
+    expect(t.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes a version found as the app comes back to the front, and one left waiting behind a Reload not tapped', async () => {
+    const reg = new FakeReg();
+    reg.active = new FakeWorker();
+    const t = setup({ controller: true, reg });
+    await t.ready();
+    t.later();
+    const next = new FakeWorker();
+    reg.installing = next;
+    reg.emit('updatefound');
+    next.state = 'installed';
+    next.emit('statechange');
+    expect(t.toast).toHaveBeenCalledTimes(1); // found while reading: asks
+    expect(next.postMessage).not.toHaveBeenCalled();
+    reg.waiting = next;
+    t.later();
+    document.dispatchEvent(new Event('visibilitychange')); // jsdom's page is visible
+    expect(next.postMessage).toHaveBeenCalledWith('SKIP_WAITING');
+    expect(reg.update).toHaveBeenCalled();
   });
 
   it('still offers an update later in a session that began with a first install', async () => {
@@ -92,6 +119,7 @@ describe('service worker update notice', () => {
     t.reg.installing = null; t.reg.active = first;
     t.container.controller = {} as ServiceWorker;
     t.container.emit('controllerchange');
+    t.later();
     const next = new FakeWorker();
     t.reg.installing = next;
     t.reg.emit('updatefound');

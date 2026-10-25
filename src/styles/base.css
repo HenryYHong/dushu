@@ -75,6 +75,9 @@ body[data-route='read'] .app-nav { display: none; }
   font: 500 13.5px/1 var(--font-ui); cursor: pointer;
 }
 .app-signin .icon { width: 16px; height: 16px; }
+/* Signed in: the same button, quieter, with a dot that says this device syncs. */
+.app-signin-on { color: var(--text-2); position: relative; }
+.app-signin-on::after { content: ''; position: absolute; top: 5px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
 @media (hover: hover) { .app-signin:hover { background: var(--hover, color-mix(in srgb, var(--text) 6%, transparent)); } }
 
 /* The sync account's sign-in panel (ui/settings/account.ts), in Settings and in the Sign in dialog. */
