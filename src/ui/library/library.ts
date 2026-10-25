@@ -494,14 +494,10 @@ export const mount: MountFn = (root, _params, ctx) => {
   const onBridge = () => void refreshMac(true).then(upgradeOld);
   window.addEventListener(BRIDGE_EVENT, onBridge);
 
-  // ---- books in the sync account: this device's go up, the account's come down (core/cloudBooks.ts) ----
+  // ---- books in the sync account: a book added here goes up soon after (core/cloudBooks.ts; main.ts runs it on open too and
+  // says what it did) ----
   let booksTimer: ReturnType<typeof setTimeout> | undefined;
-  const accountBooks = () => {
-    if (!alive || !cloudSession()) return;
-    void syncBooks(store).then(({ added }) => {
-      if (alive && added.length) ctx.toast(added.length === 1 ? `Added “${added[0].title}” from your account.` : `Added ${added.length} books from your account.`, { ms: 6000 });
-    });
-  };
+  const accountBooks = () => { if (alive && cloudSession()) void syncBooks(store); };
   const offBooks = store.onChange((what) => {
     if (what !== 'books') return;
     clearTimeout(booksTimer);

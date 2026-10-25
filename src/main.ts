@@ -10,7 +10,8 @@ import { parseRoute } from './ui/route';
 import { icon } from './ui/icons';
 import { watchServiceWorker } from './swUpdate';
 import { startSync } from './core/sync';
-import { CLOUD_EVENT } from './core/cloud';
+import { CLOUD_EVENT, cloudSession } from './core/cloud';
+import { BOOKS_EVENT, syncBooks, type BooksReport } from './core/cloudBooks';
 import { linkMac } from './core/cloudLink';
 import { signInButton } from './ui/signIn';
 
@@ -134,6 +135,21 @@ async function boot(): Promise<void> {
   startSync(store);
   void linkMac();
   window.addEventListener(CLOUD_EVENT, () => void linkMac());
+  // Books in the account: this device's go up and the account's come down, on open, on sign-in, when the app comes back to
+  // the front and every few minutes, and each run says what it did (or what went wrong, once).
+  const accountBooks = () => { if (cloudSession()) void syncBooks(store); };
+  const toldErrors = new Set<string>();
+  window.addEventListener(BOOKS_EVENT, (e) => {
+    const r = (e as CustomEvent<BooksReport>).detail;
+    const names = (t: string[]) => (t.length === 1 ? `“${t[0]}”` : `${t.length} books`);
+    if (r.uploaded.length) ctx.toast(`Saved ${names(r.uploaded)} to your account.`, { ms: 5000 });
+    if (r.added.length) ctx.toast(`Added ${names(r.added)} from your account.`, { ms: 6000 });
+    if (r.error && !toldErrors.has(r.error)) { toldErrors.add(r.error); ctx.toast(`Your books could not sync with your account: ${r.error}`, { ms: 9000 }); }
+  });
+  accountBooks();
+  window.addEventListener(CLOUD_EVENT, accountBooks);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') accountBooks(); });
+  setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, 5 * 60_000);
 
   const reviewBadge = h('span.app-badge', { hidden: true });
   const navLink = (href: string, label: string, ic: string, extra?: Node) =>

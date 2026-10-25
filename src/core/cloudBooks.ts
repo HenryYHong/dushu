@@ -167,6 +167,10 @@ export function forgetBookInAccount(meta: BookMeta): void {
   void cloudFetch(`/books?key=${encodeURIComponent(key)}`, { method: 'DELETE' })?.catch(() => {});
 }
 
+/** Fired on window after each run that did something or failed: `{ added: titles, uploaded: titles, error? }` (main.ts says so). */
+export const BOOKS_EVENT = 'dushu:account-books';
+export interface BooksReport { added: string[]; uploaded: string[]; error?: string }
+
 let running: Promise<{ added: BookMeta[]; uploaded: number }> | null = null;
 
 /**
@@ -176,7 +180,9 @@ let running: Promise<{ added: BookMeta[]; uploaded: number }> | null = null;
 export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: number }> {
   running ??= (async () => {
     const added: BookMeta[] = [];
+    const up: string[] = [];
     let uploaded = 0;
+    let error: string | undefined;
     const s = cloudSession();
     if (!s || !cloudBase()) return { added, uploaded };
     try {
@@ -188,14 +194,15 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
       const localKeys = local.map((b) => bookKey(b));
       // Up: books here that the account does not have and this device has not put there before (one it did, now missing,
       // was deleted from the account on another device, and stays deleted).
-      const up = list(UP_KEY);
+      const marks = list(UP_KEY);
       for (const meta of local) {
         const key = bookKey(meta);
         const mark = `${s.email}|${key}`;
-        if (key.startsWith('s') || up.includes(mark) || inAccount.some((b) => sameBook(b.key, key))) continue;
+        if (key.startsWith('s') || marks.includes(mark) || inAccount.some((b) => sameBook(b.key, key))) continue;
         await upload(key, meta, await packBook(store, meta));
-        up.push(mark);
-        setList(UP_KEY, up);
+        marks.push(mark);
+        setList(UP_KEY, marks);
+        up.push(meta.title);
         uploaded++;
       }
       // Down: books in the account that are not here and were not deleted here.
@@ -208,6 +215,11 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
       }
     } catch (e) {
       console.warn('Dushu: books in your account', e);
+      error = e instanceof Error ? e.message : String(e);
+    }
+    if (added.length || up.length || error) {
+      const detail: BooksReport = { added: added.map((m) => m.title), uploaded: up, ...(error ? { error } : {}) };
+      try { globalThis.dispatchEvent?.(new CustomEvent(BOOKS_EVENT, { detail })); } catch { /* no window */ }
     }
     return { added, uploaded };
   })().finally(() => { running = null; });
