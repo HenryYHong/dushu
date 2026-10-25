@@ -790,6 +790,8 @@ html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x
 /* ---------- bookmarks ---------- */
 .rd-mark-btn[aria-pressed='true'] { color: var(--accent); }
 .rd-mark-btn[aria-pressed='true'] svg { fill: currentColor; }
+/* Full screen in the bar: an iPad or a computer. A phone's bar has no room (it is in the Aa menu there). */
+@media (max-width: 560px) { .rd-full-btn { display: none; } }
 .rd-marks { padding-top: var(--space-1); }
 .rd-mark { display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-s); }
 @media (hover: hover) { .rd-mark:hover { background: var(--wash); } }

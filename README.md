@@ -33,7 +33,7 @@ If the Mac is asleep, the Library says so and everything else keeps working.
 
 ## Sync without Tailscale
 
-Tap **Sign in** at the top right (or Settings, Your Mac and iPad, Sync account), enter your email and type the six-digit code it emails you. Every device signed in with that email keeps the same saved words (with their review schedule), known words, reading places, looked-up words and bookmarks, from anywhere, without Tailscale and with the Mac asleep. Books, settings and translation are not part of it: your Mac books are added to a device the first time it reaches the Mac and stay on it, and Claude still runs on the Mac. A device that is not signed in keeps syncing through the Mac. The first time a signed-in device reaches your Mac, everything the Mac holds from your other devices is copied into the account (a newer change is never replaced), and a device on the Mac tells the account the Mac's private address, so your other signed-in devices connect to it and add your Mac books the next time Tailscale is on.
+Tap **Sign in** at the top right (or Settings, Your Mac and iPad, Sync account), enter your email and type the six-digit code it emails you. Every device signed in with that email keeps the same saved words (with their review schedule), known words, reading places, looked-up words and bookmarks, from anywhere, without Tailscale and with the Mac asleep. Your books are kept in the account too: the first device that has a book puts it there, and every other device signed in adds it, ready to read where you left off. Deleting a book in the Library removes it from the account as well. The classics are not kept (any device adds them from the site). Settings and Claude translation are not part of it; Claude still runs on the Mac. A device that is not signed in keeps syncing through the Mac. The first time a signed-in device reaches your Mac, everything the Mac holds from your other devices is copied into the account (a newer change is never replaced), and a device on the Mac tells the account the Mac's private address, so your other signed-in devices connect to it and add your Mac books the next time Tailscale is on.
 
 The sync server is a Cloudflare Worker in `cloud/` (one small SQLite database per account, merged exactly as the Mac merges). To run your own, with Node 22 or later:
 
@@ -142,7 +142,7 @@ Every word you tap while reading is kept on the Vocabulary page under **Looked u
 
 ## Bookmarks and full screen
 
-Tap the bookmark at the top of a page (or press `B`) to bookmark it; the button fills in on a bookmarked page, and tapping it again takes the bookmark away. Your bookmarks are listed under **Bookmarks** in the chapter list, and a tap takes you back. **Full screen** is in the Aa menu (or press `F`). On an iPad, Safari can go full screen; added to the Home Screen, Dushu opens without the browser bars anyway. Bookmarks and the Looked up list sync through your Mac like your saved words.
+Tap the bookmark at the top of a page (or press `B`) to bookmark it; the button fills in on a bookmarked page, and tapping it again takes the bookmark away. Your bookmarks are listed under **Bookmarks** in the chapter list, and a tap takes you back. **Full screen** is a button in the top bar while you read, next to read-aloud (also in the Aa menu, or press `F`). On an iPad, Safari can go full screen; added to the Home Screen, Dushu opens without the browser bars anyway. Bookmarks and the Looked up list sync like your saved words.
 
 ## Review
 
@@ -169,7 +169,7 @@ Saved words come back as flashcards. Press Space to reveal, then 1 to 4 for Agai
 
 ## Privacy
 
-On the hosted site, everything is local to your browser. Books, saved words, progress and settings live in the browser's own storage, and the dictionary is served with the app. If you connect your own Mac, your words, reading places and bookmarks are also kept on that Mac. If you sign in to a sync account, they are kept in it, on Cloudflare, with your email; no book or book text ever goes there. The app contacts another site only when you ask it to: the stroke-order data for a character (from jsDelivr), the selected text if you choose MyMemory, your own Mac if you connect one, and the sync server if you sign in. Settings has a backup export and a Delete all data button. Backups hold your words, progress and settings, but not your books or any key.
+On the hosted site, everything is local to your browser. Books, saved words, progress and settings live in the browser's own storage, and the dictionary is served with the app. If you connect your own Mac, your words, reading places and bookmarks are also kept on that Mac. If you sign in to a sync account, they are kept in it, on Cloudflare, with your email, and so are your books (except the classics), privately, so your other devices get them by signing in. The app contacts another site only when you ask it to: the stroke-order data for a character (from jsDelivr), the selected text if you choose MyMemory, your own Mac if you connect one, and the sync server if you sign in. Settings has a backup export and a Delete all data button. Backups hold your words, progress and settings, but not your books or any key.
 
 ## Data sources and licenses
 

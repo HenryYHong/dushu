@@ -18,6 +18,8 @@ import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
 import { addedMessage, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
 import { upgradeBooks } from './upgrade';
 import { scriptView } from '../vocab/render';
+import { CLOUD_EVENT, cloudSession } from '../../core/cloud';
+import { forgetBookInAccount, syncBooks } from '../../core/cloudBooks';
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
 
@@ -308,13 +310,16 @@ export const mount: MountFn = (root, _params, ctx) => {
   async function remove(b: BookMeta): Promise<void> {
     const ok = await confirmDialog({
       title: 'Delete this book?',
-      message: `“${b.title}” will be removed from this device. Your place in it and your saved words stay: add it again and it opens where you left off.`,
+      message: cloudSession()
+        ? `“${b.title}” will be removed from this device and from your account. Your place in it and your saved words stay: add it again and it opens where you left off.`
+        : `“${b.title}” will be removed from this device. Your place in it and your saved words stay: add it again and it opens where you left off.`,
       confirmLabel: 'Delete',
       danger: true,
     });
     if (!ok) return;
     try {
       await store.books.remove(b.id);
+      forgetBookInAccount(b);
       if (alive) ctx.toast(`Deleted “${b.title}”.`);
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not delete the book.');
@@ -488,9 +493,25 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   const onBridge = () => void refreshMac(true).then(upgradeOld);
   window.addEventListener(BRIDGE_EVENT, onBridge);
+
+  // ---- books in the sync account: this device's go up, the account's come down (core/cloudBooks.ts) ----
+  let booksTimer: ReturnType<typeof setTimeout> | undefined;
+  const accountBooks = () => {
+    if (!alive || !cloudSession()) return;
+    void syncBooks(store).then(({ added }) => {
+      if (alive && added.length) ctx.toast(added.length === 1 ? `Added “${added[0].title}” from your account.` : `Added ${added.length} books from your account.`, { ms: 6000 });
+    });
+  };
+  const offBooks = store.onChange((what) => {
+    if (what !== 'books') return;
+    clearTimeout(booksTimer);
+    booksTimer = setTimeout(accountBooks, 3000);
+  });
+  window.addEventListener(CLOUD_EVENT, accountBooks);
   void load().then(async () => {
     if (!alive) return;
     renderMacNote();
+    accountBooks();
     forgetRemovedList();
     await refreshMac(true);
     void upgradeOld();
@@ -505,6 +526,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     closeMenu();
     offChange();
     offSettings();
+    offBooks();
+    clearTimeout(booksTimer);
+    window.removeEventListener(CLOUD_EVENT, accountBooks);
     shares.dispose();
     window.removeEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
     window.removeEventListener(BRIDGE_EVENT, onBridge);

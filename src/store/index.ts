@@ -35,7 +35,8 @@ function chapterHan(c: Chapter): number {
   return n;
 }
 
-async function bytesOf(blob: Blob): Promise<ArrayBuffer> {
+/** A Blob's bytes (FileReader where Blob.arrayBuffer is missing: older Safari, jsdom). */
+export async function bytesOf(blob: Blob): Promise<ArrayBuffer> {
   if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -522,6 +523,13 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           dropUrls(id);
           emit('books', id);
         });
+      },
+      async asset(bookId, asset) {
+        const rec = await db.get<{ blob?: Blob; data?: ArrayBuffer; type?: string }>('assets', [bookId, asset]);
+        const data = rec ? rec.data ?? (rec.blob ? await bytesOf(rec.blob) : undefined) : undefined;
+        if (!data) return undefined;
+        const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
+        return type ? new Blob([data], { type: type.mime }) : undefined;
       },
       assetUrl(bookId, asset) {
         const key = urlKey(bookId, asset);

@@ -13,6 +13,25 @@ const TOUCH_MS = 3_600_000;
 
 export interface Session { created: number; used: number }
 
+/** A book kept in the account: a package the app made of the stored book (core/cloudBooks.ts), in BOOK_CHUNK pieces. */
+export interface BookEntry {
+  /** The book's sync key (core/syncKeys bookKey): the same book on every device. */
+  key: string;
+  title: string;
+  author: string;
+  /** Bytes in the package, and its SHA-256 (hex), so a device can check what it downloaded. */
+  size: number;
+  sha: string;
+  chunks: number;
+  addedAt: number;
+  complete: boolean;
+}
+
+export const BOOK_CHUNK = 1024 * 1024;
+export const BOOK_MAX_BYTES = 200 * 1024 * 1024;
+export const ACCOUNT_BOOK_BYTES = 1024 * 1024 * 1024;
+const BOOK_KEY = /^[A-Za-z0-9._-]{1,160}$/;
+
 /** Where an account keeps its state. */
 export interface AccountStore {
   getMeta(key: string): string | undefined;
@@ -23,6 +42,13 @@ export interface AccountStore {
   putSession(hash: string, session: Session): void;
   dropSession(hash: string): void;
   sessions(): { hash: string; used: number }[];
+  books(): BookEntry[];
+  putBook(entry: BookEntry): void;
+  /** Removes the book and every piece of it. */
+  dropBook(key: string): void;
+  putChunk(key: string, index: number, data: Uint8Array): void;
+  getChunk(key: string, index: number): Uint8Array | undefined;
+  chunkCount(key: string): number;
 }
 
 export class CloudError extends Error {
@@ -116,6 +142,56 @@ export class AccountCore {
     this.store.dropSession(sessionHash);
   }
 
+  /** The books kept in the account (whole ones only). */
+  listBooks(sessionHash: string, now: number): Omit<BookEntry, 'complete'>[] {
+    this.authorize(sessionHash, now);
+    return this.store.books().filter((b) => b.complete).map(({ complete: _c, ...b }) => { void _c; return b; });
+  }
+
+  /** Starts keeping a book (or a new copy of it): its pieces follow with putBookChunk. */
+  startBook(sessionHash: string, input: Record<string, unknown>, now: number): { chunks: number } {
+    this.authorize(sessionHash, now);
+    const key = typeof input.key === 'string' ? input.key : '';
+    const size = typeof input.size === 'number' && Number.isInteger(input.size) ? input.size : -1;
+    const sha = typeof input.sha === 'string' && /^[0-9a-f]{64}$/.test(input.sha) ? input.sha : '';
+    if (!BOOK_KEY.test(key) || !sha || size <= 0) throw new CloudError(400, 'That book could not be kept.');
+    if (size > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to keep in your account.');
+    const others = this.store.books().filter((b) => b.key !== key).reduce((n, b) => n + b.size, 0);
+    if (others + size > ACCOUNT_BOOK_BYTES) throw new CloudError(413, 'Your account is full: it keeps up to 1 GB of books.');
+    const text = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
+    this.store.dropBook(key);
+    const chunks = Math.ceil(size / BOOK_CHUNK);
+    this.store.putBook({ key, title: text(input.title, 200), author: text(input.author, 200), size, sha, chunks, addedAt: now, complete: false });
+    return { chunks };
+  }
+
+  /** One piece of a book being kept. The book is whole once every piece is in. */
+  putBookChunk(sessionHash: string, key: string, index: number, data: Uint8Array, now: number): { complete: boolean } {
+    this.authorize(sessionHash, now);
+    const book = this.store.books().find((b) => b.key === key);
+    if (!book) throw new CloudError(404, 'Start keeping the book first.');
+    const last = book.chunks - 1;
+    const want = index === last ? book.size - BOOK_CHUNK * last : BOOK_CHUNK;
+    if (!Number.isInteger(index) || index < 0 || index > last || data.byteLength !== want) throw new CloudError(400, 'That piece of the book is not the right size.');
+    this.store.putChunk(key, index, data);
+    const complete = this.store.chunkCount(key) === book.chunks;
+    if (complete && !book.complete) this.store.putBook({ ...book, complete: true });
+    return { complete };
+  }
+
+  getBookChunk(sessionHash: string, key: string, index: number, now: number): Uint8Array {
+    this.authorize(sessionHash, now);
+    const book = this.store.books().find((b) => b.key === key && b.complete);
+    const data = book && Number.isInteger(index) ? this.store.getChunk(key, index) : undefined;
+    if (!data) throw new CloudError(404, 'That book is not in your account.');
+    return data;
+  }
+
+  dropBook(sessionHash: string, key: string, now: number): void {
+    this.authorize(sessionHash, now);
+    this.store.dropBook(key);
+  }
+
   private table(): RecordTable {
     let epoch = this.store.getMeta('epoch');
     if (!epoch) {
@@ -145,8 +221,16 @@ export function memoryStore(): AccountStore & { data: Map<string, { at: number; 
   const meta = new Map<string, string>();
   const sessions = new Map<string, Session>();
   const data = new Map<string, { at: number; data: unknown; rev: number }>();
+  const books = new Map<string, BookEntry>();
+  const chunks = new Map<string, Uint8Array>();
   return {
     data,
+    books: () => [...books.values()],
+    putBook: (b) => { books.set(b.key, b); },
+    dropBook: (key) => { books.delete(key); for (const k of [...chunks.keys()]) if (k.startsWith(`${key}\u0000`)) chunks.delete(k); },
+    putChunk: (key, i, d) => { chunks.set(`${key}\u0000${i}`, d.slice()); },
+    getChunk: (key, i) => chunks.get(`${key}\u0000${i}`),
+    chunkCount: (key) => [...chunks.keys()].filter((k) => k.startsWith(`${key}\u0000`)).length,
     getMeta: (k) => meta.get(k),
     setMeta: (k, v) => { if (v === null) meta.delete(k); else meta.set(k, v); },
     records: (epoch, version) => ({

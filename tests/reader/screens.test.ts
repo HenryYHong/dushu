@@ -384,6 +384,42 @@ describe('settings rows that only apply to one layout', () => {
 });
 
 describe('words looked up and bookmarks', () => {
+  it('keeps Full screen in the bar where the browser cannot do it, and a tap says why', async () => {
+    const { ctx, meta, toasts } = await setup();
+    await open(ctx, meta.id);
+    closePopup();
+    const btn = q('.rd-bar .rd-full-btn') as HTMLButtonElement;
+    expect(btn.hidden).toBe(false);
+    btn.click();
+    expect(toasts.at(-1)).toMatch(/cannot go full screen.*Add to Home Screen/);
+  });
+
+  it('has Full screen in the top bar, and the button follows the screen', async () => {
+    const d = document as Document & { fullscreenEnabled: boolean; fullscreenElement: Element | null };
+    let full: Element | null = null;
+    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, get: () => true });
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => full });
+    document.documentElement.requestFullscreen = async () => { full = document.documentElement; document.dispatchEvent(new Event('fullscreenchange')); };
+    document.exitFullscreen = async () => { full = null; document.dispatchEvent(new Event('fullscreenchange')); };
+    try {
+      const { ctx, meta } = await setup();
+      await open(ctx, meta.id);
+      closePopup();
+      const btn = q('.rd-bar .rd-full-btn') as HTMLButtonElement;
+      expect(btn.hidden).toBe(false);
+      expect(btn.getAttribute('aria-label')).toBe('Full screen');
+      btn.click();
+      await vi.waitFor(() => expect(d.fullscreenElement).not.toBeNull());
+      expect(btn.getAttribute('aria-pressed')).toBe('true');
+      expect(btn.getAttribute('aria-label')).toBe('Leave full screen');
+      btn.click();
+      await vi.waitFor(() => expect(btn.getAttribute('aria-pressed')).toBe('false'));
+    } finally {
+      delete (document as unknown as Record<string, unknown>).fullscreenEnabled;
+      delete (document as unknown as Record<string, unknown>).fullscreenElement;
+    }
+  });
+
   it('keeps a tapped word for practice, but not the words stepped through with Next', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);

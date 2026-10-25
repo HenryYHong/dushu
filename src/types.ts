@@ -404,6 +404,8 @@ export interface Store {
     remove(id: string): Promise<void>;
     /** Object URL for an asset (cached per session; caller must not revoke). */
     assetUrl(bookId: string, asset: string): Promise<string | undefined>;
+    /** An asset's bytes (an image the book has), for keeping the book in the sync account (core/cloudBooks.ts). */
+    asset(bookId: string, asset: string): Promise<Blob | undefined>;
   };
   progress: {
     get(bookId: string): Promise<Progress | undefined>;

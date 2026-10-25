@@ -2,7 +2,7 @@
 // Mac (src/core/sync.ts speaks the same exchange). One Durable Object per email holds that account (account.ts), so its
 // requests run one at a time; another holds the daily count of emails sent. Sessions are bearer tokens
 // '<account id>.<secret>': only the secret's SHA-256 is stored. Nothing here holds a book or any book text.
-import { AccountCore, CloudError, allowedEmail, normalEmail } from './account';
+import { AccountCore, BOOK_CHUNK, CloudError, allowedEmail, normalEmail } from './account';
 import { sqlStore, type SqlStorage } from './sqlStore';
 import { SYNC_LIMITS, SyncError } from '../../src/core/syncExchange';
 
@@ -139,6 +139,24 @@ async function route(request: Request, env: Env): Promise<Response> {
     if (request.method !== 'POST') throw new CloudError(405, 'Not allowed.');
     return call(stub, 'mac', await readJson(request, 4096), s);
   }
+  if (path === '/books') {
+    const { stub, secret: s } = bearer(request, env);
+    if (request.method === 'GET') return call(stub, 'books', {}, s);
+    if (request.method === 'POST') return call(stub, 'book-start', await readJson(request, 4096), s);
+    if (request.method === 'DELETE') return call(stub, 'book-drop', { key: new URL(request.url).searchParams.get('key') ?? '' }, s);
+    throw new CloudError(405, 'Not allowed.');
+  }
+  if (path === '/books/chunk') {
+    const { stub, secret: s } = bearer(request, env);
+    const q = new URL(request.url).searchParams;
+    const where = `key=${encodeURIComponent(q.get('key') ?? '')}&i=${encodeURIComponent(q.get('i') ?? '')}`;
+    if (request.method === 'GET') return stub.fetch(`https://account/chunk-get?${where}`, { method: 'POST', headers: { 'X-Secret': s }, body: '{}' });
+    if (request.method !== 'PUT') throw new CloudError(405, 'Not allowed.');
+    if (Number(request.headers.get('Content-Length') ?? 0) > BOOK_CHUNK) throw new CloudError(413, 'That piece of the book is too large.');
+    const bytes = await request.arrayBuffer();
+    if (bytes.byteLength > BOOK_CHUNK) throw new CloudError(413, 'That piece of the book is too large.');
+    return stub.fetch(`https://account/chunk-put?${where}`, { method: 'POST', headers: { 'X-Secret': s, 'Content-Type': 'application/octet-stream' }, body: bytes });
+  }
   if (path === '/sync') {
     const { stub, secret: s } = bearer(request, env);
     if (request.method === 'GET') return call(stub, 'status', {}, s);
@@ -158,7 +176,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = request.headers.get('Origin') ?? '';
     const cors: Record<string, string> = ORIGINS.some((r) => r.test(origin))
-      ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Max-Age': '86400', Vary: 'Origin' }
+      ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE', 'Access-Control-Max-Age': '86400', Vary: 'Origin' }
       : { Vary: 'Origin' };
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     let res: Response;
@@ -174,8 +192,13 @@ export default {
 /** What an account's Durable Object does with a request from the Worker. Apart from the class so tests can run it in memory. */
 export async function accountRequest(core: AccountCore, request: Request): Promise<Response> {
   try {
-    const op = new URL(request.url).pathname.slice(1);
-    const body = await request.json() as Record<string, unknown>;
+    const url = new URL(request.url);
+    const op = url.pathname.slice(1);
+    // A piece of a book is bytes; everything else is JSON. Both are read before the account is touched.
+    const bytes = op === 'chunk-put' ? new Uint8Array(await request.arrayBuffer()) : null;
+    const body = bytes ? {} : await request.json() as Record<string, unknown>;
+    const key = url.searchParams.get('key') ?? '';
+    const index = Number(url.searchParams.get('i'));
     const now = Date.now();
     const token = request.headers.get('X-Secret') ?? '';
     // Hashed before the account is touched, so each operation below runs whole, as one transaction.
@@ -189,6 +212,11 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'signout': core.signOut(session); return json(200, { ok: true });
       case 'status': return json(200, core.status(session, now));
       case 'sync': return json(200, core.sync(session, body, now));
+      case 'books': return json(200, core.listBooks(session, now));
+      case 'book-start': return json(200, core.startBook(session, body, now));
+      case 'book-drop': core.dropBook(session, str(body.key), now); return json(200, { ok: true });
+      case 'chunk-put': return json(200, core.putBookChunk(session, key, index, bytes!, now));
+      case 'chunk-get': return new Response(core.getBookChunk(session, key, index, now) as Uint8Array<ArrayBuffer>, { headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' } });
       default: return json(404, { error: 'Not found.' });
     }
   } catch (e) { return failure(e); }

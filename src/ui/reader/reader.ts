@@ -11,7 +11,7 @@ import { chapterWords, type ChapterWords } from '../../core/chapterWords';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { closePopup, openWordPopup } from '../popup/popup';
-import { isFullscreen, setFullscreen } from '../fullscreen';
+import { fullscreenSupported, isFullscreen, isStandalone, onFullscreenChange, setFullscreen } from '../fullscreen';
 import { createChapterView, type BlockState, type ChapterView } from './chapter';
 import { applyGridVars, effectiveLineHeight, readingSize } from './grid';
 import { createLearning } from './learning';
@@ -165,10 +165,30 @@ export const mount: MountFn = async (root, params, ctx) => {
   // Bookmarks: the button is filled when the page on screen has one, and takes it away again.
   const markBtn = h('button.icon-btn.rd-mark-btn', { type: 'button', title: 'Bookmark this page (B)', 'aria-label': 'Bookmark this page', 'aria-pressed': 'false',
     onclick: () => void toggleBookmark() }, icon('bookmark')) as HTMLButtonElement;
+  // Full screen, one tap away while reading (also F, and the Aa menu); always in the bar on an iPad or a computer (a phone's
+  // bar has no room). Where the browser cannot do it, the tap says why: a Home Screen app already has no browser bars.
+  const fullBtn = h('button.icon-btn.rd-full-btn', { type: 'button', onclick: () => {
+    if (!fullscreenSupported()) {
+      ctx.toast(isStandalone()
+        ? 'Opened from your Home Screen, Dushu already reads without the browser bars.'
+        : 'This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open Dushu from there to read without the bars.', { ms: 7000 });
+      return;
+    }
+    void setFullscreen(!isFullscreen()).catch(() => ctx.toast('This browser would not go full screen.'));
+  } }) as HTMLButtonElement;
+  const paintFull = () => {
+    const on = isFullscreen();
+    fullBtn.replaceChildren(icon(on ? 'shrink' : 'expand'));
+    fullBtn.setAttribute('aria-pressed', String(on));
+    fullBtn.setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen');
+    fullBtn.title = on ? 'Leave full screen (F)' : 'Full screen (F)';
+  };
+  paintFull();
+  const offFull = onFullscreenChange(paintFull);
   const bar = h('header.rd-bar', null,
     h('a.icon-btn.rd-back', { href: '#/', title: 'Back to the library', 'aria-label': 'Back to the library' }, icon('arrowLeft')),
     h('div.rd-titles', null, titleBook, titleChapter),
-    h('div.rd-bar-actions', null, tocBtn, markBtn, speechBtn, pauseBtn, pinyinBtn, aaBtn, pct),
+    h('div.rd-bar-actions', null, tocBtn, markBtn, speechBtn, pauseBtn, fullBtn, pinyinBtn, aaBtn, pct),
     h('div.rd-progress', { 'aria-hidden': 'true' }, fill));
   const page: HTMLElement = h('main.rd-page');
   const rd: HTMLElement = h('div.rd-root', null, bar, page, audio);
@@ -1453,6 +1473,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   }
 
   return () => {
+    offFull();
     stopCoach?.();
     stopChapterSpeech();
     saveProgressNow();

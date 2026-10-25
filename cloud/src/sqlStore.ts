@@ -1,5 +1,5 @@
 // An account's state in its Durable Object's SQLite database.
-import type { AccountStore } from './account';
+import type { AccountStore, BookEntry } from './account';
 import { countRecord, noCounts, type StoredRecord, type WireRecord } from '../../src/core/syncExchange';
 
 export interface SqlStorage {
@@ -11,6 +11,8 @@ export function sqlStore(sql: SqlStorage): AccountStore {
   sql.exec('CREATE TABLE IF NOT EXISTS records (key TEXT PRIMARY KEY, at REAL NOT NULL, data TEXT NOT NULL, rev INTEGER NOT NULL)');
   sql.exec('CREATE INDEX IF NOT EXISTS records_rev ON records (rev)');
   sql.exec('CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, created REAL NOT NULL, used REAL NOT NULL)');
+  sql.exec('CREATE TABLE IF NOT EXISTS books (key TEXT PRIMARY KEY, entry TEXT NOT NULL)');
+  sql.exec('CREATE TABLE IF NOT EXISTS book_chunks (key TEXT NOT NULL, i INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (key, i))');
   const row = (key: string): StoredRecord | undefined => {
     const r = sql.exec('SELECT at, data, rev FROM records WHERE key = ?', key).toArray()[0];
     return r ? { at: Number(r.at), data: JSON.parse(String(r.data)), rev: Number(r.rev) } : undefined;
@@ -54,5 +56,17 @@ export function sqlStore(sql: SqlStorage): AccountStore {
     putSession(hash, s) { sql.exec('INSERT OR REPLACE INTO sessions (hash, created, used) VALUES (?, ?, ?)', hash, s.created, s.used); },
     dropSession(hash) { sql.exec('DELETE FROM sessions WHERE hash = ?', hash); },
     sessions: () => sql.exec('SELECT hash, used FROM sessions').toArray().map((r) => ({ hash: String(r.hash), used: Number(r.used) })),
+    books: () => sql.exec('SELECT entry FROM books').toArray().map((r) => JSON.parse(String(r.entry)) as BookEntry),
+    putBook(b) { sql.exec('INSERT OR REPLACE INTO books (key, entry) VALUES (?, ?)', b.key, JSON.stringify(b)); },
+    dropBook(key) {
+      sql.exec('DELETE FROM book_chunks WHERE key = ?', key);
+      sql.exec('DELETE FROM books WHERE key = ?', key);
+    },
+    putChunk(key, i, data) { sql.exec('INSERT OR REPLACE INTO book_chunks (key, i, data) VALUES (?, ?, ?)', key, i, data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)); },
+    getChunk(key, i) {
+      const r = sql.exec('SELECT data FROM book_chunks WHERE key = ? AND i = ?', key, i).toArray()[0];
+      return r ? new Uint8Array(r.data as ArrayBuffer) : undefined;
+    },
+    chunkCount: (key) => Number(sql.exec('SELECT count(*) AS n FROM book_chunks WHERE key = ?', key).toArray()[0]?.n ?? 0),
   };
 }

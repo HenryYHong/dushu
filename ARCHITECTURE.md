@@ -560,6 +560,14 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   `*.ts.net`; the page's CSP adds `CLOUD_URL`'s origin to connect-src at build (`scripts/bridge-csp.ts`; the dev server also allows
   wrangler dev on port 8787). Sign in: the top bar's Sign in button (`ui/signIn.ts`, shown while signed out) and Settings → Your Mac
   and iPad → Sync account, the same panel (`ui/settings/account.ts`); both appear once `CLOUD_URL` is set.
+- **Books in the account** (`core/cloudBooks.ts`, run by the Library: on open, on sign-in and 3 s after a book is added): a book is kept as
+  the app stored it, a zip (`book.json` with its text and details, images as `a/<i>`) made by `packBook` and checked by `unpackBook`
+  (the bounded `import/zip.ts` reader), so a device that downloads it adds the same book with the same sync key and its held place
+  lands. `GET|POST|DELETE /books`, `GET|PUT /books/chunk?key&i` (1 MiB pieces, the last one shorter; whole once every piece is in);
+  `books` and `book_chunks` tables in the account's SQLite; 200 MB a book, 1 GB an account; the package's SHA-256 is checked after a
+  download. The first device signed in that has a book uploads it (`dushu.cloud.books-up.v1`, per email and key); one this device put
+  there that is gone was deleted elsewhere and stays deleted. Library Delete calls `forgetBookInAccount` (`dushu.cloud.books-removed.v1`,
+  retried until the server has it, and never downloaded again here). Classics (`s` keys) are not kept.
 - **Bringing a device everything**: `copyMacIntoAccount` (core/sync.ts) runs beside a sync on a signed-in device that reaches the Mac,
   once per account and Mac (`dushu.cloud.mac-copied.v1`; a failure waits 5 minutes): it reads every Mac record (`since: 0`, no changes)
   and sends them to the account with their own times, so the account's merge keeps whichever copy is newer; a sync right after takes
