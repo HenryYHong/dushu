@@ -126,7 +126,7 @@ export const mount: MountFn = (root, params, ctx) => {
   const nav = h('nav.set-nav', { 'aria-label': 'Sections' }, navButtons);
 
   root.appendChild(h('div.page.set-page', null,
-    h('div.page-head', null, h('div', null, pageTitle('settings', 'Settings'), h('p.page-sub', null, 'Changes apply right away and are saved in this browser.'))),
+    h('div.page-head', null, h('div', null, pageTitle('settings', 'Settings'), h('p.page-sub', null, 'Changes apply right away. Signed in, they follow you to every device (the voice, hover or tap, and pages side by side stay with each device).'))),
     h('div.set-layout', null, nav, h('div.set-main', null, preview, ...sections.map((sec) => sec.el)))));
 
   // The preview sticks under the top bar, so a section the list scrolls to must stop below it, not behind it. The sticky height is

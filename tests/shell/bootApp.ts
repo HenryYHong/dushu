@@ -26,6 +26,7 @@ export async function bootApp(): Promise<{ store: Store; meta: BookMeta }> {
     addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
   localStorage.setItem('dushu.settings.v1', JSON.stringify({ layout: 'scroll', pinyin: 'all', scrollFontSize: 28, translator: 'gloss' }));
+  localStorage.setItem('dushu.settings.pages.v1', '1'); // Scroll chosen after Pages became the default: it stays
   localStorage.setItem('dushu.reader-hint.v1', '1');
   document.body.innerHTML = '<div id="app"></div>';
   const store = await openStore();

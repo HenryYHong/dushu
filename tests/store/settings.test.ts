@@ -23,6 +23,16 @@ describe('settings', () => {
     const trad = memStorage({ [SETTINGS_KEY]: JSON.stringify({ ...DEFAULT_SETTINGS, script: 'traditional' }) });
     expect(createSettingsStore(trad).get().script).toBe('traditional');
   });
+  it('reads like a book by default, moves a device that kept the old Scroll default once, and keeps a later choice', () => {
+    expect(DEFAULT_SETTINGS.layout).toBe('pages');
+    const st = memStorage({ [SETTINGS_KEY]: JSON.stringify({ ...DEFAULT_SETTINGS, layout: 'scroll', scrollFontSize: 32 }) });
+    const first = createSettingsStore(st);
+    expect(first.get()).toMatchObject({ layout: 'pages', scrollFontSize: 32 });
+    expect(JSON.parse(st.getItem(SETTINGS_KEY)!).layout).toBe('pages');
+    first.set({ layout: 'scroll' });
+    expect(createSettingsStore(st).get().layout).toBe('scroll');
+  });
+
   it('starts with defaults', () => {
     expect(createSettingsStore(memStorage()).get()).toEqual(DEFAULT_SETTINGS);
   });
@@ -107,7 +117,7 @@ describe('settings', () => {
 
 describe('translation settings', () => {
   it('defaults to Sonnet 5.5 with Local only off, and holds no key', () => {
-    expect(DEFAULT_SETTINGS).toMatchObject({ claudeModel: 'claude-sonnet-5-5', localOnly: false, translator: 'auto', scrollFontSize: 28, layout: 'scroll' });
+    expect(DEFAULT_SETTINGS).toMatchObject({ claudeModel: 'claude-sonnet-5-5', localOnly: false, translator: 'auto', scrollFontSize: 28, layout: 'pages' });
     expect('claudeApiKey' in DEFAULT_SETTINGS).toBe(false);
   });
 

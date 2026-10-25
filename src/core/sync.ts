@@ -1,12 +1,13 @@
-// Keeps saved words, known words, reading places, looked-up words and bookmarks the same on every device the owner connects
+// Keeps saved words, known words, reading places, looked-up words, bookmarks and settings the same on every device the owner connects
 // to their Mac, or signs in to their sync account online (core/cloud.ts) with. A device signed in syncs with the account;
 // the account and the Mac merge the same way (core/syncExchange.ts), so the rest of this file does not tell them apart.
 // The Mac holds the shared copy (scripts/sync-bridge.ts). Each device keeps one row per record in the store's sync table
 // saying what it last agreed on with the Mac, so it can tell its own changes (sent with the time they happened) from the
 // Mac's (applied when newer). Those rows live in the same database as the data: a wipe or an eviction clears both, so a
 // device that lost its data looks new and only receives; it never tells the Mac its words were deleted.
-import type { Bookmark, BookMeta, LookupRow, Progress, Store, SyncRow, VocabItem } from '../types';
+import type { Bookmark, BookMeta, LookupRow, Progress, Settings, SettingsStore, Store, SyncRow, VocabItem } from '../types';
 import { cleanBookmark, cleanLookup, cleanProgress, cleanVocab } from '../store';
+import { DEFAULT_SETTINGS, sanitizePatch } from '../store/settings';
 import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge';
 import { CLOUD_EVENT, cloudFetch, cloudSession, forgetSession } from './cloud';
@@ -25,6 +26,21 @@ const COPIED_KEY = 'dushu.cloud.mac-copied.v1';
 /** A copy that failed (the Mac asleep, Tailscale off) is tried again after this long, never on every sync. */
 const COPY_RETRY_MS = 5 * 60_000;
 const META = '#meta';
+
+/**
+ * The settings that follow the reader from device to device, one record each (o:<name>). The rest belong to the device: its
+ * voice (each device has its own), hover or tap, and one or two pages side by side (that is about the screen).
+ */
+export const SYNCED_SETTINGS = ['theme', 'fontFamily', 'fontSize', 'scrollFontSize', 'lineHeight', 'pageWidth', 'pinyin', 'hskThreshold',
+  'pinyinStyle', 'toneColors', 'sandhi', 'autoKnown', 'script', 'paragraphTranslate', 'translator', 'claudeModel', 'localOnly', 'ttsRate',
+  'layout', 'pageTurn'] as const satisfies readonly (keyof Settings)[];
+const synced = (name: string): name is (typeof SYNCED_SETTINGS)[number] => (SYNCED_SETTINGS as readonly string[]).includes(name);
+/** A setting's value as it travels, checked; undefined when it is not one Dushu can use. */
+function settingHere(name: string, data: unknown): { v: unknown } | undefined {
+  if (!synced(name) || !data || typeof data !== 'object') return undefined;
+  const patch = sanitizePatch({ [name]: (data as { v?: unknown }).v }) as Record<string, unknown>;
+  return name in patch ? { v: patch[name] } : undefined;
+}
 /** Records per request; a new device's first sync sends its words in pieces. */
 const CHUNK = 1000;
 const MAX_KEY = 160;
@@ -103,7 +119,7 @@ function bookmarkLocal(id: string, data: unknown, books: Books): Bookmark | null
 
 /** Everything this device would send, by record key, with the time each record says it last changed. */
 type Snapshot = Map<string, { data: unknown; sig: string; at: number; bare?: string }>;
-async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>): Promise<Snapshot> {
+async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, settings?: SettingsStore): Promise<Snapshot> {
   const out: Snapshot = new Map();
   const put = (key: string, data: unknown, at: number, bare?: string) => {
     if (key.length <= MAX_KEY) out.set(key, { data, sig: sigOf(data), at, ...(bare ? { bare } : {}) });
@@ -118,6 +134,13 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>):
   for (const [id, key] of books.keyOf) {
     const p = await store.progress.get(id);
     if (p) put(`p:${key}`, progressWire(p), p.updatedAt);
+  }
+  if (settings) {
+    // Before a device first syncs a setting, one it left at the default goes as time 0 (it lands only where the account has
+    // none) and one it changed as time 1 (it beats a default, never a change made since). After that, a change is stamped
+    // when it is made, like any other.
+    const s = settings.get();
+    for (const name of SYNCED_SETTINGS) put(`o:${name}`, { v: s[name] }, s[name] === DEFAULT_SETTINGS[name] ? 0 : 1);
   }
   // A place kept for a book that is not here (deleted here, or sent before the book arrived) is still sent: a place read
   // here and deleted before the Mac heard of it reaches the Mac all the same.
@@ -215,6 +238,8 @@ export interface SyncOptions {
   send?: (body: string, keepalive: boolean) => Promise<Response> | null;
   /** Sync while the page is visible, this often. */
   everyMs?: number;
+  /** The settings to keep the same on every device (SYNCED_SETTINGS); without it, settings are left alone. */
+  settings?: SettingsStore;
   now?: () => number;
 }
 
@@ -292,7 +317,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
 
     // 2. What changed here since the last agreement, stamped now (or, for a record the Mac has never heard of, with
     //    the time the record itself carries, so an old copy on a new device does not beat a newer one elsewhere).
-    const current = await snapshot(store, books, rows);
+    const current = await snapshot(store, books, rows, opts.settings);
     const t = now();
     const changed: SyncRow[] = [];
     const bare = (cur: { bare?: string }) => (cur.bare ? { bare: cur.bare } : {});
@@ -325,8 +350,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       changed.push({ key, at, sig: cur.sig, dirty: 1, ...bare(cur), ...(base?.held !== undefined ? { held: base.held } : {}) });
     }
     for (const [key, base] of rows) {
-      // Places are never deleted by sync: removing a book here must not lose the place on the other devices.
-      if (key === META || key.startsWith('p:') || base.sig === '-' || current.has(key)) continue;
+      // Places are never deleted by sync: removing a book here must not lose the place on the other devices. Nor are settings.
+      if (key === META || key.startsWith('p:') || key.startsWith('o:') || base.sig === '-' || current.has(key)) continue;
       changed.push({ key, at: Math.max(t, base.at + 1), sig: '-', dirty: 1 });
     }
     if (changed.length) {
@@ -426,6 +451,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const lookupsDel: { day: string; id: string }[] = [];
     const bookmarksPut: Bookmark[] = [];
     const bookmarksDel: string[] = [];
+    const settingsPatch: Partial<Settings> = {};
     let resend = false;
     const moved = new Map<string, Progress>();
     const next: SyncRow[] = [];
@@ -445,6 +471,10 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         const b = bookmarkLocal(id, data, books);
         return b ? sigOf(bookmarkWire(b, books)) : null;
       }
+      if (kind === 'o') {
+        const v = settingHere(id, data);
+        return v ? sigOf(v) : null;
+      }
       const wire = cleanProgress({ ...(data as object), bookId: 'held' });
       return wire ? sigOf(progressWire(wire)) : null;
     };
@@ -452,7 +482,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       if (!r || typeof r.key !== 'string' || r.key.length > MAX_KEY || typeof r.at !== 'number' || !Number.isFinite(r.at)) continue;
       const kind = r.key[0];
       const id = r.key.slice(2);
-      if (r.key[1] !== ':' || !id || !'vkplb'.includes(kind)) continue;
+      if (r.key[1] !== ':' || !id || !'vkplbo'.includes(kind)) continue;
+      if (kind === 'o' && !opts.settings) continue;
       const base = rows.get(r.key);
       if (kind === 'l' && r.data !== null && r.data !== undefined) {
         // Lookups merge (mergeLookups), so the Mac's copy is always taken: the store merges it with the row here, and what
@@ -518,6 +549,12 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         if (!at) continue;
         if (base?.sig !== '-') lookupsDel.push(at);
         next.push({ key: r.key, at: r.at, sig: '-' });
+      } else if (kind === 'o') {
+        const v = settingHere(id, data);
+        if (!v) continue;
+        const sig = sigOf(v);
+        if (base?.sig !== sig) (settingsPatch as Record<string, unknown>)[id] = v.v;
+        next.push({ key: r.key, at: r.at, sig });
       } else if (kind === 'b') {
         if (data === null) {
           if (base?.sig !== '-') bookmarksDel.push(id);
@@ -553,6 +590,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     if (!next.length) return kept;
     for (const p of moved.values()) if (!progressPut.some((q) => q.bookId === p.bookId && q.updatedAt >= p.updatedAt)) progressPut.push(p);
     await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, lookupsPut, lookupsDel, bookmarksPut, bookmarksDel, rows: next, seen: rows });
+    // Settings chosen on another device, after their rows: the sync this change asks for finds nothing new to send.
+    if (Object.keys(settingsPatch).length) opts.settings?.set(settingsPatch);
     // A moved place is this device's to send, under the book's key here; so are lookups only this device had.
     if (moved.size || resend) soon();
     for (const r of next) rows.set(r.key, r);
@@ -614,6 +653,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   });
   const setProgress = store.progress.set;
   store.progress.set = async (p) => { await setProgress(p); soon(5000); };
+  const offSettings = opts.settings?.subscribe((_s, changed) => { if (changed.some(synced)) soon(3000); });
   const onVisible = () => {
     leaving = document.visibilityState === 'hidden';
     if (leaving) { clearTimeout(timer); void run(); } else soon(200);
@@ -639,6 +679,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       clearTimeout(timer);
       if (interval) clearInterval(interval);
       offChange();
+      offSettings?.();
       store.progress.set = setProgress;
       doc?.removeEventListener('visibilitychange', onVisible);
       globalThis.removeEventListener?.('online', onWake);

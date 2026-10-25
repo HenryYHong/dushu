@@ -13,7 +13,8 @@ export interface SyncReply { epoch: string; version: number; records: WireRecord
 export const SYNC_LIMITS = { body: 8 * 1024 * 1024, records: 5000, key: 160, record: 32 * 1024 };
 /** How far ahead of the hub's clock a change may claim to be. A device with a clock far in the future would otherwise win forever. */
 export const MAX_SKEW_MS = 10 * 60_000;
-const KEY = /^[vkplb]:./s;
+/** Saved words, known words, places, lookups, bookmarks and settings (o:). */
+const KEY = /^[vkplbo]:./s;
 
 /** The records a hub keeps, however it stores them. */
 export interface RecordTable {

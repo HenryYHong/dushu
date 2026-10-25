@@ -312,6 +312,7 @@ describe('library screen', () => {
 
 describe('settings screen', () => {
   it('renders every group and a live preview that follows the settings', async () => {
+    ctx.settings.set({ layout: 'scroll' });
     cleanup = await mountSettings(root, {}, ctx);
     expectPageHead('设置', 'Settings');
     // The section list marks where you are from the start, before any scrolling.
@@ -339,6 +340,7 @@ describe('settings screen', () => {
   });
 
   it('writes control changes to the settings store', async () => {
+    ctx.settings.set({ layout: 'scroll' });
     cleanup = await mountSettings(root, {}, ctx);
     [...root.querySelectorAll<HTMLElement>('.set-seg-btn')].find((b) => b.textContent === 'Dark')!.click();
     expect(ctx.settings.get().theme).toBe('dark');

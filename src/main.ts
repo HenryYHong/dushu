@@ -132,7 +132,7 @@ async function boot(): Promise<void> {
   ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not download the dictionary. Check your connection; Dushu will try again.', { ms: 8000 }); });
   // Saved words, known words, reading places, lookups and bookmarks, kept the same on every device signed in to the sync
   // account (or connected to the Mac). Signed in, a device also learns where the Mac is, for the Mac's books.
-  startSync(store);
+  startSync(store, { settings });
   void linkMac();
   window.addEventListener(CLOUD_EVENT, () => void linkMac());
   // Whether this account is the owner's (the Mac and Claude settings follow it): asked on each start.

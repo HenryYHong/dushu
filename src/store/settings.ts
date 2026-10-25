@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   localOnly: false,
   ttsVoice: '',
   ttsRate: 0.9,
-  layout: 'scroll',
+  layout: 'pages',
   spread: 'auto',
   pageTurn: 'flip',
 };
@@ -124,6 +124,8 @@ function load(storage: Storage | undefined): Settings {
 
 /** Set once a device has moved to simplified characters, the default since 2026-10-24 (before, it was "As written"). */
 const SIMPLIFIED_KEY = 'dushu.settings.simplified.v1';
+/** Set once a device has moved to the Pages layout (reading like a book), the default since 2026-10-25 (before, Scroll). */
+const PAGES_KEY = 'dushu.settings.pages.v1';
 
 export function createSettingsStore(storage: Storage | undefined = defaultStorage()): SettingsStore {
   let s = load(storage);
@@ -136,6 +138,13 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
         storage.setItem(SETTINGS_KEY, JSON.stringify(s));
       }
       storage.setItem(SIMPLIFIED_KEY, '1');
+    }
+    if (storage && !storage.getItem(PAGES_KEY)) {
+      if (s.layout === 'scroll' && storage.getItem(SETTINGS_KEY)) {
+        s = { ...s, layout: 'pages' };
+        storage.setItem(SETTINGS_KEY, JSON.stringify(s));
+      }
+      storage.setItem(PAGES_KEY, '1');
     }
   } catch { /* read-only storage: the saved choice stands */ }
   const subs = new Set<(s: Settings, changed: (keyof Settings)[]) => void>();
