@@ -644,8 +644,9 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 @media (pointer: coarse) { .rd-endbtn { min-height: 44px; } }
 
 /* The fold in the middle of a spread: a soft shadow on both sides, and a thin light line beside the crease. */
+/* The fold between the pages stays the same while a page turns: it is drawn over the turning pages, not hidden under them. */
 .rd-spine {
-  display: none; position: absolute; top: 0; bottom: 0; left: 50%; width: 120px; margin-left: -60px; z-index: 1; pointer-events: none;
+  display: none; position: absolute; top: 0; bottom: 0; left: 50%; width: 120px; margin-left: -60px; z-index: 5; pointer-events: none;
   background: linear-gradient(to right,
     transparent 0%,
     var(--rd-spine-soft) 30%,
@@ -681,8 +682,9 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-face-back { transform: rotateY(180deg); }
 .rd-under, .rd-aside { position: absolute; top: 0; height: 100%; z-index: 1; overflow: hidden; }
 .rd-shade { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
-.rd-shade-under { background: linear-gradient(to right, rgba(var(--rd-shade), calc(0.3 * var(--rd-shade-k))), rgba(var(--rd-shade), calc(0.12 * var(--rd-shade-k))) 34%, rgba(var(--rd-shade), 0) 78%); }
-.rd-shade-aside { background: linear-gradient(to left, rgba(var(--rd-shade), calc(0.22 * var(--rd-shade-k))), rgba(var(--rd-shade), calc(0.08 * var(--rd-shade-k))) 40%, rgba(var(--rd-shade), 0) 80%); }
+/* The shadow the lifting leaf casts is soft at the fold too, so the middle of the spread does not darken as a page turns. */
+.rd-shade-under { background: linear-gradient(to right, rgba(var(--rd-shade), calc(0.12 * var(--rd-shade-k))), rgba(var(--rd-shade), calc(0.08 * var(--rd-shade-k))) 34%, rgba(var(--rd-shade), 0) 78%); }
+.rd-shade-aside { background: linear-gradient(to left, rgba(var(--rd-shade), calc(0.08 * var(--rd-shade-k))), rgba(var(--rd-shade), calc(0.05 * var(--rd-shade-k))) 40%, rgba(var(--rd-shade), 0) 80%); }
 /* The front of the leaf darkens a little toward the edge that lifts, never to a flat gray. */
 .rd-shade-front { background: linear-gradient(to right, rgba(var(--rd-shade), 0) 20%, rgba(var(--rd-shade), calc(0.14 * var(--rd-shade-k)))); }
 .rd-shade-back { background: linear-gradient(to right, rgba(var(--rd-shade), calc(0.2 * var(--rd-shade-k))), rgba(var(--rd-shade), calc(0.03 * var(--rd-shade-k))) 60%, rgba(var(--rd-shade), 0)); }

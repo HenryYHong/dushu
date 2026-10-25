@@ -20,6 +20,7 @@ import {
   buildDisplayMenu, buildPinyinMenu, closePopover, openPopover, pinyinModeLabel, popoverOpenFor, showShortcuts,
 } from './menus';
 import { createPager, type Pager } from './pager';
+import { wordNear } from './wordNear';
 import { pointToOffset, rangeToSpans, snapToCodePoint, spansText } from './selection';
 import { createToc } from './toc';
 
@@ -1066,7 +1067,9 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (suppressClick) { suppressClick = false; return; }
     const touchy = pointerKind !== 'mouse';
     const target = e.target as Element;
-    const w = target.closest?.('.rd-w');
+    // A finger that lands just off a word in Pages (punctuation, the gap between lines) still means that word (wordNear).
+    const w = target.closest?.('.rd-w')
+      ?? (paged && touchy && target.closest?.('.rd-b') && pager?.stage.contains(target) ? wordNear(e.clientX, e.clientY) : null);
     // A double click on a word looks that word up (onDblClick). Quick clicks on the outer strips of a page each turn a page:
     // the browser counts them as double and triple clicks, which used to swallow every click after the first.
     const edgeClick = paged && !!pager && !w && pager.stage.contains(target)
@@ -1087,11 +1090,10 @@ export const mount: MountFn = async (root, params, ctx) => {
       return;
     }
     const inStage = paged && !!pager && pager.stage.contains(target) && !target.closest('[data-rd-ui], button, a, input, .pp-pop');
-    // Pages, touch or pen: a tap on the blank margin of the outer strips turns the page. A tap on the text never does, since
-    // reaching for a word near the edge used to turn the page instead: a word opens its card wherever it is, and the rest of a
-    // text line (punctuation, the gap between lines) shows or hides the bar. Swipes turn the page from anywhere.
-    const onText = !!target.closest?.('.rd-b');
-    if (inStage && touchy && !onText && pager!.zoneAt(e.clientX) !== 'middle') {
+    // Pages, touch or pen: a word (or a tap within a finger's width of one) opens its card wherever it is, since reaching for a
+    // word must never turn the page. Any other tap turns it: back on the left two fifths, forward on the right; the middle
+    // shows or hides the bar. Swipes turn the page from anywhere, words included.
+    if (inStage && touchy && !w && pager!.zoneAt(e.clientX) !== 'middle') {
       if (popupWasOpen) { popupWasOpen = false; closePopup(); return; } // the tap only closed the popup
       pager!.tapAt(e.clientX);
       return;
@@ -1104,10 +1106,9 @@ export const mount: MountFn = async (root, params, ctx) => {
       lookup.openToken(w);
       return;
     }
-    // Pages with a mouse: a click on the margins and gaps turns the page (outer strips) or shows and hides the bar (middle).
+    // Pages: a click or tap off the words in the middle shows and hides the bar; with a mouse, one on the sides turns the page.
     if (inStage) {
       if (popupWasOpen) return; // the tap only closed the popup
-      if (touchy && onText) { toggleChrome(); return; }
       if (pager!.tapAt(e.clientX) === 'middle') toggleChrome();
     }
   };
@@ -1340,10 +1341,10 @@ export const mount: MountFn = async (root, params, ctx) => {
         if (onControl && e.key === ' ') break;
         if (e.repeat && !paged) break;
         if (paged) {
-          if (e.key === ' ' && e.shiftKey) { e.preventDefault(); pager?.prev(); break; }
+          if (e.key === ' ' && e.shiftKey) { e.preventDefault(); pager?.prev(e.repeat); break; }
           e.preventDefault();
           if (e.shiftKey && e.key === 'ArrowRight') pager?.chapter(1);
-          else pager?.next();
+          else pager?.next(e.repeat);
           break;
         }
         if (e.key === ' ') break;
@@ -1357,7 +1358,7 @@ export const mount: MountFn = async (root, params, ctx) => {
         if (paged) {
           e.preventDefault();
           if (e.shiftKey && e.key === 'ArrowLeft') pager?.chapter(-1);
-          else pager?.prev();
+          else pager?.prev(e.repeat);
           break;
         }
         if ((e.shiftKey && e.key === 'ArrowLeft') || (atTop() && (e.key === 'PageUp' || e.key === 'ArrowLeft'))) {

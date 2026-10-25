@@ -206,24 +206,23 @@ export function settleDuration(distance: number, velocity: number, base = 520): 
 
 /** Does a swipe that was released at `progress` (0..1) with `velocity` (turns per ms, signed toward the turn) complete? */
 export function swipeCompletes(progress: number, velocity: number): boolean {
-  if (velocity > 0.0016) return true;
-  if (velocity < -0.0016) return false;
-  return progress > 0.32;
-}
-
-/** How wide each outer strip is, in px: it turns the page whatever is under the finger, words included. */
-export function edgeWidth(width: number, per: 1 | 2): number {
-  // About a sixth of a wide spread (a thumb's reach on an iPad), more of a narrow page, never less than 56 px.
-  const share = per === 2 ? 0.16 : 0.2;
-  return Math.min(Math.max(56, width * share), per === 2 ? 220 : 160);
+  // A short flick is enough (about 350 px a second on an iPad), and so is a slow drag a seventh of the way across.
+  if (velocity > 0.0006) return true;
+  if (velocity < -0.0006) return false;
+  return progress > 0.14;
 }
 
 /**
- * Which tap zone a click at `x` falls in: the outer strips of the spread turn the page (they cover the page margins and
- * the first characters of each line), the middle shows or hides the reading chrome.
+ * How far in from each side a tap off the words turns the page, in px: two fifths of the stage, so a tap almost anywhere that
+ * is not on a word turns it, back on the left and forward on the right. The fifth down the middle shows and hides the bar.
  */
-export function tapZone(x: number, width: number, per: 1 | 2): 'prev' | 'next' | 'middle' {
-  const edge = edgeWidth(width, per);
+export function edgeWidth(width: number): number {
+  return width * 0.4;
+}
+
+/** Which tap zone a click at `x` falls in: the left and right two fifths turn the page, the middle shows or hides the bar. */
+export function tapZone(x: number, width: number): 'prev' | 'next' | 'middle' {
+  const edge = edgeWidth(width);
   if (x < edge) return 'prev';
   if (x > width - edge) return 'next';
   return 'middle';

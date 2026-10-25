@@ -11,6 +11,7 @@ import type { AppContext, BookMeta, Settings } from '../../types';
 import { h } from '../dom';
 import type { BlockState, ChapterView } from './chapter';
 import { createWheelTurns } from './wheelTurns';
+import { wordNear } from './wordNear';
 import { applyGridVars, effectiveLineHeight, readingSize, resetMeasurements } from './grid';
 import {
   blockOfPage, chapterFraction, computeGeometry, estimatePages, firstPageOfSpread, geometryKey, pageAtX, pageCount,
@@ -53,8 +54,9 @@ export interface PagerOptions {
 export interface Pager {
   stage: HTMLElement;
   open(index: number, at?: OpenAt): Promise<void>;
-  next(): void;
-  prev(): void;
+  /** One spread on (or back). `wait`: a held key's repeat, which waits for a turn still running instead of cutting it short. */
+  next(wait?: boolean): void;
+  prev(wait?: boolean): void;
   /** Jump to the first page of the previous or next chapter. */
   chapter(dir: 1 | -1): void;
   relayout(): void;
@@ -1117,6 +1119,7 @@ export function createPager(o: PagerOptions): Pager {
   function endTurn(commit: boolean, next = false): void {
     const after = next ? waiting : 0;
     waiting = 0;
+    settling = null;
     if (!turn) return;
     const t = turn;
     turn = null;
@@ -1139,6 +1142,7 @@ export function createPager(o: PagerOptions): Pager {
   /** Run the turn from its current progress to 0 or 1. */
   function settleTurn(t: Turn, target: 0 | 1, velocity: number, ease: (n: number) => number): Promise<void> {
     return new Promise((resolve) => {
+      settling = { t, target };
       const start = t.p;
       const dur = t.kind === 'fade' ? 180 : settleDuration(target - start, velocity);
       if (dur === 0) { t.set(target); endTurn(target === 1, true); resolve(); return; }
@@ -1163,15 +1167,20 @@ export function createPager(o: PagerOptions): Pager {
 
   /** The one turn waiting for the running turn to finish (0: none). */
   let waiting: 1 | -1 | 0 = 0;
+  /** The turn playing out on its own (not under a finger), and where it is going. */
+  let settling: { t: Turn; target: 0 | 1 } | null = null;
 
   /**
-   * Go one spread forward or back. Every turn shows its whole animation: one asked for while a page is still turning (fast
-   * scrolling, quick taps, a held key) waits for it to finish. Only the latest one waits, so the pages never run on after
-   * the reader stops, and the turns come no faster than the animation.
+   * Go one spread forward or back. A turn asked for while a page is still turning (quick taps, a key, the wheel) ends that
+   * turn at once where it was going and starts its own, so the pages turn as fast as the reader asks. A held key's repeat
+   * (`wait`), or a turn under a finger, waits instead: only the latest waits, so the pages never run on after the reader stops.
    */
-  function go(dir: 1 | -1): void {
+  function go(dir: 1 | -1, wait = false): void {
     if (!cur || disposed) return;
-    if (turn) { waiting = dir; return; }
+    if (turn) {
+      if (wait || settling?.t !== turn) { waiting = dir; return; }
+      endTurn(settling.target === 1);
+    }
     const plan = planTurn(dir);
     if (!plan) {
       // The neighbor chapter may still be setting its pages: get it ready, then try again.
@@ -1381,10 +1390,11 @@ export function createPager(o: PagerOptions): Pager {
   };
 
   /**
-   * Is (x, y) on text (inside a block, the reader's tap rule) on the page the running turn goes to, as it will be at rest? The
-   * destination is put there for the hit test only, so a tap on the blank margin counts as one even while text slides past it.
+   * Is (x, y) on a word, or within a finger's width of one (the reader's tap rule, wordNear), on the page the running turn goes
+   * to, as it will be at rest? The destination is put there for the hit test only, so a tap off the words counts as one even
+   * while text slides past it.
    */
-  function tapOnText(x: number, y: number): boolean {
+  function tapOnWord(x: number, y: number): boolean {
     const t = turn;
     if (!t || typeof document.elementFromPoint !== 'function') return false;
     const toEl = t.plan.to.layout.view.el;
@@ -1393,18 +1403,18 @@ export function createPager(o: PagerOptions): Pager {
     if (fromEl !== toEl) fromEl.style.visibility = 'hidden';
     toEl.style.transform = `translate3d(${-t.plan.to.spread * geom.width}px,0,0)`;
     toEl.style.pointerEvents = '';
-    const hit = document.elementFromPoint(x, y);
+    const word = wordNear(x, y);
     fromEl.style.cssText = saved[1];
     toEl.style.cssText = saved[0];
-    return !!hit && toEl.contains(hit) && !!hit.closest('.rd-b');
+    return !!word && toEl.contains(word);
   }
 
   const onPointerDown = (e: PointerEvent) => {
     if (!e.isPrimary) return;
     const onControl = interactive(e.target);
-    // While a page turns, a tap or click on text does nothing at all: no turn (reaching for a word must never turn the page,
-    // and the reader may be reaching for one on the page coming in) and no word card. One on the blank margin waits to turn.
-    swallowClickUntil = turn && !onControl && tapOnText(e.clientX, e.clientY) ? performance.now() + 1000 : 0;
+    // While a page turns, a tap on a word (or next to one) does nothing at all: no turn (reaching for a word must never turn the
+    // page, and the reader may be reaching for one on the page coming in) and no word card. Anywhere else it turns the page.
+    swallowClickUntil = turn && !onControl && tapOnWord(e.clientX, e.clientY) ? performance.now() + 1000 : 0;
     if (e.pointerType === 'mouse' || onControl) return;
     // A selection only blocks the swipe when the finger starts on it; elsewhere the turn clears it.
     if (o.isBusy() && nearSelection(e.clientX, e.clientY)) { drag = null; return; }
@@ -1512,8 +1522,8 @@ export function createPager(o: PagerOptions): Pager {
   const api: Pager = {
     stage,
     open,
-    next: () => go(1),
-    prev: () => go(-1),
+    next: (wait) => go(1, wait),
+    prev: (wait) => go(-1, wait),
     chapter(dir) {
       if (!cur) return;
       const idx = cur.index + dir;
@@ -1554,18 +1564,18 @@ export function createPager(o: PagerOptions): Pager {
       advanceNow(l, pageFinal(page + 1));
       page = pageOfAnchor(l, a);
       const sp = spreadOfPage(page, geom.per);
-      // Read-aloud (the reader marks the block it is reading) going on to the next spread turns the page like a key press,
-      // waiting for a running turn. `at` is where the pages are headed: the spread on show, or a running turn's destination.
+      // Read-aloud (the reader marks the block it is reading) going on to the next spread turns the page, waiting for a running
+      // turn (it never cuts one short). `at` is where the pages are headed: the spread on show, or a running turn's destination.
       if (turnTo ?? !!l.view.blocks[block]?.el.classList.contains('rd-speaking')) {
         const at = !turn ? spread : turn.plan.to.layout === l ? turn.plan.to.spread : -1;
-        if (at >= 0 && sp === at + 1) { go(1); return; }
+        if (at >= 0 && sp === at + 1) { go(1, true); return; }
         if (turn && sp === at) return;
       }
       if (turn) endTurn(true);
       if (cur === l && sp !== spread) { o.onTurnStart(); setCurrent(l, sp, false); }
     },
     zoneAt(x) {
-      return tapZone(x - stage.getBoundingClientRect().left, geom.width, geom.per);
+      return tapZone(x - stage.getBoundingClientRect().left, geom.width);
     },
     tapAt(x) {
       const zone = api.zoneAt(x);
