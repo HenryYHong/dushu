@@ -212,17 +212,16 @@ export function swipeCompletes(progress: number, velocity: number): boolean {
   return progress > 0.14;
 }
 
-/**
- * How far in from each side a tap off the words turns the page, in px: two fifths of the stage, so a tap almost anywhere that
- * is not on a word turns it, back on the left and forward on the right. The fifth down the middle shows and hides the bar.
- */
-export function edgeWidth(width: number): number {
-  return width * 0.4;
+/** How wide each outer strip is, in px, where a mouse click off the words turns the page (a finger only ever swipes). */
+export function edgeWidth(width: number, per: 1 | 2): number {
+  // About a sixth of a wide spread, more of a narrow page, never less than 56 px.
+  const share = per === 2 ? 0.16 : 0.2;
+  return Math.min(Math.max(56, width * share), per === 2 ? 220 : 160);
 }
 
-/** Which tap zone a click at `x` falls in: the left and right two fifths turn the page, the middle shows or hides the bar. */
-export function tapZone(x: number, width: number): 'prev' | 'next' | 'middle' {
-  const edge = edgeWidth(width);
+/** Which zone a mouse click at `x` falls in: the outer strips of the spread turn the page, the middle shows or hides the bar. */
+export function tapZone(x: number, width: number, per: 1 | 2): 'prev' | 'next' | 'middle' {
+  const edge = edgeWidth(width, per);
   if (x < edge) return 'prev';
   if (x > width - edge) return 'next';
   return 'middle';

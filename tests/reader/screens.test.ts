@@ -205,39 +205,36 @@ describe('taps near the edge of a spread', () => {
     el.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: x }));
   }
 
-  it('with a finger, a word (or a tap just off one) opens its card; any other tap turns the page, back left and forward right', async () => {
+  it('with a finger, a tap never turns the page: a word (or a tap just off one) opens its card, any other tap shows or hides the bar', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);
-    // The fake stage starts at x = 100 and is 800 wide: x under 420 turns back, over 580 forward, and the middle shows the bar.
+    const root = q('.rd-root')!;
     tap(q('.rd-article.rd-live .rd-p .rd-w ruby')!, 790, 'touch');
     expect(q('.pp-pop')).not.toBeNull();
     expect(stage().page).toBe('1');
     tap(q('.rd-stage')!, 150, 'touch'); // only closes the card
     expect(q('.pp-pop')).toBeNull();
-    expect(stage().page).toBe('1');
-    await new Promise((r) => setTimeout(r, 420)); // past the double-tap window, so the next tap near the word is a tap of its own
-    tap(q('.rd-stage')!, 700, 'touch');
-    expect(stage().page).toBe('2');
-    tap(q('.rd-stage')!, 300, 'touch');
-    await tick(5);
-    expect(stage().page).toBe('1');
-    // On the text but off the words (the end of a line, far from any word): it turns the page too.
+    await new Promise((r) => setTimeout(r, 420)); // past the double-tap window, so the next tap is a tap of its own
+    // The blank margin at either edge, the end of a text line: no turn, the bar shows and hides.
+    const bar = root.classList.contains('rd-chrome-off');
+    tap(q('.rd-stage')!, 790, 'touch');
+    expect(root.classList.contains('rd-chrome-off')).toBe(!bar);
+    tap(q('.rd-stage')!, 150, 'touch');
     tap(q('.rd-article.rd-live .rd-p')!, 790, 'touch');
     await tick(5);
-    expect(stage().page).toBe('2');
+    expect(stage().page).toBe('1');
+    expect(q('.pp-pop')).toBeNull();
     // Just off a word (punctuation, the gap between lines): the browser finds the word within a finger's width, and it opens.
     const word = q('.rd-article.rd-live .rd-p .rd-w')!;
     Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: (x: number, y: number) => (x === 790 && y === 12 ? word : q('.rd-stage')) });
     try {
       await new Promise((r) => setTimeout(r, 420));
-      const off = q('.rd-article.rd-live .rd-p')!;
       const down = new MouseEvent('pointerdown', { bubbles: true, clientX: 790, clientY: 0 });
       Object.defineProperty(down, 'pointerType', { value: 'touch' });
       document.dispatchEvent(down);
-      off.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 790, clientY: 0 }));
-      // Its card opens (the word is on page 1 here, so the reader shows that page); the tap did not turn the page on.
+      q('.rd-article.rd-live .rd-p')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, clientX: 790, clientY: 0 }));
       expect(q('.pp-pop')).not.toBeNull();
-      expect(stage().page).not.toBe('3');
+      expect(stage().page).toBe('1');
     } finally {
       delete (document as { elementFromPoint?: unknown }).elementFromPoint;
     }

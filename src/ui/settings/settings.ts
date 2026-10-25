@@ -66,7 +66,7 @@ export const mount: MountFn = (root, params, ctx) => {
   const turnRow = row('Page turn', 'Applies to the Pages layout. A page flips around the spine like a leaf, slides, or just changes.', pageTurn);
   const reading = group('Reading', null,
     row('Theme', 'Auto follows your device.', theme),
-    row('Layout', 'Pages turns like a book (tap the edges, swipe, or use the arrow keys). Scroll is one long column.', layout),
+    row('Layout', 'Pages turns like a book: swipe, or use the arrow keys (with a mouse, click the edges). Scroll is one long column.', layout),
     spreadRow,
     turnRow,
     row('Font', null, fontFamily),

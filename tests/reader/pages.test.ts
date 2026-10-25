@@ -277,24 +277,28 @@ describe('pages layout', () => {
   });
 
   for (const pageTurn of ['slide', 'flip'] as const) {
-    it(`${pageTurn}: quick taps turn a page each, at once: a tap mid-turn ends that turn where it was going and plays its own`, async () => {
+    it(`${pageTurn}: a finger's tap never turns the page, at rest or mid-turn; quick swipes turn a page each, at once`, async () => {
       const { ctx, meta } = await setup({ pageTurn });
       await open(ctx, meta.id);
       const turns = countTurns();
       tap(790);
-      expect(stage().turn).toBe(pageTurn);
-      // While it turns, the text passing under the finger takes no taps: they reach the stage, which turns the page.
+      tap(150);
+      await tick(50);
+      expect(turns.started()).toBe(0);
+      expect(stage().page).toBe('1');
+      // Mid-turn too: the text passing under the finger takes no taps, and the tap on the stage does not turn the page.
+      key('ArrowRight');
       expect(q('.rd-article.rd-live')!.style.pointerEvents).toBe('none');
       tap(790);
-      tap(790);
-      // Each tap ended the turn before it and started its own.
-      expect(turns.started()).toBe(3);
+      expect(turns.started()).toBe(1);
+      await turnEnded();
+      expect(stage().page).toBe('2');
+      // Two quick swipes: the second takes hold of the page while the first is still turning, and each turns a page.
+      await swipeTo(700, 640);
+      await swipeTo(700, 640);
       await turnEnded();
       expect(stage().page).toBe('4');
-      expect(q('.rd-article.rd-live')!.style.pointerEvents).toBe('');
-      await tick(700);
       expect(turns.started()).toBe(3);
-      expect(stage().page).toBe('4');
       turns.stop();
     });
 
@@ -320,12 +324,13 @@ describe('pages layout', () => {
         expect(turns.started()).toBe(1);
         expect(stage().page).toBe('2');
         expect(q('.pp-pop')).toBeNull();
-        // A tap off the words mid-turn turns the page at once.
+        // A tap off the words mid-turn does not turn the page either.
         key('ArrowRight');
         tap(780);
-        await vi.waitFor(() => expect(turns.started()).toBe(3), { timeout: 3000, interval: 5 });
         await turnEnded();
-        expect(stage().page).toBe('4');
+        await tick(700);
+        expect(turns.started()).toBe(2);
+        expect(stage().page).toBe('3');
         // At rest nothing changes: the hit test is not even asked.
         hitTest.mockClear();
         touch('pointerdown', 790);

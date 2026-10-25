@@ -1090,12 +1090,11 @@ export const mount: MountFn = async (root, params, ctx) => {
       return;
     }
     const inStage = paged && !!pager && pager.stage.contains(target) && !target.closest('[data-rd-ui], button, a, input, .pp-pop');
-    // Pages, touch or pen: a word (or a tap within a finger's width of one) opens its card wherever it is, since reaching for a
-    // word must never turn the page. Any other tap turns it: back on the left two fifths, forward on the right; the middle
-    // shows or hides the bar. Swipes turn the page from anywhere, words included.
-    if (inStage && touchy && !w && pager!.zoneAt(e.clientX) !== 'middle') {
+    // Pages, touch or pen: a tap never turns the page; swipes do, from anywhere, words included. A word (or a tap within a
+    // finger's width of one) opens its card; any other tap shows or hides the bar.
+    if (inStage && touchy && !w) {
       if (popupWasOpen) { popupWasOpen = false; closePopup(); return; } // the tap only closed the popup
-      pager!.tapAt(e.clientX);
+      toggleChrome();
       return;
     }
     if (w) {
@@ -1106,7 +1105,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       lookup.openToken(w);
       return;
     }
-    // Pages: a click or tap off the words in the middle shows and hides the bar; with a mouse, one on the sides turns the page.
+    // Pages with a mouse: a click on the margins and gaps turns the page (outer strips) or shows and hides the bar (middle).
     if (inStage) {
       if (popupWasOpen) return; // the tap only closed the popup
       if (pager!.tapAt(e.clientX) === 'middle') toggleChrome();

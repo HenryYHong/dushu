@@ -89,9 +89,9 @@ export interface Pager {
    * turned to like a key press, animated and waiting for a running turn; anything else is shown at once.
    */
   reveal(block: number, offset: number, turn?: boolean): void;
-  /** Which zone a tap at `x` (viewport px) falls in, without acting on it. */
+  /** Which zone a click at `x` (viewport px) falls in, without acting on it. */
   zoneAt(x: number): 'prev' | 'next' | 'middle';
-  /** A tap at `x` (viewport px): turns the page in the outer strips. Returns which zone it was. */
+  /** A mouse click at `x` (viewport px): turns the page in the outer strips. Returns which zone it was. */
   tapAt(x: number): 'prev' | 'next' | 'middle';
   info(): { page: number; pages: number; spread: number; spreads: number; per: 1 | 2; exact: boolean };
   /** Make sure the pinyin of the pages on show and the ones next to them is drawn. */
@@ -1412,8 +1412,8 @@ export function createPager(o: PagerOptions): Pager {
   const onPointerDown = (e: PointerEvent) => {
     if (!e.isPrimary) return;
     const onControl = interactive(e.target);
-    // While a page turns, a tap on a word (or next to one) does nothing at all: no turn (reaching for a word must never turn the
-    // page, and the reader may be reaching for one on the page coming in) and no word card. Anywhere else it turns the page.
+    // While a page turns, a tap or click on a word (or next to one) does nothing at all: no word card (the reader may be reaching
+    // for one on the page coming in, and a card would cut the turn short).
     swallowClickUntil = turn && !onControl && tapOnWord(e.clientX, e.clientY) ? performance.now() + 1000 : 0;
     if (e.pointerType === 'mouse' || onControl) return;
     // A selection only blocks the swipe when the finger starts on it; elsewhere the turn clears it.
@@ -1575,7 +1575,7 @@ export function createPager(o: PagerOptions): Pager {
       if (cur === l && sp !== spread) { o.onTurnStart(); setCurrent(l, sp, false); }
     },
     zoneAt(x) {
-      return tapZone(x - stage.getBoundingClientRect().left, geom.width);
+      return tapZone(x - stage.getBoundingClientRect().left, geom.width, geom.per);
     },
     tapAt(x) {
       const zone = api.zoneAt(x);

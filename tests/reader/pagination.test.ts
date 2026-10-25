@@ -152,22 +152,26 @@ describe('turning', () => {
   it('treats a chapter whose length is not known yet as having a next spread', () => {
     expect(turnTarget(1, { chapter: 5, spread: 7 }, 9, count)).toEqual({ chapter: 5, spread: 8 });
   });
-  it('turns the page on a tap off the words almost anywhere: two fifths each side, the bar down the middle', () => {
-    expect(edgeWidth(900)).toBe(360);
-    expect(tapZone(100, 900)).toBe('prev');
-    expect(tapZone(359, 900)).toBe('prev');
-    expect(tapZone(450, 900)).toBe('middle');
-    expect(tapZone(541, 900)).toBe('next');
-    expect(tapZone(800, 900)).toBe('next');
-    // iPad Pro 11 in landscape, 1194 wide: the whole of each page but a band around the fold.
+  it('maps mouse clicks to the outer strips of the spread', () => {
+    // One page, 900 wide: strips are a fifth of it, at most 160 px.
+    expect(edgeWidth(900, 1)).toBe(160);
+    expect(tapZone(100, 900, 1)).toBe('prev');
+    expect(tapZone(450, 900, 1)).toBe('middle');
+    expect(tapZone(800, 900, 1)).toBe('next');
+    // iPad Pro 11 in landscape, 1194 wide: the strips cover the page margins and the first characters of every line.
     const w = 1194;
-    for (const x of [60, 250, 470]) expect(tapZone(x, w)).toBe('prev');
-    for (const x of [500, 597, 700]) expect(tapZone(x, w)).toBe('middle');
-    for (const x of [720, 1010, 1114]) expect(tapZone(x, w)).toBe('next');
-    // A phone: the same shares.
-    expect(tapZone(40, 390)).toBe('prev');
-    expect(tapZone(195, 390)).toBe('middle');
-    expect(tapZone(350, 390)).toBe('next');
+    expect(edgeWidth(w, 2)).toBeGreaterThanOrEqual(0.15 * w);
+    expect(edgeWidth(w, 2)).toBeLessThanOrEqual(0.2 * w);
+    for (const x of [60, 90, 150]) expect(tapZone(x, w, 2)).toBe('prev');
+    for (const x of [250, 380, 597, 800]) expect(tapZone(x, w, 2)).toBe('middle');
+    for (const x of [1114, 1060, 1010]) expect(tapZone(x, w, 2)).toBe('next');
+  });
+  it('keeps the strips at least 56 px wide on a narrow screen', () => {
+    expect(edgeWidth(300, 1)).toBe(60);
+    expect(edgeWidth(200, 1)).toBe(56);
+    expect(tapZone(40, 390, 1)).toBe('prev');
+    expect(tapZone(195, 390, 1)).toBe('middle');
+    expect(tapZone(350, 390, 1)).toBe('next');
   });
   it('lets a short flick finish a turn, and only a tiny drag or a pull back fall back', () => {
     expect(swipeCompletes(0.1, 0.003)).toBe(true);
