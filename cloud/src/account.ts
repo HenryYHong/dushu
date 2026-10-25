@@ -29,7 +29,9 @@ export interface BookEntry {
 
 export const BOOK_CHUNK = 1024 * 1024;
 export const BOOK_MAX_BYTES = 200 * 1024 * 1024;
+/** Books an account keeps: the owner's, and everyone else's (the free plan stores 5 GB in all). */
 export const ACCOUNT_BOOK_BYTES = 1024 * 1024 * 1024;
+export const SHARED_BOOK_BYTES = 200 * 1024 * 1024;
 const BOOK_KEY = /^[A-Za-z0-9._-]{1,160}$/;
 
 /** Where an account keeps its state. */
@@ -49,6 +51,8 @@ export interface AccountStore {
   putChunk(key: string, index: number, data: Uint8Array): void;
   getChunk(key: string, index: number): Uint8Array | undefined;
   chunkCount(key: string): number;
+  /** Forgets everything: the account deleted. */
+  wipe(): void;
 }
 
 export class CloudError extends Error {
@@ -82,14 +86,31 @@ export function normalEmail(input: unknown): string | null {
   return email.length <= 254 && EMAIL.test(email) ? email : null;
 }
 
+const emails = (list: string | undefined) => (list ?? '').split(/[\s,]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+
 /** Whether `email` may sign in: anyone when the list is empty, else only the emails on it (comma or space separated). */
 export function allowedEmail(email: string, list: string | undefined): boolean {
-  const allowed = (list ?? '').split(/[\s,]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+  const allowed = emails(list);
   return !allowed.length || allowed.includes(email);
 }
 
+/** Whether `email` is an owner of this Dushu (Claude on the owner's key, the larger shares). Nobody is when the list is empty. */
+export function isOwner(email: string, owners: string | undefined): boolean {
+  return !!email && emails(owners).includes(email);
+}
+
+/** What the owner's key pays for is the owner's alone. */
+export const OWNER_ONLY_CLAUDE = 'Claude translation is only for the owner of this Dushu. The other translators work as usual.';
+
 export class AccountCore {
+  /** The owners' emails, as the Worker passes them with each request. */
+  private owners = '';
   constructor(private readonly store: AccountStore) {}
+
+  setOwners(owners: string): void { this.owners = owners; }
+
+  /** Whether this account is an owner's. */
+  owner(): boolean { return isOwner(this.store.getMeta('email') ?? '', this.owners); }
 
   private code(): CodeState | null {
     try { return JSON.parse(this.store.getMeta('code') ?? 'null') as CodeState | null; } catch { return null; }
@@ -138,14 +159,20 @@ export class AccountCore {
   }
 
   /** Who is signed in, and the address of their Mac when a device on it said (so other devices can reach it for books). */
-  me(sessionHash: string, now: number): { email: string; mac?: string } {
+  me(sessionHash: string, now: number): { email: string; owner: boolean; mac?: string } {
     this.authorize(sessionHash, now);
     const mac = this.store.getMeta('mac');
-    return { email: this.store.getMeta('email') ?? '', ...(mac ? { mac } : {}) };
+    return { email: this.store.getMeta('email') ?? '', owner: this.owner(), ...(mac ? { mac } : {}) };
+  }
+
+  /** Deletes the account: its records, books, devices and email. Signing in again starts a new, empty one. */
+  deleteAccount(sessionHash: string, now: number): void {
+    this.authorize(sessionHash, now);
+    this.store.wipe();
   }
 
   /** Remembers the owner's Mac (its private Tailscale address); only a Tailscale https origin is kept. */
-  setMac(sessionHash: string, mac: string, now: number): { email: string; mac?: string } {
+  setMac(sessionHash: string, mac: string, now: number): { email: string; owner: boolean; mac?: string } {
     this.authorize(sessionHash, now);
     if (!MAC.test(mac)) throw new CloudError(400, 'That is not a Mac address Dushu can use.');
     this.store.setMeta('mac', mac);
@@ -171,7 +198,8 @@ export class AccountCore {
     if (!BOOK_KEY.test(key) || !sha || size <= 0) throw new CloudError(400, 'That book could not be kept.');
     if (size > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to keep in your account.');
     const others = this.store.books().filter((b) => b.key !== key).reduce((n, b) => n + b.size, 0);
-    if (others + size > ACCOUNT_BOOK_BYTES) throw new CloudError(413, 'Your account is full: it keeps up to 1 GB of books.');
+    const room = this.owner() ? ACCOUNT_BOOK_BYTES : SHARED_BOOK_BYTES;
+    if (others + size > room) throw new CloudError(413, `Your account is full: it keeps up to ${room >= 1024 ** 3 ? `${room / 1024 ** 3} GB` : `${room / 1024 ** 2} MB`} of books. Delete a book to make room.`);
     const text = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
     this.store.dropBook(key);
     const chunks = Math.ceil(size / BOOK_CHUNK);
@@ -216,15 +244,16 @@ export class AccountCore {
   }
 
   /** Today's Claude use and whether it is under the limits. */
-  claudeStatus(sessionHash: string, limits: ClaudeLimits, now: number): { usage: ClaudeUsage; limitMessage: string | null } {
+  claudeStatus(sessionHash: string, limits: ClaudeLimits, now: number): { usage: ClaudeUsage; limitMessage: string | null; owner: boolean } {
     this.authorize(sessionHash, now);
     const usage = this.claudeUsage(now);
-    return { usage, limitMessage: claudeLimitMessage(usage, limits) };
+    return { usage, limitMessage: claudeLimitMessage(usage, limits), owner: this.owner() };
   }
 
   /** Counts a Claude request before it is sent (so a failing client cannot loop past the cap), or refuses it over the limit. */
   claudeStart(sessionHash: string, limits: ClaudeLimits, now: number): void {
     this.authorize(sessionHash, now);
+    if (!this.owner()) throw new CloudError(403, OWNER_ONLY_CLAUDE, 'not_owner');
     const usage = this.claudeUsage(now);
     const limit = claudeLimitMessage(usage, limits);
     if (limit) throw new CloudError(429, limit, 'daily_limit');
@@ -248,14 +277,20 @@ export class AccountCore {
     return { day, chars: 0 };
   }
 
-  /** Counts a sentence read aloud before it is read, or refuses it once today's characters are used up. */
-  speechStart(sessionHash: string, chars: number, limit: number, now: number): void {
+  /**
+   * Counts a sentence read aloud before it is read, or refuses it once today's characters are used up: `limit` for the owner,
+   * `share` for everyone else. Says whether this is the owner's account (the Worker then counts it against the shared day).
+   */
+  speechStart(sessionHash: string, chars: number, limit: number, share: number, now: number): { owner: boolean } {
     this.authorize(sessionHash, now);
+    const owner = this.owner();
+    if (!owner) limit = Math.min(limit, share);
     const usage = this.speechUsage(now);
     if (usage.chars + chars > limit) {
       throw new CloudError(429, `Today's read-aloud on your account (${limit.toLocaleString('en-US')} characters) is used up. It resets at midnight (UTC); until then Dushu reads with this device's voice.`, 'daily_limit');
     }
     this.store.setMeta('speech', JSON.stringify({ ...usage, chars: usage.chars + chars }));
+    return { owner };
   }
 
   private table(): RecordTable {
@@ -315,5 +350,41 @@ export function memoryStore(): AccountStore & { data: Map<string, { at: number; 
     putSession: (h, s) => { sessions.set(h, s); },
     dropSession: (h) => { sessions.delete(h); },
     sessions: () => [...sessions].map(([hash, s]) => ({ hash, used: s.used })),
+    wipe: () => { meta.clear(); sessions.clear(); data.clear(); books.clear(); chunks.clear(); },
+  };
+}
+
+// ------------------------------------------------------------------ shared ---
+
+/** Today's counts shared by every account (the free allowances, sign-ins from one network), kept by one Durable Object. */
+export interface LimitsStore {
+  get(day: string, name: string): number;
+  set(day: string, name: string, n: number): void;
+  /** Forgets the days before `day`. */
+  prune(day: string): void;
+}
+
+export interface Take { name: string; n: number; max: number }
+
+export class LimitsCore {
+  constructor(private readonly store: LimitsStore) {}
+
+  /** Adds each `n` to today's count of its `name`, or nothing at all (false) when any would pass its `max`. */
+  take(items: Take[], now: number): boolean {
+    const day = new Date(now).toISOString().slice(0, 10);
+    const have = items.map((t) => this.store.get(day, t.name));
+    if (items.some((t, i) => !(t.n >= 0) || have[i] + t.n > t.max)) return false;
+    items.forEach((t, i) => this.store.set(day, t.name, have[i] + t.n));
+    this.store.prune(new Date(now - 7 * 86_400_000).toISOString().slice(0, 10));
+    return true;
+  }
+}
+
+export function memoryLimits(): LimitsStore {
+  const m = new Map<string, number>();
+  return {
+    get: (day, name) => m.get(`${day}|${name}`) ?? 0,
+    set: (day, name, n) => { m.set(`${day}|${name}`, n); },
+    prune: (day) => { for (const k of [...m.keys()]) if (k.slice(0, 10) < day) m.delete(k); },
   };
 }

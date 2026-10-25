@@ -4,8 +4,9 @@
 // '<account id>.<secret>': only the secret's SHA-256 is stored. Read-aloud uses Workers AI, kept under its free daily
 // allowance (SPEECH_MAX_CHARS).
 import Anthropic from '@anthropic-ai/sdk';
-import { AccountCore, BOOK_CHUNK, CloudError, allowedEmail, normalEmail, type ClaudeLimits } from './account';
-import { sqlStore, type SqlStorage } from './sqlStore';
+import { AccountCore, BOOK_CHUNK, CloudError, LimitsCore, OWNER_ONLY_CLAUDE, allowedEmail, normalEmail, type ClaudeLimits, type Take } from './account';
+import { sqlLimits, sqlStore, type SqlStorage } from './sqlStore';
+import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
 import { SYNC_LIMITS, SyncError } from '../../src/core/syncExchange';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
 import { describeError, parseTranslateBody, runClaude, type ServerClient } from '../../src/translate/claudeServer';
@@ -26,8 +27,10 @@ export interface Env {
   /** Resend (resend.com) key for the sign-in emails: a secret, never in this repo. */
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
-  /** Who may sign in (comma separated); everyone when empty. A secret, so no email is in this repo. */
+  /** Who may sign in (comma separated); everyone when unset. A secret, so no email is in this repo. */
   ALLOWED_EMAILS?: string;
+  /** The owners (comma separated): Claude on the owner's key, the larger shares. When unset, ALLOWED_EMAILS. A secret too. */
+  OWNER_EMAILS?: string;
   /** 'log' (local testing only): codes are logged and returned instead of emailed. */
   MAIL_MODE?: string;
   /** Emails sent per day at most, across all accounts. */
@@ -43,7 +46,11 @@ export interface Env {
   AI?: { run(model: string, input: Record<string, unknown>, options?: { returnRawResponse?: boolean }): Promise<unknown> };
   /** Characters read aloud per account per day. */
   SPEECH_MAX_CHARS?: string;
+  /** Tests send the sign-in emails; the Worker uses MAIL_MODE and RESEND_API_KEY. */
+  mailer?: Mailer;
 }
+
+const owners = (env: Env) => env.OWNER_EMAILS ?? env.ALLOWED_EMAILS ?? '';
 
 /** The account's voice: MeloTTS on Workers AI, Mandarin (a WAV file, 44.1 kHz). */
 const SPEECH_MODEL = '@cf/myshell-ai/melotts';
@@ -56,6 +63,11 @@ const SPEECH_MAX_CHARS = 90_000;
 /** A sentence at most (src/speech/tts.ts sends one at a time, 180 characters or fewer). */
 const SPEECH_TEXT = 400;
 const speechLimit = (env: Env) => Math.min(SPEECH_MAX_CHARS, Number(env.SPEECH_MAX_CHARS) > 0 ? Number(env.SPEECH_MAX_CHARS) : SPEECH_MAX_CHARS);
+/** Everyone but the owners shares two thirds of the day, at most a sixth each (about 50 minutes of listening). */
+const SPEECH_OTHERS_CHARS = 60_000;
+const SPEECH_SHARE_CHARS = 15_000;
+/** Sign-in codes a day from one network (a classroom shares one), and in all (Resend's free plan sends 100 a day). */
+const CODES_PER_NETWORK = 40;
 
 const claudeLimits = (env: Env): ClaudeLimits => ({
   requests: Number(env.CLAUDE_MAX_REQUESTS) > 0 ? Number(env.CLAUDE_MAX_REQUESTS) : 3000,
@@ -99,28 +111,24 @@ async function readJson(request: Request, max: number): Promise<Record<string, u
   return body as Record<string, unknown>;
 }
 
-async function sendCode(env: Env, email: string, code: string): Promise<void> {
-  if (env.MAIL_MODE === 'log') { console.log(`Dushu sign-in code for ${email}: ${code}`); return; }
+function mailer(env: Env): Mailer {
+  if (env.mailer) return env.mailer;
+  if (env.MAIL_MODE === 'log') return logMailer();
   if (!env.RESEND_API_KEY) throw new CloudError(503, 'Sign-in emails are not set up on the sync server yet.');
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: env.MAIL_FROM || 'Dushu <onboarding@resend.dev>',
-      to: [email],
-      subject: `${code} is your Dushu sign-in code`,
-      text: `Your Dushu sign-in code is ${code}.\n\nType it in Dushu's Settings within 10 minutes. If you did not ask for it, you can ignore this email.`,
-    }),
-  });
-  if (!res.ok) {
-    console.error('Dushu sync: the sign-in email was not sent', res.status, (await res.text()).slice(0, 300));
-    throw new CloudError(502, 'The sign-in email could not be sent. Try again in a minute.');
-  }
+  return resendMailer(env.RESEND_API_KEY, env.MAIL_FROM || 'Dushu <onboarding@resend.dev>');
 }
 
-/** Asks an account's Durable Object to do `op`. */
-async function call(stub: DurableObjectStub, op: string, body: unknown, token = ''): Promise<Response> {
-  return stub.fetch(`https://account/${op}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Secret': token }, body: JSON.stringify(body) });
+/** Counts against the days shared by every account (the Limits object); false when any is used up. */
+async function takeShared(env: Env, items: Take[]): Promise<boolean> {
+  const res = await env.LIMITS.get(env.LIMITS.idFromName('global')).fetch('https://limits/take', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }),
+  });
+  return res.ok && (await res.json() as { ok?: unknown }).ok === true;
+}
+
+/** Asks an account's Durable Object to do `op`. It is told who the owners are, to know whether it is one. */
+async function call(env: Env, stub: DurableObjectStub, op: string, body: unknown, token = ''): Promise<Response> {
+  return stub.fetch(`https://account/${op}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Secret': token, 'X-Owners': owners(env) }, body: JSON.stringify(body) });
 }
 
 function bearer(request: Request, env: Env): { stub: DurableObjectStub; secret: string } {
@@ -140,7 +148,7 @@ async function claudeTranslate(request: Request, env: Env, ctx: ExecutionContext
   if (!env.ANTHROPIC_API_KEY) throw new CloudError(503, 'Claude is not set up on the sync server yet.', 'no_key');
   const parsed = parseTranslateBody(await readJson(request, 65536));
   if (!parsed.ok) throw new CloudError(parsed.status, parsed.message, 'bad_request');
-  const gate = await call(stub, 'claude-start', { limits: claudeLimits(env) }, s);
+  const gate = await call(env, stub, 'claude-start', { limits: claudeLimits(env) }, s);
   if (!gate.ok) return gate;
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
@@ -152,7 +160,7 @@ async function claudeTranslate(request: Request, env: Env, ctx: ExecutionContext
   const work = (async () => {
     try {
       const r = await runClaude(client, parsed.request, 'low', ctl.signal, (delta) => void send({ type: 'text', text: delta }));
-      await call(stub, 'claude-used', { input: r.usage.input, output: r.usage.output }, s).catch(() => {});
+      await call(env, stub, 'claude-used', { input: r.usage.input, output: r.usage.output }, s).catch(() => {});
       await send(r.failure ? { type: 'error', code: r.failure.code, message: r.failure.message } : { type: 'done', stop: r.stop, usage: r.usage });
     } catch (e) {
       if (!ctl.signal.aborted) {
@@ -176,8 +184,13 @@ async function speech(request: Request, env: Env): Promise<Response> {
   if (!text) throw new CloudError(400, 'There is nothing to read.');
   const chars = [...text].length;
   if (chars > SPEECH_TEXT) throw new CloudError(413, 'That is too long to read at once.');
-  const gate = await call(stub, 'speech-start', { chars, limit: speechLimit(env) }, s);
+  const gate = await call(env, stub, 'speech-start', { chars, limit: speechLimit(env), share: SPEECH_SHARE_CHARS }, s);
   if (!gate.ok) return gate;
+  const { owner } = await gate.json() as { owner?: boolean };
+  const shared: Take[] = [{ name: 'speech', n: chars, max: speechLimit(env) }, ...(owner ? [] : [{ name: 'speech-others', n: chars, max: SPEECH_OTHERS_CHARS }])];
+  if (!await takeShared(env, shared)) {
+    throw new CloudError(429, 'Today’s free read-aloud on this Dushu is used up. It resets at midnight (UTC); until then Dushu reads with this device’s voice.', 'daily_limit');
+  }
   // The model's answer as it comes, { audio: base64 WAV }: decoding megabytes here would take the Worker past the free plan's
   // CPU time, so the device decodes it (src/speech/tts.ts).
   let res: unknown;
@@ -194,9 +207,10 @@ async function speech(request: Request, env: Env): Promise<Response> {
 
 async function claudeStatus(request: Request, env: Env): Promise<Response> {
   const { stub, secret: s } = bearer(request, env);
-  const res = await call(stub, 'claude-status', { limits: claudeLimits(env) }, s);
+  const res = await call(env, stub, 'claude-status', { limits: claudeLimits(env) }, s);
   if (!res.ok) return res;
-  const { usage, limitMessage } = await res.json() as { usage: unknown; limitMessage: string | null };
+  const { usage, limitMessage, owner } = await res.json() as { usage: unknown; limitMessage: string | null; owner: boolean };
+  if (!owner) return json(200, { app: 'dushu', configured: false, ownerOnly: true, ready: false, problem: OWNER_ONLY_CLAUDE });
   const configured = !!env.ANTHROPIC_API_KEY;
   return json(200, {
     app: 'dushu', configured, problem: configured ? undefined : 'Claude is not set up on the sync server yet.',
@@ -214,13 +228,23 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     const email = normalEmail((await readJson(request, 4096)).email);
     if (!email) throw new CloudError(400, 'That does not look like an email address.');
     if (!allowedEmail(email, env.ALLOWED_EMAILS)) throw new CloudError(403, 'That email cannot sign in to this Dushu.');
+    // Anyone may ask for a code, so a network, and the day, have a limit: the network named by a hash, never kept as it is.
+    const ip = request.headers.get('CF-Connecting-IP');
+    if (ip && !await takeShared(env, [{ name: `net:${(await sha256(`dushu-net|${ip}`)).slice(0, 32)}`, n: 1, max: CODES_PER_NETWORK }])) {
+      throw new CloudError(429, 'Too many sign-in codes were asked for from this network today. Try again tomorrow.');
+    }
     const code = sixDigits();
     const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(`email:${email}`));
-    const kept = await call(stub, 'code', { email, hash: await sha256(code) });
+    const kept = await call(env, stub, 'code', { email, hash: await sha256(code) });
     if (!kept.ok) return kept;
-    const limit = await call(env.LIMITS.get(env.LIMITS.idFromName('global')), 'email', { max: Number(env.DAILY_EMAILS) || 90 });
-    if (!limit.ok) return limit;
-    await sendCode(env, email, code);
+    if (!await takeShared(env, [{ name: 'emails', n: 1, max: Number(env.DAILY_EMAILS) || 90 }])) {
+      throw new CloudError(429, 'The sync server has sent all the sign-in emails it can today. Try again tomorrow.');
+    }
+    try { await mailer(env).send({ to: email, ...codeEmail(code) }); } catch (e) {
+      if (e instanceof CloudError) throw e;
+      console.error('Dushu sync: the sign-in email was not sent', e);
+      throw new CloudError(502, 'The sign-in email could not be sent. Try again in a minute.');
+    }
     return json(200, { ok: true, ...(env.MAIL_MODE === 'log' ? { devCode: code } : {}) });
   }
 
@@ -231,7 +255,7 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     if (!email || code.length !== 6) throw new CloudError(400, 'Type the six-digit code from the email.');
     const id = env.ACCOUNTS.idFromName(`email:${email}`);
     const s = secret();
-    const res = await call(env.ACCOUNTS.get(id), 'verify', { codeHash: await sha256(code), sessionHash: await sha256(s) });
+    const res = await call(env, env.ACCOUNTS.get(id), 'verify', { codeHash: await sha256(code), sessionHash: await sha256(s) });
     if (!res.ok) return res;
     const { email: named } = await res.json() as { email: string };
     return json(200, { token: `${id.toString()}.${s}`, email: named || email });
@@ -239,19 +263,23 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
 
   if (path === '/auth/signout' && request.method === 'POST') {
     const { stub, secret: s } = bearer(request, env);
-    return call(stub, 'signout', {}, s);
+    return call(env, stub, 'signout', {}, s);
+  }
+  if (path === '/me/delete' && request.method === 'POST') {
+    const { stub, secret: s } = bearer(request, env);
+    return call(env, stub, 'delete', {}, s);
   }
   if (path === '/me') {
     const { stub, secret: s } = bearer(request, env);
-    if (request.method === 'GET') return call(stub, 'me', {}, s);
+    if (request.method === 'GET') return call(env, stub, 'me', {}, s);
     if (request.method !== 'POST') throw new CloudError(405, 'Not allowed.');
-    return call(stub, 'mac', await readJson(request, 4096), s);
+    return call(env, stub, 'mac', await readJson(request, 4096), s);
   }
   if (path === '/books') {
     const { stub, secret: s } = bearer(request, env);
-    if (request.method === 'GET') return call(stub, 'books', {}, s);
-    if (request.method === 'POST') return call(stub, 'book-start', await readJson(request, 4096), s);
-    if (request.method === 'DELETE') return call(stub, 'book-drop', { key: new URL(request.url).searchParams.get('key') ?? '' }, s);
+    if (request.method === 'GET') return call(env, stub, 'books', {}, s);
+    if (request.method === 'POST') return call(env, stub, 'book-start', await readJson(request, 4096), s);
+    if (request.method === 'DELETE') return call(env, stub, 'book-drop', { key: new URL(request.url).searchParams.get('key') ?? '' }, s);
     throw new CloudError(405, 'Not allowed.');
   }
   if (path === '/books/chunk') {
@@ -270,9 +298,9 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   if (path === '/speech' && request.method === 'POST') return speech(request, env);
   if (path === '/sync') {
     const { stub, secret: s } = bearer(request, env);
-    if (request.method === 'GET') return call(stub, 'status', {}, s);
+    if (request.method === 'GET') return call(env, stub, 'status', {}, s);
     if (request.method !== 'POST') throw new CloudError(405, 'Not allowed.');
-    return call(stub, 'sync', await readJson(request, SYNC_LIMITS.body), s);
+    return call(env, stub, 'sync', await readJson(request, SYNC_LIMITS.body), s);
   }
   throw new CloudError(404, 'Not found.');
 }
@@ -313,6 +341,7 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
     const index = Number(url.searchParams.get('i'));
     const now = Date.now();
     const token = request.headers.get('X-Secret') ?? '';
+    core.setOwners(request.headers.get('X-Owners') ?? '');
     // Hashed before the account is touched, so each operation below runs whole, as one transaction.
     const session = token ? await sha256(token) : '';
     const str = (v: unknown) => (typeof v === 'string' ? v : '');
@@ -331,7 +360,8 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'claude-status': return json(200, core.claudeStatus(session, body.limits as ClaudeLimits, now));
       case 'claude-start': core.claudeStart(session, body.limits as ClaudeLimits, now); return json(200, { ok: true });
       case 'claude-used': core.claudeUsed(session, Number(body.input), Number(body.output), now); return json(200, { ok: true });
-      case 'speech-start': core.speechStart(session, Number(body.chars) || 0, Number(body.limit) || 0, now); return json(200, { ok: true });
+      case 'speech-start': return json(200, core.speechStart(session, Number(body.chars) || 0, Number(body.limit) || 0, Number(body.share) || 0, now));
+      case 'delete': core.deleteAccount(session, now); return json(200, { ok: true });
       case 'chunk-get': return new Response(core.getBookChunk(session, key, index, now) as Uint8Array<ArrayBuffer>, { headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' } });
       default: return json(404, { error: 'Not found.' });
     }
@@ -350,21 +380,27 @@ export class Account {
   }
 }
 
-/** The daily count of sign-in emails across all accounts, so the email service's free allowance is never run past. */
+/** What the Limits object does with a request from the Worker. Apart from the class so tests can run it in memory. */
+export async function limitsRequest(core: LimitsCore, request: Request): Promise<Response> {
+  try {
+    const { items } = await request.json() as { items?: unknown };
+    const ok = Array.isArray(items) && items.every((t) => t && typeof t.name === 'string' && typeof t.n === 'number' && typeof t.max === 'number')
+      && core.take(items as Take[], Date.now());
+    return json(200, { ok });
+  } catch (e) { return failure(e); }
+}
+
+/**
+ * The days shared by every account: sign-in emails (the email service's free allowance), read-aloud (Workers AI's free
+ * allowance), and sign-in codes from each network.
+ */
 export class Limits {
-  private readonly sql: SqlStorage;
+  private readonly core: LimitsCore;
   constructor(state: DurableObjectState) {
-    this.sql = state.storage.sql;
-    this.sql.exec('CREATE TABLE IF NOT EXISTS days (day TEXT PRIMARY KEY, n INTEGER NOT NULL)');
+    this.core = new LimitsCore(sqlLimits(state.storage.sql));
   }
 
-  async fetch(request: Request): Promise<Response> {
-    const { max } = await request.json() as { max: number };
-    const day = new Date().toISOString().slice(0, 10);
-    const n = Number(this.sql.exec('SELECT n FROM days WHERE day = ?', day).toArray()[0]?.n ?? 0);
-    if (n >= max) return json(429, { error: 'The sync server has sent all the sign-in emails it can today. Try again tomorrow.' });
-    this.sql.exec('INSERT OR REPLACE INTO days (day, n) VALUES (?, ?)', day, n + 1);
-    this.sql.exec('DELETE FROM days WHERE day < ?', new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10));
-    return json(200, { ok: true });
+  fetch(request: Request): Promise<Response> {
+    return limitsRequest(this.core, request);
   }
 }

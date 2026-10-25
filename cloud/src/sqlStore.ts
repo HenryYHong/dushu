@@ -1,5 +1,5 @@
 // An account's state in its Durable Object's SQLite database.
-import type { AccountStore, BookEntry } from './account';
+import type { AccountStore, BookEntry, LimitsStore } from './account';
 import { countRecord, noCounts, type StoredRecord, type WireRecord } from '../../src/core/syncExchange';
 
 export interface SqlStorage {
@@ -68,5 +68,16 @@ export function sqlStore(sql: SqlStorage): AccountStore {
       return r ? new Uint8Array(r.data as ArrayBuffer) : undefined;
     },
     chunkCount: (key) => Number(sql.exec('SELECT count(*) AS n FROM book_chunks WHERE key = ?', key).toArray()[0]?.n ?? 0),
+    wipe() { for (const table of ['book_chunks', 'books', 'sessions', 'records', 'meta']) sql.exec(`DELETE FROM ${table}`); },
+  };
+}
+
+/** The shared daily counts in the Limits Durable Object's SQLite database. */
+export function sqlLimits(sql: SqlStorage): LimitsStore {
+  sql.exec('CREATE TABLE IF NOT EXISTS counts (day TEXT NOT NULL, name TEXT NOT NULL, n REAL NOT NULL, PRIMARY KEY (day, name))');
+  return {
+    get: (day, name) => Number(sql.exec('SELECT n FROM counts WHERE day = ? AND name = ?', day, name).toArray()[0]?.n ?? 0),
+    set(day, name, n) { sql.exec('INSERT OR REPLACE INTO counts (day, name, n) VALUES (?, ?, ?)', day, name, n); },
+    prune(day) { sql.exec('DELETE FROM counts WHERE day < ?', day); },
   };
 }

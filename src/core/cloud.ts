@@ -5,6 +5,8 @@
 export const CLOUD_URL = 'https://dushu-sync.henryhong.workers.dev';
 const URL_KEY = 'dushu.cloud.url.v1';
 const SESSION_KEY = 'dushu.cloud.v1';
+/** The email of the signed-in account when the server last said it is an owner's (Claude, the Mac settings). */
+const OWNER_KEY = 'dushu.cloud.owner.v1';
 /** Fired on window when this device signs in or out. */
 export const CLOUD_EVENT = 'dushu:cloud';
 
@@ -36,7 +38,7 @@ function announce(): void {
 
 /** Signs this device out here only (the server already forgot it, or will). */
 export function forgetSession(): void {
-  try { storage()?.removeItem(SESSION_KEY); } catch { /* nothing kept */ }
+  try { storage()?.removeItem(SESSION_KEY); storage()?.removeItem(OWNER_KEY); } catch { /* nothing kept */ }
   announce();
 }
 
@@ -83,14 +85,38 @@ export async function signOut(): Promise<void> {
   if (s) await post('/auth/signout', {}, s.token).catch(() => {});
 }
 
-/** The signed-in account: its email, and its Mac's private address when a device on the Mac told it (cloudLink.ts). */
-export async function accountInfo(): Promise<{ email: string; mac?: string } | null> {
+/**
+ * The signed-in account: its email, whether it is an owner's (remembered for isAccountOwner), and its Mac's private address
+ * when a device on the Mac told it (cloudLink.ts).
+ */
+export async function accountInfo(): Promise<{ email: string; owner: boolean; mac?: string } | null> {
   const res = await cloudFetch('/me', { signal: AbortSignal.timeout(15_000) });
   if (!res) return null;
   if (res.status === 401) { forgetSession(); return null; }
   if (!res.ok) throw new Error(`The sync server answered ${res.status}.`);
-  const data = await res.json() as { email?: unknown; mac?: unknown };
-  return { email: typeof data.email === 'string' ? data.email : '', ...(typeof data.mac === 'string' ? { mac: data.mac } : {}) };
+  const data = await res.json() as { email?: unknown; owner?: unknown; mac?: unknown };
+  const email = typeof data.email === 'string' ? data.email : '';
+  const owner = data.owner === true;
+  try {
+    const was = isAccountOwner();
+    if (owner) storage()?.setItem(OWNER_KEY, cloudSession()?.email ?? email); else storage()?.removeItem(OWNER_KEY);
+    if (was !== owner) announce();
+  } catch { /* asked again next time */ }
+  return { email, owner, ...(typeof data.mac === 'string' ? { mac: data.mac } : {}) };
+}
+
+/** Whether the signed-in account is an owner's, as the server last said: someone else's sees no Mac or Claude settings. */
+export function isAccountOwner(): boolean {
+  const s = cloudSession();
+  try { return !!s && storage()?.getItem(OWNER_KEY) === s.email; } catch { return false; }
+}
+
+/** Deletes the account on the server, then signs this device out. What is on this device stays on it. */
+export async function deleteAccount(): Promise<void> {
+  const s = cloudSession();
+  if (!s) return;
+  await post('/me/delete', {}, s.token);
+  forgetSession();
 }
 
 /** Tells the account where its Mac is, so the owner's other devices can reach it for their books. */

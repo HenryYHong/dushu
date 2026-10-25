@@ -1,6 +1,7 @@
 # Dushu's sync account online (cloud/src/worker.ts). Deploy: npm run cloud:deploy. Secrets, never in this file:
 #   RESEND_API_KEY  the sign-in emails (resend.com)
 #   ALLOWED_EMAILS  who may sign in, comma separated (everyone when unset)
+#   OWNER_EMAILS    the owners, comma separated: Claude on the owner's key and the larger shares (ALLOWED_EMAILS when unset)
 #   ANTHROPIC_API_KEY  Claude translation through the account (npx wrangler secret put ANTHROPIC_API_KEY < ~/.config/dushu/anthropic-api-key)
 name = "dushu-sync"
 main = "src/worker.ts"

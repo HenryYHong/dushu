@@ -10,7 +10,7 @@ import { parseRoute } from './ui/route';
 import { icon } from './ui/icons';
 import { watchServiceWorker } from './swUpdate';
 import { startSync } from './core/sync';
-import { CLOUD_EVENT, cloudSession } from './core/cloud';
+import { CLOUD_EVENT, accountInfo, cloudSession } from './core/cloud';
 import { BOOKS_EVENT, syncBooks, type BooksReport } from './core/cloudBooks';
 import { linkMac } from './core/cloudLink';
 import { signInButton } from './ui/signIn';
@@ -135,6 +135,8 @@ async function boot(): Promise<void> {
   startSync(store);
   void linkMac();
   window.addEventListener(CLOUD_EVENT, () => void linkMac());
+  // Whether this account is the owner's (the Mac and Claude settings follow it): asked on each start.
+  if (cloudSession()) void accountInfo().catch(() => {});
   // Books in the account: this device's go up and the account's come down, on open, on sign-in, when the app comes back to
   // the front and every few minutes, and each run says what it did (or what went wrong, once).
   const accountBooks = () => { if (cloudSession()) void syncBooks(store); };

@@ -1,7 +1,7 @@
 // The sync server in process: the real Worker, each account in memory instead of a Durable Object's SQLite database.
 import { createHash } from 'node:crypto';
-import worker, { accountRequest, type DurableObjectNamespace, type Env } from '../../cloud/src/worker';
-import { AccountCore, memoryStore } from '../../cloud/src/account';
+import worker, { accountRequest, limitsRequest, type DurableObjectNamespace, type Env } from '../../cloud/src/worker';
+import { AccountCore, LimitsCore, memoryLimits, memoryStore } from '../../cloud/src/account';
 
 const hex = (s: string) => createHash('sha256').update(s).digest('hex');
 
@@ -17,11 +17,12 @@ export function cloud(extra: Partial<Env> = {}) {
       return { fetch: (url, init) => accountRequest(cores.get(key)!, new Request(url, init)) };
     },
   };
-  let emails = 0;
+  // The shared days as the Worker keeps them, in memory.
+  const limits = new LimitsCore(memoryLimits());
   const LIMITS: DurableObjectNamespace = {
     idFromName: () => ({ toString: () => 'global' }),
     idFromString: () => ({ toString: () => 'global' }),
-    get: () => ({ fetch: async () => (++emails > 3 ? new Response(JSON.stringify({ error: 'all sent today' }), { status: 429 }) : new Response('{"ok":true}')) }),
+    get: () => ({ fetch: (url, init) => limitsRequest(limits, new Request(url, init)) }),
   };
   const env: Env = { ACCOUNTS, LIMITS, MAIL_MODE: 'log', ...extra };
   const call = (path: string, init: RequestInit & { origin?: string } = {}) => worker.fetch(new Request(`https://sync.test${path}`, {

@@ -33,7 +33,7 @@ describe('signing in', () => {
     // A code works once.
     expect((await c.post('/auth/verify', { email: 'reader@example.com', code: devCode })).status).toBe(400);
 
-    expect(await (await c.call('/me', { headers: { Authorization: `Bearer ${token}` } })).json()).toEqual({ email: 'reader@example.com' });
+    expect(await (await c.call('/me', { headers: { Authorization: `Bearer ${token}` } })).json()).toEqual({ email: 'reader@example.com', owner: false });
     const reply = await (await c.post('/sync', { changes: [{ key: 'k:好', at: 5, data: {} }] }, token)).json() as { records: unknown[]; counts: { known: number } };
     expect(reply.counts.known).toBe(1);
     expect(reply.records).toEqual([{ key: 'k:好', at: 5, data: {} }]);
@@ -57,9 +57,9 @@ describe('signing in', () => {
     const c = cloud();
     const token = await signedIn(c);
     const auth = { Authorization: `Bearer ${token}` };
-    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com' });
+    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: false });
     expect((await c.post('/me', { mac: 'https://my-mac.tail1234.ts.net:8443' }, token)).status).toBe(200);
-    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', mac: 'https://my-mac.tail1234.ts.net:8443' });
+    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: false, mac: 'https://my-mac.tail1234.ts.net:8443' });
     for (const bad of ['http://my-mac.tail1234.ts.net', 'https://evil.example', 'https://x.ts.net/path', 'javascript:alert(1)']) {
       expect((await c.post('/me', { mac: bad }, token)).status).toBe(400);
     }
@@ -84,7 +84,7 @@ describe('signing in', () => {
   });
 
   it('says so when the day’s emails are used up', async () => {
-    const c = cloud();
+    const c = cloud({ DAILY_EMAILS: '3' });
     for (const who of ['a', 'b', 'c']) expect((await c.post('/auth/code', { email: `${who}@example.com` })).status).toBe(200);
     const res = await c.post('/auth/code', { email: 'd@example.com' });
     expect(res.status).toBe(429);

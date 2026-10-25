@@ -19,6 +19,8 @@ export interface ClaudeStatus {
   /** Reachable, configured and under today's limit. */
   ready: boolean;
   problem?: string;
+  /** The account is not the owner's: Claude on the owner's key is not for it. */
+  ownerOnly?: boolean;
   warning?: string;
   limitMessage?: string;
   usage?: { day: string; requests: number; inputTokens: number; outputTokens: number };
@@ -73,6 +75,7 @@ export async function fetchClaudeStatus(opts: { signal?: AbortSignal; force?: bo
         reachable: true, denied: false, configured,
         ready: configured && data.limitReached !== true && !(blocked && Date.now() < blocked.until),
         problem: typeof data.problem === 'string' ? data.problem : undefined,
+        ...(data.ownerOnly === true ? { ownerOnly: true } : {}),
         warning: typeof data.warning === 'string' ? data.warning : undefined,
         limitMessage: typeof data.limitMessage === 'string' ? data.limitMessage : undefined,
         usage: data.usage && typeof data.usage === 'object' ? data.usage : undefined,

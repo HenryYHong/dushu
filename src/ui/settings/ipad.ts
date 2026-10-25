@@ -1,15 +1,28 @@
 import { h } from '../dom';
-import { isMacOrigin } from '../../core/macBridge';
+import { connectedMac, isMacOrigin } from '../../core/macBridge';
+import { cloudSession, isAccountOwner } from '../../core/cloud';
 import { group, row } from './controls';
 import { macRows } from './mac';
 import { syncRow } from './sync';
 import { accountRow } from './account';
 
-/** The Mac connection and the iPad setup: how a device reaches the Mac's private services. */
+/**
+ * The sync account, and the owner's Mac and iPad setup. Someone signed in who is not the owner (a friend, a student) sees only
+ * the account, sync and how to install Dushu: the Mac, Tailscale and private link are the owner's alone. Signed out, the Mac
+ * rows stay, so the owner can connect a new device (or follow the link the Mac's page gives) before signing in.
+ */
 export function ipadGroup(params: Record<string, string>): { el: HTMLElement; dispose(): void } {
-  const mac = macRows(params);
   const account = accountRow();
   const sync = syncRow();
+  if (account && !isMacOrigin() && !connectedMac() && cloudSession() && !isAccountOwner()) {
+    const el = group('Sync', 'Sign in with your email on each device: your books, words, reading places and bookmarks then stay the same on all of them.',
+      account.el,
+      sync.el,
+      row('Install', 'In Safari, tap Share → Add to Home Screen, then open Dushu from that icon. Your books and dictionary lookups work offline.', h('span', null, 'Safari → Share → Add to Home Screen')),
+      row('Books', 'Books you add are kept in your account (up to 200 MB) and appear on each device you sign in on. Deleting a book removes it everywhere.', h('span', null, 'Library → Import book')));
+    return { el, dispose() { sync.dispose(); account.dispose(); } };
+  }
+  const mac = macRows(params);
   const status = h('div.set-help', { role: 'status' }, 'Checking private connection…');
   const link = h('a.btn.btn-sm', { hidden: true }, 'Open private iPad link') as HTMLAnchorElement;
   if (!isMacOrigin()) status.textContent = 'This is the public copy of Dushu. The private address is shown when you open Dushu from your Mac.';

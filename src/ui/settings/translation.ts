@@ -32,6 +32,7 @@ export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | n
     if (!hasClaudeRoute()) return { text: 'Sign in or connect your Mac', kind: 'off' };
     if (claude?.denied) return { text: account ? 'Signed out' : 'Mac refused this device', kind: 'warn' };
     if (!claude?.reachable) return { text: account ? 'Sync server not reachable' : 'Mac not reachable', kind: 'off' };
+    if (claude.ownerOnly) return { text: 'Only for the owner', kind: 'off' };
     if (!claude.configured) return { text: account ? 'No key on the sync server' : 'No key on the Mac', kind: 'warn' };
     if (claude.limitMessage) return { text: 'Daily limit used', kind: 'warn' };
     return { text: 'Unavailable', kind: 'off' };
@@ -59,6 +60,7 @@ export function claudeStatusLines(status: ClaudeStatus | null, connected: boolea
     if (!status) return [{ label: 'Account', value: 'Checking…', kind: 'off' }];
     if (status.denied) return [{ label: 'Account', value: 'This device is signed out. Sign in again above.', kind: 'warn' }];
     if (!status.reachable) return [{ label: 'Account', value: 'The sync server did not answer. Check this device’s internet connection.', kind: 'off' }];
+    if (status.ownerOnly) return [{ label: 'Claude', value: status.problem ?? 'Claude translation is only for the owner of this Dushu.', kind: 'off' }];
     const lines: { label: string; value: string; kind: 'ok' | 'warn' | 'off' }[] = [{ label: 'Account', value: 'Claude goes through your account, wherever you are', kind: 'ok' }];
     lines.push(status.configured
       ? { label: 'Claude key', value: 'Set up on the sync server', kind: 'ok' }

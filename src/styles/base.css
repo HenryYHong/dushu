@@ -85,6 +85,8 @@ body[data-route='read'] .app-nav { display: none; }
 .set-cloud-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-start; width: 100%; }
 .set-cloud-input { flex: 1 1 200px; min-width: 0; }
 .set-cloud-code { font-variant-numeric: tabular-nums; letter-spacing: 0.12em; }
+.set-cloud-delete { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius); background: var(--wash); }
+.set-cloud-delete .set-help { margin: 0; }
 .signin-dialog { width: min(460px, calc(100vw - 32px)); }
 .signin-body { padding: var(--space-5) var(--space-5) var(--space-2); }
 .signin-title { margin: 0 0 var(--space-2); font: 400 24px/1.2 var(--font-display); }

@@ -34,7 +34,7 @@ describe('read-aloud through the account', () => {
 
   it('stops at the day’s characters, which never go past the free allowance', async () => {
     const ai = fakeAi();
-    const c = cloud({ AI: ai.AI, SPEECH_MAX_CHARS: '10' } as Partial<Env>);
+    const c = cloud({ AI: ai.AI, SPEECH_MAX_CHARS: '10', OWNER_EMAILS: 'reader@example.com' } as Partial<Env>);
     const token = await signedIn(c);
     expect((await c.post('/speech', { text: '一二三四五六' }, token)).status).toBe(200);
     const over = await c.post('/speech', { text: '七八九十一' }, token);
@@ -42,8 +42,8 @@ describe('read-aloud through the account', () => {
     expect(await over.json()).toMatchObject({ code: 'daily_limit' });
     expect((await c.post('/speech', { text: '七八九十' }, token)).status).toBe(200);
     expect(ai.asked).toHaveLength(2);
-    // A larger setting cannot raise the cap past the free allowance.
-    const big = cloud({ AI: ai.AI, SPEECH_MAX_CHARS: '5000000' } as Partial<Env>);
+    // A larger setting cannot raise the cap past the free allowance, even for the owner.
+    const big = cloud({ AI: ai.AI, SPEECH_MAX_CHARS: '5000000', OWNER_EMAILS: 'reader@example.com' } as Partial<Env>);
     const t2 = await signedIn(big);
     for (let i = 0; i < 3; i++) expect((await big.post('/speech', { text: '好'.repeat(400) }, t2)).status).toBe(200);
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -53,6 +53,27 @@ describe('read-aloud through the account', () => {
       expect(n * 400).toBeLessThanOrEqual(90_000);
       expect(n * 400).toBeGreaterThan(89_000);
     } finally { vi.useRealTimers(); }
+  });
+
+  it('gives everyone else a share each, and all of them together two thirds of the day, so the owner always has some', async () => {
+    const ai = fakeAi();
+    const c = cloud({ AI: ai.AI, OWNER_EMAILS: 'owner@example.com' } as Partial<Env>);
+    const read = async (token: string, times: number) => {
+      let ok = 0;
+      for (let i = 0; i < times; i++) if ((await c.post('/speech', { text: '好'.repeat(400) }, token)).status === 200) ok++;
+      return ok;
+    };
+    // One friend: 15,000 characters a day (37 sentences of 400).
+    const friends = await Promise.all(['a', 'b', 'c', 'd', 'e'].map((f) => signedIn(c, `${f}@example.com`)));
+    expect(await read(friends[0], 40)).toBe(37);
+    // Four more: together they stop at 60,000 (150 sentences of 400), the last one short.
+    let rest = 0;
+    for (const f of friends.slice(1)) rest += await read(f, 40);
+    expect(37 + rest).toBe(150);
+    const over = await c.post('/speech', { text: '好' }, friends[4]);
+    expect(await over.json()).toMatchObject({ code: 'daily_limit', error: expect.stringContaining('free read-aloud on this Dushu') });
+    // The owner still has the last third of the free allowance.
+    expect(await read(await signedIn(c, 'owner@example.com'), 80)).toBe(75);
   });
 
   it('says so when read-aloud is not set up or the model fails', async () => {

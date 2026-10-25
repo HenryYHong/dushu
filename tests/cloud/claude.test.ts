@@ -36,7 +36,7 @@ const lines = async (res: Response) => (await res.text()).split('\n').filter(Boo
 describe('Claude through the account', () => {
   it('streams the answer as the Mac does, counts it against the day, and refuses past the limit', async () => {
     const fake = fakeClaude(['The bank ', 'is closed.']);
-    const c = cloud({ ANTHROPIC_API_KEY: 'test-key', CLAUDE_MAX_REQUESTS: '2', claudeClient: fake.client } as Partial<Env>);
+    const c = cloud({ OWNER_EMAILS: 'reader@example.com', ANTHROPIC_API_KEY: 'test-key', CLAUDE_MAX_REQUESTS: '2', claudeClient: fake.client } as Partial<Env>);
     const token = await signedIn(c);
     const ask = () => c.post('/claude/translate', { text: '银行关门了。', mode: 'translate', model: 'claude-haiku-5-5', terms: [{ word: '银行', pinyin: 'yin2 hang2', gloss: 'bank' }] }, token);
     const res = await ask();
@@ -68,7 +68,7 @@ describe('Claude through the account', () => {
     expect(await res.json()).toMatchObject({ code: 'no_key' });
     expect(await (await none.call('/claude/status', { headers: { Authorization: `Bearer ${t1}` } })).json()).toMatchObject({ configured: false, ready: false });
 
-    const refusing = cloud({ ANTHROPIC_API_KEY: 'test-key', claudeClient: fakeClaude([], 'refusal').client } as Partial<Env>);
+    const refusing = cloud({ OWNER_EMAILS: 'reader@example.com', ANTHROPIC_API_KEY: 'test-key', claudeClient: fakeClaude([], 'refusal').client } as Partial<Env>);
     const t2 = await signedIn(refusing);
     expect((await refusing.post('/claude/translate', { text: '你好', mode: 'translate' })).status).toBe(401);
     expect(await lines(await refusing.post('/claude/translate', { text: '你好', mode: 'translate' }, t2))).toEqual([{ type: 'error', code: 'refusal', message: 'Claude declined to translate this passage.' }]);
@@ -76,9 +76,25 @@ describe('Claude through the account', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('is the owner’s alone: anyone else signed in is told so, and nothing reaches Anthropic', async () => {
+    const fake = fakeClaude(['Hello.']);
+    const c = cloud({ OWNER_EMAILS: 'owner@example.com', ANTHROPIC_API_KEY: 'test-key', claudeClient: fake.client } as Partial<Env>);
+    const friend = await signedIn(c, 'friend@example.com');
+    const res = await c.post('/claude/translate', { text: '你好。', mode: 'translate' }, friend);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ code: 'not_owner' });
+    expect(await (await c.call('/claude/status', { headers: { Authorization: `Bearer ${friend}` } })).json()).toMatchObject({ ownerOnly: true, ready: false });
+    expect(fake.bodies).toEqual([]);
+    const owner = await signedIn(c, 'Owner@Example.com');
+    expect(await lines(await c.post('/claude/translate', { text: '你好。', mode: 'translate' }, owner))).toContainEqual({ type: 'text', text: 'Hello.' });
+    // Before OWNER_EMAILS is set, whoever may sign in is the owner (the Dushu as it was, for one person).
+    const old = cloud({ ALLOWED_EMAILS: 'reader@example.com', ANTHROPIC_API_KEY: 'test-key', claudeClient: fake.client } as Partial<Env>);
+    expect(await (await old.call('/claude/status', { headers: { Authorization: `Bearer ${await signedIn(old)}` } })).json()).toMatchObject({ ready: true });
+  });
+
   it('is what the app’s Claude translator uses once signed in', async () => {
     const fake = fakeClaude(['Hello.']);
-    const c = cloud({ ANTHROPIC_API_KEY: 'test-key', claudeClient: fake.client } as Partial<Env>);
+    const c = cloud({ OWNER_EMAILS: 'reader@example.com', ANTHROPIC_API_KEY: 'test-key', claudeClient: fake.client } as Partial<Env>);
     let code = '';
     vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
       const req = new Request(input, init);
