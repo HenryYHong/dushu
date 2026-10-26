@@ -7,6 +7,8 @@ export const CODE_TTL_MS = 10 * 60_000;
 export const CODE_GAP_MS = 30_000;
 export const CODES_PER_HOUR = 5;
 export const TRIES_PER_CODE = 5;
+/** Wrong codes an account takes in a day, across all its codes: guessing six digits stays hopeless. */
+export const WRONG_PER_DAY = 30;
 export const SESSION_IDLE_MS = 365 * 86_400_000;
 export const MAX_SESSIONS = 20;
 const TOUCH_MS = 3_600_000;
@@ -25,7 +27,15 @@ export interface BookEntry {
   chunks: number;
   addedAt: number;
   complete: boolean;
+  /** Which upload the pieces belong to: a newer upload of the book (another device) refuses the older one's pieces. */
+  upload?: string;
 }
+
+/** An upload left unfinished this long (a tab closed, a device that never came back) gives its space back. */
+export const STALE_UPLOAD_MS = 86_400_000;
+/** Words, places, settings and the rest an account keeps, in bytes of JSON: the owner's, and everyone else's. */
+export const OWNER_RECORD_BYTES = 100 * 1024 * 1024;
+export const SHARED_RECORD_BYTES = 20 * 1024 * 1024;
 
 export const BOOK_CHUNK = 1024 * 1024;
 export const BOOK_MAX_BYTES = 200 * 1024 * 1024;
@@ -51,6 +61,8 @@ export interface AccountStore {
   putChunk(key: string, index: number, data: Uint8Array): void;
   getChunk(key: string, index: number): Uint8Array | undefined;
   chunkCount(key: string): number;
+  /** Bytes of JSON in the records. */
+  recordBytes(): number;
   /** Forgets everything: the account deleted. */
   wipe(): void;
 }
@@ -59,9 +71,6 @@ export class CloudError extends Error {
   /** `code` says what kind of failure it is, for a client that treats some as lasting (src/translate/claude.ts). */
   constructor(readonly status: number, message: string, readonly code?: string) { super(message); }
 }
-
-/** Read-aloud through the account: characters read per UTC day, against the limit the Worker passes in. */
-export interface SpeechUsage { day: string; chars: number }
 
 /** Claude through the account: requests and tokens per UTC day, against the limits the Worker passes in. */
 export interface ClaudeUsage { day: string; requests: number; inputTokens: number; outputTokens: number }
@@ -73,7 +82,7 @@ export function claudeLimitMessage(u: ClaudeUsage, limits: ClaudeLimits): string
   return null;
 }
 
-interface CodeState { hash: string; expires: number; tries: number; sent: number[] }
+interface CodeState { hash: string; expires: number; tries: number; sent: number[]; wrong?: { day: string; n: number } }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** A Mac's private address: https on a Tailscale name, an optional port, nothing else. */
@@ -116,24 +125,45 @@ export class AccountCore {
     try { return JSON.parse(this.store.getMeta('code') ?? 'null') as CodeState | null; } catch { return null; }
   }
 
-  /** Keeps a new sign-in code (its hash) for `email`, unless one was asked for just now or too many this hour. */
-  storeCode(email: string, hash: string, now: number): void {
-    const old = this.code();
+  /**
+   * Whether a new code may be sent now: not when one still unused was sent just now, nor past the hourly limit. Asked before
+   * the email goes out (checkCode), and again as the code is kept (storeCode). Returns the recent sends.
+   */
+  private codeAllowed(old: CodeState | null, now: number): number[] {
     const sent = (old?.sent ?? []).filter((t) => now - t < 3_600_000);
-    if (sent.length && now - sent[sent.length - 1] < CODE_GAP_MS) throw new CloudError(429, 'A code was just sent. Check your email, or wait half a minute for another.');
+    // A code already used (another device signing in) does not make the next one wait.
+    if (old?.hash && sent.length && now - sent[sent.length - 1] < CODE_GAP_MS) throw new CloudError(429, 'A code was just sent. Check your email, or wait half a minute for another.');
     if (sent.length >= CODES_PER_HOUR) throw new CloudError(429, 'Too many codes this hour. Try again later.');
-    this.store.setMeta('email', email);
-    this.store.setMeta('code', JSON.stringify({ hash, expires: now + CODE_TTL_MS, tries: 0, sent: [...sent, now] } satisfies CodeState));
+    return sent;
   }
 
-  /** Checks a code (its hash). Right: the code is used up and the device is signed in with `sessionHash`. */
-  verify(codeHash: string, sessionHash: string, now: number): { email: string } {
+  /** Throws when no new code may be sent now (see codeAllowed). */
+  checkCode(now: number): void {
+    this.codeAllowed(this.code(), now);
+  }
+
+  /** Keeps a new sign-in code (its hash) for `email`, once its email has gone out. It replaces the one before. */
+  storeCode(email: string, hash: string, now: number): void {
+    const old = this.code();
+    const sent = this.codeAllowed(old, now);
+    this.store.setMeta('email', email);
+    this.store.setMeta('code', JSON.stringify({ hash, expires: now + CODE_TTL_MS, tries: 0, sent: [...sent, now], ...(old?.wrong ? { wrong: old.wrong } : {}) } satisfies CodeState));
+  }
+
+  /**
+   * Checks a code (its hash). Right: the code is used up and the device is signed in with `sessionHash`. `created` names this
+   * account (it changes when the account is deleted and made again), so a device can tell the new one from the old.
+   */
+  verify(codeHash: string, sessionHash: string, now: number): { email: string; created: string } {
     const c = this.code();
     if (!c || !c.hash) throw new CloudError(400, 'Ask for a code first.');
     if (now > c.expires) throw new CloudError(400, 'That code has expired. Ask for a new one.');
+    const day = new Date(now).toISOString().slice(0, 10);
+    const wrong = c.wrong?.day === day ? c.wrong.n : 0;
+    if (wrong >= WRONG_PER_DAY) throw new CloudError(429, 'Too many wrong codes today. Try again tomorrow.');
     if (c.hash !== codeHash) {
       const tries = c.tries + 1;
-      this.store.setMeta('code', JSON.stringify({ ...c, tries, ...(tries >= TRIES_PER_CODE ? { hash: '' } : {}) }));
+      this.store.setMeta('code', JSON.stringify({ ...c, tries, wrong: { day, n: wrong + 1 }, ...(tries >= TRIES_PER_CODE ? { hash: '' } : {}) }));
       throw new CloudError(400, tries >= TRIES_PER_CODE ? 'Too many wrong tries. Ask for a new code.' : 'That code is not right. Check the newest email.');
     }
     this.store.setMeta('code', JSON.stringify({ ...c, hash: '' }));
@@ -145,7 +175,9 @@ export class AccountCore {
     }).sort((a, b) => a.used - b.used);
     for (const s of live.slice(0, Math.max(0, live.length - MAX_SESSIONS + 1))) this.store.dropSession(s.hash);
     this.store.putSession(sessionHash, { created: now, used: now });
-    return { email: this.store.getMeta('email') ?? '' };
+    let created = this.store.getMeta('created');
+    if (!created) { created = String(now); this.store.setMeta('created', created); }
+    return { email: this.store.getMeta('email') ?? '', created };
   }
 
   /** The signed-in device's session, or a 401. */
@@ -171,9 +203,13 @@ export class AccountCore {
     this.store.wipe();
   }
 
-  /** Remembers the owner's Mac (its private Tailscale address); only a Tailscale https origin is kept. */
+  /**
+   * Remembers the owner's Mac (its private Tailscale address); only a Tailscale https origin is kept, and only in an owner's
+   * account (someone else signing in on the owner's Mac must not take its address away with them).
+   */
   setMac(sessionHash: string, mac: string, now: number): { email: string; owner: boolean; mac?: string } {
     this.authorize(sessionHash, now);
+    if (!this.owner()) throw new CloudError(403, 'Only the owner’s account keeps the Mac’s address.');
     if (!MAC.test(mac)) throw new CloudError(400, 'That is not a Mac address Dushu can use.');
     this.store.setMeta('mac', mac);
     return this.me(sessionHash, now);
@@ -189,29 +225,43 @@ export class AccountCore {
     return this.store.books().filter((b) => b.complete).map(({ complete: _c, ...b }) => { void _c; return b; });
   }
 
-  /** Starts keeping a book (or a new copy of it): its pieces follow with putBookChunk. */
-  startBook(sessionHash: string, input: Record<string, unknown>, now: number): { chunks: number } {
+  /**
+   * Starts keeping a book (or a new copy of it): its pieces follow with putBookChunk, naming the upload. The same package
+   * (same size and SHA-256, as two devices make of one book) already kept is not sent again (`complete`), and one being sent
+   * goes on under its upload, so two devices sending a book at once send it once. A different package starts a new upload,
+   * and the older one's pieces are refused.
+   */
+  startBook(sessionHash: string, input: Record<string, unknown>, now: number): { chunks: number; upload: string; complete?: true } {
     this.authorize(sessionHash, now);
     const key = typeof input.key === 'string' ? input.key : '';
     const size = typeof input.size === 'number' && Number.isInteger(input.size) ? input.size : -1;
     const sha = typeof input.sha === 'string' && /^[0-9a-f]{64}$/.test(input.sha) ? input.sha : '';
     if (!BOOK_KEY.test(key) || !sha || size <= 0) throw new CloudError(400, 'That book could not be kept.');
     if (size > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to keep in your account.');
+    const chunks = Math.ceil(size / BOOK_CHUNK);
+    const same = this.store.books().find((b) => b.key === key && b.sha === sha && b.size === size);
+    if (same?.upload) return { chunks, upload: same.upload, ...(same.complete ? { complete: true as const } : {}) };
+    // An upload of another book left unfinished for a day gives its space back.
+    for (const b of this.store.books()) if (b.key !== key && !b.complete && now - b.addedAt > STALE_UPLOAD_MS) this.store.dropBook(b.key);
     const others = this.store.books().filter((b) => b.key !== key).reduce((n, b) => n + b.size, 0);
     const room = this.owner() ? ACCOUNT_BOOK_BYTES : SHARED_BOOK_BYTES;
     if (others + size > room) throw new CloudError(413, `Your account is full: it keeps up to ${room >= 1024 ** 3 ? `${room / 1024 ** 3} GB` : `${room / 1024 ** 2} MB`} of books. Delete a book to make room.`);
     const text = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
     this.store.dropBook(key);
-    const chunks = Math.ceil(size / BOOK_CHUNK);
-    this.store.putBook({ key, title: text(input.title, 200), author: text(input.author, 200), size, sha, chunks, addedAt: now, complete: false });
-    return { chunks };
+    const upload = crypto.randomUUID();
+    this.store.putBook({ key, title: text(input.title, 200), author: text(input.author, 200), size, sha, chunks, addedAt: now, complete: false, upload });
+    return { chunks, upload };
   }
 
-  /** One piece of a book being kept. The book is whole once every piece is in. */
-  putBookChunk(sessionHash: string, key: string, index: number, data: Uint8Array, now: number): { complete: boolean } {
+  /**
+   * One piece of a book being kept, for `upload` (startBook). The book is whole once every piece is in. A piece of an upload a
+   * newer one replaced is refused (409). An app from before uploads had names sends none: its pieces are taken as before.
+   */
+  putBookChunk(sessionHash: string, key: string, index: number, data: Uint8Array, now: number, upload = ''): { complete: boolean } {
     this.authorize(sessionHash, now);
     const book = this.store.books().find((b) => b.key === key);
     if (!book) throw new CloudError(404, 'Start keeping the book first.');
+    if (upload && book.upload && upload !== book.upload) throw new CloudError(409, 'A newer copy of this book is being saved.', 'superseded');
     const last = book.chunks - 1;
     const want = index === last ? book.size - BOOK_CHUNK * last : BOOK_CHUNK;
     if (!Number.isInteger(index) || index < 0 || index > last || data.byteLength !== want) throw new CloudError(400, 'That piece of the book is not the right size.');
@@ -268,29 +318,13 @@ export class AccountCore {
     this.store.setMeta('claude', JSON.stringify({ ...usage, inputTokens: usage.inputTokens + n(input), outputTokens: usage.outputTokens + n(output) }));
   }
 
-  private speechUsage(now: number): SpeechUsage {
-    const day = new Date(now).toISOString().slice(0, 10);
-    try {
-      const u = JSON.parse(this.store.getMeta('speech') ?? 'null') as SpeechUsage | null;
-      if (u && u.day === day) return u;
-    } catch { /* a damaged count starts again */ }
-    return { day, chars: 0 };
-  }
-
   /**
-   * Counts a sentence read aloud before it is read, or refuses it once today's characters are used up: `limit` for the owner,
-   * `share` for everyone else. Says whether this is the owner's account (the Worker then counts it against the shared day).
+   * Before a sentence is read aloud: whether this is the owner's account. The Worker counts the characters in the Limits
+   * object (the account's day and the shared day), where deleting the account does not reset them.
    */
-  speechStart(sessionHash: string, chars: number, limit: number, share: number, now: number): { owner: boolean } {
+  speechStart(sessionHash: string, now: number): { owner: boolean } {
     this.authorize(sessionHash, now);
-    const owner = this.owner();
-    if (!owner) limit = Math.min(limit, share);
-    const usage = this.speechUsage(now);
-    if (usage.chars + chars > limit) {
-      throw new CloudError(429, `Today's read-aloud on your account (${limit.toLocaleString('en-US')} characters) is used up. It resets at midnight (UTC); until then Dushu reads with this device's voice.`, 'daily_limit');
-    }
-    this.store.setMeta('speech', JSON.stringify({ ...usage, chars: usage.chars + chars }));
-    return { owner };
+    return { owner: this.owner() };
   }
 
   private table(): RecordTable {
@@ -305,6 +339,19 @@ export class AccountCore {
   sync(sessionHash: string, input: { epoch?: unknown; since?: unknown; changes?: unknown }, now: number): SyncReply {
     this.authorize(sessionHash, now);
     const table = this.table();
+    // An account keeps so much (more for the owner): changes that would grow it past that are refused, ones that shrink it never.
+    const room = this.owner() ? OWNER_RECORD_BYTES : SHARED_RECORD_BYTES;
+    if (Array.isArray(input.changes) && input.changes.length) {
+      const size = (data: unknown) => (data === null || data === undefined ? 0 : JSON.stringify(data).length);
+      let grow = 0;
+      for (const c of input.changes as { key?: unknown; data?: unknown }[]) {
+        if (!c || typeof c.key !== 'string') continue;
+        grow += size(c.data) - size(table.get(c.key)?.data);
+      }
+      if (grow > 0 && this.store.recordBytes() + grow > room) {
+        throw new CloudError(413, `Your account is full: it keeps up to ${room / 1024 / 1024} MB of words, places and settings.`, 'full');
+      }
+    }
     const { reply, changed } = exchange(table, input, now);
     if (changed) this.store.setMeta('version', String(table.version));
     return reply;
@@ -350,6 +397,7 @@ export function memoryStore(): AccountStore & { data: Map<string, { at: number; 
     putSession: (h, s) => { sessions.set(h, s); },
     dropSession: (h) => { sessions.delete(h); },
     sessions: () => [...sessions].map(([hash, s]) => ({ hash, used: s.used })),
+    recordBytes: () => [...data.values()].reduce((n, r) => n + (r.data === null ? 0 : JSON.stringify(r.data).length), 0),
     wipe: () => { meta.clear(); sessions.clear(); data.clear(); books.clear(); chunks.clear(); },
   };
 }

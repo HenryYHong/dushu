@@ -71,7 +71,7 @@ describe('read-aloud through the account', () => {
     for (const f of friends.slice(1)) rest += await read(f, 40);
     expect(37 + rest).toBe(150);
     const over = await c.post('/speech', { text: '好' }, friends[4]);
-    expect(await over.json()).toMatchObject({ code: 'daily_limit', error: expect.stringContaining('free read-aloud on this Dushu') });
+    expect(await over.json()).toMatchObject({ code: 'daily_limit', error: expect.stringContaining('free read-aloud is used up') });
     // The owner still has the last third of the free allowance.
     expect(await read(await signedIn(c, 'owner@example.com'), 80)).toBe(75);
   });

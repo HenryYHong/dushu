@@ -449,6 +449,29 @@ describe('words looked up and bookmarks', () => {
     }
   });
 
+  it('opened from the Home Screen while full screen is somehow on, the button shows and leaves it', async () => {
+    let full: Element | null = document.documentElement;
+    let left = 0;
+    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, get: () => true });
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => full });
+    Object.defineProperty(navigator, 'standalone', { configurable: true, get: () => true });
+    document.exitFullscreen = async () => { left++; full = null; document.dispatchEvent(new Event('fullscreenchange')); };
+    try {
+      const { ctx, meta } = await setup();
+      await open(ctx, meta.id);
+      closePopup();
+      const btn = q('.rd-bar .rd-full-btn') as HTMLButtonElement;
+      expect(btn.hidden).toBe(false);
+      btn.click();
+      await vi.waitFor(() => expect(left).toBe(1));
+      expect(btn.hidden).toBe(true);
+    } finally {
+      delete (document as unknown as Record<string, unknown>).fullscreenEnabled;
+      delete (document as unknown as Record<string, unknown>).fullscreenElement;
+      delete (navigator as unknown as Record<string, unknown>).standalone;
+    }
+  });
+
   it('keeps a tapped word for practice, but not the words stepped through with Next', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);

@@ -1469,6 +1469,8 @@ export function createPager(o: PagerOptions): Pager {
     drag = null;
     if (d.state !== 'drag') return;
     suppressClickUntil = performance.now() + 400;
+    // The release is a sample too: a finger that stopped and was held still before lifting has no speed left.
+    d.samples.push({ x: e.clientX, t: e.timeStamp });
     const toward = (x: number) => (d.dir === 1 ? -x : x);
     const dx = toward(e.clientX - d.x0);
     // Velocity in turns per ms over the last few samples.
@@ -1479,7 +1481,7 @@ export function createPager(o: PagerOptions): Pager {
     const p = clamp(dx / (geom.paperW * 1.1), 0, 1);
     if (!d.turn) {
       // Turning is off, or the chapter it goes to was not ready: a swipe still changes the page.
-      if (e.type !== 'pointercancel' && (dx > geom.paperW * 0.2 || v > 0.0016)) go(d.dir);
+      if (e.type !== 'pointercancel' && swipeCompletes(p, v)) go(d.dir);
       return;
     }
     const commit = e.type !== 'pointercancel' && swipeCompletes(p, v);

@@ -66,6 +66,8 @@ if (!SYNC_DIR) { const make = browser.newContext.bind(browser); browser.newConte
 async function openReader(device, settings = {}, chapter = 1, contextOptions = {}) {
   if (!devices[device]) throw new Error(`Unknown device profile: ${device}`);
   const ctx = await browser.newContext({ ...devices[device], ...contextOptions });
+  // The dev server lists the owner's own books on this Mac; a test profile never takes them.
+  await ctx.route('**/api/local-books**', (r) => r.fulfill({ status: 404, body: '' }));
   const page = await ctx.newPage();
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
@@ -111,7 +113,7 @@ const info = (page) => page.evaluate(() => ({ ...document.querySelector('.rd-sta
 
 /**
  * A point on the blank margin of an outer strip (`side`: 'prev' or 'next'), in viewport px: inside the strip, not on text
- * (.rd-b) and not on a control. Only a tap there turns the page; a word opens its card wherever it is, and the rest of a
+ * (.rd-b) and not on a control. A tap there shows or hides the bar (a tap never turns the page); a word opens its card, and the rest of a
  * text line shows or hides the bar. Prefers points near the middle of the height.
  */
 const marginPoint = (page, side) => page.evaluate((side) => {
@@ -333,32 +335,39 @@ try {
     check(!touchChecks.hoverRuleActive, 'no hover-only rules are active on a touch screen');
     check(!touchChecks.ptBtn, 'no margin translate buttons in Pages');
 
-    // Tap the blank margin of the right outer strip: next spread. (The chrome tucks away on the first turn.)
+    // A tap never turns the page: on the blank margin at either edge it shows or hides the bar. Only swipes turn.
     const before = await info(page);
+    const chromeOff = () => page.evaluate(() => document.querySelector(".rd-root")?.classList.contains("rd-chrome-off"));
     const right = await marginPoint(page, 'next');
-    check(!!right, `the right strip has a blank margin to tap (x=${right?.x})`);
+    check(!!right, `the right edge has a blank margin to tap (x=${right?.x})`);
+    const bar0 = await chromeOff();
     await page.touchscreen.tap(right?.x ?? 1190, right?.y ?? 420);
+    await settle(700);
+    check((await info(page)).page === before.page, 'a tap on the blank margin at the right edge does not turn the page');
+    check((await chromeOff()) !== bar0, "it shows or hides the bar instead");
+    const left = await marginPoint(page, 'prev');
+    check(!!left, `the left edge has a blank margin to tap (x=${left?.x})`);
+    await page.touchscreen.tap(left?.x ?? 4, left?.y ?? 420);
+    await settle(700);
+    check((await info(page)).page === before.page, 'a tap on the blank margin at the left edge does not turn the page either');
+
+    // A swipe left turns to the next spread, from anywhere (over words too); a swipe right turns back.
+    const swipeOn = () => swipe(page, 900, 420, 640, 424, { steps: 6 });
+    const swipeBack = () => swipe(page, 300, 420, 560, 424, { steps: 6 });
+    await swipeOn();
     await settle(900);
     const after = await info(page);
-    check(Number(after.page) === Number(before.page) + 2, `a tap on the blank margin of the right strip turns to the next spread (page ${before.page} -> ${after.page})`);
-    await page.screenshot({ path: `${OUT}02-landscape-after-tap.png` });
-
-    // The blank margin of the left outer strip: back.
-    const left = await marginPoint(page, 'prev');
-    check(!!left, `the left strip has a blank margin to tap (x=${left?.x})`);
-    await page.touchscreen.tap(left?.x ?? 4, left?.y ?? 420);
+    check(Number(after.page) === Number(before.page) + 2, `a swipe left turns to the next spread (page ${before.page} -> ${after.page})`);
+    await page.screenshot({ path: `${OUT}02-landscape-after-swipe.png` });
+    await swipeBack();
     await settle(900);
     const back = await info(page);
-    check(Number(after.page) === Number(before.page) + 2 && back.page === before.page, `a tap on the blank margin of the left strip turns back (page ${after.page} -> ${back.page})`);
+    check(back.page === before.page, `a swipe right turns back (page ${after.page} -> ${back.page})`);
 
-    // Three margin taps go three spreads in, so a wrong turn back below would show.
-    for (let i = 0; i < 3; i++) {
-      const m = await marginPoint(page, 'next');
-      await page.touchscreen.tap(m?.x ?? 1190, m?.y ?? 420);
-      await settle(700);
-    }
+    // Three swipes go three spreads in, so a wrong turn back below would show.
+    for (let i = 0; i < 3; i++) { await swipeOn(); await settle(700); }
     const deep = await info(page);
-    check(Number(deep.page) === Number(before.page) + 6, `three taps on the right margin turn three spreads (page ${before.page} -> ${deep.page})`);
+    check(Number(deep.page) === Number(before.page) + 6, `three swipes turn three spreads (page ${before.page} -> ${deep.page})`);
     // A word in an outer strip opens its card and never turns the page: reaching for a word near the edge used to turn it.
     const inStrip = await stripWords(page);
     check(inStrip.length === 3, `three words to tap in the left strip (x=${inStrip.map((c) => c.x).join(', ')})`);
@@ -373,13 +382,9 @@ try {
       await page.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
       await settle(500);
     }
-    // The blank margin of the same strip still turns back, once per tap.
-    for (let i = 0; i < 3; i++) {
-      const m = await marginPoint(page, 'prev');
-      await page.touchscreen.tap(m?.x ?? 4, m?.y ?? 420);
-      await settle(700);
-    }
-    check(Number((await info(page)).page) === Number(deep.page) - 6, `three taps on the left margin turn three spreads back (page ${deep.page} -> ${(await info(page)).page})`);
+    // Swipes back, once per swipe.
+    for (let i = 0; i < 3; i++) { await swipeBack(); await settle(700); }
+    check(Number((await info(page)).page) === Number(deep.page) - 6, `three swipes right turn three spreads back (page ${deep.page} -> ${(await info(page)).page})`);
     // Words at 250 and 380 px are in the middle: they open the popup and the page stays.
     for (const x of [250, 380]) {
       const target = await page.evaluate(([x]) => {
@@ -527,9 +532,12 @@ try {
     await page.screenshot({ path: `${OUT}08-portrait-single.png` });
     const before = await info(page);
     await page.touchscreen.tap(780, 600);
+    await settle(700);
+    check((await info(page)).page === before.page, 'a tap does not turn the page in portrait');
+    await swipe(page, 700, 600, 450, 604, { steps: 6 });
     await settle(900);
     const after = await info(page);
-    check(Number(after.page) === Number(before.page) + 1, 'tap turns one page in portrait');
+    check(Number(after.page) === Number(before.page) + 1, 'a swipe turns one page in portrait');
     await swipe(page, 600, 700, 250, 700, { steps: 8, hold: true });
     await settle(120);
     await page.screenshot({ path: `${OUT}09-portrait-mid-swipe.png` });

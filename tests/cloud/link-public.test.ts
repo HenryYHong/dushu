@@ -13,7 +13,7 @@ beforeEach(() => { vi.spyOn(console, 'log').mockImplementation(() => {}); });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); localStorage.clear(); });
 
 async function signedInWithMac(mac?: string) {
-  const c = cloud();
+  const c = cloud({ OWNER_EMAILS: 'reader@example.com' });
   let code = '';
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     const req = new Request(input, init);

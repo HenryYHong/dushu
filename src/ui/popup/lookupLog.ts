@@ -15,6 +15,8 @@ export interface LookupInput {
   syllables: string[];
   around?: { prev?: string; next?: string };
   context?: VocabItem['context'];
+  /** The book's own meaning for the word (its lexicon: a name, a term), as the card shows it. */
+  bookGloss?: string;
 }
 
 export function logLookup(ctx: AppContext, dict: Dictionary, input: LookupInput, now = Date.now()): void {
@@ -29,7 +31,7 @@ export function logLookup(ctx: AppContext, dict: Dictionary, input: LookupInput,
         id: simp,
         word: input.word,
         pinyin: input.syllables.filter(Boolean).join(' ').toLowerCase(),
-        gloss: glossFor(dict, input.word, input.syllables, input.around, entries),
+        gloss: input.bookGloss || glossFor(dict, input.word, input.syllables, input.around, entries),
         context: c?.sentence ? { sentence: c.sentence, bookId: c.bookId, bookTitle: c.bookTitle, chapter: c.chapter } : undefined,
       }, now).catch(() => {});
     } catch { /* a history entry is never worth an error */ }

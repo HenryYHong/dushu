@@ -2,6 +2,17 @@
 // deleted, and find a place kept for a book when it is added again.
 import type { BookMeta, Progress } from '../types';
 
+/**
+ * The settings that follow the reader from device to device, one record each (o:<name>). The rest belong to the device: its
+ * voice (each device has its own), hover or tap, and one or two pages side by side (that is about the screen). The hubs keep
+ * only these names (syncExchange.ts).
+ */
+export const SYNCED_SETTINGS = ['theme', 'fontFamily', 'fontSize', 'scrollFontSize', 'lineHeight', 'pageWidth', 'pinyin', 'hskThreshold',
+  'pinyinStyle', 'toneColors', 'sandhi', 'autoKnown', 'script', 'paragraphTranslate', 'translator', 'claudeModel', 'localOnly', 'ttsRate',
+  'layout', 'pageTurn'] as const;
+export type SyncedSetting = (typeof SYNCED_SETTINGS)[number];
+export const isSyncedSetting = (name: string): name is SyncedSetting => (SYNCED_SETTINGS as readonly string[]).includes(name);
+
 /** cyrb53: a fast 53-bit string hash, as base36. Enough to tell versions of a record (or books) apart. */
 export function hash(s: string): string {
   let h1 = 0xdeadbeef;

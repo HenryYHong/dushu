@@ -98,7 +98,10 @@ export function createLookup(host: LookupHost): Lookup {
     });
     host.onWordShown?.(b, s, e);
     if (opts.log !== false) {
-      logLookup(ctx, dict, { word, syllables: token?.pinyin ?? [], around: { prev: prev?.text, next: next?.text },
+      // A name or term the book defines is logged with the book's meaning, as its card shows it (Review uses it).
+      const lex = host.lexicon();
+      const entry = lex && (lex.get(word) ?? lex.get(dict.toSimplified(word)) ?? lex.get(dict.toTraditional(word)));
+      logLookup(ctx, dict, { word, syllables: token?.pinyin ?? [], around: { prev: prev?.text, next: next?.text }, bookGloss: entry?.gloss,
         context: { sentence, bookId: book.id, bookTitle: book.title, chapter: host.chapterIndex() } });
     }
   }

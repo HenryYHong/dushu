@@ -147,6 +147,9 @@ export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOption
       } else if (side) {
         // ！ is drawn centered in its box (the other closing marks sit at the left), so the stylesheet moves it (rd-pu-b).
         const pu = createEl('span', side === 'o' ? 'rd-pu rd-pu-o' : token.text === '！' ? 'rd-pu rd-pu-c rd-pu-b' : 'rd-pu rd-pu-c');
+        // The half-cell grid expects simplified forms (ink at the side, not centered). In a traditional book a font with both
+        // locales (PingFang) would follow the text's zh-Hant and draw the centered ones, so the mark says it is simplified.
+        pu.lang = 'zh-Hans';
         pu.appendChild(document.createTextNode(token.text));
         frag.appendChild(pu);
       } else frag.appendChild(document.createTextNode(token.text));

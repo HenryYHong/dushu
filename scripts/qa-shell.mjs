@@ -204,14 +204,15 @@ const input = await page.$('input[type=file]');
 await input.uploadFile(join(root, 'public/samples/kong-yiji.txt'));
 await page.waitForFunction(() => document.querySelectorAll('.lib-card').length >= 3, { timeout: 15000 });
 await input.uploadFile(COVER_BOOK);
-const coverAdded = await page.waitForFunction(() => [...document.querySelectorAll('.lib-card-title')].some((e) => e.textContent === '道德經'), { timeout: 30000 }).then(() => true, () => false);
+// Cards show titles in the reading script (simplified by default): the stored 道德經 shows as 道德经.
+const coverAdded = await page.waitForFunction(() => [...document.querySelectorAll('.lib-card-title')].some((e) => e.textContent === '道德經' || e.textContent === '道德经'), { timeout: 30000 }).then(() => true, () => false);
 check(coverAdded, '道德經.azw3 imports through the file input');
 await sleep(500);
 const titles = await page.$$eval('.lib-card-title', (els) => els.map((e) => e.textContent));
 console.log('     books:', titles.join(' | '));
 check(titles.length >= 4, `library has ${titles.length} books`);
 const realCover = await page.waitForFunction(() => {
-  const c = [...document.querySelectorAll('.lib-card')].find((x) => x.querySelector('.lib-card-title')?.textContent === '道德經');
+  const c = [...document.querySelectorAll('.lib-card')].find((x) => ['道德經', '道德经'].includes(x.querySelector('.lib-card-title')?.textContent ?? ''));
   const img = c?.querySelector('img.lib-cover-img');
   return !!img && img.complete && img.naturalWidth > 0;
 }, { timeout: 5000 }).then(() => true, () => false);
@@ -231,7 +232,7 @@ await page.evaluate(async () => {
 });
 await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForSelector('.lib-continue');
-check((await text('.lib-continue-title')) === '道德經', 'Continue card shows the most recently opened book');
+check(['道德經', '道德经'].includes(await text('.lib-continue-title')), 'Continue card shows the most recently opened book');
 await shot('03-library-books', { fullPage: true });
 
 // Card menu, rename, delete.

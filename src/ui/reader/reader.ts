@@ -170,6 +170,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   // no room). Where the browser cannot do it, the tap says how. A Home Screen app is already full screen: no button there
   // (unless full screen is somehow on, so it can be left).
   const fullBtn = h('button.icon-btn.rd-full-btn', { type: 'button', onclick: () => {
+    // Full screen that is on can always be left (in a Home Screen app the button shows only then).
+    if (isFullscreen()) { void setFullscreen(false).catch(() => {}); return; }
     if (!fullscreenSupported()) {
       ctx.toast(isStandalone()
         ? 'Opened from your Home Screen, Dushu already reads without the browser bars.'
@@ -1067,9 +1069,11 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (suppressClick) { suppressClick = false; return; }
     const touchy = pointerKind !== 'mouse';
     const target = e.target as Element;
-    // A finger that lands just off a word in Pages (punctuation, the gap between lines) still means that word (wordNear).
+    // A finger that lands just off a word in Pages (punctuation, the gap between lines, the margin beside a line) still means
+    // the nearest word (wordNear), on the page on show.
     const w = target.closest?.('.rd-w')
-      ?? (paged && touchy && target.closest?.('.rd-b') && pager?.stage.contains(target) ? wordNear(e.clientX, e.clientY) : null);
+      ?? (paged && touchy && pager?.stage.contains(target) && !target.closest?.('[data-rd-ui], button, a, input, .pp-pop')
+        ? wordNear(e.clientX, e.clientY) : null);
     // A double click on a word looks that word up (onDblClick). Quick clicks on the outer strips of a page each turn a page:
     // the browser counts them as double and triple clicks, which used to swallow every click after the first.
     const edgeClick = paged && !!pager && !w && pager.stage.contains(target)

@@ -68,6 +68,7 @@ export function sqlStore(sql: SqlStorage): AccountStore {
       return r ? new Uint8Array(r.data as ArrayBuffer) : undefined;
     },
     chunkCount: (key) => Number(sql.exec('SELECT count(*) AS n FROM book_chunks WHERE key = ?', key).toArray()[0]?.n ?? 0),
+    recordBytes: () => Number(sql.exec("SELECT coalesce(sum(length(data)), 0) AS n FROM records WHERE data != 'null'").toArray()[0]?.n ?? 0),
     wipe() { for (const table of ['book_chunks', 'books', 'sessions', 'records', 'meta']) sql.exec(`DELETE FROM ${table}`); },
   };
 }

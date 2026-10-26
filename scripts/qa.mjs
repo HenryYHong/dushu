@@ -114,6 +114,11 @@ async function session({ width = 1100, height = 860, mobile = false, settings = 
       if (sessionStorage.getItem('qa.seeded')) return;
       sessionStorage.setItem('qa.seeded', '1');
       localStorage.setItem(key, JSON.stringify(patch));
+      // The settings are the scenario's own: no one-time moves to the new defaults (Pages, simplified), and no sync, which
+      // would carry one scenario's settings into the next scenario's fresh profile through the server's sync folder.
+      localStorage.setItem('dushu.settings.pages.v1', '1');
+      localStorage.setItem('dushu.settings.simplified.v1', '1');
+      localStorage.setItem('dushu.sync.off.v1', '1');
     } catch { /* storage blocked */ }
   }, SETTINGS_KEY, settings);
   await page.goto(BASE, { waitUntil: 'networkidle0' });
@@ -509,7 +514,7 @@ scenarios.vocab = async () => {
 };
 
 scenarios.rare = async () => {
-  const s = await session({ settings: { pinyin: 'all', fontSize: 30 } });
+  const s = await session({ settings: { pinyin: 'all', fontSize: 30, script: 'original' } });
   const { page } = s;
   await s.goto('#/');
   await page.waitForSelector('.lib-page');
@@ -686,7 +691,7 @@ scenarios.pages = async () => {
   const { page } = s;
   const info = () => page.evaluate(() => ({ ...document.querySelector('.rd-stage')?.dataset }));
   const settled = async (ms = 1000) => { await sleep(ms); return info(); };
-  await s.addSample('紅樓夢');
+  await s.addSample('红楼梦'); // classic titles show in the reading script (simplified by default)
   await page.waitForSelector('.rd-stage[data-pages]', { timeout: 30000 });
   await sleep(700);
   let st = await info();
@@ -917,7 +922,9 @@ scenarios.mobi = async () => {
     await s.goto('#/');
     await page.waitForSelector('.lib-page');
     await (await page.$('input[type=file]')).uploadFile(files[1]);
-    await page.waitForFunction(() => !document.querySelector('.lib-card-pending') && document.querySelectorAll('.lib-card[data-id]').length > 1, { timeout: 60000 }).then(() => check(true, 'the AZW3 imported too'), () => check(false, 'the AZW3 imported too'));
+    // The same book in another format is recognized, not added twice.
+    await page.waitForFunction(() => /already in your library/.test(document.body.textContent ?? ''), { timeout: 60000 })
+      .then(() => check(true, 'the AZW3 of the same book is recognized as already in the library'), () => check(false, 'the AZW3 of the same book is recognized as already in the library'));
   }
   await s.done();
 };

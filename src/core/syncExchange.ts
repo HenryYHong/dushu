@@ -2,7 +2,7 @@
 // run it: the owner's Mac (scripts/sync-bridge.ts, one JSON file) and the sync account online (cloud/src, one SQLite
 // database per account). Each record is last-writer-wins by the time the change happened on the device that made it,
 // except a word's lookups on a day, which merge (every device's count). src/core/sync.ts is the device's half.
-import { canonical, isLookupRecord, mergeLookups } from './syncKeys';
+import { canonical, isLookupRecord, isSyncedSetting, mergeLookups } from './syncKeys';
 
 /** A record as it travels: `data` null means deleted. */
 export interface WireRecord { key: string; at: number; data: unknown }
@@ -72,6 +72,7 @@ export function exchange(table: RecordTable, input: { epoch?: unknown; since?: u
     if (!c || typeof c !== 'object') continue;
     const { key, at, data } = c as Partial<WireRecord>;
     if (typeof key !== 'string' || key.length > SYNC_LIMITS.key || !KEY.test(key)) continue;
+    if (key[0] === 'o' && !isSyncedSetting(key.slice(2))) continue; // only the settings that sync, nothing else under o:
     if (typeof at !== 'number' || !Number.isFinite(at) || at < 0) continue;
     const value = data === undefined ? null : data;
     if (value !== null && typeof value !== 'object') continue;

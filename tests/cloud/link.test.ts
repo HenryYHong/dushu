@@ -27,7 +27,7 @@ function world() {
   const dir = mkdtempSync(join(tmpdir(), 'dushu-link-'));
   dirs.push(dir);
   const mac = createSyncStore({ dir });
-  const c = cloud();
+  const c = cloud({ OWNER_EMAILS: 'reader@example.com' });
   let code = '';
   const macCalls: string[] = [];
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -91,7 +91,7 @@ describe('signing in on a device that reaches the Mac', () => {
     await linkMac();
     const token = cloudSession()!.token;
     const me = await (await worker.fetch(new Request('https://sync.test/me', { headers: { Authorization: `Bearer ${token}` } }), w.c.env)).json();
-    expect(me).toEqual({ email: 'reader@example.com', owner: false, mac: 'https://my-mac.tail1234.ts.net:8443' });
+    expect(me).toEqual({ email: 'reader@example.com', owner: true, mac: 'https://my-mac.tail1234.ts.net:8443' });
     const asked = w.macCalls.filter((p) => p === '/api/private-status').length;
     await linkMac();
     expect(w.macCalls.filter((p) => p === '/api/private-status').length).toBe(asked + 1); // asked again, but not sent again

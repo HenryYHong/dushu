@@ -68,6 +68,24 @@ const SPEECH_OTHERS_CHARS = 60_000;
 const SPEECH_SHARE_CHARS = 15_000;
 /** Sign-in codes a day from one network (a classroom shares one), and in all (Resend's free plan sends 100 a day). */
 const CODES_PER_NETWORK = 40;
+/** Wrong sign-in codes a day from one network. */
+const WRONG_PER_NETWORK = 20;
+
+/**
+ * The network a request came from, as the limits count it: an IPv4 address, or an IPv6 address's /64 (anyone holding one
+ * holds all of it). Hashed, so no address is kept.
+ */
+export async function networkOf(ip: string): Promise<string> {
+  let net = ip.trim().toLowerCase();
+  if (net.includes(':')) {
+    const [head, tail = ''] = net.split('::');
+    const a = head ? head.split(':') : [];
+    const b = net.includes('::') ? (tail ? tail.split(':') : []) : [];
+    const groups = [...a, ...Array(Math.max(0, 8 - a.length - b.length)).fill('0'), ...b];
+    net = groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':') + '::/64';
+  }
+  return (await sha256(`dushu-net|${net}`)).slice(0, 32);
+}
 
 const claudeLimits = (env: Env): ClaudeLimits => ({
   requests: Number(env.CLAUDE_MAX_REQUESTS) > 0 ? Number(env.CLAUDE_MAX_REQUESTS) : 3000,
@@ -131,12 +149,12 @@ async function call(env: Env, stub: DurableObjectStub, op: string, body: unknown
   return stub.fetch(`https://account/${op}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Secret': token, 'X-Owners': owners(env) }, body: JSON.stringify(body) });
 }
 
-function bearer(request: Request, env: Env): { stub: DurableObjectStub; secret: string } {
+function bearer(request: Request, env: Env): { stub: DurableObjectStub; secret: string; id: string } {
   const m = TOKEN.exec((request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, ''));
   if (!m) throw new CloudError(401, 'This device is signed out of sync. Sign in again in Settings.');
   let id: DurableObjectId;
   try { id = env.ACCOUNTS.idFromString(m[1]); } catch { throw new CloudError(401, 'This device is signed out of sync. Sign in again in Settings.'); }
-  return { stub: env.ACCOUNTS.get(id), secret: m[2] };
+  return { stub: env.ACCOUNTS.get(id), secret: m[2], id: m[1] };
 }
 
 /**
@@ -177,19 +195,25 @@ async function claudeTranslate(request: Request, env: Env, ctx: ExecutionContext
 
 /** Read-aloud through the account: one sentence read by Workers AI, counted against the day before it is read. */
 async function speech(request: Request, env: Env): Promise<Response> {
-  const { stub, secret: s } = bearer(request, env);
+  const { stub, secret: s, id } = bearer(request, env);
   if (!env.AI) throw new CloudError(503, 'Read-aloud is not set up on the sync server.', 'no_voice');
   const body = await readJson(request, 8192);
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   if (!text) throw new CloudError(400, 'There is nothing to read.');
   const chars = [...text].length;
   if (chars > SPEECH_TEXT) throw new CloudError(413, 'That is too long to read at once.');
-  const gate = await call(env, stub, 'speech-start', { chars, limit: speechLimit(env), share: SPEECH_SHARE_CHARS }, s);
+  const gate = await call(env, stub, 'speech-start', {}, s);
   if (!gate.ok) return gate;
   const { owner } = await gate.json() as { owner?: boolean };
-  const shared: Take[] = [{ name: 'speech', n: chars, max: speechLimit(env) }, ...(owner ? [] : [{ name: 'speech-others', n: chars, max: SPEECH_OTHERS_CHARS }])];
+  // The account's day (kept here, by account, so deleting the account does not start it again), everyone's, and everyone
+  // else's but the owner's.
+  const shared: Take[] = [
+    { name: `speech-account:${id}`, n: chars, max: owner ? speechLimit(env) : Math.min(speechLimit(env), SPEECH_SHARE_CHARS) },
+    { name: 'speech', n: chars, max: speechLimit(env) },
+    ...(owner ? [] : [{ name: 'speech-others', n: chars, max: SPEECH_OTHERS_CHARS }]),
+  ];
   if (!await takeShared(env, shared)) {
-    throw new CloudError(429, 'Today’s free read-aloud on this Dushu is used up. It resets at midnight (UTC); until then Dushu reads with this device’s voice.', 'daily_limit');
+    throw new CloudError(429, 'Today’s free read-aloud is used up. It resets at midnight (UTC); until then Dushu reads with this device’s voice.', 'daily_limit');
   }
   // The model's answer as it comes, { audio: base64 WAV }: decoding megabytes here would take the Worker past the free plan's
   // CPU time, so the device decodes it (src/speech/tts.ts).
@@ -228,23 +252,27 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     const email = normalEmail((await readJson(request, 4096)).email);
     if (!email) throw new CloudError(400, 'That does not look like an email address.');
     if (!allowedEmail(email, env.ALLOWED_EMAILS)) throw new CloudError(403, 'That email cannot sign in to this Dushu.');
-    // Anyone may ask for a code, so a network, and the day, have a limit: the network named by a hash, never kept as it is.
+    // The account's own limits first (a code sent just now, too many this hour), then the network's and the day's. Anyone may
+    // ask for a code, so a network has a limit: it is named by a hash, never kept as it is.
+    const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(`email:${email}`));
+    const may = await call(env, stub, 'code-check', {});
+    if (!may.ok) return may;
     const ip = request.headers.get('CF-Connecting-IP');
-    if (ip && !await takeShared(env, [{ name: `net:${(await sha256(`dushu-net|${ip}`)).slice(0, 32)}`, n: 1, max: CODES_PER_NETWORK }])) {
+    if (ip && !await takeShared(env, [{ name: `net:${await networkOf(ip)}`, n: 1, max: CODES_PER_NETWORK }])) {
       throw new CloudError(429, 'Too many sign-in codes were asked for from this network today. Try again tomorrow.');
     }
-    const code = sixDigits();
-    const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(`email:${email}`));
-    const kept = await call(env, stub, 'code', { email, hash: await sha256(code) });
-    if (!kept.ok) return kept;
     if (!await takeShared(env, [{ name: 'emails', n: 1, max: Number(env.DAILY_EMAILS) || 90 }])) {
       throw new CloudError(429, 'The sync server has sent all the sign-in emails it can today. Try again tomorrow.');
     }
+    // The new code replaces the old one only once its email has gone out: a code in the inbox keeps working until then.
+    const code = sixDigits();
     try { await mailer(env).send({ to: email, ...codeEmail(code) }); } catch (e) {
       if (e instanceof CloudError) throw e;
       console.error('Dushu sync: the sign-in email was not sent', e);
       throw new CloudError(502, 'The sign-in email could not be sent. Try again in a minute.');
     }
+    const kept = await call(env, stub, 'code', { email, hash: await sha256(code) });
+    if (!kept.ok) return kept;
     return json(200, { ok: true, ...(env.MAIL_MODE === 'log' ? { devCode: code } : {}) });
   }
 
@@ -253,12 +281,19 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     const email = normalEmail(body.email);
     const code = typeof body.code === 'string' ? body.code.replace(/\D/g, '') : '';
     if (!email || code.length !== 6) throw new CloudError(400, 'Type the six-digit code from the email.');
+    // A network that has typed too many wrong codes today is refused (each account also caps its own wrong codes).
+    const ip = request.headers.get('CF-Connecting-IP');
+    const wrong = ip ? `wrong:${await networkOf(ip)}` : '';
+    if (wrong && !await takeShared(env, [{ name: wrong, n: 0, max: WRONG_PER_NETWORK - 1 }])) {
+      throw new CloudError(429, 'Too many wrong codes from this network today. Try again tomorrow.');
+    }
     const id = env.ACCOUNTS.idFromName(`email:${email}`);
     const s = secret();
     const res = await call(env, env.ACCOUNTS.get(id), 'verify', { codeHash: await sha256(code), sessionHash: await sha256(s) });
+    if (res.status === 400 && wrong) await takeShared(env, [{ name: wrong, n: 1, max: Number.MAX_SAFE_INTEGER }]);
     if (!res.ok) return res;
-    const { email: named } = await res.json() as { email: string };
-    return json(200, { token: `${id.toString()}.${s}`, email: named || email });
+    const { email: named, created } = await res.json() as { email: string; created?: string };
+    return json(200, { token: `${id.toString()}.${s}`, email: named || email, ...(created ? { created } : {}) });
   }
 
   if (path === '/auth/signout' && request.method === 'POST') {
@@ -286,12 +321,13 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     const { stub, secret: s } = bearer(request, env);
     const q = new URL(request.url).searchParams;
     const where = `key=${encodeURIComponent(q.get('key') ?? '')}&i=${encodeURIComponent(q.get('i') ?? '')}`;
-    if (request.method === 'GET') return stub.fetch(`https://account/chunk-get?${where}`, { method: 'POST', headers: { 'X-Secret': s }, body: '{}' });
+    if (request.method === 'GET') return stub.fetch(`https://account/chunk-get?${where}`, { method: 'POST', headers: { 'X-Secret': s, 'X-Owners': owners(env) }, body: '{}' });
     if (request.method !== 'PUT') throw new CloudError(405, 'Not allowed.');
     if (Number(request.headers.get('Content-Length') ?? 0) > BOOK_CHUNK) throw new CloudError(413, 'That piece of the book is too large.');
     const bytes = await request.arrayBuffer();
     if (bytes.byteLength > BOOK_CHUNK) throw new CloudError(413, 'That piece of the book is too large.');
-    return stub.fetch(`https://account/chunk-put?${where}`, { method: 'POST', headers: { 'X-Secret': s, 'Content-Type': 'application/octet-stream' }, body: bytes });
+    const upload = q.get('u') ?? '';
+    return stub.fetch(`https://account/chunk-put?${where}&u=${encodeURIComponent(upload)}`, { method: 'POST', headers: { 'X-Secret': s, 'X-Owners': owners(env), 'Content-Type': 'application/octet-stream' }, body: bytes });
   }
   if (path === '/claude/status' && request.method === 'GET') return claudeStatus(request, env);
   if (path === '/claude/translate' && request.method === 'POST') return claudeTranslate(request, env, ctx);
@@ -341,11 +377,14 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
     const index = Number(url.searchParams.get('i'));
     const now = Date.now();
     const token = request.headers.get('X-Secret') ?? '';
-    core.setOwners(request.headers.get('X-Owners') ?? '');
     // Hashed before the account is touched, so each operation below runs whole, as one transaction.
     const session = token ? await sha256(token) : '';
     const str = (v: unknown) => (typeof v === 'string' ? v : '');
+    // After the last await: from here each operation runs to its end before another request reaches this account, so the
+    // owners it is told are the ones it answers with.
+    core.setOwners(request.headers.get('X-Owners') ?? '');
     switch (op) {
+      case 'code-check': core.checkCode(now); return json(200, { ok: true });
       case 'code': core.storeCode(str(body.email), str(body.hash), now); return json(200, { ok: true });
       case 'verify': return json(200, core.verify(str(body.codeHash), str(body.sessionHash), now));
       case 'me': return json(200, core.me(session, now));
@@ -356,11 +395,11 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'books': return json(200, core.listBooks(session, now));
       case 'book-start': return json(200, core.startBook(session, body, now));
       case 'book-drop': core.dropBook(session, str(body.key), now); return json(200, { ok: true });
-      case 'chunk-put': return json(200, core.putBookChunk(session, key, index, bytes!, now));
+      case 'chunk-put': return json(200, core.putBookChunk(session, key, index, bytes!, now, url.searchParams.get('u') ?? ''));
       case 'claude-status': return json(200, core.claudeStatus(session, body.limits as ClaudeLimits, now));
       case 'claude-start': core.claudeStart(session, body.limits as ClaudeLimits, now); return json(200, { ok: true });
       case 'claude-used': core.claudeUsed(session, Number(body.input), Number(body.output), now); return json(200, { ok: true });
-      case 'speech-start': return json(200, core.speechStart(session, Number(body.chars) || 0, Number(body.limit) || 0, Number(body.share) || 0, now));
+      case 'speech-start': return json(200, core.speechStart(session, now));
       case 'delete': core.deleteAccount(session, now); return json(200, { ok: true });
       case 'chunk-get': return new Response(core.getBookChunk(session, key, index, now) as Uint8Array<ArrayBuffer>, { headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' } });
       default: return json(404, { error: 'Not found.' });

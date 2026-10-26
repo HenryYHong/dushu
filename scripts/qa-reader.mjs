@@ -135,7 +135,8 @@ try {
 
   await page.setViewport({ width: 1100, height: 900 });
   await page.goto(BASE, { waitUntil: 'networkidle0' });
-  await page.evaluate(() => localStorage.clear());
+  // A clean profile whose settings are this script's own: no one-time moves to the new defaults (Pages, simplified).
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('dushu.settings.pages.v1', '1'); localStorage.setItem('dushu.settings.simplified.v1', '1'); });
 
   // ---- seed books through the app's own modules
   const ids = await page.evaluate(async () => {
@@ -358,8 +359,8 @@ try {
   check(!copyInfo.nativeHasPinyin, 'Selection.toString() has no pinyin');
   check(!copyInfo.copiedHasPinyin && copyInfo.copiedHan === copyInfo.baseHan && copyInfo.baseHan.length > 10, 'copy handler returns the exact source text without pinyin');
 
-  // ---- 6. Rare characters end to end
-  await setSettings({ pinyin: 'all', fontSize: 28 });
+  // ---- 6. Rare characters end to end (as written: the simplified default would show 豈 as 岂)
+  await setSettings({ pinyin: 'all', fontSize: 28, script: 'original' });
   await openBook(ids.rare);
   await shot('10-rare-all');
   for (const [ch, expect] of [['𠀀', /Extension B/], ['𰻞', /Extension G|biang/i], ['⼈', /Kangxi/], ['豈', /how|what|qǐ/]]) {

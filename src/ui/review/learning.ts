@@ -44,6 +44,8 @@ export async function reviewCards(store: Store, getDict: () => Promise<Dictionar
   const fresh: VocabItem[] = [];
   for (const r of rows) {
     const item = vocabItemFor(dict, { word: r.word, syllables: r.pinyin ? r.pinyin.split(' ') : [], context: r.context, now });
+    // A name or term only the book defines: the meaning logged with the lookup (the book's own, as its card showed it).
+    if (!item.gloss && r.gloss) item.gloss = r.gloss;
     if (seen.has(item.id) || store.vocab.has(item.id)) continue;
     seen.add(item.id);
     fresh.push(item);

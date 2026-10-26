@@ -115,9 +115,15 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
       h('span.set-prov-text', null, h('span.set-prov-name', null, title), h('span.set-help', null, desc), extra),
       chip);
   };
+  // Signed in, Claude goes through the account's sync server, not the Mac: the words say so.
+  const account = !!cloudSession();
+  const names = account ? { ...NAMES, claude: {
+    name: 'Claude (through your account)',
+    desc: 'Best quality, and it can explain grammar. The sync server sends the selected text to Anthropic with a key that stays on the server.',
+  } } : NAMES;
   const list = h('div.set-prov-list', { role: 'radiogroup', 'aria-label': 'Translation provider' },
-    rowEl('auto', 'Automatic', 'Claude through your Mac when it is set up, then the Qwen3.5 9B model on your Mac, ready browser translation, smaller local models, and the dictionary. Local only skips Claude.'),
-    ...ids.map((id) => rowEl(id, NAMES[id].name, NAMES[id].desc)));
+    rowEl('auto', 'Automatic', `Claude through your ${account ? 'account' : 'Mac'} when it is set up, then the Qwen3.5 9B model on your Mac, ready browser translation, smaller local models, and the dictionary. Local only skips Claude.`),
+    ...ids.map((id) => rowEl(id, names[id].name, names[id].desc)));
 
   function paintChip(value: Choice, text: string, kind: 'ok' | 'warn' | 'off') {
     const chip = chips.get(value)!;
@@ -182,7 +188,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   const model = h('select.select', { id: modelId, 'aria-label': 'Claude model' }, ...CLAUDE_MODELS.map((m) => h('option', { value: m.value }, m.label))) as HTMLSelectElement;
   model.addEventListener('change', () => settings.set({ claudeModel: model.value }));
 
-  const localOnly = toggle('localOnly', 'Local only: keep every sentence on this Mac', (v) => settings.set({ localOnly: v }));
+  const localOnly = toggle('localOnly', `Local only: keep every sentence on this ${account ? 'device' : 'Mac'}`, (v) => settings.set({ localOnly: v }));
 
   const testOut = h('div.set-test-out', { role: 'status', 'aria-live': 'polite' });
   const testBtn = h('button.btn.btn-sm', { type: 'button' }, 'Test Claude') as HTMLButtonElement;
@@ -209,11 +215,13 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   const refreshBtn = h('button.btn.btn-sm', { type: 'button', onclick: () => void refresh(true) }, icon('refresh'), 'Check again') as HTMLButtonElement;
 
   const claudeBox = h('div.set-claude', null,
-    h('div.set-claude-title', null, 'Claude through your Mac'),
-    h('p.set-claude-note', null, 'The key stays in a file on your Mac and never reaches this browser, your settings or a backup.'),
+    h('div.set-claude-title', null, account ? 'Claude through your account' : 'Claude through your Mac'),
+    h('p.set-claude-note', null, account
+      ? 'The key is kept on the sync server and never reaches this browser, your settings or a backup.'
+      : 'The key stays in a file on your Mac and never reaches this browser, your settings or a backup.'),
     row('Model', 'Sonnet gives the best Chinese for the price. Haiku costs less.', h('div.set-model-row', null, model), modelId),
-    row('Local only', 'Keep every sentence on this Mac: no Claude and no MyMemory. Sentences go only to the model on your Mac, Chrome\'s on-device translator, or the dictionary.', localOnly),
-    row('Status', 'Checked on your Mac. Today\'s limit protects your Anthropic bill.', h('div.set-status-wrap', null, statusBox, h('div.set-test', null, h('div.set-btn-row', null, refreshBtn, testBtn), testOut))));
+    row('Local only', `Keep every sentence on this ${account ? 'device' : 'Mac'}: no Claude and no MyMemory. Sentences go only to the model on your Mac, Chrome\'s on-device translator, or the dictionary.`, localOnly),
+    row('Status', account ? 'Checked on the sync server. Today\'s limit protects the Anthropic bill.' : 'Checked on your Mac. Today\'s limit protects your Anthropic bill.', h('div.set-status-wrap', null, statusBox, h('div.set-test', null, h('div.set-btn-row', null, refreshBtn, testBtn), testOut))));
 
   const el = group('Translation',
     'Pick what translates sentences you select. Word cards also offer an optional on-device context suggestion when Ollama is available.',

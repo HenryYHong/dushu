@@ -121,7 +121,9 @@ export const mount: MountFn = (root, _params, ctx) => {
   let macItems: MacBook[] = [];
   const macNote = h('div.lib-mac-note.card', { role: 'status', hidden: true });
   const head = h('div.page-head', null,
-    h('div', null, pageTitle('library', 'Library'), h('p.page-sub', null, 'Your books stay on this device.')),
+    h('div', null, pageTitle('library', 'Library'), h('p.page-sub', null, cloudSession()
+      ? 'Your books are kept in your account, for your devices only.'
+      : 'Your books stay on this device.')),
     headActions);
   const continueEl = h('div.lib-continue-slot');
   const libraryTitle = h('h2', null, 'Your books');

@@ -359,6 +359,28 @@ describe('pages layout', () => {
     });
   }
 
+  for (const pageTurn of ['slide', 'none'] as const) {
+    it(`${pageTurn}: a short drag that stops and is held still before the finger lifts does not turn the page`, async () => {
+      const { ctx, meta } = await setup({ pageTurn });
+      await open(ctx, meta.id);
+      touch('pointerdown', 700);
+      touch('pointermove', 688);
+      await tick(40);
+      touch('pointermove', 640); // quick, then still
+      await tick(300);
+      touch('pointerup', 640);
+      await tick(700);
+      expect(stage().page).toBe('1');
+      // The same drag let go while it moves turns the page.
+      touch('pointerdown', 700);
+      touch('pointermove', 688);
+      await tick(40);
+      touch('pointermove', 640);
+      touch('pointerup', 640);
+      await vi.waitFor(() => expect(stage().page).toBe('2'), { timeout: 3000, interval: 5 });
+    });
+  }
+
   it('quick clicks under the default flip: every click turns a page, double and triple clicks included', async () => {
     const { ctx, meta } = await setup({ pageTurn: 'flip' });
     await open(ctx, meta.id);

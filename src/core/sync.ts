@@ -10,8 +10,8 @@ import { cleanBookmark, cleanLookup, cleanProgress, cleanVocab } from '../store'
 import { DEFAULT_SETTINGS, sanitizePatch } from '../store/settings';
 import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge';
-import { CLOUD_EVENT, cloudFetch, cloudSession, forgetSession } from './cloud';
-import { bookKey, canonical, hash, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
+import { CLOUD_EVENT, accountMark, cloudFetch, cloudSession, forgetSession } from './cloud';
+import { SYNCED_SETTINGS, bookKey, canonical, hash, isSyncedSetting, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 
 export { bookKey, canonical, hash };
 
@@ -27,14 +27,12 @@ const COPIED_KEY = 'dushu.cloud.mac-copied.v1';
 const COPY_RETRY_MS = 5 * 60_000;
 const META = '#meta';
 
-/**
- * The settings that follow the reader from device to device, one record each (o:<name>). The rest belong to the device: its
- * voice (each device has its own), hover or tap, and one or two pages side by side (that is about the screen).
- */
-export const SYNCED_SETTINGS = ['theme', 'fontFamily', 'fontSize', 'scrollFontSize', 'lineHeight', 'pageWidth', 'pinyin', 'hskThreshold',
-  'pinyinStyle', 'toneColors', 'sandhi', 'autoKnown', 'script', 'paragraphTranslate', 'translator', 'claudeModel', 'localOnly', 'ttsRate',
-  'layout', 'pageTurn'] as const satisfies readonly (keyof Settings)[];
-const synced = (name: string): name is (typeof SYNCED_SETTINGS)[number] => (SYNCED_SETTINGS as readonly string[]).includes(name);
+// The settings that sync (SYNCED_SETTINGS) are listed in syncKeys.ts, where the hubs check them too.
+export { SYNCED_SETTINGS };
+const synced = isSyncedSetting;
+// Every name there is a setting.
+const _settingNames: readonly (keyof Settings)[] = SYNCED_SETTINGS;
+void _settingNames;
 /** A setting's value as it travels, checked; undefined when it is not one Dushu can use. */
 function settingHere(name: string, data: unknown): { v: unknown } | undefined {
   if (!synced(name) || !data || typeof data !== 'object') return undefined;
@@ -166,7 +164,7 @@ export function copyMacIntoAccount(now = Date.now()): Promise<boolean> {
   const s = cloudSession();
   const base = bridgeBase();
   if (!s || base === null || copying || now - copyFailedAt < COPY_RETRY_MS) return copying ?? Promise.resolve(false);
-  const mark = `${s.email}|${base || globalThis.location?.origin}`;
+  const mark = accountMark(s, base || globalThis.location?.origin || '');
   let done: string[] = [];
   try { done = JSON.parse(globalThis.localStorage?.getItem(COPIED_KEY) ?? '[]') as string[]; } catch { /* none yet */ }
   if (!Array.isArray(done)) done = [];
@@ -378,7 +376,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       });
       const hub = cloudSession() ? 'cloud' : 'mac';
       const request = send(body, leaving && body.length < 60_000);
-      if (!request) { setStatus({ state: 'none', hub: undefined }); return; }
+      // Signed out by the server: that stays what Settings says until this device signs in again.
+      if (!request) { setStatus({ state: status.state === 'signedout' ? 'signedout' : 'none', hub: undefined }); return; }
       let response: Response;
       try { response = await request; } catch { setStatus({ state: 'asleep', hub }); return; }
       if (response.status === 401 && hub === 'cloud') {
@@ -551,7 +550,10 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         next.push({ key: r.key, at: r.at, sig: '-' });
       } else if (kind === 'o') {
         const v = settingHere(id, data);
-        if (!v) continue;
+        if (!v || !opts.settings) continue;
+        // Chosen here while this sync was under way: the choice here is newer and goes with the next sync.
+        const sent = (current.get(r.key)?.data as { v?: unknown } | undefined)?.v;
+        if (sent !== (opts.settings.get() as unknown as Record<string, unknown>)[id]) continue;
         const sig = sigOf(v);
         if (base?.sig !== sig) (settingsPatch as Record<string, unknown>)[id] = v.v;
         next.push({ key: r.key, at: r.at, sig });

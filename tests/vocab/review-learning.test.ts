@@ -77,6 +77,17 @@ describe('the words being learned', () => {
     cleanup();
   });
 
+  it('keep the book’s own meaning for a name or term the dictionary lacks', async () => {
+    const { store, ctx, root } = await setup();
+    await store.lookups.log({ day: '2026-10-24', id: '彭丘砚', word: '彭丘砚', pinyin: 'peng2 qiu1 yan4', gloss: 'Peng Qiuyan (a name in this book)' }, 1000);
+    const cleanup = await mountReview(root, {}, ctx) as () => void;
+    await tick();
+    expect(root.querySelector('.rev-gloss')?.textContent).toBe('Peng Qiuyan (a name in this book)');
+    key(' '); key('3'); await tick(); await tick();
+    expect((await store.vocab.list()).find((v) => v.id === '彭丘砚')?.gloss).toBe('Peng Qiuyan (a name in this book)');
+    cleanup();
+  });
+
   it('do not stop Review when the dictionary cannot load: the saved words due are reviewed alone', async () => {
     const { store, ctx, root } = await setup();
     ctx.dict = () => Promise.reject(new Error('offline'));

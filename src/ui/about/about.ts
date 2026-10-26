@@ -135,7 +135,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
 
     h('section.ab-section', null,
       h('p.ab-lead', null, 'Dushu (读书, “to read books”) is a reader for learners. Open a real book, and anything you do not know is a click away: pinyin, English meanings, how a word is built from its characters, and a translation of whole sentences.'),
-      h('p.ab-p', null, 'It runs entirely in your browser. Your books, saved words and settings stay on this device. The only time text leaves it is when you pick an online translator, and then only the passage you selected.')),
+      h('p.ab-p', null, 'It runs in your browser. Your books, saved words and settings stay on this device, unless you sign in: then they are kept in your sync account too, private to you, so your other devices have them. Other text leaves the device only for an online translator or the read-aloud voice of your account, and then only the passage you chose.')),
 
     h('section.ab-section', null,
       h('h2.section-title', null, 'How to use it'),

@@ -10,7 +10,8 @@ const OWNER_KEY = 'dushu.cloud.owner.v1';
 /** Fired on window when this device signs in or out. */
 export const CLOUD_EVENT = 'dushu:cloud';
 
-export interface CloudSession { token: string; email: string }
+/** A device's sign-in. `created` names the account it signed in to (it changes when the account is deleted and made again). */
+export interface CloudSession { token: string; email: string; created?: string }
 
 function storage(): Storage | undefined {
   try { return globalThis.localStorage; } catch { return undefined; }
@@ -28,7 +29,8 @@ export function cloudBase(): string | null {
 export function cloudSession(): CloudSession | null {
   try {
     const raw = JSON.parse(storage()?.getItem(SESSION_KEY) ?? 'null') as Partial<CloudSession> | null;
-    return raw && typeof raw.token === 'string' && raw.token && typeof raw.email === 'string' && cloudBase() ? { token: raw.token, email: raw.email } : null;
+    return raw && typeof raw.token === 'string' && raw.token && typeof raw.email === 'string' && cloudBase()
+      ? { token: raw.token, email: raw.email, ...(typeof raw.created === 'string' && raw.created ? { created: raw.created } : {}) } : null;
   } catch { return null; }
 }
 
@@ -64,15 +66,25 @@ async function post(path: string, body: unknown, token?: string): Promise<Respon
 
 /** Emails a six-digit code to `email`. Resolves once it is sent. */
 export async function requestCode(email: string): Promise<void> {
-  await post('/auth/code', { email });
+  await (await post('/auth/code', { email })).text().catch(() => '');
 }
+
+/**
+ * Marks this device keeps per account, as 'email|created|…' (created: the account's own id, so a deleted account's marks do
+ * not hold for the one made again with the same email), or 'email|…' for a sign-in from before accounts had one.
+ */
+export function accountMark(s: CloudSession, rest: string): string {
+  return s.created ? `${s.email}|${s.created}|${rest}` : `${s.email}|${rest}`;
+}
+/** The lists of such marks (books put in the account, the Mac copied into it). */
+export const MARK_LISTS = ['dushu.cloud.books-up.v1', 'dushu.cloud.mac-copied.v1'];
 
 /** Signs this device in with the emailed code. */
 export async function signIn(email: string, code: string): Promise<CloudSession> {
   const res = await post('/auth/verify', { email, code });
   const data = await res.json().catch(() => null) as Partial<CloudSession> | null;
   if (!data || typeof data.token !== 'string' || typeof data.email !== 'string') throw new Error('The sync server sent an answer Dushu did not understand.');
-  const session = { token: data.token, email: data.email };
+  const session: CloudSession = { token: data.token, email: data.email, ...(typeof data.created === 'string' && data.created ? { created: data.created } : {}) };
   try { storage()?.setItem(SESSION_KEY, JSON.stringify(session)); } catch { throw new Error('This browser would not keep the sign-in. Allow site data for Dushu and try again.'); }
   announce();
   return session;
@@ -82,7 +94,7 @@ export async function signIn(email: string, code: string): Promise<CloudSession>
 export async function signOut(): Promise<void> {
   const s = cloudSession();
   forgetSession();
-  if (s) await post('/auth/signout', {}, s.token).catch(() => {});
+  if (s) await post('/auth/signout', {}, s.token).then((r) => r.text(), () => '').catch(() => '');
 }
 
 /**
@@ -115,7 +127,14 @@ export function isAccountOwner(): boolean {
 export async function deleteAccount(): Promise<void> {
   const s = cloudSession();
   if (!s) return;
-  await post('/me/delete', {}, s.token);
+  await (await post('/me/delete', {}, s.token)).text().catch(() => '');
+  // What this device put in the old account says nothing about a new one made with the same email.
+  for (const key of MARK_LISTS) {
+    try {
+      const list = JSON.parse(storage()?.getItem(key) ?? '[]') as unknown;
+      if (Array.isArray(list)) storage()?.setItem(key, JSON.stringify(list.filter((m) => typeof m === 'string' && !m.startsWith(`${s.email}|`))));
+    } catch { /* nothing kept */ }
+  }
   forgetSession();
 }
 

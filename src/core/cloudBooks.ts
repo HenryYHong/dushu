@@ -8,13 +8,18 @@ import { strFromU8, strToU8, zipSync } from 'fflate';
 import type { Block, BookMeta, Chapter, ImportedBook, Store } from '../types';
 import { Archive } from '../import/zip';
 import { bytesOf } from '../store';
-import { cloudBase, cloudFetch, cloudSession } from './cloud';
+import { accountMark, cloudBase, cloudFetch, cloudSession } from './cloud';
 import { bookKey, olderKeys } from './syncKeys';
 
 /** The server's piece size (cloud/src/account.ts BOOK_CHUNK). */
 export const BOOK_CHUNK = 1024 * 1024;
 const UP_KEY = 'dushu.cloud.books-up.v1';
 const REMOVED_KEY = 'dushu.cloud.books-removed.v1';
+/** Books in the account that did not download whole, by 'key|sha', with when: not tried again for a day. */
+const BAD_KEY = 'dushu.cloud.books-bad.v1';
+const BAD_RETRY_MS = 86_400_000;
+/** Every entry of a package carries this date, so two devices make the very same bytes of one book. */
+const ZIP_TIME = new Date('2000-01-01T00:00:00Z');
 const FORMATS = new Set(['epub', 'txt', 'pdf', 'html', 'md', 'mobi', 'azw3', 'paste', 'sample']);
 const SCRIPTS = new Set(['simplified', 'traditional', 'mixed', 'unknown']);
 
@@ -66,7 +71,7 @@ export async function packBook(store: Store, meta: BookMeta): Promise<Uint8Array
     sourceName: meta.sourceName, note: meta.note, importVersion: meta.importVersion, assets, chapters,
   };
   files['book.json'] = strToU8(JSON.stringify(book));
-  return zipSync(files, { level: 6 });
+  return zipSync(files, { level: 6, mtime: ZIP_TIME });
 }
 
 function cleanBlock(v: unknown): Block | null {
@@ -133,16 +138,38 @@ export async function accountBooks(): Promise<AccountBook[]> {
   return Array.isArray(data) ? data.filter((b): b is AccountBook => !!b && typeof b === 'object' && typeof (b as AccountBook).key === 'string') : [];
 }
 
-async function upload(key: string, meta: BookMeta, bytes: Uint8Array): Promise<void> {
+/**
+ * Puts a book in the account. Resolves false when another device is putting a newer copy of it there (this one stops; the
+ * next run finds it in the account).
+ */
+async function upload(key: string, meta: BookMeta, bytes: Uint8Array): Promise<boolean> {
   const sha = await sha256(bytes);
   const json = { 'Content-Type': 'application/json' };
-  await ok(cloudFetch('/books', { method: 'POST', headers: json, body: JSON.stringify({ key, title: meta.title, author: meta.author, size: bytes.byteLength, sha }), signal: AbortSignal.timeout(20_000) }));
+  const start = await (await ok(cloudFetch('/books', { method: 'POST', headers: json, body: JSON.stringify({ key, title: meta.title, author: meta.author, size: bytes.byteLength, sha }), signal: AbortSignal.timeout(20_000) }))).json() as { upload?: unknown; complete?: unknown };
+  // The account has this very package already (another device put it there).
+  if (start.complete === true) return true;
+  const u = typeof start.upload === 'string' ? `&u=${encodeURIComponent(start.upload)}` : '';
   for (let i = 0; i * BOOK_CHUNK < bytes.byteLength; i++) {
     const piece = bytes.slice(i * BOOK_CHUNK, (i + 1) * BOOK_CHUNK);
-    await ok(cloudFetch(`/books/chunk?key=${encodeURIComponent(key)}&i=${i}`, {
+    const res = cloudFetch(`/books/chunk?key=${encodeURIComponent(key)}&i=${i}${u}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: piece, signal: AbortSignal.timeout(60_000),
-    }));
+    });
+    if ((await res)?.status === 409) return false;
+    await ok(res);
   }
+  return true;
+}
+
+function badBooks(): Record<string, number> {
+  try {
+    const v = JSON.parse(globalThis.localStorage?.getItem(BAD_KEY) ?? '{}') as unknown;
+    return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, number> : {};
+  } catch { return {}; }
+}
+function setBad(id: string, at: number | null): void {
+  const all = badBooks();
+  if (at === null) delete all[id]; else all[id] = at;
+  try { globalThis.localStorage?.setItem(BAD_KEY, JSON.stringify(all)); } catch { /* tried again next time */ }
 }
 
 async function download(book: AccountBook): Promise<ImportedBook> {
@@ -197,19 +224,32 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
       const marks = list(UP_KEY);
       for (const meta of local) {
         const key = bookKey(meta);
-        const mark = `${s.email}|${key}`;
+        const mark = accountMark(s, key);
         if (key.startsWith('s') || marks.includes(mark) || inAccount.some((b) => sameBook(b.key, key))) continue;
-        await upload(key, meta, await packBook(store, meta));
+        if (!await upload(key, meta, await packBook(store, meta))) continue;
         marks.push(mark);
         setList(UP_KEY, marks);
         up.push(meta.title);
         uploaded++;
       }
-      // Down: books in the account that are not here and were not deleted here.
+      // Down: books in the account that are not here and were not deleted here. One that does not come down whole is left for
+      // a day and the rest still come down.
+      const bad = badBooks();
+      const now = Date.now();
       for (const book of inAccount) {
         if (localKeys.some((k) => sameBook(k, book.key)) || removed.some((k) => sameBook(k, book.key))) continue;
-        const meta = await store.books.add(await download(book));
-        setList(UP_KEY, [...list(UP_KEY), `${s.email}|${bookKey(meta)}`]);
+        const id = `${book.key}|${book.sha}`;
+        if (now - (bad[id] ?? 0) < BAD_RETRY_MS) continue;
+        let meta: BookMeta;
+        try {
+          meta = await store.books.add(await download(book));
+        } catch (e) {
+          setBad(id, now);
+          error ??= e instanceof Error ? e.message : String(e);
+          continue;
+        }
+        setBad(id, null);
+        setList(UP_KEY, [...list(UP_KEY), accountMark(s, bookKey(meta))]);
         localKeys.push(bookKey(meta));
         added.push(meta);
       }

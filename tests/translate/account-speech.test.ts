@@ -133,7 +133,45 @@ describe('the account’s voice', () => {
   });
 });
 
+describe('pausing while the account’s voice prepares a sentence', () => {
+  it('keeps this device’s voice paused when it takes over because the account’s voice failed', async () => {
+    signIn();
+    let release!: () => void;
+    let n = 0;
+    const ok = answer;
+    answer = async () => {
+      if (++n === 1) return ok();
+      await new Promise<void>((r) => { release = r; });
+      return new Response(JSON.stringify({ error: 'Today’s free read-aloud is used up.', code: 'daily_limit' }), { status: 429 });
+    };
+    let paused = false;
+    const heard: string[] = [];
+    vi.stubGlobal('speechSynthesis', {
+      getVoices: () => [tingting], addEventListener: vi.fn(), removeEventListener: vi.fn(), cancel: vi.fn(),
+      get paused() { return paused; },
+      pause: vi.fn(() => { paused = true; }), resume: vi.fn(() => { paused = false; }),
+      // A paused engine queues the sentence silently; one that is not paused starts talking.
+      speak: (u: SpeechSynthesisUtterance) => { if (!paused) heard.push(u.text); },
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    void speech.speakSequence(['第一段。', '第二段。'], { onWaiting: () => {} });
+    await vi.waitFor(() => expect(audio).toHaveLength(1));
+    audio[0].onended?.();
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+    speech.pauseSpeaking();
+    release();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(heard).toEqual([]);
+  });
+});
+
 describe('estimateMarks', () => {
+  it('gives a rare character (two UTF-16 units) the beat of any other', () => {
+    const rare = speech.estimateMarks('\u{20000}我', [0, 2], 1000);
+    const common = speech.estimateMarks('你我', [0, 1], 1000);
+    expect(rare[1][1]).toBeCloseTo(common[1][1], 0);
+  });
+
   it('spreads the words over the audio by syllables and pauses, in order and inside it', () => {
     const marks = speech.estimateMarks('我们说好了，明天见。', [0, 2, 3, 4, 6, 8], 3000);
     expect(marks.map((m) => m[0])).toEqual([0, 2, 3, 4, 6, 8]);

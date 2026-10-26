@@ -53,13 +53,17 @@ describe('signing in', () => {
     expect((await (await c.call('/sync', { headers: { Authorization: `Bearer ${second}` } })).json() as { counts: { known: number } }).counts.known).toBe(1);
   });
 
-  it('remembers the Mac’s private address for the account, and only a Tailscale https address', async () => {
-    const c = cloud();
+  it('remembers the Mac’s private address for the owner’s account only, and only a Tailscale https address', async () => {
+    const c = cloud({ OWNER_EMAILS: 'reader@example.com' });
     const token = await signedIn(c);
     const auth = { Authorization: `Bearer ${token}` };
-    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: false });
+    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: true });
     expect((await c.post('/me', { mac: 'https://my-mac.tail1234.ts.net:8443' }, token)).status).toBe(200);
-    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: false, mac: 'https://my-mac.tail1234.ts.net:8443' });
+    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: true, mac: 'https://my-mac.tail1234.ts.net:8443' });
+    // Someone else signing in on the owner's Mac does not take its address into their account.
+    const friend = await signedIn(c, 'friend@example.com');
+    expect((await c.post('/me', { mac: 'https://my-mac.tail1234.ts.net:8443' }, friend)).status).toBe(403);
+    expect(await (await c.call('/me', { headers: { Authorization: `Bearer ${friend}` } })).json()).toEqual({ email: 'friend@example.com', owner: false });
     for (const bad of ['http://my-mac.tail1234.ts.net', 'https://evil.example', 'https://x.ts.net/path', 'javascript:alert(1)']) {
       expect((await c.post('/me', { mac: bad }, token)).status).toBe(400);
     }

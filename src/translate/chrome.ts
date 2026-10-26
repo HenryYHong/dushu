@@ -61,7 +61,8 @@ async function rawAvailability(source: Source = 'zh'): Promise<'yes' | 'download
   const t = api();
   if (!t) return 'no';
   try {
-    const a = await t.availability(langs(source));
+    // Chrome has been seen never to answer (headless, some profiles): after a few seconds it counts as not available.
+    const a = await Promise.race([t.availability(langs(source)), new Promise<'unavailable'>((r) => setTimeout(() => r('unavailable'), 4000))]);
     if (a === 'available' || a === 'readily') return 'yes';
     if (a === 'downloadable' || a === 'downloading' || a === 'after-download') return 'download';
     return 'no';

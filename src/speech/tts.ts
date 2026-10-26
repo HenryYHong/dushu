@@ -266,20 +266,28 @@ async function renderAccount(text: string, signal: AbortSignal): Promise<{ blob:
 export function estimateMarks(text: string, words: number[], ms: number): Marks {
   const weight = (ch: string) => /\p{Script=Han}/u.test(ch) ? 1 : /[，、；：,;:]/.test(ch) ? 0.8 : /[。！？!?…]/.test(ch) ? 1.2
     : /[\p{L}\p{N}]/u.test(ch) ? 0.35 : 0;
+  // Weighed by character (a rare Han character is two UTF-16 units), indexed by UTF-16 offset as `words` are.
   const before: number[] = [0];
-  for (let i = 0; i < text.length; i++) before.push(before[i] + weight(text[i]));
+  for (const ch of text) {
+    const at = before.length - 1;
+    before.push(before[at] + weight(ch));
+    if (ch.length === 2) before.push(before[at + 1]);
+  }
   const total = before[text.length] || 1;
   const quiet = Math.min(200, ms * 0.05);
   // The first word is lit as the audio starts.
   return words.filter(o => o >= 0 && o < text.length).map((o, i) => [o, i === 0 ? 0 : quiet + (ms - 2 * quiet) * before[o] / total] as [number, number]);
 }
 
+const SILENCE = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+
 function primeTouchAudio(): HTMLAudioElement | undefined {
   // iPadOS can use a desktop user agent. Start the same media element inside the tap,
   // before voice discovery/rendering yields; reuse it throughout this reading run.
   if (typeof navigator === 'undefined' || typeof Audio === 'undefined'
     || !(/iPad|iPhone|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1))) return;
-  const audio = new Audio('data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==');
+  // A tenth of a second of silence (8 kHz, 8-bit): WebKit would not decode the one-sample clip this used to be.
+  const audio = new Audio(SILENCE);
   void audio.play().catch(() => {});
   return audio;
 }
@@ -373,7 +381,11 @@ function speakPiece(
       finish(false);
     };
     if (onBoundary) u.onboundary = (e) => onBoundary(e.charIndex, e.charLength || 1);
-    try { speechSynthesis.speak(u); } catch {
+    try {
+      // Paused before this voice took over (the account's voice failed while paused): it is queued paused and waits for Resume.
+      if (nativePaused) speechSynthesis.pause();
+      speechSynthesis.speak(u);
+    } catch {
       opts?.onError?.('This browser could not start audio. Try another Chinese voice in Settings.');
       finish(false);
     }
