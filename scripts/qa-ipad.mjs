@@ -88,7 +88,9 @@ async function openReader(device, settings = {}, chapter = 1, contextOptions = {
     return id;
   });
   await page.evaluate(([i, s, ch]) => {
-    localStorage.setItem('dushu.settings.v1', JSON.stringify({ theme: 'light', pinyin: 'all', fontSize: 24, translator: 'gloss', layout: 'pages', ...s }));
+    // Flip by default here (Slide is the app's default): the checks below follow the leaf of a flip.
+    localStorage.setItem('dushu.settings.v1', JSON.stringify({ theme: 'light', pinyin: 'all', fontSize: 24, translator: 'gloss', layout: 'pages', pageTurn: 'flip', ...s }));
+    localStorage.setItem('dushu.settings.slide.v1', '1');
     localStorage.setItem('dushu.reader-hint.v1', '1');
     location.hash = `#/read/${i}?ch=${ch}`;
   }, [id, settings, chapter]);

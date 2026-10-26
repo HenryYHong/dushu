@@ -660,7 +660,7 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
     transparent 100%);
 }
 .rd-spine::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(50% + 1px); width: 8px; background: linear-gradient(to right, var(--rd-spine-hi), transparent); }
-.rd-stage[data-per='2'] .rd-spine { display: block; }
+.rd-turn-flip .rd-stage[data-per='2'] .rd-spine { display: block; }
 
 .rd-stage-busy {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6;

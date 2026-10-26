@@ -298,7 +298,7 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
     [{ value: 'auto', label: 'Auto' }, { value: 'single', label: 'One' }, { value: 'double', label: 'Two' }],
     () => get().spread, (v) => set({ spread: v })));
   const turn = add(segmented<Settings['pageTurn']>(
-    [{ value: 'flip', label: 'Flip' }, { value: 'slide', label: 'Slide' }, { value: 'none', label: 'None' }],
+    [{ value: 'slide', label: 'Slide' }, { value: 'flip', label: 'Flip' }, { value: 'none', label: 'None' }],
     () => get().pageTurn, (v) => set({ pageTurn: v })));
   const rate = add(slider(0.5, 2, 0.05, () => get().ttsRate, v => set({ ttsRate: v }), rateLabel));
 

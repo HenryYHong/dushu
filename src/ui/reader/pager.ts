@@ -1068,6 +1068,14 @@ export function createPager(o: PagerOptions): Pager {
     }, FACE_DELAY_MS);
   }
 
+  /** Pinyin for the spreads a turn either way would show (only those already measured: no pagination work here). */
+  function warmNeighbors(): void {
+    for (const dir of [1, -1] as const) {
+      const plan = planTurnQuiet(dir);
+      if (plan) ensurePinyinSpread(plan.to.layout, plan.to.spread);
+    }
+  }
+
   /** planTurn without doing any pagination work: null unless the target is already measured. */
   function planTurnQuiet(dir: 1 | -1): Plan | null {
     if (!cur || !valid(cur)) return null;
@@ -1085,11 +1093,7 @@ export function createPager(o: PagerOptions): Pager {
     return { dir, from: { layout: cur, spread }, to: { layout: pv, spread: spreadsOf(pv) - 1 } };
   }
 
-  /**
-   * `finger`: a swipe takes hold of the page. With no flip ready for it (a second swipe right after the first), it slides
-   * instead: building a flip copies three pages, and the page must follow the finger at once.
-   */
-  function beginTurn(plan: Plan, kind: 'flip' | 'slide' | 'fade', finger = false): Turn {
+  function beginTurn(plan: Plan, kind: 'flip' | 'slide' | 'fade'): Turn {
     o.onTurnStart();
     lastDir = plan.dir;
     let t: Turn | null = null;
@@ -1102,8 +1106,7 @@ export function createPager(o: PagerOptions): Pager {
     }
     dropPrepared();
     if (!t) {
-      // Nothing ready (a quick second turn, or the first one after a resize): build it now, or slide under a finger.
-      if (finger && kind === 'flip') kind = 'slide';
+      // Nothing ready (a quick second turn, or the first one after a resize): build it now.
       ensurePinyinSpread(plan.from.layout, plan.from.spread);
       ensurePinyinSpread(plan.to.layout, plan.to.spread);
       t = kind === 'flip' ? buildFlip(plan, makeHost()) : kind === 'fade' ? buildFade(plan) : buildSlide(plan);
@@ -1138,6 +1141,9 @@ export function createPager(o: PagerOptions): Pager {
     delete stage.dataset.turn;
     holdTaps(t, false);
     t.done(commit);
+    // The pages either side get their pinyin now, while the reader looks at this one: a quick next swipe then finds them laid
+    // out, instead of making the browser lay the chapter out again while the finger waits (60 to 75 ms a page on an iPad).
+    if (commit) warmNeighbors();
     // The background work waits for the page to be at rest: it would land in the frame after the turn.
     if (commit) pumpSoon();
     if (after) go(after);
@@ -1463,7 +1469,7 @@ export function createPager(o: PagerOptions): Pager {
         void prepareNeighbor(idx, d.dir);
         return;
       }
-      d.turn = beginTurn(plan, kind, true);
+      d.turn = beginTurn(plan, kind);
       d.state = 'drag';
       try { area.setPointerCapture(e.pointerId); } catch { /* the pointer is gone */ }
     }

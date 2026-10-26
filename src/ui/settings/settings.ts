@@ -36,7 +36,7 @@ export const mount: MountFn = (root, params, ctx) => {
     { value: 'auto', label: 'Auto' }, { value: 'single', label: 'One page' }, { value: 'double', label: 'Two pages' },
   ], set('spread')));
   const pageTurn = add(segmented('pageTurn', 'Page turn', [
-    { value: 'flip', label: 'Flip' }, { value: 'slide', label: 'Slide' }, { value: 'none', label: 'None' },
+    { value: 'slide', label: 'Slide' }, { value: 'flip', label: 'Flip' }, { value: 'none', label: 'None' },
   ], set('pageTurn')));
   const script = add(segmented('script', 'Characters', [
     { value: 'original', label: 'As written' }, { value: 'simplified', label: 'Simplified' }, { value: 'traditional', label: 'Traditional' },
@@ -63,7 +63,7 @@ export const mount: MountFn = (root, params, ctx) => {
   // Rows that only matter in one mode are hidden in the other (a dimmed row still looks like something you can change).
   const hskRow = row('Known up to', 'A word loses its pinyin once you have met each of its characters, read that way, in an HSK word at or below this level. A word with a toneless syllable, like 本事, waits for its own HSK level. Applies to the HSK mode.', hsk);
   const spreadRow = row('Pages shown', 'Applies to the Pages layout. Auto shows two pages side by side on a wide, landscape screen such as an iPad held sideways.', spread);
-  const turnRow = row('Page turn', 'Applies to the Pages layout. A page flips around the spine like a leaf, slides, or just changes.', pageTurn);
+  const turnRow = row('Page turn', 'Applies to the Pages layout. A page slides across, flips over like a leaf (with a book’s spine between two pages), or just changes.', pageTurn);
   const reading = group('Reading', null,
     row('Theme', 'Auto follows your device.', theme),
     row('Layout', 'Pages turns like a book: swipe, or use the arrow keys (with a mouse, click the edges). Scroll is one long column.', layout),

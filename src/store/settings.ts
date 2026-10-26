@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ttsRate: 0.9,
   layout: 'pages',
   spread: 'auto',
-  pageTurn: 'flip',
+  pageTurn: 'slide',
 };
 
 type Rule = (v: unknown) => unknown | undefined; // returns the clean value, or undefined if unusable
@@ -126,6 +126,8 @@ function load(storage: Storage | undefined): Settings {
 const SIMPLIFIED_KEY = 'dushu.settings.simplified.v1';
 /** Set once a device has moved to the Pages layout (reading like a book), the default since 2026-10-25 (before, Scroll). */
 const PAGES_KEY = 'dushu.settings.pages.v1';
+/** Set once a device has moved to sliding pages, the default since 2026-10-26 (before, Flip). */
+const SLIDE_KEY = 'dushu.settings.slide.v1';
 
 export function createSettingsStore(storage: Storage | undefined = defaultStorage()): SettingsStore {
   let s = load(storage);
@@ -145,6 +147,13 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
         storage.setItem(SETTINGS_KEY, JSON.stringify(s));
       }
       storage.setItem(PAGES_KEY, '1');
+    }
+    if (storage && !storage.getItem(SLIDE_KEY)) {
+      if (s.pageTurn === 'flip' && storage.getItem(SETTINGS_KEY)) {
+        s = { ...s, pageTurn: 'slide' };
+        storage.setItem(SETTINGS_KEY, JSON.stringify(s));
+      }
+      storage.setItem(SLIDE_KEY, '1');
     }
   } catch { /* read-only storage: the saved choice stands */ }
   const subs = new Set<(s: Settings, changed: (keyof Settings)[]) => void>();

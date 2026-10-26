@@ -447,6 +447,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   function applyLayout(s: Settings): void {
     // var() resolves where it is declared, so the traditional stacks are named here rather than left to :lang().
     const hant = langOf(s) === 'zh-Hant' ? '-hant' : '';
+    // A book's spine between two pages belongs to the flip; pages that slide or just change sit side by side without it.
+    rd.classList.toggle('rd-turn-flip', s.pageTurn === 'flip');
     const font = s.fontFamily === 'sans' ? `var(--font-sans${hant})` : s.fontFamily === 'kai' ? `var(--font-kai${hant})` : `var(--font-serif${hant})`;
     rd.style.setProperty('--rd-font', font);
     // Traditional fonts draw ， 。 、 ： ； in the middle of the box (the Taiwan convention). The pinyin grid gives a mark half a

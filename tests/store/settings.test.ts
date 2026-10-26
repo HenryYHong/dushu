@@ -33,6 +33,15 @@ describe('settings', () => {
     expect(createSettingsStore(st).get().layout).toBe('scroll');
   });
 
+  it('slides pages by default, moves a device that kept the old Flip default once, and keeps a later choice', () => {
+    expect(DEFAULT_SETTINGS.pageTurn).toBe('slide');
+    const st = memStorage({ [SETTINGS_KEY]: JSON.stringify({ ...DEFAULT_SETTINGS, pageTurn: 'flip', fontSize: 26 }) });
+    const first = createSettingsStore(st);
+    expect(first.get()).toMatchObject({ pageTurn: 'slide', fontSize: 26 });
+    first.set({ pageTurn: 'flip' });
+    expect(createSettingsStore(st).get().pageTurn).toBe('flip');
+  });
+
   it('starts with defaults', () => {
     expect(createSettingsStore(memStorage()).get()).toEqual(DEFAULT_SETTINGS);
   });

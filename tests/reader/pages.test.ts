@@ -359,22 +359,28 @@ describe('pages layout', () => {
     });
   }
 
-  it('flip: a swipe with its flip ready flips; one right after it, before the next flip is ready, slides at once', async () => {
+  it('shows a book’s spine between two pages only when pages flip', async () => {
+    const { ctx, meta } = await setup({ pageTurn: 'slide' });
+    await open(ctx, meta.id);
+    expect(q('.rd-root')!.classList.contains('rd-turn-flip')).toBe(false);
+    ctx.settings.set({ pageTurn: 'flip' });
+    await vi.waitFor(() => expect(q('.rd-root')!.classList.contains('rd-turn-flip')).toBe(true));
+    ctx.settings.set({ pageTurn: 'none' });
+    await vi.waitFor(() => expect(q('.rd-root')!.classList.contains('rd-turn-flip')).toBe(false));
+  });
+
+  it('flip: every swipe flips, a quick second one too', async () => {
     const { ctx, meta } = await setup({ pageTurn: 'flip' });
     await open(ctx, meta.id);
     await tick(1500); // the flips either way are built while the reader reads
-    touch('pointerdown', 700);
-    touch('pointermove', 680);
-    touch('pointermove', 640);
-    expect(stage().turn).toBe('flip');
-    touch('pointerup', 500);
-    await tick(20);
-    // The next swipe at once: building its flip would make the finger wait, so the page slides under it.
-    touch('pointerdown', 700);
-    touch('pointermove', 680);
-    touch('pointermove', 640);
-    expect(stage().turn).toBe('slide');
-    touch('pointerup', 500);
+    for (let n = 0; n < 2; n++) {
+      touch('pointerdown', 700);
+      touch('pointermove', 680);
+      touch('pointermove', 640);
+      expect(stage().turn).toBe('flip');
+      touch('pointerup', 500);
+      await tick(20);
+    }
     await turnEnded();
     expect(stage().page).toBe('3');
   });
