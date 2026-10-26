@@ -15,6 +15,7 @@ import { BOOKS_EVENT, syncBooks, type BooksReport } from './core/cloudBooks';
 import { linkMac } from './core/cloudLink';
 import { signInButton } from './ui/signIn';
 import { reviewCount } from './ui/review/learning';
+import { scriptView } from './ui/vocab/render';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -144,7 +145,7 @@ async function boot(): Promise<void> {
   const toldErrors = new Set<string>();
   window.addEventListener(BOOKS_EVENT, (e) => {
     const r = (e as CustomEvent<BooksReport>).detail;
-    const names = (t: string[]) => (t.length === 1 ? `“${t[0]}”` : `${t.length} books`);
+    const names = (t: string[]) => (t.length === 1 ? `“${scriptView(ctx.settings.get().script, ctx.dictSync()).text(t[0])}”` : `${t.length} books`);
     if (r.uploaded.length) ctx.toast(`Saved ${names(r.uploaded)} to your account.`, { ms: 5000 });
     if (r.added.length) ctx.toast(`Added ${names(r.added)} from your account.`, { ms: 6000 });
     if (r.error && !toldErrors.has(r.error)) { toldErrors.add(r.error); ctx.toast(`Your books could not sync with your account: ${r.error}`, { ms: 9000 }); }

@@ -3,6 +3,7 @@ import type { AppContext, BookMeta, ImportedBook } from '../../types';
 import { bookKey } from '../../core/syncKeys';
 import { loadSampleBook, type Sample } from './samples';
 import { isMacBook } from './macBooks';
+import { scriptView } from '../vocab/render';
 
 /** Same list as ACCEPT in src/import, kept here so the library does not load the importers up front. */
 export const ACCEPT = '.epub,.mobi,.azw3,.azw,.prc,.txt,.text,.pdf,.html,.htm,.xhtml,.md';
@@ -96,6 +97,8 @@ export interface Importer {
 export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
   let nextId = 1;
   const jobs: Job[] = [];
+  /** A title as the library shows it, in the reading script (the book keeps the one it came with). */
+  const shown = (t: string) => scriptView(ctx.settings.get().script, ctx.dictSync()).text(t);
 
   /** `twinOf` finds a book already in the library that this one would copy: then nothing is added and the toast offers it. */
   async function run(
@@ -114,7 +117,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       const book = await make(m, (f) => { job.fraction = Math.min(1, Math.max(0, f)) * 0.9; onJobs(); });
       const twin = twinOf?.(book, m);
       if (twin) {
-        ctx.toast(`“${twin.title}” is already in your library.`, { action: { label: 'Open', run: () => ctx.navigate(`/read/${encodeURIComponent(twin.id)}`) }, ms: 7000 });
+        ctx.toast(`“${shown(twin.title)}” is already in your library.`, { action: { label: 'Open', run: () => ctx.navigate(`/read/${encodeURIComponent(twin.id)}`) }, ms: 7000 });
         return null;
       }
       job.fraction = 0.92;
@@ -141,7 +144,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
         // The Mac's own copy of this file is already here, with its progress.
         const existing = macCopyOf(f, have);
         if (existing) {
-          ctx.toast(`“${existing.title}” is already in your library from your Mac.`, { action: { label: 'Read', run: () => ctx.navigate(`/read/${encodeURIComponent(existing.id)}`) }, ms: 7000 });
+          ctx.toast(`“${shown(existing.title)}” is already in your library from your Mac.`, { action: { label: 'Read', run: () => ctx.navigate(`/read/${encodeURIComponent(existing.id)}`) }, ms: 7000 });
           continue;
         }
         // A file picked again would be a second card with its own progress: the book it copies is offered instead.
@@ -151,7 +154,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       }
       if (opts?.quiet) return added;
       if (added.length === 1) {
-        ctx.toast(`Added “${added[0].title}”.`, { action: { label: 'Read', run: () => ctx.navigate(`/read/${encodeURIComponent(added[0].id)}`) }, ms: 7000 });
+        ctx.toast(`Added “${shown(added[0].title)}”.`, { action: { label: 'Read', run: () => ctx.navigate(`/read/${encodeURIComponent(added[0].id)}`) }, ms: 7000 });
       } else if (added.length > 1) {
         ctx.toast(`Added ${added.length} books.`);
       }
@@ -162,7 +165,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       return run('that text', { title: title.trim() || 'Pasted text', author }, (m) => m.importText(text, title, author));
     },
     sample(s) {
-      return run(`“${s.title}”`, { title: s.title, author: s.author }, (m) => loadSampleBook(s, m.importText));
+      return run(`“${s.title}”`, { title: s.title, author: s.author }, (m) => loadSampleBook(s, m.importText, undefined, shown(s.title)));
     },
   };
 }

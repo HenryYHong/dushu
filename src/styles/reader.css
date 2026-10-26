@@ -185,6 +185,9 @@
 /* In a traditional book the marks are drawn from a simplified font, whose ink sits where these rules expect (see --rd-pu-font
    in reader.ts). Curly quotes keep the text's font: their half cell comes from an advance measured in it. */
 .rd-grid .rd-article .rd-pu:not(.rd-pu-qo):not(.rd-pu-qc) { font-family: var(--rd-pu-font); }
+/* The grid trims the marks itself (below). Chrome would also trim the blank half of a mark next to another (：「) on its own
+   (text-spacing-trim), and the bracket then sat on the colon: the browser leaves them alone. */
+.rd-grid .rd-article { text-spacing-trim: space-all; }
 .rd-grid .rd-article .rd-pu-c { letter-spacing: -0.5em; margin-left: calc(var(--rd-pad) * -0.9em); }
 .rd-grid .rd-article .rd-pu-o { margin-left: -0.5em; margin-right: calc(var(--rd-pad) * -0.9em); }
 /* Curly quotes are narrow proportional glyphs in most fonts, not full-width marks, so they must not be trimmed like the ones above:

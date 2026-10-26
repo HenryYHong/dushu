@@ -107,3 +107,19 @@ describe('loadSampleBook', () => {
     await expect(loadSampleBook(s, importText, () => res(true, '<!doctype html><html></html>'))).rejects.toThrow(/not available/);
   });
 });
+
+describe('the classics in both scripts', () => {
+  it('lists each title and author in both scripts exactly as the reader converts them, so nothing changes once the dictionary is in', async () => {
+    const { scriptView } = await import('../../src/ui/vocab/render');
+    const { loadTestDictionary } = await import('../helpers/data');
+    const dict = await loadTestDictionary();
+    const list = parseSampleIndex(JSON.parse(readFileSync(join(process.cwd(), 'public/samples/index.json'), 'utf8')));
+    expect(list.length).toBeGreaterThan(5);
+    for (const s of list) {
+      for (const script of ['simplified', 'traditional'] as const) {
+        const v = scriptView(script, dict);
+        expect(s[script], `${s.id} ${script}`).toEqual({ title: v.text(s.title), author: v.text(s.author) });
+      }
+    }
+  });
+});

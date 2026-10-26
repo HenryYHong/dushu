@@ -15,12 +15,24 @@ export interface Sample {
   chapters?: number;
   chars?: number;
   group?: string;
+  /** The title and author in each script, so the list shows them in the reading script before the dictionary is in. */
+  simplified?: { title: string; author: string };
+  traditional?: { title: string; author: string };
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 const posInt = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : undefined);
 
 /** Keeps the rows that have what we need to show and import them; drops everything else. */
+function scripts(r: Record<string, unknown>): Pick<Sample, 'simplified' | 'traditional'> {
+  const out: Pick<Sample, 'simplified' | 'traditional'> = {};
+  for (const k of ['simplified', 'traditional'] as const) {
+    const v = r[k] as Record<string, unknown> | undefined;
+    if (v && typeof v === 'object' && str(v.title)) out[k] = { title: str(v.title), author: str(v.author) };
+  }
+  return out;
+}
+
 export function parseSampleIndex(raw: unknown): Sample[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
@@ -44,6 +56,7 @@ export function parseSampleIndex(raw: unknown): Sample[] {
       chapters: posInt(r.chapters),
       chars: posInt(r.chars),
       group: str(r.group) || undefined,
+      ...scripts(r),
     });
   }
   return out;
@@ -74,6 +87,8 @@ export async function loadSampleBook(
   s: Sample,
   importText: (text: string, title?: string, author?: string) => ImportedBook,
   fetchFn: Fetch = (u) => fetch(u),
+  /** The title as the library shows it (the reading script), for the messages. */
+  shownTitle = s.title,
 ): Promise<ImportedBook> {
   let res: Awaited<ReturnType<Fetch>>;
   try {
@@ -82,11 +97,11 @@ export async function loadSampleBook(
     // The request never got an answer: offline, and this classic was not stored by an earlier visit.
     throw new Error(typeof navigator !== 'undefined' && navigator.onLine === false
       ? 'You are offline. Connect once to add this classic.'
-      : `Could not download “${s.title}”. Check your connection and try again.`);
+      : `Could not download “${shownTitle}”. Check your connection and try again.`);
   }
-  if (!res.ok) throw new Error(`Could not download “${s.title}”. Check your connection and try again.`);
+  if (!res.ok) throw new Error(`Could not download “${shownTitle}”. Check your connection and try again.`);
   const text = await res.text();
-  if (/^\s*<(?:!doctype|html)/i.test(text)) throw new Error(`“${s.title}” is not available right now.`);
+  if (/^\s*<(?:!doctype|html)/i.test(text)) throw new Error(`“${shownTitle}” is not available right now.`);
   const book = importText(text, s.title, s.author);
   return {
     ...book,

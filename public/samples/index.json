@@ -8,7 +8,15 @@
     "level": "Beginner",
     "blurb": "Eight short, famous Tang poems, mostly four lines each, ideal for your first real reading.",
     "source": "https://zh.wikisource.org/wiki/唐詩三百首",
-    "note": "Tang dynasty poems from the 8th century, in the public domain worldwide."
+    "note": "Tang dynasty poems from the 8th century, in the public domain worldwide.",
+    "simplified": {
+      "title": "唐诗八首",
+      "author": "李白、王维等"
+    },
+    "traditional": {
+      "title": "唐詩八首",
+      "author": "李白、王維等"
+    }
   },
   {
     "id": "kong-yiji",
@@ -19,7 +27,15 @@
     "level": "Intermediate",
     "blurb": "A short story about a failed scholar who drinks at a village tavern, one of the most famous works of modern Chinese fiction.",
     "source": "https://zh.wikisource.org/wiki/孔乙己",
-    "note": "Published in 1919, so it is in the US public domain (published before 1931)."
+    "note": "Published in 1919, so it is in the US public domain (published before 1931).",
+    "simplified": {
+      "title": "孔乙己",
+      "author": "鲁迅"
+    },
+    "traditional": {
+      "title": "孔乙己",
+      "author": "魯迅"
+    }
   },
   {
     "id": "guxiang",
@@ -30,7 +46,15 @@
     "level": "Intermediate",
     "blurb": "A man returns to his hometown and finds that both the place and his childhood friend have changed.",
     "source": "https://zh.wikisource.org/wiki/故鄉",
-    "note": "Published in 1921, so it is in the US public domain (published before 1931)."
+    "note": "Published in 1921, so it is in the US public domain (published before 1931).",
+    "simplified": {
+      "title": "故乡",
+      "author": "鲁迅"
+    },
+    "traditional": {
+      "title": "故鄉",
+      "author": "魯迅"
+    }
   },
   {
     "id": "kuangren-riji",
@@ -41,7 +65,15 @@
     "level": "Advanced",
     "blurb": "China's first modern vernacular short story, the diary of a man who fears everyone around him wants to eat him.",
     "source": "https://zh.wikisource.org/wiki/狂人日記",
-    "note": "Published in 1918, so it is in the US public domain (published before 1931)."
+    "note": "Published in 1918, so it is in the US public domain (published before 1931).",
+    "simplified": {
+      "title": "狂人日记",
+      "author": "鲁迅"
+    },
+    "traditional": {
+      "title": "狂人日記",
+      "author": "魯迅"
+    }
   },
   {
     "id": "lunyu-xue-er",
@@ -52,7 +84,15 @@
     "level": "Advanced",
     "blurb": "The first chapter of the Analects, sixteen short sayings on learning and character, in classical Chinese.",
     "source": "https://zh.wikisource.org/wiki/論語/學而第一",
-    "note": "Composed more than 2,000 years ago, in the public domain worldwide."
+    "note": "Composed more than 2,000 years ago, in the public domain worldwide.",
+    "simplified": {
+      "title": "论语·学而",
+      "author": "孔子弟子"
+    },
+    "traditional": {
+      "title": "論語·學而",
+      "author": "孔子弟子"
+    }
   },
   {
     "id": "xiyouji-1",
@@ -63,7 +103,15 @@
     "level": "Advanced",
     "blurb": "The Monkey King is born from a stone, finds a home at Flower-Fruit Mountain, and sets out to learn immortality.",
     "source": "https://zh.wikisource.org/wiki/西遊記/第001回",
-    "note": "Written in the 16th century, in the public domain worldwide."
+    "note": "Written in the 16th century, in the public domain worldwide.",
+    "simplified": {
+      "title": "西游记 第一回",
+      "author": "吴承恩"
+    },
+    "traditional": {
+      "title": "西遊記 第一回",
+      "author": "吳承恩"
+    }
   },
   {
     "id": "xiyouji",
@@ -77,7 +125,15 @@
     "note": "Wu Cheng'en, 16th century; public domain worldwide. Text: Wikisource, Shidetang-based edition.",
     "chapters": 100,
     "chars": 589256,
-    "group": "Four Great Classical Novels"
+    "group": "Four Great Classical Novels",
+    "simplified": {
+      "title": "西游记",
+      "author": "吴承恩"
+    },
+    "traditional": {
+      "title": "西遊記",
+      "author": "吳承恩"
+    }
   },
   {
     "id": "hongloumeng",
@@ -91,7 +147,15 @@
     "note": "Cao Xueqin (ch. 1-80) and Gao E (ch. 81-120), 18th century; public domain worldwide. Text: Wikisource collated edition (Gengchen base for 1-80, Cheng-jia for 81-120).",
     "chapters": 120,
     "chars": 732451,
-    "group": "Four Great Classical Novels"
+    "group": "Four Great Classical Novels",
+    "simplified": {
+      "title": "红楼梦",
+      "author": "曹雪芹、高鹗"
+    },
+    "traditional": {
+      "title": "紅樓夢",
+      "author": "曹雪芹、高鶚"
+    }
   },
   {
     "id": "sanguo",
@@ -105,7 +169,15 @@
     "note": "Luo Guanzhong, 14th century, in the Mao Zonggang revision; public domain worldwide. Text: Wikisource.",
     "chapters": 120,
     "chars": 485398,
-    "group": "Four Great Classical Novels"
+    "group": "Four Great Classical Novels",
+    "simplified": {
+      "title": "三国演义",
+      "author": "罗贯中"
+    },
+    "traditional": {
+      "title": "三國演義",
+      "author": "羅貫中"
+    }
   },
   {
     "id": "shuihu",
@@ -119,6 +191,14 @@
     "note": "Shi Nai'an, 14th century; public domain worldwide. Text: Wikisource, the 120-chapter Yuan Wuya edition.",
     "chapters": 120,
     "chars": 748831,
-    "group": "Four Great Classical Novels"
+    "group": "Four Great Classical Novels",
+    "simplified": {
+      "title": "水浒传",
+      "author": "施耐庵"
+    },
+    "traditional": {
+      "title": "水滸傳",
+      "author": "施耐庵"
+    }
   }
 ]

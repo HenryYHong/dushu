@@ -100,6 +100,10 @@ describe('planMacBooks', () => {
   it('words the toast for one, two and many books', () => {
     expect(addedMessage([meta({ title: '甲' })])).toBe('Added “甲” from your Mac.');
     expect(addedMessage([meta({ title: '甲' }), meta({ title: '乙' })])).toBe('Added “甲” and “乙” from your Mac.');
+    // In the reading script, as the library cards show them.
+    const simplified = (t: string) => t.replace('紅樓夢', '红楼梦').replace('論語', '论语');
+    expect(addedMessage([meta({ title: '紅樓夢' })], simplified)).toBe('Added “红楼梦” from your Mac.');
+    expect(addedMessage([meta({ title: '紅樓夢' }), meta({ title: '論語' })], simplified)).toBe('Added “红楼梦” and “论语” from your Mac.');
     expect(addedMessage([meta({}), meta({}), meta({})])).toBe('Added 3 books from your Mac.');
   });
 });

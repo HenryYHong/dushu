@@ -182,6 +182,11 @@ export const mount: MountFn = (root, _params, ctx) => {
   // ---- continue card ----
   /** A title or author in the script the reader chose (Settings → Characters), as the reader shows it. */
   const shown = (t: string): string => scriptView(ctx.settings.get().script, ctx.dictSync()).text(t);
+  /** A classic's title or author in the reading script: the list has both, so it shows right away, before the dictionary is in. */
+  const sampleShown = (s: Sample, field: 'title' | 'author'): string => {
+    const script = ctx.settings.get().script;
+    return script === 'original' ? s[field] : s[script]?.[field] ?? shown(s[field]);
+  };
 
   function renderContinue(): void {
     clear(continueEl);
@@ -314,8 +319,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     const ok = await confirmDialog({
       title: 'Delete this book?',
       message: cloudSession()
-        ? `“${b.title}” will be removed from this device and from your account. Your place in it and your saved words stay: add it again and it opens where you left off.`
-        : `“${b.title}” will be removed from this device. Your place in it and your saved words stay: add it again and it opens where you left off.`,
+        ? `“${shown(b.title)}” will be removed from this device and from your account. Your place in it and your saved words stay: add it again and it opens where you left off.`
+        : `“${shown(b.title)}” will be removed from this device. Your place in it and your saved words stay: add it again and it opens where you left off.`,
       confirmLabel: 'Delete',
       danger: true,
     });
@@ -323,7 +328,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     try {
       await store.books.remove(b.id);
       forgetBookInAccount(b);
-      if (alive) ctx.toast(`Deleted “${b.title}”.`);
+      if (alive) ctx.toast(`Deleted “${shown(b.title)}”.`);
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not delete the book.');
     }
@@ -369,9 +374,9 @@ export const mount: MountFn = (root, _params, ctx) => {
         existing ? coverStyleFor(existing) : bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }))),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
-          h('div.lib-sample-title.zh', null, shown(s.title)),
+          h('div.lib-sample-title.zh', null, sampleShown(s, 'title')),
           s.level ? h('span.chip', null, s.level) : null),
-        s.author ? h('div.lib-sample-author', null, shown(s.author)) : null,
+        s.author ? h('div.lib-sample-author', null, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-sample-blurb', null, s.blurb) : null,
         h('div.lib-sample-foot', null,
           h('span.muted.lib-sample-size', null, existing ? 'In your library' : size),
@@ -457,7 +462,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (auto && macState === 'ready' && macItems.length) {
       if (!loaded) await load();
       const { added } = await syncMacBooks(macItems, syncDeps);
-      if (added.length) ctx.toast(addedMessage(added), { ms: 6000 });
+      if (added.length) ctx.toast(addedMessage(added, shown), { ms: 6000 });
     }
   }
 
@@ -471,7 +476,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       await refreshMac(false);
       if (macState !== 'ready') { ctx.toast('Your Mac did not answer. Wake it and try again.', { ms: 9000 }); return; }
       const { added, failed } = await syncMacBooks(macItems, syncDeps);
-      if (added.length) ctx.toast(addedMessage(added));
+      if (added.length) ctx.toast(addedMessage(added, shown));
       else if (failed) ctx.toast('Could not add the books from your Mac.', { ms: 9000 });
       else ctx.toast('The books on your Mac are already in your library.');
     } catch (e) {
