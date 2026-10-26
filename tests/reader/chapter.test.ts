@@ -253,3 +253,29 @@ describe('lexicon', () => {
     expect(blockText(view.blocks[2].el)).toBe('　　我们在银行门口见面。');
   });
 });
+
+describe('marks', () => {
+  it('draws a mark as one band per line behind the text, measured before anything changes, and the characters keep the class', async () => {
+    const { view } = await setup();
+    const b = view.blocks.find((x) => x.text.includes('银行'))!;
+    view.ensure(b.index);
+    const s = b.text.indexOf('银行');
+    const mark = view.prepareMark(b, s, s + 2, 'rd-active');
+    // Measured, nothing drawn yet.
+    expect(view.el.querySelectorAll('.rd-band').length).toBe(0);
+    expect(view.el.querySelectorAll('.rd-c.rd-active').length).toBe(0);
+    mark();
+    // One band (the two characters sit on one line), in the chapter's own layer, behind the text.
+    expect(view.el.querySelectorAll('.rd-bands > .rd-band.rd-band-active').length).toBe(1);
+    expect(view.el.querySelectorAll('.rd-c.rd-active').length).toBe(2);
+    view.mark(b, s, s + 1, 'rd-speaking-word');
+    expect(view.el.querySelectorAll('.rd-band-speaking').length).toBe(1);
+    view.clearMarks('rd-active');
+    expect(view.el.querySelectorAll('.rd-band-active, .rd-c.rd-active').length).toBe(0);
+    expect(view.el.querySelectorAll('.rd-band-speaking').length).toBe(1);
+    view.clearMarks();
+    expect(view.el.querySelectorAll('.rd-band').length).toBe(0);
+    // The layer is part of the chapter from the start (a band added later only lays out the layer).
+    expect(view.el.firstElementChild?.classList.contains('rd-bands')).toBe(true);
+  });
+});

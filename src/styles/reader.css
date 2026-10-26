@@ -112,6 +112,8 @@
 /* ---------- page and text ---------- */
 .rd-page { padding: calc(var(--rd-bar-h) + env(safe-area-inset-top, 0px) + 28px) 0 96px; }
 .rd-article {
+  /* The marks are bands behind the text (chapter.ts measureBands): positioned in here, under the text and over the page. */
+  position: relative; isolation: isolate;
   max-width: var(--rd-width);
   margin: 0 auto;
   padding: 0 var(--space-5);
@@ -206,7 +208,6 @@
 /* ！ is drawn in the middle of its box where ， 。 ？ sit at the left, so in a half cell it leaves a gap before it and touches the next
    character. Move the ink (not the box) over to the left like the others; the selection band is moved back. */
 .rd-grid .rd-article .rd-pu-b { position: relative; left: -0.3em; }
-.rd-grid .rd-article .rd-pu-b.rd-sel::after { left: 0.3em; right: -0.3em; }
 /* Without the grid a browser that cannot trim the empty half of a full-width mark next to another (WebKit before text-spacing-trim) leaves a
    half-cell hole in runs like 」。 and 」，. Take that half out the way the grid does; Chrome does it itself. */
 @supports not (text-spacing-trim: normal) {
@@ -282,18 +283,13 @@
 @media (hover: hover) {
   .rd-w.rd-dict:hover .rd-c { background: color-mix(in srgb, var(--hl) 55%, transparent); }
 }
-/* The active word, a selected phrase and the word being read aloud are one band: from above the pinyin row to the
-   bottom of the character, across the cell padding, so a phrase is not a row of separate chips. */
+/* The active word, a selected phrase and the word being read aloud are one band per line, drawn behind the text (chapter.ts,
+   measureBands): from just above the character to its foot, across the cell padding, so a phrase is not a row of separate chips. */
 .rd-article .rd-c.rd-active, .rd-article .rd-c.rd-sel, .rd-article .rd-c.rd-speaking-word { background: none; }
-.rd-article .rd-c.rd-active::after, .rd-article .rd-c.rd-sel::after, .rd-article .rd-c.rd-speaking-word::after,
-.rd-article .rd-pu.rd-sel::after {
-  content: ''; position: absolute; left: 0; right: 0; top: -0.36em; bottom: -0.02em;
-  pointer-events: none; z-index: -1;
-}
-.rd-article .rd-c.rd-active::after { background: var(--hl); border-radius: 3px; }
-.rd-article .rd-c.rd-speaking-word::after { background: var(--hl); border-radius: 3px; }
-.rd-article .rd-c.rd-sel::after, .rd-article .rd-pu.rd-sel::after { background: var(--hl-select); border-radius: 0; }
-.rd-article .rd-pu.rd-sel { position: relative; }
+.rd-bands { position: absolute; inset: 0; pointer-events: none; z-index: -1; contain: strict; }
+.rd-band { position: absolute; }
+.rd-band-active, .rd-band-speaking { background: var(--hl); border-radius: 3px; }
+.rd-band-sel { background: var(--hl-select); border-radius: 0; }
 /* The pseudo-elements sit behind the text: each block makes its own stacking context so z-index: -1 stays inside it. */
 .rd-article .rd-b { isolation: isolate; }
 /* Saved words: one calm vermilion stroke under the whole word (朱笔), not a mark per character. Each character draws its

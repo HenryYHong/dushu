@@ -73,16 +73,18 @@ export function createLookup(host: LookupHost): Lookup {
     const word = b.text.slice(s, e);
     const token = toks.find((t) => t.start === s && t.end === e && t.kind === 'han');
     const sentence = sentenceAround(b.text, s).text;
-    v.clearMarks();
-    v.mark(b, s, e, 'rd-active');
     active = { bi: b.index, s, e, kind: 'word' };
     const seq = ++openSeq;
     const getAnchor = () => v.rectOf(b, s, e);
+    // Where the word is and its mark, read before anything on the page changes: marking it first made the browser lay the
+    // whole chapter out again just to answer (30 to 45 ms a tap on an iPad). The card is placed, then the word is marked.
+    const anchor = getAnchor() ?? fallbackRect();
+    const markWord = v.prepareMark(b, s, e, 'rd-active');
     openWordPopup({
       ctx,
       word,
       reading: token?.pinyin,
-      anchor: getAnchor() ?? fallbackRect(),
+      anchor,
       getAnchor,
       keepAnchorVisible: true,
       context: { sentence, paragraph: b.text, bookId: book.id, bookTitle: book.title, chapter: host.chapterIndex() },
@@ -96,6 +98,8 @@ export function createLookup(host: LookupHost): Lookup {
       onSheetTop: host.liftsPage?.() ? host.onSheetTop : undefined,
       ...lexiconProps(),
     });
+    v.clearMarks();
+    markWord();
     host.onWordShown?.(b, s, e);
     if (opts.log !== false) {
       // A name or term the book defines is logged with the book's meaning, as its card shows it (Review uses it).

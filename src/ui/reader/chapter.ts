@@ -71,6 +71,8 @@ export interface ChapterView {
   /** Index of the han token containing `offset`, or -1. */
   tokenIndexAt(b: BlockState, offset: number): number;
   mark(b: BlockState, start: number, end: number, cls: string): void;
+  /** The same, in two steps: it measures now (before anything on the page changes) and marks when the returned function runs. */
+  prepareMark(b: BlockState, start: number, end: number, cls: string): () => void;
   clearMarks(cls?: string): void;
   /** Where characters start..end are on screen, for a popup to point at (popup/position.ts anchorOf). */
   rectOf(b: BlockState, start: number, end: number): DOMRect | null;
@@ -391,18 +393,59 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     return -1;
   }
 
+  // A mark (the word whose card is open, a selected phrase, the word being read aloud) is a band drawn behind the text in a layer of
+  // its own, one per line, not a box added to each character: in WebKit a box added to a character made the paragraph, and in
+  // Pages the whole chapter, lay itself out again (20 to 40 ms a tap on an iPad). The characters still get the class.
+  const BANDS: Record<string, string> = { 'rd-active': 'rd-band-active', 'rd-sel': 'rd-band-sel', 'rd-speaking-word': 'rd-band-speaking' };
+  let bands: { el: HTMLElement; cls: string }[] = [];
+  /** The bands' layer, made with the chapter: layout is contained in it, so a band added there leaves the chapter's columns alone. */
+  const layer = h('div.rd-bands', { 'aria-hidden': 'true', 'data-rd-ui': '' });
+  article.prepend(layer);
+
+  /** Bands behind `els` (in reading order): measured now, drawn when the returned function runs. */
+  function measureBands(els: HTMLElement[], cls: string): () => void {
+    const kind = BANDS[cls];
+    if (!kind || !els.length) return () => {};
+    const box = article.getBoundingClientRect();
+    const em = Number.parseFloat(getComputedStyle(els[0]).fontSize) || 16;
+    const lines: { l: number; t: number; r: number; b: number }[] = [];
+    for (const x of els) {
+      const r = x.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      // ！ is drawn moved to the left (rd-pu-b): its band stays where its box was.
+      const shift = x.classList.contains('rd-pu-b') ? 0.3 * em : 0;
+      // From a little above the character to its foot, as far as the cell reaches.
+      const q = { l: r.left + shift, r: r.right + shift, t: r.top - 0.36 * em, b: r.bottom + 0.02 * em };
+      const line = lines[lines.length - 1];
+      if (line && Math.abs(q.t - line.t) < em * 0.5 && q.l <= line.r + 2 && q.r >= line.l - 2) {
+        line.l = Math.min(line.l, q.l); line.r = Math.max(line.r, q.r); line.b = Math.max(line.b, q.b);
+      } else lines.push(q);
+    }
+    return () => {
+      for (const q of lines) {
+        const band = h(`div.rd-band.${kind}`);
+        band.style.cssText = `left:${q.l - box.left}px;top:${q.t - box.top}px;width:${q.r - q.l}px;height:${q.b - q.t}px`;
+        layer.appendChild(band);
+        bands.push({ el: band, cls });
+      }
+    };
+  }
+
   function mark(b: BlockState, start: number, end: number, cls: string): void {
+    prepareMark(b, start, end, cls)();
+  }
+
+  function prepareMark(b: BlockState, start: number, end: number, cls: string): () => void {
     // Characters in the range, and the marks of punctuation between them, so a phrase is one band and not a row of chips.
+    const els: HTMLElement[] = [];
     let pending: HTMLElement[] = [];
     let inside = false;
     for (const el of b.el.querySelectorAll<HTMLElement>('ruby.rd-c, .rd-pu')) {
       if (el.classList.contains('rd-pu')) { if (inside) pending.push(el); continue; }
       const off = Number(el.dataset.o);
       if (off >= start && off < end) {
-        for (const p of pending) { p.classList.add(cls); marked.push({ el: p, cls }); }
+        els.push(...pending, el);
         pending = [];
-        el.classList.add(cls);
-        marked.push({ el, cls });
         inside = true;
       } else {
         pending = [];
@@ -410,6 +453,11 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
         if (off >= end) break;
       }
     }
+    const draw = measureBands(els, cls);
+    return () => {
+      draw();
+      for (const el of els) { el.classList.add(cls); marked.push({ el, cls }); }
+    };
   }
 
   function clearMarks(cls?: string): void {
@@ -419,6 +467,11 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
       else keep.push(m);
     }
     marked = keep;
+    bands = bands.filter((x) => {
+      if (cls && x.cls !== cls) return true;
+      x.el.remove();
+      return false;
+    });
   }
 
   function rectsOf(b: BlockState, start: number, end: number): DOMRect[] {
@@ -474,6 +527,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     clearMarks,
     rectOf,
     rectsOf,
+    prepareMark,
     refreshPinyin() {
       const opts = renderOptions();
       eachRendered((p) => { refreshPinyin(p, opts); refreshVisibility(p, visible); });
