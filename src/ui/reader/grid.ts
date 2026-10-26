@@ -113,11 +113,21 @@ export function measureSyllables(style: PinyinStyle, font: string, weight = 500)
     ctx = canvas?.getContext('2d') ?? null;
     if (ctx) ctx.font = `${weight} 100px ${font}`;
   } catch { ctx = null; }
+  // One measure per letter, not per syllable. WebKit's canvas takes milliseconds to measure a string in the reader's pinyin font,
+  // and a chapter brings hundreds of syllables it has not seen: a page turn waited seconds for them on an iPad. Pinyin has about
+  // forty letters with the tone marks, and its fonts barely kern them, so a syllable is as wide as its letters.
+  const letters = new Map<string, number>();
+  const letter = (ch: string): number => {
+    let w = letters.get(ch);
+    if (w === undefined) { w = ctx ? ctx.measureText(ch).width / 100 : style === 'zhuyin' ? 0.62 : FALLBACK_LETTER; letters.set(ch, w); }
+    return w;
+  };
   const memo = new Map<string, number>();
   const widthOf = (text: string): number => {
     const known = memo.get(text);
     if (known !== undefined) return known;
-    const w = ctx ? ctx.measureText(text).width / 100 : [...text].length * (style === 'zhuyin' ? 0.62 : FALLBACK_LETTER);
+    let w = 0;
+    for (const ch of text) w += letter(ch);
     memo.set(text, w);
     return w;
   };

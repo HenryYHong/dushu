@@ -359,6 +359,26 @@ describe('pages layout', () => {
     });
   }
 
+  it('flip: a swipe with its flip ready flips; one right after it, before the next flip is ready, slides at once', async () => {
+    const { ctx, meta } = await setup({ pageTurn: 'flip' });
+    await open(ctx, meta.id);
+    await tick(1500); // the flips either way are built while the reader reads
+    touch('pointerdown', 700);
+    touch('pointermove', 680);
+    touch('pointermove', 640);
+    expect(stage().turn).toBe('flip');
+    touch('pointerup', 500);
+    await tick(20);
+    // The next swipe at once: building its flip would make the finger wait, so the page slides under it.
+    touch('pointerdown', 700);
+    touch('pointermove', 680);
+    touch('pointermove', 640);
+    expect(stage().turn).toBe('slide');
+    touch('pointerup', 500);
+    await turnEnded();
+    expect(stage().page).toBe('3');
+  });
+
   for (const pageTurn of ['slide', 'none'] as const) {
     it(`${pageTurn}: a short drag that stops and is held still before the finger lifts does not turn the page`, async () => {
       const { ctx, meta } = await setup({ pageTurn });

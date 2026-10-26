@@ -148,7 +148,7 @@ const COMPLETE_BELOW = 16000;
 const SLICE_START = 700;
 const SLICE_MS = 14;
 /** The turn pictures wait this long after a turn settles, so they do not land in the same frames as the pump's first slices. */
-const FACE_DELAY_MS = 300;
+const FACE_DELAY_MS = 150;
 /** How long a synchronous stretch of work may run before it hands the main thread back so the busy overlay can draw. */
 const STRETCH_MS = 32;
 
@@ -595,7 +595,9 @@ export function createPager(o: PagerOptions): Pager {
     stage.dataset.exact = String(l.done);
     stage.dataset.spread = String(sp);
     stage.dataset.chapter = String(l.index);
-    stage.dataset.block = String(anchorAtPage(l, firstPageOfSpread(sp, geom.per)).block);
+    // The block only: anchorAtPage would also find the character, reading the layout the lines above just changed (a turn
+    // then waited about 100 ms on an iPad for the browser to lay the chapter out again).
+    stage.dataset.block = String(l.cols.length ? Math.min(blockOfPage(l.cols, firstPageOfSpread(sp, geom.per)), l.cols.length - 1) : 0);
   }
 
   /** `drawn`: the live pages already show this spread (a turn put it there when it started), so only the bookkeeping is left. */
@@ -1017,6 +1019,8 @@ export function createPager(o: PagerOptions): Pager {
   // Turn pictures made ahead of time (flip only), one per direction.
   type Prepared = { turn: Turn; from: Layout; fromSpread: number; to: Layout; toSpread: number; key: string };
   const prepared = new Map<1 | -1, Prepared>();
+  /** The way the reader last turned: the turn that way is prepared first. */
+  let lastDir: 1 | -1 = 1;
 
   function dropPrepared(): void {
     for (const p of prepared.values()) p.turn.host?.remove();
@@ -1042,7 +1046,7 @@ export function createPager(o: PagerOptions): Pager {
     const epoch = faceEpoch;
     const stale = () => disposed || epoch !== faceEpoch || !!turn || drag?.state === 'drag' || cur !== at || spread !== atSpread || !valid(at);
     faceTimer = window.setTimeout(async () => {
-      for (const dir of [1, -1] as const) {
+      for (const dir of lastDir === 1 ? [1, -1] as const : [-1, 1] as const) {
         await idleSlot();
         if (stale()) return;
         const plan = planTurnQuiet(dir);
@@ -1081,8 +1085,13 @@ export function createPager(o: PagerOptions): Pager {
     return { dir, from: { layout: cur, spread }, to: { layout: pv, spread: spreadsOf(pv) - 1 } };
   }
 
-  function beginTurn(plan: Plan, kind: 'flip' | 'slide' | 'fade'): Turn {
+  /**
+   * `finger`: a swipe takes hold of the page. With no flip ready for it (a second swipe right after the first), it slides
+   * instead: building a flip copies three pages, and the page must follow the finger at once.
+   */
+  function beginTurn(plan: Plan, kind: 'flip' | 'slide' | 'fade', finger = false): Turn {
     o.onTurnStart();
+    lastDir = plan.dir;
     let t: Turn | null = null;
     if (kind === 'flip') {
       const p = prepared.get(plan.dir);
@@ -1093,7 +1102,8 @@ export function createPager(o: PagerOptions): Pager {
     }
     dropPrepared();
     if (!t) {
-      // Nothing ready (a quick second turn, or the first one after a resize): build it now.
+      // Nothing ready (a quick second turn, or the first one after a resize): build it now, or slide under a finger.
+      if (finger && kind === 'flip') kind = 'slide';
       ensurePinyinSpread(plan.from.layout, plan.from.spread);
       ensurePinyinSpread(plan.to.layout, plan.to.spread);
       t = kind === 'flip' ? buildFlip(plan, makeHost()) : kind === 'fade' ? buildFade(plan) : buildSlide(plan);
@@ -1453,7 +1463,7 @@ export function createPager(o: PagerOptions): Pager {
         void prepareNeighbor(idx, d.dir);
         return;
       }
-      d.turn = beginTurn(plan, kind);
+      d.turn = beginTurn(plan, kind, true);
       d.state = 'drag';
       try { area.setPointerCapture(e.pointerId); } catch { /* the pointer is gone */ }
     }

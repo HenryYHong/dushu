@@ -125,3 +125,28 @@ describe('curly quote measuring', () => {
     expect(host.querySelector('.rd-article')).toBeNull(); // the probe is removed again
   });
 });
+
+describe('measuring pinyin with the canvas', () => {
+  it('measures each letter once, not each syllable: WebKit takes milliseconds per measure in the reader’s font', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    let calls = 0;
+    // A canvas whose glyphs are as wide as their code point says, so sums can be checked.
+    const ctx = { font: '', measureText: (t: string) => { calls++; let w = 0; for (const ch of t) w += 40 + (ch.codePointAt(0)! % 13); return { width: w }; } };
+    vi.stubGlobal('navigator', { userAgent: 'test' });
+    vi.stubGlobal('document', { createElement: () => ({ getContext: () => ctx }) });
+    try {
+      const grid = await import('../../src/ui/reader/grid');
+      const m = grid.measureSyllables('marks', 'Test Pinyin', 500);
+      const every = PINYIN_SYLLABLES.flatMap((s) => [1, 2, 3, 4, 5].map((t) => formatSyllable(`${s}${t}`, 'marks')));
+      for (const s of every) m.widthOf(s);
+      // The letters and their tone-marked forms (about sixty), whatever the number of syllables (over two thousand here).
+      expect(every.length).toBeGreaterThan(2000);
+      expect(calls).toBeLessThan(80);
+      expect(m.widthOf('zhuāng')).toBeCloseTo([...'zhuāng'].reduce((n, ch) => n + (40 + (ch.codePointAt(0)! % 13)) / 100, 0), 6);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.resetModules();
+    }
+  });
+});
