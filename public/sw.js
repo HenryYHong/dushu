@@ -17,6 +17,8 @@ const UI_FONTS = ['fonts/newsreader-roman.woff2', 'fonts/newsreader-italic.woff2
 const APP_CACHE = `dushu-app-${BUILD}`;
 const STATIC_CACHE = `dushu-static-${DATA_VERSION}`;
 const FONT_CACHE = 'dushu-fonts-v1';
+/** On a first visit the page keeps the dictionary files it downloaded here (main.ts); install takes them over. */
+const FIRST_VISIT_CACHE = 'dushu-first-visit';
 const SCOPE = new URL(self.registration.scope).pathname;
 
 // Every cache lookup ignores Vary. vite preview and many static hosts answer with "Vary: Origin", and Chrome sends an
@@ -35,7 +37,9 @@ self.addEventListener('install', (event) => {
     const app = await caches.open(APP_CACHE);
     const stat = await caches.open(STATIC_CACHE);
     // One missing file must not fail the install: the app still works online, and the next visit retries.
-    const add = (cache, paths) => Promise.all(paths.map((p) => cache.add(new Request(p, { cache: 'reload' })).catch(() => {})));
+    // 'no-cache' asks the server whether the copy the page already downloaded is current: on a first visit the dictionary
+    // comes back as "not modified" instead of a second 9 MB download, and a changed file is still never stored stale.
+    const add = (cache, paths) => Promise.all(paths.map((p) => cache.add(new Request(p, { cache: 'no-cache' })).catch(() => {})));
     // A hashed name always holds the same bytes, so a file an earlier build stored is copied instead of downloaded.
     const reuse = async (cache, p) => {
       const old = isHashed(p) && await caches.match(p, MATCH);
@@ -46,7 +50,23 @@ self.addEventListener('install', (event) => {
     const fresh = [];
     for (const p of PRECACHE.filter((q) => !isStatic(q))) if (!(await reuse(app, p).catch(() => false))) fresh.push(p);
     await add(app, ['./', ...fresh]);
-    await add(stat, [...PRECACHE.filter(isStatic), ...UI_FONTS]);
+    // A file the page already downloaded is checked with the server (a tiny "not modified" when it is current) and kept,
+    // instead of downloaded a second time. A changed file comes back whole and is stored instead.
+    const handed = await caches.open(FIRST_VISIT_CACHE);
+    const takeOver = async (p) => {
+      const prior = await handed.match(p, MATCH);
+      const tag = prior && prior.headers.get('ETag');
+      if (!tag) return false;
+      const res = await fetch(new Request(p, { headers: { 'If-None-Match': tag }, cache: 'no-store' }));
+      if (res.status === 304) await stat.put(p, prior);
+      else if (res.ok) await stat.put(p, res);
+      else return false;
+      return true;
+    };
+    const statics = [...PRECACHE.filter(isStatic), ...UI_FONTS];
+    const taken = await Promise.all(statics.map((p) => takeOver(p).catch(() => false)));
+    await add(stat, statics.filter((_, i) => !taken[i]));
+    await caches.delete(FIRST_VISIT_CACHE).catch(() => {});
     // No skipWaiting here: the page decides when to switch (see the message handler), so an update never changes
     // the app under someone who is in the middle of a chapter.
   })());

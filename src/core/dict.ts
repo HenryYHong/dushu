@@ -17,6 +17,8 @@ interface LoadOptions {
   fetchText?: (name: string) => Promise<string>;
   /** Called with (done, total) where total is always 100. Monotone. */
   onProgress?: (done: number, total: number) => void;
+  /** Given each data file as downloaded (the default fetchText only), to keep a copy. */
+  keep?: (url: string, response: Response) => void;
 }
 
 const REQUIRED = ['cedict', 'chars', 'words', 'hsk', 't2s', 's2t', 'radicals'] as const;
@@ -34,9 +36,10 @@ async function gunzipToText(bytes: Uint8Array): Promise<string> {
 }
 
 /** Fetch one data file. Handles servers that gunzip for us and dev servers that answer 404s with index.html. */
-async function fetchDataText(url: string): Promise<string> {
+async function fetchDataText(url: string, keep?: LoadOptions['keep']): Promise<string> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  if (keep && /gzip|json/.test(res.headers.get('content-type') ?? '')) keep(url, res.clone());
   const bytes = new Uint8Array(await res.arrayBuffer());
   const text = bytes[0] === 0x1f && bytes[1] === 0x8b ? await gunzipToText(bytes) : new TextDecoder().decode(bytes);
   if (/^\s*<(!doctype|html)/i.test(text.slice(0, 200))) throw new Error(`${url}: not a data file`);
@@ -82,7 +85,7 @@ async function eachLine(text: string, fn: (line: string) => void, onComment?: (l
 
 export async function loadDictionary(baseUrl: string, opts?: LoadOptions): Promise<Dictionary> {
   const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
-  const load = opts?.fetchText ?? ((name: string) => fetchDataText(base + name));
+  const load = opts?.fetchText ?? ((name: string) => fetchDataText(base + name, opts?.keep));
   let progress = 0;
   const report = (to: number) => {
     if (to > progress) { progress = to; opts?.onProgress?.(Math.min(100, Math.round(progress)), 100); }

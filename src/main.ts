@@ -68,7 +68,13 @@ async function boot(): Promise<void> {
 
   // The dictionary takes longest to be ready, so it starts first: its files download and parse while the library opens.
   const dictUrl = new URL('data/', document.baseURI).href;
-  let early: Promise<Dictionary> | null = loadDictionary(dictUrl);
+  // On a first visit the files are also handed to the offline copy (sw.js, FIRST_VISIT_CACHE), which then only asks the
+  // server whether they are current instead of downloading all 9 MB again.
+  const handoff = import.meta.env.PROD && 'serviceWorker' in navigator && !navigator.serviceWorker.controller && 'caches' in window
+    ? caches.open('dushu-first-visit') : null;
+  handoff?.catch(() => {});
+  const keep = handoff ? (url: string, res: Response) => void handoff.then((c) => c.put(url, res)).catch(() => {}) : undefined;
+  let early: Promise<Dictionary> | null = loadDictionary(dictUrl, { keep });
   early.catch(() => {}); // reported by the first ctx.dict() below
 
   let store: Store;
@@ -240,7 +246,12 @@ async function boot(): Promise<void> {
   // After the first screen: the reading fonts' rules are large and nothing needs them to paint.
   void import('./fonts').catch(() => {});
 
-  if (import.meta.env.PROD && 'serviceWorker' in navigator) watchServiceWorker(ctx);
+  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    // On a first visit the offline copy installs after the dictionary is in, so it reuses those downloads instead of
+    // fetching every file again alongside them.
+    const first = navigator.serviceWorker.controller ? Promise.resolve() : ctx.dict().then(() => {}, () => {});
+    void first.then(() => watchServiceWorker(ctx));
+  }
 }
 
 void boot();

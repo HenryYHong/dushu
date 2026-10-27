@@ -9,7 +9,7 @@ const swSource = readFileSync(join(root, 'public/sw.js'), 'utf8');
 type Handler = (event: unknown) => void;
 
 /** Loads sw.js with a fake browser. `strict` makes a cache lookup miss unless it passes ignoreVary, like a host that sends Vary: Origin. */
-function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<string, { type: string; body: string }>; precache?: string[] }) {
+function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<string, { type: string; body: string; etag?: string }>; precache?: string[] }) {
   const handlers: Record<string, Handler> = {};
   const stores = new Map<string, Map<string, Response>>();
   const lookups: Array<Record<string, unknown> | undefined> = [];
@@ -50,7 +50,9 @@ function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<st
     if (!opts.online) throw new TypeError('Failed to fetch');
     const f = files[new URL(typeof r === 'string' ? r : r.url).pathname];
     if (!f) return new Response('nope', { status: 404 });
-    return new Response(f.body, { status: 200, headers: { 'content-type': f.type } });
+    const asked = new Headers(init?.headers ?? (typeof r === 'string' ? undefined : r.headers)).get('If-None-Match');
+    if (f.etag && asked === f.etag) return new Response(null, { status: 304 });
+    return new Response(f.body, { status: 200, headers: { 'content-type': f.type, ...(f.etag ? { ETag: f.etag } : {}) } });
   };
   const self = {
     registration: { scope: 'https://app.test/' },
@@ -131,9 +133,31 @@ describe('service worker', () => {
     expect(await (await off.request('samples/kong-yiji.txt'))!.text()).toBe('孔乙己');
   });
 
+  it('takes over the dictionary files a first visit already downloaded: asked whether they changed, not fetched again', async () => {
+    const files = {
+      '/data/cedict.tsv.gz': { type: 'application/gzip', body: 'words', etag: '"v1"' },
+      '/data/hsk.tsv.gz': { type: 'application/gzip', body: 'new levels', etag: '"v2"' },
+    };
+    const sw = loadWorker({ online: true, files, precache: ['data/cedict.tsv.gz', 'data/hsk.tsv.gz', 'data/chars.tsv.gz'] });
+    sw.stores.set('dushu-first-visit', new Map([
+      ['https://app.test/data/cedict.tsv.gz', new Response('words', { headers: { ETag: '"v1"' } })],
+      // Changed on the server since the page downloaded it: the new copy is stored.
+      ['https://app.test/data/hsk.tsv.gz', new Response('old levels', { headers: { ETag: '"v1"' } })],
+    ]));
+    await sw.install();
+    const stat = sw.stores.get('dushu-static-d')!;
+    expect(await stat.get('https://app.test/data/cedict.tsv.gz')!.text()).toBe('words');
+    expect(await stat.get('https://app.test/data/hsk.tsv.gz')!.text()).toBe('new levels');
+    expect(sw.added).toContain('https://app.test/data/chars.tsv.gz'); // not handed over: downloaded as before
+    expect(sw.added).not.toContain('https://app.test/data/cedict.tsv.gz');
+    expect(sw.stores.has('dushu-first-visit')).toBe(false);
+  });
+
   it('precaches the bundled Newsreader files at install, and they ship with their license', async () => {
     expect(swSource).toMatch(/const UI_FONTS = \['fonts\/newsreader-roman\.woff2', 'fonts\/newsreader-italic\.woff2'\];/);
-    expect(swSource).toMatch(/await add\(stat, \[\.\.\.PRECACHE\.filter\(isStatic\), \.\.\.UI_FONTS\]\);/);
+    const sw = loadWorker({ online: true });
+    await sw.install();
+    expect(sw.added).toEqual(expect.arrayContaining(['https://app.test/fonts/newsreader-roman.woff2', 'https://app.test/fonts/newsreader-italic.woff2']));
     let total = 0;
     for (const f of ['newsreader-roman.woff2', 'newsreader-italic.woff2']) {
       const bytes = readFileSync(join(root, 'public/fonts', f));
