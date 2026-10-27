@@ -3,6 +3,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import type { AppContext, Dictionary, MountFn, Settings, Store } from './types';
 import { loadDictionary } from './core/dict';
+import { setDictBytes } from './core/dictProgress';
 import { openStore } from './store';
 import { createSettingsStore } from './store/settings';
 import { h, clear } from './ui/dom';
@@ -74,7 +75,7 @@ async function boot(): Promise<void> {
     ? caches.open('dushu-first-visit') : null;
   handoff?.catch(() => {});
   const keep = handoff ? (url: string, res: Response) => void handoff.then((c) => c.put(url, res)).catch(() => {}) : undefined;
-  let early: Promise<Dictionary> | null = loadDictionary(dictUrl, { keep });
+  let early: Promise<Dictionary> | null = loadDictionary(dictUrl, { keep, onBytes: setDictBytes });
   early.catch(() => {}); // reported by the first ctx.dict() below
 
   let store: Store;
@@ -100,7 +101,7 @@ async function boot(): Promise<void> {
   const ctx: AppContext = {
     dict() {
       // A failed download is not kept: the next use (a lookup, opening a book) downloads it again.
-      dictPromise ??= (early ?? loadDictionary(dictUrl)).then((d) => {
+      dictPromise ??= (early ?? loadDictionary(dictUrl, { onBytes: setDictBytes })).then((d) => {
         store.setNormalizer((w) => d.toSimplified(w));
         return (dictReady = d);
       }, (e: unknown) => {

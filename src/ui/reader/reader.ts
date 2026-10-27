@@ -7,6 +7,7 @@ import { readingFontSizeKey } from '../../store/settings';
 import { canSpeak, pauseSpeaking, resumeSpeaking, setSpeakingRate, speakSequence, stopSpeaking } from '../../speech/tts';
 import { EMPTY_LEXICON, isDetecting, loadLexicon } from '../../core/lexicon';
 import { REMOTE_PROGRESS_EVENT, bookKey, syncBeforeOpen } from '../../core/sync';
+import { watchDictBytes } from '../../core/dictProgress';
 import { chapterWords, type ChapterWords } from '../../core/chapterWords';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
@@ -69,6 +70,27 @@ const COACH_KEY = 'dushu.reader-hint.v1';
 function coachSeen(): boolean { try { return localStorage.getItem(COACH_KEY) === '1'; } catch { return true; } }
 function coachMark(): void { try { localStorage.setItem(COACH_KEY, '1'); } catch { /* ignore */ } }
 
+/** How long the book may take to open before the wait for the dictionary is explained. */
+const SAY_DOWNLOAD_MS = 400;
+
+/** While a slow first download of the dictionary holds up the book, the loading line says how far it has got. */
+function explainDictWait(line: HTMLElement, ready: Promise<unknown>): void {
+  let stop: (() => void) | null = null;
+  let settled = false;
+  const timer = window.setTimeout(() => {
+    stop = watchDictBytes(({ loaded, total }) => {
+      if (!total) return;
+      const mb = (n: number) => (n / 1e6).toFixed(1);
+      line.textContent = loaded < total
+        ? `Downloading the dictionary: ${mb(loaded)} of ${mb(total)} MB`
+        : 'Getting the dictionary ready…';
+    });
+    if (settled) stop();
+  }, SAY_DOWNLOAD_MS);
+  const done = () => { settled = true; window.clearTimeout(timer); stop?.(); };
+  ready.then(done, done);
+}
+
 function message(root: HTMLElement, title: string, body: string): void {
   clear(root);
   root.appendChild(h('div.page', null,
@@ -82,12 +104,14 @@ interface Place { chapter: number; block: number; offset: number }
 
 export const mount: MountFn = async (root, params, ctx) => {
   clear(root);
-  root.appendChild(h('div.app-loading', null, h('div.app-spinner'), 'Opening the book…'));
+  const loadingLine = h('span.app-loading-text', null, 'Opening the book…');
+  root.appendChild(h('div.app-loading', null, h('div.app-spinner'), loadingLine));
 
   const store = ctx.store;
   // The book, the dictionary and the place read on another device are waited for together, not one after another.
   const dictReady = ctx.dict();
   dictReady.catch(() => {}); // reported below
+  if (!ctx.dictSync()) explainDictWait(loadingLine, dictReady);
   const synced = syncBeforeOpen();
   const book = params.bookId ? await store.books.get(params.bookId) : undefined;
   if (!book) { message(root, 'Book not found', 'This book is not in your library. It may have been removed.'); return; }

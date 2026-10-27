@@ -130,6 +130,7 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) .app-toasts { bottom: c
 @keyframes app-toast-in { from { opacity: 0; transform: translateY(12px) scale(0.96); } }
 
 .app-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 96px 16px; color: var(--text-3); font-size: 14px; animation: app-fade-in 0.4s var(--ease) 0.15s backwards; }
+.app-loading-text { font-variant-numeric: tabular-nums; }
 @keyframes app-fade-in { from { opacity: 0; } }
 .app-load-failed { flex-direction: column; text-align: center; animation: none; }
 .app-opening { text-align: center; }
