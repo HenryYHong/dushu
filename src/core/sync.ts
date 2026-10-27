@@ -224,10 +224,16 @@ export function hasSyncHub(): boolean {
   return !!cloudSession() || hasMacBridge();
 }
 
-/** Before a book opens: a quick sync so the place read on another device is here. Waits at most `ms`. */
-export async function syncBeforeOpen(ms = 1500): Promise<void> {
+/**
+ * Before a book opens: a quick sync so the place read on another device is here. Not when it synced a moment ago (coming back
+ * to the app syncs): the book opens at once. Otherwise it waits at most `ms`; a place that arrives later is offered by the
+ * reader ("On another device you are …", REMOTE_PROGRESS_EVENT). It used to wait up to 1.5 s on every open.
+ */
+export async function syncBeforeOpen(ms = 600, recentMs = 20_000): Promise<void> {
   const s = active;
   if (!s || !syncEnabled() || !hasSyncHub()) return;
+  const last = s.status().lastOk;
+  if (last !== undefined && Date.now() - last < recentMs) return;
   await Promise.race([s.run(), new Promise<void>((r) => setTimeout(r, ms))]);
 }
 
