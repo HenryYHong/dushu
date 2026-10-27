@@ -66,6 +66,11 @@ async function boot(): Promise<void> {
       h('span', null, 'Still opening your library. If this does not finish, close any other Dushu tabs and reload this page.'));
   }, 5000);
 
+  // The dictionary takes longest to be ready, so it starts first: its files download and parse while the library opens.
+  const dictUrl = new URL('data/', document.baseURI).href;
+  let early: Promise<Dictionary> | null = loadDictionary(dictUrl);
+  early.catch(() => {}); // reported by the first ctx.dict() below
+
   let store: Store;
   try {
     store = await openStore();
@@ -89,13 +94,14 @@ async function boot(): Promise<void> {
   const ctx: AppContext = {
     dict() {
       // A failed download is not kept: the next use (a lookup, opening a book) downloads it again.
-      dictPromise ??= loadDictionary(new URL('data/', document.baseURI).href).then((d) => {
+      dictPromise ??= (early ?? loadDictionary(dictUrl)).then((d) => {
         store.setNormalizer((w) => d.toSimplified(w));
         return (dictReady = d);
       }, (e: unknown) => {
         dictPromise = null;
         throw e;
       });
+      early = null;
       return dictPromise;
     },
     dictSync: () => dictReady,

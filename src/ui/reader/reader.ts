@@ -85,17 +85,21 @@ export const mount: MountFn = async (root, params, ctx) => {
   root.appendChild(h('div.app-loading', null, h('div.app-spinner'), 'Opening the book…'));
 
   const store = ctx.store;
+  // The book, the dictionary and the place read on another device are waited for together, not one after another.
+  const dictReady = ctx.dict();
+  dictReady.catch(() => {}); // reported below
+  const synced = syncBeforeOpen();
   const book = params.bookId ? await store.books.get(params.bookId) : undefined;
   if (!book) { message(root, 'Book not found', 'This book is not in your library. It may have been removed.'); return; }
   let dict: Dictionary;
-  try { dict = await ctx.dict(); } catch {
+  try { dict = await dictReady; } catch {
     message(root, 'Dictionary not loaded', 'The dictionary data could not be loaded, so words cannot be looked up. Reload the page to try again.');
     return;
   }
   if (!location.hash.startsWith('#/read')) return; // navigated away while loading
 
-  // The place read on another device, if the Mac answers quickly.
-  await syncBeforeOpen();
+  // The place read on another device, if the sync answers quickly.
+  await synced;
   if (!location.hash.startsWith('#/read')) return;
   const saved = await store.progress.get(book.id);
   /** The place last saved (or the one the book opened at). Saving the same place again would make it look newer than a place
