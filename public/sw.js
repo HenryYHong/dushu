@@ -4,7 +4,8 @@
 //     previous build already stored is copied from its cache, not downloaded again.
 //   - data/, fonts/, samples/: cache first, in their own cache that survives app updates. The two small Newsreader files
 //     (the display face of the interface) are precached there too, so the app looks the same offline from the first visit.
-//     Jigmo is not: it is large and only books with rare characters need it, so it is stored when first fetched.
+//     Jigmo is not: it is large and only books with rare characters need it, so it is stored when first fetched. The long
+//     novels in samples/ are not precached either (vite.config.ts): each is stored the first time it is added.
 //   - The bundled font slices (assets/*.woff2): cache first in a third cache that is never cleared by an update. Font slices are not precached (there are hundreds): each one is stored the
 //     first time a book needs it, so a page you have read once reads offline.
 //   - A new version installs in the background and waits; the page shows "Reload" and sends SKIP_WAITING.

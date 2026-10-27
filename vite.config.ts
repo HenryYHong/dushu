@@ -44,6 +44,9 @@ export function contentVersion(dist: string, dirs: string[]): string {
   return hash.digest('hex').slice(0, 10);
 }
 
+/** The largest classic downloaded ahead on a first visit, in bytes; longer ones are stored when first added. */
+export const SAMPLE_PRECACHE_MAX = 256 * 1024;
+
 /** Fills the placeholders in the built sw.js: a build id, the data version, and the files to precache. */
 export function serviceWorker(): Plugin {
   let outDir = 'dist';
@@ -66,8 +69,11 @@ export function serviceWorker(): Plugin {
       const build = createHash('sha1').update(assets.join('|')).digest('hex').slice(0, 10);
       const dataVersion = contentVersion(dist, ['data', 'samples', 'fonts']);
       const icons = existsSync(join(dist, 'icons')) ? readdirSync(join(dist, 'icons')).map((f) => `icons/${f}`) : [];
-      // The classics (text and their index) are fetched ahead too, so adding one works without a connection.
-      const samples = existsSync(join(dist, 'samples')) ? readdirSync(join(dist, 'samples')).filter((f) => /\.(?:txt|json)$/.test(f)).map((f) => `samples/${f}`) : [];
+      // The short classics (and their index) are fetched ahead too, so adding one works without a connection. The long
+      // novels (about 4 MB together over the wire) are not: each is stored the first time someone adds it.
+      const samples = existsSync(join(dist, 'samples'))
+        ? readdirSync(join(dist, 'samples')).filter((f) => /\.(?:txt|json)$/.test(f) && statSync(join(dist, 'samples', f)).size <= SAMPLE_PRECACHE_MAX).map((f) => `samples/${f}`)
+        : [];
       const precache = [...assets.map((f) => `assets/${f}`), ...data.map((f) => `data/${f}`), ...samples, 'icon.svg', 'manifest.webmanifest', ...icons];
       writeFileSync(swPath, readFileSync(swPath, 'utf8')
         .replace('__BUILD__', build).replace('__DATA_VERSION__', dataVersion).replace('__PRECACHE__', JSON.stringify(precache)));

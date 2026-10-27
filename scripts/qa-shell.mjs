@@ -91,7 +91,8 @@ async function offlineStep() {
     }
     await p.screenshot({ path: join(out, 'offline-about.png') });
 
-    // Classics are precached, so they add fine offline. A classic that was never stored (the precache can be partial) cannot
+    // Short classics are precached, so they add fine offline. A classic that was never stored (a long novel never added, or a
+    // partial precache) cannot
     // be added; take them out of the cache to see what the person would read then.
     const inCache = await p.evaluate(async () => { for (const k of await caches.keys()) { const c = await caches.open(k); for (const r of await c.keys()) if (/\/samples\/[^/]+\.txt$/.test(r.url)) await c.delete(r); } return true; });
     await p.evaluate(() => { location.hash = '#/'; });

@@ -23,6 +23,7 @@ const FILES: Record<string, string> = {
   'data/cedict.tsv.gz': 'dictionary',
   'samples/index.json': '[]',
   'samples/tang-poems.txt': '靜夜思　李白',
+  'samples/hongloumeng.txt': '红'.repeat(100_000),
   'fonts/newsreader-roman.woff2': 'font',
   'fonts/jigmo/Jigmo.woff2': 'rare',
   'icon.svg': '<svg/>',
@@ -48,6 +49,13 @@ describe('sw.js precache list', () => {
     expect(precache).toContain('assets/GBK-EUC-H-Xy12Ab34.bcmap');
     expect(precache).toContain('assets/index-AbCd1234.js');
     expect(precache.some((p) => p.endsWith('.woff2') && p.startsWith('assets/'))).toBe(false);
+  });
+
+  it('holds the short classics but not the long novels, which are stored when first added', () => {
+    const { precache } = build();
+    expect(precache).toContain('samples/index.json');
+    expect(precache).toContain('samples/tang-poems.txt');
+    expect(precache).not.toContain('samples/hongloumeng.txt');
   });
 });
 
