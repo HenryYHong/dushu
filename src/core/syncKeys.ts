@@ -9,7 +9,7 @@ import type { BookMeta, Progress } from '../types';
  */
 export const SYNCED_SETTINGS = ['theme', 'fontFamily', 'fontSize', 'scrollFontSize', 'lineHeight', 'pageWidth', 'pinyin', 'hskThreshold',
   'pinyinStyle', 'toneColors', 'sandhi', 'autoKnown', 'script', 'paragraphTranslate', 'translator', 'claudeModel', 'localOnly', 'ttsRate',
-  'layout', 'pageTurn'] as const;
+  'layout', 'pageTurn', 'covers'] as const;
 export type SyncedSetting = (typeof SYNCED_SETTINGS)[number];
 export const isSyncedSetting = (name: string): name is SyncedSetting => (SYNCED_SETTINGS as readonly string[]).includes(name);
 

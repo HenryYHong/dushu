@@ -1,6 +1,7 @@
 // Settings in localStorage. Unknown keys are dropped, bad types reset, numbers clamped.
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../translate/claudePrompts';
 import type { Settings, SettingsStore } from '../types';
+import { cleanCovers } from '../core/covers';
 
 export const SETTINGS_KEY = 'dushu.settings.v1';
 
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   layout: 'pages',
   spread: 'auto',
   pageTurn: 'slide',
+  covers: '',
 };
 
 type Rule = (v: unknown) => unknown | undefined; // returns the clean value, or undefined if unusable
@@ -69,6 +71,7 @@ const RULES: { [K in keyof Settings]: Rule } = {
   layout: oneOf('scroll', 'pages'),
   spread: oneOf('auto', 'single', 'double'),
   pageTurn: oneOf('flip', 'slide', 'none'),
+  covers: cleanCovers,
 };
 
 const KEYS = Object.keys(RULES) as (keyof Settings)[];

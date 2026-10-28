@@ -337,6 +337,8 @@ export interface Settings {
   spread: 'auto' | 'single' | 'double';
   /** Page-turn animation in pages layout. */
   pageTurn: 'flip' | 'slide' | 'none';
+  /** Covers picked in the book cards' menus, "key:classic,key:modern" by book sync key (core/covers.ts). */
+  covers: string;
 }
 
 export interface SettingsStore {

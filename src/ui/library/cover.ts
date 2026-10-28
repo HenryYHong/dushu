@@ -25,10 +25,10 @@ export function generatedCover(title: string, author: string, size: 'md' | 'sm' 
 }
 
 /** Generated cover now; swapped for the book's own image once the store hands over its URL. */
-export function bookCover(book: BookMeta, store: Store, size: 'md' | 'sm' = 'md'): HTMLElement {
-  const wrap = h(`div.lib-cover-wrap.lib-cover-wrap-${size}`, null, generatedCover(book.title, book.author, size, coverStyleFor(book)));
+export function bookCover(book: BookMeta, store: Store, size: 'md' | 'sm' = 'md', covers = ''): HTMLElement {
+  const wrap = h(`div.lib-cover-wrap.lib-cover-wrap-${size}`, null, generatedCover(book.title, book.author, size, coverStyleFor(covers, book)));
   // The book's own picture, unless the reader picked a drawn cover for it in the card's menu (some books come with ugly ones).
-  if (book.cover && coverChoice(book.id) === 'auto') {
+  if (book.cover && coverChoice(covers, book) === 'auto') {
     store.books.assetUrl(book.id, book.cover).then((url) => {
       if (!url || !wrap.isConnected) return;
       const img = h('img.lib-cover-img', { alt: '', decoding: 'async' }) as HTMLImageElement;

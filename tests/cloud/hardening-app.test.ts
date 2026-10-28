@@ -146,6 +146,16 @@ describe('settings and the server', () => {
     expect(b.settings.get().theme).toBe('sepia');
   });
 
+  it('carries a cover picked on one device to the others', async () => {
+    await login();
+    const a = await device();
+    const b = await device();
+    await a.syncer.run(); await b.syncer.run();
+    a.settings.set({ covers: 'mabc.2:modern' });
+    await a.syncer.run(); await b.syncer.run();
+    expect(b.settings.get().covers).toBe('mabc.2:modern');
+  });
+
   it('says a device the server signed out was signed out, until it signs in again', async () => {
     // The public site (localhost is the Mac's own page, which would sync with the Mac instead).
     vi.stubGlobal('location', { hostname: 'henryyhong.com', protocol: 'https:', origin: 'https://henryyhong.com', pathname: '/dushu/', search: '', hash: '' });

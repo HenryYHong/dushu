@@ -1,43 +1,25 @@
-// The cover a book shows: the automatic choice (era.ts), or the reader's own pick from the book card's menu.
-// The pick is a display preference of this browser: a small map in localStorage, keyed by book id, never synced.
+// The cover a book shows: the automatic choice (the book's own picture, else its era's style, era.ts), or the reader's own
+// pick from the book card's menu. Picks are a synced setting (core/covers.ts), by each book's sync key.
 import type { BookMeta } from '../../types';
+import { parseCovers, withCover } from '../../core/covers';
+import { bookKey, type KeyedBook } from '../../core/syncKeys';
 import { bookEra, type BookEra, type EraInput } from './era';
 
 export type CoverChoice = 'auto' | BookEra;
+type CoverBook = KeyedBook & EraInput & Partial<Pick<BookMeta, 'author'>>;
 
-const KEY = 'dushu.cover-style.v1';
-/** Where the picks live when storage is blocked: they last until the tab closes. */
-let memory: Record<string, BookEra> | null = null;
-
-function readMap(): Record<string, BookEra> {
-  if (memory) return { ...memory };
-  try {
-    const raw = JSON.parse(globalThis.localStorage?.getItem(KEY) ?? '{}') as unknown;
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
-    const out: Record<string, BookEra> = {};
-    for (const [id, v] of Object.entries(raw as Record<string, unknown>)) if (v === 'classic' || v === 'modern') out[id] = v;
-    return out;
-  } catch { return {}; }
+/** What the menu shows as chosen for this book, from the covers setting. */
+export function coverChoice(covers: string, book: KeyedBook): CoverChoice {
+  return parseCovers(covers).get(bookKey(book)) ?? 'auto';
 }
 
-/** What the menu shows as chosen for this book. */
-export function coverChoice(bookId: string): CoverChoice {
-  return readMap()[bookId] ?? 'auto';
-}
-
-/** Saves the reader's pick; 'auto' forgets it. */
-export function setCoverChoice(bookId: string, choice: CoverChoice): void {
-  const map = readMap();
-  if (choice === 'auto') delete map[bookId]; else map[bookId] = choice;
-  try {
-    if (!globalThis.localStorage) throw new Error('no storage');
-    globalThis.localStorage.setItem(KEY, JSON.stringify(map));
-    memory = null;
-  } catch { memory = map; /* storage blocked: the pick lasts this visit */ }
+/** The covers setting with this book's pick; 'auto' forgets it. */
+export function withCoverChoice(covers: string, book: KeyedBook, choice: CoverChoice): string {
+  return withCover(covers, bookKey(book), choice === 'auto' ? null : choice);
 }
 
 /** The cover family a book is drawn with. */
-export function coverStyleFor(book: Pick<BookMeta, 'id'> & EraInput): BookEra {
-  const pick = coverChoice(book.id);
+export function coverStyleFor(covers: string, book: CoverBook): BookEra {
+  const pick = coverChoice(covers, book);
   return pick === 'auto' ? bookEra(book) : pick;
 }

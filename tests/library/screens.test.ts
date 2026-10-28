@@ -6,6 +6,7 @@ import { openStore, type DushuStore } from '../../src/store';
 import type { AppContext, ImportedBook } from '../../src/types';
 import { loadTestDictionary, readDataFile } from '../helpers/data';
 import { mount as mountLibrary } from '../../src/ui/library/library';
+import { bookKey } from '../../src/core/syncKeys';
 import { mount as mountSettings } from '../../src/ui/settings/settings';
 import { mount as mountAbout } from '../../src/ui/about/about';
 import { renderPreview, showsPinyin } from '../../src/ui/settings/preview';
@@ -168,7 +169,7 @@ describe('library screen', () => {
     expect(choices.map((c) => c.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
     choices[2].click();
     await until(() => coverOf(old.id).classList.contains('lib-cover-modern'));
-    expect(JSON.parse(localStorage.getItem('dushu.cover-style.v1')!)).toEqual({ [old.id]: 'modern' });
+    expect(ctx.settings.get().covers).toBe(`${bookKey(old)}:modern`);
     root.querySelector<HTMLElement>(`.lib-card[data-id="${old.id}"] .lib-card-menu`)!.click();
     const again = [...document.querySelectorAll<HTMLElement>('.lib-menu [role="menuitemradio"]')];
     expect(again.map((c) => c.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);

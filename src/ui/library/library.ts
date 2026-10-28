@@ -5,7 +5,7 @@ import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { createBookShares } from './bookShare';
 import { bookCover, generatedCover } from './cover';
-import { coverChoice, coverStyleFor, setCoverChoice, type CoverChoice } from './coverStyle';
+import { coverChoice, coverStyleFor, withCoverChoice, type CoverChoice } from './coverStyle';
 import { bookEra } from './era';
 import { pageTitle } from '../pageHead';
 import { confirmDialog, formDialog } from './dialogs';
@@ -198,7 +198,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const frac = progressFraction(p);
     const where = p && opened.chapterCount > 1 ? `Chapter ${Math.min(opened.chapterCount, p.chapter + 1)} of ${opened.chapterCount} · ` : '';
     continueEl.appendChild(h('section.lib-continue.card', { 'aria-label': 'Continue reading' },
-      h('a.lib-continue-cover', { href: readHref(opened.id), tabindex: -1, 'aria-hidden': 'true' }, bookCover(opened, store, 'sm')),
+      h('a.lib-continue-cover', { href: readHref(opened.id), tabindex: -1, 'aria-hidden': 'true' }, bookCover(opened, store, 'sm', ctx.settings.get().covers)),
       h('div.lib-continue-info', null,
         h('span.chip.chip-accent', null, 'Continue reading'),
         h('h2.lib-continue-title.zh', null, shown(opened.title)),
@@ -276,13 +276,14 @@ export const mount: MountFn = (root, _params, ctx) => {
         e.preventDefault();
         // The Mac's books are always in the library, so they have no Delete.
         const fromMac = isMacBook(b) || !!macItemFor(b, macItems);
-        const chosen = coverChoice(b.id);
+        const chosen = coverChoice(ctx.settings.get().covers, b);
         // A book that came with a picture shows it unless a drawn cover is picked; one without is drawn in its era's style.
         const auto = b.cover ? 'The book’s picture' : `Automatic (${bookEra(b) === 'classic' ? 'Classic' : 'Modern'})`;
         const pick = (c: CoverChoice) => ({
           label: c === 'auto' ? auto : c === 'classic' ? 'Classic' : 'Modern',
           checked: chosen === c,
-          run: () => { setCoverChoice(b.id, c); renderContinue(); renderGrid(); },
+          // A setting that syncs: the pick shows on every device (the settings listener below draws it here).
+          run: () => ctx.settings.set({ covers: withCoverChoice(ctx.settings.get().covers, b, c) }),
         });
         openMenu(menuBtn, [
           { label: 'Rename', icon: 'pen', run: () => void rename(b) },
@@ -295,7 +296,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const known = shares.text(b.id);
     const card: HTMLElement = h('article.lib-card', { 'data-id': b.id },
       h('a.lib-card-main', { href: readHref(b.id), 'data-label': label, 'aria-label': known ? `${label}. ${known}.` : label },
-        bookCover(b, store, 'md'),
+        bookCover(b, store, 'md', ctx.settings.get().covers),
         h('div.lib-card-info', null,
           h('div.lib-card-title.zh', null, shown(b.title)),
           h('div.lib-card-author', null, b.author ? shown(b.author) : ' '),
@@ -376,7 +377,7 @@ export const mount: MountFn = (root, _params, ctx) => {
         }, busy ? 'Adding…' : 'Add and read');
     return h('article.lib-sample.card', null,
       h('div.lib-sample-cover', null, generatedCover(s.title, s.author, 'sm',
-        existing ? coverStyleFor(existing) : bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }))),
+        existing ? coverStyleFor(ctx.settings.get().covers, existing) : bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }))),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
           h('div.lib-sample-title.zh', null, sampleShown(s, 'title')),
@@ -417,7 +418,11 @@ export const mount: MountFn = (root, _params, ctx) => {
   window.addEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
   // Titles follow the script setting: drawn again when it changes, and once the dictionary that converts them is in.
   const redrawTitles = () => { if (!alive) return; renderContinue(); renderGrid(); renderSamples(); };
-  const offSettings = ctx.settings.subscribe((_s, changed) => { if (changed.includes('script')) redrawTitles(); });
+  const offSettings = ctx.settings.subscribe((_s, changed) => {
+    if (changed.includes('script')) redrawTitles();
+    // A cover picked here, or on another device and synced.
+    if (changed.includes('covers')) { renderContinue(); renderGrid(); renderSamples(); }
+  });
   if (!ctx.dictSync() && ctx.settings.get().script !== 'original') void ctx.dict().then(redrawTitles, () => {});
 
   // ---- the Mac's books ----

@@ -3,7 +3,8 @@
 // its title (format.ts, cover.ts).
 import { afterEach, describe, expect, it } from 'vitest';
 import { bookEra, isClassicalAuthor } from '../../src/ui/library/era';
-import { coverChoice, coverStyleFor, setCoverChoice } from '../../src/ui/library/coverStyle';
+import { coverChoice, coverStyleFor, withCoverChoice } from '../../src/ui/library/coverStyle';
+import { MAX_COVER_PICKS, cleanCovers, parseCovers } from '../../src/core/covers';
 import { classicLayout, coverDye, hasLatin, modernSize, titleUnits } from '../../src/ui/library/format';
 import { generatedCover } from '../../src/ui/library/cover';
 
@@ -47,24 +48,27 @@ describe('book era', () => {
 });
 
 describe('the cover menu pick', () => {
-  it('is automatic until chosen, survives a reload of the map, and forgets itself on Automatic', () => {
-    const book = { id: 'b1', title: '活着', author: '余华' };
-    expect(coverChoice('b1')).toBe('auto');
-    expect(coverStyleFor(book)).toBe('modern');
-    setCoverChoice('b1', 'classic');
-    expect(coverChoice('b1')).toBe('classic');
-    expect(coverStyleFor(book)).toBe('classic');
-    expect(JSON.parse(localStorage.getItem('dushu.cover-style.v1')!)).toEqual({ b1: 'classic' });
-    setCoverChoice('b1', 'auto');
-    expect(coverChoice('b1')).toBe('auto');
-    expect(JSON.parse(localStorage.getItem('dushu.cover-style.v1')!)).toEqual({});
+  const book = { id: 'b1', title: '活着', author: '余华', note: `mac-book:${'ab'.repeat(32)}`, importVersion: 2, chapterCount: 1, charCount: 10 };
+  it('is automatic until chosen, is kept by the book\'s sync key, and forgets itself on Automatic', () => {
+    expect(coverChoice('', book)).toBe('auto');
+    expect(coverStyleFor('', book)).toBe('modern');
+    const picked = withCoverChoice('', book, 'classic');
+    expect(picked).toBe(`m${'ab'.repeat(16)}.2:classic`);
+    expect(coverChoice(picked, book)).toBe('classic');
+    expect(coverStyleFor(picked, book)).toBe('classic');
+    expect(withCoverChoice(picked, book, 'auto')).toBe('');
+    // The same book on another device (another local id) has the same pick.
+    const elsewhere: typeof book = { ...book, id: 'other' };
+    expect(coverChoice(picked, elsewhere)).toBe('classic');
   });
-  it('ignores a damaged map', () => {
-    localStorage.setItem('dushu.cover-style.v1', '{"b1":"glossy","b2":"modern"');
-    expect(coverChoice('b1')).toBe('auto');
-    localStorage.setItem('dushu.cover-style.v1', '{"b1":"glossy","b2":"modern"}');
-    expect(coverChoice('b1')).toBe('auto');
-    expect(coverChoice('b2')).toBe('modern');
+  it('ignores damaged entries, keeps the latest pick per book, and stays small', () => {
+    expect(cleanCovers('x:glossy,,bad entry,k1:modern,k1:classic')).toBe('k1:classic');
+    expect(cleanCovers(3)).toBeUndefined();
+    const many = Array.from({ length: MAX_COVER_PICKS + 5 }, (_, i) => `k${i}:modern`).join(',');
+    const kept = parseCovers(many);
+    expect(kept.size).toBe(MAX_COVER_PICKS);
+    expect(kept.has('k0')).toBe(false);
+    expect(kept.has(`k${MAX_COVER_PICKS + 4}`)).toBe(true);
   });
 });
 
