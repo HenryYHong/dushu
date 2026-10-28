@@ -3,6 +3,7 @@
 import type { AppContext, Dictionary, Lexicon, Translator, TranslatorId } from '../../types';
 import { getTranslator, listTranslators, pickTranslator, type ChromeTranslator } from '../../translate';
 import { claudeReadySync } from '../../translate/claude';
+import { cloudBase, cloudSession } from '../../core/cloud';
 import type { TranslateOptions, TranslationNote } from '../../translate/prompt';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
@@ -88,6 +89,7 @@ const NOTES: Record<TranslatorId, { no: string; yes: string }> = {
   local: { no: 'Keep your Mac awake with Ollama and the private connection running', yes: 'Processed on your Mac; no cloud translation service' },
   chrome: { no: 'Not available in this browser', yes: 'On this device' },
   claude: { no: 'Needs your Mac with a Claude key on it', yes: 'Through your Mac' },
+  account: { no: 'Sign in, and turn off Local only', yes: 'Through your account' },
   mymemory: { no: 'Not available', yes: 'Sends the text to MyMemory' },
   gloss: { no: 'Not available', yes: 'Offline, word by word' },
 };
@@ -255,11 +257,14 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     clear(body);
     const settings = h('a.pp-tr-link', { href: '#/settings' }, 'Settings');
     const noTranslator = typeof (globalThis as { Translator?: unknown }).Translator === 'undefined';
-    if (automatic) {
+    if (automatic && cloudBase() && !cloudSession() && !ctx.settings.get().localOnly) {
+      const signIn = h('button.pp-tr-link', { type: 'button', onclick: () => void import('../signIn').then((m) => m.openSignIn()) }, 'Sign in');
+      body.appendChild(h('p', null, signIn, ' to translate whole sentences. It’s free.'));
+    } else if (automatic) {
       body.appendChild(h('p', null,
-        'No translation offline. ',
+        'No sentence translator is available right now. ',
         noTranslator ? 'Safari and iPadOS have no on-device translator. ' : '',
-        'Add a Claude key in ', settings, ', or use Chrome on a computer.'));
+        'See ', settings, '.'));
     } else {
       body.appendChild(h('p', null, 'Translation is set to word by word. Pick another below or in ', settings, '.'));
     }

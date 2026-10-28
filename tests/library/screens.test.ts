@@ -442,7 +442,10 @@ describe('settings screen', () => {
     cleanup = await mountSettings(root, {}, ctx);
     await until(() => [...root.querySelectorAll('.set-prov .set-chip')].every((c) => c.textContent !== '…'));
     const rows = [...root.querySelectorAll('.set-prov')];
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(7);
+    // Signed out here, so Qwen through the account says how to get it.
+    const qwen = rows.find((r) => r.querySelector('.set-prov-name')?.textContent?.startsWith('Qwen'))!;
+    expect(qwen.querySelector('.set-chip')?.textContent).toBe('Sign in to use');
     const claude = rows.find((r) => r.querySelector('.set-prov-name')?.textContent?.startsWith('Claude'))!;
     // The test page counts as the Mac's own origin but nothing answers, so Claude cannot be ready; the browser holds no key to be "Ready" from.
     expect(claude.querySelector('.set-chip')?.textContent).toBe('Mac not reachable');
@@ -527,11 +530,18 @@ describe('settings helpers', () => {
     expect(statusText('claude', 'no', null, true).text).toBe('Local only is on');
     expect(statusText('chrome', 'download').kind).toBe('warn');
     expect(statusText('gloss', 'yes').kind).toBe('ok');
-    expect(autoPick({ local: 'yes', chrome: 'download', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('local');
-    expect(autoPick({ local: 'yes', chrome: 'yes', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('chrome');
-    expect(autoPick({ local: 'no', chrome: 'download', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('chrome');
-    expect(autoPick({ local: 'no', chrome: 'no', claude: 'yes', mymemory: 'yes', gloss: 'yes' })).toBe('claude');
-    expect(autoPick({ local: 'no', chrome: 'no', claude: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('gloss');
+    expect(autoPick({ local: 'yes', chrome: 'download', claude: 'no', account: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('local');
+    expect(autoPick({ local: 'yes', chrome: 'yes', claude: 'no', account: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('chrome');
+    expect(autoPick({ local: 'no', chrome: 'download', claude: 'no', account: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('chrome');
+    expect(autoPick({ local: 'no', chrome: 'no', claude: 'yes', account: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('claude');
+    expect(autoPick({ local: 'no', chrome: 'no', claude: 'no', account: 'no', mymemory: 'yes', gloss: 'yes' })).toBe('gloss');
+    // Qwen through the account comes after Claude and the Mac's model, before the browser's translator, and never with Local only.
+    expect(autoPick({ local: 'no', chrome: 'yes', claude: 'no', account: 'yes', mymemory: 'yes', gloss: 'yes' })).toBe('account');
+    expect(autoPick({ local: 'no', chrome: 'no', claude: 'yes', account: 'yes', mymemory: 'yes', gloss: 'yes' })).toBe('claude');
+    expect(autoPick({ local: 'yes', chrome: 'no', claude: 'no', account: 'yes', mymemory: 'yes', gloss: 'yes' }, true)).toBe('local');
+    expect(autoPick({ local: 'no', chrome: 'yes', claude: 'no', account: 'yes', mymemory: 'yes', gloss: 'yes' }, false, true)).toBe('chrome');
+    expect(statusText('account', 'no').text).toBe('Sign in to use');
+    expect(statusText('account', 'yes', null, true).text).toBe('Local only is on');
   });
 
   it('summarizes backup imports and names the file by date', () => {

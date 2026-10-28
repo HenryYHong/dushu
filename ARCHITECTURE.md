@@ -322,6 +322,8 @@ settings.sandhi is on (the caller decides).
   bad key, credit, Mac unreachable) automatic mode skips Claude for 60 s (`claudeReadySync`). **Local only** (`settings.localOnly`)
   makes Claude and MyMemory unavailable and refuse to run even when picked, so every sentence stays on the Mac (Chrome's on-device
   translator is still allowed: it runs on the device that holds the browser).
+- `account`: Qwen3 30B through the sync account (`src/translate/account.ts`, `POST /ai/translate`), for anyone signed in. Free: see
+  the Workers AI note under the sync account. Local only turns it off; a 429 or a missing model makes automatic mode skip it for 10 minutes.
 - `mymemory`: `https://api.mymemory.translated.net/get?q=…&langpair=zh-CN|en` (no email
   param, ever). 500-char chunks. Free tier ~5k chars/day — report quota errors plainly.
 - `gloss`: always available, offline: segment + first definition of each word, joined
@@ -329,8 +331,8 @@ settings.sandhi is on (the caller decides).
 - `local`: on the owner's Mac only, call an installed Ollama model over loopback for a sentence
   translation or explanation. Word cards may request a separate contextual suggestion, always
   marked as fallible AI and never substituted for dictionary entries.
-- `pickTranslator` with `auto`: Claude via the Mac (skipped under Local only) → evaluated local Qwen3.5 9B → ready Chrome → smaller local model → Chrome download →
-  gloss. Claude through the Mac comes first when it is ready and Local only is off. (MyMemory sends text to a third party, so auto never picks it; the user opts in.)
+- `pickTranslator` with `auto`: Claude (skipped under Local only) → evaluated local Qwen3.5 9B → Qwen through the account (signed in, not
+  Local only) → ready Chrome → smaller local model → Chrome download → gloss. Claude through the Mac comes first when it is ready and Local only is off. (MyMemory sends text to a third party, so auto never picks it; the user opts in.)
   The Translator API's availability values are available/downloadable/downloading/unavailable; chrome.ts maps them to
   yes/download/no. In the `download` state only a click can start the download: the UI casts to `ChromeTranslator`
   and calls `prepare(onProgress)` inside its click handler. In that state the phrase popup also shows the offline
@@ -573,6 +575,11 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   Worker secret `ANTHROPIC_API_KEY`. A request is counted before it is sent (`claudeStart`, 429 `daily_limit` past the limits) and its
   tokens after (`claudeUsed`), per account per UTC day. The app's translator (`src/translate/claude.ts`) goes through the account when
   signed in, else the Mac; Local only turns Claude off either way.
+- **Translation for everyone signed in** (`POST /ai/translate`): Qwen3 30B-A3B on Workers AI (`@cf/qwen/qwen3-30b-a3b-fp8`) with the
+  local model's prompt and checks (`translateChecked`, target `local`) and Qwen's `/no_think` switch, 600 characters at most. It costs
+  about 4 neurons a sentence. Three are taken before the call and the rest of `usage.neurons` after, against the reader's UTC day
+  (800; the owner's is the whole 4,000) and everyone's (4,000). With read-aloud's 48,000 characters (about 4,300 neurons), the day stays
+  under Workers AI's free 10,000, so nothing is ever billed. Answer: `{ text, unverified? }`.
 - **Bringing a device everything**: `copyMacIntoAccount` (core/sync.ts) runs beside a sync on a signed-in device that reaches the Mac,
   once per account and Mac (`dushu.cloud.mac-copied.v1`; a failure waits 5 minutes): it reads every Mac record (`since: 0`, no changes)
   and sends them to the account with their own times, so the account's merge keeps whichever copy is newer; a sync right after takes

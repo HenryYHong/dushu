@@ -18,13 +18,14 @@ const NAMES: Record<TranslatorId, { name: string; desc: string }> = {
   local: { name: 'Private Mac AI (Ollama)', desc: 'Qwen3.5 9B, running on your Mac. The Mac has to be awake.' },
   chrome: { name: 'Chrome on-device', desc: 'Built into Chrome 138 and newer on a computer. Free, and works offline after a one-time download.' },
   claude: { name: 'Claude (through your Mac)', desc: 'The best translations, and it can explain grammar. Goes through your Mac, which has to be awake.' },
+  account: { name: 'Qwen (through your account)', desc: 'Free when you’re signed in, up to a daily limit. Runs on Cloudflare.' },
   mymemory: { name: 'MyMemory', desc: 'A free online service, about 5,000 characters a day. Your sentence is sent to it.' },
   gloss: { name: 'Word-by-word gloss', desc: 'Each word with its first dictionary meaning. Works offline, but it is not a real translation.' },
 };
 
 export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | null, localOnly = false): { text: string; kind: 'ok' | 'warn' | 'off' } {
   if (id === 'claude' && localOnly) return { text: 'Local only is on', kind: 'off' };
-  if (id === 'mymemory' && localOnly) return { text: 'Local only is on', kind: 'off' };
+  if ((id === 'mymemory' || id === 'account') && localOnly) return { text: 'Local only is on', kind: 'off' };
   if (a === 'yes') return { text: 'Ready', kind: 'ok' };
   if (a === 'download') return { text: 'Download needed', kind: 'warn' };
   if (id === 'claude') {
@@ -38,6 +39,7 @@ export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | n
     return { text: 'Unavailable', kind: 'off' };
   }
   if (id === 'chrome') return { text: chromeSupported() ? 'Not available for Chinese' : 'Not supported in this browser', kind: 'off' };
+  if (id === 'account') return cloudSession() ? { text: 'Used up for today', kind: 'warn' } : { text: 'Sign in to use', kind: 'off' };
   return { text: 'Unavailable', kind: 'off' };
 }
 
@@ -45,6 +47,7 @@ export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | n
 export function autoPick(avail: Record<TranslatorId, Avail>, qualityLocal = false, localOnly = false): TranslatorId {
   if (!localOnly && avail.claude === 'yes') return 'claude';
   if (qualityLocal && avail.local === 'yes') return 'local';
+  if (!localOnly && avail.account === 'yes') return 'account';
   if (avail.chrome === 'yes') return 'chrome';
   if (avail.local !== 'no') return 'local';
   if (avail.chrome !== 'no') return 'chrome';
@@ -92,8 +95,8 @@ export function claudeStatusLines(status: ClaudeStatus | null, connected: boolea
 
 export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: Settings): void; dispose(): void } {
   const { settings } = ctx;
-  const ids: TranslatorId[] = ['local', 'chrome', 'claude', 'mymemory', 'gloss'];
-  const avail: Record<TranslatorId, Avail> = { local: 'no', chrome: 'no', claude: 'no', mymemory: 'yes', gloss: 'yes' };
+  const ids: TranslatorId[] = ['local', 'chrome', 'claude', 'account', 'mymemory', 'gloss'];
+  const avail: Record<TranslatorId, Avail> = { local: 'no', chrome: 'no', claude: 'no', account: 'no', mymemory: 'yes', gloss: 'yes' };
   const name = nextId('tr');
   let claudeStatus: ClaudeStatus | null = null;
   let alive = true;
@@ -122,7 +125,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
     desc: 'The best translations, and it can explain grammar. Goes through your account.',
   } } : NAMES;
   const list = h('div.set-prov-list', { role: 'radiogroup', 'aria-label': 'Translation provider' },
-    rowEl('auto', 'Automatic', `Tries Claude through your ${account ? 'account' : 'Mac'}, then the model on your Mac, then the browser's translator, and last the word-by-word gloss.`),
+    rowEl('auto', 'Automatic', `Tries Claude through your ${account ? 'account' : 'Mac'}, then the model on your Mac, then Qwen through your account, then the browser's translator, and last the word-by-word gloss.`),
     ...ids.map((id) => rowEl(id, names[id].name, names[id].desc)));
 
   function paintChip(value: Choice, text: string, kind: 'ok' | 'warn' | 'off') {
@@ -217,7 +220,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   const claudeBox = h('div.set-claude', null,
     h('div.set-claude-title', null, account ? 'Claude through your account' : 'Claude through your Mac'),
     row('Model', 'Haiku costs less.', h('div.set-model-row', null, model), modelId),
-    row('Local only', 'Never send a sentence to Claude or MyMemory.', localOnly),
+    row('Local only', 'Never send a sentence to an online translator.', localOnly),
     row('Status', 'There is a daily limit, so the bill stays small.', h('div.set-status-wrap', null, statusBox, h('div.set-test', null, h('div.set-btn-row', null, refreshBtn, testBtn), testOut))));
 
   const el = group('Translation',

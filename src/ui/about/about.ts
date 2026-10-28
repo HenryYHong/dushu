@@ -59,7 +59,7 @@ const NAMES = [
 const DEVICES = [
   'Open Dushu in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.',
   'To add your own books, tap Import book and pick a file from the Files app.',
-  'Safari has no built-in translator. On an iPhone or iPad, sentences go to Claude if your account has it, and otherwise you get a word-by-word gloss.',
+  'Safari has no built-in translator. On an iPhone or iPad, sign in and your sentences are translated through your account. Signed out, you get a word-by-word gloss.',
 ];
 
 const ACCOUNT = [
@@ -80,8 +80,9 @@ const showMac = () => isMacOrigin() || !!connectedMac() || isAccountOwner();
 
 const TRANSLATION = [
   'Pinyin and meanings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.',
-  'On Automatic, Dushu tries Claude first if your account has it, then a model on your Mac if one is connected, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
+  'On Automatic, Dushu tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
   'Claude is made by Anthropic. Only the sentence and a little of the text around it is sent, through your account or your Mac. The key never reaches your browser.',
+  'Qwen is an open model from Alibaba. Signed in, it translates your sentences for free on Cloudflare, up to a daily limit. Again, only the sentence and a little of the text around it is sent.',
   'Turn on Local only in Settings and nothing is sent to an online translator.',
   'MyMemory is an online translator you can pick in Settings. It\'s never used unless you choose it.',
   'Machine translation can be wrong. If a sentence matters, check it against the word cards.',

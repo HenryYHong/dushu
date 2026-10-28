@@ -63,7 +63,7 @@ const RULES: { [K in keyof Settings]: Rule } = {
   script: oneOf('original', 'simplified', 'traditional'),
   lookupTrigger: oneOf('click', 'hover'),
   paragraphTranslate: bool,
-  translator: oneOf('auto', 'local', 'chrome', 'claude', 'mymemory', 'gloss'),
+  translator: oneOf('auto', 'local', 'chrome', 'claude', 'account', 'mymemory', 'gloss'),
   claudeModel: oneOf(...CLAUDE_MODELS.map(m => m.value)),
   localOnly: bool,
   ttsVoice: text(200, true),

@@ -326,7 +326,7 @@ export interface Settings {
   /** How a single word is looked up. Double-click and drag-select always work. */
   lookupTrigger: 'click' | 'hover';
   paragraphTranslate: boolean;
-  translator: 'auto' | 'local' | 'chrome' | 'claude' | 'mymemory' | 'gloss';
+  translator: 'auto' | 'local' | 'chrome' | 'claude' | 'account' | 'mymemory' | 'gloss';
   /** Sonnet 5.5 (default) or Haiku 5.5, asked through the owner's Mac. The API key lives only on the Mac. */
   claudeModel: string;
   /** Keep every sentence on the Mac: no Claude and no MyMemory, only the local model, on-device Chrome and the dictionary. */
@@ -511,7 +511,7 @@ export interface Store {
 
 // ------------------------------------------------------------ translate ---
 
-export type TranslatorId = 'local' | 'chrome' | 'claude' | 'mymemory' | 'gloss';
+export type TranslatorId = 'local' | 'chrome' | 'claude' | 'account' | 'mymemory' | 'gloss';
 
 export interface TranslateRequest {
   text: string;

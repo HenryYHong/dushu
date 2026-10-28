@@ -1,8 +1,8 @@
 // Dushu's sync account online: a device signs in with an emailed code and then syncs exactly as it would with the owner's
 // Mac (src/core/sync.ts speaks the same exchange). One Durable Object per email holds that account (account.ts), so its
 // requests run one at a time; another holds the daily count of emails sent. Sessions are bearer tokens
-// '<account id>.<secret>': only the secret's SHA-256 is stored. Read-aloud uses Workers AI, kept under its free daily
-// allowance (SPEECH_MAX_CHARS).
+// '<account id>.<secret>': only the secret's SHA-256 is stored. Read-aloud and sentence translation for everyone signed in use
+// Workers AI, kept together under its free daily allowance (SPEECH_MAX_CHARS, TRANSLATE_NEURONS).
 import Anthropic from '@anthropic-ai/sdk';
 import { AccountCore, BOOK_CHUNK, CloudError, LimitsCore, OWNER_ONLY_CLAUDE, allowedEmail, normalEmail, type ClaudeLimits, type Take } from './account';
 import { sqlLimits, sqlStore, type SqlStorage } from './sqlStore';
@@ -10,6 +10,8 @@ import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
 import { SYNC_LIMITS, SyncError } from '../../src/core/syncExchange';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
 import { describeError, parseTranslateBody, runClaude, type ServerClient } from '../../src/translate/claudeServer';
+import { contextWindow, translateChecked, unverifiedDetail } from '../../src/translate/prompt';
+import { wordSenseHint } from '../../src/translate/contextSense';
 
 export interface DurableObjectId { toString(): string }
 export interface DurableObjectStub { fetch(input: string, init?: RequestInit): Promise<Response> }
@@ -45,7 +47,7 @@ export interface Env {
   CLAUDE_MAX_INPUT_TOKENS?: string;
   /** Tests make the Anthropic client; the Worker makes the real one. */
   claudeClient?: (apiKey: string) => ServerClient;
-  /** Workers AI (wrangler.toml [ai]), for read-aloud through the account. */
+  /** Workers AI (wrangler.toml [ai]), for read-aloud and sentence translation through the account. */
   AI?: { run(model: string, input: Record<string, unknown>, options?: { returnRawResponse?: boolean }): Promise<unknown> };
   /** Characters read aloud per account per day. */
   SPEECH_MAX_CHARS?: string;
@@ -58,17 +60,31 @@ const owners = (env: Env) => env.OWNER_EMAILS ?? env.ALLOWED_EMAILS ?? '';
 /** The account's voice: MeloTTS on Workers AI, Mandarin (a WAV file, 44.1 kHz). */
 const SPEECH_MODEL = '@cf/myshell-ai/melotts';
 /**
- * Never billed: Workers AI gives every account 10,000 neurons a day for nothing, and MeloTTS costs about 19 a minute of
- * audio ($0.000205 a minute at $0.011 per 1,000). At 3.5 characters a second (slower than it reads), 90,000 characters is
- * about 430 minutes, 8,000 neurons: under the free allowance with room to spare. Past it the app reads with the device's voice.
+ * Never billed: Workers AI gives every account 10,000 neurons a day for nothing, shared here by read-aloud and translation.
+ * MeloTTS costs about 19 neurons a minute of audio. At 3.5 characters a second (slower than it reads), 48,000 characters is
+ * about 230 minutes, 4,300 neurons; with translation's 4,000 (TRANSLATE_NEURONS) the day stays under the free allowance with
+ * room to spare. Past it the app reads with the device's voice.
  */
-const SPEECH_MAX_CHARS = 90_000;
+const SPEECH_MAX_CHARS = 48_000;
 /** A sentence at most (src/speech/tts.ts sends one at a time, 180 characters or fewer). */
 const SPEECH_TEXT = 400;
 const speechLimit = (env: Env) => Math.min(SPEECH_MAX_CHARS, Number(env.SPEECH_MAX_CHARS) > 0 ? Number(env.SPEECH_MAX_CHARS) : SPEECH_MAX_CHARS);
-/** Everyone but the owners shares two thirds of the day, at most a sixth each (about 50 minutes of listening). */
-const SPEECH_OTHERS_CHARS = 60_000;
-const SPEECH_SHARE_CHARS = 15_000;
+/** Everyone but the owners shares two thirds of the day, at most a sixth each (about 38 minutes of listening). */
+const SPEECH_OTHERS_CHARS = 32_000;
+const SPEECH_SHARE_CHARS = 8_000;
+
+/**
+ * Sentence translation for everyone signed in: Qwen3 30B (a mixture of experts, 3B active) on Workers AI, good at Chinese and
+ * cheap. A sentence costs about 4 neurons (700 prompt tokens at 4,625 a million, a few dozen out at 30,475 a million), so the
+ * day's 4,000 is about 900 sentences, and one reader's 800 about 180. Claude stays the owner's.
+ */
+const TRANSLATE_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8';
+const TRANSLATE_NEURONS = 4_000;
+const TRANSLATE_SHARE_NEURONS = 800;
+/** Taken before the model runs; the rest of what it used is counted after. */
+const TRANSLATE_UPFRONT = 3;
+/** A paragraph at most: a longer selection is cut into sentences by the app. */
+export const TRANSLATE_TEXT = 600;
 /** Sign-in codes a day from one network (a classroom shares one), and in all (Resend's free plan sends 100 a day). */
 const CODES_PER_NETWORK = 40;
 /** Wrong sign-in codes a day from one network. */
@@ -232,6 +248,70 @@ async function speech(request: Request, env: Env): Promise<Response> {
   return new Response(res.body, { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
 
+interface QwenAnswer {
+  choices?: { message?: { content?: string | null }; finish_reason?: string }[];
+  response?: string;
+  usage?: { prompt_tokens?: number; completion_tokens?: number; neurons?: number };
+}
+
+/**
+ * Sentence translation through the account: the same prompt and checks as the Mac's local model (src/translate/prompt.ts),
+ * answered by Qwen3 on Workers AI with its thinking off. Counted in neurons against the reader's day and everyone's, which
+ * stay under the free allowance.
+ */
+async function aiTranslate(request: Request, env: Env): Promise<Response> {
+  const { stub, secret: s, id } = bearer(request, env);
+  if (!env.AI) throw new CloudError(503, 'Translation is not set up on the sync server.', 'no_model');
+  const parsed = parseTranslateBody(await readJson(request, 16384));
+  if (!parsed.ok) throw new CloudError(parsed.status, parsed.message, 'bad_request');
+  const req = parsed.request;
+  if (req.text.length > TRANSLATE_TEXT) throw new CloudError(413, 'That passage is too long to translate at once. Select a shorter one.', 'too_long');
+  const gate = await call(env, stub, 'ai-start', {}, s);
+  if (!gate.ok) return gate;
+  const { owner } = await gate.json() as { owner?: boolean };
+  const days = (n: number, max = (m: number) => m): Take[] => [
+    { name: `translate-account:${id}`, n, max: max(owner ? TRANSLATE_NEURONS : TRANSLATE_SHARE_NEURONS) },
+    { name: 'translate', n, max: max(TRANSLATE_NEURONS) },
+  ];
+  if (!await takeShared(env, days(TRANSLATE_UPFRONT))) {
+    throw new CloudError(429, 'Today’s free translations are used up. They come back at midnight (UTC).', 'daily_limit');
+  }
+  const ai = env.AI;
+  let neurons = 0;
+  const generate = async (system: string, message: string): Promise<string> => {
+    let answer: QwenAnswer;
+    try {
+      // "/no_think" is Qwen3's own switch: an answer at once, without a page of reasoning first.
+      answer = await ai.run(TRANSLATE_MODEL, {
+        messages: [{ role: 'system', content: system }, { role: 'user', content: `${message}\n/no_think` }],
+        max_tokens: 700, temperature: 0,
+      }) as QwenAnswer;
+    } catch (e) {
+      console.error('Dushu translate', e);
+      throw new CloudError(502, 'The sync server could not translate that. Try again in a moment.', 'model_failed');
+    }
+    const u = answer.usage ?? {};
+    neurons += u.neurons ?? ((u.prompt_tokens ?? 0) * 4625 + (u.completion_tokens ?? 0) * 30475) / 1e6;
+    const choice = answer.choices?.[0];
+    const text = (choice?.message?.content ?? answer.response ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    return choice?.finish_reason === 'length' && text ? `${text} …` : text;
+  };
+  const hint = wordSenseHint(req.text, req.context ?? req.text);
+  try {
+    const result = await translateChecked(
+      { ...req, context: contextWindow(req.context ?? req.text, req.text) },
+      generate,
+      { target: 'local', hints: hint ? { [hint.word]: hint.sense } : undefined },
+    );
+    if (!result.text) throw new CloudError(502, 'The sync server sent back an empty translation. Try again.', 'empty');
+    return json(200, { text: result.text, ...(result.issues.length ? { unverified: unverifiedDetail(result.issues) } : {}) });
+  } finally {
+    // What the model used past the part taken up front, whatever the outcome: it is spent either way.
+    const rest = Math.max(0, Math.ceil(neurons) - TRANSLATE_UPFRONT);
+    if (rest) await takeShared(env, days(rest, () => Number.MAX_SAFE_INTEGER)).catch(() => false);
+  }
+}
+
 async function claudeStatus(request: Request, env: Env): Promise<Response> {
   const { stub, secret: s } = bearer(request, env);
   const res = await call(env, stub, 'claude-status', { limits: claudeLimits(env) }, s);
@@ -354,6 +434,7 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   if (path === '/claude/status' && request.method === 'GET') return claudeStatus(request, env);
   if (path === '/claude/translate' && request.method === 'POST') return claudeTranslate(request, env, ctx);
   if (path === '/speech' && request.method === 'POST') return speech(request, env);
+  if (path === '/ai/translate' && request.method === 'POST') return aiTranslate(request, env);
   if (path === '/sync') {
     const { stub, secret: s } = bearer(request, env);
     if (request.method === 'GET') return call(env, stub, 'status', {}, s);
@@ -423,6 +504,8 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'claude-start': core.claudeStart(session, body.limits as ClaudeLimits, now); return json(200, { ok: true });
       case 'claude-used': core.claudeUsed(session, Number(body.input), Number(body.output), now); return json(200, { ok: true });
       case 'speech-start': return json(200, core.speechStart(session, now));
+      // Read-aloud and translation ask the same thing: signed in, and whether this is an owner.
+      case 'ai-start': return json(200, core.speechStart(session, now));
       case 'delete': core.deleteAccount(session, now); return json(200, { ok: true });
       case 'chunk-get': return new Response(core.getBookChunk(session, key, index, now) as Uint8Array<ArrayBuffer>, { headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' } });
       default: return json(404, { error: 'Not found.' });
@@ -453,8 +536,8 @@ export async function limitsRequest(core: LimitsCore, request: Request): Promise
 }
 
 /**
- * The days shared by every account: sign-in emails (the email service's free allowance), read-aloud (Workers AI's free
- * allowance), and sign-in codes from each network.
+ * The days shared by every account: sign-in emails (the email service's free allowance), read-aloud and translation (Workers
+ * AI's free allowance), and sign-in codes from each network.
  */
 export class Limits {
   private readonly core: LimitsCore;

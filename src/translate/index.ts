@@ -2,6 +2,7 @@
 import type { Dictionary, Settings, Translator, TranslatorId } from '../types';
 import { createChromeTranslator } from './chrome';
 import { createClaudeTranslator } from './claude';
+import { createAccountTranslator } from './account';
 import { createGlossTranslator } from './gloss';
 import { createMyMemoryTranslator } from './mymemory';
 import { createLocalTranslator, qualityLocalAvailable } from './localMeaning';
@@ -13,13 +14,14 @@ const chrome = createChromeTranslator(); // one instance: it owns the cached on-
 const mymemory = createMyMemoryTranslator();
 const local = createLocalTranslator();
 
-export const TRANSLATOR_IDS: TranslatorId[] = ['local', 'chrome', 'claude', 'mymemory', 'gloss'];
+export const TRANSLATOR_IDS: TranslatorId[] = ['local', 'chrome', 'claude', 'account', 'mymemory', 'gloss'];
 
 export function getTranslator(id: TranslatorId, settings: Settings, dict: Dictionary | null): Translator {
   switch (id) {
     case 'local': return local;
     case 'chrome': return chrome;
     case 'claude': return createClaudeTranslator(settings);
+    case 'account': return createAccountTranslator(settings);
     case 'mymemory': return settings.localOnly ? withoutThirdParty(mymemory) : mymemory;
     case 'gloss': return createGlossTranslator(dict);
   }
@@ -36,9 +38,10 @@ function withoutThirdParty(translator: Translator): Translator {
 }
 
 /**
- * An explicit choice is honored as is. 'auto' prefers Claude through the Mac (unless Local only is on), then the
- * evaluated Qwen3.5 9B local model, ready Chrome, smaller local models, downloadable Chrome, and the dictionary gloss.
- * It never picks MyMemory because that sends text to a third party; the user has to choose it.
+ * An explicit choice is honored as is. 'auto' prefers Claude (the owner's, unless Local only is on), then the evaluated
+ * Qwen3.5 9B local model on the Mac, then Qwen through the account (anyone signed in, unless Local only is on), ready Chrome,
+ * smaller local models, downloadable Chrome, and the dictionary gloss. It never picks MyMemory because that sends text to a
+ * third party; the user has to choose it.
  */
 export async function pickTranslator(settings: Settings, dict: Dictionary | null): Promise<Translator> {
   if (settings.translator !== 'auto') return getTranslator(settings.translator, settings, dict);
@@ -47,6 +50,8 @@ export async function pickTranslator(settings: Settings, dict: Dictionary | null
     if (await claude.availability() === 'yes') return claude;
   }
   if (await qualityLocalAvailable()) return local;
+  const account = getTranslator('account', settings, dict);
+  if (await account.availability() === 'yes') return account;
   const chromeState = await chrome.availability();
   if (chromeState === 'yes') return chrome;
   if (await local.availability() === 'yes') return local;

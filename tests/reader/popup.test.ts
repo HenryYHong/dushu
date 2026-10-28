@@ -254,7 +254,7 @@ describe('phrase popup', () => {
     await vi.waitFor(() => expect(q('.pp-tr-actions button')).not.toBeNull());
     const more = [...document.querySelectorAll<HTMLElement>('.pp-tr-actions button')].find((b) => /another provider/.test(b.textContent ?? ''))!;
     more.click();
-    await vi.waitFor(() => expect(document.querySelectorAll('.pp-menu-item').length).toBe(5));
+    await vi.waitFor(() => expect(document.querySelectorAll('.pp-menu-item').length).toBe(6));
     const claude = [...document.querySelectorAll<HTMLButtonElement>('.pp-menu-item')].find((b) => /Claude/.test(b.textContent ?? ''))!;
     expect(claude.disabled).toBe(true); // no Mac connected
     expect(claude.textContent).toMatch(/Mac/);

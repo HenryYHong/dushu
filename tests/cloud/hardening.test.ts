@@ -193,7 +193,7 @@ describe('read-aloud shares', () => {
     let token = await signedIn(c, 'friend@example.com');
     let ok = 0;
     while ((await c.post('/speech', { text: '好'.repeat(400) }, token)).status === 200) ok++;
-    expect(ok).toBe(37);
+    expect(ok).toBe(20);
     await c.post('/me/delete', {}, token);
     token = await signedIn(c, 'friend@example.com');
     expect((await c.post('/speech', { text: '好'.repeat(400) }, token)).status).toBe(429);

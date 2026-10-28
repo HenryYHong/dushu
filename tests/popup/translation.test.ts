@@ -60,20 +60,23 @@ describe('live region', () => {
 
 describe('no translator offline', () => {
   beforeEach(() => (translateMock as unknown as { __pick: (t: string) => void }).__pick('gloss'));
-  it('says so in one line when the caller lists the words, instead of repeating the glosses', async () => {
+  afterEach(() => localStorage.clear());
+  it('asks a reader who is signed out to sign in for whole sentences, in one line instead of repeating the glosses', async () => {
     mount({ hasWordList: true });
     await vi.waitFor(() => expect(panel.el.classList.contains('pp-tr-quiet')).toBe(true));
-    expect(body().textContent).toContain('No translation offline');
-    expect(body().textContent).toMatch(/Claude key/);
-    expect(body().querySelector('a')!.getAttribute('href')).toBe('#/settings');
+    expect(body().textContent).toContain('Sign in to translate whole sentences. It’s free.');
+    expect(body().querySelector('button')?.textContent).toBe('Sign in');
     expect(panel.el.querySelector('.pp-tr-text')).toBeNull();
     // and it still offers another provider
     expect([...panel.el.querySelectorAll('button')].some((b) => /another provider/.test(b.textContent ?? ''))).toBe(true);
   });
-  it('names the platform gap when the browser has no Translator API (Safari, iPad)', async () => {
+  it('signed in with nothing to translate, names the platform gap when the browser has no Translator API (Safari, iPad)', async () => {
+    localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: 't', email: 'reader@example.com' }));
     delete (globalThis as { Translator?: unknown }).Translator;
     mount({ hasWordList: true });
     await vi.waitFor(() => expect(body().textContent).toContain('Safari and iPadOS have no on-device translator'));
+    expect(body().textContent).toContain('No sentence translator is available right now.');
+    expect(body().querySelector('a')!.getAttribute('href')).toBe('#/settings');
   });
   it('without a word list the gloss is the result, as before', async () => {
     mount();

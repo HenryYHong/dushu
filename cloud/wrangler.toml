@@ -20,7 +20,8 @@ class_name = "Limits"
 tag = "v1"
 new_sqlite_classes = ["Account", "Limits"]
 
-# Read-aloud through the account (MeloTTS), capped under the free daily allowance in src/worker.ts (SPEECH_MAX_CHARS).
+# Read-aloud (MeloTTS) and sentence translation (Qwen3) through the account, capped together under the free daily allowance in
+# src/worker.ts (SPEECH_MAX_CHARS, TRANSLATE_NEURONS).
 [ai]
 binding = "AI"
 

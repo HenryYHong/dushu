@@ -114,10 +114,10 @@ describe('pickTranslator', () => {
     expect((await pickTranslator({ ...base, translator: 'mymemory' }, dict)).id).toBe('mymemory');
     expect((await pickTranslator({ ...base, translator: 'claude' }, dict)).id).toBe('claude');
   });
-  it('listTranslators returns all five with availability', async () => {
+  it('listTranslators returns all six with availability', async () => {
     const list = await listTranslators(base, dict);
-    expect(list.map(x => x.translator.id)).toEqual(['local', 'chrome', 'claude', 'mymemory', 'gloss']);
-    expect(Object.fromEntries(list.map(x => [x.translator.id, x.availability]))).toMatchObject({ chrome: 'no', claude: 'no', gloss: 'yes' });
+    expect(list.map(x => x.translator.id)).toEqual(['local', 'chrome', 'claude', 'account', 'mymemory', 'gloss']);
+    expect(Object.fromEntries(list.map(x => [x.translator.id, x.availability]))).toMatchObject({ chrome: 'no', claude: 'no', account: 'no', gloss: 'yes' });
     expect(getTranslator('gloss', base, dict).id).toBe('gloss');
   });
 });
