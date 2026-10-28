@@ -183,7 +183,23 @@ async function download(book: AccountBook): Promise<ImportedBook> {
     at += piece.byteLength;
   }
   if (at !== book.size || await sha256(out) !== book.sha) throw new Error(`“${book.title}” did not download whole. Dushu will try again.`);
-  return unpackBook(out);
+  return isPackage(out) ? unpackBook(out) : importMacFile(out, book);
+}
+
+/** The app's own package of a book (packBook) holds book.json. Anything else is a file the owner's Mac put there itself. */
+function isPackage(bytes: Uint8Array): boolean {
+  try { return new Archive(bytes).names().includes('book.json'); } catch { return false; }
+}
+
+/**
+ * A book the owner's Mac put in the account as the file itself (scripts/account-books.ts; its title is the file's name), read
+ * here as an import. It is marked as the Mac's book by the file's digest, so its key is the one the Mac gave it, and a device
+ * that also reaches the Mac sees the same book.
+ */
+async function importMacFile(bytes: Uint8Array, book: AccountBook): Promise<ImportedBook> {
+  const { importFile } = await import('../import');
+  const imported = await importFile(new File([bytes as Uint8Array<ArrayBuffer>], book.title));
+  return { ...imported, note: `mac-book:${book.sha}` };
 }
 
 /** Deleted here on purpose: removed from the account too (now, or on the next try), and never downloaded again here. */

@@ -75,7 +75,7 @@ async function main() {
     // Only this launcher names the owner's sync folder (scripts/sync-bridge.ts has no default): a server started any other
     // way, such as npm run dev, npm run preview or a QA script, answers that sync is off and never touches his words.
     const child = spawn(process.execPath, [join(root, 'node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', '4317', '--strictPort'], {
-      cwd: root, detached: true, stdio: ['ignore', log, log], env: { ...process.env, DUSHU_SYNC_DIR: join(state, 'sync') },
+      cwd: root, detached: true, stdio: ['ignore', log, log], env: { ...process.env, DUSHU_SYNC_DIR: join(state, 'sync'), DUSHU_ACCOUNT_BOOKS: '1' },
     });
     closeSync(log);
     child.unref();

@@ -60,6 +60,7 @@ try {
   addSecret('the private address', local.url);
 } catch { /* no private setup on this machine (CI) */ }
 try { addSecret('the Claude API key', readFileSync(join(homedir(), '.config', 'dushu', 'anthropic-api-key'), 'utf8')); } catch { /* none */ }
+try { addSecret('the Mac key', readFileSync(join(homedir(), '.config', 'dushu', 'mac-key'), 'utf8')); } catch { /* none */ }
 
 // ---------------------------------------------------- the owner's own books ---
 

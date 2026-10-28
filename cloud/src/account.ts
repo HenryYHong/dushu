@@ -167,6 +167,19 @@ export class AccountCore {
       throw new CloudError(400, tries >= TRIES_PER_CODE ? 'Too many wrong tries. Ask for a new code.' : 'That code is not right. Check the newest email.');
     }
     this.store.setMeta('code', JSON.stringify({ ...c, hash: '' }));
+    return this.addSession(sessionHash, now);
+  }
+
+  /**
+   * Signs in the owner's Mac, with no code (worker.ts has checked the Mac's key): a session like a device's, which the Mac
+   * uses to put the books in its book folder in the account. Only an owner's account that exists can have one.
+   */
+  macSession(sessionHash: string, now: number): { email: string; created: string } {
+    if (!this.store.getMeta('email') || !this.owner()) throw new CloudError(403, 'Only the owner’s account can link a Mac.');
+    return this.addSession(sessionHash, now);
+  }
+
+  private addSession(sessionHash: string, now: number): { email: string; created: string } {
     // Devices signed in long ago and never since are signed out; past the limit, the one used least recently is.
     const live = this.store.sessions().filter((s) => {
       if (now - s.used <= SESSION_IDLE_MS) return true;

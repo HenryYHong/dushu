@@ -31,6 +31,9 @@ export interface Env {
   ALLOWED_EMAILS?: string;
   /** The owners (comma separated): Claude on the owner's key, the larger shares. When unset, ALLOWED_EMAILS. A secret too. */
   OWNER_EMAILS?: string;
+  /** The owner's Mac's key (a secret, also in ~/.config/dushu/mac-key on the Mac): with it the Mac signs in to the owner's
+   * account by itself, to put the books in its book folder there. Unset: no Mac can. */
+  MAC_KEY?: string;
   /** 'log' (local testing only): codes are logged and returned instead of emailed. */
   MAIL_MODE?: string;
   /** Emails sent per day at most, across all accounts. */
@@ -296,6 +299,24 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     return json(200, { token: `${id.toString()}.${s}`, email: named || email, ...(created ? { created } : {}) });
   }
 
+  if (path === '/auth/mac' && request.method === 'POST') {
+    // The owner's Mac, by its key: a session in the first owner's account. The key is compared by hash, in constant time.
+    const key = env.MAC_KEY ?? '';
+    const given = (request.headers.get('Authorization') ?? '').replace(/^MacKey\s+/i, '');
+    const [a, b] = await Promise.all([sha256(given), sha256(key)]);
+    let diff = key.length >= 32 && given.length === key.length ? 0 : 1;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    if (diff) throw new CloudError(401, 'This Mac is not linked to the sync server.');
+    const email = owners(env).split(',').map(normalEmail).find((e): e is string => !!e);
+    if (!email) throw new CloudError(403, 'The sync server has no owner.');
+    const id = env.ACCOUNTS.idFromName(`email:${email}`);
+    const s = secret();
+    const res = await call(env, env.ACCOUNTS.get(id), 'mac-session', { sessionHash: await sha256(s) });
+    if (!res.ok) return res;
+    const { email: named, created } = await res.json() as { email: string; created?: string };
+    return json(200, { token: `${id.toString()}.${s}`, email: named || email, ...(created ? { created } : {}) });
+  }
+
   if (path === '/auth/signout' && request.method === 'POST') {
     const { stub, secret: s } = bearer(request, env);
     return call(env, stub, 'signout', {}, s);
@@ -387,6 +408,7 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'code-check': core.checkCode(now); return json(200, { ok: true });
       case 'code': core.storeCode(str(body.email), str(body.hash), now); return json(200, { ok: true });
       case 'verify': return json(200, core.verify(str(body.codeHash), str(body.sessionHash), now));
+      case 'mac-session': return json(200, core.macSession(str(body.sessionHash), now));
       case 'me': return json(200, core.me(session, now));
       case 'mac': return json(200, core.setMac(session, str(body.mac), now));
       case 'signout': core.signOut(session); return json(200, { ok: true });

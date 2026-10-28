@@ -9,6 +9,7 @@ import { extname, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { bridgeRequest } from './private-access';
+import { startAccountBooks } from './account-books';
 
 export interface OwnerBook { id: string; name: string; path: string }
 
@@ -84,8 +85,18 @@ export function localBooksHandler(list: OwnerBook[] | (() => OwnerBook[]) = () =
 
 export function requestedLocalBooks(): Plugin {
   const handle = localBooksHandler();
+  // The Mac's own server (start-local.mjs says so) also puts these books in the owner's account (account-books.ts). A server a
+  // test or QA script starts never does, even with a sync folder of its own.
+  let stop: (() => void) | null = null;
+  const sendToAccount = () => {
+    if (process.env.DUSHU_ACCOUNT_BOOKS === '1') stop ??= startAccountBooks(process.env.DUSHU_SYNC_DIR);
+  };
   const install = (server: any) => { server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
     void handle(req, res, next).catch(() => { if (!res.headersSent) res.writeHead(500); if (!res.writableEnded) res.end(); });
   }); };
-  return { name: 'dushu-requested-local-books', configureServer: install, configurePreviewServer: install };
+  return {
+    name: 'dushu-requested-local-books',
+    configureServer: (server: any) => { install(server); sendToAccount(); },
+    configurePreviewServer: (server: any) => { install(server); sendToAccount(); },
+  };
 }
