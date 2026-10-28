@@ -122,9 +122,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   let macItems: MacBook[] = [];
   const macNote = h('div.lib-mac-note.card', { role: 'status', hidden: true });
   const head = h('div.page-head', null,
-    h('div', null, pageTitle('library', 'Library'), h('p.page-sub', null, cloudSession()
-      ? 'Your books are kept in your account, for your devices only.'
-      : 'Your books stay on this device.')),
+    h('div', null, pageTitle('library', 'Library')),
     headActions);
   const continueEl = h('div.lib-continue-slot');
   const libraryTitle = h('h2', null, 'Your books');
@@ -351,7 +349,6 @@ export const mount: MountFn = (root, _params, ctx) => {
     for (const s of samples) if (s.group) groups.set(s.group, [...(groups.get(s.group) ?? []), s]);
 
     samplesEl.appendChild(h('h2.lib-samples-title', null, 'Start with a classic'));
-    samplesEl.appendChild(h('p.lib-samples-sub.muted', null, 'Free to read, all in the public domain. One click adds the book and opens it.'));
     if (loose.length) samplesEl.appendChild(h('div.lib-sample-grid', null, loose.map((s) => sampleCard(s, have.get(sampleSourceName(s.id))))));
     for (const [name, list] of groups) {
       samplesEl.appendChild(h('h3.lib-sample-group', null, name));
