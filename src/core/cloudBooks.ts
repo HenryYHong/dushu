@@ -10,6 +10,7 @@ import { Archive } from '../import/zip';
 import { bytesOf } from '../store';
 import { accountMark, cloudBase, cloudFetch, cloudSession } from './cloud';
 import { bookKey, olderKeys } from './syncKeys';
+import { withBookLock } from './bookLock';
 
 /** The server's piece size (cloud/src/account.ts BOOK_CHUNK). */
 export const BOOK_CHUNK = 1024 * 1024;
@@ -233,7 +234,8 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
       // Removals that did not reach the account before.
       for (const key of removed) await cloudFetch(`/books?key=${encodeURIComponent(key)}`, { method: 'DELETE' })?.catch(() => {});
       const inAccount = await accountBooks();
-      const local = await store.books.list();
+      // Read in the book lock: a book being added from the Mac this moment is seen whole, with its mark.
+      const local = await withBookLock(() => store.books.list());
       const localKeys = local.map((b) => bookKey(b));
       // Up: books here that the account does not have and this device has not put there before (one it did, now missing,
       // was deleted from the account on another device, and stays deleted).
@@ -256,14 +258,20 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
         if (localKeys.some((k) => sameBook(k, book.key)) || removed.some((k) => sameBook(k, book.key))) continue;
         const id = `${book.key}|${book.sha}`;
         if (now - (bad[id] ?? 0) < BAD_RETRY_MS) continue;
-        let meta: BookMeta;
+        let meta: BookMeta | null;
         try {
-          meta = await store.books.add(await download(book));
+          const imported = await download(book);
+          // Added in the book lock, after one more look: the same book may have just come from the Mac (this tab or another).
+          meta = await withBookLock(async () => {
+            if ((await store.books.list()).some((b) => sameBook(bookKey(b), book.key))) return null;
+            return store.books.add(imported);
+          });
         } catch (e) {
           setBad(id, now);
           error ??= e instanceof Error ? e.message : String(e);
           continue;
         }
+        if (!meta) { localKeys.push(book.key); continue; }
         setBad(id, null);
         setList(UP_KEY, [...list(UP_KEY), accountMark(s, bookKey(meta))]);
         localKeys.push(bookKey(meta));

@@ -14,6 +14,9 @@ import { syncBooks } from '../../src/core/cloudBooks';
 import { bookKey } from '../../src/core/syncKeys';
 import { openStore } from '../../src/store';
 import { macBookKey, sendMacBooks } from '../../scripts/account-books';
+import { importFile } from '../../src/import';
+import { duplicateMacBooks, syncMacBooks } from '../../src/ui/library/macBooks';
+import type { BookMeta } from '../../src/types';
 import { cloud, signedIn } from './helpers';
 
 const KEY = 'k'.repeat(64);
@@ -91,5 +94,43 @@ describe('the owner\'s Mac and the account', () => {
     expect(bookKey(meta)).toBe(macBookKey(sha));
     expect((await syncBooks(store)).uploaded).toBe(0);
     expect((await books(session.token)).length).toBe(1);
+  });
+
+  it('is added once on a device that gets it from the Mac and from the account at the same moment', async () => {
+    await signedIn(c, OWNER);
+    await mac();
+    let code = '';
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const req = new Request(input, init);
+      const body = req.method === 'GET' || req.method === 'DELETE' ? undefined : await req.arrayBuffer();
+      const res = await worker.fetch(new Request(req.url, { method: req.method, headers: req.headers, body }), c.env);
+      if (req.url.endsWith('/auth/code') && res.ok) code = (await res.clone().json() as { devCode: string }).devCode;
+      return res;
+    });
+    localStorage.setItem('dushu.cloud.url.v1', 'https://sync.test');
+    await requestCode(OWNER);
+    await signIn(OWNER, code);
+    const store = await openStore(`r-${Math.random()}`);
+    // The account's run looks at the library first, and the Mac's book lands while the account's copy downloads.
+    const fromAccount = syncBooks(store);
+    await new Promise((r) => setTimeout(r, 0));
+    const fromMac = syncMacBooks([{ id: 'f-1', name: '小猫.txt', sha256: sha }], {
+      list: () => store.books.list(),
+      fetchFile: async () => new File([text], '小猫.txt'),
+      add: async (files) => [await store.books.add(await importFile(files[0]))],
+      update: (id, patch) => store.books.update(id, patch),
+    });
+    await Promise.all([fromAccount, fromMac]);
+    expect((await store.books.list()).length).toBe(1);
+  });
+
+  it('keeps one copy of a Mac book that is here twice: the one read in most recently', () => {
+    const copy = (id: string, extra: Partial<BookMeta> = {}): BookMeta => ({
+      id, title: '小猫', author: '', format: 'txt', script: 'simplified', sourceName: '小猫.txt', addedAt: 1, chapterCount: 1, charCount: 10,
+      importVersion: 2, note: `mac-book:${sha}`, ...extra,
+    } as BookMeta);
+    const read = new Map([['b', 50]]);
+    expect(duplicateMacBooks([copy('a'), copy('b'), copy('c', { addedAt: 0 }), copy('own', { note: undefined })], (id) => read.get(id) ?? 0).sort()).toEqual(['a', 'c']);
+    expect(duplicateMacBooks([copy('a', { addedAt: 5 }), copy('b', { addedAt: 2 })], () => 0)).toEqual(['a']);
   });
 });

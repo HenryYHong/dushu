@@ -15,7 +15,8 @@ import { pasteDialog } from './paste';
 import { fetchSamples, loadSampleBook, sampleSourceName, type Sample } from './samples';
 import { BRIDGE_EVENT, isMacOrigin } from '../../core/macBridge';
 import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
-import { addedMessage, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
+import { addedMessage, duplicateMacBooks, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
+import { withBookLock } from '../../core/bookLock';
 import { upgradeBooks } from './upgrade';
 import { scriptView } from '../vocab/render';
 import { CLOUD_EVENT, cloudBase, cloudSession } from '../../core/cloud';
@@ -533,7 +534,20 @@ export const mount: MountFn = (root, _params, ctx) => {
   });
   const onCloud = () => { renderMacNote(); accountBooks(); };
   window.addEventListener(CLOUD_EVENT, onCloud);
+  /**
+   * A Mac book here twice (it came from the Mac and from the account at the same moment, before the book lock) keeps one copy,
+   * the one read in most recently. Only this device's copy goes: the account and the reading place are left alone.
+   */
+  async function dropDuplicates(): Promise<void> {
+    await withBookLock(async () => {
+      const extra = duplicateMacBooks(await store.books.list(), (id) => progress.get(id)?.updatedAt ?? 0);
+      for (const id of extra) await store.books.remove(id).catch(() => {});
+    });
+  }
+
   void load().then(async () => {
+    if (!alive) return;
+    await dropDuplicates();
     if (!alive) return;
     renderMacNote();
     accountBooks();

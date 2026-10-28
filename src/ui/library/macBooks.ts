@@ -4,6 +4,8 @@
 // browser, Delete all data) is added again the next time the device reaches the Mac.
 import type { BookMeta } from '../../types';
 import { bridgeFetch, hasMacBridge, isCrossOriginBridge } from '../../core/macBridge';
+import { withBookLock } from '../../core/bookLock';
+import { bookKey } from '../../core/syncKeys';
 
 export interface MacBook { id: string; name: string; size?: number; sha256?: string }
 
@@ -83,24 +85,37 @@ export interface SyncDeps {
 
 export interface SyncResult { added: BookMeta[]; failed: number }
 
-let queue: Promise<unknown> = Promise.resolve();
-
 /** Asks the browser to keep this site's data. Quiet: the answer only matters for how long the books last. */
 export function requestPersistence(): void {
   try { void navigator.storage?.persist?.().catch(() => {}); } catch { /* not supported */ }
 }
 
 /**
- * Adds every book the Mac has that this device lacks. One run at a time per tab, and one per browser where Web Locks exist,
- * so two tabs opening the library together do not add a book twice.
+ * Adds every book the Mac has that this device lacks. In the book lock (core/bookLock.ts): two tabs opening the library
+ * together, or the same book coming down from the account meanwhile, never add a book twice.
  */
 export function syncMacBooks(items: MacBook[], deps: SyncDeps): Promise<SyncResult> {
-  const body = () => runSync(items, deps);
-  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
-  // Runs queue behind each other: a later one reads the library after the earlier one finished, so it adds nothing twice.
-  const job = queue.then(async (): Promise<SyncResult> => (locks ? await locks.request('dushu-mac-books', async () => await body()) : body()));
-  queue = job.catch(() => {});
-  return job;
+  return withBookLock(() => runSync(items, deps));
+}
+
+/**
+ * The Mac's books that are here twice (added from the Mac and from the account at once, before the book lock): every copy
+ * but one, to remove. The copy kept is the one read in most recently, else opened most recently, else added first.
+ */
+export function duplicateMacBooks(books: BookMeta[], readAt: (id: string) => number): string[] {
+  const groups = new Map<string, BookMeta[]>();
+  for (const b of books) {
+    if (!b.note?.startsWith(MAC_NOTE)) continue;
+    const key = bookKey(b);
+    groups.set(key, [...(groups.get(key) ?? []), b]);
+  }
+  const extra: string[] = [];
+  for (const copies of groups.values()) {
+    if (copies.length < 2) continue;
+    copies.sort((a, b) => readAt(b.id) - readAt(a.id) || (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0) || a.addedAt - b.addedAt);
+    extra.push(...copies.slice(1).map((b) => b.id));
+  }
+  return extra;
 }
 
 async function runSync(items: MacBook[], deps: SyncDeps): Promise<SyncResult> {

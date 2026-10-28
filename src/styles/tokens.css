@@ -81,6 +81,7 @@
   --warn: #8f5f12;
   --moon: #e9edec;          /* 月白: translations, a cool layer apart from the warm page */
   --hl: rgba(228, 176, 64, 0.30);       /* active word highlight */
+  --hl-word: rgba(228, 176, 64, 0.58);  /* the word whose card is open: easy to find beside the card */
   --hl-select: rgba(193, 54, 22, 0.14); /* phrase selection */
   --saved: #d98a72;                      /* the vermilion underline under saved words (朱笔) */
   --shadow-book: 0 1px 1px rgba(26, 23, 19, 0.16), 0 10px 18px -10px rgba(26, 23, 19, 0.45);
@@ -196,6 +197,7 @@
   --warn: #d9a75a;
   --moon: #1b2023;
   --hl: rgba(228, 176, 64, 0.22);
+  --hl-word: rgba(228, 176, 64, 0.42);
   --hl-select: rgba(233, 110, 80, 0.22);
   --saved: #a9553f;
   --shadow-book: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 18px -10px rgba(0, 0, 0, 0.9);

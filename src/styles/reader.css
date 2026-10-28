@@ -288,7 +288,8 @@
 .rd-article .rd-c.rd-active, .rd-article .rd-c.rd-sel, .rd-article .rd-c.rd-speaking-word { background: none; }
 .rd-bands { position: absolute; inset: 0; pointer-events: none; z-index: -1; contain: strict; }
 .rd-band { position: absolute; }
-.rd-band-active, .rd-band-speaking { background: var(--hl); border-radius: 3px; }
+.rd-band-speaking { background: var(--hl); border-radius: 3px; }
+.rd-band-active { background: var(--hl-word); border-radius: 3px; }
 .rd-band-sel { background: var(--hl-select); border-radius: 0; }
 /* The pseudo-elements sit behind the text: each block makes its own stacking context so z-index: -1 stays inside it. */
 .rd-article .rd-b { isolation: isolate; }
