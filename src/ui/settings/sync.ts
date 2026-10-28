@@ -59,8 +59,8 @@ export function syncRow(): { el: HTMLElement; dispose(): void } {
   show();
   const el = row('Sync',
     cloudBase()
-      ? 'Saved words (with their review schedule), known words, the words you looked up, bookmarks and your place in each book stay the same on every device signed in to your account (or, when not signed in, connected to this Mac). Changes made offline sync when the device is back online.'
-      : 'Saved words (with their review schedule), known words, the words you looked up, bookmarks and your place in each book stay the same on every device connected to this Mac. Changes made while the Mac is asleep sync when it wakes.',
+      ? 'Words, lookups, bookmarks and your place in each book. Changes made offline sync when you are back online.'
+      : 'Words, lookups, bookmarks and your place in each book, on every device connected to this Mac.',
     h('div.set-sync', null, h('div.set-sync-top', null, toggle, now), status));
   return { el, dispose() { window.removeEventListener(SYNC_EVENT, show); window.removeEventListener(CLOUD_EVENT, show); window.clearInterval(tick); } };
 }

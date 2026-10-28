@@ -1482,11 +1482,11 @@ export const mount: MountFn = async (root, params, ctx) => {
         : 'Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.'],
       // The seal as the bar draws it, so the button is easy to find.
       [touch ? 'Tap ' : 'Click ', h('span.rd-seal.zh', null, '拼'), touch ? ' at the top' : ' at the top (or press P)',
-        " to show pinyin on every word, on words you don't know yet, or only above your HSK level."],
+        " to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level."],
     ];
     const s = ctx.settings.get();
     if (s.pinyin === 'unknown' && store.known.count() === 0) {
-      lines.push(['Pinyin shows on every word until you mark words as known. Mark one in its card, and it goes away.']);
+      lines.push(['Right now every word has pinyin. Mark a word as known in its card and its pinyin goes away.']);
     }
     const stop = () => {
       document.removeEventListener('pointerdown', close, true);

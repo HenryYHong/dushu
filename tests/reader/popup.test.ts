@@ -44,7 +44,7 @@ describe('word popup', () => {
     const heads = [...document.querySelectorAll('.pp-reading-head .pp-py')].map((e) => e.textContent);
     expect(heads).toEqual(['le', 'liǎo', 'liào']);
     expect(q('.pp-reading-head .chip-accent')?.textContent).toBe('reading in this sentence');
-    expect(text('.pp-body .pp-note')).toContain('not a choice of meaning');
+    expect(text('.pp-body .pp-note')).toContain('not just the one used here');
   });
 
   it('uses the reading from the selected book token instead of guessing it again', async () => {
@@ -140,7 +140,7 @@ describe('word popup', () => {
     expect(empty).toBeTruthy();
     openWordPopup({ ctx, word: empty!, anchor: anchorRect() });
     expect(text('.pp-word')).toBe(empty);
-    expect(text('.pp-note')).toMatch(/No reading or meaning/);
+    expect(text('.pp-note')).toMatch(/no reading or meaning/);
     expect(text('.pp-facts')).toContain('U+');
   });
 

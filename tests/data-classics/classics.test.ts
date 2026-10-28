@@ -76,7 +76,7 @@ for (const b of BOOKS) {
       expect(e).toBeDefined();
       expect(e.file).toBe(b.file);
       expect(e.script).toBe('traditional');
-      expect(e.group).toBe('Four Great Classical Novels');
+      expect(e.group).toBe('The four great novels');
       expect(e.chapters).toBe(b.chapters);
       expect(e.chars).toBe(han(text));
     });

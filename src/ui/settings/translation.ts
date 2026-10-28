@@ -15,11 +15,11 @@ type Choice = Settings['translator'];
 export { CLAUDE_MODELS };
 
 const NAMES: Record<TranslatorId, { name: string; desc: string }> = {
-  local: { name: 'Private Mac AI (Ollama)', desc: 'Uses Qwen3.5 9B on your Mac, including from a privately connected iPad. Keep your Mac awake. No cloud API key; AI output still needs checking.' },
-  chrome: { name: 'Chrome on-device', desc: 'Built into Chrome 138 or newer on a computer. Private and free; works offline after a one-time model download.' },
-  claude: { name: 'Claude (through your Mac)', desc: 'Best quality, and it can explain grammar. Your Mac sends the selected text to Anthropic with a key that stays on the Mac. Needs the Mac awake and reachable.' },
-  mymemory: { name: 'MyMemory', desc: 'Free web service, about 5,000 characters a day. Sends the selected text to a third party.' },
-  gloss: { name: 'Word-by-word gloss', desc: 'Offline. Shows each word with its first dictionary meaning. Not a real translation.' },
+  local: { name: 'Private Mac AI (Ollama)', desc: 'Qwen3.5 9B, running on your Mac. The Mac has to be awake.' },
+  chrome: { name: 'Chrome on-device', desc: 'Built into Chrome 138 and newer on a computer. Free, and works offline after a one-time download.' },
+  claude: { name: 'Claude (through your Mac)', desc: 'The best translations, and it can explain grammar. Goes through your Mac, which has to be awake.' },
+  mymemory: { name: 'MyMemory', desc: 'A free online service, about 5,000 characters a day. Your sentence is sent to it.' },
+  gloss: { name: 'Word-by-word gloss', desc: 'Each word with its first dictionary meaning. Works offline, but it is not a real translation.' },
 };
 
 export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | null, localOnly = false): { text: string; kind: 'ok' | 'warn' | 'off' } {
@@ -119,10 +119,10 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   const account = !!cloudSession();
   const names = account ? { ...NAMES, claude: {
     name: 'Claude (through your account)',
-    desc: 'Best quality, and it can explain grammar. The sync server sends the selected text to Anthropic with a key that stays on the server.',
+    desc: 'The best translations, and it can explain grammar. Goes through your account.',
   } } : NAMES;
   const list = h('div.set-prov-list', { role: 'radiogroup', 'aria-label': 'Translation provider' },
-    rowEl('auto', 'Automatic', `Claude through your ${account ? 'account' : 'Mac'} when it is set up, then the Qwen3.5 9B model on your Mac, ready browser translation, smaller local models, and the dictionary. Local only skips Claude.`),
+    rowEl('auto', 'Automatic', `Tries Claude through your ${account ? 'account' : 'Mac'}, then the model on your Mac, then the browser's translator, and last the word-by-word gloss.`),
     ...ids.map((id) => rowEl(id, names[id].name, names[id].desc)));
 
   function paintChip(value: Choice, text: string, kind: 'ok' | 'warn' | 'off') {
@@ -216,15 +216,12 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
 
   const claudeBox = h('div.set-claude', null,
     h('div.set-claude-title', null, account ? 'Claude through your account' : 'Claude through your Mac'),
-    h('p.set-claude-note', null, account
-      ? 'The key is kept on the sync server and never reaches this browser, your settings or a backup.'
-      : 'The key stays in a file on your Mac and never reaches this browser, your settings or a backup.'),
-    row('Model', 'Sonnet gives the best Chinese for the price. Haiku costs less.', h('div.set-model-row', null, model), modelId),
-    row('Local only', `Keep every sentence on this ${account ? 'device' : 'Mac'}: no Claude and no MyMemory. Sentences go only to the model on your Mac, Chrome\'s on-device translator, or the dictionary.`, localOnly),
-    row('Status', account ? 'Checked on the sync server. Today\'s limit protects the Anthropic bill.' : 'Checked on your Mac. Today\'s limit protects your Anthropic bill.', h('div.set-status-wrap', null, statusBox, h('div.set-test', null, h('div.set-btn-row', null, refreshBtn, testBtn), testOut))));
+    row('Model', 'Haiku costs less.', h('div.set-model-row', null, model), modelId),
+    row('Local only', 'Never send a sentence to Claude or MyMemory.', localOnly),
+    row('Status', 'There is a daily limit, so the bill stays small.', h('div.set-status-wrap', null, statusBox, h('div.set-test', null, h('div.set-btn-row', null, refreshBtn, testBtn), testOut))));
 
   const el = group('Translation',
-    'Pick what translates sentences you select. Word cards also offer an optional on-device context suggestion when Ollama is available.',
+    'What translates a sentence when you tap a word twice or drag across it.',
     h('div.set-prov-wrap', null, list),
     claudeBox);
 

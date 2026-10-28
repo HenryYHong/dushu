@@ -13,10 +13,10 @@ export function openSignIn(): void {
   const signedIn = !!cloudSession();
   dlg.append(
     h('div.signin-body', null,
-      h('h2.signin-title#signin-title', null, signedIn ? 'Your account' : 'Sign in to sync'),
+      h('h2.signin-title#signin-title', null, signedIn ? 'Your account' : 'Sign in'),
       h('p.signin-text', null, signedIn
-        ? 'This device keeps your books, words, reading places, looked-up words and bookmarks the same as every other device signed in with your email.'
-        : 'Your books, words, reading places, looked-up words and bookmarks stay the same on every device you sign in on, anywhere. We email you a six-digit code; there is no password.'),
+        ? 'Your books, words and places are the same on every device signed in with this email.'
+        : 'Sign in and your books, words and places are the same on every device. We email you a 6-digit code. There’s no password.'),
       panel.el),
     h('div.signin-actions', null, h('button.btn', { type: 'button', onclick: () => dlg.close() }, 'Close')),
   );

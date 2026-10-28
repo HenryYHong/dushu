@@ -367,7 +367,6 @@ describe('settings rows that only apply to one layout', () => {
     expect(row('Pages shown').hidden).toBe(false);
     expect(row('Page turn').hidden).toBe(false);
     expect(row('Known up to').hidden).toBe(false);
-    expect(row('Page turn').textContent).toContain('Applies to the Pages layout');
   });
 
   it('lists its sections in a navigation and gives each a place to jump to', async () => {

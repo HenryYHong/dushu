@@ -467,7 +467,7 @@
 .rd-display { gap: 0; }
 .rd-sec { padding: 4px 0 6px; }
 .rd-sec + .rd-sec { border-top: 1px solid var(--hairline); padding-top: 8px; }
-.rd-sec-title { margin: 6px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+.rd-sec-title { margin: 6px 10px 4px; font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--text-3); }
 /* One line per setting: the name on the left, the control on the right, at least 44 px tall. */
 .rd-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 4px 10px; }
 .rd-row[hidden] { display: none; }
@@ -716,7 +716,7 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-name-word { grid-row: 1 / 3; font-size: 20px; line-height: 1.3; align-self: center; }
 .rd-name-py { font-family: var(--font-pinyin); font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rd-name-meta { display: flex; gap: 8px; align-items: baseline; font-size: 12px; color: var(--text-3); }
-.rd-name-kind { text-transform: uppercase; letter-spacing: 0.1em; font-size: 10.5px; font-weight: 600; }
+.rd-name-kind { letter-spacing: 0; font-size: 12px; font-weight: 600; }
 .rd-name-kind[data-kind='name'] { color: var(--text-2); }
 .rd-name-kind[data-kind='place'] { color: var(--ink); }
 .rd-name-count { font-variant-numeric: tabular-nums; }

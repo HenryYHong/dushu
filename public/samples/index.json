@@ -6,7 +6,7 @@
     "script": "traditional",
     "file": "tang-poems.txt",
     "level": "Beginner",
-    "blurb": "Eight short, famous Tang poems, mostly four lines each, ideal for your first real reading.",
+    "blurb": "Eight famous Tang poems, most of them four lines long. A good first read.",
     "source": "https://zh.wikisource.org/wiki/唐詩三百首",
     "note": "Tang dynasty poems from the 8th century, in the public domain worldwide.",
     "simplified": {
@@ -27,7 +27,7 @@
     "script": "simplified",
     "file": "kong-yiji.txt",
     "level": "Intermediate",
-    "blurb": "A short story about a failed scholar who drinks at a village tavern, one of the most famous works of modern Chinese fiction.",
+    "blurb": "Lu Xun's story of a failed scholar who drinks on credit at a village wine shop.",
     "source": "https://zh.wikisource.org/wiki/孔乙己",
     "note": "Published in 1919, so it is in the US public domain (published before 1931).",
     "simplified": {
@@ -48,7 +48,7 @@
     "script": "simplified",
     "file": "guxiang.txt",
     "level": "Intermediate",
-    "blurb": "A man returns to his hometown and finds that both the place and his childhood friend have changed.",
+    "blurb": "A man goes back to his hometown after twenty years and finds it changed, and his childhood friend too.",
     "source": "https://zh.wikisource.org/wiki/故鄉",
     "note": "Published in 1921, so it is in the US public domain (published before 1931).",
     "simplified": {
@@ -69,7 +69,7 @@
     "script": "simplified",
     "file": "kuangren-riji.txt",
     "level": "Advanced",
-    "blurb": "China's first modern vernacular short story, the diary of a man who fears everyone around him wants to eat him.",
+    "blurb": "The diary of a man who thinks everyone around him wants to eat him. The first modern short story in vernacular Chinese.",
     "source": "https://zh.wikisource.org/wiki/狂人日記",
     "note": "Published in 1918, so it is in the US public domain (published before 1931).",
     "simplified": {
@@ -90,7 +90,7 @@
     "script": "traditional",
     "file": "lunyu-xue-er.txt",
     "level": "Advanced",
-    "blurb": "The first chapter of the Analects, sixteen short sayings on learning and character, in classical Chinese.",
+    "blurb": "The first chapter of the Analects: sixteen short sayings about learning, in classical Chinese.",
     "source": "https://zh.wikisource.org/wiki/論語/學而第一",
     "note": "Composed more than 2,000 years ago, in the public domain worldwide.",
     "simplified": {
@@ -111,7 +111,7 @@
     "script": "traditional",
     "file": "xiyouji-1.txt",
     "level": "Advanced",
-    "blurb": "The Monkey King is born from a stone, finds a home at Flower-Fruit Mountain, and sets out to learn immortality.",
+    "blurb": "The first chapter of Journey to the West. The Monkey King is born from a stone and sets out to learn how to live forever.",
     "source": "https://zh.wikisource.org/wiki/西遊記/第001回",
     "note": "Written in the 16th century, in the public domain worldwide.",
     "simplified": {
@@ -132,12 +132,12 @@
     "script": "traditional",
     "file": "xiyouji.txt",
     "level": "Advanced",
-    "blurb": "The Monkey King, Tang Sanzang and their companions travel west for the scriptures. Complete, all 100 chapters of the Ming novel Journey to the West.",
+    "blurb": "The Monkey King and the monk Tang Sanzang travel west for the scriptures. All 100 chapters of Journey to the West.",
     "source": "https://zh.wikisource.org/wiki/西遊記",
     "note": "Wu Cheng'en, 16th century; public domain worldwide. Text: Wikisource, Shidetang-based edition.",
     "chapters": 100,
     "chars": 589256,
-    "group": "Four Great Classical Novels",
+    "group": "The four great novels",
     "simplified": {
       "title": "西游记",
       "author": "吴承恩"
@@ -156,12 +156,12 @@
     "script": "traditional",
     "file": "hongloumeng.txt",
     "level": "Advanced",
-    "blurb": "The rise and fall of the Jia family and the tragic love of Baoyu and Daiyu. Complete, all 120 chapters of Dream of the Red Chamber.",
+    "blurb": "The rise and fall of the Jia family, and Baoyu and Daiyu. All 120 chapters of Dream of the Red Chamber.",
     "source": "https://zh.wikisource.org/wiki/紅樓夢",
     "note": "Cao Xueqin (ch. 1-80) and Gao E (ch. 81-120), 18th century; public domain worldwide. Text: Wikisource collated edition (Gengchen base for 1-80, Cheng-jia for 81-120).",
     "chapters": 120,
     "chars": 732451,
-    "group": "Four Great Classical Novels",
+    "group": "The four great novels",
     "simplified": {
       "title": "红楼梦",
       "author": "曹雪芹、高鹗"
@@ -180,12 +180,12 @@
     "script": "traditional",
     "file": "sanguo.txt",
     "level": "Advanced",
-    "blurb": "Heroes and schemers fight over the fallen Han empire: Liu Bei, Cao Cao, Zhuge Liang. Complete, all 120 chapters of Romance of the Three Kingdoms.",
+    "blurb": "Liu Bei, Cao Cao and Zhuge Liang fight over what is left of the Han. All 120 chapters of Romance of the Three Kingdoms.",
     "source": "https://zh.wikisource.org/wiki/三國演義",
     "note": "Luo Guanzhong, 14th century, in the Mao Zonggang revision; public domain worldwide. Text: Wikisource.",
     "chapters": 120,
     "chars": 485398,
-    "group": "Four Great Classical Novels",
+    "group": "The four great novels",
     "simplified": {
       "title": "三国演义",
       "author": "罗贯中"
@@ -204,12 +204,12 @@
     "script": "traditional",
     "file": "shuihu.txt",
     "level": "Advanced",
-    "blurb": "108 outlaws gather at Liangshan Marsh. Complete, all 120 chapters of Water Margin.",
+    "blurb": "108 outlaws gather at Liangshan Marsh. All 120 chapters of Water Margin.",
     "source": "https://zh.wikisource.org/wiki/水滸傳_(120回本)",
     "note": "Shi Nai'an, 14th century; public domain worldwide. Text: Wikisource, the 120-chapter Yuan Wuya edition.",
     "chapters": 120,
     "chars": 748831,
-    "group": "Four Great Classical Novels",
+    "group": "The four great novels",
     "simplified": {
       "title": "水浒传",
       "author": "施耐庵"

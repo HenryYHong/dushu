@@ -58,7 +58,7 @@ describe('parseSampleIndex', () => {
     const list = parseSampleIndex(realIndex);
     expect(list.length).toBe(realIndex.length);
     expect(list.every((s) => s.id && s.title && s.file)).toBe(true);
-    expect(list.find((s) => s.id === 'xiyouji')?.group).toBe('Four Great Classical Novels');
+    expect(list.find((s) => s.id === 'xiyouji')?.group).toBe('The four great novels');
   });
 
   it('drops rows it cannot show or import, and path tricks', () => {

@@ -150,10 +150,10 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
 
   function appendReferences(t: Translator): void {
     if (t.id === 'gloss') {
-      body.appendChild(h('p.pp-tr-note', null, 'This is a dictionary gloss, not a context-aware translation. Its first meanings may be wrong here. Try another provider for a full sentence translation.'));
+      body.appendChild(h('p.pp-tr-note', null, 'A word-by-word gloss, not a real translation. The first meanings may be wrong here.'));
       return;
     }
-    body.appendChild(h('p.pp-tr-note', null, 'Machine translation: check ambiguous literary meanings and rare terms against the references.'));
+    body.appendChild(h('p.pp-tr-note', null, 'Machine translation. Check rare or odd words against the list below.'));
     const references = translationTerms(o.text, o.lexicon, ctx.dictSync(), { tagged: true });
     if (!references.length) return;
     const list = h('dl.pp-tr-references');
@@ -261,7 +261,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
         noTranslator ? 'Safari and iPadOS have no on-device translator. ' : '',
         'Add a Claude key in ', settings, ', or use Chrome on a computer.'));
     } else {
-      body.appendChild(h('p', null, 'Translation is set to word by word, so the list below is the result. Choose another provider below or in ', settings, '.'));
+      body.appendChild(h('p', null, 'Translation is set to word by word. Pick another below or in ', settings, '.'));
     }
     renderActions(null);
     changed();

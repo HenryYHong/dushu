@@ -199,7 +199,6 @@ export const mount: MountFn = (root, _params, ctx) => {
     continueEl.appendChild(h('section.lib-continue.card', { 'aria-label': 'Continue reading' },
       h('a.lib-continue-cover', { href: readHref(opened.id), tabindex: -1, 'aria-hidden': 'true' }, bookCover(opened, store, 'sm', ctx.settings.get().covers)),
       h('div.lib-continue-info', null,
-        h('span.chip.chip-accent', null, 'Continue reading'),
         h('h2.lib-continue-title.zh', null, shown(opened.title)),
         opened.author ? h('div.lib-continue-author', null, shown(opened.author)) : null,
         h('div.lib-continue-progress', null, progressBar(frac, `Progress in ${opened.title}`), h('span.muted', null, `${where}${progressLabel(p)}`))),
@@ -219,12 +218,13 @@ export const mount: MountFn = (root, _params, ctx) => {
       // A phone or tablet has no file to drop and no mouse to drag with: it is told its own way to a sentence.
       const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
       gridEl.appendChild(h('section.lib-empty.card', null,
-        h('div.lib-empty-mark.zh', { 'aria-hidden': 'true' }, '读书'),
-        h('h2.lib-empty-title', null, 'Read real Chinese books, and look up anything'),
-        h('p', null, `Import an EPUB, Kindle file (without DRM), text file or PDF, or paste a chapter. ${touch
-          ? 'Tap any word to see its pinyin and meaning, and tap it twice for the whole sentence and its translation.'
-          : 'Click any word to see its pinyin and meaning, and drag across a sentence to translate it.'}`),
-        h('p.muted', null, touch ? 'Or start with one of the classics below.' : 'Drop a file anywhere on this page, or start with one of the classics below.'),
+        h('h2.lib-empty-title', null, 'No books yet'),
+        h('p', null, touch
+          ? 'Import an EPUB, a Kindle file without DRM, a text file or a PDF, or paste a chapter. Or pick a classic below.'
+          : 'Import an EPUB, a Kindle file without DRM, a text file or a PDF, or paste a chapter. You can also drop a file anywhere on this page, or pick a classic below.'),
+        h('p', null, touch
+          ? 'Then tap any word for its pinyin and meaning, and tap it twice for the whole sentence and its translation.'
+          : 'Then click any word for its pinyin and meaning, or drag across a sentence to translate it.'),
         h('div.lib-actions.lib-empty-actions', null, importBtn(), pasteBtn(), macBooks)));
       return;
     }
@@ -377,12 +377,11 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('div.lib-sample-cover', null, existing ? bookCover(existing, store, 'sm', ctx.settings.get().covers) : sampleCoverEl(s)),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
-          h('div.lib-sample-title.zh', null, sampleShown(s, 'title')),
-          s.level ? h('span.chip', null, s.level) : null),
+          h('div.lib-sample-title.zh', null, sampleShown(s, 'title'))),
         s.author ? h('div.lib-sample-author', null, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-sample-blurb', null, s.blurb) : null,
         h('div.lib-sample-foot', null,
-          h('span.muted.lib-sample-size', null, existing ? 'In your library' : size),
+          h('span.muted.lib-sample-size', null, existing ? 'In your library' : [s.level, size].filter(Boolean).join(' · ')),
           go)));
   }
 
@@ -442,8 +441,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (publicCopy) {
       macNote.append(
         h('p', null, cloudBase()
-          ? 'This is the public copy of Dushu. Your books, words and progress stay in this browser. Sign in with your email to keep them, and Claude, the same on every device you sign in on.'
-          : 'This is the public copy of Dushu. Your books, words and progress stay in this browser. If you run Dushu on your own Mac, connect this device to it in Settings to use its translator and read-aloud voices, to bring your Mac books here, and to sync your words and reading places.'),
+          ? 'Your books and words are saved in this browser. Sign in with your email to have them on your other devices too.'
+          : 'Your books and words are saved in this browser. If you run Dushu on your own Mac, connect this device to it in Settings to use its translator, voices and books.'),
         h('div.lib-actions', null,
           cloudBase()
             ? h('button.btn.btn-sm', { type: 'button', onclick: () => openSignIn() }, 'Sign in')

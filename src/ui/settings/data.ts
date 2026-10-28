@@ -92,7 +92,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
   delBtn.addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: 'Delete all data?',
-      message: 'This removes every book, saved word, known word, review record, reading position and setting (including the address of your Mac) from this browser. It cannot be undone. Books from your Mac are added again the next time this device reaches your Mac. Sync is turned off here, so the copy of your words on your Mac stays there and does not come back until you turn sync on again.',
+      message: 'This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Books from your Mac come back the next time this device reaches it. Sync is turned off here, so the words kept on your Mac stay there until you turn sync back on.',
       confirmLabel: 'Delete everything',
       danger: true,
     });
@@ -104,9 +104,9 @@ export function dataGroup(ctx: AppContext): HTMLElement {
     ? h('div.set-warn', { role: 'alert' }, 'This browser is blocking local storage, so your books and words will be lost when you close the tab.')
     : null;
 
-  return group('Data', 'Everything lives in this browser. When it is connected to your Mac, your words and reading places are also kept on the Mac, never anywhere else.',
+  return group('Data', null,
     memoryWarning,
-    row('Backup', 'Saved words, known words, reading progress, review history and settings. Books and the address of your Mac are excluded. On another device, import the same book files first, then import a fresh backup so progress and edited terms match their books.',
+    row('Backup', 'Your words, known words, progress, review history and settings. Books are not included, so on another device import the same book files first.',
       h('div.set-backup', null, h('div.set-btn-row', null, exportBtn, importBtn, file), status)),
-    row('Delete all data', 'Removes books, words and settings from this browser. Books from your Mac come back when it reaches your Mac.', delBtn));
+    row('Delete all data', 'Removes books, words and settings from this browser.', delBtn));
 }

@@ -153,9 +153,7 @@
 }
 .lib-continue-cover { flex: none; width: 140px; display: block; text-decoration: none; }
 .lib-continue-info { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-/* Your place in a book: the one label in vermilion. */
-.lib-continue .chip-accent { color: var(--accent); font-size: 11px; }
-.lib-continue-title { margin: 8px 0 0; font: 400 30px/1.2 var(--font-serif); letter-spacing: 0.06em; overflow-wrap: anywhere; }
+.lib-continue-title { margin: 0; font: 400 30px/1.2 var(--font-serif); letter-spacing: 0.06em; overflow-wrap: anywhere; }
 .lib-continue-author { font-size: 14px; color: var(--text-2); letter-spacing: 0.06em; }
 .lib-continue-progress { display: flex; flex-direction: column; gap: 8px; width: min(340px, 100%); margin-top: 10px; font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 /* At 0% a hairline would read as a section rule, not as progress: only the words then. */
@@ -204,29 +202,16 @@
 @media (hover: none) { .lib-card-menu { opacity: 1; width: 36px; height: 36px; top: calc(140cqw + 6px); right: -9px; } }
 .lib-card-pending .lib-pending-stage { font-variant-numeric: tabular-nums; }
 
-/* ---------- empty state: the seal, large ---------- */
-.lib-empty.card { text-align: center; padding: var(--space-7) var(--space-5); max-width: 640px; margin: var(--space-4) auto 0; background: none; box-shadow: none; }
-.lib-empty-mark {
-  display: inline-grid; place-items: center; width: 88px; height: 88px; margin: 0 auto;
-  writing-mode: vertical-rl; text-orientation: upright;
-  background: var(--accent-fill); color: var(--accent-fill-text); border-radius: 6px;
-  font: 700 34px/1 var(--font-serif); letter-spacing: 0.08em;
-  box-shadow: inset 0 0 0 5px var(--accent-fill), inset 0 0 0 6.5px color-mix(in srgb, var(--accent-fill-text) 55%, transparent), 0 14px 30px -14px color-mix(in srgb, var(--accent-fill) 70%, transparent);
-}
-.lib-empty-title { margin: var(--space-5) 0 var(--space-3); font: 400 30px/1.2 var(--font-display); letter-spacing: -0.01em; }
-.lib-empty p { margin: 0 auto var(--space-3); max-width: 480px; color: var(--text-2); line-height: 1.6; }
-.lib-empty p.muted { color: var(--text-3); }
-.lib-empty-actions { justify-content: center; margin-top: var(--space-5); }
+/* ---------- empty state: a few plain lines, then the two buttons ---------- */
+.lib-empty.card { padding: var(--space-2) 0 var(--space-4); max-width: 62ch; background: none; box-shadow: none; border-radius: 0; }
+.lib-empty-title { margin: 0 0 var(--space-2); font: 400 24px/1.25 var(--font-display); }
+.lib-empty p { margin: 0 0 var(--space-2); color: var(--text-2); line-height: 1.6; }
+.lib-empty-actions { margin-top: var(--space-4); }
 
 /* ---------- classics: a ruled list, not a wall of boxes ---------- */
 .lib-samples { margin-top: var(--space-7); }
 .lib-samples-title { margin: 0 0 6px; font: 400 26px/1.1 var(--font-display); letter-spacing: -0.01em; }
-.lib-samples-sub { margin: 0 0 var(--space-4); font: italic 400 16px/1.4 var(--font-display); color: var(--text-2); }
-.lib-sample-group {
-  display: flex; align-items: center; gap: 14px; margin: var(--space-6) 0 var(--space-2);
-  font: 600 11px/1.3 var(--font-ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3);
-}
-.lib-sample-group::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+.lib-sample-group { margin: var(--space-7) 0 var(--space-1); font: 400 20px/1.25 var(--font-display); }
 .lib-sample-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 0 var(--space-6); }
 .lib-sample.card {
   display: flex; gap: var(--space-4); min-width: 0; padding: var(--space-4) 0;
@@ -264,7 +249,7 @@
 @media (hover: hover) { .lib-menu-item:hover { background: var(--wash-2); } }
 .lib-menu-danger, .lib-menu-danger .icon { color: var(--danger); }
 .lib-menu-group { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--hairline); }
-.lib-menu-heading { padding: 6px 10px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+.lib-menu-heading { padding: 6px 10px 2px; font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--text-3); }
 .lib-menu-blank { display: inline-block; width: 16px; flex: none; }
 .lib-menu-choice[aria-checked='true'] { font-weight: 600; }
 .lib-menu-choice[aria-checked='true'] .icon { color: var(--text); }
@@ -315,7 +300,7 @@
   .lib-sort { width: auto; max-width: 48%; }
   .lib-sample-grid { gap: 0; }
   .lib-paste-row { grid-template-columns: 1fr; }
-  .lib-empty.card { padding: var(--space-6) var(--space-2); }
+  .lib-empty.card { padding: var(--space-2) 0 var(--space-4); }
   .lib-empty-actions .btn { flex: 1; }
   .lib-dlg-body { padding-inline: var(--space-4); }
   .lib-dlg-head { padding-left: var(--space-4); }
@@ -326,8 +311,6 @@
   .lib-search-wrap { flex-basis: 100%; }
   .lib-sort { width: 100%; }
   .lib-continue-cover { width: 60px; }
-  .lib-continue-info > .chip { display: none; }
-  .lib-continue-title { margin-top: 0; }
   .lib-continue-progress { margin-top: 4px; }
 }
 

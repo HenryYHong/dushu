@@ -61,7 +61,7 @@
 .pp-title { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
 .pp-word { font-size: 40px; line-height: 1.12; letter-spacing: 0.04em; word-break: break-all; }
 .pp-trad { font-size: 22px; color: var(--text-3); }
-.pp-kind { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); }
+.pp-kind { font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--text-3); }
 .pp-muted { color: var(--text-3); font-size: 13px; }
 .pp-head-actions { display: flex; align-items: center; gap: 2px; flex: none; margin: -4px -6px 0 0; }
 .pp-head .icon-btn { color: var(--text-3); }
@@ -80,7 +80,7 @@
 
 .pp-body { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
 /* Section labels: small capitals that run into a hairline. */
-.pp-section { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); margin-bottom: 8px; }
+.pp-section { display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--text-3); margin-bottom: 8px; }
 .pp-section::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
 .pp-tr-head .pp-section::after, .pp-book-head .pp-section::after, .pp-stroke .pp-section::after { display: none; }
 .pp-note { margin: 0; padding: 8px 10px; border-radius: var(--radius-s); background: var(--wash); color: var(--text-2); font-size: 13px; }

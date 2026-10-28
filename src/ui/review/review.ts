@@ -35,7 +35,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   root.appendChild(screen);
 
   /** The screen's title over the empty state and the summary (a session in progress shows only the card). */
-  const head = () => h('div.page-head.rev-head', null, h('div', null, pageTitle('review', 'Review'), h('p.page-sub', null, 'The words you look up and save, one card at a time.')));
+  const head = () => h('div.page-head.rev-head', null, h('div', null, pageTitle('review', 'Review')));
 
   const nextDueAmongAll = async (): Promise<number | undefined> => {
     const now = Date.now();
@@ -69,8 +69,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(screen);
     const msg = total === 0
       ? [h('h2.rev-empty-title', null, 'No cards yet'),
-         h('p', null, 'Look up words while reading, or save them with the star, and they appear here as flashcards.'),
-         h('a.btn.btn-primary', { href: '#/' }, icon('book'), 'Open the library')]
+         h('p', null, 'Words you look up or star while reading turn up here as flashcards.'),
+         h('a.btn', { href: '#/' }, icon('book'), 'Open the library')]
       : [h('h2.rev-empty-title', null, 'Nothing due right now'),
          h('p', null, next ? `Your next card is due ${describeNextDue(next, Date.now())}.` : 'You are all caught up.'),
          h('a.btn', { href: '#/vocab' }, icon('list'), 'See your words')];

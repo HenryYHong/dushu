@@ -13,7 +13,7 @@ it('uses red, clear and wave as dictionary starting meanings, not surname or cou
   expect(gloss('红')).toContain('red');
   expect(gloss('清')).toContain('clear');
   expect(gloss('波')).toContain('wave');
-  expect(document.querySelector('.pp-wbw-note')?.textContent).toContain('not context-selected');
+  expect(document.querySelector('.pp-wbw-note')?.textContent).toContain('may not be the one used here');
 });
 
 it('shows the definitions first, then sentence translation, with no duplicate footer action', async () => {
@@ -49,7 +49,7 @@ it('shows the dictionary sense and exact evidence without an invented AI rationa
   await vi.waitFor(() => expect(document.querySelector('.pp-context-result strong')?.textContent).toBe('to float'));
   const text = document.querySelector('.pp-context-result')!.textContent;
   expect(text).toContain(paragraph);
-  expect(text).toContain('not a verified definition');
+  expect(text).toContain('not taken from the dictionary');
   expect(text).not.toContain('duck');
 });
 

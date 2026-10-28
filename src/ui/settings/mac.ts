@@ -101,7 +101,7 @@ export function macRows(params: Record<string, string>): { rows: HTMLElement[]; 
   }
 
   const rows = [
-    row('Connection', 'Your Mac can translate with Claude, run the local model, speak with Premium voices and hold your own books. The public site reaches it only over Tailscale, and only for you.',
+    row('Connection', 'Your Mac adds Claude, its local model, Premium voices and your own books. It is reached over Tailscale, only by you.',
       h('div.set-status-wrap', null, status)),
     linkRow,
     row('Mac address', 'Your Mac\'s Tailscale name with the port, shown in Settings on the private site.',

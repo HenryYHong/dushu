@@ -190,7 +190,7 @@ describe('owner books on the library screen', () => {
     onPublicSite();
     await openLibrary();
     await until(() => !root.querySelector<HTMLElement>('.lib-mac-note')!.hidden);
-    expect(root.querySelector('.lib-mac-note')!.textContent).toMatch(/public copy.*Sign in with your email/);
+    expect(root.querySelector('.lib-mac-note')!.textContent).toMatch(/saved in this browser.*Sign in with your email/);
     expect([...root.querySelectorAll<HTMLElement>('.lib-mac-note .btn')].map((b) => b.textContent)).toEqual(['Sign in', 'Dismiss']);
     await flush(100);
     expect(calls.filter((c) => c.includes('local-books'))).toEqual([]);

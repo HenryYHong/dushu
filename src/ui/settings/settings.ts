@@ -61,29 +61,29 @@ export const mount: MountFn = (root, params, ctx) => {
   const paragraph = add(toggle('paragraphTranslate', 'Translate paragraphs', set('paragraphTranslate')));
 
   // Rows that only matter in one mode are hidden in the other (a dimmed row still looks like something you can change).
-  const hskRow = row('Known up to', 'A word loses its pinyin once you have met each of its characters, read that way, in an HSK word at or below this level. A word with a toneless syllable, like 本事, waits for its own HSK level. Applies to the HSK mode.', hsk);
-  const spreadRow = row('Pages shown', 'Applies to the Pages layout. Auto shows two pages side by side on a wide, landscape screen such as an iPad held sideways.', spread);
-  const turnRow = row('Page turn', 'Applies to the Pages layout. A page slides across, flips over like a leaf (with a book’s spine between two pages), or just changes.', pageTurn);
+  const hskRow = row('Known up to', 'Pinyin is hidden on characters you have met, with the same reading, in HSK words up to this level.', hsk);
+  const spreadRow = row('Pages shown', 'Auto shows two pages on a wide screen held sideways.', spread);
+  const turnRow = row('Page turn', null, pageTurn);
   const reading = group('Reading', null,
     row('Theme', 'Auto follows your device.', theme),
-    row('Layout', 'Pages turns like a book: swipe, or use the arrow keys (with a mouse, click the edges). Scroll is one long column.', layout),
+    row('Layout', 'Scroll puts each chapter in one long column.', layout),
     spreadRow,
     turnRow,
     row('Font', null, fontFamily),
-    row('Text size', 'For the layout you’re using (Pages and Scroll each keep their own).', fontSize),
+    row('Text size', 'Pages and Scroll each keep their own.', fontSize),
     row('Line spacing', null, lineHeight),
-    row('Page width', 'The widest the text column gets.', pageWidth),
-    row('Characters', 'Convert the whole book on screen to simplified (简体) or traditional (繁體) characters. Your saved words work in either form.', script));
-  const pinyinGroup = group('Pinyin', 'Words you mark as known never show pinyin in the Unknown and HSK modes.',
-    row('Show pinyin', null, pinyin),
+    row('Page width', null, pageWidth),
+    row('Characters', 'Show books in simplified (简体) or traditional (繁體) characters.', script));
+  const pinyinGroup = group('Pinyin', null,
+    row('Show pinyin', 'Unknown skips words you have marked as known. HSK also skips words up to your level.', pinyin),
     hskRow,
     row('Style', null, style),
     row('Tone colors', 'Red, green, blue, purple and gray for tones 1 to 5.', tones),
-    row('Tone changes for yī and bù', 'Show 一个 as yí gè and 不是 as bú shì, as spoken, instead of the dictionary tone.', sandhi),
+    row('Tone changes for yī and bù', '一个 as yí gè, 不是 as bú shì.', sandhi),
     row('Learn known words as I read', AUTO_KNOWN_HELP, autoKnown));
-  const lookup = group('Lookup', 'Double-click and drag-select always work, whichever you choose.',
+  const lookup = group('Lookup', null,
     row('Look up a word by', null, trigger),
-    row('Translate paragraphs', 'With a mouse, a small translate button appears beside each paragraph in the Scroll layout. Dragging across a sentence, or tapping a word twice on a touch screen, translates it either way.', paragraph));
+    row('Translate paragraphs', 'With a mouse, adds a translate button beside each paragraph in Scroll.', paragraph));
 
   const translation = translationGroup(ctx);
   const speech = speechGroup(ctx);
@@ -126,7 +126,7 @@ export const mount: MountFn = (root, params, ctx) => {
   const nav = h('nav.set-nav', { 'aria-label': 'Sections' }, navButtons);
 
   root.appendChild(h('div.page.set-page', null,
-    h('div.page-head', null, h('div', null, pageTitle('settings', 'Settings'), h('p.page-sub', null, 'Changes apply right away. Signed in, they follow you to every device (the voice, hover or tap, and pages side by side stay with each device).'))),
+    h('div.page-head', null, h('div', null, pageTitle('settings', 'Settings'))),
     h('div.set-layout', null, nav, h('div.set-main', null, preview, ...sections.map((sec) => sec.el)))));
 
   // The preview sticks under the top bar, so a section the list scrolls to must stop below it, not behind it. The sticky height is

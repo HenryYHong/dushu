@@ -230,13 +230,13 @@ def main():
 
 
 BLURBS = {
-    "xiyouji": ("Advanced", "The Monkey King, Tang Sanzang and their companions travel west for the scriptures. Complete, all 100 chapters of the Ming novel Journey to the West.",
+    "xiyouji": ("Advanced", "The Monkey King and the monk Tang Sanzang travel west for the scriptures. All 100 chapters of Journey to the West.",
                 "Wu Cheng'en, 16th century; public domain worldwide. Text: Wikisource, Shidetang-based edition."),
-    "hongloumeng": ("Advanced", "The rise and fall of the Jia family and the tragic love of Baoyu and Daiyu. Complete, all 120 chapters of Dream of the Red Chamber.",
+    "hongloumeng": ("Advanced", "The rise and fall of the Jia family, and Baoyu and Daiyu. All 120 chapters of Dream of the Red Chamber.",
                     "Cao Xueqin (ch. 1-80) and Gao E (ch. 81-120), 18th century; public domain worldwide. Text: Wikisource collated edition (Gengchen base for 1-80, Cheng-jia for 81-120)."),
-    "sanguo": ("Advanced", "Heroes and schemers fight over the fallen Han empire: Liu Bei, Cao Cao, Zhuge Liang. Complete, all 120 chapters of Romance of the Three Kingdoms.",
+    "sanguo": ("Advanced", "Liu Bei, Cao Cao and Zhuge Liang fight over what is left of the Han. All 120 chapters of Romance of the Three Kingdoms.",
                "Luo Guanzhong, 14th century, in the Mao Zonggang revision; public domain worldwide. Text: Wikisource."),
-    "shuihu": ("Advanced", "108 outlaws gather at Liangshan Marsh. Complete, all 120 chapters of Water Margin.",
+    "shuihu": ("Advanced", "108 outlaws gather at Liangshan Marsh. All 120 chapters of Water Margin.",
                "Shi Nai'an, 14th century; public domain worldwide. Text: Wikisource, the 120-chapter Yuan Wuya edition."),
 }
 SOURCES = {"xiyouji": "西遊記", "hongloumeng": "紅樓夢", "sanguo": "三國演義", "shuihu": "水滸傳_(120回本)"}
@@ -254,7 +254,7 @@ def update_index(root, stats):
                  "file": spec["file"], "level": lvl, "blurb": blurb,
                  "source": "https://zh.wikisource.org/wiki/" + SOURCES[bid],
                  "note": note, "chapters": stats[bid][0], "chars": stats[bid][1],
-                 "group": "Four Great Classical Novels"}
+                 "group": "The four great novels"}
         if bid in by_id:
             idx[by_id[bid]] = {**idx[by_id[bid]], **entry}  # keeps fields kept by hand (titles per script, cover)
         else:

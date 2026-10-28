@@ -113,7 +113,7 @@ describe('library screen', () => {
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => !!root.querySelector('.lib-empty'));
     expectPageHead('书架', 'Library');
-    expect(root.querySelector('.lib-empty-title')?.textContent).toMatch(/Read real Chinese books/);
+    expect(root.querySelector('.lib-empty-title')?.textContent).toBe('No books yet');
     await flush(50);
     expect(root.querySelector('.lib-samples')?.children.length).toBe(0);
   });
@@ -426,7 +426,7 @@ describe('settings screen', () => {
     expect(options('Characters')).toEqual(['As written', 'Simplified', 'Traditional']);
     expect(row('Learn known words as I read')).toBeDefined();
     expect(row('Read-aloud speed')!.querySelector('.set-range-out')!.textContent).toBe('0.9×');
-    expect(row('Text size')!.querySelector('.set-help')!.textContent).toMatch(/layout.*Pages and Scroll each keep their own/);
+    expect(row('Text size')!.querySelector('.set-help')!.textContent).toMatch(/Pages and Scroll each keep their own/);
   });
 
   it('only enables the HSK slider in HSK mode', async () => {
@@ -546,7 +546,7 @@ describe('settings helpers', () => {
 describe('about screen', () => {
   it('shows coverage from meta.json, every source, and the CC-CEDICT attribution', async () => {
     cleanup = await mountAbout(root, {}, { ...ctx, dictSync: () => null, dict: () => new Promise(() => {}) });
-    await until(() => !!root.querySelector('.ab-stat'));
+    await until(() => !!root.querySelector('.ab-count'));
     expectPageHead('关于', 'About Dushu');
     expect(root.textContent).toContain('101,997');
     expect(root.textContent).toContain('CC-CEDICT');

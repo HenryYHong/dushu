@@ -41,9 +41,9 @@
 .voc-remove { opacity: 0.55; }
 .voc-row:hover .voc-remove, .voc-remove:focus-visible { opacity: 1; }
 
-.voc-empty { padding: var(--space-7) var(--space-4); }
-.voc-empty-title { margin: 0 0 var(--space-2); font: 400 26px/1.2 var(--font-display); color: var(--text); }
-.voc-empty p { max-width: 440px; margin: 0 auto var(--space-4); line-height: 1.6; }
+.voc-empty { padding: var(--space-5) 0; }
+.voc-empty-title { margin: 0 0 var(--space-2); font: 400 22px/1.25 var(--font-display); color: var(--text); }
+.voc-empty p { max-width: 60ch; margin: 0 0 var(--space-4); line-height: 1.6; color: var(--text-2); }
 
 /* known words: a collapsed card above the list */
 .voc-known { padding: 0; margin-bottom: var(--space-4); }

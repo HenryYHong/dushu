@@ -53,13 +53,13 @@ describe('order', () => {
     openWordPopup({ ctx, word: '了', prev: '看', next: '。', anchor: anchorRect(), context: { sentence: '他看了。', paragraph: '他看了。' } });
     expect(before('.pp-defs', '.pp-reading-actions')).toBe(true); // the owner wants the meanings right under the word
     expect(before('.pp-defs', '.pp-note')).toBe(true);
-    expect(text('.pp-note')).toContain('not a choice of meaning');
+    expect(text('.pp-note')).toContain('not just the one used here');
     if (q('.pp-context')) expect(before('.pp-defs', '.pp-context')).toBe(true);
   });
   it('says nothing about an AI suggestion before there is one', async () => {
     const { ctx } = await makeCtx();
     openWordPopup({ ctx, word: '银行', anchor: anchorRect(), context: { sentence: '他去银行。', paragraph: '他去银行。' } });
-    expect(text('.pp-body')).not.toContain('AI suggestion');
+    expect(text('.pp-body')).not.toMatch(/by the AI/);
   });
 });
 

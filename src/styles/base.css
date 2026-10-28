@@ -153,13 +153,10 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) .app-toasts { bottom: c
   display: block; margin: 0 0 12px; font: 400 26px/1.1 var(--font-serif); letter-spacing: 0.3em; color: var(--text);
 }
 .page-title-en { display: block; }
-.page-sub { margin: 10px 0 0; font: italic 400 17px/1.4 var(--font-display); color: var(--text-2); }
-/* Small capitals that run into a hairline. */
-.section-title {
-  display: flex; align-items: center; gap: 14px;
-  margin: var(--space-6) 0 var(--space-3); font: 600 11px/1.3 var(--font-ui); text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-3);
-}
-.section-title::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+.page-sub { margin: 10px 0 0; font-size: 14px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.page-sub:empty { display: none; }
+/* A plain serif heading, the way a book sets one. */
+.section-title { margin: var(--space-6) 0 var(--space-3); font: 400 22px/1.25 var(--font-display); color: var(--text); }
 
 /* ---------- components ---------- */
 /* Buttons are raised paper: a hairline ring and a soft shadow, no beige border. */
@@ -177,12 +174,12 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) .app-toasts { bottom: c
 /* The one filled red button a screen has (lacquer red at night). */
 .btn-primary, :root[data-theme='dark'] .btn-primary {
   background: var(--accent-fill); color: var(--accent-fill-text);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-fill) 82%, #000), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px color-mix(in srgb, var(--accent-fill) 30%, transparent), 0 4px 12px -4px color-mix(in srgb, var(--accent-fill) 50%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-fill) 82%, #000);
 }
 .btn-ghost, :root[data-theme='dark'] .btn-ghost { background: transparent; box-shadow: none; }
 .btn-sm { height: 32px; padding: 0 11px; font-size: 13px; }
 .btn-danger { color: var(--danger); }
-.btn-danger-solid, :root[data-theme='dark'] .btn-danger-solid { background: var(--danger); color: var(--accent-text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(0, 0, 0, 0.15); }
+.btn-danger-solid, :root[data-theme='dark'] .btn-danger-solid { background: var(--danger); color: var(--accent-text); box-shadow: none; }
 @media (hover: hover) {
   .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--elev) 93%, var(--text)); }
   :root[data-theme='dark'] .btn:hover:not(:disabled) { background: var(--surface-3); }
@@ -206,8 +203,8 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) .app-toasts { bottom: c
   display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: var(--radius-xs);
   background: var(--wash-2); color: var(--text-2); font: 600 11px/1 var(--font-ui); letter-spacing: 0.02em; white-space: nowrap;
 }
-/* A small-capitals label in ink with no box (the library sets its own in vermilion: that one is your place in a book). */
-.chip-accent { background: none; padding: 0; color: var(--ink); text-transform: uppercase; letter-spacing: 0.12em; }
+/* A small label in ink with no box. */
+.chip-accent { background: none; padding: 0; color: var(--ink); font-size: 12px; letter-spacing: 0; }
 .input, .select, .textarea {
   width: 100%; height: 36px; padding: 0 12px; border-radius: var(--radius-s);
   border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); background: var(--surface); color: var(--text);
@@ -227,7 +224,7 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) .app-toasts { bottom: c
 }
 .kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border: 0; border-radius: var(--radius-xs); background: var(--surface); box-shadow: var(--ring), 0 1px 0 var(--hairline); color: var(--text-2); }
 .muted { color: var(--text-3); }
-.empty { text-align: center; padding: var(--space-7) var(--space-4); color: var(--text-3); }
+.empty { padding: var(--space-5) 0; color: var(--text-3); }
 
 /* Pinyin tone colors, usable anywhere: <span class="tone-3">hǎo</span>. Pulled toward the text color as the reader's are,
    so a small syllable reads at 4.5:1 or more on every surface in every theme. */
@@ -319,7 +316,7 @@ dialog.modal:focus { outline: none; }
 .sc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); }
 .sc-head h2 { margin: 0; font: 400 24px/1.2 var(--font-display); }
 .sc-group + .sc-group { margin-top: var(--space-4); }
-.sc-group-title { margin: 0 0 2px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); }
+.sc-group-title { margin: 0 0 2px; font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--text-3); }
 .sc-list { margin: 0; }
 .sc-row { display: grid; grid-template-columns: minmax(120px, 36%) 1fr; align-items: baseline; gap: var(--space-3); padding: 7px 0; border-top: 1px solid var(--hairline); font-size: 13.5px; }
 .sc-row:first-child { border-top: 0; }
@@ -351,7 +348,6 @@ dialog.modal:focus { outline: none; }
   .page-head { margin-bottom: var(--space-5); }
   .page-title { font-size: 38px; }
   .page-title-zh { font-size: 22px; margin-bottom: 10px; }
-  .page-sub { font-size: 16px; }
 }
 /* An iPhone mini or SE: the four labels still fit, a little tighter. */
 @media (max-width: 384px) {

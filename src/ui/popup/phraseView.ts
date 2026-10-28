@@ -136,7 +136,7 @@ export function mountPhraseView(
       addWord,
       rows.length ? h('section.pp-wbw-sec', null,
         h('span.pp-section', null, 'Word by word'),
-        h('p.pp-wbw-note.muted', null, 'These are dictionary starting meanings, not context-selected meanings. Ordinary meanings lead unless the book supplies a name. Tap a word for all senses.'),
+        h('p.pp-wbw-note.muted', null, 'The first dictionary meaning of each word, which may not be the one used here. Tap a word for all of them.'),
         list) : null,
     ),
   );

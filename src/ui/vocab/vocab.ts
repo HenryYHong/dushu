@@ -99,7 +99,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!items.length) {
       list.appendChild(h('div.empty.voc-empty', null,
         h('h2.voc-empty-title', null, 'No saved words yet'),
-        h('p', null, 'While reading, tap a word and press the star to save it. Saved words show up here with the sentence you found them in, and become flashcards.'),
+        h('p', null, 'Tap a word while you read and press the star. It shows up here with the sentence you found it in, and goes into Review.'),
         h('a.btn', { href: '#/' }, icon('book'), 'Open the library'),
       ));
       return;
@@ -171,7 +171,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   async function exportBackup(): Promise<void> {
     try {
       download(`dushu-backup-${today()}.json`, await store.exportBackup(), 'application/json');
-      ctx.toast('Backup saved. It holds your words, known words, progress and review history.', { ms: 5000 });
+      ctx.toast('Backup saved: your words, known words, progress and review history.', { ms: 5000 });
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not create the backup.');
     }
@@ -290,7 +290,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('span.chip.voc-known-total', null, knownCount),
       icon('chevronDown', 'icon voc-known-chev')),
     h('div.voc-known-body', null,
-      h('p.voc-known-sub.muted', null, 'Words you already know. Pinyin is hidden above them in the Unknown and HSK pinyin modes.'),
+      h('p.voc-known-sub.muted', null, 'Words you know. They get no pinyin in the Unknown and HSK pinyin modes.'),
       learnedNote,
       h('div.voc-known-actions', null,
         levelSel,
@@ -336,7 +336,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const due = items.filter((i) => i.srs.due <= Date.now()).length;
     sub.textContent = items.length
       ? `${plural(items.length, 'word')} saved, ${due ? `${due.toLocaleString('en-US')} due for review` : 'none due for review'}`
-      : 'Words you save while reading collect here.';
+      : '';
     reviewLink.textContent = '';
     reviewLink.append(icon('cards'), cards ? `Review ${cards}` : 'Review');
     renderList();

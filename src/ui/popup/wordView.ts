@@ -201,7 +201,7 @@ export function mountWordView(
       return h('p.pp-note', null, 'This character has no entry of its own. The reading and meaning above come from a related character.');
     }
     if (info.source === 'none' && !hasCedict) {
-      return h('p.pp-note', null, 'No reading or meaning for this character is in the built-in data. It is rare. The facts below and the links at the bottom may help.');
+      return h('p.pp-note', null, 'This rare character has no reading or meaning in the dictionary. The facts below and the links at the bottom may help.');
     }
     if (hasCedict) return null;
     const from = info.source === 'wiktionary' ? 'Wiktionary' : info.source === 'cedict' ? 'CC-CEDICT' : 'Unihan';
@@ -362,7 +362,7 @@ export function mountWordView(
               // The English rationale can invent subjects. Show the exact dictionary sense
               // and checked source quote, not a second, unverifiable AI paraphrase.
               ...(suggestion.evidence ? [h('p.pp-muted.zh', null, `Context clue: “${suggestion.evidence}”`)] : []),
-              h('p.pp-muted', null, suggestion.confidence === 'medium' ? 'Tentative AI suggestion — check the surrounding passage.' : 'AI suggestion — not a verified definition.'),
+              h('p.pp-muted', null, suggestion.confidence === 'medium' ? 'A guess by the AI. Check it against the passage.' : 'Suggested by the AI, not taken from the dictionary.'),
             );
           } catch (e) {
             if (ctl.signal.aborted) return;
@@ -389,7 +389,7 @@ export function mountWordView(
         const repeated = ordered.groups.length === 1 && sameReading(g.pinyin, syllables);
         body.appendChild(readingBlock(g, trad, flag && i === 0, !repeated));
       });
-      if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note', null, 'Dictionary meanings, not a choice of meaning for this sentence.'));
+      if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note', null, 'All the dictionary meanings, not just the one used here.'));
     } else if (info) {
       const note = sourceNote(info, false);
       if (info.readings.length || info.definition) {

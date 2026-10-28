@@ -8,17 +8,13 @@
 .ab-fine { margin: var(--space-3) 0 0; font-size: 13px; color: var(--text-3); }
 
 .ab-steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: var(--space-2); line-height: 1.6; color: var(--text-2); max-width: 70ch; }
-.ab-steps strong { color: var(--text); }
 
-/* coverage */
-.ab-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
-/* Five tiles: the last one is wide, so no row ends with an empty slot. Four tiles: the last takes its row. */
-.ab-stat:last-child:nth-child(3n + 2) { grid-column: span 2; }
-.ab-stat:last-child:nth-child(3n + 1) { grid-column: span 3; }
-.ab-stat { padding: var(--space-4); }
-.ab-stat-value { font: 400 32px/1.1 var(--font-display); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-.ab-stat-label { margin-top: 4px; font-size: 13.5px; font-weight: 560; color: var(--text-2); }
-.ab-stat-note { margin-top: 4px; font-size: 12px; line-height: 1.4; color: var(--text-3); }
+/* coverage: a plain table of counts */
+.ab-counts { margin-top: var(--space-3); border-collapse: collapse; font-size: 14.5px; color: var(--text-2); }
+.ab-counts td { padding: 5px 0; border-top: 1px solid var(--hairline); vertical-align: baseline; }
+.ab-counts tr:first-child td { border-top: 0; }
+.ab-count-value { padding-right: var(--space-4) !important; text-align: right; font: 400 17px/1.3 var(--font-display); color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ab-count-note { color: var(--text-3); }
 
 /* shortcuts */
 .ab-keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); align-items: start; }
@@ -41,14 +37,12 @@
 @media (hover: hover) { .ab-source-name:hover { text-decoration: underline; } }
 .ab-source-name .icon { width: 13px; height: 13px; opacity: 0.6; }
 .ab-source-use { margin-top: 2px; font-size: 13px; color: var(--text-3); }
+.ab-source-license { flex: none; font-size: 12.5px; color: var(--text-3); white-space: nowrap; }
 
 @media (max-width: 640px) {
   .ab-lead { font-size: 17px; }
   .ab-keys { grid-template-columns: minmax(0, 1fr); }
   .ab-keys-group:first-child { grid-row: auto; }
-  .ab-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ab-stat:last-child:nth-child(3n + 2), .ab-stat:last-child:nth-child(3n + 1) { grid-column: auto; }
-  .ab-stat:last-child:nth-child(odd) { grid-column: span 2; }
   .ab-keys-group { padding-inline: var(--space-4); }
   .ab-table { padding: 0 var(--space-4); }
   .ab-source { flex-direction: column; align-items: flex-start; gap: 6px; }

@@ -77,7 +77,7 @@ export function createLookupsView(ctx: AppContext): LookupsView {
     if (!rows.length) {
       days.appendChild(h('div.empty.voc-empty', null,
         h('h2.voc-empty-title', null, 'No words looked up yet'),
-        h('p', null, 'Every word you tap while reading is kept here, day by day, with the sentence it was in. Come back to practice them.'),
+        h('p', null, 'Every word you tap while reading is listed here by day, with the sentence it was in.'),
         h('a.btn', { href: '#/' }, icon('book'), 'Open the library'),
       ));
       return;

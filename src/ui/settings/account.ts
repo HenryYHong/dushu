@@ -32,7 +32,7 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
   const codeRow = h('div.set-cloud-row', null, code, signInBtn, againBtn);
   const outRow = h('div.set-cloud-row', null, signOutBtn, deleteBtn);
   const deleteRow = h('div.set-cloud-delete', { hidden: true },
-    h('p.set-help', null, 'This deletes your account from the sync server: the books, words, reading places and bookmarks kept there, and every device’s sign-in. What is on this device stays on it.'),
+    h('p.set-help', null, 'This deletes your account and everything kept in it, and signs out every device. What is on this device stays here.'),
     h('div.set-cloud-row', null, confirmBtn, keepBtn));
   let asked = ''; // the email a code was sent to
 
@@ -47,9 +47,9 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     codeRow.hidden = !!s || !asked;
     outRow.hidden = !s;
     if (!s) deleteRow.hidden = true;
-    status.textContent = s ? `Signed in as ${s.email}. Your books, words, reading places, looked-up words and bookmarks are the same on every device signed in with this email, wherever you are.`
+    status.textContent = s ? `Signed in as ${s.email}.`
       : asked ? `A code was sent to ${asked}. It works for 10 minutes.`
-      : 'Sign in with your email on each device, and your books, words and reading places are the same on all of them. Your email is only used to send you sign-in codes.';
+      : 'We only use your email to send you sign-in codes.';
   }
 
   sendBtn.addEventListener('click', async () => {
@@ -120,7 +120,7 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
 export function accountRow(): { el: HTMLElement; dispose(): void } | null {
   if (!cloudBase()) return null;
   const panel = accountPanel();
-  const el = row('Sync account', 'Sign in with your email to keep your books, words and reading places the same on all your devices, from anywhere.',
+  const el = row('Sync account', 'Sign in on each device and your books, words and places are the same on all of them.',
     panel.el, panel.emailId);
   el.id = 'sync-account';
   return { el, dispose: panel.dispose };
