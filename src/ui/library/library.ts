@@ -217,11 +217,15 @@ export const mount: MountFn = (root, _params, ctx) => {
     libraryTools.hidden = !books.length;
     headActions.hidden = empty; // the empty state carries the same two buttons, bigger
     if (empty) {
+      // A phone or tablet has no file to drop and no mouse to drag with: it is told its own way to a sentence.
+      const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
       gridEl.appendChild(h('section.lib-empty.card', null,
         h('div.lib-empty-mark.zh', { 'aria-hidden': 'true' }, '读书'),
         h('h2.lib-empty-title', null, 'Read real Chinese books, and look up anything'),
-        h('p', null, 'Import an EPUB, Kindle file (without DRM), text file or PDF, or paste a chapter. Tap any word to see its pinyin and meaning, and drag across a sentence to translate it.'),
-        h('p.muted', null, 'Drop a file anywhere on this page, or start with one of the classics below.'),
+        h('p', null, `Import an EPUB, Kindle file (without DRM), text file or PDF, or paste a chapter. ${touch
+          ? 'Tap any word to see its pinyin and meaning, and tap it twice for the whole sentence and its translation.'
+          : 'Click any word to see its pinyin and meaning, and drag across a sentence to translate it.'}`),
+        h('p.muted', null, touch ? 'Or start with one of the classics below.' : 'Drop a file anywhere on this page, or start with one of the classics below.'),
         h('div.lib-actions.lib-empty-actions', null, importBtn(), pasteBtn(), macBooks)));
       return;
     }

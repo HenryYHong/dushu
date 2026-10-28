@@ -36,7 +36,7 @@ const USES: Record<string, string> = {
 const HOW_TO: [string, string][] = [
   ['Add a book', 'Import an EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown file, drop one on the Library page, paste text, or start with a classic.'],
   ['Read with help', 'Choose how much pinyin to see: none, all, only words you have not marked as known, or only words above an HSK level.'],
-  ['Look things up', 'Tap a word for pinyin, definitions and a breakdown of its characters. Drag across a sentence for a translation.'],
+  ['Look things up', 'Tap a word for pinyin, definitions and a breakdown of its characters. For the whole sentence and its translation, tap the word twice, or drag across the sentence with a mouse.'],
   ['Keep what you learn', 'Star a word to add it to your flashcards. Mark a word as known and its pinyin stays out of your way.'],
   ['Review', 'Open Review each day. It brings back the words you starred and the ones you looked up while reading, after longer and longer gaps as you remember them.'],
 ];

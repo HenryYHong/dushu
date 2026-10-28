@@ -117,6 +117,15 @@ describe('library screen', () => {
     expect(root.querySelector('.lib-samples')?.children.length).toBe(0);
   });
 
+  it('tells a phone or tablet to tap twice for a sentence, not to drop a file or drag', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(hover: none)', media: q, addEventListener() {}, removeEventListener() {} }));
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-empty'));
+    const text = root.querySelector('.lib-empty')!.textContent!;
+    expect(text).toContain('tap it twice for the whole sentence');
+    expect(text).not.toMatch(/Drop a file|drag across/);
+  });
+
   it('lists books, marks the most recent as Continue, and shows progress', async () => {
     const a = await store.books.add(book('孔乙己'));
     const b = await store.books.add(book('故乡'));
