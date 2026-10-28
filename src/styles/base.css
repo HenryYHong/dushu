@@ -168,6 +168,7 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) .app-toasts { bottom: c
   transition: background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
 :root[data-theme='dark'] .btn { background: var(--surface-2); }
+a.btn { text-decoration: none; }
 .btn .icon { width: 16px; height: 16px; }
 .btn:active:not(:disabled) { transform: scale(0.98); }
 .btn:disabled { opacity: 0.5; cursor: default; }
@@ -361,3 +362,5 @@ dialog.modal:focus { outline: none; }
   .app-navlink .icon { display: inline-block; }
   .app-navlink span.app-navlabel { display: none; }
 }
+.set-cloud-or { margin-top: var(--space-1); }
+.signin-dialog .set-cloud-row > .btn-primary:only-child { flex: 1; height: 40px; font-size: 14px; }

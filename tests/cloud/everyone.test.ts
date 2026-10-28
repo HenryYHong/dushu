@@ -17,9 +17,9 @@ describe('open to anyone with an email', () => {
     const friend = await signedIn(c, 'friend@example.com');
     const student = await signedIn(c, 'student@example.com');
     const me = async (t: string) => (await c.call('/me', { headers: { Authorization: `Bearer ${t}` } })).json();
-    expect(await me(friend)).toEqual({ email: 'friend@example.com', owner: false });
-    expect(await me(student)).toEqual({ email: 'student@example.com', owner: false });
-    expect(await me(await signedIn(c, 'owner@example.com'))).toEqual({ email: 'owner@example.com', owner: true });
+    expect(await me(friend)).toEqual({ email: 'friend@example.com', owner: false, passkeys: 0 });
+    expect(await me(student)).toEqual({ email: 'student@example.com', owner: false, passkeys: 0 });
+    expect(await me(await signedIn(c, 'owner@example.com'))).toEqual({ email: 'owner@example.com', owner: true, passkeys: 0 });
     await c.post('/books', { key: 'bk1', title: '我的书', author: 'a', size: 10, sha }, friend);
     await c.call('/books/chunk?key=bk1&i=0', { method: 'PUT', headers: { Authorization: `Bearer ${friend}`, 'Content-Type': 'application/octet-stream' }, body: new Uint8Array(10) });
     expect(await (await c.call('/books', { headers: { Authorization: `Bearer ${student}` } })).json()).toEqual([]);

@@ -2,7 +2,10 @@
 
 export interface ParsedRoute { route: string; params: Record<string, string> }
 
-/** "#/read/abc?x=1" gives { route: 'read', params: { x: '1', bookId: 'abc' } }. Unknown routes fall back to the library ('') . */
+/**
+ * "#/read/abc?x=1" gives { route: 'read', params: { x: '1', bookId: 'abc' } }, and "#/join/<invite>" { route: 'join', params: { invite } }.
+ * Unknown routes fall back to the library ('').
+ */
 export function parseRoute(hash: string, isRoute: (route: string) => boolean): ParsedRoute {
   const raw = hash.replace(/^#\/?/, '');
   const [path, query = ''] = raw.split('?');
@@ -12,5 +15,6 @@ export function parseRoute(hash: string, isRoute: (route: string) => boolean): P
   const params: Record<string, string> = Object.fromEntries(new URLSearchParams(query));
   const route = parts[0] ?? '';
   if (route === 'read' && parts[1]) params.bookId = parts[1];
+  if (route === 'join' && parts[1]) params.invite = parts[1];
   return { route: isRoute(route) ? route : '', params };
 }

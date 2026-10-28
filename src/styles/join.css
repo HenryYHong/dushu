@@ -1,0 +1,11 @@
+/* The invite screen. Every class starts with join-. */
+.join-page { max-width: 620px; }
+.join-lead { margin: var(--space-4) 0; font-size: 17px; line-height: 1.6; color: var(--text); }
+.join-form { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.join-name { flex: 1 1 220px; height: 42px; font-size: 16px; }
+.join-form .btn { height: 42px; padding: 0 18px; font-size: 14px; }
+.join-status { min-height: 1.4em; margin: var(--space-2) 0; color: var(--text-2); }
+.join-status:empty { margin: 0; }
+.join-bad { color: var(--danger); }
+.join-note { margin: var(--space-3) 0 0; font-size: 14px; line-height: 1.55; color: var(--text-3); }
+.join-done { margin-top: var(--space-3); }

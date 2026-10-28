@@ -33,7 +33,7 @@ describe('signing in', () => {
     // A code works once.
     expect((await c.post('/auth/verify', { email: 'reader@example.com', code: devCode })).status).toBe(400);
 
-    expect(await (await c.call('/me', { headers: { Authorization: `Bearer ${token}` } })).json()).toEqual({ email: 'reader@example.com', owner: false });
+    expect(await (await c.call('/me', { headers: { Authorization: `Bearer ${token}` } })).json()).toEqual({ email: 'reader@example.com', owner: false, passkeys: 0 });
     const reply = await (await c.post('/sync', { changes: [{ key: 'k:好', at: 5, data: {} }] }, token)).json() as { records: unknown[]; counts: { known: number } };
     expect(reply.counts.known).toBe(1);
     expect(reply.records).toEqual([{ key: 'k:好', at: 5, data: {} }]);
@@ -57,13 +57,13 @@ describe('signing in', () => {
     const c = cloud({ OWNER_EMAILS: 'reader@example.com' });
     const token = await signedIn(c);
     const auth = { Authorization: `Bearer ${token}` };
-    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: true });
+    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: true, passkeys: 0 });
     expect((await c.post('/me', { mac: 'https://my-mac.tail1234.ts.net:8443' }, token)).status).toBe(200);
-    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: true, mac: 'https://my-mac.tail1234.ts.net:8443' });
+    expect(await (await c.call('/me', { headers: auth })).json()).toEqual({ email: 'reader@example.com', owner: true, passkeys: 0, mac: 'https://my-mac.tail1234.ts.net:8443' });
     // Someone else signing in on the owner's Mac does not take its address into their account.
     const friend = await signedIn(c, 'friend@example.com');
     expect((await c.post('/me', { mac: 'https://my-mac.tail1234.ts.net:8443' }, friend)).status).toBe(403);
-    expect(await (await c.call('/me', { headers: { Authorization: `Bearer ${friend}` } })).json()).toEqual({ email: 'friend@example.com', owner: false });
+    expect(await (await c.call('/me', { headers: { Authorization: `Bearer ${friend}` } })).json()).toEqual({ email: 'friend@example.com', owner: false, passkeys: 0 });
     for (const bad of ['http://my-mac.tail1234.ts.net', 'https://evil.example', 'https://x.ts.net/path', 'javascript:alert(1)']) {
       expect((await c.post('/me', { mac: bad }, token)).status).toBe(400);
     }

@@ -1,10 +1,13 @@
-// Dushu's sync account online: a device signs in with an emailed code and then syncs exactly as it would with the owner's
-// Mac (src/core/sync.ts speaks the same exchange). One Durable Object per email holds that account (account.ts), so its
-// requests run one at a time; another holds the daily count of emails sent. Sessions are bearer tokens
+// Dushu's sync account online: a device signs in with a passkey or an emailed code and then syncs exactly as it would with
+// the owner's Mac (src/core/sync.ts speaks the same exchange). One Durable Object per account holds it (account.ts), so its
+// requests run one at a time: per email for the owner, per passkey account for everyone the owner invites. Another holds what
+// they all share: the daily counts, the passkey challenges, and the owner's invites. Sessions are bearer tokens
 // '<account id>.<secret>': only the secret's SHA-256 is stored. Read-aloud and sentence translation for everyone signed in use
 // Workers AI, kept together under its free daily allowance (SPEECH_MAX_CHARS, TRANSLATE_NEURONS).
 import Anthropic from '@anthropic-ai/sdk';
-import { AccountCore, BOOK_CHUNK, CloudError, LimitsCore, OWNER_ONLY_CLAUDE, allowedEmail, normalEmail, type ClaudeLimits, type Take } from './account';
+import { verifyAuthenticationResponse, verifyRegistrationResponse, type AuthenticationResponseJSON, type RegistrationResponseJSON, type WebAuthnCredential } from '@simplewebauthn/server';
+import { isoBase64URL, isoUint8Array } from '@simplewebauthn/server/helpers';
+import { AccountCore, BOOK_CHUNK, CloudError, LimitsCore, OWNER_ONLY_CLAUDE, allowedEmail, normalEmail, type ClaudeLimits, type Invite, type PasskeyRecord, type SignedIn, type Take } from './account';
 import { sqlLimits, sqlStore, type SqlStorage } from './sqlStore';
 import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
 import { SYNC_LIMITS, SyncError } from '../../src/core/syncExchange';
@@ -88,6 +91,9 @@ const TRANSLATE_UPFRONT = 3;
 const CODES_PER_NETWORK = 40;
 /** Wrong sign-in codes a day from one network. */
 const WRONG_PER_NETWORK = 20;
+/** Accounts started on invites from one network a day (a classroom shares one), and passkey sign-ins and invite checks. */
+const JOINS_PER_NETWORK = 40;
+const PASSKEYS_PER_NETWORK = 300;
 
 /**
  * The network a request came from, as the limits count it: an IPv4 address, or an IPv6 address's /64 (anyone holding one
@@ -327,9 +333,191 @@ async function claudeStatus(request: Request, env: Env): Promise<Response> {
   });
 }
 
+// ---------------------------------------------------------------- passkeys ---
+
+/** Asks the shared object (the Limits Durable Object) to do `op`: a challenge kept or taken, an invite made, checked or used. */
+async function shared(env: Env, op: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const res = await env.LIMITS.get(env.LIMITS.idFromName('global')).fetch(`https://limits/${op}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  const data = await res.json() as Record<string, unknown>;
+  if (!res.ok) throw new CloudError(res.status, typeof data.error === 'string' ? data.error : 'The sync server could not do that.');
+  return data;
+}
+
+/** Counts one more of `name` from the request's network today, or refuses past `max`. */
+async function perNetwork(request: Request, env: Env, name: string, max: number, message: string): Promise<void> {
+  const ip = request.headers.get('CF-Connecting-IP');
+  if (ip && !await takeShared(env, [{ name: `${name}:${await networkOf(ip)}`, n: 1, max }])) throw new CloudError(429, message);
+}
+
+/** The page asking, as WebAuthn names it: one of Dushu's own origins, and its host as the passkey's site (the rpID). */
+function pageOrigin(request: Request): { origin: string; rpID: string } {
+  const origin = request.headers.get('Origin') ?? '';
+  if (!ORIGINS.some((r) => r.test(origin))) throw new CloudError(403, 'Passkeys work only on Dushu’s own pages.');
+  return { origin, rpID: new URL(origin).hostname };
+}
+
+const str = (v: unknown) => (typeof v === 'string' ? v : '');
+/** A person's name as an invited account keeps it: one line, 40 characters at most. */
+const personName = (v: unknown) => str(v).replace(/\s+/g, ' ').trim().slice(0, 40);
+/** The account's Durable Object id is the passkey's user handle (32 bytes), so a sign-in goes straight to its account. */
+const handleOf = (id: string) => isoBase64URL.fromBuffer(isoUint8Array.fromHex(id));
+
+/** What navigator.credentials.create is given: a passkey kept on the device (discoverable), for this site, of `id`'s account. */
+function creationOptions(challenge: string, rpID: string, id: string, name: string, exclude: string[] = []) {
+  return {
+    challenge, timeout: 120_000, attestation: 'none',
+    rp: { id: rpID, name: 'Dushu' },
+    user: { id: handleOf(id), name, displayName: name },
+    pubKeyCredParams: [-7, -8, -257].map((alg) => ({ type: 'public-key', alg })),
+    authenticatorSelection: { residentKey: 'required', requireResidentKey: true, userVerification: 'preferred' },
+    excludeCredentials: exclude.map((cid) => ({ type: 'public-key', id: cid })),
+  };
+}
+
+interface Waiting { kind: 'join' | 'signin' | 'add'; origin: string; id?: string; name?: string; invite?: string }
+
+/** The challenge a passkey answered, once, or a 400: an answer comes from the same page that asked, within five minutes. */
+async function answered(env: Env, challenge: string, kind: Waiting['kind'], origin: string): Promise<Waiting> {
+  const { payload } = await shared(env, 'challenge-take', { challenge }) as { payload: Waiting | null };
+  if (!payload || payload.kind !== kind || payload.origin !== origin) throw new CloudError(400, 'That took too long. Try again.', 'stale');
+  return payload;
+}
+
+/** A new passkey, checked: made for this challenge, on this page, for this site. The record the account keeps of it. */
+async function newPasskey(response: unknown, challenge: string, origin: string, rpID: string): Promise<PasskeyRecord> {
+  try {
+    const v = await verifyRegistrationResponse({ response: response as RegistrationResponseJSON, expectedChallenge: challenge, expectedOrigin: origin, expectedRPID: rpID, requireUserVerification: false });
+    if (!v.verified) throw new Error('not verified');
+    const c = v.registrationInfo.credential;
+    return { id: c.id, publicKey: isoBase64URL.fromBuffer(c.publicKey), counter: c.counter, rpID, created: 0, ...(c.transports?.length ? { transports: c.transports } : {}) };
+  } catch (e) {
+    console.error('Dushu passkey', e instanceof Error ? e.message : e);
+    throw new CloudError(400, 'That passkey could not be checked. Try again.', 'bad_passkey');
+  }
+}
+
+/** Passkey sign-in and invites. Null when the path is none of theirs. */
+async function passkeyRoute(path: string, request: Request, env: Env): Promise<Response | null> {
+  // An invite link, before the person types their name: is it good, and whose is it.
+  if (path === '/auth/invite' && request.method === 'POST') {
+    await perNetwork(request, env, 'invite', PASSKEYS_PER_NETWORK, 'Too many tries from this network today. Try again tomorrow.');
+    const { invite } = await shared(env, 'invite', { token: str((await readJson(request, 4096)).invite) }) as { invite: Invite | null };
+    if (!invite) throw new CloudError(404, 'This invite link is not valid anymore. Ask for a new one.', 'bad_invite');
+    return json(200, { label: invite.label });
+  }
+
+  // Joining on an invite: a new account, named by the person, made with a passkey on this device.
+  if (path === '/auth/passkey/join-options' && request.method === 'POST') {
+    const { origin, rpID } = pageOrigin(request);
+    const body = await readJson(request, 4096);
+    const name = personName(body.name);
+    if (!name) throw new CloudError(400, 'Type your name.');
+    const token = str(body.invite);
+    const { invite } = await shared(env, 'invite', { token }) as { invite: Invite | null };
+    if (!invite) throw new CloudError(403, 'This invite link is not valid anymore. Ask for a new one.', 'bad_invite');
+    await perNetwork(request, env, 'join', JOINS_PER_NETWORK, 'Too many accounts were started from this network today. Try again tomorrow.');
+    const id = env.ACCOUNTS.idFromName(`passkey:${secret()}`).toString();
+    const challenge = secret();
+    await shared(env, 'challenge-put', { challenge, payload: { kind: 'join', origin, id, name, invite: token } satisfies Waiting });
+    return json(200, creationOptions(challenge, rpID, id, name));
+  }
+  if (path === '/auth/passkey/join' && request.method === 'POST') {
+    const { origin, rpID } = pageOrigin(request);
+    const body = await readJson(request, 32768);
+    const challenge = str(body.challenge);
+    const w = await answered(env, challenge, 'join', origin);
+    const key = await newPasskey(body.response, challenge, origin, rpID);
+    // Counted only now, with the passkey made: an attempt given up does not use the invite.
+    if ((await shared(env, 'invite-use', { token: w.invite })).ok !== true) throw new CloudError(403, 'This invite link is used up. Ask for a new one.', 'bad_invite');
+    const s = secret();
+    const res = await call(env, env.ACCOUNTS.get(env.ACCOUNTS.idFromString(w.id!)), 'passkey-create', { id: w.id, name: w.name, key, sessionHash: await sha256(s) });
+    if (!res.ok) return res;
+    return json(200, { token: `${w.id}.${s}`, ...await res.json() as SignedIn });
+  }
+
+  // Signing in: any passkey kept on the device for this site; its user handle names the account.
+  if (path === '/auth/passkey/options' && request.method === 'POST') {
+    const { origin, rpID } = pageOrigin(request);
+    await perNetwork(request, env, 'passkey', PASSKEYS_PER_NETWORK, 'Too many passkey sign-ins from this network today. Try again tomorrow.');
+    const challenge = secret();
+    await shared(env, 'challenge-put', { challenge, payload: { kind: 'signin', origin } satisfies Waiting });
+    return json(200, { challenge, rpId: rpID, timeout: 120_000, userVerification: 'preferred', allowCredentials: [] });
+  }
+  if (path === '/auth/passkey/signin' && request.method === 'POST') {
+    const { origin, rpID } = pageOrigin(request);
+    const body = await readJson(request, 32768);
+    const challenge = str(body.challenge);
+    await answered(env, challenge, 'signin', origin);
+    const response = body.response as AuthenticationResponseJSON | undefined;
+    let id = '';
+    try { id = isoUint8Array.toHex(isoBase64URL.toBuffer(str(response?.response?.userHandle))); } catch { /* not ours */ }
+    const gone = new CloudError(401, 'This passkey’s account was deleted.', 'no_account');
+    if (!/^[0-9a-f]{64}$/.test(id)) throw new CloudError(400, 'That passkey is not one for Dushu.', 'bad_passkey');
+    let stub: DurableObjectStub;
+    try { stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromString(id)); } catch { throw gone; }
+    const { key } = await (await call(env, stub, 'passkey-get', { id: str(response?.id) })).json() as { key?: PasskeyRecord | null };
+    if (!key) throw gone;
+    let counter: number;
+    try {
+      const credential: WebAuthnCredential = { id: key.id, publicKey: isoBase64URL.toBuffer(key.publicKey), counter: key.counter, ...(key.transports ? { transports: key.transports as WebAuthnCredential['transports'] } : {}) };
+      const v = await verifyAuthenticationResponse({ response: response!, expectedChallenge: challenge, expectedOrigin: origin, expectedRPID: rpID, credential, requireUserVerification: false });
+      if (!v.verified) throw new Error('not verified');
+      counter = v.authenticationInfo.newCounter;
+    } catch (e) {
+      console.error('Dushu passkey', e instanceof Error ? e.message : e);
+      throw new CloudError(401, 'That passkey could not be checked. Try again.', 'bad_passkey');
+    }
+    const s = secret();
+    const res = await call(env, stub, 'passkey-signin', { id: key.id, counter, sessionHash: await sha256(s) });
+    if (!res.ok) return res;
+    return json(200, { token: `${id}.${s}`, ...await res.json() as SignedIn });
+  }
+
+  // A passkey for the account this device is signed in to (the owner's email account, or a friend's on another device).
+  if (path === '/me/passkey/options' && request.method === 'POST') {
+    const { stub, secret: s, id } = bearer(request, env);
+    const { origin, rpID } = pageOrigin(request);
+    const res = await call(env, stub, 'passkey-label', {}, s);
+    if (!res.ok) return res;
+    const { name, ids } = await res.json() as { name: string; ids: string[] };
+    const challenge = secret();
+    await shared(env, 'challenge-put', { challenge, payload: { kind: 'add', origin, id } satisfies Waiting });
+    return json(200, creationOptions(challenge, rpID, id, name, ids));
+  }
+  if (path === '/me/passkey' && request.method === 'POST') {
+    const { stub, secret: s, id } = bearer(request, env);
+    const { origin, rpID } = pageOrigin(request);
+    const body = await readJson(request, 32768);
+    const challenge = str(body.challenge);
+    const w = await answered(env, challenge, 'add', origin);
+    if (w.id !== id) throw new CloudError(400, 'That took too long. Try again.', 'stale');
+    return call(env, stub, 'passkey-add', { key: await newPasskey(body.response, challenge, origin, rpID) }, s);
+  }
+
+  // The owner's invite links.
+  if (path === '/invites') {
+    const { stub, secret: s } = bearer(request, env);
+    const who = await call(env, stub, 'who', {}, s);
+    if (!who.ok) return who;
+    if ((await who.json() as { owner?: boolean }).owner !== true) throw new CloudError(403, 'Only the owner can make invite links.');
+    if (request.method === 'GET') return json(200, await shared(env, 'invites', {}));
+    if (request.method === 'POST') {
+      const body = await readJson(request, 4096);
+      return json(200, await shared(env, 'invite-create', { token: secret().slice(0, 24), label: str(body.label), max: Number(body.max) }));
+    }
+    if (request.method === 'DELETE') return json(200, await shared(env, 'invite-revoke', { token: new URL(request.url).searchParams.get('token') ?? '' }));
+    throw new CloudError(405, 'Not allowed.');
+  }
+  return null;
+}
+
 async function route(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
   const path = new URL(request.url).pathname;
   if (path === '/' && request.method === 'GET') return json(200, { app: 'dushu-sync' });
+  const passkeys = await passkeyRoute(path, request, env);
+  if (passkeys) return passkeys;
 
   if (path === '/auth/code' && request.method === 'POST') {
     const email = normalEmail((await readJson(request, 4096)).email);
@@ -482,7 +670,6 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
     const token = request.headers.get('X-Secret') ?? '';
     // Hashed before the account is touched, so each operation below runs whole, as one transaction.
     const session = token ? await sha256(token) : '';
-    const str = (v: unknown) => (typeof v === 'string' ? v : '');
     // After the last await: from here each operation runs to its end before another request reaches this account, so the
     // owners it is told are the ones it answers with.
     core.setOwners(request.headers.get('X-Owners') ?? '');
@@ -504,8 +691,13 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'claude-start': core.claudeStart(session, body.limits as ClaudeLimits, now); return json(200, { ok: true });
       case 'claude-used': core.claudeUsed(session, Number(body.input), Number(body.output), now); return json(200, { ok: true });
       case 'speech-start': return json(200, core.speechStart(session, now));
-      // Read-aloud and translation ask the same thing: signed in, and whether this is an owner.
-      case 'ai-start': return json(200, core.speechStart(session, now));
+      // Read-aloud, translation and invites ask the same thing: signed in, and whether this is an owner.
+      case 'ai-start': case 'who': return json(200, core.speechStart(session, now));
+      case 'passkey-create': return json(200, core.createWithPasskey(str(body.id), str(body.name), body.key, str(body.sessionHash), now));
+      case 'passkey-get': return json(200, { key: core.passkeyFor(str(body.id)) });
+      case 'passkey-signin': return json(200, core.passkeySignIn(str(body.id), Number(body.counter), str(body.sessionHash), now));
+      case 'passkey-label': return json(200, core.passkeyLabel(session, now));
+      case 'passkey-add': core.addPasskey(session, body.key, now); return json(200, { ok: true });
       case 'delete': core.deleteAccount(session, now); return json(200, { ok: true });
       case 'chunk-get': return new Response(core.getBookChunk(session, key, index, now) as Uint8Array<ArrayBuffer>, { headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' } });
       default: return json(404, { error: 'Not found.' });
@@ -528,16 +720,30 @@ export class Account {
 /** What the Limits object does with a request from the Worker. Apart from the class so tests can run it in memory. */
 export async function limitsRequest(core: LimitsCore, request: Request): Promise<Response> {
   try {
-    const { items } = await request.json() as { items?: unknown };
-    const ok = Array.isArray(items) && items.every((t) => t && typeof t.name === 'string' && typeof t.n === 'number' && typeof t.max === 'number')
-      && core.take(items as Take[], Date.now());
-    return json(200, { ok });
+    const op = new URL(request.url).pathname.slice(1);
+    const body = await request.json() as Record<string, unknown>;
+    const now = Date.now();
+    switch (op) {
+      case 'challenge-put': core.putChallenge(str(body.challenge), body.payload, now); return json(200, { ok: true });
+      case 'challenge-take': return json(200, { payload: core.takeChallenge(str(body.challenge), now) });
+      case 'invite-create': return json(200, { invite: core.createInvite(str(body.token), str(body.label), Number(body.max), now) });
+      case 'invites': return json(200, { invites: core.invites() });
+      case 'invite': return json(200, { invite: core.invite(str(body.token)) });
+      case 'invite-use': return json(200, { ok: core.useInvite(str(body.token)) });
+      case 'invite-revoke': core.revokeInvite(str(body.token)); return json(200, { ok: true });
+      default: {
+        const items = body.items;
+        const ok = Array.isArray(items) && items.every((t) => t && typeof t.name === 'string' && typeof t.n === 'number' && typeof t.max === 'number')
+          && core.take(items as Take[], now);
+        return json(200, { ok });
+      }
+    }
   } catch (e) { return failure(e); }
 }
 
 /**
- * The days shared by every account: sign-in emails (the email service's free allowance), read-aloud and translation (Workers
- * AI's free allowance), and sign-in codes from each network.
+ * What every account shares: the days (sign-in emails, the email service's free allowance; read-aloud and translation, Workers
+ * AI's; sign-ins from each network), the passkey challenges waiting for an answer, and the owner's invite links.
  */
 export class Limits {
   private readonly core: LimitsCore;

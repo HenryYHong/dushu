@@ -1,5 +1,6 @@
-// The sync account online (cloud/): sign in with an emailed code, and sync from anywhere without Tailscale or the Mac. A
-// device signed in syncs with the account instead of the Mac (core/sync.ts). The session is kept in this browser only.
+// The sync account online (cloud/): sign in with a passkey (core/passkey.ts) or an emailed code, and sync from anywhere without
+// Tailscale or the Mac. A device signed in syncs with the account instead of the Mac (core/sync.ts). The session is kept in
+// this browser only.
 
 /** The sync server. Empty: this build has none, and Settings does not offer to sign in. */
 export const CLOUD_URL = 'https://dushu-sync.henryhong.workers.dev';
@@ -10,8 +11,15 @@ const OWNER_KEY = 'dushu.cloud.owner.v1';
 /** Fired on window when this device signs in or out. */
 export const CLOUD_EVENT = 'dushu:cloud';
 
-/** A device's sign-in. `created` names the account it signed in to (it changes when the account is deleted and made again). */
-export interface CloudSession { token: string; email: string; created?: string }
+/**
+ * A device's sign-in. `email` names the account: its email, or 'passkey:<id>' for one made with a passkey on an invite, which
+ * has the person's `name` instead. `created` names the account it signed in to (it changes when the account is deleted and
+ * made again).
+ */
+export interface CloudSession { token: string; email: string; name?: string; created?: string }
+
+/** What to call the signed-in account on screen: the person's name, or the email. */
+export const accountLabel = (s: CloudSession): string => s.name || s.email;
 
 function storage(): Storage | undefined {
   try { return globalThis.localStorage; } catch { return undefined; }
@@ -30,7 +38,7 @@ export function cloudSession(): CloudSession | null {
   try {
     const raw = JSON.parse(storage()?.getItem(SESSION_KEY) ?? 'null') as Partial<CloudSession> | null;
     return raw && typeof raw.token === 'string' && raw.token && typeof raw.email === 'string' && cloudBase()
-      ? { token: raw.token, email: raw.email, ...(typeof raw.created === 'string' && raw.created ? { created: raw.created } : {}) } : null;
+      ? { token: raw.token, email: raw.email, ...(typeof raw.name === 'string' && raw.name ? { name: raw.name } : {}), ...(typeof raw.created === 'string' && raw.created ? { created: raw.created } : {}) } : null;
   } catch { return null; }
 }
 
@@ -44,7 +52,7 @@ export function forgetSession(): void {
   announce();
 }
 
-async function post(path: string, body: unknown, token?: string): Promise<Response> {
+export async function post(path: string, body: unknown, token?: string): Promise<Response> {
   const base = cloudBase();
   if (!base) throw new Error('This copy of Dushu has no sync server.');
   let res: Response;
@@ -81,10 +89,15 @@ export const MARK_LISTS = ['dushu.cloud.books-up.v1', 'dushu.cloud.mac-copied.v1
 
 /** Signs this device in with the emailed code. */
 export async function signIn(email: string, code: string): Promise<CloudSession> {
-  const res = await post('/auth/verify', { email, code });
+  return keepSession(await post('/auth/verify', { email, code }));
+}
+
+/** Keeps the sign-in the sync server answered with (a code, or a passkey): this device is signed in. */
+export async function keepSession(res: Response): Promise<CloudSession> {
   const data = await res.json().catch(() => null) as Partial<CloudSession> | null;
   if (!data || typeof data.token !== 'string' || typeof data.email !== 'string') throw new Error('The sync server sent an answer Dushu did not understand.');
-  const session: CloudSession = { token: data.token, email: data.email, ...(typeof data.created === 'string' && data.created ? { created: data.created } : {}) };
+  const session: CloudSession = { token: data.token, email: data.email, ...(typeof data.name === 'string' && data.name ? { name: data.name } : {}),
+    ...(typeof data.created === 'string' && data.created ? { created: data.created } : {}) };
   try { storage()?.setItem(SESSION_KEY, JSON.stringify(session)); } catch { throw new Error('This browser would not keep the sign-in. Allow site data for Dushu and try again.'); }
   announce();
   return session;

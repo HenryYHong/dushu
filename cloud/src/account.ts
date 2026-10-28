@@ -1,6 +1,7 @@
-// One sync account: its sign-in codes, its signed-in devices and its records. The Worker (worker.ts) keeps one of these per
-// email in a Durable Object with its own SQLite database (sqlStore.ts); tests keep it in memory. Every method is
-// synchronous over the store, so a Durable Object runs each one as a single transaction; the hashing is done before.
+// One sync account: its sign-in codes or passkeys, its signed-in devices and its records. The Worker (worker.ts) keeps one of
+// these per email, or per account made with a passkey, in a Durable Object with its own SQLite database (sqlStore.ts); tests
+// keep it in memory. Every method is synchronous over the store, so a Durable Object runs each one as a single transaction;
+// the hashing and the passkey signatures are checked before.
 import { countRecord, exchange, noCounts, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
 
 export const CODE_TTL_MS = 10 * 60_000;
@@ -14,6 +15,15 @@ export const MAX_SESSIONS = 20;
 const TOUCH_MS = 3_600_000;
 
 export interface Session { created: number; used: number }
+
+/** A passkey of the account: the credential's id and public key (COSE, base64url) as the device made it, for the page `rpID`. */
+export interface PasskeyRecord { id: string; publicKey: string; counter: number; transports?: string[]; rpID: string; created: number; used?: number }
+/** Passkeys an account keeps (each device that is not in the same iCloud or Google account adds its own). */
+export const MAX_PASSKEYS = 10;
+const B64URL = /^[A-Za-z0-9_-]+$/;
+
+/** A device signed in: `email` is the account's email, or 'passkey:<account id>' for an account made with a passkey. */
+export interface SignedIn { email: string; name?: string; created: string }
 
 /** A book kept in the account: a package the app made of the stored book (core/cloudBooks.ts), in BOOK_CHUNK pieces. */
 export interface BookEntry {
@@ -154,7 +164,7 @@ export class AccountCore {
    * Checks a code (its hash). Right: the code is used up and the device is signed in with `sessionHash`. `created` names this
    * account (it changes when the account is deleted and made again), so a device can tell the new one from the old.
    */
-  verify(codeHash: string, sessionHash: string, now: number): { email: string; created: string } {
+  verify(codeHash: string, sessionHash: string, now: number): SignedIn {
     const c = this.code();
     if (!c || !c.hash) throw new CloudError(400, 'Ask for a code first.');
     if (now > c.expires) throw new CloudError(400, 'That code has expired. Ask for a new one.');
@@ -174,12 +184,79 @@ export class AccountCore {
    * Signs in the owner's Mac, with no code (worker.ts has checked the Mac's key): a session like a device's, which the Mac
    * uses to put the books in its book folder in the account. Only an owner's account that exists can have one.
    */
-  macSession(sessionHash: string, now: number): { email: string; created: string } {
+  macSession(sessionHash: string, now: number): SignedIn {
     if (!this.store.getMeta('email') || !this.owner()) throw new CloudError(403, 'Only the owner’s account can link a Mac.');
     return this.addSession(sessionHash, now);
   }
 
-  private addSession(sessionHash: string, now: number): { email: string; created: string } {
+  /** The account's email, or 'passkey:<its id>' for one made with a passkey: what a device names it by. */
+  private naming(): string {
+    const email = this.store.getMeta('email');
+    if (email) return email;
+    const id = this.store.getMeta('id');
+    return id ? `passkey:${id}` : '';
+  }
+
+  private passkeys(): PasskeyRecord[] {
+    try { const list = JSON.parse(this.store.getMeta('passkeys') ?? '[]') as unknown; return Array.isArray(list) ? list as PasskeyRecord[] : []; } catch { return []; }
+  }
+
+  /** A passkey as the Worker checked it, or a 400: only the fields a sign-in needs, within bounds. */
+  private static passkey(input: unknown, now: number): PasskeyRecord {
+    const k = (input ?? {}) as Record<string, unknown>;
+    const id = typeof k.id === 'string' && k.id.length <= 1400 && B64URL.test(k.id) ? k.id : '';
+    const publicKey = typeof k.publicKey === 'string' && k.publicKey.length <= 2000 && B64URL.test(k.publicKey) ? k.publicKey : '';
+    const rpID = typeof k.rpID === 'string' && /^[a-z0-9.-]{1,253}$/.test(k.rpID) ? k.rpID : '';
+    if (!id || !publicKey || !rpID) throw new CloudError(400, 'That passkey could not be kept.');
+    const transports = Array.isArray(k.transports) ? k.transports.filter((t): t is string => typeof t === 'string' && /^[a-z-]{1,20}$/.test(t)).slice(0, 8) : undefined;
+    return { id, publicKey, counter: Number(k.counter) >= 0 ? Number(k.counter) : 0, rpID, created: now, ...(transports?.length ? { transports } : {}) };
+  }
+
+  /**
+   * Makes this account with a passkey (an invite's join, the invite already counted): its name, its first passkey, and the
+   * device's session. `id` is the account's own Durable Object id: the passkey's user handle, so a sign-in finds it.
+   */
+  createWithPasskey(id: string, name: string, key: unknown, sessionHash: string, now: number): SignedIn {
+    if (this.store.getMeta('created') || this.store.getMeta('email') || this.passkeys().length) throw new CloudError(409, 'That account already exists.');
+    if (!/^[0-9a-f]{64}$/.test(id)) throw new CloudError(400, 'That account could not be made.');
+    this.store.setMeta('id', id);
+    this.store.setMeta('name', name);
+    this.store.setMeta('passkeys', JSON.stringify([AccountCore.passkey(key, now)]));
+    return this.addSession(sessionHash, now);
+  }
+
+  /** The passkey with this id, for the Worker to check a sign-in against; null when the account has none (or is gone). */
+  passkeyFor(id: string): PasskeyRecord | null {
+    return this.passkeys().find((k) => k.id === id) ?? null;
+  }
+
+  /** Signs in with a passkey whose signature the Worker has checked: its counter moves on and the device gets a session. */
+  passkeySignIn(id: string, counter: number, sessionHash: string, now: number): SignedIn {
+    const list = this.passkeys();
+    const k = list.find((p) => p.id === id);
+    if (!k) throw new CloudError(401, 'This passkey’s account was deleted.', 'no_account');
+    k.counter = Number.isFinite(counter) && counter >= 0 ? counter : k.counter;
+    k.used = now;
+    this.store.setMeta('passkeys', JSON.stringify(list));
+    return this.addSession(sessionHash, now);
+  }
+
+  /** Adds a passkey to the signed-in account: the owner's email account, or a friend's on a device outside their passkey sync. */
+  addPasskey(sessionHash: string, key: unknown, now: number): void {
+    this.authorize(sessionHash, now);
+    const k = AccountCore.passkey(key, now);
+    const list = this.passkeys().filter((p) => p.id !== k.id);
+    if (list.length >= MAX_PASSKEYS) throw new CloudError(400, `An account keeps ${MAX_PASSKEYS} passkeys at most.`);
+    this.store.setMeta('passkeys', JSON.stringify([...list, k]));
+  }
+
+  /** What a new passkey for the signed-in account is labeled with, and the ids it has (not to make one twice on a device). */
+  passkeyLabel(sessionHash: string, now: number): { name: string; ids: string[] } {
+    this.authorize(sessionHash, now);
+    return { name: this.store.getMeta('name') || this.store.getMeta('email') || 'Dushu', ids: this.passkeys().map((k) => k.id) };
+  }
+
+  private addSession(sessionHash: string, now: number): SignedIn {
     // Devices signed in long ago and never since are signed out; past the limit, the one used least recently is.
     const live = this.store.sessions().filter((s) => {
       if (now - s.used <= SESSION_IDLE_MS) return true;
@@ -190,7 +267,8 @@ export class AccountCore {
     this.store.putSession(sessionHash, { created: now, used: now });
     let created = this.store.getMeta('created');
     if (!created) { created = String(now); this.store.setMeta('created', created); }
-    return { email: this.store.getMeta('email') ?? '', created };
+    const name = this.store.getMeta('name');
+    return { email: this.naming(), ...(name ? { name } : {}), created };
   }
 
   /** The signed-in device's session, or a 401. */
@@ -204,13 +282,14 @@ export class AccountCore {
   }
 
   /** Who is signed in, and the address of their Mac when a device on it said (so other devices can reach it for books). */
-  me(sessionHash: string, now: number): { email: string; owner: boolean; mac?: string } {
+  me(sessionHash: string, now: number): { email: string; name?: string; owner: boolean; passkeys: number; mac?: string } {
     this.authorize(sessionHash, now);
     const mac = this.store.getMeta('mac');
-    return { email: this.store.getMeta('email') ?? '', owner: this.owner(), ...(mac ? { mac } : {}) };
+    const name = this.store.getMeta('name');
+    return { email: this.naming(), ...(name ? { name } : {}), owner: this.owner(), passkeys: this.passkeys().length, ...(mac ? { mac } : {}) };
   }
 
-  /** Deletes the account: its records, books, devices and email. Signing in again starts a new, empty one. */
+  /** Deletes the account: its records, books, devices, passkeys and email. Signing in again starts a new, empty one. */
   deleteAccount(sessionHash: string, now: number): void {
     this.authorize(sessionHash, now);
     this.store.wipe();
@@ -220,7 +299,7 @@ export class AccountCore {
    * Remembers the owner's Mac (its private Tailscale address); only a Tailscale https origin is kept, and only in an owner's
    * account (someone else signing in on the owner's Mac must not take its address away with them).
    */
-  setMac(sessionHash: string, mac: string, now: number): { email: string; owner: boolean; mac?: string } {
+  setMac(sessionHash: string, mac: string, now: number): ReturnType<AccountCore['me']> {
     this.authorize(sessionHash, now);
     if (!this.owner()) throw new CloudError(403, 'Only the owner’s account keeps the Mac’s address.');
     if (!MAC.test(mac)) throw new CloudError(400, 'That is not a Mac address Dushu can use.');
@@ -417,18 +496,84 @@ export function memoryStore(): AccountStore & { data: Map<string, { at: number; 
 
 // ------------------------------------------------------------------ shared ---
 
-/** Today's counts shared by every account (the free allowances, sign-ins from one network), kept by one Durable Object. */
+/**
+ * What every account shares, kept by one Durable Object: today's counts (the free allowances, sign-ins from one network), the
+ * passkey challenges waiting for an answer, and the owner's invites.
+ */
 export interface LimitsStore {
   get(day: string, name: string): number;
   set(day: string, name: string, n: number): void;
   /** Forgets the days before `day`. */
   prune(day: string): void;
+  /** Small values by kind ('challenge', 'invite') and key; null removes one. */
+  item(kind: string, key: string): string | undefined;
+  putItem(kind: string, key: string, value: string | null): void;
+  items(kind: string): { key: string; value: string }[];
 }
 
 export interface Take { name: string; n: number; max: number }
 
+/** A challenge is answered within this long, once. */
+export const CHALLENGE_TTL_MS = 5 * 60_000;
+/** An invite link the owner made: who it is for, how many accounts it may make, and how many it has. */
+export interface Invite { token: string; label: string; max: number; uses: number; created: number; revoked?: boolean }
+export const MAX_INVITE_USES = 500;
+const INVITE = /^[A-Za-z0-9_-]{16,64}$/;
+
 export class LimitsCore {
   constructor(private readonly store: LimitsStore) {}
+
+  /** Keeps a passkey challenge and what it was for, to be taken once within CHALLENGE_TTL_MS. */
+  putChallenge(challenge: string, payload: unknown, now: number): void {
+    for (const { key, value } of this.store.items('challenge')) {
+      try { if ((JSON.parse(value) as { expires: number }).expires < now) this.store.putItem('challenge', key, null); } catch { this.store.putItem('challenge', key, null); }
+    }
+    this.store.putItem('challenge', challenge, JSON.stringify({ payload, expires: now + CHALLENGE_TTL_MS }));
+  }
+
+  /** What a challenge was for, once: taking it removes it. Null when there is none, or it is too old. */
+  takeChallenge(challenge: string, now: number): unknown {
+    const value = this.store.item('challenge', challenge);
+    if (value === undefined) return null;
+    this.store.putItem('challenge', challenge, null);
+    try {
+      const { payload, expires } = JSON.parse(value) as { payload: unknown; expires: number };
+      return expires >= now ? payload : null;
+    } catch { return null; }
+  }
+
+  createInvite(token: string, label: string, max: number, now: number): Invite {
+    if (!INVITE.test(token)) throw new CloudError(400, 'That invite could not be made.');
+    const invite: Invite = { token, label: label.trim().slice(0, 60) || 'Invite', max: Math.min(MAX_INVITE_USES, Math.max(1, Math.floor(max) || 1)), uses: 0, created: now };
+    this.store.putItem('invite', token, JSON.stringify(invite));
+    return invite;
+  }
+
+  invites(): Invite[] {
+    return this.store.items('invite').map(({ value }) => JSON.parse(value) as Invite).filter((i) => !i.revoked).sort((a, b) => b.created - a.created);
+  }
+
+  /** An invite that can still make an account, or null. */
+  invite(token: string): Invite | null {
+    if (!INVITE.test(token)) return null;
+    const value = this.store.item('invite', token);
+    const invite = value ? JSON.parse(value) as Invite : null;
+    return invite && !invite.revoked && invite.uses < invite.max ? invite : null;
+  }
+
+  /** Counts an account made with the invite; false when it cannot make another. */
+  useInvite(token: string): boolean {
+    const invite = this.invite(token);
+    if (!invite) return false;
+    this.store.putItem('invite', token, JSON.stringify({ ...invite, uses: invite.uses + 1 }));
+    return true;
+  }
+
+  /** Stops an invite making accounts (the ones it made stay). */
+  revokeInvite(token: string): void {
+    const value = INVITE.test(token) ? this.store.item('invite', token) : undefined;
+    if (value) this.store.putItem('invite', token, JSON.stringify({ ...JSON.parse(value) as Invite, revoked: true }));
+  }
 
   /** Adds each `n` to today's count of its `name`, or nothing at all (false) when any would pass its `max`. */
   take(items: Take[], now: number): boolean {
@@ -443,9 +588,13 @@ export class LimitsCore {
 
 export function memoryLimits(): LimitsStore {
   const m = new Map<string, number>();
+  const items = new Map<string, string>();
   return {
     get: (day, name) => m.get(`${day}|${name}`) ?? 0,
     set: (day, name, n) => { m.set(`${day}|${name}`, n); },
     prune: (day) => { for (const k of [...m.keys()]) if (k.slice(0, 10) < day) m.delete(k); },
+    item: (kind, key) => items.get(`${kind}|${key}`),
+    putItem: (kind, key, value) => { if (value === null) items.delete(`${kind}|${key}`); else items.set(`${kind}|${key}`, value); },
+    items: (kind) => [...items].filter(([k]) => k.startsWith(`${kind}|`)).map(([k, value]) => ({ key: k.slice(kind.length + 1), value })),
   };
 }

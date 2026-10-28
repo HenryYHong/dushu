@@ -1,4 +1,4 @@
-// The bilingual title of a screen: the Chinese name leads (书架, 生词, 复习, 设置, 关于) and the English title follows.
+// The bilingual title of a screen: the Chinese name leads (书架, 生词, 复习, 设置, 关于, 加入) and the English title follows.
 // The Chinese is real text (lang="zh-Hans") for sighted readers, hidden from screen readers so the heading is announced
 // once, by its English name. Styled in base.css (.page-title, .page-title-zh, .page-title-en).
 import { h } from './dom';
@@ -10,6 +10,7 @@ export const SCREEN_ZH = {
   review: '复习',
   settings: '设置',
   about: '关于',
+  join: '加入',
 } as const;
 
 export type ScreenName = keyof typeof SCREEN_ZH;

@@ -25,6 +25,7 @@ const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   review: () => import('./ui/review/review'),
   settings: () => import('./ui/settings/settings'),
   about: () => import('./ui/about/about'),
+  join: () => import('./ui/join'),
 };
 
 /** Newsreader (OFL-1.1, public/fonts/Newsreader-OFL.txt) is a Latin-1 subset for the app's own English; precached by sw.js. */

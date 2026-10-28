@@ -575,6 +575,17 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   Worker secret `ANTHROPIC_API_KEY`. A request is counted before it is sent (`claudeStart`, 429 `daily_limit` past the limits) and its
   tokens after (`claudeUsed`), per account per UTC day. The app's translator (`src/translate/claude.ts`) goes through the account when
   signed in, else the Mac; Local only turns Claude off either way.
+- **Passkeys and invites** (`src/core/passkey.ts`, the passkey routes in `cloud/src/worker.ts`, `@simplewebauthn/server` on the
+  Worker, the browser's own WebAuthn in the app): signing in costs nothing and has no daily limit, unlike email. The owner makes
+  invite links in Settings (`/invites`, owner only; a link names who it is for and how many accounts it may make). Someone invited
+  opens `#/join/<invite>` (`src/ui/join.ts`), types a name, and makes an account with a passkey and no email
+  (`/auth/passkey/join-options`, `/auth/passkey/join`); the invite is counted only once the passkey is checked. The account's
+  Durable Object id is the passkey's user handle, so a sign-in (`/auth/passkey/options`, `/auth/passkey/signin`: a discoverable
+  passkey, no list sent) goes straight to its account, which holds the public key and checks nothing itself: the Worker checks the
+  signature, origin, site and challenge. Challenges are kept by the shared Limits object, taken once within five minutes. The rpID
+  is the page's host (henryyhong.com on the public copy). Anyone signed in can add a passkey for this device (`/me/passkey`), the
+  owner's email account included. Such an account is named `passkey:<id>` where an email would be, has the person's name, and is
+  never an owner's. Email codes stay, for the owner and as a way back.
 - **Translation for everyone signed in** (`POST /ai/translate`): Qwen3 30B-A3B on Workers AI (`@cf/qwen/qwen3-30b-a3b-fp8`) with the
   local model's prompt and checks, names spelled out (`translateChecked`, target `local`, `spelling`), and Qwen's `/no_think` switch, 600 characters at most. It costs
   about 4 neurons a sentence. Three are taken before the call and the rest of `usage.neurons` after, against the reader's UTC day

@@ -5,6 +5,7 @@ import { group, row } from './controls';
 import { macRows } from './mac';
 import { syncRow } from './sync';
 import { accountRow } from './account';
+import { invitesRow } from './invites';
 
 /**
  * The sync account, and the owner's Mac and iPad setup. Someone signed in who is not the owner (a friend, a student) sees only
@@ -23,6 +24,8 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     return { el, dispose() { sync.dispose(); account.dispose(); } };
   }
   const mac = macRows(params);
+  // The owner's invite links (shown once the server has said this account is the owner's).
+  const invites = invitesRow();
   const status = h('div.set-help', { role: 'status' }, 'Checking private connection…');
   const link = h('a.btn.btn-sm', { hidden: true }, 'Open private iPad link') as HTMLAnchorElement;
   if (!isMacOrigin()) status.textContent = 'This is the public copy of Dushu. The private address is shown when you open Dushu from your Mac.';
@@ -40,10 +43,11 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     ? 'Signed in, your books, words and Claude go with your account. Connecting a device to your Mac only adds its voices and local AI.'
     : 'Connect each device to your Mac once. Your words and reading places then sync through it.',
     account?.el ?? null,
+    invites?.el ?? null,
     sync.el,
     ...mac.rows,
     row('Connect', 'Turn on Tailscale on your iPad with the same account as this Mac, then open the private link in Safari.', h('div', null, link, status)),
     row('Install', 'Open Dushu from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.', h('span', null, 'In Safari: Share, then Add to Home Screen')),
     row('Books', 'Books on your Mac reach every device by themselves. For other books, use Import book.', h('span', null, 'Your Mac keeps a daily copy of your synced words for two weeks.')));
-  return { el, dispose() { mac.dispose(); sync.dispose(); account?.dispose(); } };
+  return { el, dispose() { mac.dispose(); sync.dispose(); account?.dispose(); invites?.dispose(); } };
 }
