@@ -524,6 +524,20 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           emit('books', id);
         });
       },
+      async setCover(id, image, from) {
+        const cur = await db.get<BookMeta>('books', id);
+        if (!cur) throw new Error('That book is no longer in your library.');
+        const data = await bytesOf(image);
+        const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
+        if (!type) throw new Error('That cover is not a picture Dushu can show.');
+        // A new name for each picture, so a cached address for the old one is never shown for the new.
+        const name = `cover-${from.slice(0, 16)}`;
+        await write([
+          { op: 'put', table: 'assets', value: { bookId: id, name, data, type: type.mime } },
+          { op: 'put', table: 'books', value: { ...cur, cover: name, coverFrom: from } },
+        ]);
+        emit('books');
+      },
       async asset(bookId, asset) {
         const rec = await db.get<{ blob?: Blob; data?: ArrayBuffer; type?: string }>('assets', [bookId, asset]);
         const data = rec ? rec.data ?? (rec.blob ? await bytesOf(rec.blob) : undefined) : undefined;

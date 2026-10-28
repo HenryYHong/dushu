@@ -3,10 +3,11 @@
 // (~/.config/dushu/mac-key, the same as the sync server's MAC_KEY secret) and keeps that session next to the sync folder.
 // Each book goes up as the file itself, under the key a device gives the same file from the Mac (core/syncKeys bookKey), and
 // a device reads it as an import when it comes down (core/cloudBooks). Each book is sent once per account: one deleted from
-// the account on purpose is not sent again.
+// the account on purpose is not sent again. A picture beside a book in the folder, named like it (平凡的世界.jpg beside
+// 平凡的世界.epub), goes up as that book's cover (key c + the book's key), and again whenever the picture changes.
 import { chmodSync, existsSync, mkdirSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 import { CLOUD_URL } from '../src/core/cloud';
 import { bookKey, olderKeys } from '../src/core/syncKeys';
 import { IMPORT_VERSION } from '../src/import/version';
@@ -32,6 +33,14 @@ export function macBookKey(sha256: string): string {
 }
 
 const sameBook = (a: string, b: string) => a === b || olderKeys(a).includes(b) || olderKeys(b).includes(a);
+
+/** The picture beside a book in the book folder, named like it, if there is one. */
+export function coverBeside(bookPath: string): string | null {
+  if (basename(dirname(bookPath)) !== DROP_FOLDER) return null;
+  const stem = bookPath.slice(0, bookPath.length - extname(bookPath).length);
+  for (const ext of ['.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG']) if (existsSync(stem + ext)) return stem + ext;
+  return null;
+}
 
 function readJson<T>(path: string, fallback: T): T {
   try { return JSON.parse(readFileSync(path, 'utf8')) as T; } catch { return fallback; }
@@ -72,7 +81,22 @@ export async function sendMacBooks(opts: AccountBooksOptions): Promise<string[]>
     return res;
   };
 
-  const inAccount = (await (await call('/books')).json() as { key: string }[]).map((b) => b.key);
+  const entries = await (await call('/books?covers')).json() as { key: string; sha: string }[];
+  const inAccount = entries.map((b) => b.key);
+  /** Starts keeping `path` under `key` and sends its pieces (none when the account already has these bytes). */
+  const put = async (key: string, title: string, path: string, size: number, sha: string) => {
+    const start = await (await call('/books', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, title, author: '', size, sha }),
+    })).json() as { chunks: number; upload?: string; complete?: boolean };
+    if (start.complete) return;
+    const bytes = readFileSync(path);
+    const u = start.upload ? `&u=${encodeURIComponent(start.upload)}` : '';
+    for (let i = 0; i * CHUNK < bytes.byteLength; i++) {
+      await call(`/books/chunk?key=${encodeURIComponent(key)}&i=${i}${u}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes.subarray(i * CHUNK, (i + 1) * CHUNK),
+      });
+    }
+  };
   // Books sent before, per account (an account deleted and made again has a new `created`).
   const sentAll = readJson<Record<string, string[]>>(sentPath, {});
   const account = session!.created ?? session!.email;
@@ -82,21 +106,17 @@ export async function sendMacBooks(opts: AccountBooksOptions): Promise<string[]>
     if (!existsSync(book.path)) continue;
     const { size, sha256 } = await fileDigest(book.path);
     const bookKeyed = macBookKey(sha256);
-    if (sent.includes(bookKeyed) || inAccount.some((k) => sameBook(k, bookKeyed))) continue;
-    const start = await (await call('/books', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      // The title is the file's name: a device reads the real title from the file, and uses the name for its format.
-      body: JSON.stringify({ key: bookKeyed, title: book.name, author: '', size, sha: sha256 }),
-    })).json() as { chunks: number; upload?: string; complete?: boolean };
-    if (!start.complete) {
-      const bytes = readFileSync(book.path);
-      const u = start.upload ? `&u=${encodeURIComponent(start.upload)}` : '';
-      for (let i = 0; i * CHUNK < bytes.byteLength; i++) {
-        await call(`/books/chunk?key=${encodeURIComponent(bookKeyed)}&i=${i}${u}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes.subarray(i * CHUNK, (i + 1) * CHUNK),
-        });
+    const cover = coverBeside(book.path);
+    if (cover) {
+      const c = await fileDigest(cover);
+      if (!entries.some((e) => e.key === `c${bookKeyed}` && e.sha === c.sha256)) {
+        await put(`c${bookKeyed}`, basename(cover), cover, c.size, c.sha256);
+        names.push(basename(cover));
       }
     }
+    if (sent.includes(bookKeyed) || inAccount.some((k) => sameBook(k, bookKeyed))) continue;
+    // The title is the file's name: a device reads the real title from the file, and uses the name for its format.
+    await put(bookKeyed, book.name, book.path, size, sha256);
     sent.push(bookKeyed);
     writePrivate(sentPath, { ...sentAll, [account]: sent });
     names.push(book.name);

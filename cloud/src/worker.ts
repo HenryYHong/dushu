@@ -333,7 +333,8 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   }
   if (path === '/books') {
     const { stub, secret: s } = bearer(request, env);
-    if (request.method === 'GET') return call(env, stub, 'books', {}, s);
+    // Covers (keys c…) only for an app that reads them: an older one would take a picture for a book.
+    if (request.method === 'GET') return call(env, stub, 'books', { covers: new URL(request.url).searchParams.has('covers') }, s);
     if (request.method === 'POST') return call(env, stub, 'book-start', await readJson(request, 4096), s);
     if (request.method === 'DELETE') return call(env, stub, 'book-drop', { key: new URL(request.url).searchParams.get('key') ?? '' }, s);
     throw new CloudError(405, 'Not allowed.');
@@ -414,7 +415,7 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'signout': core.signOut(session); return json(200, { ok: true });
       case 'status': return json(200, core.status(session, now));
       case 'sync': return json(200, core.sync(session, body, now));
-      case 'books': return json(200, core.listBooks(session, now));
+      case 'books': return json(200, core.listBooks(session, now, body.covers === true));
       case 'book-start': return json(200, core.startBook(session, body, now));
       case 'book-drop': core.dropBook(session, str(body.key), now); return json(200, { ok: true });
       case 'chunk-put': return json(200, core.putBookChunk(session, key, index, bytes!, now, url.searchParams.get('u') ?? ''));

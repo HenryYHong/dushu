@@ -135,7 +135,7 @@ async function ok(res: Promise<Response> | null): Promise<Response> {
 }
 
 export async function accountBooks(): Promise<AccountBook[]> {
-  const data = await (await ok(cloudFetch('/books', { signal: AbortSignal.timeout(20_000) }))).json() as unknown;
+  const data = await (await ok(cloudFetch('/books?covers', { signal: AbortSignal.timeout(20_000) }))).json() as unknown;
   return Array.isArray(data) ? data.filter((b): b is AccountBook => !!b && typeof b === 'object' && typeof (b as AccountBook).key === 'string') : [];
 }
 
@@ -174,6 +174,12 @@ function setBad(id: string, at: number | null): void {
 }
 
 async function download(book: AccountBook): Promise<ImportedBook> {
+  const out = await downloadBytes(book);
+  return isPackage(out) ? unpackBook(out) : importMacFile(out, book);
+}
+
+/** An entry's bytes, whole and checked against its digest. */
+async function downloadBytes(book: AccountBook): Promise<Uint8Array> {
   const out = new Uint8Array(book.size);
   let at = 0;
   for (let i = 0; i < book.chunks; i++) {
@@ -184,8 +190,11 @@ async function download(book: AccountBook): Promise<ImportedBook> {
     at += piece.byteLength;
   }
   if (at !== book.size || await sha256(out) !== book.sha) throw new Error(`“${book.title}” did not download whole. Dushu will try again.`);
-  return isPackage(out) ? unpackBook(out) : importMacFile(out, book);
+  return out;
 }
+
+/** A cover the owner's Mac put in the account for one of its books: key c + the book's key (scripts/account-books.ts). */
+const COVER = /^c([A-Za-z0-9._-]+)$/;
 
 /** The app's own package of a book (packBook) holds book.json. Anything else is a file the owner's Mac put there itself. */
 function isPackage(bytes: Uint8Array): boolean {
@@ -255,6 +264,7 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
       const bad = badBooks();
       const now = Date.now();
       for (const book of inAccount) {
+        if (COVER.test(book.key)) continue; // covers are shown below, once their books are here
         if (localKeys.some((k) => sameBook(k, book.key)) || removed.some((k) => sameBook(k, book.key))) continue;
         const id = `${book.key}|${book.sha}`;
         if (now - (bad[id] ?? 0) < BAD_RETRY_MS) continue;
@@ -276,6 +286,22 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
         setList(UP_KEY, [...list(UP_KEY), accountMark(s, bookKey(meta))]);
         localKeys.push(bookKey(meta));
         added.push(meta);
+      }
+      // Covers the owner's Mac picked for its books: shown on the book here, each picture once.
+      const here = await store.books.list();
+      for (const cover of inAccount) {
+        const m = COVER.exec(cover.key);
+        const book = m && here.find((b) => sameBook(bookKey(b), m[1]));
+        if (!book || book.coverFrom === cover.sha) continue;
+        const id = `${cover.key}|${cover.sha}`;
+        if (now - (bad[id] ?? 0) < BAD_RETRY_MS) continue;
+        try {
+          await store.books.setCover(book.id, new Blob([await downloadBytes(cover) as Uint8Array<ArrayBuffer>]), cover.sha);
+          setBad(id, null);
+        } catch (e) {
+          setBad(id, now);
+          error ??= e instanceof Error ? e.message : String(e);
+        }
       }
     } catch (e) {
       console.warn('Dushu: books in your account', e);

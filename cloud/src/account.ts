@@ -232,10 +232,10 @@ export class AccountCore {
     this.store.dropSession(sessionHash);
   }
 
-  /** The books kept in the account (whole ones only). */
-  listBooks(sessionHash: string, now: number): Omit<BookEntry, 'complete'>[] {
+  /** The books kept in the account (whole ones only), and with `covers` the covers the owner's Mac put there (keys c…). */
+  listBooks(sessionHash: string, now: number, covers = false): Omit<BookEntry, 'complete'>[] {
     this.authorize(sessionHash, now);
-    return this.store.books().filter((b) => b.complete).map(({ complete: _c, ...b }) => { void _c; return b; });
+    return this.store.books().filter((b) => b.complete && (covers || !b.key.startsWith('c'))).map(({ complete: _c, ...b }) => { void _c; return b; });
   }
 
   /**

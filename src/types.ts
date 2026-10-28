@@ -138,6 +138,8 @@ export interface BookMeta {
   chapterOffsets: number[];
   /** Asset key of the cover image, if any. */
   cover?: string;
+  /** The SHA-256 of the cover the owner's Mac gave this book through the account (core/cloudBooks.ts), once it is shown. */
+  coverFrom?: string;
   /** Chapter titles in order (length chapterCount), filled by books.add so the TOC needs no chapter reads. */
   chapterTitles?: string[];
   sourceName?: string;
@@ -408,6 +410,8 @@ export interface Store {
     assetUrl(bookId: string, asset: string): Promise<string | undefined>;
     /** An asset's bytes (an image the book has), for keeping the book in the sync account (core/cloudBooks.ts). */
     asset(bookId: string, asset: string): Promise<Blob | undefined>;
+    /** Shows `image` as the book's cover from now on, noting where it came from (`from`, the image's digest). */
+    setCover(id: string, image: Blob, from: string): Promise<void>;
   };
   progress: {
     get(bookId: string): Promise<Progress | undefined>;

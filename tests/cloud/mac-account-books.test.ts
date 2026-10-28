@@ -4,7 +4,7 @@
 // as the Mac's book, and does not send it back.
 import 'fake-indexeddb/auto';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -122,6 +122,47 @@ describe('the owner\'s Mac and the account', () => {
     });
     await Promise.all([fromAccount, fromMac]);
     expect((await store.books.list()).length).toBe(1);
+  });
+
+  it('gives a book the picture put beside it in the folder, on every device, and the new one when it changes', async () => {
+    await signedIn(c, OWNER);
+    const folder = join(mkdtempSync(join(dir, 'home-')), 'Dushu Books');
+    mkdirSync(folder);
+    const bookPath = join(folder, '小猫.txt');
+    writeFileSync(bookPath, text);
+    // A 1x1 PNG, then another.
+    const png = (shade: number) => Buffer.from(`iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk${shade}PwfwAD/gH+eDiTDAAAAABJRU5ErkJggg==`, 'base64');
+    writeFileSync(join(folder, '小猫.png'), png(1));
+    const state = mkdtempSync(join(dir, 'state-'));
+    const send = () => sendMacBooks({ stateDir: state, books: () => [{ id: 'f-1', name: '小猫.txt', path: bookPath }], macKey: () => KEY, base: 'https://sync.test', fetchFn: toWorker });
+    expect((await send()).sort()).toEqual(['小猫.png', '小猫.txt']);
+    expect(await send()).toEqual([]);
+    let code = '';
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const req = new Request(input, init);
+      const body = req.method === 'GET' || req.method === 'DELETE' ? undefined : await req.arrayBuffer();
+      const res = await worker.fetch(new Request(req.url, { method: req.method, headers: req.headers, body }), c.env);
+      if (req.url.endsWith('/auth/code') && res.ok) code = (await res.clone().json() as { devCode: string }).devCode;
+      return res;
+    });
+    localStorage.setItem('dushu.cloud.url.v1', 'https://sync.test');
+    await requestCode(OWNER);
+    await signIn(OWNER, code);
+    const store = await openStore(`c-${Math.random()}`);
+    await syncBooks(store);
+    const shaOf = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+    let [meta] = await store.books.list();
+    expect(meta.coverFrom).toBe(shaOf(png(1)));
+    expect((await store.books.asset(meta.id, meta.cover!))?.type).toBe('image/png');
+    expect((await store.books.list()).length).toBe(1); // the picture is not a book
+    writeFileSync(join(folder, '小猫.png'), png(2));
+    expect(await send()).toEqual(['小猫.png']);
+    await syncBooks(store);
+    [meta] = await store.books.list();
+    expect(meta.coverFrom).toBe(shaOf(png(2)));
+    // An app from before covers lists the books alone, so it never takes the picture for a book.
+    const older = await (await c.call('/books', { headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('dushu.cloud.v1')!).token}` } })).json() as { key: string }[];
+    expect(older.map((e) => e.key[0])).toEqual(['m']);
   });
 
   it('keeps one copy of a Mac book that is here twice: the one read in most recently', () => {
