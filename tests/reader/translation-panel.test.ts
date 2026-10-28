@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppContext } from '../../src/types';
 import { DEFAULT_SETTINGS } from '../../src/store/settings';
-import { createTranslationPanel, translationTerms, type TranslationPanel } from '../../src/ui/popup/translation';
+import { createTranslationPanel, personName, translationTerms, type TranslationPanel } from '../../src/ui/popup/translation';
 import { buildLexicon } from '../../src/core/lexicon';
 import type { Dictionary } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
@@ -52,6 +52,21 @@ describe('translation controls', () => {
     expect(terms.find(t => t.word === '羯鼓')?.kind).toBe('term');
     expect(terms.find(t => t.word === '打草惊蛇')?.gloss).toBe('fig. to inadvertently alert an enemy');
     expect(terms.find(t => t.word === '打草惊蛇')?.kind).toBe('idiom');
+  });
+  it('names the people and characters the dictionary knows, spelled its way, and leaves other proper nouns out', async () => {
+    const dict = await loadTestDictionary();
+    // 孔乙己 is a dictionary word, so the book's scan never lists it, and a small model made "Krug" of it.
+    expect(translationTerms('孔乙己是站着喝酒而穿长衫的唯一的人。', undefined, dict).find((t) => t.word === '孔乙己'))
+      .toEqual({ word: '孔乙己', pinyin: 'Kong3 Yi3 ji3', gloss: 'Kong Yiji', kind: 'name' });
+    expect(translationTerms('张飞大怒。', undefined, dict).find((t) => t.word === '张飞')).toMatchObject({ gloss: 'Zhang Fei', kind: 'name' });
+    // A foreign name is not pinyin: it goes by its English name.
+    expect(translationTerms('赫拉克利特说过。', undefined, dict).find((t) => t.word === '赫拉克利特')).toMatchObject({ gloss: 'Heraclitus', kind: 'term' });
+    // An era or a place is not a person; a place may be a plain phrase.
+    expect(personName('Jin Dynasty (1115-1234), founded by the Jurchen')).toBeNull();
+    expect(personName('Qianshan district of Anshan city')).toBeNull();
+    expect(personName("Beijing municipality, capital of the People's Republic of China")).toBeNull();
+    expect(personName('Lin Daiyu, female character in The Dream of Red Mansions')).toBe('Lin Daiyu');
+    expect(personName('Li Bai (701-762), famous Tang Dynasty poet')).toBe('Li Bai');
   });
   it('uses real word boundaries, not accidental dictionary substrings across words', async () => {
     const dict = await loadTestDictionary();

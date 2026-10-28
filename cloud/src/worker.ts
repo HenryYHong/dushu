@@ -10,7 +10,7 @@ import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
 import { SYNC_LIMITS, SyncError } from '../../src/core/syncExchange';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
 import { describeError, parseTranslateBody, runClaude, type ServerClient } from '../../src/translate/claudeServer';
-import { contextWindow, translateChecked, unverifiedDetail } from '../../src/translate/prompt';
+import { ACCOUNT_TEXT, contextWindow, translateChecked, unverifiedDetail } from '../../src/translate/prompt';
 import { wordSenseHint } from '../../src/translate/contextSense';
 
 export interface DurableObjectId { toString(): string }
@@ -83,8 +83,7 @@ const TRANSLATE_NEURONS = 4_000;
 const TRANSLATE_SHARE_NEURONS = 800;
 /** Taken before the model runs; the rest of what it used is counted after. */
 const TRANSLATE_UPFRONT = 3;
-/** A paragraph at most: a longer selection is cut into sentences by the app. */
-export const TRANSLATE_TEXT = 600;
+
 /** Sign-in codes a day from one network (a classroom shares one), and in all (Resend's free plan sends 100 a day). */
 const CODES_PER_NETWORK = 40;
 /** Wrong sign-in codes a day from one network. */
@@ -255,8 +254,9 @@ interface QwenAnswer {
 }
 
 /**
- * Sentence translation through the account: the same prompt and checks as the Mac's local model (src/translate/prompt.ts),
- * answered by Qwen3 on Workers AI with its thinking off. Counted in neurons against the reader's day and everyone's, which
+ * Sentence translation through the account: the local model's prompt and checks with names spelled out (src/translate/prompt.ts),
+ * answered by Qwen3 on Workers AI with its thinking off. As for the local model, a doubtful name, negation or number is labeled,
+ * not asked again: told a negation was missing where 别了 means "left", Qwen3 wrote one in. Counted in neurons against the reader's day and everyone's, which
  * stay under the free allowance.
  */
 async function aiTranslate(request: Request, env: Env): Promise<Response> {
@@ -265,7 +265,7 @@ async function aiTranslate(request: Request, env: Env): Promise<Response> {
   const parsed = parseTranslateBody(await readJson(request, 16384));
   if (!parsed.ok) throw new CloudError(parsed.status, parsed.message, 'bad_request');
   const req = parsed.request;
-  if (req.text.length > TRANSLATE_TEXT) throw new CloudError(413, 'That passage is too long to translate at once. Select a shorter one.', 'too_long');
+  if (req.text.length > ACCOUNT_TEXT) throw new CloudError(413, 'That passage is too long to translate at once. Select a shorter one.', 'too_long');
   const gate = await call(env, stub, 'ai-start', {}, s);
   if (!gate.ok) return gate;
   const { owner } = await gate.json() as { owner?: boolean };
@@ -301,7 +301,7 @@ async function aiTranslate(request: Request, env: Env): Promise<Response> {
     const result = await translateChecked(
       { ...req, context: contextWindow(req.context ?? req.text, req.text) },
       generate,
-      { target: 'local', hints: hint ? { [hint.word]: hint.sense } : undefined },
+      { target: 'local', prompt: { spelling: true }, hints: hint ? { [hint.word]: hint.sense } : undefined },
     );
     if (!result.text) throw new CloudError(502, 'The sync server sent back an empty translation. Try again.', 'empty');
     return json(200, { text: result.text, ...(result.issues.length ? { unverified: unverifiedDetail(result.issues) } : {}) });

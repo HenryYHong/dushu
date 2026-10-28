@@ -3,9 +3,8 @@
 // checks as the Mac's local model; the browser only sends the passage. Claude stays the owner's (claude.ts).
 import { CLOUD_EVENT, cloudFetch, cloudSession } from '../core/cloud';
 import type { Settings, Translator } from '../types';
+import { ACCOUNT_TEXT } from './prompt';
 
-/** The longest selection the server takes at once (cloud/src/worker.ts TRANSLATE_TEXT). */
-export const ACCOUNT_TEXT = 600;
 /** A used-up day or a refusal repeats if asked again soon: Automatic skips this translator for a while. */
 const BLOCK_MS = 10 * 60_000;
 let blockedUntil = 0;

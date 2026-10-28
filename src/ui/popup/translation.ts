@@ -39,6 +39,16 @@ const TAGGED_SENSE = /^\((?:archaic|dialect|literary|storytelling|old|dated|Wu d
  * Match the displayed script, and keep the prompt's name glossary bounded. With `tagged`, words the dictionary marks as
  * archaic, literary, storytelling or dialect (却说, 只见, 恁地, 洒家, 俺) are included with those senses, whatever their frequency.
  */
+const PERSON_NAME = new RegExp(String.raw`^([A-Z][a-z']+(?:[ -][A-Z]?[a-z']+){0,3})(?: \((?:c\. )?\d{0,4}(?: BC)?\s*[-–]|, (?:the |a |an )?(?:[\w-]+ ){0,4}(?:protagonist|antihero|hero|heroine|character|friend|wife|husband|son|daughter|mother|father|brother|sister|poet|writer|author|novelist|general|emperor|empress|king|queen|prince|princess|minister|official|scholar|philosopher|monk|painter|statesman|founder|warlord|concubine|maid|servant)\b)`);
+const NOT_A_PERSON = /\b(?:Dynasty|War|Period|Kingdom|Empire|Republic|River|Mountains?|Lake|Province|County|District|City)\b/;
+const squashName = (s: string) => s.toLowerCase().replace(/u:/g, 'u').replace(/ü/g, 'u').replace(/[\s'’\-]/g, '');
+
+/** The English name a dictionary definition gives a person or a character ("Kong Yiji, protagonist of…", "Li Bai (701-762), …"), or null. */
+export function personName(def: string): string | null {
+  const m = PERSON_NAME.exec(def);
+  return m && !NOT_A_PERSON.test(m[1]) ? m[1] : null;
+}
+
 export function translationTerms(text: string, lexicon?: Lexicon, dict?: Dictionary | null, options: { tagged?: boolean } = {}) {
   const seen = new Set<string>();
   const terms = (lexicon?.entries() || []).flatMap(entry => {
@@ -68,7 +78,16 @@ export function translationTerms(text: string, lexicon?: Lexicon, dict?: Diction
         }
         if ([...word].length < 2 || entries.length !== 1) continue;
         const entry = entries[0];
-        // Capitalized pinyin marks a proper noun (千山 is a district in Liaoning, not "a thousand mountains"); names come from the book's lexicon.
+        // A proper noun the dictionary describes as a person or a character (孔乙己, 林黛玉, 张飞) is a name the book's scan leaves
+        // to the dictionary: it goes in, spelled as the dictionary spells it (a foreign one by its English name).
+        const person = /^[A-Z]/.test(entry.pinyin) ? personName(entry.defs[0] ?? '') : null;
+        if (person) {
+          seen.add(word);
+          const chinese = squashName(person) === squashName(entry.pinyin.replace(/[1-5]/g, ''));
+          candidates.push({ word, pinyin: entry.pinyin.slice(0, 80), gloss: person, kind: chinese ? 'name' as const : 'term' as const, rank: -2 });
+          continue;
+        }
+        // Any other proper noun stays out: a place or an era may be a plain phrase here (千山 is also "a thousand mountains").
         if (/^[A-Z]/.test(entry.pinyin)) continue;
         const idiom = entry.defs.some(def => /\bidiom\b/.test(def));
         const frequency = dict.freq(word);

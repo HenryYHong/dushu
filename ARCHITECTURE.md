@@ -576,7 +576,7 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   tokens after (`claudeUsed`), per account per UTC day. The app's translator (`src/translate/claude.ts`) goes through the account when
   signed in, else the Mac; Local only turns Claude off either way.
 - **Translation for everyone signed in** (`POST /ai/translate`): Qwen3 30B-A3B on Workers AI (`@cf/qwen/qwen3-30b-a3b-fp8`) with the
-  local model's prompt and checks (`translateChecked`, target `local`) and Qwen's `/no_think` switch, 600 characters at most. It costs
+  local model's prompt and checks, names spelled out (`translateChecked`, target `local`, `spelling`), and Qwen's `/no_think` switch, 600 characters at most. It costs
   about 4 neurons a sentence. Three are taken before the call and the rest of `usage.neurons` after, against the reader's UTC day
   (800; the owner's is the whole 4,000) and everyone's (4,000). With read-aloud's 48,000 characters (about 4,300 neurons), the day stays
   under Workers AI's free 10,000, so nothing is ever billed. Answer: `{ text, unverified? }`.

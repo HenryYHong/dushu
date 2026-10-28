@@ -9,6 +9,12 @@ export type Term = NonNullable<TranslateRequest['terms']>[number];
 export type TranslateOptions = NonNullable<Parameters<Translator['translate']>[1]>;
 export interface TranslationNote { kind: 'unverified'; detail: string }
 
+/**
+ * The longest selection translated through the sync account at once (cloud/src/worker.ts aiTranslate, src/translate/account.ts).
+ * Here, not in the Worker: a Worker's main module may export only its handler and its Durable Object classes.
+ */
+export const ACCOUNT_TEXT = 600;
+
 // ----------------------------------------------------------------- context ---
 
 /** Keep the selected sentence, not just the beginning of a long paragraph. */
@@ -148,8 +154,9 @@ export function translationMessage(req: Pick<TranslateRequest, 'text' | 'context
 // ------------------------------------------------------------------ checks ---
 
 const NEGATION_SOURCE = /[不没沒未莫勿别別]/u;
-// Compounds that contain a negation character but do not negate: 不过 (only/but), 不如, 不但, 未必 is kept (a negation).
-const NOT_NEGATION = /不过|不過|不如|不但|不仅|不僅|不止|不管|不由|不免|不禁|不然|无论|無論|无非|無非|非常|莫非|别人|別人|不得了|没错|沒錯/gu;
+// Compounds that contain a negation character but do not negate: 不过 (only/but), 不如, 不但, 未必 is kept (a negation). 别 is also
+// "to part from" (别了二十余年的故乡, 告别) and "other" or "special" (别的, 特别): those are not "don't".
+const NOT_NEGATION = /不过|不過|不如|不但|不仅|不僅|不止|不管|不由|不免|不禁|不然|无论|無論|无非|無非|非常|莫非|别人|別人|不得了|没错|沒錯|[告分离離送辞辭惜永久道话話诀訣]别|[告分离離送辞辭惜永久道话話诀訣]別|别了|別了|别离|別離|别后|別後|[特区區差级級性个個类類识識鉴鑒辨派]别|[特区區差级級性个個类類识識鉴鑒辨派]別|别的|別的|别处|別處|别家|別家|别姓|別姓|别号|別號|别墅|別墅|别致|別緻/gu;
 const NEGATION_ANSWER = /\b(?:not|no|never|none|nothing|nobody|nowhere|neither|nor|without|cannot|fail(?:ed|s|ing)?|lack(?:s|ed|ing)?|refus\w+|unable|hardly|barely|scarcely|rarely|seldom|few|little|avoid\w*|ignor\w+|stop(?:ped|s)?|can't|won't|don't|didn't|doesn't|isn't|aren't|wasn't|weren't|haven't|hasn't|hadn't|couldn't|wouldn't|shouldn't|mustn't|\w+less|un\w+|ever|any)\b|n't/i;
 
 const DIGIT: Record<string, number> = { 零: 0, 〇: 0, 一: 1, 二: 2, 两: 2, 兩: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };

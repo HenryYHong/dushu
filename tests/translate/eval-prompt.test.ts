@@ -58,6 +58,10 @@ describe('mechanical checks', () => {
     expect(check('我不去。', 'I will go.')).toEqual(['negation']);
     expect(check('不過一碗酒罷了。', 'It was only a bowl of wine.')).toEqual([]);
     expect(check('他並非不想去，只是沒空。', 'He is not unwilling to go, he just has no time.')).toEqual([]);
+    // 别 as "to part from", "other" and "special" is no negation; 别 as "don't" still is.
+    expect(check('我冒了严寒，回到别了二十余年的故乡去。', 'I braved the cold to return to the hometown I left more than twenty years ago.')).toEqual([]);
+    expect(check('他向大家告别，又去了别的地方，那里特别冷。', 'He said goodbye to everyone and went somewhere else, where it was especially cold.')).toEqual([]);
+    expect(check('你别走。', 'You go.')).toEqual(['negation']);
   });
   it('finds a number that disappeared, and accepts words, ordinals, months and plurals', () => {
     expect(check('他买了三斤米。', 'He bought some rice.')).toContain('number');

@@ -3,7 +3,8 @@
 // local model's prompt and its thinking off, counts the neurons it used against the reader's day and everyone's, and refuses
 // past them, so the day never leaves the free allowance. The app's side: Automatic picks it for a reader without Claude.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TRANSLATE_TEXT, type Env } from '../../cloud/src/worker';
+import type { Env } from '../../cloud/src/worker';
+import { ACCOUNT_TEXT } from '../../src/translate/prompt';
 import { createAccountTranslator, resetAccountTranslator } from '../../src/translate/account';
 import { pickTranslator } from '../../src/translate';
 import { DEFAULT_SETTINGS } from '../../src/store/settings';
@@ -44,7 +45,7 @@ describe('translation through the account', () => {
     // Signed out, empty, too long, or not a mode it knows: refused before the model is asked.
     expect((await c.post('/ai/translate', SENTENCE)).status).toBe(401);
     expect((await c.post('/ai/translate', { ...SENTENCE, text: ' ' }, token)).status).toBe(400);
-    expect((await c.post('/ai/translate', { ...SENTENCE, text: '好'.repeat(TRANSLATE_TEXT + 1) }, token)).status).toBe(413);
+    expect((await c.post('/ai/translate', { ...SENTENCE, text: '好'.repeat(ACCOUNT_TEXT + 1) }, token)).status).toBe(413);
     expect((await c.post('/ai/translate', { ...SENTENCE, mode: 'poem' }, token)).status).toBe(400);
     expect(ai.asked).toHaveLength(1);
   });
