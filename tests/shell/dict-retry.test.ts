@@ -39,5 +39,7 @@ describe('dictionary download', () => {
     await readerDrawn();
     expect(document.body.textContent).not.toContain('Dictionary not loaded');
     expect(calls.n).toBe(2);
+    // Close the book, so the reader's timers (the place it saves) stop before the test environment goes away.
+    await go('#/');
   });
 });
