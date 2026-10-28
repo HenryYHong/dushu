@@ -21,6 +21,7 @@ import { upgradeBooks } from './upgrade';
 import { scriptView } from '../vocab/render';
 import { CLOUD_EVENT, cloudBase, cloudSession } from '../../core/cloud';
 import { openSignIn } from '../signIn';
+import { isStandalone, onIPhoneOrIPad } from '../fullscreen';
 import { forgetBookInAccount, syncBooks } from '../../core/cloudBooks';
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
@@ -434,10 +435,20 @@ export const mount: MountFn = (root, _params, ctx) => {
     // note is not shown.
     const signedIn = !!cloudSession();
     const publicCopy = macState === 'none' && !isMacOrigin();
-    const dismissed = (() => { try { return localStorage.getItem('dushu.public-note.v1') === '1'; } catch { return false; } })();
-    macNote.hidden = signedIn || !((publicCopy && !dismissed) || macState === 'asleep' || macState === 'refused');
+    const seen = (key: string) => { try { return localStorage.getItem(key) === '1'; } catch { return false; } };
+    const forget = (key: string) => { try { localStorage.setItem(key, '1'); } catch { /* ignore */ } renderMacNote(); };
+    const macNeeded = !signedIn && ((publicCopy && !seen('dushu.public-note.v1')) || macState === 'asleep' || macState === 'refused');
+    // In Safari on an iPhone or iPad, once: the Home Screen is this app's App Store (full screen, offline, and Safari keeps its data).
+    const homeTip = !macNeeded && onIPhoneOrIPad() && !isStandalone() && !seen('dushu.home-note.v1');
+    macNote.hidden = !macNeeded && !homeTip;
     if (macNote.hidden) return;
     clear(macNote);
+    if (homeTip) {
+      macNote.append(
+        h('p', null, 'Add Dushu to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.'),
+        h('div.lib-actions', null, h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.home-note.v1') }, 'Got it')));
+      return;
+    }
     if (publicCopy) {
       macNote.append(
         h('p', null, cloudBase()
@@ -447,7 +458,7 @@ export const mount: MountFn = (root, _params, ctx) => {
           cloudBase()
             ? h('button.btn.btn-sm', { type: 'button', onclick: () => openSignIn() }, 'Sign in')
             : h('a.btn.btn-sm', { href: '#/settings' }, 'Open Settings'),
-          h('button.btn.btn-sm', { type: 'button', onclick: () => { try { localStorage.setItem('dushu.public-note.v1', '1'); } catch { /* ignore */ } renderMacNote(); } }, 'Dismiss')));
+          h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.public-note.v1') }, 'Dismiss')));
       return;
     }
     macNote.append(

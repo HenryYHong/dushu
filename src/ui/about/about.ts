@@ -42,6 +42,14 @@ const HOW_TO = [
   'Open Review once a day. It brings back the words you starred or looked up, with longer gaps as you remember them.',
 ];
 
+const link = (href: string, text: string) => h('a', { href, target: '_blank', rel: 'noopener' }, text);
+/** Where to find books: free, legal sources, as lines of text and links. */
+const FINDING: () => (string | Node)[][] = () => [
+  [link('https://zh.wikisource.org/', 'Chinese Wikisource'), ' has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.'],
+  [link('https://www.gutenberg.org/browse/languages/zh', 'Project Gutenberg'), ' has about 500 Chinese books as EPUB and plain text.'],
+  ['Any EPUB or Kindle book you bought without DRM works too.'],
+];
+
 const PAGES = [
   'Books are laid out in pages. If you\'d rather scroll, change Layout in Settings, or under Aa in the reader.',
   'On a wide screen held sideways, like an iPad in landscape, you get two pages side by side.',
@@ -149,6 +157,10 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
     h('section.ab-section', null,
       h('h2.section-title', null, 'How to use it'),
       steps(HOW_TO)),
+
+    h('section.ab-section', null,
+      h('h2.section-title', null, 'Finding books'),
+      h('ul.ab-steps', null, FINDING().map((parts) => h('li', null, ...parts)))),
 
     h('section.ab-section', null,
       h('h2.section-title', null, 'Reading'),

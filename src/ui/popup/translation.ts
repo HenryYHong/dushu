@@ -347,8 +347,10 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
       }, icon('stop'), 'Stop'));
     }
     if (retry) actions.appendChild(h('button.btn.btn-sm', { onclick: retry }, icon('refresh'), 'Try again'));
-    if (!busy && (hasClaude || localReady || current?.id === 'local') && lastMode === 'translate') {
-      actions.appendChild(h('button.btn.btn-sm', { onclick: () => void run(current?.id === 'local' || !hasClaude ? 'local' : 'claude', 'explain'), title: 'Translation plus notes on words and grammar' },
+    // Explained by whichever model translated it (the Mac's, or Qwen through the account), else Claude, else the Mac's model.
+    const explainer = current?.id === 'local' || current?.id === 'account' ? current.id : hasClaude ? 'claude' : 'local';
+    if (!busy && (hasClaude || localReady || current?.id === 'local' || current?.id === 'account') && lastMode === 'translate') {
+      actions.appendChild(h('button.btn.btn-sm', { onclick: () => void run(explainer, 'explain'), title: 'Translation plus notes on words and grammar' },
         icon('sparkle'), 'Explain'));
     }
     if (lastMode === 'explain') {

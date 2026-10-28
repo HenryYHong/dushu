@@ -564,6 +564,10 @@ describe('about screen', () => {
     const names = [...root.querySelectorAll('.ab-source-name')].map((e) => e.textContent);
     for (const want of ['CC-CEDICT', 'Unihan / UCD', 'jieba dict.txt.big', 'OpenCC', 'Wiktionary (via kaikki.org)']) expect(names).toContain(want);
     expect(root.querySelectorAll('.ab-keys-group').length).toBeGreaterThan(1);
+    // Where to find books, as links that open beside the app.
+    const wikisource = [...root.querySelectorAll<HTMLAnchorElement>('a')].find((a) => a.textContent === 'Chinese Wikisource')!;
+    expect(wikisource.href).toBe('https://zh.wikisource.org/');
+    expect(wikisource.rel).toBe('noopener');
   });
 
   it('still renders when meta.json cannot be loaded', async () => {

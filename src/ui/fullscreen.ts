@@ -31,6 +31,12 @@ export function isStandalone(): boolean {
   return nav.standalone === true || (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches);
 }
 
+/** A browser on an iPhone or iPad (iPadOS calls itself a Mac, but a Mac has no touch screen): one that can add Dushu to the Home Screen. */
+export function onIPhoneOrIPad(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+}
+
 export async function setFullscreen(on: boolean): Promise<void> {
   const d = doc();
   if (!d || on === isFullscreen()) return;

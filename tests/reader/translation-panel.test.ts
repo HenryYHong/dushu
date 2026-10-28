@@ -7,13 +7,14 @@ import { buildLexicon } from '../../src/core/lexicon';
 import type { Dictionary } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
 
-const calls = vi.hoisted(() => ({ chrome: vi.fn(), local: vi.fn(), localAvailability: vi.fn() }));
+const calls = vi.hoisted(() => ({ chrome: vi.fn(), local: vi.fn(), localAvailability: vi.fn(), account: vi.fn(), picked: { id: 'chrome' } }));
 vi.mock('../../src/translate', () => {
   const chrome = { id: 'chrome', label: 'Chrome on-device', availability: async () => 'yes', translate: calls.chrome };
   const local = { id: 'local', label: 'On this Mac (Ollama)', availability: calls.localAvailability, translate: calls.local };
+  const account = { id: 'account', label: 'Qwen (through your account)', availability: async () => 'yes', translate: calls.account };
   return {
-    getTranslator: (id: string) => id === 'local' ? local : chrome,
-    pickTranslator: async () => chrome,
+    getTranslator: (id: string) => id === 'local' ? local : id === 'account' ? account : chrome,
+    pickTranslator: async () => calls.picked.id === 'account' ? account : chrome,
     listTranslators: async () => [{ translator: chrome, availability: 'yes' }, { translator: local, availability: 'yes' }],
   };
 });
@@ -30,6 +31,8 @@ beforeEach(() => {
   calls.chrome.mockReset().mockResolvedValue('We are going home.');
   calls.local.mockReset().mockResolvedValue('We are going home.\n- 回家 means to go home.');
   calls.localAvailability.mockReset().mockResolvedValue('yes');
+  calls.account.mockReset().mockImplementation(async (req: { mode: string }) => req.mode === 'explain' ? 'We are going home.\n- 回家 means to go home.' : 'We are going home.');
+  calls.picked.id = 'chrome';
 });
 afterEach(() => { panel?.destroy(); document.body.innerHTML = ''; vi.unstubAllGlobals(); });
 
@@ -109,6 +112,17 @@ describe('translation controls', () => {
     expect(calls.chrome).toHaveBeenCalledOnce();
     button('Copy translation')!.click();
     await vi.waitFor(() => expect(copy).toHaveBeenCalledWith('We are going home.'));
+  });
+
+  it('explains through the account when Qwen translated it, with no Claude or Mac', async () => {
+    calls.picked.id = 'account';
+    calls.localAvailability.mockResolvedValue('no');
+    mount();
+    await vi.waitFor(() => expect(button('Explain')).toBeTruthy());
+    button('Explain')!.click();
+    await vi.waitFor(() => expect(panel.el.textContent).toContain('回家 means'));
+    expect(calls.account.mock.calls.map((c) => c[0].mode)).toEqual(['translate', 'explain']);
+    expect(calls.local).not.toHaveBeenCalled();
   });
 
   it('can return to the original translation while an explanation is still generating', async () => {
