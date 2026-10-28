@@ -55,7 +55,7 @@ describe('samples', () => {
 
   it('lists the sample books with every field', () => {
     expect(index.length).toBeGreaterThanOrEqual(5);
-    expect(index.length).toBeLessThanOrEqual(24);
+    expect(index.length).toBeLessThanOrEqual(12);
     for (const b of index) {
       for (const k of ['id', 'title', 'author', 'script', 'file', 'level', 'blurb', 'source', 'note']) expect(b[k]).toBeTruthy();
       expect(['simplified', 'traditional']).toContain(b.script);
@@ -83,24 +83,5 @@ describe('samples', () => {
     expect(read('guxiang')).toContain('走的人多了，也便成了路');
     expect(read('kuangren-riji')).toContain('救救孩子');
     expect(read('xiyouji-1')).toContain('且听下回分解'.replace('听', '聽').replace('分解', '分解'));
-    // The short modern classics, from their openings to their last lines.
-    for (const [id, first, last] of [
-      ['luohuasheng', '我们屋后有半亩隙地', '父亲底话现在还印在我心版上'],
-      ['chabuduo', '你知道中国最有名的人是谁', '中国从此就成为一个懒人国了'],
-      ['yijian-xiaoshi', '我从乡下跑到京城里', '增长我的勇气和希望'],
-      ['congcong', '燕子去了，有再来的时候', '我们的日子为甚么一去不复返呢'],
-      ['beiying', '我与父亲不相见已二年余了', '我不知何时再能与他相见'],
-      ['zaibie-kangqiao', '轻轻的我走了', '不带走一片云彩'],
-      ['baicaoyuan', '我家的后面有一个很大的园', '这东西早已没有了罢'],
-      ['shexi', '我在倒数上去的二十年中', '也不再看到那夜似的好戏了'],
-      ['hetang-yuese', '这几天心里颇不宁静', '妻已睡熟好久了'],
-      ['a-q-zhengzhuan', '我要给阿Q做正传', '他们白跟一趟了'],
-    ]) {
-      const text = read(id);
-      expect(text.split('\n').slice(1, 3).join('\n'), id).toContain(first); // after the title (and a chapter heading)
-      expect(text, id).toContain(last);
-      // Editors' notes shown as tooltips on Wikisource stay out of the story.
-      expect(text, id).not.toMatch(/一作「|编集时所加/);
-    }
   });
 });

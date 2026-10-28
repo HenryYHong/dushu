@@ -209,7 +209,6 @@ python3 -I scripts/build_rare_chars.py .     # rare-character supplement (stream
 python3 -I scripts/build_words_extra.py .    # extra words CC-CEDICT lacks
 python3 -I scripts/fetch_samples.py .        # the short sample texts
 python3 -I scripts/fetch_classics.py .       # the four classical novels
-python3 -I scripts/fetch_stories.py .        # the short modern classics (1919-1928)
 ```
 
 Raw downloads are cached in `.cache/raw/`, so reruns are mostly offline. The file formats are described in `ARCHITECTURE.md`.
