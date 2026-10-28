@@ -177,6 +177,21 @@ describe('library screen', () => {
     await until(() => coverOf(old.id).classList.contains('lib-cover-classic'));
   });
 
+  it('draws a classic\'s painting as the board of its cover, title and all, and an imported book\'s picture as it is', async () => {
+    const png = () => new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
+    const classic = await store.books.add({ ...book('故乡', '鲁迅'), sourceName: 'sample:guxiang', cover: 'sample-cover.jpg', assets: new Map([['sample-cover.jpg', png()]]) });
+    const own = await store.books.add({ ...book('撒哈拉的故事', '三毛'), cover: 'cover.png', assets: new Map([['cover.png', png()]]) });
+    const asked = vi.spyOn(store.books, 'assetUrl').mockImplementation(async (id) => `blob:${id}`);
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector(`.lib-card[data-id="${classic.id}"] .lib-cover-art-img`));
+    const painted = root.querySelector(`.lib-card[data-id="${classic.id}"] .lib-cover`)!;
+    expect(painted.querySelector('.lib-cover-title')?.textContent).toBe('故乡');
+    expect(painted.querySelector<HTMLImageElement>('.lib-cover-art-img')!.src).toBe(`blob:${classic.id}`);
+    // The book's own picture is asked for to be shown bare (once it loads), and is never drawn over.
+    expect(asked).toHaveBeenCalledWith(own.id, 'cover.png');
+    expect(root.querySelector(`.lib-card[data-id="${own.id}"] .lib-cover-art`)).toBeNull();
+  });
+
   it('shows a book\'s own picture until a drawn cover is picked for it in the card menu', async () => {
     const pictured = await store.books.add({ ...book('撒哈拉的故事', '三毛'), cover: 'cover.png', assets: new Map([['cover.png', new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' })]]) });
     const asked = vi.spyOn(store.books, 'assetUrl');

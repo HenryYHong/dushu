@@ -87,6 +87,11 @@ export async function fetchSamples(fetchFn: Fetch = (u) => fetch(u)): Promise<Sa
 /** The asset name a classic's cover is stored under. */
 const COVER_ASSET = 'sample-cover.jpg';
 
+/** Whether a book's picture is a classic's painting (added with it, or given it later): drawn as the cloth of its cover. */
+export function hasSamplePainting(b: { cover?: string; coverFrom?: string }): boolean {
+  return !!b.cover && (b.cover === COVER_ASSET || !!b.coverFrom?.startsWith('sample:'));
+}
+
 /** A classic's cover image, or null when it cannot be had. */
 export async function sampleCover(s: Pick<Sample, 'cover'>): Promise<Blob | null> {
   if (!s.cover) return null;

@@ -116,6 +116,27 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* A classic's painting as the board (cover.ts setCoverArt): the picture under everything, the drawn cover's slip, stitching,
+   hinge and band over it, so it is still a book's cover with its title. */
+.lib-cover-art-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.lib-cover-art::before, .lib-cover-art::after { z-index: 1; }
+.lib-cover-art .lib-cover-frame { z-index: 2; }
+/* Thread-bound: the board darkens toward the spine, under the silk caps. */
+.lib-cover-classic.lib-cover-art::before {
+  background:
+    linear-gradient(rgba(255, 250, 240, 0.22), rgba(255, 250, 240, 0.22)) right top / 9cqw 9cqw no-repeat,
+    linear-gradient(rgba(255, 250, 240, 0.22), rgba(255, 250, 240, 0.22)) right bottom / 9cqw 9cqw no-repeat,
+    linear-gradient(90deg, transparent 0 74%, rgba(0, 0, 0, 0.28) 100%);
+}
+/* Modern: the title, rule and author set at the foot, over a shade that keeps them legible and leaves a face clear. */
+.lib-cover-shade {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(0deg, rgba(12, 10, 8, 0.9) 0, rgba(12, 10, 8, 0.72) 30%, rgba(12, 10, 8, 0.35) 48%, rgba(12, 10, 8, 0) 64%);
+}
+.lib-cover-modern.lib-cover-art { color: #f6f1e7; }
+.lib-cover-modern.lib-cover-art .lib-cover-frame { top: auto; bottom: 23cqw; max-height: 70cqw; }
+.lib-cover-modern.lib-cover-art .lib-cover-title { text-shadow: 0 0.4cqw 1.6cqw rgba(0, 0, 0, 0.45); }
+
 /* ---------- progress bar ---------- */
 .lib-bar { height: 2px; border-radius: 1px; background: var(--rule); overflow: hidden; }
 .lib-bar-fill { height: 100%; border-radius: 1px; background: var(--accent); transition: width 0.2s var(--ease); }

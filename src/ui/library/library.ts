@@ -4,7 +4,7 @@ import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { createBookShares } from './bookShare';
-import { bookCover, generatedCover } from './cover';
+import { bookCover, generatedCover, setCoverArt } from './cover';
 import { coverChoice, withCoverChoice, type CoverChoice } from './coverStyle';
 import { bookEra } from './era';
 import { pageTitle } from '../pageHead';
@@ -12,7 +12,7 @@ import { confirmDialog, formDialog } from './dialogs';
 import { compactCount, plural, progressFraction, progressLabel } from './format';
 import { ACCEPT, createImporter, jobStage, loadImporters, prefetchImporters, type Importer, type Job } from './importer';
 import { pasteDialog } from './paste';
-import { fetchSamples, loadSampleBook, sampleCover, sampleSourceName, type Sample } from './samples';
+import { fetchSamples, hasSamplePainting, loadSampleBook, sampleCover, sampleSourceName, type Sample } from './samples';
 import { BRIDGE_EVENT, isMacOrigin } from '../../core/macBridge';
 import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
 import { addedMessage, duplicateMacBooks, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
@@ -277,7 +277,7 @@ export const mount: MountFn = (root, _params, ctx) => {
         const fromMac = isMacBook(b) || !!macItemFor(b, macItems);
         const chosen = coverChoice(ctx.settings.get().covers, b);
         // A book that came with a picture shows it unless a drawn cover is picked; one without is drawn in its era's style.
-        const auto = b.cover ? 'The book’s picture' : `Automatic (${bookEra(b) === 'classic' ? 'Classic' : 'Modern'})`;
+        const auto = b.cover && !hasSamplePainting(b) ? 'The book’s picture' : `Automatic (${bookEra(b) === 'classic' ? 'Classic' : 'Modern'})`;
         const pick = (c: CoverChoice) => ({
           label: c === 'auto' ? auto : c === 'classic' ? 'Classic' : 'Modern',
           checked: chosen === c,
@@ -498,16 +498,11 @@ export const mount: MountFn = (root, _params, ctx) => {
     return list;
   });
 
-  /** A classic not added yet: its painting, over the drawn cover it shows until the picture is in (or if it never comes). */
+  /** A classic not added yet: its drawn cover, with its painting as the board. */
   function sampleCoverEl(s: Sample): HTMLElement {
-    const wrap = h('div.lib-cover-wrap.lib-cover-wrap-sm', null,
-      generatedCover(s.title, s.author, 'sm', bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) })));
-    if (s.cover) {
-      const img = h('img.lib-cover-img', { alt: '', decoding: 'async' }) as HTMLImageElement;
-      img.addEventListener('load', () => { wrap.replaceChildren(img); }, { once: true });
-      img.src = new URL(`samples/${s.cover}`, document.baseURI).href;
-    }
-    return wrap;
+    const drawn = generatedCover(s.title, s.author, 'sm', bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }));
+    if (s.cover) setCoverArt(drawn, new URL(`samples/${s.cover}`, document.baseURI).href);
+    return h('div.lib-cover-wrap.lib-cover-wrap-sm', null, drawn);
   }
 
   /** Classics added before they had covers get theirs, once each (a drawn cover picked in the menu still wins). */
