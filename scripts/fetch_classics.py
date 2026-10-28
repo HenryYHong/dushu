@@ -256,7 +256,7 @@ def update_index(root, stats):
                  "note": note, "chapters": stats[bid][0], "chars": stats[bid][1],
                  "group": "Four Great Classical Novels"}
         if bid in by_id:
-            idx[by_id[bid]] = entry
+            idx[by_id[bid]] = {**idx[by_id[bid]], **entry}  # keeps fields kept by hand (titles per script, cover)
         else:
             idx.append(entry)
     json.dump(idx, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)

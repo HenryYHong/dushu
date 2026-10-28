@@ -153,6 +153,15 @@ describe('service worker', () => {
     expect(sw.stores.has('dushu-first-visit')).toBe(false);
   });
 
+  it('keeps what the previous offline copy had, when an update changed other files: asked, not fetched again', async () => {
+    const files = { '/data/cedict.tsv.gz': { type: 'application/gzip', body: 'words', etag: '"v1"' } };
+    const sw = loadWorker({ online: true, files, precache: ['data/cedict.tsv.gz'] });
+    sw.stores.set('dushu-static-older', new Map([['https://app.test/data/cedict.tsv.gz', new Response('words', { headers: { ETag: '"v1"' } })]]));
+    await sw.install();
+    expect(await sw.stores.get('dushu-static-d')!.get('https://app.test/data/cedict.tsv.gz')!.text()).toBe('words');
+    expect(sw.added).not.toContain('https://app.test/data/cedict.tsv.gz');
+  });
+
   it('precaches the bundled Newsreader files at install, and they ship with their license', async () => {
     expect(swSource).toMatch(/const UI_FONTS = \['fonts\/newsreader-roman\.woff2', 'fonts\/newsreader-italic\.woff2'\];/);
     const sw = loadWorker({ online: true });

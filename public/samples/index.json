@@ -16,7 +16,9 @@
     "traditional": {
       "title": "唐詩八首",
       "author": "李白、王維等"
-    }
+    },
+    "cover": "covers/tang-poems.jpg",
+    "coverCredit": "Guo Xi, Early Spring (早春图), 1072. National Palace Museum, Taipei. Public domain, via Wikimedia Commons."
   },
   {
     "id": "kong-yiji",
@@ -35,7 +37,9 @@
     "traditional": {
       "title": "孔乙己",
       "author": "魯迅"
-    }
+    },
+    "cover": "covers/kong-yiji.jpg",
+    "coverCredit": "Lu Xun in Shanghai, 1 May 1933. Public domain, via Wikimedia Commons."
   },
   {
     "id": "guxiang",
@@ -54,7 +58,9 @@
     "traditional": {
       "title": "故鄉",
       "author": "魯迅"
-    }
+    },
+    "cover": "covers/guxiang.jpg",
+    "coverCredit": "Ma Yuan, Angler on a Wintry Lake (寒江独钓图), about 1195. Tokyo National Museum. Public domain, via Wikimedia Commons."
   },
   {
     "id": "kuangren-riji",
@@ -73,7 +79,9 @@
     "traditional": {
       "title": "狂人日記",
       "author": "魯迅"
-    }
+    },
+    "cover": "covers/kuangren-riji.jpg",
+    "coverCredit": "Lu Xun at fifty, Shanghai, September 1930. Public domain, via Wikimedia Commons."
   },
   {
     "id": "lunyu-xue-er",
@@ -92,7 +100,9 @@
     "traditional": {
       "title": "論語·學而",
       "author": "孔子弟子"
-    }
+    },
+    "cover": "covers/lunyu-xue-er.jpg",
+    "coverCredit": "Confucius at leisure (孔子燕居像), anonymous. Public domain, via Wikimedia Commons."
   },
   {
     "id": "xiyouji-1",
@@ -111,7 +121,9 @@
     "traditional": {
       "title": "西遊記 第一回",
       "author": "吳承恩"
-    }
+    },
+    "cover": "covers/xiyouji-1.jpg",
+    "coverCredit": "Sun Wukong on a cloud, woodblock illustration to Journey to the West. Public domain, via Wikimedia Commons."
   },
   {
     "id": "xiyouji",
@@ -133,7 +145,9 @@
     "traditional": {
       "title": "西遊記",
       "author": "吳承恩"
-    }
+    },
+    "cover": "covers/xiyouji.jpg",
+    "coverCredit": "Cover of the Ming edition of Li Zhuowu’s commented Journey to the West, illustrations volume. Public domain, via Wikimedia Commons."
   },
   {
     "id": "hongloumeng",
@@ -155,7 +169,9 @@
     "traditional": {
       "title": "紅樓夢",
       "author": "曹雪芹、高鶚"
-    }
+    },
+    "cover": "covers/hongloumeng.jpg",
+    "coverCredit": "Sun Wen, the Garden of Grand View (大观园), 19th century. Lüshun Museum. Public domain, via Wikimedia Commons."
   },
   {
     "id": "sanguo",
@@ -177,7 +193,9 @@
     "traditional": {
       "title": "三國演義",
       "author": "羅貫中"
-    }
+    },
+    "cover": "covers/sanguo.jpg",
+    "coverCredit": "Shang Xi, Guan Yu Captures General Pang De (关羽擒将图), 15th century. Palace Museum, Beijing. Public domain, via Wikimedia Commons."
   },
   {
     "id": "shuihu",
@@ -199,6 +217,8 @@
     "traditional": {
       "title": "水滸傳",
       "author": "施耐庵"
-    }
+    },
+    "cover": "covers/shuihu.jpg",
+    "coverCredit": "Chen Hongshou, Yang Zhi, from the Water Margin cards (水浒叶子), 17th century. Public domain, via Wikimedia Commons."
   }
 ]

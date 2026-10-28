@@ -1,13 +1,57 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { importText } from '../../src/import';
 import { fetchSamples, loadSampleBook, parseSampleIndex, sampleSourceName } from '../../src/ui/library/samples';
 
 const samplesDir = join(__dirname, '../../public/samples');
 const realIndex = JSON.parse(readFileSync(join(samplesDir, 'index.json'), 'utf8'));
 const res = (ok: boolean, body: string) => Promise.resolve({ ok, text: () => Promise.resolve(body) });
+
+/** Width and height from a JPEG's frame header. */
+function jpegSize(b: Buffer): [number, number] {
+  for (let i = 2; i < b.length - 9;) {
+    if (b[i] !== 0xff) return [0, 0];
+    const marker = b[i + 1];
+    if (marker >= 0xc0 && marker <= 0xc3) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)];
+    i += 2 + b.readUInt16BE(i + 2);
+  }
+  return [0, 0];
+}
+
+describe('the classics\' covers', () => {
+  it('are public-domain pictures: 600 by 840 JPEGs of a modest size, each credited', () => {
+    const list = parseSampleIndex(realIndex).filter((x) => x.cover);
+    expect(list.length).toBe(10);
+    for (const x of list) {
+      const bytes = readFileSync(join(samplesDir, x.cover!));
+      expect([...bytes.subarray(0, 3)], x.id).toEqual([0xff, 0xd8, 0xff]);
+      expect(jpegSize(bytes), x.id).toEqual([600, 840]);
+      expect(bytes.length, x.id).toBeLessThan(200_000);
+      expect(x.coverCredit, x.id).toMatch(/Public domain/);
+    }
+  });
+
+  it('are kept only at covers/<name>.jpg', () => {
+    expect(parseSampleIndex([{ id: 'a', title: 'A', file: 'a.txt', cover: '../x.jpg' }])[0].cover).toBeUndefined();
+    expect(parseSampleIndex([{ id: 'a', title: 'A', file: 'a.txt', cover: 'covers/a.jpg' }])[0].cover).toBe('covers/a.jpg');
+  });
+
+  it('come along as the book\'s cover when a classic is added, and the book adds without one', async () => {
+    const x = parseSampleIndex(realIndex).find((y) => y.id === 'kong-yiji')!;
+    const jpg = readFileSync(join(samplesDir, x.cover!));
+    const text = readFileSync(join(samplesDir, x.file), 'utf8');
+    vi.stubGlobal('fetch', async (url: string) => (String(url).endsWith(x.cover!) ? new Response(jpg, { headers: { 'Content-Type': 'image/jpeg' } }) : new Response('', { status: 404 })));
+    try {
+      const book = await loadSampleBook(x, importText, () => res(true, text));
+      expect(book.cover).toBe('sample-cover.jpg');
+      expect(book.assets.get('sample-cover.jpg')?.size).toBe(jpg.length);
+      vi.stubGlobal('fetch', async () => { throw new TypeError('offline'); });
+      expect((await loadSampleBook(x, importText, () => res(true, text))).cover).toBeUndefined();
+    } finally { vi.unstubAllGlobals(); }
+  });
+});
 
 describe('parseSampleIndex', () => {
   it('reads the real index', () => {

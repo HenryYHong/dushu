@@ -304,6 +304,10 @@ def main():
              note="Written in the 16th century, in the public domain worldwide."),
     ]
 
+    # Fields kept by hand in the index (titles per script, covers) and the entries other scripts add (fetch_classics.py) stay.
+    path = os.path.join(outdir, "index.json")
+    old = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else []
+    old_by_id = {e["id"]: e for e in old}
     index = []
     for b in books:
         lines = b["lines"] if b["lines"] is not None else luxun(b["wsid"])
@@ -314,10 +318,12 @@ def main():
         fname = b["id"] + ".txt"
         with open(os.path.join(outdir, fname), "w", encoding="utf-8", newline="\n") as fh:
             fh.write(text)
-        index.append(dict(id=b["id"], title=b["title"], author=b["author"], script=b["script"], file=fname,
-                          level=b["level"], blurb=b["blurb"], source=b["source"], note=b["note"]))
+        index.append({**old_by_id.get(b["id"], {}), **dict(id=b["id"], title=b["title"], author=b["author"], script=b["script"], file=fname,
+                          level=b["level"], blurb=b["blurb"], source=b["source"], note=b["note"])})
         print(f"{b['id']:14} {han_count(text):6} Han chars  {len(lines):4} lines")
-    with open(os.path.join(outdir, "index.json"), "w", encoding="utf-8") as fh:
+    ours = {e["id"] for e in index}
+    index += [e for e in old if e["id"] not in ours]
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(index, fh, ensure_ascii=False, indent=2)
         fh.write("\n")
 

@@ -51,11 +51,15 @@ self.addEventListener('install', (event) => {
     const fresh = [];
     for (const p of PRECACHE.filter((q) => !isStatic(q))) if (!(await reuse(app, p).catch(() => false))) fresh.push(p);
     await add(app, ['./', ...fresh]);
-    // A file the page already downloaded is checked with the server (a tiny "not modified" when it is current) and kept,
-    // instead of downloaded a second time. A changed file comes back whole and is stored instead.
+    // A file the page already downloaded on a first visit, or that the previous offline copy kept (an update that changed
+    // other files, such as the list of classics), is checked with the server (a tiny "not modified" when it is current) and
+    // kept, instead of downloaded again. A changed file comes back whole and is stored instead.
     const handed = await caches.open(FIRST_VISIT_CACHE);
+    const older = [];
+    for (const name of await caches.keys()) if (name.startsWith('dushu-static-') && name !== STATIC_CACHE) older.push(await caches.open(name));
     const takeOver = async (p) => {
-      const prior = await handed.match(p, MATCH);
+      let prior = await handed.match(p, MATCH);
+      for (const c of older) prior = prior || await c.match(p, MATCH);
       const tag = prior && prior.headers.get('ETag');
       if (!tag) return false;
       const res = await fetch(new Request(p, { headers: { 'If-None-Match': tag }, cache: 'no-store' }));

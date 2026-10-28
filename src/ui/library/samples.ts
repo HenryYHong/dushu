@@ -15,6 +15,9 @@ export interface Sample {
   chapters?: number;
   chars?: number;
   group?: string;
+  /** Its cover, a public-domain painting or photograph, relative to samples/ (covers/<id>.jpg), and where it is from. */
+  cover?: string;
+  coverCredit?: string;
   /** The title and author in each script, so the list shows them in the reading script before the dictionary is in. */
   simplified?: { title: string; author: string };
   traditional?: { title: string; author: string };
@@ -56,6 +59,8 @@ export function parseSampleIndex(raw: unknown): Sample[] {
       chapters: posInt(r.chapters),
       chars: posInt(r.chars),
       group: str(r.group) || undefined,
+      cover: /^covers\/[a-z0-9-]+\.jpg$/.test(str(r.cover)) ? str(r.cover) : undefined,
+      coverCredit: str(r.coverCredit) || undefined,
       ...scripts(r),
     });
   }
@@ -77,6 +82,19 @@ export async function fetchSamples(fetchFn: Fetch = (u) => fetch(u)): Promise<Sa
   } catch {
     return [];
   }
+}
+
+/** The asset name a classic's cover is stored under. */
+const COVER_ASSET = 'sample-cover.jpg';
+
+/** A classic's cover image, or null when it cannot be had. */
+export async function sampleCover(s: Pick<Sample, 'cover'>): Promise<Blob | null> {
+  if (!s.cover) return null;
+  try {
+    const res = await fetch(baseUrl() + s.cover);
+    const blob = res.ok ? await res.blob() : null;
+    return blob && /^image\//.test(blob.type || 'image/jpeg') ? blob : null;
+  } catch { return null; }
 }
 
 /** Marks a stored book as coming from a sample, so the list can show "In your library". */
@@ -103,8 +121,11 @@ export async function loadSampleBook(
   const text = await res.text();
   if (/^\s*<(?:!doctype|html)/i.test(text)) throw new Error(`“${shownTitle}” is not available right now.`);
   const book = importText(text, s.title, s.author);
+  // The classic's painting comes along as its cover. Without it (offline, not stored yet) the book still adds, drawn.
+  const cover = s.cover ? await sampleCover(s) : null;
   return {
     ...book,
+    ...(cover ? { assets: new Map([...book.assets, [COVER_ASSET, cover]]), cover: COVER_ASSET } : {}),
     title: s.title,
     author: s.author || book.author,
     format: 'sample',

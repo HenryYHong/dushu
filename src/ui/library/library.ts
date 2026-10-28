@@ -5,14 +5,14 @@ import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { createBookShares } from './bookShare';
 import { bookCover, generatedCover } from './cover';
-import { coverChoice, coverStyleFor, withCoverChoice, type CoverChoice } from './coverStyle';
+import { coverChoice, withCoverChoice, type CoverChoice } from './coverStyle';
 import { bookEra } from './era';
 import { pageTitle } from '../pageHead';
 import { confirmDialog, formDialog } from './dialogs';
 import { compactCount, plural, progressFraction, progressLabel } from './format';
 import { ACCEPT, createImporter, jobStage, loadImporters, prefetchImporters, type Importer, type Job } from './importer';
 import { pasteDialog } from './paste';
-import { fetchSamples, loadSampleBook, sampleSourceName, type Sample } from './samples';
+import { fetchSamples, loadSampleBook, sampleCover, sampleSourceName, type Sample } from './samples';
 import { BRIDGE_EVENT, isMacOrigin } from '../../core/macBridge';
 import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
 import { addedMessage, duplicateMacBooks, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
@@ -377,8 +377,7 @@ export const mount: MountFn = (root, _params, ctx) => {
           },
         }, busy ? 'Adding…' : 'Add and read');
     return h('article.lib-sample.card', null,
-      h('div.lib-sample-cover', null, generatedCover(s.title, s.author, 'sm',
-        existing ? coverStyleFor(ctx.settings.get().covers, existing) : bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }))),
+      h('div.lib-sample-cover', null, existing ? bookCover(existing, store, 'sm', ctx.settings.get().covers) : sampleCoverEl(s)),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
           h('div.lib-sample-title.zh', null, sampleShown(s, 'title')),
@@ -502,6 +501,29 @@ export const mount: MountFn = (root, _params, ctx) => {
     return list;
   });
 
+  /** A classic not added yet: its painting, over the drawn cover it shows until the picture is in (or if it never comes). */
+  function sampleCoverEl(s: Sample): HTMLElement {
+    const wrap = h('div.lib-cover-wrap.lib-cover-wrap-sm', null,
+      generatedCover(s.title, s.author, 'sm', bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) })));
+    if (s.cover) {
+      const img = h('img.lib-cover-img', { alt: '', decoding: 'async' }) as HTMLImageElement;
+      img.addEventListener('load', () => { wrap.replaceChildren(img); }, { once: true });
+      img.src = new URL(`samples/${s.cover}`, document.baseURI).href;
+    }
+    return wrap;
+  }
+
+  /** Classics added before they had covers get theirs, once each (a drawn cover picked in the menu still wins). */
+  async function coverOldSamples(list: Sample[]): Promise<void> {
+    for (const b of books) {
+      const s = b.sourceName?.startsWith('sample:') && !b.cover ? list.find((x) => sampleSourceName(x.id) === b.sourceName) : undefined;
+      const from = s?.cover ? `sample:${s.cover}` : '';
+      if (!s || !from || b.coverFrom === from || !alive) continue;
+      const image = await sampleCover(s);
+      if (image) await store.books.setCover(b.id, image, from).catch(() => {});
+    }
+  }
+
   /** Books made by an older importer are imported again, quietly, when they can be fetched (upgrade.ts). */
   async function upgradeOld(): Promise<void> {
     if (!alive) return;
@@ -554,6 +576,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     forgetRemovedList();
     await refreshMac(true);
     void upgradeOld();
+    void samplesReady.then((list) => coverOldSamples(list));
     if (!alive || !new URLSearchParams(location.search).has('importLocalBooks')) return;
     // Explicit opt-in only. Home Screen users can also choose Add books from Mac in Library.
     history.replaceState(null, '', location.pathname + location.hash);
