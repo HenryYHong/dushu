@@ -114,6 +114,216 @@
     }
   },
   {
+    "id": "luohuasheng",
+    "title": "落花生",
+    "author": "许地山",
+    "script": "simplified",
+    "file": "luohuasheng.txt",
+    "level": "Intermediate",
+    "blurb": "A family harvests peanuts, and over dinner the father says what the humble peanut can teach them. A school favorite. Written in 1922, it often writes the possessive de with an older character, di.",
+    "source": "https://zh.wikisource.org/wiki/落花生",
+    "note": "Published in 1922, so it is in the US public domain (published before 1931). 許地山 died in 1941.",
+    "chars": 484,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "落花生",
+      "author": "许地山"
+    },
+    "traditional": {
+      "title": "落花生",
+      "author": "許地山"
+    }
+  },
+  {
+    "id": "chabuduo",
+    "title": "差不多先生传",
+    "author": "胡适",
+    "script": "simplified",
+    "file": "chabuduo.txt",
+    "level": "Intermediate",
+    "blurb": "The comic life of Mr. More-or-Less, who thinks close enough is always good enough, right up to the end.",
+    "source": "https://zh.wikisource.org/wiki/差不多先生傳",
+    "note": "Published in 1919, so it is in the US public domain (published before 1931). 胡適 died in 1962.",
+    "chars": 851,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "差不多先生传",
+      "author": "胡适"
+    },
+    "traditional": {
+      "title": "差不多先生傳",
+      "author": "胡適"
+    }
+  },
+  {
+    "id": "yijian-xiaoshi",
+    "title": "一件小事",
+    "author": "鲁迅",
+    "script": "simplified",
+    "file": "yijian-xiaoshi.txt",
+    "level": "Intermediate",
+    "blurb": "A rickshaw puller stops to help an old woman, and the passenger in a hurry sees himself in a new light. Very short.",
+    "source": "https://zh.wikisource.org/wiki/一件小事",
+    "note": "Published in 1919, so it is in the US public domain (published before 1931). 魯迅 died in 1936.",
+    "chars": 885,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "一件小事",
+      "author": "鲁迅"
+    },
+    "traditional": {
+      "title": "一件小事",
+      "author": "魯迅"
+    }
+  },
+  {
+    "id": "congcong",
+    "title": "匆匆",
+    "author": "朱自清",
+    "script": "simplified",
+    "file": "congcong.txt",
+    "level": "Intermediate",
+    "blurb": "A short prose poem on how the days slip away, one of the best-loved essays in modern Chinese.",
+    "source": "https://zh.wikisource.org/wiki/匆匆",
+    "note": "Published in 1922, so it is in the US public domain (published before 1931). 朱自清 died in 1948.",
+    "chars": 544,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "匆匆",
+      "author": "朱自清"
+    },
+    "traditional": {
+      "title": "匆匆",
+      "author": "朱自清"
+    }
+  },
+  {
+    "id": "beiying",
+    "title": "背影",
+    "author": "朱自清",
+    "script": "simplified",
+    "file": "beiying.txt",
+    "level": "Intermediate",
+    "blurb": "A son remembers his father crossing the railway tracks to buy him oranges. Perhaps the most famous essay in Chinese.",
+    "source": "https://zh.wikisource.org/wiki/背影",
+    "note": "Published in 1925, so it is in the US public domain (published before 1931). 朱自清 died in 1948.",
+    "chars": 1148,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "背影",
+      "author": "朱自清"
+    },
+    "traditional": {
+      "title": "背影",
+      "author": "朱自清"
+    }
+  },
+  {
+    "id": "zaibie-kangqiao",
+    "title": "再别康桥",
+    "author": "徐志摩",
+    "script": "simplified",
+    "file": "zaibie-kangqiao.txt",
+    "level": "Intermediate",
+    "blurb": "Saying goodbye to Cambridge. A short poem many Chinese readers know by heart.",
+    "source": "https://zh.wikisource.org/wiki/再別康橋",
+    "note": "Published in 1928, so it is in the US public domain (published before 1931). 徐志摩 died in 1931.",
+    "chars": 207,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "再别康桥",
+      "author": "徐志摩"
+    },
+    "traditional": {
+      "title": "再別康橋",
+      "author": "徐志摩"
+    }
+  },
+  {
+    "id": "baicaoyuan",
+    "title": "从百草园到三味书屋",
+    "author": "鲁迅",
+    "script": "simplified",
+    "file": "baicaoyuan.txt",
+    "level": "Intermediate",
+    "blurb": "Lu Xun remembers the wild garden he played in as a boy, and the old-style school he was sent to next.",
+    "source": "https://zh.wikisource.org/wiki/從百草園到三味書屋",
+    "note": "Published in 1926, so it is in the US public domain (published before 1931). 魯迅 died in 1936.",
+    "chars": 2139,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "从百草园到三味书屋",
+      "author": "鲁迅"
+    },
+    "traditional": {
+      "title": "從百草園到三味書屋",
+      "author": "魯迅"
+    }
+  },
+  {
+    "id": "shexi",
+    "title": "社戏",
+    "author": "鲁迅",
+    "script": "simplified",
+    "file": "shexi.txt",
+    "level": "Intermediate",
+    "blurb": "Boys row through the night to a village opera, then steal beans on the way home. Lu Xun at his warmest.",
+    "source": "https://zh.wikisource.org/wiki/社戲",
+    "note": "Published in 1922, so it is in the US public domain (published before 1931). 魯迅 died in 1936.",
+    "chars": 5157,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "社戏",
+      "author": "鲁迅"
+    },
+    "traditional": {
+      "title": "社戲",
+      "author": "魯迅"
+    }
+  },
+  {
+    "id": "hetang-yuese",
+    "title": "荷塘月色",
+    "author": "朱自清",
+    "script": "simplified",
+    "file": "hetang-yuese.txt",
+    "level": "Advanced",
+    "blurb": "A walk by a lotus pond on a moonlit night. Rich, careful description, a classic of modern prose.",
+    "source": "https://zh.wikisource.org/wiki/荷塘月色",
+    "note": "Published in 1927, so it is in the US public domain (published before 1931). 朱自清 died in 1948.",
+    "chars": 1196,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "荷塘月色",
+      "author": "朱自清"
+    },
+    "traditional": {
+      "title": "荷塘月色",
+      "author": "朱自清"
+    }
+  },
+  {
+    "id": "a-q-zhengzhuan",
+    "title": "阿Q正传",
+    "author": "鲁迅",
+    "script": "simplified",
+    "file": "a-q-zhengzhuan.txt",
+    "level": "Advanced",
+    "blurb": "The novella of Ah Q, a village laborer who turns every defeat into a victory in his head. Lu Xun's best-known work.",
+    "source": "https://zh.wikisource.org/wiki/阿Q正傳",
+    "note": "Published in 1921, so it is in the US public domain (published before 1931). 魯迅 died in 1936.",
+    "chars": 17958,
+    "group": "Short Modern Classics",
+    "simplified": {
+      "title": "阿Q正传",
+      "author": "鲁迅"
+    },
+    "traditional": {
+      "title": "阿Q正傳",
+      "author": "魯迅"
+    }
+  },
+  {
     "id": "xiyouji",
     "title": "西遊記",
     "author": "吳承恩",
