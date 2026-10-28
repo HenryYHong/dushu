@@ -5,6 +5,8 @@ import { h, clear } from '../dom';
 import { pageTitle } from '../pageHead';
 import { icon } from '../icons';
 import { SHORTCUTS, keyCaps } from '../shortcuts';
+import { connectedMac, isMacOrigin } from '../../core/macBridge';
+import { isAccountOwner } from '../../core/cloud';
 
 export { SHORTCUTS };
 
@@ -36,13 +38,13 @@ const HOW_TO: [string, string][] = [
   ['Read with help', 'Choose how much pinyin to see: none, all, only words you have not marked as known, or only words above an HSK level.'],
   ['Look things up', 'Tap a word for pinyin, definitions and a breakdown of its characters. Drag across a sentence for a translation.'],
   ['Keep what you learn', 'Star a word to add it to your flashcards. Mark a word as known and its pinyin stays out of your way.'],
-  ['Review', 'Open Review each day. Cards come back after longer and longer gaps as you remember them.'],
+  ['Review', 'Open Review each day. It brings back the words you starred and the ones you looked up while reading, after longer and longer gaps as you remember them.'],
 ];
 
 const PAGES: [string, string][] = [
-  ['Pages or scrolling', 'By default a chapter is one long scrolling column. If you prefer turning pages like a printed book, switch the layout to Pages in Settings, or tap Aa, then Layout, in the reader.'],
+  ['Pages or scrolling', 'A chapter is laid out in pages, like a printed book. If you prefer one long column, switch the layout to Scroll in Settings, or tap Aa, then Layout, in the reader.'],
   ['Two pages at a time', 'On a wide screen held sideways, such as an iPad in landscape, you see a spread of two pages. In portrait you see one. You can force either one in Settings, or with Aa, then Layout, in the reader.'],
-  ['Turning', 'Swipe from anywhere on the page, press the arrow keys or Space, or click the left or right edge with a mouse. Tap off the words to show or hide the controls. Choose a page flip, a slide or no animation.'],
+  ['Turning', 'Swipe from anywhere on the page, press the arrow keys or Space, or click the left or right edge with a mouse. Tap off the words to show or hide the controls. Pages slide by default. You can choose a page flip or no animation instead.'],
   ['Where you were', 'Your place is kept by the text, not by the page number, so changing the text size or turning the screen lands you on the same line. It stays when Dushu updates, and when you delete a book and add it again.'],
 ];
 
@@ -52,27 +54,33 @@ const NAMES: [string, string][] = [
   ['You are in charge', 'Tap such a word to see it marked as part of this book. You can fix its pinyin or meaning, mark it as not a word, or add a name Dushu missed from the phrase card.'],
 ];
 
-const IPAD: [string, string][] = [
-  ['Connect privately', 'Use the private HTTPS address shown in Settings, with Tailscale connected on your Mac and iPad under the same account. Keep the Mac awake for private AI and Premium audio. localhost only works on the Mac.'],
-  ['Install it', 'Open the private address in Safari, tap Share, then Add to Home Screen. Imported books and downloaded dictionary data work offline. Mac AI and Mac voices still need the connection.'],
-  ['Translating sentences', 'Safari and iPadOS have no on-device translator, as Chrome does. On an iPad, sentences go to Claude through your Mac, then the model on your Mac, then the dictionary gloss. MyMemory is used only if you pick it.'],
-  ['Bring your books', 'Tap Import book in the Library, then Browse to pick a file from the Files app (iCloud Drive, On My iPad, or a download).'],
-  ['Move your words', 'Settings has a backup export and import. Export on one device, open the file on the other, and your saved words, progress and settings come along. Books are not in the backup, so import them on each device.'],
+const DEVICES: [string, string][] = [
+  ['Install it', 'Open Dushu in Safari, tap Share, then Add to Home Screen, and open it from that icon. It fills the screen like an app, and your books and the dictionary work offline.'],
+  ['Bring your books', 'Tap Import book in the Library and pick a file from the Files app (iCloud Drive, On My iPad, or a download).'],
+  ['Translating sentences', 'Safari has no built-in translator, as Chrome does. On an iPhone or iPad a sentence you select goes to Claude when your account includes it, and otherwise shows its word-by-word gloss.'],
 ];
 
-const HOSTED: [string, string][] = [
-  ['Two copies', 'The hosted copy at henryyhong.com/dushu is a plain static website. It has the dictionary and the classics, and it keeps your books, words and progress in your own browser. Nothing you read is sent to that site.'],
-  ['Your own Mac', 'If you run Dushu on your own Mac, the hosted copy can use it as a private helper: better sentence translation, Premium Mac voices and books that live on that Mac. This works only for the owner of the Mac, over Tailscale, and only after you connect the device once in Settings.'],
-  ['Connecting', 'In Settings on the copy that runs on your Mac, copy the connect link and open it on the device. Or type the Mac address into the Mac field in Settings on the hosted copy. The address is kept in this browser only, never in the website, a backup or a synced setting.'],
-  ['Without a Mac', 'Everything else works the same: lookups, reading, flashcards, offline use. Sentence translation then uses your browser\'s own translator where it has one, and otherwise shows the word-by-word gloss.'],
-  ['Books from the Mac', 'When a device is connected, books the Mac shares are added to its library in the background, then kept like any other book, even offline. They are always there: they cannot be deleted, and if the browser clears them they come back the next time the device reaches the Mac.'],
+const ACCOUNT: [string, string][] = [
+  ['Sign in with your email', 'Tap Sign in at the top and enter your email. A 6-digit code arrives, you type it in, and you are done. There is no password.'],
+  ['What comes along', 'Your books, saved words, the words you looked up, reading places, bookmarks and settings are kept in your account, so every device you sign in on has them. A few choices that depend on the screen, such as one or two pages, stay with each device.'],
+  ['Reading aloud', 'Signed in, Dushu reads with your account\'s voice, up to a daily allowance. Without an account, or past the allowance, it uses your device\'s own voices.'],
+  ['Private to you', 'Only you can see what is in your account. You can delete it in Settings at any time: the account and everything in it go, and this device keeps its own copy.'],
 ];
+
+const MAC: [string, string][] = [
+  ['A private helper', 'If you run Dushu on your own Mac, the website can use it as a private helper over Tailscale: Premium Mac voices, a translation model that runs on the Mac, and books that live on that Mac. This works only for the owner of the Mac.'],
+  ['Connecting', 'In Settings on the copy that runs on your Mac, copy the connect link and open it on the device. Or type the Mac address into the Mac field in Settings on the website. The address is kept in this browser only, never in the website, a backup or a synced setting.'],
+  ['Books from the Mac', 'When a device is connected, books the Mac shares are added to its library in the background, then kept like any other book, even offline. They cannot be deleted, and if the browser clears them they come back the next time the device reaches the Mac.'],
+];
+
+/** The Mac section is for the owner: on the Mac's own page, with a Mac connected, or signed in to the owner's account. */
+const showMac = () => isMacOrigin() || !!connectedMac() || isAccountOwner();
 
 const TRANSLATION: [string, string][] = [
   ['Words and characters', 'Pinyin and meanings come from the dictionaries listed below, which are stored in the app and work offline. Machine translation is only used for whole sentences, and the dictionary is still the source of truth for pinyin.'],
-  ['Sentences, in order', 'With Automatic, Dushu tries Claude through your Mac first, then a small model that runs on your Mac (Qwen3.5 9B), then your browser\'s on-device translator (Chrome has one, Safari does not), and last the dictionary gloss. The first one that is ready is used, and the translation panel says which.'],
-  ['Claude', 'Claude is made by Anthropic. Your Mac sends only the selected sentence and a little nearby context to Anthropic, using a key that stays on the Mac. The key is never in this website, your browser or your backups.'],
-  ['Local only', 'Turn on Local only in Settings and every sentence stays on your Mac: Claude is skipped, and no online service is used.'],
+  ['Sentences, in order', 'With Automatic, Dushu tries Claude first when your account includes it, then a model running on your own Mac if one is connected, then your browser\'s built-in translator (Chrome has one, Safari does not), and last the word-by-word gloss. The translation panel says which one answered.'],
+  ['Claude', 'Claude is made by Anthropic. Only the selected sentence and a little nearby context are sent, through your account or your Mac, with a key that is never in this website, your browser or your backups.'],
+  ['Local only', 'Turn on Local only in Settings and no online service translates anything: Claude and MyMemory are skipped.'],
   ['MyMemory', 'An optional online service. It is used only if you choose it, and it sends the selected text to MyMemory.'],
   ['A caution', 'A machine translation is a help, not a proof. When a sentence matters, check it against the word cards.'],
 ];
@@ -150,14 +158,18 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
       steps(NAMES, false)),
 
     h('section.ab-section', null,
-      h('h2.section-title', null, 'On an iPad'),
-      steps(IPAD),
-      h('p.ab-p.ab-gap', null, 'Why this matters: Safari can delete the stored data of a website you only visit, if you do not open it for about a week. A site added to the Home Screen is treated much more kindly. Dushu also asks the browser to protect its data as soon as you add your first book.'),
-      storageCard()),
+      h('h2.section-title', null, 'Your account'),
+      steps(ACCOUNT, false)),
 
     h('section.ab-section', null,
-      h('h2.section-title', null, 'The hosted copy and your Mac'),
-      steps(HOSTED, false)),
+      h('h2.section-title', null, 'On a phone or iPad'),
+      steps(DEVICES),
+      h('p.ab-p.ab-gap', null, 'Why this matters: Safari can delete the stored data of a website you only visit, if you do not open it for about a week. A site added to the Home Screen is treated much more kindly. Dushu also asks the browser to protect its data as soon as you add your first book, and signed in, your books and words come back from your account.'),
+      storageCard()),
+
+    showMac() ? h('section.ab-section', null,
+      h('h2.section-title', null, 'Your own Mac'),
+      steps(MAC, false)) : null,
 
     h('section.ab-section', null,
       h('h2.section-title', null, 'Where translations come from'),
