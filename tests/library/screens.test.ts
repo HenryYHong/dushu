@@ -176,6 +176,21 @@ describe('library screen', () => {
     await until(() => coverOf(old.id).classList.contains('lib-cover-classic'));
   });
 
+  it('shows a book\'s own picture until a drawn cover is picked for it in the card menu', async () => {
+    const pictured = await store.books.add({ ...book('撒哈拉的故事', '三毛'), cover: 'cover.png', assets: new Map([['cover.png', new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' })]]) });
+    const asked = vi.spyOn(store.books, 'assetUrl');
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => root.querySelectorAll('.lib-card').length === 1);
+    expect(asked).toHaveBeenCalledWith(pictured.id, 'cover.png');
+    root.querySelector<HTMLElement>(`.lib-card[data-id="${pictured.id}"] .lib-card-menu`)!.click();
+    const choices = [...document.querySelectorAll<HTMLElement>('.lib-menu [role="menuitemradio"]')];
+    expect(choices.map((c) => c.textContent)).toEqual(['The book’s picture', 'Classic', 'Modern']);
+    asked.mockClear();
+    choices[2].click();
+    await until(() => root.querySelector(`.lib-card[data-id="${pictured.id}"] .lib-cover-modern`) !== null);
+    expect(asked).not.toHaveBeenCalled();
+  });
+
   it('says how much of each book\'s words are known once some are, and follows changes', async () => {
     const a = await store.books.add(book('孔乙己'));
     cleanup = await mountLibrary(root, {}, ctx);

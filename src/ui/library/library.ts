@@ -277,9 +277,10 @@ export const mount: MountFn = (root, _params, ctx) => {
         // The Mac's books are always in the library, so they have no Delete.
         const fromMac = isMacBook(b) || !!macItemFor(b, macItems);
         const chosen = coverChoice(b.id);
-        const auto = bookEra(b) === 'classic' ? 'Classic' : 'Modern';
+        // A book that came with a picture shows it unless a drawn cover is picked; one without is drawn in its era's style.
+        const auto = b.cover ? 'The book’s picture' : `Automatic (${bookEra(b) === 'classic' ? 'Classic' : 'Modern'})`;
         const pick = (c: CoverChoice) => ({
-          label: c === 'auto' ? `Automatic (${auto})` : c === 'classic' ? 'Classic' : 'Modern',
+          label: c === 'auto' ? auto : c === 'classic' ? 'Classic' : 'Modern',
           checked: chosen === c,
           run: () => { setCoverChoice(b.id, c); renderContinue(); renderGrid(); },
         });
