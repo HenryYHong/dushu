@@ -1,7 +1,8 @@
 // Signing in brings a device everything the account knows about the owner's Mac. A device on the Mac (the Mac's own page,
 // or the private Tailscale copy) tells the account the Mac's private address; a device elsewhere that is signed in learns it
 // and connects, so the Mac's books are added the next time Tailscale is on (library.ts listens for BRIDGE_EVENT). A device
-// the person disconnected from the Mac on purpose is left alone. Nothing here is in the build: the address comes from the
+// still pointed at an older address follows the account's. A device the person disconnected from the Mac on purpose is
+// left alone. Nothing here is in the build: the address comes from the
 // owner's own Mac and is kept in the owner's account and browser.
 import { accountInfo, cloudSession, shareMac } from './cloud';
 import { connectMac, connectedMac, isMacOrigin, macDeclined, parseMacUrl } from './macBridge';
@@ -36,10 +37,12 @@ export function linkMac(): Promise<void> {
           await shareMac(mine);
           storage()?.setItem(SHARED_KEY, mark);
         }
-      } else if (!connectedMac() && !macDeclined()) {
+      } else if (!macDeclined()) {
         const info = await accountInfo();
         const mac = info?.mac ? parseMacUrl(info.mac) : null;
-        if (mac) connectMac(mac);
+        // The account has the Mac's own word for where it is. A device that kept an older address (from before the Mac moved
+        // to another tailnet, or typed by hand) would otherwise keep asking a Mac that is not there, without a word.
+        if (mac && mac !== connectedMac()) connectMac(mac);
       }
     } catch { /* offline or the server is busy: tried again on the next start or sign-in */ }
   })().finally(() => { running = null; });

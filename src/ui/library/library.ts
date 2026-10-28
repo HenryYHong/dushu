@@ -512,6 +512,9 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   const onBridge = () => void refreshMac(true).then(upgradeOld);
   window.addEventListener(BRIDGE_EVENT, onBridge);
+  // Back in front: the Mac may have woken, Tailscale come on, or a book been put in the Mac's book folder meanwhile.
+  const onVisible = () => { if (document.visibilityState === 'visible' && loaded) void refreshMac(true); };
+  document.addEventListener('visibilitychange', onVisible);
 
   // ---- books in the sync account: a book added here goes up soon after (core/cloudBooks.ts; main.ts runs it on open too and
   // says what it did) ----
@@ -548,6 +551,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     shares.dispose();
     window.removeEventListener(REMOTE_PROGRESS_EVENT, onRemoteProgress);
     window.removeEventListener(BRIDGE_EVENT, onBridge);
+    document.removeEventListener('visibilitychange', onVisible);
     window.removeEventListener('dragenter', onEnter);
     window.removeEventListener('dragover', onOver);
     window.removeEventListener('dragleave', onLeave);

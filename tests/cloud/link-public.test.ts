@@ -41,6 +41,13 @@ describe('a signed-in device on the public site', () => {
     expect(heard).toHaveBeenCalled();
   });
 
+  it('follows the account to the Mac\'s current address when this device kept an older one', async () => {
+    await signedInWithMac('https://my-mac.tail1234.ts.net:8443');
+    connectMac('https://my-mac.old-tailnet.ts.net:8443');
+    await linkMac();
+    expect(connectedMac()).toBe('https://my-mac.tail1234.ts.net:8443');
+  });
+
   it('stays disconnected when the person disconnected it, and does nothing when the account knows no Mac', async () => {
     await signedInWithMac('https://my-mac.tail1234.ts.net:8443');
     connectMac('https://my-mac.tail1234.ts.net:8443');
