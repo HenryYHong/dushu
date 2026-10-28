@@ -65,7 +65,12 @@ try { addSecret('the Claude API key', readFileSync(join(homedir(), '.config', 'd
 
 const HAN = /\p{Script=Han}/u;
 const WINDOW = 10;
-const OWNER_BOOKS = ['活着.epub', '射雕英雄传.epub'].map((n) => join(homedir(), 'Downloads', n)).filter((p) => existsSync(p));
+// The two owner EPUBs, and the EPUBs in the drop folder the Mac shares (scripts/local-books.ts).
+const DROP = join(homedir(), 'Downloads', 'Dushu Books');
+const OWNER_BOOKS = [
+  ...['活着.epub', '射雕英雄传.epub'].map((n) => join(homedir(), 'Downloads', n)),
+  ...(existsSync(DROP) ? readdirSync(DROP).filter((n) => /\.epub$/i.test(n)).map((n) => join(DROP, n)) : []),
+].filter((p) => existsSync(p));
 /** Hashes of every 10-character window inside a run of Han characters (punctuation ends a run). */
 const bookWindows = new Set();
 const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };

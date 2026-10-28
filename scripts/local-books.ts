@@ -1,19 +1,37 @@
-// The owner's two EPUBs, read in place from ~/Downloads and served only to the owner's devices through the bridge.
-// They are never copied into the repo, the build or the public site. The list carries a SHA-256 digest of each file's
-// bytes so a device can tell what it already has without downloading it.
+// The owner's books, read in place and served only to the owner's devices through the bridge: the two EPUBs in ~/Downloads,
+// and every book in ~/Downloads/Dushu Books (the drop folder: a book put there shows up on the owner's devices and goes up
+// to their account). They are never copied into the repo, the build or the public site. The list carries a SHA-256 digest
+// of each file's bytes so a device can tell what it already has without downloading it.
 import { createHash } from 'node:crypto';
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { bridgeRequest } from './private-access';
 
 export interface OwnerBook { id: string; name: string; path: string }
+
+/** The drop folder, inside ~/Downloads (the Mac's server can read Downloads when it starts at login). */
+export const DROP_FOLDER = 'Dushu Books';
+const BOOK_TYPES: Record<string, string> = {
+  '.epub': 'application/epub+zip', '.mobi': 'application/x-mobipocket-ebook', '.azw3': 'application/vnd.amazon.ebook',
+  '.azw': 'application/vnd.amazon.ebook', '.pdf': 'application/pdf', '.txt': 'text/plain; charset=utf-8',
+};
+
+/** The books in the drop folder, by file name; the id is a hash of the name, so it is the same on every request. */
+export function folderBooks(folder: string): OwnerBook[] {
+  let names: string[];
+  try { names = readdirSync(folder); } catch { return []; }
+  return names.filter((n) => !n.startsWith('.') && BOOK_TYPES[extname(n).toLowerCase()]).sort()
+    .map((n) => ({ id: 'f-' + createHash('sha1').update(n).digest('hex').slice(0, 16), name: n, path: join(folder, n) }));
+}
+
 export function ownerBooks(dir = join(homedir(), 'Downloads')): OwnerBook[] {
   return [
     { id: 'huozhe', name: '活着.epub', path: join(dir, '活着.epub') },
     { id: 'shediao', name: '射雕英雄传.epub', path: join(dir, '射雕英雄传.epub') },
+    ...folderBooks(join(dir, DROP_FOLDER)),
   ];
 }
 
@@ -39,10 +57,12 @@ export async function listOwnerBooks(books: OwnerBook[]): Promise<{ id: string; 
   return out;
 }
 
-export function localBooksHandler(books: OwnerBook[] = ownerBooks()) {
+/** The bridge's book routes. The list is read again on each request, so a book dropped in the folder shows up without a restart. */
+export function localBooksHandler(list: OwnerBook[] | (() => OwnerBook[]) = () => ownerBooks()) {
   return async function handle(req: IncomingMessage, res: ServerResponse, next: () => void): Promise<void> {
     const route = new URL(req.url ?? '/', 'http://localhost').pathname;
     if (route !== '/api/local-books' && !route.startsWith('/api/local-books/')) { next(); return; }
+    const books = typeof list === 'function' ? list() : list;
     if (!bridgeRequest(req)) { res.writeHead(403).end(); return; }
     if (req.method !== 'GET') { res.writeHead(405).end(); return; }
     res.setHeader('Cache-Control', 'no-store');
@@ -54,7 +74,7 @@ export function localBooksHandler(books: OwnerBook[] = ownerBooks()) {
     const book = books.find(b => route === `/api/local-books/${b.id}`);
     if (!book || !existsSync(book.path)) { res.writeHead(404).end(); return; }
     const { size, sha256 } = await fileDigest(book.path);
-    res.setHeader('Content-Type', 'application/epub+zip');
+    res.setHeader('Content-Type', BOOK_TYPES[extname(book.path).toLowerCase()] ?? 'application/octet-stream');
     res.setHeader('Content-Length', size);
     res.setHeader('ETag', `"${sha256}"`);
     res.setHeader('X-Dushu-Digest', sha256);

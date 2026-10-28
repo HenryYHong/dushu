@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { createServer, request as httpRequest, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
-import { fileDigest, listOwnerBooks, localBooksHandler, ownerBooks } from '../../scripts/local-books';
+import { DROP_FOLDER, fileDigest, listOwnerBooks, localBooksHandler, ownerBooks } from '../../scripts/local-books';
 import { privateGateway } from '../../scripts/private-access';
 
 // Stand-in files with made-up bytes. The owner's real books are never read by a test.
@@ -19,7 +19,7 @@ writeFileSync(join(dir, '射雕英雄传.epub'), second);
 
 const servers: ReturnType<typeof createServer>[] = [];
 afterEach(() => { for (const s of servers.splice(0)) s.close(); delete process.env.DUSHU_EXTRA_ORIGINS; });
-async function serve(books = ownerBooks(dir), withGateway = false) {
+async function serve(books: Parameters<typeof localBooksHandler>[0] = ownerBooks(dir), withGateway = false) {
   const handle = localBooksHandler(books);
   const gateway: ((rq: IncomingMessage, rs: ServerResponse, next: () => void) => void)[] = [];
   if (withGateway) (privateGateway(() => null).configureServer as unknown as (server: unknown) => void)({ middlewares: { use: (fn: never) => gateway.push(fn) } });
@@ -42,10 +42,34 @@ async function serve(books = ownerBooks(dir), withGateway = false) {
 }
 
 describe('the owner\'s books', () => {
-  it('are the two EPUBs, read in place from Downloads', () => {
+  it('are the two EPUBs, read in place from Downloads, then whatever is in the drop folder', () => {
     const books = ownerBooks();
-    expect(books.map(b => [b.id, b.name])).toEqual([['huozhe', '活着.epub'], ['shediao', '射雕英雄传.epub']]);
-    for (const b of books) expect(b.path).toMatch(/\/Downloads\/[^/]+\.epub$/);
+    expect(books.slice(0, 2).map(b => [b.id, b.name])).toEqual([['huozhe', '活着.epub'], ['shediao', '射雕英雄传.epub']]);
+    for (const b of books.slice(0, 2)) expect(b.path).toMatch(/\/Downloads\/[^/]+\.epub$/);
+    for (const b of books.slice(2)) expect(b.path).toContain(`/Downloads/${DROP_FOLDER}/`);
+  });
+
+  it('include a book dropped in the folder, without a restart, and leave other files out', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'dushu-drop-test-'));
+    try {
+      mkdirSync(join(home, DROP_FOLDER));
+      const call = await serve(() => ownerBooks(home));
+      expect(JSON.parse((await call('GET', '/api/local-books')).body.toString())).toEqual([]);
+      const mobi = Buffer.from('BOOKMOBI stand-in '.repeat(100));
+      writeFileSync(join(home, DROP_FOLDER, '草房子.mobi'), mobi);
+      writeFileSync(join(home, DROP_FOLDER, 'cover.png'), 'png');
+      writeFileSync(join(home, DROP_FOLDER, '.DS_Store'), 'x');
+      const list = JSON.parse((await call('GET', '/api/local-books')).body.toString()) as { id: string; name: string; sha256: string }[];
+      expect(list.map(b => b.name)).toEqual(['草房子.mobi']);
+      expect(list[0].id).toMatch(/^f-[0-9a-f]{16}$/);
+      expect(list[0].sha256).toBe(sha(mobi));
+      const got = await call('GET', `/api/local-books/${list[0].id}`);
+      expect(got.status).toBe(200);
+      expect(got.headers['content-type']).toBe('application/x-mobipocket-ebook');
+      expect(got.body.equals(mobi)).toBe(true);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
   });
 
   it('are listed with a SHA-256 of the file bytes, so a device can tell what it already has', async () => {
