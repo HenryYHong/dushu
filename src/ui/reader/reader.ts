@@ -1036,6 +1036,8 @@ export const mount: MountFn = async (root, params, ctx) => {
 
   let saveTimer = 0;
   function saveProgressNow(): void {
+    // A save timed after the reader closed (a chapter that finished showing late): the place was saved as it closed.
+    if (disposed) return;
     window.clearTimeout(saveTimer);
     saveTimer = 0;
     const v = view();
