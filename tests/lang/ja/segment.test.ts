@@ -155,6 +155,14 @@ describe('readings and furigana', () => {
     expect(one('云った').reading).toBe('いった');
   });
 
+  it('reads 御 as お before a verb, in 御…になる, and as ご in Sino-Japanese words', () => {
+    const go = (text: string) => ruby(words(text).find((t) => t.text.startsWith('御'))!);
+    expect(go('ぶらぶら御歩きになっていらっしゃいました')).toBe('御(お)');
+    expect(go('お茶を御飲みになる')).toBe('御(お)');
+    expect(go('御覧になりました')).toBe('御(ご)覧(らん)');
+    expect(go('御存知の通り')).toBe('御(ご)存(ぞん)知(じ)');
+  });
+
   it('reads verbs spelled with kanji IPADIC does not know through JMdict', () => {
     const t = words('鼻を掩った')[2];
     expect(t.text).toBe('掩った');

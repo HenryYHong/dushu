@@ -1,7 +1,6 @@
 // Settings screen: grouped controls, a live preview sentence, translation providers, speech, data. ARCHITECTURE.md 5.6.
 import '../../styles/settings.css';
 import type { MountFn, Settings } from '../../types';
-import { AUTO_KNOWN_HELP } from '../../core/autoKnown';
 import { readingFontSizeKey } from '../../store/settings';
 import { h } from '../dom';
 import { group, row, segmented, slider, toggle, type Control } from './controls';
@@ -12,7 +11,7 @@ import { translationGroup } from './translation';
 import { ipadGroup } from './ipad';
 import { pageTitle } from '../pageHead';
 import { isChinese, lang, syncsHere } from '../../lang/active';
-import { aidName, aidWord, levelCount, levelLabel, levelScheme } from '../../lang/labels';
+import { aidName, aidWord, autoKnownHelp, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { langSelect } from '../langSwitch';
 
 export const mount: MountFn = (root, params, ctx) => {
@@ -93,7 +92,7 @@ export const mount: MountFn = (root, params, ctx) => {
     zh ? row('Tone colors', 'Red, green, blue, purple and gray for tones 1 to 5.', tones) : null,
     zh ? row('Tone changes for yī and bù', '一个 as yí gè, 不是 as bú shì.', sandhi) : null,
     L.stress ? row('Stress marks', 'A mark over the stressed vowel of each word, as in a learner’s dictionary.', stress) : null,
-    row('Learn known words as I read', AUTO_KNOWN_HELP, autoKnown));
+    row('Learn known words as I read', autoKnownHelp(), autoKnown));
   // The language being read. Each one keeps its own books, words and settings; switching opens its library.
   const language = group('Language', null,
     row('Reading in', `Each language keeps its own library, words and settings.${syncsHere() ? '' : ` ${L.name} is not synced with your account yet: its books and words stay on this device.`}`,

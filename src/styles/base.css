@@ -375,6 +375,18 @@ dialog.modal:focus { outline: none; }
 .app-lang:focus-within { outline: 2px solid var(--focus, var(--accent)); outline-offset: 2px; }
 .app-lang .icon { width: 13px; height: 13px; }
 .app-lang-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+/* On a phone the four tabs need the room: the chip shrinks to the language's code (ES, JA). */
+.app-lang-short { display: none; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; }
+@media (max-width: 640px) {
+  .app-lang { margin-left: 6px; padding: 3px 3px 3px 6px; gap: 1px; }
+  .app-lang-name { display: none; }
+  .app-lang-short { display: inline; }
+  .app-nav:has(.app-lang) .app-navlink { margin: 0 4px; }
+}
+@media (min-width: 350px) and (max-width: 384px) {
+  .app-nav:has(.app-lang) .app-navlink { margin: 0 3px; font-size: 12px; }
+  .app-nav:has(.app-lang) .app-signin { margin-left: 3px; }
+}
 
 /* A language other than Chinese (main.ts sets data-lang on the page): text marked .zh across the app (titles, covers, saved
    words) is set in that language's own book face instead of the Chinese one, and .lw marks text of the language anywhere. */

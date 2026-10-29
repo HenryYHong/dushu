@@ -90,14 +90,25 @@ const MAC = [
 /** The Mac section is for the owner: on the Mac's own page, with a Mac connected, or signed in to the owner's account. */
 const showMac = () => isMacOrigin() || !!connectedMac() || isAccountOwner();
 
-const TRANSLATION = [
-  'Pinyin and meanings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.',
-  'On Automatic, Dushu tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
+/** Where translations come from, for a language other than Chinese: no Mac model (it was measured on Chinese only). */
+const otherTranslation = (furigana: boolean): string[] => [
+  `Meanings${furigana ? ' and readings' : ''} come from the dictionaries listed at the bottom. They're part of the app and work offline. Machine translation is only used for whole sentences.`,
+  'On Automatic, Dushu tries Claude first if your account has it, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
+  ...TRANSLATION_REST,
+];
+
+const TRANSLATION_REST = [
   'Claude is made by Anthropic. Only the sentence and a little of the text around it is sent, through your account or your Mac. The key never reaches your browser.',
   'Qwen is an open model from Alibaba. Signed in, it translates your sentences for free on Cloudflare, up to a daily limit. Again, only the sentence and a little of the text around it is sent.',
   'Turn on Local only in Settings and nothing is sent to an online translator.',
   'MyMemory is an online translator you can pick in Settings. It\'s never used unless you choose it.',
   'Machine translation can be wrong. If a sentence matters, check it against the word cards.',
+];
+
+const TRANSLATION = [
+  'Pinyin and meanings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.',
+  'On Automatic, Dushu tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
+  ...TRANSLATION_REST,
 ];
 
 const fmt = (n: number | undefined) => (typeof n === 'number' ? n.toLocaleString('en-US') : '-');
@@ -189,7 +200,7 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
       h('h2.section-title', null, 'On a phone or iPad'),
       steps(DEVICES),
       storageCard()),
-    h('section.ab-section', null, h('h2.section-title', null, 'Where translations come from'), steps(TRANSLATION, false)),
+    h('section.ab-section', null, h('h2.section-title', null, 'Where translations come from'), steps(otherTranslation(furigana), false)),
     h('section.ab-section', null,
       h('h2.section-title', null, 'The dictionary'),
       statRows.length

@@ -184,7 +184,9 @@ function renderWord(token: Token, index: number, opts: RenderOptions): TokenView
   } else {
     // A spaced language: the word is one piece, wrapped in a ruby when it can carry a hint over it.
     // An elided word (French d’, l’, qu’; Italian dell’) carries no hint: one would hold it apart from the word it leans on.
-    const box = aid === 'hint' && !/['’]$/.test(token.text) ? createEl('ruby', 'rd-o rd-hw') : el;
+    const elided = /['’]$/.test(token.text);
+    if (elided) el.classList.add('rd-elided');
+    const box = aid === 'hint' && !elided ? createEl('ruby', 'rd-o rd-hw') : el;
     box.dataset.o = String(token.start);
     if (box !== el) el.classList.add('rd-has-hw');
     // Under a hint the word sits in its own span, so the stylesheet can set word and hint in one cell as wide as the wider.
@@ -215,8 +217,10 @@ function appendStressed(box: HTMLElement, token: Token, stress: boolean): void {
   const cp = token.text.codePointAt(at)!;
   const len = cp > 0xffff ? 2 : 1;
   if (at > 0) box.appendChild(document.createTextNode(token.text.slice(0, at)));
-  const v = createEl('span', 'rd-stress');
-  v.textContent = token.text.slice(at, at + len);
+  const letter = token.text.slice(at, at + len);
+  // A capital is taller: its mark sits higher.
+  const v = createEl('span', letter !== letter.toLowerCase() ? 'rd-stress rd-stress-up' : 'rd-stress');
+  v.textContent = letter;
   box.appendChild(v);
   if (at + len < token.text.length) box.appendChild(document.createTextNode(token.text.slice(at + len)));
 }

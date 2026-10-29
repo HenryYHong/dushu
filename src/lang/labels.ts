@@ -1,6 +1,7 @@
 // The words the interface uses for a language's reading aid and its levels ("Pinyin" and "HSK 3" for Chinese, "Furigana" and
 // "N4" for Japanese, "Hints" and "B1" for the rest), so the screens written for Chinese can say the right thing.
-import { lang } from './active';
+import { isChinese, lang } from './active';
+import { AUTO_KNOWN_DAYS, AUTO_KNOWN_HELP, AUTO_KNOWN_PAGES } from '../core/autoKnown';
 
 /** What sits over the words: Pinyin, Furigana or Hints. */
 export function aidName(): string {
@@ -30,3 +31,10 @@ export const levelCount = (): number => lang().levels.labels.length;
 
 /** The level scheme's name: HSK, JLPT, Level. */
 export const levelScheme = (): string => lang().levels.scheme;
+
+/** What "Learn known words as I read" does, in the words of this language's aid and levels. */
+export function autoKnownHelp(): string {
+  if (isChinese()) return AUTO_KNOWN_HELP;
+  const what = lang().aid === 'furigana' ? 'furigana' : 'hint';
+  return `A word you read past on ${AUTO_KNOWN_PAGES} pages over ${AUTO_KNOWN_DAYS} days without looking it up counts as known, and loses its ${what} in the Unknown and ${levelScheme()} modes. Looking it up takes it back off.`;
+}

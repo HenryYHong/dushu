@@ -31,5 +31,6 @@ export function langChip(): HTMLElement | null {
   if (!usedOther()) return null;
   const L = LANGS[langId()];
   return h('label.app-lang', { title: 'Language' },
-    h('span.app-lang-name', { lang: L.tag }, L.native), icon('chevronDown'), langSelect('app-lang-select'));
+    h('span.app-lang-name', { lang: L.tag }, L.native), h('span.app-lang-short', { 'aria-hidden': 'true' }, langId().toUpperCase()),
+    icon('chevronDown'), langSelect('app-lang-select'));
 }

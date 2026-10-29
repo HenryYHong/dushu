@@ -2,7 +2,6 @@
 // On a phone (a narrow screen) a menu is a bottom sheet with a grabber and a Done button; on an iPad or a computer it is a
 // bubble under its button, which leaves the page in view beside it. Both are dialogs: focus moves into them on open and returns to the button on close.
 import type { AppContext, PinyinMode, Settings } from '../../types';
-import { AUTO_KNOWN_HELP } from '../../core/autoKnown';
 import { readingFontSizeKey } from '../../store/settings';
 import { h } from '../dom';
 import { icon } from '../icons';
@@ -10,7 +9,7 @@ import { openShortcuts } from '../shortcuts';
 import { fullscreenSupported, isFullscreen, isStandalone, setFullscreen } from '../fullscreen';
 import { rateLabel } from '../settings/speech';
 import { isChinese, lang } from '../../lang/active';
-import { aidName, aidWord, levelCount, levelLabel, levelScheme } from '../../lang/labels';
+import { aidName, aidWord, autoKnownHelp, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 
 export interface Popover { el: HTMLElement; anchor: HTMLElement; close(): void }
 
@@ -252,7 +251,7 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const tones = add(toggle(() => get().toneColors, (v) => set({ toneColors: v })));
   const sandhi = add(toggle(() => get().sandhi, (v) => set({ sandhi: v })));
   const learn = add(toggle(() => get().autoKnown, (v) => set({ autoKnown: v })));
-  learn.el.title = AUTO_KNOWN_HELP;
+  learn.el.title = autoKnownHelp();
   // Learning from reading changes what Unknown hides, so it sits under the modes while Unknown is the one chosen.
   const learnRow = row('Learn known words as I read', learn.el, `Words you read past often lose their ${aidWord()}`);
   const modes = h('div.rd-menu', { role: 'menu', 'aria-label': `Show ${aidWord()}` }, items, stepper);

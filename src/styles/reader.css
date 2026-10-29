@@ -829,18 +829,22 @@ html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x
 .rd-article .rd-hw rt { font-family: var(--font-ui); font-weight: 450; font-size: max(10px, calc(var(--rd-rt, 0.46) * 1.1em)); letter-spacing: 0; color: var(--text-3); }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw { display: inline-grid; justify-items: center; text-indent: 0; }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw > * { grid-area: 1 / 1; }
+/* After an elision (qu’on) the word keeps to the left of its cell, against the word it is joined to. */
+.rd-article .rd-elided + .rd-word:not(.rd-nopy) > .rd-hw { justify-items: start; }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw > .rd-hb { line-height: 1.2; }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw > rt { display: block; height: 0; align-self: start; }
 .rd-article .rd-hw .rd-rtx {
   position: relative; left: auto; bottom: auto; display: block; transform: translateY(calc(-100% + 0.05em));
   max-width: 8em; overflow: hidden; text-overflow: ellipsis;
 }
-/* Russian stress: an acute over the stressed vowel, drawn by the stylesheet (the text itself is never changed). */
+/* Russian stress: an acute over the stressed vowel, drawn by the stylesheet (the text itself is never changed), in the
+   text's own color as learners' books print it. It sits just over a lowercase vowel and over the cap height of a capital. */
 .rd-stress { position: relative; }
 .rd-stress::after {
-  content: '\00B4'; position: absolute; left: 0.04em; right: 0; top: -0.38em; text-align: center; pointer-events: none;
-  color: var(--accent); font-weight: 600; line-height: 1;
+  content: '\00B4'; position: absolute; left: 0.06em; right: 0; top: 0.1em; text-align: center; pointer-events: none;
+  color: inherit; font-weight: 400; line-height: 1;
 }
+.rd-stress-up::after { top: -0.17em; }
 /* Saved words: one vermilion stroke under the word, as for Chinese. */
 .rd-word.rd-saved { position: relative; }
 .rd-word.rd-saved::before {

@@ -212,6 +212,14 @@ class JaEngine implements LangEngine {
     const out: Word[] = [];
     for (let i = 0; i < words.length; i++) {
       const w = words[i];
+      // 御 before a verb or adjective is お (御飲みになる, 御美しい), and so is 御 in the honorific 御…になる, where IPADIC takes
+      // the verb stem for a noun (御歩きになる) and reads it ご.
+      const next = words[i + 1];
+      const honorific = next?.cls === 'noun' && words[i + 2]?.text === 'に' && /^な[らりるれろっ]/.test(words[i + 3]?.text ?? '');
+      if (w.text === '御' && w.reading === 'ご' && (next?.cls === 'verb' || next?.cls === 'adj' || honorific)) {
+        w.reading = w.lemmaReading = 'お';
+        w.pieces = [{ text: w.text, reading: 'お' }];
+      }
       if (w.text === '々' && out.length && hasKanji(out[out.length - 1].text)) {
         const prev = out[out.length - 1];
         const ruby = prev.reading ? alignRuby(prev.text, prev.reading, this.kanjiReadings) : [];
