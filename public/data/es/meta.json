@@ -1,0 +1,42 @@
+{
+ "lang": "es",
+ "built": "2026-10-29",
+ "counts": {
+  "entries": 100282,
+  "keys": 89031,
+  "forms": 621565,
+  "rules": 29121,
+  "paradigms": 6995,
+  "descriptions": 706,
+  "ranked": 45841,
+  "senses": 127377,
+  "priors": 4622
+ },
+ "sources": [
+  {
+   "name": "English Wiktionary (Spanish entries), extracted by kaikki.org (wiktextract)",
+   "license": "CC BY-SA 4.0 (and GFDL)",
+   "url": "https://kaikki.org/dictionary/Spanish/kaikki.org-dictionary-Spanish.jsonl.gz"
+  },
+  {
+   "name": "FrequencyWords (OpenSubtitles 2018 full list), Hermit Dave",
+   "license": "CC BY-SA 4.0",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/es/es_full.txt"
+  },
+  {
+   "name": "FrequencyWords English list (to choose the plainest English hint), Hermit Dave",
+   "license": "CC BY-SA 4.0",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt"
+  },
+  {
+   "name": "Universal Dependencies UD_Spanish-AnCora treebank (which lemma and part of speech a word usually is)",
+   "license": "CC BY 4.0",
+   "url": "https://github.com/UniversalDependencies/UD_Spanish-AnCora"
+  },
+  {
+   "name": "Universal Dependencies UD_Spanish-GSD treebank (which lemma and part of speech a word usually is)",
+   "license": "CC BY-SA 4.0",
+   "url": "https://github.com/UniversalDependencies/UD_Spanish-GSD"
+  }
+ ]
+}

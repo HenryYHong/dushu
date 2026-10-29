@@ -34,7 +34,8 @@ export const ITALIAN: SpacedLang = {
   beforeVerb: ['io', 'tu', 'lui', 'lei', 'noi', 'voi', 'mi', 'ti', 'si', 'ci', 'vi', 'ne', 'non', "m'", "t'", "s'", "c'", "v'"],
   articleOrPronoun: ['lo', 'la', 'le', 'gli', "l'"],
   prepositions: ['di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'senza', 'sopra', 'sotto', 'verso', 'contro', "d'"],
-  reflexive: { always: ['si'], ifPronominal: ['mi', 'ti', 'ci', 'vi'] },
+  reflexive: { always: ['si'], ifPronominal: ['mi', 'ti', 'ci', 'vi'],
+    imperative: { ti: '(?<!formal )second-person singular [a-z ]*imperative', vi: '(?<!formal )second-person plural [a-z ]*imperative', ci: 'first-person plural [a-z ]*imperative', si: 'formal|third-person [a-z ]*imperative' } },
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

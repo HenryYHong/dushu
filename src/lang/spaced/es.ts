@@ -14,16 +14,22 @@ export const SPANISH: SpacedLang = {
     if ((first === 'nos' || first === 'se') && stem.endsWith('mo')) out.push(stripAccents(stem) + 's');
     return [...new Set(out)];
   },
-  beforeNoun: ['el', 'un', 'una', 'unos', 'unas', 'mi', 'mis', 'tu', 'tus', 'su', 'sus', 'nuestro', 'nuestra', 'nuestros',
+  // hay: what there is comes next (hay mates "there are gourds", not matar's "you kill").
+  beforeNoun: ['hay', 'el', 'un', 'una', 'unos', 'unas', 'mi', 'mis', 'tu', 'tus', 'su', 'sus', 'nuestro', 'nuestra', 'nuestros',
     'nuestras', 'vuestro', 'vuestra', 'vuestros', 'vuestras', 'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas',
     'aquel', 'aquella', 'aquellos', 'aquellas', 'del', 'al', 'cada', 'otro', 'otra', 'otros', 'otras', 'ningún', 'ninguna',
-    'algún', 'alguna', 'algunos', 'algunas', 'varios', 'varias', 'cuyo', 'cuya', 'cuyos', 'cuyas', 'muy', 'tan', 'buen', 'gran'],
+    'algún', 'alguna', 'algunos', 'algunas', 'varios', 'varias', 'cuyo', 'cuya', 'cuyos', 'cuyas', 'buen', 'gran'],
   beforeVerb: ['yo', 'tú', 'él', 'ella', 'usted', 'nosotros', 'nosotras', 'vosotros', 'vosotras', 'ellos', 'ellas', 'ustedes',
     'me', 'te', 'se', 'nos', 'os', 'le', 'les', 'no'],
   articleOrPronoun: ['la', 'los', 'las', 'lo'],
+  genderBefore: { el: 'm', un: 'm', este: 'm', ese: 'm', aquel: 'm', del: 'm', al: 'm', la: 'f', una: 'f', esta: 'f', esa: 'f',
+    aquella: 'f' },
+  auxiliaries: ['haber'],
   prepositions: ['de', 'a', 'en', 'con', 'por', 'para', 'sin', 'sobre', 'entre', 'hasta', 'desde', 'hacia', 'contra', 'según',
     'tras', 'bajo', 'ante'],
-  reflexive: { always: ['se'], ifPronominal: ['me', 'te', 'nos', 'os'] },
+  // Only verbs the subtitles show mostly reflexive read so: se dio prisa is "hurried", not dar's "to hit oneself".
+  reflexive: { always: [], ifPronominal: ['se', 'me', 'te', 'nos', 'os'],
+    imperative: { te: '(?<!formal )second-person singular [a-z ]*imperative', os: '(?<!formal )second-person plural [a-z ]*imperative', nos: 'first-person plural [a-z ]*imperative', se: 'formal|third-person [a-z ]*imperative' } },
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

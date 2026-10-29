@@ -1,0 +1,42 @@
+{
+ "lang": "de",
+ "built": "2026-10-29",
+ "counts": {
+  "entries": 89945,
+  "keys": 86015,
+  "forms": 392524,
+  "rules": 26094,
+  "paradigms": 16346,
+  "descriptions": 1284,
+  "ranked": 48819,
+  "senses": 112684,
+  "priors": 2328
+ },
+ "sources": [
+  {
+   "name": "English Wiktionary (German entries), extracted by kaikki.org (wiktextract)",
+   "license": "CC BY-SA 4.0 (and GFDL)",
+   "url": "https://kaikki.org/dictionary/German/kaikki.org-dictionary-German.jsonl.gz"
+  },
+  {
+   "name": "FrequencyWords (OpenSubtitles 2018 full list), Hermit Dave",
+   "license": "CC BY-SA 4.0",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_full.txt"
+  },
+  {
+   "name": "FrequencyWords English list (to choose the plainest English hint), Hermit Dave",
+   "license": "CC BY-SA 4.0",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt"
+  },
+  {
+   "name": "Universal Dependencies UD_German-GSD treebank (which lemma and part of speech a word usually is)",
+   "license": "CC BY-SA 4.0",
+   "url": "https://github.com/UniversalDependencies/UD_German-GSD"
+  },
+  {
+   "name": "Universal Dependencies UD_German-HDT treebank (which lemma and part of speech a word usually is)",
+   "license": "CC BY-SA 4.0",
+   "url": "https://github.com/UniversalDependencies/UD_German-HDT"
+  }
+ ]
+}

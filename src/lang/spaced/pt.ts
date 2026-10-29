@@ -28,8 +28,11 @@ export const PORTUGUESE: SpacedLang = {
   beforeVerb: ['eu', 'tu', 'ele', 'ela', 'você', 'nós', 'vós', 'eles', 'elas', 'vocês', 'me', 'te', 'se', 'lhe', 'lhes', 'nos',
     'vos', 'não'],
   articleOrPronoun: ['o', 'a', 'os', 'as'],
+  noArticleBefore: ['um', 'uma', 'uns', 'umas', 'este', 'esta', 'estes', 'estas', 'esse', 'essa', 'esses', 'essas', 'aquele',
+    'aquela', 'aqueles', 'aquelas', 'cada', 'algum', 'alguma', 'alguns', 'algumas', 'nenhum', 'nenhuma', 'qualquer'],
   prepositions: ['de', 'em', 'com', 'por', 'para', 'sem', 'sobre', 'entre', 'até', 'desde', 'contra', 'sob', 'após', 'perante'],
-  reflexive: { always: ['se'], ifPronominal: ['me', 'te', 'nos', 'vos'] },
+  reflexive: { always: ['se'], ifPronominal: ['me', 'te', 'nos', 'vos'],
+    imperative: { te: '(?<!formal )second-person singular [a-z ]*imperative', vos: '(?<!formal )second-person plural [a-z ]*imperative', nos: 'first-person plural [a-z ]*imperative', se: 'third-person [a-z ]*imperative' } },
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

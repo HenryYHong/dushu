@@ -1,0 +1,42 @@
+{
+ "lang": "pt",
+ "built": "2026-10-29",
+ "counts": {
+  "entries": 62048,
+  "keys": 54501,
+  "forms": 410358,
+  "rules": 30947,
+  "paradigms": 9968,
+  "descriptions": 649,
+  "ranked": 31072,
+  "senses": 86113,
+  "priors": 2763
+ },
+ "sources": [
+  {
+   "name": "English Wiktionary (Portuguese entries), extracted by kaikki.org (wiktextract)",
+   "license": "CC BY-SA 4.0 (and GFDL)",
+   "url": "https://kaikki.org/dictionary/Portuguese/kaikki.org-dictionary-Portuguese.jsonl.gz"
+  },
+  {
+   "name": "FrequencyWords (OpenSubtitles 2018 full list), Hermit Dave",
+   "license": "CC BY-SA 4.0",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/pt/pt_full.txt"
+  },
+  {
+   "name": "FrequencyWords English list (to choose the plainest English hint), Hermit Dave",
+   "license": "CC BY-SA 4.0",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt"
+  },
+  {
+   "name": "Universal Dependencies UD_Portuguese-Bosque treebank (which lemma and part of speech a word usually is)",
+   "license": "CC BY-SA 4.0",
+   "url": "https://github.com/UniversalDependencies/UD_Portuguese-Bosque"
+  },
+  {
+   "name": "Universal Dependencies UD_Portuguese-Porttinari treebank (which lemma and part of speech a word usually is)",
+   "license": "CC BY 4.0",
+   "url": "https://github.com/UniversalDependencies/UD_Portuguese-Porttinari"
+  }
+ ]
+}

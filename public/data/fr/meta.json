@@ -1,0 +1,37 @@
+{
+ "lang": "fr",
+ "built": "2026-10-29",
+ "counts": {
+  "entries": 80387,
+  "keys": 73526,
+  "forms": 372206,
+  "rules": 15963,
+  "paradigms": 5946,
+  "descriptions": 550,
+  "ranked": 38336,
+  "senses": 101668,
+  "priors": 2252
+ },
+ "sources": [
+  {
+   "name": "English Wiktionary (French entries), extracted by kaikki.org (wiktextract)",
+   "license": "CC BY-SA 4.0 (and GFDL)",
+   "url": "https://kaikki.org/dictionary/French/kaikki.org-dictionary-French.jsonl.gz"
+  },
+  {
+   "name": "FrequencyWords (OpenSubtitles 2018 full list), Hermit Dave",
+   "license": "CC BY-SA 4.0",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/fr/fr_full.txt"
+  },
+  {
+   "name": "FrequencyWords English list (to choose the plainest English hint), Hermit Dave",
+   "license": "CC BY-SA 4.0",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt"
+  },
+  {
+   "name": "Universal Dependencies UD_French-GSD treebank (which lemma and part of speech a word usually is)",
+   "license": "CC BY-SA 4.0",
+   "url": "https://github.com/UniversalDependencies/UD_French-GSD"
+  }
+ ]
+}

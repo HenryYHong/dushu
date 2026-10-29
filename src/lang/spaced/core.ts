@@ -40,13 +40,27 @@ export interface SpacedLang {
   beforeVerb?: string[];
   /** Words that are an article or determiner before a noun and a pronoun before a verb (la, les, l'). */
   articleOrPronoun?: string[];
+  /**
+   * Determiners an article never comes before, so a word of articleOrPronoun that is also a preposition is the
+   * preposition in front of one (Portuguese disse a um amigo "to a friend", a cada dia; but a minha casa "my house").
+   */
+  noArticleBefore?: string[];
   /** Prepositions: after one comes a noun or an infinitive, not a conjugated verb (de lanza "of lance", not "throws"). */
   prepositions?: string[];
   /**
    * Reflexive pronouns, before the verb or joined to it: `always` makes the verb reflexive (se acuerda), `ifPronominal`
    * only for verbs mostly used that way (me acuerdo "I remember", but me dio "gave me").
    */
-  reflexive?: { always: string[]; ifPronominal: string[] };
+  reflexive?: { always: string[]; ifPronominal: string[]; imperative?: Record<string, string> };
+  /** Articles and determiners that say a noun's gender (el cura "the priest", la cura "the cure"). */
+  genderBefore?: Record<string, 'm' | 'f'>;
+  /** Auxiliary verbs (keys): after one, a word that can be a past participle is one (había partido "had split"). */
+  auxiliaries?: string[];
+  /**
+   * Two-part negation: after a particle (French ne, n') a few words on, these words are the negation, not their
+   * look-alikes (n'avoir point "not to have", not poindre "to dawn"; ne vois personne "see nobody", not "person").
+   */
+  negation?: { particles: string[]; words: string[] };
 }
 
 export interface LoadOpts {
@@ -197,7 +211,7 @@ class Data {
         const d = text.slice(pos + 2, nl);
         this.descs.push(d);
         this.descPenalty.push(/\b(?:archaic|obsolete|misspelling|nonstandard|proscribed|dialectal|rare|pronunciation spelling|eye dialect)\b/.test(d) ? 2.5
-          : /^(?:alternative|dated|abbreviation|clipping)|\((?:Brazil|Portugal|colloquial|uncommon|regional|poetic|literary|dated)\b/.test(d) ? 1 : 0);
+          : /^(?:alternative|dated|abbreviation|clipping)|\b(?:poetic|literary)\b|\((?:Brazil|Portugal|colloquial|uncommon|regional|dated)\b/.test(d) ? 1 : 0);
         this.descClitic.push(/\b(?:infinitive|gerund|imperative)\b/.test(d) || /^first-person plural present subjunctive/.test(d));
       } else if (kind === 82 /* R */) {
         const t = text.indexOf('\t', pos + 2);
@@ -297,19 +311,22 @@ class Data {
     }
   }
 
-  /** How likely each entry is for a folded form, by the treebanks: entry -> log probability (smoothed). */
-  priorOf(f: string): Map<number, number> | null {
+  /**
+   * How likely each entry is for a folded form, by the treebanks: entry -> log probability (smoothed), and how far to
+   * trust it (a word seen 20 times says less than one seen 2,000 times).
+   */
+  priorOf(f: string): Prior | null {
     const line = this.prior.get(f);
     if (!line) return null;
     const tab = line.lastIndexOf('\t');
     const count = +line.slice(tab + 1) || 1;
-    const out = new Map<number, number>();
+    const p = new Map<number, number>();
     for (const cell of line.slice(0, tab).split(' ')) {
       const colon = cell.indexOf(':');
-      out.set(+cell.slice(0, colon), Math.log((+cell.slice(colon + 1) / 100) * count + 1) - Math.log(count + 2));
+      p.set(+cell.slice(0, colon), Math.log((+cell.slice(colon + 1) / 100) * count + 1) - Math.log(count + 2));
     }
-    out.set(-1, -Math.log(count + 2)); // any entry the treebanks never meant
-    return out;
+    p.set(-1, -Math.log(count + 2)); // any entry the treebanks never meant
+    return { p, weight: (1.5 * count) / (count + 50) };
   }
 
   /** Entries whose forms include `s` (a folded word), or whose key it is. */
@@ -365,6 +382,8 @@ class Data {
   }
 }
 
+interface Prior { p: Map<number, number>; weight: number }
+
 /** One way a word on the page can be read: an entry, and the form it is of that entry (desc -1: the headword itself). */
 interface Cand { e: number; desc: number; stress: number; penalty: number; score?: number }
 
@@ -389,6 +408,9 @@ const NOUNISH = new Set(['noun', 'adjective', 'numeral', 'proper noun']);
 const UNRANKED = 80000;
 /** Nats a word gains for being spelled exactly like the headword it is read as. */
 const EXACT_BONUS = 1;
+const CLOSED_EXACT_BONUS = 3;
+/** How far (nats) the neighbors may move a word from its likeliest reading: est in "Quel est" stays être. */
+const CONTEXT_MARGIN = 5;
 
 // ------------------------------------------------------------------------------------------------------- engine ---
 
@@ -403,6 +425,7 @@ export class SpacedEngine implements LangEngine {
   private beforeNoun: Set<string>;
   private beforeVerb: Set<string>;
   private articleOrPronoun: Set<string>;
+  private noArticleBefore: Set<string>;
   private prepositions: Set<string>;
   private enclitics: string[];
   private chars: CharClasses;
@@ -415,6 +438,7 @@ export class SpacedEngine implements LangEngine {
     this.beforeNoun = new Set(lang.beforeNoun ?? []);
     this.beforeVerb = new Set(lang.beforeVerb ?? []);
     this.articleOrPronoun = new Set(lang.articleOrPronoun ?? []);
+    this.noArticleBefore = new Set(lang.noArticleBefore ?? []);
     this.prepositions = new Set(lang.prepositions ?? []);
     this.enclitics = [...(lang.enclitics ?? [])].sort((a, b) => b.length - a.length);
   }
@@ -429,14 +453,20 @@ export class SpacedEngine implements LangEngine {
     return this.data.rank[e] || UNRANKED;
   }
 
-  private score(c: Cand, capMid: boolean, word: string, prior: Map<number, number> | null): number {
+  private score(c: Cand, capMid: boolean, word: string, prior: Prior | null): number {
     const d = this.data;
     let s = -Math.log(this.rankOf(c.e)) - c.penalty - caseMisfit(d.head[c.e], word, !!this.lang.keepCase);
-    // What hand-annotated text usually means by this spelling (fue: ser four times in five).
-    if (prior) s += 1.5 * (prior.get(c.e) ?? prior.get(-1)!);
-    if (c.desc < 0) s += EXACT_BONUS;
+    // What hand-annotated text usually means by this spelling (fue: ser four times in five), trusted as far as the
+    // treebanks saw the word often (they are news and web text; a novel's vino is as often "came" as "wine").
+    if (prior) s += prior.weight * (prior.p.get(c.e) ?? prior.p.get(-1)!);
+    // A function word spelled exactly like its own entry is that word (moi, not je; muy, not mucho; au, not à).
+    // An adverb counts as one only where it is the headword's leading section (muy, bien): beau's adverb is the idiom
+    // avoir beau "in vain", and must not outbid beau the adjective.
+    if (c.desc < 0) s += CLOSED.has(d.pos[c.e]) || (d.pos[c.e] === 'adverb' && d.byKey.get(d.key[c.e])?.[0] === c.e) ? CLOSED_EXACT_BONUS : EXACT_BONUS;
     const pos = d.pos[c.e];
-    if (pos === 'proper noun') s += capMid ? 3 : -4;
+    // A capital in mid-sentence says name, except in German, which writes every noun so (das Essen is the meal, not the
+    // city; sein Buch is a book).
+    if (pos === 'proper noun') s += this.lang.keepCase ? -1 : capMid ? 3 : -4;
     else if (capMid && this.lang.id !== 'de' && c.desc < 0 && d.key[c.e] !== d.head[c.e] && isUpper(d.head[c.e][0])) s += 2;
     if (d.weak[c.e]) s -= 2.5;
     // Among the sections of one common key, the closed-class word leads (este "this" before este "east").
@@ -463,6 +493,15 @@ export class SpacedEngine implements LangEngine {
       // Old spellings (fué, á, dió) and words typed without their accents.
       const plain = stripAccents(f);
       if (plain !== f) d.match(plain, out, 2);
+    }
+    if (!out.length && this.lang.keepCase) {
+      // German before 1996: muß, wußte for muss, wusste; heute abend for heute Abend.
+      if (f.includes('ß')) d.match(f.replace(/ß/g, 'ss'), out, 0.5);
+      if (!out.length && !isUpper(f[0] ?? '')) d.match(upperFirst(f), out, 1);
+    }
+    if (!out.length && /oe|ae/i.test(f)) {
+      // oeuvre and boeuf as typed for œuvre and bœuf.
+      d.match(f.replace(/oe/g, 'œ').replace(/ae/g, 'æ'), out, 0.5);
     }
     return this.rank(out, capMid, word);
   }
@@ -497,7 +536,16 @@ export class SpacedEngine implements LangEngine {
           const verbs = out.filter((c) => this.data.pos[c.e] === 'verb' && (c.desc < 0 || this.data.descClitic[c.desc]))
             .concat(out.filter((c) => t === 'ecco' || t === 'eis'));
           if (verbs.length) {
-            best = { verb: this.rank(verbs, false), stem: word.slice(0, word.length - (f.length - stem.length)), clitics: chain };
+            let ranked = this.rank(verbs, false);
+            // An imperative takes its own person's pronoun: siéntate is sentar's sienta (sit) + te, not sentir's formal
+            // sienta (feel) + te, however much commoner sentir is.
+            const person = this.lang.reflexive?.imperative?.[chain[0]];
+            if (person) {
+              const re = new RegExp(person);
+              const agree = ranked.filter((c) => c.desc >= 0 && re.test(this.data.descs[c.desc]));
+              if (agree.length) ranked = [...agree, ...ranked.filter((c) => !agree.includes(c))];
+            }
+            best = { verb: ranked, stem: word.slice(0, word.length - (f.length - stem.length)), clitics: chain };
             return;
           }
         }
@@ -569,11 +617,21 @@ export class SpacedEngine implements LangEngine {
 
   private analyzeUncached(word: string, capMid: boolean): Analysis {
     const d = this.data;
+    // German geht's: the 's cut off by segment() is es.
+    const full = /^['’]/.test(word) ? this.lang.apostropheSuffixes?.[word.slice(1).toLowerCase()] : undefined;
+    if (full) return this.analyze(full, false);
     const f = this.fold(word);
     const cands = this.candidates(word, capMid);
     const cap = isUpper(word[0] ?? '');
     if (cands.length) {
       const top = cands[0];
+      // a-t-il, Est-ce: Wiktionary has some verb + pronoun runs as entries of their own ("interrogative form of avoir").
+      // They read as the verb, with the pronouns as parts, like every other run (dit-il).
+      const clit = this.hyphenClitics.size && d.pos[top.e] === 'verb' && /[-‐]/.test(d.key[top.e]) ? word.split(/(?<=\p{L})[-‐](?=\p{L})/u) : [];
+      if (clit.length > 1 && clit.slice(1).every((p) => this.hyphenClitics.has(this.fold(p).toLowerCase()))) {
+        const verb = this.candidates(clit[0], false).filter((c) => d.pos[c.e] === 'verb');
+        if (verb.length) return { cands: verb, key: d.key[verb[0].e], lemma: d.head[verb[0].e], parts: clit.map((p) => this.part(p)) };
+      }
       const a: Analysis = { cands, key: d.key[top.e], lemma: d.head[top.e] };
       if (d.pos[top.e] === 'proper noun' && cap) a.name = true;
       return a;
@@ -616,7 +674,8 @@ export class SpacedEngine implements LangEngine {
       if (comp) {
         const h = comp.head[0];
         const lemma = comp.prefix + d.head[h.e].toLowerCase();
-        return { cands: comp.head, key: this.fold(lemma), lemma, prefix: comp.prefix, parts: comp.pieces.map((p) => this.part(p)) };
+        // Later pieces are looked up as nouns first: Fensterblech is Fenster + Blech (sheet metal), not blechen (to pay up).
+        return { cands: comp.head, key: this.fold(lemma), lemma, prefix: comp.prefix, parts: comp.pieces.map((p, i) => this.part(p, i > 0)) };
       }
     }
     return { cands: [], key: f, lemma: word, name: cap || undefined };
@@ -634,16 +693,20 @@ export class SpacedEngine implements LangEngine {
   }
 
   /** A piece of a word as its own word: its key and short gloss. */
-  private part(text: string): Part {
-    const cands = this.candidates(text, false).length ? this.candidates(text, false) : this.candidates(upperFirst(text), false);
+  private part(text: string, nounFirst = false): Part {
+    const capped = nounFirst ? this.candidates(upperFirst(text), false) : [];
+    const cands = capped.length ? capped : this.candidates(text, false).length ? this.candidates(text, false) : this.candidates(upperFirst(text), false);
     if (!cands.length) return { text };
     const e = cands[0].e;
+    // A lone letter read as a noun is the euphonic t of a-t-il, not t for "tonne".
+    if (text.length === 1 && (this.data.pos[e] === 'noun' || this.data.pos[e] === 'proper noun')) return { text };
     return { text, key: this.data.key[e], gloss: this.data.hint[e] || undefined };
   }
 
   // ---- segmenting
 
   segment(text: string): Token[] {
+    const d = this.data;
     const tokens: Token[] = [];
     const words: { t: Token; a: Analysis; at: number }[] = [];
     let sentenceStart = true;
@@ -661,10 +724,16 @@ export class SpacedEngine implements LangEngine {
           if ((c === "'" || c === '’' || c === 'ʼ' || c === '-' || c === '‐') && j + 1 < n && this.chars.of(text.charCodeAt(j + 1), text, j + 1) === LETTER) { j++; continue; }
           break;
         }
+        // An abbreviation keeps its period when the dictionary has it so (M. for Monsieur, Sr., etc.), unless the word
+        // without it is a common one (no. is número, but "Dijo que no." ends a sentence).
+        if (text[j] === '.' && j - i <= 4 && this.isAbbreviation(text.slice(i, j))) j++;
         // Italian po', di': a final apostrophe that belongs to the word.
         if (this.lang.finalApostrophe && (text[j] === "'" || text[j] === '’') && (j + 1 >= n || this.chars.of(text.charCodeAt(j + 1), text, j + 1) !== LETTER)) {
           const withApo = text.slice(i, j) + "'";
-          if (this.data.byKey.has(this.fold(withApo))) j++;
+          // po' is a form of poco, not an entry of its own.
+          const found: Cand[] = [];
+          this.data.match(this.fold(withApo), found, 0);
+          if (found.length) j++;
         }
         for (const piece of this.splitWord(text, i, j)) {
           if (piece.kind !== 'word') { tokens.push(piece); continue; }
@@ -673,7 +742,12 @@ export class SpacedEngine implements LangEngine {
           piece.key = a.key;
           piece.lemma = a.lemma;
           piece.inDict = a.cands.length > 0;
-          if (a.name || (capMid && !a.cands.length)) piece.name = true;
+          // A capital in mid-sentence makes a name (Sancho Panza, la Mancha) even where a common word shares the
+          // spelling; German writes every noun so and is told by the dictionary alone.
+          if (a.name || (capMid && (!a.cands.length || (!this.lang.keepCase && piece.text !== piece.text.toUpperCase())))) {
+            piece.name = true;
+            if (a.cands.length && d.pos[a.cands[0].e] !== 'proper noun') piece.lemma = piece.text;
+          }
           words.push({ t: piece, a, at: tokens.length });
           tokens.push(piece);
           sentenceStart = false;
@@ -724,7 +798,7 @@ export class SpacedEngine implements LangEngine {
     const hasHyphen = /[-‐]/.test(word);
     // Script changes inside a run (a Latin name in Russian text) cut it.
     if (!hasApo && !hasHyphen) return [tok(a, b)];
-    if (this.wholeKnown(word)) return [tok(a, b)];
+    if (this.wholeKnown(word, hasApo)) return [tok(a, b)];
     const out: Token[] = [];
     let s = a;
     // Elision: l'homme, qu'il, dell'anno, c'è, jusqu'à.
@@ -738,7 +812,7 @@ export class SpacedEngine implements LangEngine {
         if (this.elisions.has(folded) || this.elisions.has(folded.toLowerCase()) || (this.data.byKey.has(folded) && !/[-‐]/.test(head))) {
           out.push(tok(s, s + head.length));
           s += head.length;
-          if (this.wholeKnown(text.slice(s, b))) break;
+          if (this.wholeKnown(text.slice(s, b), true)) break;
           continue;
         }
         // German geht's, wie's: the 's is es.
@@ -776,10 +850,26 @@ export class SpacedEngine implements LangEngine {
     return out;
   }
 
-  private wholeKnown(word: string): boolean {
+  private isAbbreviation(word: string): boolean {
+    if (!this.wholeKnown(word + '.')) return false;
+    const bare = this.candidates(word, false);
+    return !bare.length || word.length === 1 || this.rankOf(bare[0].e) > 5000;
+  }
+
+  /**
+   * Whether a run with apostrophes or hyphens is one dictionary word (aujourd'hui, peut-être). With `lexical`, a word
+   * Wiktionary lists only as a contraction (qu'on "que + on", n'est) does not count: it is cut into its words.
+   */
+  private wholeKnown(word: string, lexical = false): boolean {
     const out: Cand[] = [];
     this.data.match(this.fold(word), out, 0);
     if (!out.length && this.lang.keepCase) this.data.match(lowerFirst(this.fold(word)), out, 0);
+    // qu'il is listed as a form of que ("contraction of que + il"), not as a word: it counts as a contraction too.
+    // Nor is a surname that happens to be spelled so (Dell'Anno) a reason to keep dell'anno whole.
+    if (lexical) {
+      return out.some((c) => this.data.pos[c.e] !== 'contraction' && !(c.desc >= 0 && /^contraction\b/i.test(this.data.descs[c.desc]))
+        && !(this.data.pos[c.e] === 'proper noun' && this.data.head[c.e] !== word));
+    }
     return out.length > 0;
   }
 
@@ -797,7 +887,28 @@ export class SpacedEngine implements LangEngine {
       for (let k = x.at + 1; k < y.at; k++) if (tokens[k].kind !== 'space') return false;
       return true;
     };
-    const nonFinite = (c: Cand): boolean => c.desc < 0 || /\b(?:infinitive|gerund|participle)\b/.test(d.descs[c.desc]);
+    const nonFinite = (c: Cand): boolean => c.desc < 0 || /\b(?:infinitive|gerund)\b/.test(d.descs[c.desc]);
+    const participle = (c: Cand): boolean => d.pos[c.e] === 'verb' && c.desc >= 0 && /\bparticiple\b/.test(d.descs[c.desc]);
+    const genders = this.lang.genderBefore ?? {};
+    const auxiliaries = new Set(this.lang.auxiliaries ?? []);
+    // Object and reflexive pronouns come only before a verb (me acuerdo, se casa): after one, the verb reading wins however
+    // much likelier the noun is alone.
+    const clitics = new Set([...(this.lang.reflexive?.always ?? []), ...(this.lang.reflexive?.ifPronominal ?? [])]);
+    const negParticles = new Set(this.lang.negation?.particles ?? []);
+    const negWords = new Set(this.lang.negation?.words ?? []);
+    /** A negation particle within the three words before word k, in the same clause (ne … point, n'avoir point). */
+    const negated = (k: number): boolean => {
+      for (let j = k - 1; j >= Math.max(0, k - 4) && adjacent(words[j], words[j + 1]); j--) {
+        if (negParticles.has(this.fold(words[j].t.text).toLowerCase())) return true;
+      }
+      return false;
+    };
+    /** The word before is an article or determiner as read (un, la, cette), not merely spelled like one. */
+    const determinerBefore = (prev: { t: Token } | undefined, prevKey: string): boolean => {
+      if (!prev) return false;
+      const c = this.chosen.get(prev.t)?.c;
+      return (!!c && ['article', 'determiner'].includes(d.pos[c.e])) || !!(this.lang.genderBefore ?? {})[prevKey];
+    };
     for (let k = 0; k < words.length; k++) {
       const w = words[k];
       const cands = w.a.cands;
@@ -809,26 +920,60 @@ export class SpacedEngine implements LangEngine {
         const posSet = new Set(cands.map((c) => d.pos[c.e]));
         const nounish = [...posSet].some((p) => NOUNISH.has(p));
         let want: ((c: Cand) => boolean) | null = null;
-        if (this.articleOrPronoun.has(this.fold(w.t.text).toLowerCase()) && next) {
+        // How far below the likeliest reading the neighbors may reach: a weak cue (Quel before est) moves a word only
+        // between near readings; a decisive one (l' before a verb, me before acuerdo) moves it however far.
+        let margin = CONTEXT_MARGIN;
+        if (negWords.has(this.fold(w.t.text).toLowerCase()) && negated(k)) {
+          // si fâchés de n'avoir point d'enfants: point is "not", however common the noun and poindre's forms are.
+          want = (c) => d.pos[c.e] !== 'verb' && d.pos[c.e] !== 'noun';
+          margin = Infinity;
+        } else if (prev && auxiliaries.has(prev.t.key ?? '') && cands.some(participle)) {
+          // había partido "had split", however common partido "party" is.
+          want = participle;
+          margin = Infinity;
+        } else if (this.articleOrPronoun.has(this.fold(w.t.text).toLowerCase()) && next) {
           const nextVerb = firstPos(next) === 'verb';
-          want = nextVerb ? (c) => d.pos[c.e] === 'pronoun' : (c) => ['article', 'determiner', 'contraction'].includes(d.pos[c.e]);
+          if (this.noArticleBefore.has(this.fold(next.t.text).toLowerCase()) && cands.some((c) => d.pos[c.e] === 'preposition')) {
+            want = (c) => d.pos[c.e] === 'preposition';
+          } else {
+            want = nextVerb ? (c) => d.pos[c.e] === 'pronoun' : (c) => ['article', 'determiner', 'contraction'].includes(d.pos[c.e]);
+          }
+          margin = Infinity;
         } else if (prev && (this.beforeNoun.has(prevKey) || this.articleOrPronoun.has(prevKey)) && nounish && posSet.has('verb')) {
-          // After an article (or la, which is one before a noun): the noun, unless only a verb fits.
+          // After an article (or la, which is one before a noun): anything but a verb.
+          want = (c) => d.pos[c.e] !== 'verb';
+        } else if (determinerBefore(prev, prevKey) && nounish && d.pos[cands[0].e] === 'adverb') {
+          // un beau baptême: after a determiner, beau the adjective, not the adverb of avoir beau "in vain" (le plus, un
+          // peu keep their adverb: the noun plus or peu is too unlikely to come within the margin).
           want = (c) => NOUNISH.has(d.pos[c.e]);
-        } else if (prev && this.prepositions.has(prevKey) && nounish && posSet.has('verb')) {
-          want = (c) => NOUNISH.has(d.pos[c.e]) || (d.pos[c.e] === 'verb' && nonFinite(c));
+        } else if (prev && this.prepositions.has(prevKey) && posSet.has('verb') && posSet.size > 1) {
+          // After a preposition: anything but a conjugated verb (de una cuchillada, para comer).
+          want = (c) => d.pos[c.e] !== 'verb' || nonFinite(c);
         } else if (prev && this.beforeVerb.has(prevKey) && posSet.has('verb')) {
           want = (c) => d.pos[c.e] === 'verb';
-        } else if (this.lang.keepCase && posSet.has('determiner') && posSet.has('verb') && next) {
-          // German sein: "his" before a noun or adjective, "to be" otherwise.
-          const nextNoun = isUpper(next.t.text[0]) || NOUNISH.has(firstPos(next));
+          if (clitics.has(prevKey)) margin = Infinity;
+        } else if (this.lang.keepCase && posSet.has('determiner') && posSet.has('verb')) {
+          // German sein: "his" before a noun or adjective, "to be" otherwise (er muss da sein.).
+          const nextNoun = !!next && (isUpper(next.t.text[0]) || NOUNISH.has(firstPos(next)));
           want = nextNoun ? (c) => d.pos[c.e] === 'determiner' || d.pos[c.e] === 'pronoun' : (c) => d.pos[c.e] === 'verb';
         }
+        if (!want && prev && genders[prevKey] && cands.filter((c) => d.pos[c.e] === 'noun' && d.gender[c.e]).length > 1) {
+          want = (c) => NOUNISH.has(d.pos[c.e]);
+        }
         if (want) {
-          const fits = cands.filter(want);
+          let fits = cands.filter(want);
+          // The article's gender picks among nouns spelled alike: el cura (priest), la cura (cure).
+          const g = prev ? genders[prevKey] : undefined;
+          if (g && fits.some((c) => d.gender[c.e])) {
+            const agree = fits.filter((c) => d.gender[c.e] && d.gender[c.e].includes(g));
+            if (agree.length) fits = [...agree, ...fits.filter((c) => !agree.includes(c))];
+          }
           // A noun over an adjective spelled the same after an article (un hidalgo), when it is nearly as likely.
+          fits = fits.filter((c) => c.score! > cands[0].score! - margin);
           const noun = fits.find((c) => d.pos[c.e] === 'noun');
-          choice = noun && fits[0] && d.pos[fits[0].e] === 'adjective' && this.beforeNoun.has(prevKey) && noun.score! > fits[0].score! - 3
+          // Not before a noun: un beau baptême is a fine baptism, not a boyfriend's.
+          const afterArticle = (this.beforeNoun.has(prevKey) || this.articleOrPronoun.has(prevKey)) && !(next && firstPos(next) === 'noun');
+          choice = noun && fits[0] && d.pos[fits[0].e] === 'adjective' && afterArticle && noun.score! > fits[0].score! - 3
             ? noun : fits[0] ?? cands[0];
         }
       }
@@ -853,7 +998,14 @@ export class SpacedEngine implements LangEngine {
     if (c.desc >= 0 && /\breflexive\b/.test(d.descs[c.desc])) return true;
     const r = this.lang.reflexive;
     if (!r) return false;
-    const pronoun = a.parts && a.parts.length > 1 ? this.fold(a.parts[1].text).toLowerCase() : prevKey;
+    const joined = !!a.parts && a.parts.length > 1;
+    const pronoun = joined ? this.fold(a.parts![1].text).toLowerCase() : prevKey;
+    // An imperative is reflexive only with its own person's pronoun: siéntate (sit down), but dame (give me).
+    const desc = c.desc >= 0 ? d.descs[c.desc] : '';
+    if (joined && /\bimperative\b/.test(desc)) {
+      const person = r.imperative?.[pronoun];
+      return !!person && new RegExp(person).test(desc);
+    }
     if (r.always.includes(pronoun)) return true;
     return d.pronominal[c.e] && r.ifPronominal.includes(pronoun);
   }
@@ -991,7 +1143,7 @@ export class SpacedEngine implements LangEngine {
     const known = this.chosen.get(token);
     const a = known?.a ?? this.analyze(token.text, false);
     const c = known ? known.c : a.cands[0];
-    if (!c || (a.name && d.pos[c.e] === 'proper noun')) return undefined;
+    if (!c || token.name || (a.name && d.pos[c.e] === 'proper noun')) return undefined;
     const own = d.formHints.get(this.fold(token.text).toLowerCase());
     if (own && c.desc >= 0) return own;
     if (a.prefix && a.parts && a.parts.length > 1) {
