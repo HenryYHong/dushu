@@ -349,6 +349,27 @@ describe('library screen', () => {
     expect(root.querySelector('.lib-sample')?.textContent).toContain('In your library');
   });
 
+  it('writes a classic\'s cover title in the reading script, like the words under it, before and after it is added', async () => {
+    ctx.settings.set({ script: 'simplified' });
+    const index = [{ id: 'x1', title: '西遊記', author: '吳承恩', script: 'traditional', file: 'x1.txt', note: 'Public domain.', simplified: { title: '西游记', author: '吴承恩' } }];
+    vi.stubGlobal('fetch', async (url: string) => {
+      const u = String(url);
+      if (u.endsWith('samples/index.json')) return { ok: true, text: async () => JSON.stringify(index) };
+      if (u.endsWith('samples/x1.txt')) return { ok: true, text: async () => '話說海外有一國土，名曰傲來國。國近大海，海中有一座名山，喚為花果山。' };
+      return { ok: false, text: async () => '' };
+    });
+    const coverTitle = () => root.querySelector('.lib-sample .lib-cover-title')?.textContent;
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-sample .lib-add'));
+    expect(coverTitle()).toBe('西游记');
+    expect(root.querySelector('.lib-sample .lib-cover-author')?.textContent).toBe('吴承恩');
+    (root.querySelector('.lib-sample .lib-add') as HTMLElement).click();
+    await until(() => navigated.length > 0, 8000);
+    await until(() => root.querySelector('.lib-sample .lib-add') === null);
+    expect((await store.books.list())[0].title).toBe('西遊記');
+    expect(coverTitle()).toBe('西游记');
+  });
+
   it('gives a classic already added the new painting when its cover is replaced, once', async () => {
     const jpeg = (n: number) => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, n, n, n, n, n, n])], { type: 'image/jpeg' });
     const index = [{ id: 'x1', title: '小故事', author: '某人', script: 'simplified', file: 'x1.txt', note: 'Public domain.', cover: 'covers/x1.jpg' }];

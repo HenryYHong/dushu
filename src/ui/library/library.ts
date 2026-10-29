@@ -4,7 +4,7 @@ import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { createBookShares } from './bookShare';
-import { bookCover, generatedCover, setCoverArt } from './cover';
+import { bookCover, generatedCover, setCoverArt, type Label } from './cover';
 import { coverChoice, withCoverChoice, type CoverChoice } from './coverStyle';
 import { bookEra } from './era';
 import { pageTitle } from '../pageHead';
@@ -187,6 +187,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     const script = ctx.settings.get().script;
     return script === 'original' ? s[field] : s[script]?.[field] ?? shown(s[field]);
   };
+  /** A book's title and author for its drawn cover, in the reading script like the words under it. */
+  const labelOf = (b: { title: string; author: string }): Label => ({ title: shown(b.title), author: shown(b.author) });
+  const sampleLabel = (s: Sample): Label => ({ title: sampleShown(s, 'title'), author: sampleShown(s, 'author') });
 
   function renderContinue(): void {
     clear(continueEl);
@@ -198,7 +201,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const frac = progressFraction(p);
     const where = p && opened.chapterCount > 1 ? `Chapter ${Math.min(opened.chapterCount, p.chapter + 1)} of ${opened.chapterCount} · ` : '';
     continueEl.appendChild(h('section.lib-continue.card', { 'aria-label': 'Continue reading' },
-      h('a.lib-continue-cover', { href: readHref(opened.id), tabindex: -1, 'aria-hidden': 'true' }, bookCover(opened, store, 'sm', ctx.settings.get().covers)),
+      h('a.lib-continue-cover', { href: readHref(opened.id), tabindex: -1, 'aria-hidden': 'true' }, bookCover(opened, store, 'sm', ctx.settings.get().covers, labelOf(opened))),
       h('div.lib-continue-info', null,
         h('h2.lib-continue-title.zh', null, shown(opened.title)),
         opened.author ? h('div.lib-continue-author', null, shown(opened.author)) : null,
@@ -296,7 +299,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const known = shares.text(b.id);
     const card: HTMLElement = h('article.lib-card', { 'data-id': b.id },
       h('a.lib-card-main', { href: readHref(b.id), 'data-label': label, 'aria-label': known ? `${label}. ${known}.` : label },
-        bookCover(b, store, 'md', ctx.settings.get().covers),
+        bookCover(b, store, 'md', ctx.settings.get().covers, labelOf(b)),
         h('div.lib-card-info', null,
           h('div.lib-card-title.zh', null, shown(b.title)),
           h('div.lib-card-author', null, b.author ? shown(b.author) : ' '),
@@ -375,7 +378,7 @@ export const mount: MountFn = (root, _params, ctx) => {
           },
         }, busy ? 'Adding…' : 'Add and read');
     return h('article.lib-sample.card', null,
-      h('div.lib-sample-cover', null, existing ? bookCover(existing, store, 'sm', ctx.settings.get().covers) : sampleCoverEl(s)),
+      h('div.lib-sample-cover', null, existing ? bookCover(existing, store, 'sm', ctx.settings.get().covers, sampleLabel(s)) : sampleCoverEl(s)),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
           h('div.lib-sample-title.zh', null, sampleShown(s, 'title'))),
@@ -510,7 +513,7 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   /** A classic not added yet: its drawn cover, with its painting as the board. */
   function sampleCoverEl(s: Sample): HTMLElement {
-    const drawn = generatedCover(s.title, s.author, 'sm', bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }));
+    const drawn = generatedCover(s.title, s.author, 'sm', bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }), sampleLabel(s));
     if (s.cover) setCoverArt(drawn, new URL(`samples/${s.cover}`, document.baseURI).href);
     return h('div.lib-cover-wrap.lib-cover-wrap-sm', null, drawn);
   }

@@ -10,21 +10,25 @@ import { coverChoice, coverStyleFor } from './coverStyle';
 import { classicLayout, coverDye, coverHue, modernSize } from './format';
 import { hasSamplePainting } from './samples';
 
+/** A title and author as they are shown. */
+export interface Label { title: string; author: string }
+
 /** Generated cover. Pure DOM, no network; the dye comes from a hash of the title and author. */
-export function generatedCover(title: string, author: string, size: 'md' | 'sm' = 'md', style: BookEra = 'modern'): HTMLElement {
+/** `shown` is the title and author as the library shows them (in the reading script); the cloth and layout follow the book's own. */
+export function generatedCover(title: string, author: string, size: 'md' | 'sm' = 'md', style: BookEra = 'modern', shown: Label = { title, author }): HTMLElement {
   const vars = `--lib-hue:${coverHue(title, author)};--lib-dye:${coverDye(title, author)}`;
   if (style === 'classic') {
     const l = classicLayout(title, author);
     return h(`div.lib-cover.lib-cover-${size}.lib-cover-classic.lib-slip-${l.slip}`, { style: `${vars};--lib-fs:${l.size}cqw`, 'aria-hidden': 'true', 'data-cover': 'classic' },
       h('div.lib-cover-frame', null,
-        h('div.lib-cover-title.zh', null, title),
-        author && l.author ? h('div.lib-cover-author.zh', null, author) : null));
+        h('div.lib-cover-title.zh', null, shown.title),
+        author && l.author ? h('div.lib-cover-author.zh', null, shown.author) : null));
   }
   return h(`div.lib-cover.lib-cover-${size}.lib-cover-modern`, { style: `${vars};--lib-fs:${modernSize(title)}cqw`, 'aria-hidden': 'true', 'data-cover': 'modern' },
     h('div.lib-cover-frame', null,
-      h('div.lib-cover-title.zh', null, title),
+      h('div.lib-cover-title.zh', null, shown.title),
       h('span.lib-cover-rule'),
-      author ? h('div.lib-cover-author.zh', null, author) : null));
+      author ? h('div.lib-cover-author.zh', null, shown.author) : null));
 }
 
 /** Puts a painting under a drawn cover, as its board; the slip, stitching or title stay on top. A picture that fails is
@@ -39,8 +43,8 @@ export function setCoverArt(cover: HTMLElement, url: string): void {
 }
 
 /** Generated cover now; swapped for the book's own image once the store hands over its URL. */
-export function bookCover(book: BookMeta, store: Store, size: 'md' | 'sm' = 'md', covers = ''): HTMLElement {
-  const drawn = generatedCover(book.title, book.author, size, coverStyleFor(covers, book));
+export function bookCover(book: BookMeta, store: Store, size: 'md' | 'sm' = 'md', covers = '', shown?: Label): HTMLElement {
+  const drawn = generatedCover(book.title, book.author, size, coverStyleFor(covers, book), shown);
   const wrap = h(`div.lib-cover-wrap.lib-cover-wrap-${size}`, null, drawn);
   if (hasSamplePainting(book)) {
     store.books.assetUrl(book.id, book.cover!).then((url) => { if (url) setCoverArt(drawn, url); }).catch(() => {});
