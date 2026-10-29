@@ -394,8 +394,9 @@ function joinCompounds(words: Word[], ctx: WordContext): Word[] {
     for (let j = i + 1; j < words.length && j < i + 5; j++) {
       const v = words[j];
       if (!JOINABLE.has(v.cls) || v.forms.length) break;
-      // A name stays a name (田中 + さん), and a person's suffix is not part of a noun.
-      if (v.morphemes[0].pos2 === '人名') break;
+      // A name stays a name (田中 + さん), and a person's suffix is not part of a noun, unless JMdict lists the whole
+      // (御釈迦様, 神様, お母さん).
+      if (v.morphemes[0].pos2 === '人名' && !ctx.has(text + v.text)) break;
       text += v.text;
       if (ctx.has(text)) best = j;
     }

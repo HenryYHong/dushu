@@ -182,6 +182,18 @@ describe('names', () => {
     expect(words('東京へ行った')[0].name).toBe(true);
     expect(words('本を読む').some((w) => w.name)).toBe(false);
   });
+
+  it('takes a surname that is also a dictionary word for the word, unless a person’s suffix follows', () => {
+    const pond = words('極楽の蓮池のふち').find((w) => w.text === '蓮池')!;
+    expect(pond.name).toBeUndefined();
+    expect(words('田中さんが来た')[0]).toMatchObject({ text: '田中', name: true });
+  });
+
+  it('joins a word with 様 when JMdict lists the whole, and keeps 様 apart after a name', () => {
+    expect(texts('御釈迦様は')).toEqual(['御釈迦様', 'は']);
+    expect(texts('神様に')).toEqual(['神様', 'に']);
+    expect(texts('山田様が')).toEqual(['山田', '様', 'が']);
+  });
 });
 
 describe('speed', () => {

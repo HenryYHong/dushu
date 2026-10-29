@@ -168,6 +168,12 @@ class JaEngine implements LangEngine {
 
   private segmentRun(text: string, a: number, b: number, out: Token[]): void {
     const words = this.wordsOf(text, a, b);
+    words.forEach((w, i) => {
+      // IPADIC calls many plain words surnames or given names (蓮池 "lotus pond", 林 "grove"). One JMdict lists is that word,
+      // unless a person's suffix follows (林さん).
+      const next = words[i + 1];
+      if ((w.name === 'surname' || w.name === 'given') && this.jm.has(w.text) && next?.morphemes[0]?.pos2 !== '人名') w.name = undefined;
+    });
     for (const w of words) {
       if (w.cls === 'symbol' || isDigits(w.text)) {
         // Symbols IPADIC met inside the text (ヽ, ゝ, 〻 standing alone) and plain digits.
