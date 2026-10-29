@@ -2,6 +2,8 @@
 // Keep this in step with the key handlers in ui/reader/reader.ts, ui/popup/host.ts and ui/review/review.ts.
 import { h } from './dom';
 import { icon } from './icons';
+import { isChinese } from '../lang/active';
+import { aidWord, levelScheme } from '../lang/labels';
 
 /**
  * `keys` is one chord: its parts are pressed together ("Shift", "→" is Shift + →). A part can name alternatives
@@ -17,8 +19,8 @@ export const SHORTCUTS: ShortcutGroup[] = [
     rows: [
       { keys: ['Click'], what: 'Look up a word (or hover, if you chose that)' },
       { keys: ['Double-click'], what: 'Look up a word' },
-      { keys: ['Drag'], what: 'Select a phrase or sentence for pinyin and a translation' },
-      { keys: ['P'], what: 'Cycle pinyin: off, all, unknown, HSK' },
+      { keys: ['Drag'], what: isChinese() ? 'Select a phrase or sentence for pinyin and a translation' : 'Select a phrase or sentence for a translation' },
+      { keys: ['P'], what: isChinese() ? 'Cycle pinyin: off, all, unknown, HSK' : `Cycle ${aidWord()}: off, all, unknown, ${levelScheme()}` },
       { keys: ['[ or ]'], what: 'Smaller and larger text' },
       { keys: ['F'], what: 'Full screen on or off' },
       { keys: ['B'], what: 'Bookmark this page, or take its bookmark away' },

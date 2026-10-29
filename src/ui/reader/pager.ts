@@ -19,6 +19,7 @@ import {
   type BlockPages, type PageGeometry,
 } from './pagination';
 import { POS_SEL } from './render';
+import { isChinese } from '../../lang/active';
 
 /** A reading position that survives re-pagination: a block and a UTF-16 offset inside it. */
 export interface Anchor { block: number; offset: number }
@@ -258,7 +259,8 @@ export function createPager(o: PagerOptions): Pager {
       safeTop: safe.top,
       safeBottom: safe.bottom,
       linePitch: size * effectiveLineHeight(s.lineHeight, s.pinyin),
-      cellPx: s.pinyin === 'off' ? undefined : grid.metrics.cellEm * size,
+      // The column is a whole number of grid cells only for Chinese with pinyin on; other languages have no grid.
+      cellPx: s.pinyin === 'off' || !isChinese() ? undefined : grid.metrics.cellEm * size,
     });
     extraKey = layoutExtra(s);
     const st = stage.style;

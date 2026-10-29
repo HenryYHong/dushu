@@ -1,13 +1,14 @@
 // Looking things up from the text: one word (tap, click, hover, arrow keys) or a phrase (drag or long-press selection).
 // Shared by the Scroll and Pages layouts; the layouts only differ in how a word is brought into view.
 import type { AppContext, BookMeta, Dictionary, Lexicon } from '../../types';
-import { hasHan, sentenceAround } from '../../core/text';
+import { sentenceAround } from '../../core/text';
 import { openPhrasePopup, openWordPopup } from '../popup/popup';
 import { anchorOf } from '../popup/position';
 import { logLookup } from '../popup/lookupLog';
 import type { BlockState, ChapterView } from './chapter';
 import { rangeToSpans, spansText, type BlockSpan } from './selection';
-import { isWord } from '../../lang/token';
+import { hasWordText, isWord } from '../../lang/token';
+import { isChinese } from '../../lang/active';
 
 const MAX_PHRASE = 1500;
 
@@ -154,6 +155,18 @@ export function createLookup(host: LookupHost): Lookup {
     const b = v.blocks[active.bi];
     const { s, e } = active;
     const len = e - s;
+    // Another language: the selection grows by the next word (a pesar de, il y a) and shrinks by its last one.
+    if (!isChinese()) {
+      const words = b.rendered!.tokens.filter((t) => isWord(t));
+      let ne: number | null = null;
+      if (delta === 1) ne = words.find((t) => t.start >= e)?.end ?? null;
+      else {
+        const inside = words.filter((t) => t.start >= s && t.end <= e);
+        if (inside.length > 1) ne = inside[inside.length - 2].end;
+      }
+      if (ne !== null && ne !== e) openWord(b, s, ne);
+      return;
+    }
     const cands = dict.wordsAt(b.text, s); // longest first
     let ne: number | null = null;
     if (delta === 1) {
@@ -194,7 +207,7 @@ export function createLookup(host: LookupHost): Lookup {
     spans = capped;
     const stateOf = (sp: BlockSpan) => v.blocks[Number(sp.block.dataset.b)];
     const text = spansText(spans, (el) => v.blocks[Number(el.dataset.b)].text).trim();
-    if (!hasHan(text)) return false;
+    if (!hasWordText(text)) return false;
     const touch = host.pointerKind() === 'touch';
 
     // One character, or exactly one word: look it up as a word.
@@ -204,7 +217,7 @@ export function createLookup(host: LookupHost): Lookup {
       const slice = b.text.slice(start, end);
       const tokIdx = v.tokenIndexAt(b, start);
       const tok = tokIdx >= 0 ? b.rendered!.tokens[tokIdx] : null;
-      const oneChar = [...slice].length === 1 && hasHan(slice);
+      const oneChar = [...slice].length === 1 && hasWordText(slice);
       if (oneChar || (tok && tok.start === start && tok.end === end)) {
         if (!touch) sel.removeAllRanges();
         openWord(b, start, end);
@@ -261,7 +274,7 @@ export function createLookup(host: LookupHost): Lookup {
     const start = sp.start + lead;
     const end = sp.start + sp.text.trimEnd().length;
     const phrase = b.text.slice(start, end);
-    if (end <= start || !hasHan(phrase)) return;
+    if (end <= start || !hasWordText(phrase)) return;
     showPhrase([{ block: b.el, start, end }], phrase, true);
   }
 

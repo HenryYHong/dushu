@@ -386,3 +386,6 @@ dialog.modal:focus { outline: none; }
 /* A screen's name in a language written with letters: the book face in small capitals, without the wide CJK tracking. */
 .page-title-zh.page-title-native { font-family: var(--font-book, var(--font-display)); font-variant: small-caps; letter-spacing: 0.06em; font-size: 22px; }
 :root[data-lang='ja'] .page-title-zh { font-family: var(--font-book); letter-spacing: 0.2em; }
+/* Japanese text anywhere in the interface (a word card, a saved word) takes a Japanese face, not the Chinese ones the interface
+   stack lists first: the same kanji are drawn differently. Zero specificity, so any rule that sets a face still wins. */
+:where(:root[data-lang='ja'] [lang|='ja']) { font-family: var(--font-book); }

@@ -4,10 +4,12 @@
 // worked out again from them whenever the known words change, without reading the book. ARCHITECTURE.md 5.4.
 import type { BookMeta, Dictionary, Lexicon, Store } from '../types';
 import { chapterWords, type ChapterWordsOptions } from './chapterWords';
+import { langKey } from '../lang/active';
 
 export const SAMPLE_CHAPTERS = 6;
 export const SAMPLE_CHARS = 4000;
-const CACHE_KEY = 'dushu.book-words.v1';
+/** Per library: each language keeps the samples of its own books (lang/active.ts langKey). */
+const CACHE_KEY = (): string => langKey('dushu.book-words.v1');
 
 export interface BookSample {
   /** What the sample was taken from; a different key (chapters added, names found) means take it again. */
@@ -64,7 +66,7 @@ export function knownShare(sample: BookSample, isKnown: (word: string) => boolea
 /** Every sample kept on this device, by book id. */
 export function readCache(): Record<string, BookSample> {
   try {
-    const raw = JSON.parse(localStorage.getItem(CACHE_KEY) ?? '{}');
+    const raw = JSON.parse(localStorage.getItem(CACHE_KEY()) ?? '{}');
     return raw && typeof raw === 'object' ? raw : {};
   } catch { return {}; }
 }
@@ -81,5 +83,5 @@ export function keepSample(bookId: string, sample: BookSample, books: string[]):
   all[bookId] = sample;
   const live = new Set(books);
   for (const id of Object.keys(all)) if (!live.has(id)) delete all[id];
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify(all)); } catch { /* full or blocked: it is counted again next time */ }
+  try { localStorage.setItem(CACHE_KEY(), JSON.stringify(all)); } catch { /* full or blocked: it is counted again next time */ }
 }

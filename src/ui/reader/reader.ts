@@ -235,7 +235,8 @@ export const mount: MountFn = async (root, params, ctx) => {
 
   // The Words tab's counts, per chapter, until the names and terms change.
   const chapterWordCache = new Map<number, Promise<ChapterWords>>();
-  const toc = createToc(ctx, book, (i) => void loadChapter(i, { top: true }), {
+  // Names and terms are found in Chinese books only (core/lexicon.ts); another language's names come from its engine.
+  const toc = createToc(ctx, book, (i) => void loadChapter(i, { top: true }), !isChinese() ? undefined : {
     load: () => store.lexicon.get(book.id),
     onWord: (entry, anchor) => openWordPopup({
       ctx, word: entry.word, anchor, lexicon, bookId: book.id, onLexiconChange: () => void reloadLexicon(),

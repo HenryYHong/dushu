@@ -1018,3 +1018,41 @@ CC-CEDICT (CC BY-SA 4.0, attribution required in About), Unihan (Unicode License
 (MIT), complete-hsk-vocabulary (MIT), OpenCC (Apache-2.0), Jigmo (CC0), Wiktionary via kaikki
 (CC BY-SA), hanzi-writer (MIT) + hanzi-writer-data (Arphic Public License, fetched at runtime),
 Newsreader (SIL OFL 1.1, no Reserved Font Name; `public/fonts/Newsreader-OFL.txt`).
+
+## 9. Other languages (`src/lang/`)
+
+Dushu reads Japanese, Spanish, French, German, Italian, Portuguese and Russian as well as Chinese. It is one app: the language
+is chosen per page load (`lang/active.ts`: `?lang=ja` in the address, else the last one opened, else Chinese) and switching
+reloads at the library. Chinese is the original app and keeps every name it had; nothing about it changes when another language
+exists.
+
+- **Each language is its own library.** Chinese keeps the `dushu` database and the `dushu.*` keys; another language uses the
+  database `dushu-<id>` and the keys `dushu.<id>.*` (`langKey`, `storeName`), so its books, words, places and settings never mix
+  with the Chinese ones. A backup records its language and is refused by another one.
+- **Sync is off for the other languages** (`OTHER_LANGUAGES_SYNC`, `syncsHere`) until the record format that keeps languages apart is
+  on every Chinese device: the hubs keep records by key (`v:<word>` …), and a Chinese copy from before would take a Japanese saved word
+  for a Chinese one. Account books and the Mac's books are Chinese only for the same reason.
+- **The contract** is `lang/types.ts`: a language's engine (`src/lang/<id>`, loaded by `lang/registry.ts`) segments a paragraph into
+  tokens (kind `'word'`, with `key` = the folded dictionary form every form of a word shares, `lemma`, Japanese `ruby` and `reading`,
+  Russian `stress`, `name`), looks a word up (`WordLookup`: entries with senses, the form on the page "past tense of …", the parts of a
+  clitic or compound word, Japanese kanji), normalizes a word to its key, and gives levels and a short hint. `LangInfo` in the registry
+  holds what the app needs before the engine loads: names, the BCP 47 tag, voices, the reading aid (furigana or hints), levels, fonts.
+- **Where the app asks.** `main.ts` loads the engine instead of the Chinese dictionary and sets it active; `ctx.dict()` then returns
+  `noChineseDictionary` (no entries, text unchanged), so a screen written for Chinese degrades instead of breaking. `core/segment.ts`
+  hands a paragraph to the active engine. `lang/token.ts` `isWord` replaces the old `kind === 'han'`. The reader draws a word as one
+  span (`render.ts renderWord`): Japanese kanji pieces as rubies with furigana, a hint over a hard word as a ruby over the whole word, the
+  Russian stressed vowel in `.rd-stress`. Every word or piece carries `data-o` and the class `rd-o`; `POS_SEL` (`ruby.rd-c, .rd-o`) is
+  what pages, marks and places measure. Known and saved words are by key; levels replace HSK (`lang/labels.ts`: "Furigana" and "N4",
+  "Hints" and "B1"). The word card for another language is `ui/popup/langWordView.ts`; saving makes the card in `lang/words.ts`.
+- **Counting.** `import/han.ts countHan` counts the language's letters instead of Han characters (kana and kanji for Japanese), so a
+  book's length, its chapter offsets and reading places work the same; thresholds tuned in Han characters scale by `unitScale` (1.5
+  for Japanese, 3.5 for the languages with spaces). The library shows words (letters / 5.6) for those.
+- **Importing.** `import/encoding.ts` decodes the language's legacy encodings (Shift_JIS, EUC-JP; Windows-1251, KOI8-R; Windows-1252);
+  `import/chapters.ts` finds its headings (CAPÍTULO III, Chapitre premier, Erstes Kapitel, Глава, a Roman numeral alone) and joins
+  wrapped lines with a space; `lang/detect.ts` turns away a book plainly in another language and says where it belongs.
+- **Translating.** A request names its language (`TranslateRequest.lang`); `translate/prompt.ts otherSystem` gives the instructions for
+  it, and `checkTranslation` runs only the checks that hold for any language. Chrome's translator and MyMemory translate from the
+  language's tag. The offline gloss reads the engine. The Mac's local model stays Chinese only on Automatic.
+- **Classics.** `public/samples/<id>/index.json` and Markdown texts (`# Title`, `## Chapter`), with public-domain paintings as covers.
+- **Offline.** Each language's data and classics live in a cache of their own (`sw.js`, `dushu-lang-<id>-<version>`), named by their
+  contents (`vite.config.ts` `__LANG_VERSIONS__`): stored the first time the language opens, kept through Chinese updates.
