@@ -297,7 +297,11 @@ function hardSplit(text: string, chunk: number): string[] {
  */
 export function splitLongParagraph(text: string, max = LONG_PARAGRAPH, chunk = 1500): string[] {
   if (cpLen(text) <= max) return [text];
-  const sentences = text.match(/[^。！？!?…]*[。！？!?…]+[”’」』）)]*|[^。！？!?…]+$/g) ?? [text];
+  // A language with spaces ends its sentences with a full stop too, and a piece starts at a word, not at the space.
+  const spaced = lang().spaced;
+  const sentences = (spaced
+    ? text.match(/[^.!?…]*[.!?…]+["'»”’)]*\s*|[^.!?…]+$/g)
+    : text.match(/[^。！？!?…]*[。！？!?…]+[”’」』）)]*|[^。！？!?…]+$/g)) ?? [text];
   const out: string[] = [];
   let cur = '';
   const push = (piece: string) => {
@@ -317,7 +321,7 @@ export function splitLongParagraph(text: string, max = LONG_PARAGRAPH, chunk = 1
     } else push(s);
   }
   if (cur) out.push(cur);
-  return out;
+  return spaced ? out.map((piece) => piece.trim()).filter(Boolean) : out;
 }
 
 /** Pasted/TXT/Markdown-body text to blocks: paragraphs, headings by the chapter regex, rules. */

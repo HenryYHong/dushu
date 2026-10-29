@@ -10,8 +10,8 @@ import { DAMAGED_MESSAGE } from './zip';
 import { importMobi, looksLikeMobi } from './mobi';
 import { ImportError, noTextMessage, pdfStartFailure } from './errors';
 import { countHan } from './han';
-import { joinSplitParagraphs, normalizePunctuation, totalHan } from './chapters';
-import { importHtml, importMarkdown } from './html';
+import { finalizeChapters, joinSplitParagraphs, normalizePunctuation, totalHan } from './chapters';
+import { importHtml, importMarkdown, markdownToBlocks } from './html';
 import { capChars } from './meta';
 import { bookFromText, importTxt } from './txt';
 import { IMPORT_VERSION } from './version';
@@ -177,6 +177,35 @@ export async function importFile(file: Blob & { name: string }, opts?: { onProgr
   return done;
 }
 
+/**
+ * A classic kept as Markdown (public/samples/<lang>/*.md): `# title`, then `## chapter` headings. Its structure is taken as
+ * written: the title line is the book's, not a chapter's, and a chapter starts at every `##` and only there. Left to the
+ * general rules, a story's bare "I" and "II" lines were taken for the chapters and four stories ran into one.
+ */
+function importClassic(text: string, title?: string, author?: string): ImportedBook {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  let bookTitle = title?.trim() ?? '';
+  const first = lines.findIndex((l) => l.trim());
+  const h1 = /^#\s+(.+?)\s*#*\s*$/.exec(lines[first] ?? '');
+  if (h1) {
+    bookTitle ||= h1[1].trim();
+    lines.splice(0, first + 1);
+  }
+  bookTitle ||= PASTED_TITLE;
+  const sections: string[][] = [[]];
+  for (const l of lines) {
+    if (/^##\s+\S/.test(l)) sections.push([]);
+    sections[sections.length - 1].push(l);
+  }
+  const chapters = sections.flatMap((section) => {
+    const blocks = markdownToBlocks(section.join('\n'));
+    if (!blocks.length) return [];
+    const head = blocks[0].t === 'h' && /^##\s/.test(section.find((l) => l.trim()) ?? '') ? blocks[0].text : '';
+    return [{ title: head || bookTitle, blocks }];
+  });
+  return { title: bookTitle, author: author?.trim() ?? '', format: 'md', script: 'unknown', chapters: finalizeChapters(chapters), assets: new Map(), sourceName: 'book.md' };
+}
+
 /** What pasted text with no title of its own is called. ui/library/importer.ts shows the same words while it is added. */
 export const PASTED_TITLE = 'Pasted text';
 
@@ -187,10 +216,7 @@ export const PASTED_TITLE = 'Pasted text';
 export function importText(text: string, title?: string, author?: string, markdown = false): ImportedBook {
   const trimmed = text.trim();
   if (!trimmed) throw new ImportError('There is no text to import.');
-  if (markdown) {
-    const book = importMarkdown(new TextEncoder().encode(trimmed), 'book.md');
-    return finish({ ...book, title: title?.trim() || book.title, author: author?.trim() || book.author });
-  }
+  if (markdown) return finish(importClassic(trimmed, title, author));
   return finish(
     bookFromText(trimmed, {
       format: 'paste',

@@ -192,3 +192,34 @@ describe('translating another language', () => {
     expect(odd.ok && odd.request.lang).toBeUndefined();
   });
 });
+
+describe('the classics, kept as Markdown', () => {
+  it('cut a chapter at every ## and only there, the # title being the book’s', () => {
+    setLangForTests('es');
+    const story = (n: number) => `Había una vez un hombre que vivía en Buenos Aires con su perro número ${n}. `.repeat(20);
+    const md = `# Cuentos de la selva\n\n## La tortuga gigante\n\n${story(1)}\n\n## Las medias de los flamencos\n\nI\n\n${story(2)}\n\nII\n\n${story(3)}\n`;
+    const book = importText(md, undefined, undefined, true);
+    expect(book.title).toBe('Cuentos de la selva');
+    expect(book.chapters.map((c) => c.title)).toEqual(['La tortuga gigante', 'Las medias de los flamencos']);
+    // The book's title is not a block of the first chapter: the reader would show it between two chapter titles.
+    expect(book.chapters[0].blocks[0]).toMatchObject({ t: 'h', text: 'La tortuga gigante' });
+    expect(book.chapters.flatMap((c) => c.blocks).some((b) => b.t === 'h' && b.text === 'Cuentos de la selva')).toBe(false);
+  });
+
+  it('keep a book without ## as one chapter named after it', () => {
+    setLangForTests('fr');
+    const book = importText(`# La Parure\n\n${'C’était une de ces jolies et charmantes filles. '.repeat(30)}\n`, undefined, undefined, true);
+    expect(book.chapters).toHaveLength(1);
+    expect(book.chapters[0].title).toBe('La Parure');
+    expect(book.chapters[0].blocks.every((b) => b.t === 'p')).toBe(true);
+  });
+
+  it('split a very long paragraph at full stops, each piece starting at a word', () => {
+    setLangForTests('ru');
+    const long = 'В департаменте служил один чиновник, нельзя сказать, чтобы очень замечательный. '.repeat(80);
+    const book = importText(`# Шинель\n\n${long}\n`, undefined, undefined, true);
+    const ps = book.chapters[0].blocks.filter((b) => b.t === 'p') as { text: string }[];
+    expect(ps.length).toBeGreaterThan(1);
+    for (const p of ps) { expect(p.text).toBe(p.text.trim()); expect(p.text).toMatch(/\.$/); }
+  });
+});
