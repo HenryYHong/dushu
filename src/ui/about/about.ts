@@ -18,7 +18,7 @@ export const EXTRA_SOURCES: { name: string; license: string; url: string; use: s
   { name: 'Newsreader', license: 'SIL Open Font License 1.1', url: 'https://github.com/productiontype/Newsreader', use: 'The serif of the screen titles, folios and numbers (a Latin subset).' },
   { name: 'hanzi-writer', license: 'MIT', url: 'https://hanziwriter.org/', use: 'Stroke-order animation.' },
   { name: 'hanzi-writer-data (Make Me a Hanzi)', license: 'Arphic Public License', url: 'https://github.com/chanind/hanzi-writer-data', use: 'Stroke data, fetched when you open a character.' },
-  { name: 'Cover paintings and photographs (Wikimedia Commons)', license: 'Public domain', url: 'https://commons.wikimedia.org/', use: 'The covers of the classics: Guo Xi, Early Spring; Ma Yuan, Angler on a Wintry Lake; Sun Wen, the Garden of Grand View; Shang Xi, Guan Yu Captures General Pang De; Zhang Lin, Hua Rong from his Water Margin album; a Qing court painter, Sun Wukong from the Office of Great Peace opera album; Yashima Gakutei, the Monkey King Sun Wukong; Confucius at leisure; and two photographs of Lu Xun.' },
+  { name: 'Cover paintings and photographs (Wikimedia Commons)', license: 'Public domain', url: 'https://commons.wikimedia.org/', use: 'The covers of the classics: Guo Xi, Early Spring; Ma Yuan, Angler on a Wintry Lake; Sun Wen, the Garden of Grand View; Shang Xi, Guan Yu Captures General Pang De; Zhang Lin, Hua Rong from his Water Margin album; a Qing court painter, Sun Wukong from the Office of Great Peace opera album; an unknown Song painter, Gibbons Playing in a Loquat Tree; Confucius at leisure; and two photographs of Lu Xun.' },
 ];
 
 /** What each source in meta.json is used for, by name. */
