@@ -823,10 +823,17 @@ html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x
 /* Furigana: small, over the kanji they read. */
 .rd-article .rd-r rt { font-family: inherit; font-weight: 400; font-size: calc(var(--rd-rt, 0.46) * 1.05em); color: var(--text-2); }
 .rd-article .rd-r .rd-rtx { bottom: calc(100% - 0.14em); transform: translateX(-50%); }
-/* A hint: a short meaning over a hard word, set small in the interface's face and cut short rather than run into the next one. */
-.rd-article .rd-hw rt { font-family: var(--font-ui); font-weight: 450; font-size: calc(var(--rd-rt, 0.46) * 0.86em); letter-spacing: 0; color: var(--text-3); }
+/* A hint: a short meaning over a hard word, set small in the interface's face and cut short at 8em. Unlike pinyin it takes
+   room in the line: word and hint share one grid cell as wide as the wider, the hint lifted above. Hung out of the flow,
+   "of, from" over "de" ran into the hint of the next word. */
+.rd-article .rd-hw rt { font-family: var(--font-ui); font-weight: 450; font-size: max(10px, calc(var(--rd-rt, 0.46) * 1.1em)); letter-spacing: 0; color: var(--text-3); }
+.rd-article .rd-word:not(.rd-nopy) > .rd-hw { display: inline-grid; justify-items: center; text-indent: 0; }
+.rd-article .rd-word:not(.rd-nopy) > .rd-hw > * { grid-area: 1 / 1; }
+.rd-article .rd-word:not(.rd-nopy) > .rd-hw > .rd-hb { line-height: 1.2; }
+.rd-article .rd-word:not(.rd-nopy) > .rd-hw > rt { display: block; height: 0; align-self: start; }
 .rd-article .rd-hw .rd-rtx {
-  bottom: calc(100% - 0.1em); transform: translateX(-50%); max-width: max(7em, 100%); overflow: hidden; text-overflow: ellipsis;
+  position: relative; left: auto; bottom: auto; display: block; transform: translateY(calc(-100% + 0.05em));
+  max-width: 8em; overflow: hidden; text-overflow: ellipsis;
 }
 /* Russian stress: an acute over the stressed vowel, drawn by the stylesheet (the text itself is never changed). */
 .rd-stress { position: relative; }

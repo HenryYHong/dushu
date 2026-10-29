@@ -1,0 +1,67 @@
+{
+  "built": "2026-10-29",
+  "counts": {
+    "entries": 218963,
+    "senses": 253868,
+    "glosses": 443892,
+    "commonEntries": 22649,
+    "jlptEntries": 7747,
+    "jlptRows": 8279,
+    "kanji": 10384,
+    "kanjiInJmdict": 5878,
+    "ipadicWords": 392126
+  },
+  "sources": [
+    {
+      "name": "JMdict (English) 2026-10-26, via jmdict-simplified 3.6.2",
+      "license": "CC BY-SA 4.0 (Electronic Dictionary Research and Development Group)",
+      "url": "https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project"
+    },
+    {
+      "name": "KANJIDIC2 2026-10-26, via jmdict-simplified 3.6.2",
+      "license": "CC BY-SA 4.0 (Electronic Dictionary Research and Development Group)",
+      "url": "https://www.edrdg.org/wiki/index.php/KANJIDIC_Project"
+    },
+    {
+      "name": "jmdict-simplified (JSON edition of JMdict and KANJIDIC2)",
+      "license": "CC BY-SA 4.0 (data), MIT (code)",
+      "url": "https://github.com/scriptin/jmdict-simplified"
+    },
+    {
+      "name": "JLPT word lists by Jonathan Waller (tanos.co.uk)",
+      "license": "CC BY",
+      "url": "http://www.tanos.co.uk/jlpt/"
+    },
+    {
+      "name": "yomitan-jlpt-vocab: Waller's lists matched to JMdict entries, by Stephen Kraus",
+      "license": "CC BY-SA 4.0",
+      "url": "https://github.com/stephenmk/yomitan-jlpt-vocab"
+    },
+    {
+      "name": "IPADIC 2.7.0 (mecab-ipadic), as packaged by kuromoji.js",
+      "license": "IPADIC licence (free use, modification and redistribution with the copyright notice; NAIST and ICOT)",
+      "url": "https://github.com/taku910/mecab/tree/master/mecab-ipadic"
+    },
+    {
+      "name": "kuromoji.js 0.1.2 (Takuya Asano, Atilika Inc.; dictionary format and Viterbi search, ported in src/lang/ja/ipadic.ts)",
+      "license": "Apache-2.0",
+      "url": "https://github.com/takuyaa/kuromoji.js"
+    }
+  ],
+  "files": {
+    "kuromoji/base.dat.gz": 3956825,
+    "kuromoji/check.dat.gz": 3111633,
+    "kuromoji/tid.dat.gz": 1617802,
+    "kuromoji/tid_pos.dat.gz": 5917220,
+    "kuromoji/tid_map.dat.gz": 1485576,
+    "kuromoji/cc.dat.gz": 1692067,
+    "kuromoji/unk.dat.gz": 290,
+    "kuromoji/unk_pos.dat.gz": 315,
+    "kuromoji/unk_map.dat.gz": 162,
+    "kuromoji/unk_char.dat.gz": 306,
+    "kuromoji/unk_invoke.dat.gz": 107,
+    "jmdict.tsv.gz": 7482763,
+    "kanji.tsv.gz": 271741
+  },
+  "hash": "347050205e"
+}

@@ -89,7 +89,8 @@ export function mountLangWordView(
     const showHead = many || e.head !== v.word || (e.reading && e.reading !== e.head);
     const chips: (Node | null)[] = [];
     if (e.gender && GENDER[e.gender]) chips.push(h('span.chip', { title: GENDER[e.gender] }, e.gender === 'm/f' ? 'm/f' : e.gender));
-    if (e.level) chips.push(h('span.chip', null, levelLabel(e.level)));
+    // One entry: its level is on the line under the word already.
+    if (e.level && many) chips.push(h('span.chip', null, levelLabel(e.level)));
     if (showHead || chips.length) {
       block.appendChild(h('div.pp-reading-head', null,
         showHead ? h('span.pp-lang-head', { lang: L.tag }, e.head) : null,

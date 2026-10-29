@@ -154,7 +154,7 @@ function renderWord(token: Token, index: number, opts: RenderOptions): TokenView
   el.dataset.e = String(token.end);
   el.dataset.i = String(index);
   if (token.inDict) el.classList.add('rd-dict');
-  if (token.name) el.classList.add('rd-name');
+  if (token.name) el.classList.add('rd-propn');
   const chars: TokenView['chars'] = [];
   const aid = opts.aid;
   if (token.ruby?.length) {
@@ -183,10 +183,14 @@ function renderWord(token: Token, index: number, opts: RenderOptions): TokenView
     }
   } else {
     // A spaced language: the word is one piece, wrapped in a ruby when it can carry a hint over it.
-    const box = aid === 'hint' ? createEl('ruby', 'rd-o rd-hw') : el;
+    // An elided word (French d’, l’, qu’; Italian dell’) carries no hint: one would hold it apart from the word it leans on.
+    const box = aid === 'hint' && !/['’]$/.test(token.text) ? createEl('ruby', 'rd-o rd-hw') : el;
     box.dataset.o = String(token.start);
     if (box !== el) el.classList.add('rd-has-hw');
-    appendStressed(box, token, opts.stress ?? false);
+    // Under a hint the word sits in its own span, so the stylesheet can set word and hint in one cell as wide as the wider.
+    const base = box !== el ? createEl('span', 'rd-hb') : box;
+    appendStressed(base, token, opts.stress ?? false);
+    if (base !== box) box.appendChild(base);
     if (box !== el) {
       const hint = opts.hint?.(token) ?? '';
       let rt: HTMLElement | null = null;

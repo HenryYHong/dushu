@@ -231,20 +231,21 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (empty) {
       // A phone or tablet has no file to drop and no mouse to drag with: it is told its own way to a sentence.
       const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
+      const gives = isChinese() ? 'its pinyin and meaning' : lang().aid === 'furigana' ? 'its reading and meaning' : 'its meaning';
       gridEl.appendChild(h('section.lib-empty.card', null,
         h('h2.lib-empty-title', null, 'No books yet'),
         h('p', null, touch
           ? 'Import an EPUB, a Kindle file without DRM, a text file or a PDF, or paste a chapter. Or pick a classic below.'
           : 'Import an EPUB, a Kindle file without DRM, a text file or a PDF, or paste a chapter. You can also drop a file anywhere on this page, or pick a classic below.'),
         h('p', null, touch
-          ? 'Then tap any word for its pinyin and meaning, and tap it twice for the whole sentence and its translation.'
-          : 'Then click any word for its pinyin and meaning, or drag across a sentence to translate it.'),
+          ? `Then tap any word for ${gives}, and tap it twice for the whole sentence and its translation.`
+          : `Then click any word for ${gives}, or drag across a sentence to translate it.`),
         h('div.lib-actions.lib-empty-actions', null, importBtn(), pasteBtn(), macBooks)));
       return;
     }
     const searchKey = (value: string) => (ctx.dictSync()?.toSimplified(value) ?? value).normalize('NFKC').toLocaleLowerCase();
     const matched = books.filter(book => !query || searchKey(`${book.title} ${book.author}`).includes(searchKey(query)));
-    matched.sort((a, b) => order === 'title' ? a.title.localeCompare(b.title, 'zh-Hans-CN')
+    matched.sort((a, b) => order === 'title' ? a.title.localeCompare(b.title, isChinese() ? 'zh-Hans-CN' : lang().tag)
       : order === 'added' ? b.addedAt - a.addedAt
       : (b.lastOpenedAt ?? b.addedAt) - (a.lastOpenedAt ?? a.addedAt));
     libraryCount.textContent = query ? `${matched.length} of ${books.length}` : plural(books.length, 'book');
