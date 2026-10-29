@@ -1,4 +1,4 @@
-// Passkeys for the sync account (cloud/src/worker.ts): Face ID, Touch ID or the device's PIN instead of an emailed code, so
+// Passkeys for the sync account (cloud/src/worker.ts): Face ID, a fingerprint, or the computer's password or PIN instead of an emailed code, so
 // signing in costs nothing and has no daily limit. Someone the owner invites makes an account with a passkey on the invite
 // link (no email at all); anyone signed in can add a passkey for the next device. The browser's own WebAuthn does the work:
 // this module only turns the server's options into what navigator.credentials takes, and the passkey's answer back into JSON.

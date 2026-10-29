@@ -15,7 +15,7 @@ export const mount: MountFn = (root, params, ctx) => {
   const name = h('input.input.join-name', { type: 'text', autocomplete: 'name', maxlength: 40, placeholder: 'Your name', 'aria-label': 'Your name' }) as HTMLInputElement;
   const go = h('button.btn.btn-primary', { type: 'submit' }, 'Make my account') as HTMLButtonElement;
   const form = h('form.join-form', { hidden: true }, name, go) as HTMLFormElement;
-  const note = h('p.join-note', { hidden: true }, 'Your phone or computer saves a passkey for Dushu, and Face ID, Touch ID or your device’s PIN unlocks it. There’s no password and no email. On an iPhone or iPad the passkey is on your other Apple devices too.');
+  const note = h('p.join-note', { hidden: true }, 'Your phone or computer saves a passkey for Dushu. You unlock it the way you unlock the device: Face ID, a fingerprint, or your computer’s password or PIN. You don’t need a Dushu password or an email. On a shared computer, pick your phone instead and scan the code. On an iPhone or iPad the passkey is on your other Apple devices too.');
   const done = h('div.join-done', { hidden: true });
 
   const say = (text: string, bad = false) => { status.textContent = text; status.classList.toggle('join-bad', bad); };

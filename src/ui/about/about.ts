@@ -71,7 +71,7 @@ const DEVICES = [
 ];
 
 const ACCOUNT = [
-  'Dushu is invite-only for now. Open the invite link you were sent and make your account with a passkey: Face ID, Touch ID or your device\'s PIN, with no password and no email. After that, tap Sign in at the top and use your passkey.',
+  'Dushu is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer\'s password or PIN. You don\'t need a Dushu password or an email. After that, tap Sign in at the top and use your passkey.',
   'On an iPhone, iPad or Mac, your passkey is on your other Apple devices too. On another device, sign in once with your phone (the browser offers it), then add a passkey there in Settings.',
   'Your books, saved words, lookups, bookmarks, reading places and settings follow you to any device you sign in on. A few things that depend on the screen, like one or two pages, stay with each device.',
   'Signed in, books are read aloud in your account\'s voice, up to a daily limit. Otherwise Dushu uses your device\'s own voices.',

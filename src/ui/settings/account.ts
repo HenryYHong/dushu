@@ -79,7 +79,7 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     say('');
     try {
       await addPasskey();
-      say('Passkey added. Next time, sign in on this device with Face ID, Touch ID or your PIN.', 'good');
+      say('Passkey added. Next time, sign in here the way you unlock this device.', 'good');
     } catch (e) { say(e instanceof Error ? e.message : 'The passkey could not be added.', 'bad'); }
     finally { addKeyBtn.disabled = false; paint(); }
   });
