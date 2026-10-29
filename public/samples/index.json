@@ -146,8 +146,8 @@
       "title": "西遊記",
       "author": "吳承恩"
     },
-    "cover": "covers/xiyouji.jpg",
-    "coverCredit": "Cover of the Ming edition of Li Zhuowu’s commented Journey to the West, illustrations volume. Public domain, via Wikimedia Commons."
+    "cover": "covers/xiyouji-moon.jpg",
+    "coverCredit": "Tsukioka Yoshitoshi, Jade Rabbit: Sun Wukong (玉兎 孫悟空), from One Hundred Aspects of the Moon, 1889. Public domain, via Wikimedia Commons."
   },
   {
     "id": "hongloumeng",
@@ -218,7 +218,7 @@
       "title": "水滸傳",
       "author": "施耐庵"
     },
-    "cover": "covers/shuihu.jpg",
-    "coverCredit": "Chen Hongshou, Yang Zhi, from the Water Margin cards (水浒叶子), 17th century. Public domain, via Wikimedia Commons."
+    "cover": "covers/shuihu-hua-rong.jpg",
+    "coverCredit": "Zhang Lin, Hua Rong, from a painted album of the Water Margin heroes (彩绘水浒传), Qing dynasty. Public domain, via Wikimedia Commons."
   }
 ]

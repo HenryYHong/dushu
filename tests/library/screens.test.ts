@@ -348,6 +348,39 @@ describe('library screen', () => {
     await until(() => root.querySelector('.lib-sample .lib-add') === null);
     expect(root.querySelector('.lib-sample')?.textContent).toContain('In your library');
   });
+
+  it('gives a classic already added the new painting when its cover is replaced, once', async () => {
+    const jpeg = (n: number) => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, n, n, n, n, n, n])], { type: 'image/jpeg' });
+    const index = [{ id: 'x1', title: '小故事', author: '某人', script: 'simplified', file: 'x1.txt', note: 'Public domain.', cover: 'covers/x1.jpg' }];
+    const asked: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      const u = String(url);
+      if (u.endsWith('samples/index.json')) return { ok: true, text: async () => JSON.stringify(index) };
+      if (u.endsWith('samples/x1.txt')) return { ok: true, text: async () => '从前有一座山，山里有一座庙。庙里有一个老和尚，他每天都给小和尚讲故事。' };
+      const cover = /samples\/covers\/(x1(?:-new)?)\.jpg$/.exec(u);
+      if (cover) { asked.push(cover[1]); return { ok: true, blob: async () => jpeg(cover[1] === 'x1' ? 1 : 2) }; }
+      return { ok: false, text: async () => '' };
+    });
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-sample .lib-add'));
+    (root.querySelector('.lib-sample .lib-add') as HTMLElement).click();
+    await until(() => navigated.length > 0, 8000);
+    const read = (blob: Blob) => new Promise<ArrayBuffer>((r) => { const f = new FileReader(); f.onload = () => r(f.result as ArrayBuffer); f.readAsArrayBuffer(blob); });
+    const bytes = async () => { const [b] = await store.books.list(); return new Uint8Array(await read((await store.books.asset(b.id, b.cover!))!))[6]; };
+    expect(await bytes()).toBe(1);
+
+    cleanup?.(); asked.length = 0;
+    index[0].cover = 'covers/x1-new.jpg';
+    cleanup = await mountLibrary(root, {}, ctx);
+    for (let i = 0; i < 300 && (await store.books.list())[0]?.coverFrom !== 'sample:covers/x1-new.jpg'; i++) await flush(10);
+    expect(await bytes()).toBe(2);
+
+    cleanup?.(); asked.length = 0;
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => !!root.querySelector('.lib-sample'));
+    await flush(50);
+    expect(asked.filter((x) => x === 'x1-new')).toHaveLength(0); // already has it, so not fetched for the book again
+  });
 });
 
 describe('settings screen', () => {

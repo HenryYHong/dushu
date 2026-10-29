@@ -515,10 +515,11 @@ export const mount: MountFn = (root, _params, ctx) => {
     return h('div.lib-cover-wrap.lib-cover-wrap-sm', null, drawn);
   }
 
-  /** Classics added before they had covers get theirs, once each (a drawn cover picked in the menu still wins). */
+  /** Classics added before they had covers get theirs, and ones showing a painting since replaced get the new one, once each
+   *  (a drawn cover picked in the menu still wins). */
   async function coverOldSamples(list: Sample[]): Promise<void> {
     for (const b of books) {
-      const s = b.sourceName?.startsWith('sample:') && !b.cover ? list.find((x) => sampleSourceName(x.id) === b.sourceName) : undefined;
+      const s = b.sourceName?.startsWith('sample:') && (!b.cover || hasSamplePainting(b)) ? list.find((x) => sampleSourceName(x.id) === b.sourceName) : undefined;
       const from = s?.cover ? `sample:${s.cover}` : '';
       if (!s || !from || b.coverFrom === from || !alive) continue;
       const image = await sampleCover(s);

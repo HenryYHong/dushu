@@ -531,7 +531,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
         if (!type) throw new Error('That cover is not a picture Dushu can show.');
         // A new name for each picture, so a cached address for the old one is never shown for the new.
-        const name = `cover-${from.slice(0, 16)}`;
+        const name = `cover-${from.replace(/[^\w.-]+/g, '-').slice(-40)}`;
         await write([
           { op: 'put', table: 'assets', value: { bookId: id, name, data, type: type.mime } },
           { op: 'put', table: 'books', value: { ...cur, cover: name, coverFrom: from } },
