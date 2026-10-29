@@ -7,6 +7,9 @@ import { icon } from '../icons';
 import { SHORTCUTS, keyCaps } from '../shortcuts';
 import { connectedMac, isMacOrigin } from '../../core/macBridge';
 import { isAccountOwner } from '../../core/cloud';
+import { activeEngine, isChinese, lang, syncsHere } from '../../lang/active';
+import { aidWord, levelScheme } from '../../lang/labels';
+import type { LangId } from '../../lang/types';
 
 export { SHORTCUTS };
 
@@ -139,7 +142,80 @@ function storageCard(): HTMLElement {
 
 const steps = (rows: string[], ordered = true) => h(ordered ? 'ol.ab-steps' : 'ul.ab-steps', null, rows.map((d) => h('li', null, d)));
 
+/** Free, legal places to find books in each language other than Chinese. */
+const OTHER_FINDING: Record<Exclude<LangId, 'zh'>, [string, string, string][]> = {
+  ja: [['https://www.aozora.gr.jp/', 'Aozora Bunko (青空文庫)', ' has more than 17,000 Japanese books in the public domain, from Natsume Sōseki to Miyazawa Kenji, as text you can download.']],
+  es: [['https://www.gutenberg.org/browse/languages/es', 'Project Gutenberg', ' has hundreds of Spanish books as EPUB and plain text.'], ['https://es.wikisource.org/', 'Spanish Wikisource', ' has thousands more, many as EPUB.']],
+  fr: [['https://www.gutenberg.org/browse/languages/fr', 'Project Gutenberg', ' has thousands of French books as EPUB and plain text.'], ['https://fr.wikisource.org/', 'French Wikisource', ' has thousands more, many as EPUB.']],
+  de: [['https://www.gutenberg.org/browse/languages/de', 'Project Gutenberg', ' has thousands of German books as EPUB and plain text.'], ['https://de.wikisource.org/', 'German Wikisource', ' has more, many as EPUB.']],
+  it: [['https://www.gutenberg.org/browse/languages/it', 'Project Gutenberg', ' has hundreds of Italian books as EPUB and plain text.'], ['https://www.liberliber.it/', 'Liber Liber', ' has thousands of Italian books in the public domain.']],
+  pt: [['https://www.gutenberg.org/browse/languages/pt', 'Project Gutenberg', ' has hundreds of Portuguese books as EPUB and plain text.'], ['https://pt.wikisource.org/', 'Portuguese Wikisource', ' has thousands more.']],
+  ru: [['https://www.gutenberg.org/browse/languages/ru', 'Project Gutenberg', ' has Russian classics as EPUB and plain text.'], ['https://ru.wikisource.org/', 'Russian Wikisource', ' has thousands of public-domain texts, many as EPUB.']],
+};
+
+/** The About page when the library is another language: the same app, told for that language. */
+function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
+  const L = lang();
+  const id = L.id as Exclude<LangId, 'zh'>;
+  const furigana = L.aid === 'furigana';
+  const engine = activeEngine();
+  const counts = engine?.meta.counts ?? meta?.counts ?? {};
+  const sources = engine?.meta.sources ?? meta?.sources ?? [];
+  const how = [
+    'Import a book (EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown), paste some text, or pick a classic in the library.',
+    furigana
+      ? 'Choose where furigana show: nowhere, over every word with kanji, over words you haven\'t marked as known, or over words above your JLPT level.'
+      : `Turn on Hints to see a short English meaning over hard words: every word, words you haven't marked as known, or words above your level.${L.stress ? ' Stress marks show which vowel to stress.' : ''}`,
+    `Tap a word for its meaning${furigana ? ', reading and kanji' : ''}. Dushu looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.`,
+    `Star a word to study it later. Mark a word as known and its ${aidWord()} go${furigana ? '' : 'es'} away.`,
+    'Open Review once a day. It brings back the words you starred or looked up, with longer gaps as you remember them.',
+  ];
+  const levels = `${L.levels.about} Mark a whole ${levelScheme() === 'JLPT' ? 'JLPT level' : 'level'} as known in Vocabulary.`;
+  const statRows = Object.entries(counts).filter(([, v]) => typeof v === 'number' && v > 0).slice(0, 6);
+  return h('div.page.ab-page', null,
+    h('div.page-head', null, h('div', null, pageTitle('about', 'About Dushu'))),
+    h('section.ab-section', null,
+      h('p.ab-lead', null, `Dushu is for reading real books in ${L.name}. Tap a word to see its meaning${furigana ? ' and reading' : ''}, and tap it twice to translate the whole sentence.`),
+      h('p.ab-p', null, 'It runs in your browser. Your books and words stay on this device. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.'),
+      h('p.ab-p', null, `Each language is its own library, with its own books, words and settings. Switch languages in Settings or with the language menu at the top.${syncsHere() ? '' : ` ${L.name} does not sync with your account yet: its books and words stay on this device for now.`}`)),
+    h('section.ab-section', null, h('h2.section-title', null, 'How to use it'), steps(how)),
+    h('section.ab-section', null, h('h2.section-title', null, 'Levels'), h('p.ab-p', null, levels)),
+    h('section.ab-section', null,
+      h('h2.section-title', null, 'Finding books'),
+      h('ul.ab-steps', null, ...OTHER_FINDING[id].map(([href, name, rest]) => h('li', null, link(href, name), rest)),
+        h('li', null, 'Any EPUB or Kindle book you bought without DRM works too.'))),
+    h('section.ab-section', null, h('h2.section-title', null, 'Reading'), steps(PAGES, false)),
+    h('section.ab-section', null,
+      h('h2.section-title', null, 'On a phone or iPad'),
+      steps(DEVICES),
+      storageCard()),
+    h('section.ab-section', null, h('h2.section-title', null, 'Where translations come from'), steps(TRANSLATION, false)),
+    h('section.ab-section', null,
+      h('h2.section-title', null, 'The dictionary'),
+      statRows.length
+        ? h('table.ab-counts', null, h('tbody', null, statRows.map(([k, v]) => h('tr.ab-count', null,
+            h('td.ab-count-value', null, fmt(v)), h('td', null, k.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase())))))
+        : h('p.muted', null, loading ? 'Loading dictionary details…' : 'Dictionary details are not available right now.'),
+      engine?.meta.built ? h('p.ab-fine', null, `Data built ${engine.meta.built.slice(0, 10)}.`) : null),
+    h('section.ab-section', null,
+      h('h2.section-title', null, 'Keyboard shortcuts'),
+      h('div.ab-keys', null, SHORTCUTS.map((g) => h('div.ab-keys-group.card', null,
+        h('h3.ab-keys-title', null, g.group),
+        h('dl.ab-keys-list', null, g.rows.map((r) => h('div.ab-key-row', null, h('dt', null, keyCaps(r)), h('dd', null, r.what)))))))),
+    h('section.ab-section', null,
+      h('h2.section-title', null, 'Data sources and licenses'),
+      h('p.ab-p', null, 'The dictionaries are shared under their own licenses, listed here. Their definitions are used and adapted under those licenses, and the dictionary data stays under them. The covers of the classics are public-domain paintings; each book says which in its note.'),
+      sources.length
+        ? h('div.ab-table.card', { role: 'table', 'aria-label': 'Data sources' },
+            [...sources, { name: 'Newsreader', license: 'SIL Open Font License 1.1', url: 'https://github.com/productiontype/Newsreader' }].map((src) => h('div.ab-source', { role: 'row' },
+              h('div.ab-source-main', { role: 'cell' }, h('a.ab-source-name', { href: src.url, target: '_blank', rel: 'noopener' }, src.name, icon('external'))),
+              h('span.ab-source-license', { role: 'cell' }, src.license))))
+        : h('p.muted', null, loading ? 'Loading…' : 'The source list is not available right now.')),
+  );
+}
+
 function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
+  if (!isChinese()) return buildOtherPage(meta, loading);
   const stats = meta ? coverageStats(meta) : [];
   const sources = meta?.sources ?? [];
 
@@ -227,7 +303,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
 
 async function fetchMeta(): Promise<DataMeta | null> {
   try {
-    const res = await fetch(new URL('data/meta.json', document.baseURI).href);
+    const res = await fetch(new URL(isChinese() ? 'data/meta.json' : `data/${lang().id}/meta.json`, document.baseURI).href);
     if (!res.ok) return null;
     const j = JSON.parse(await res.text()) as Partial<DataMeta>;
     return { built: j.built ?? '', unicode: j.unicode ?? '', counts: j.counts ?? {}, sources: j.sources ?? [] };

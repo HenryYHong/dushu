@@ -1,6 +1,7 @@
 // The "Start with a classic" list: public/samples/index.json plus the text files next to it.
 // Everything here tolerates the files being absent (or a dev server answering with index.html).
 import type { ImportedBook, Script } from '../../types';
+import { isChinese, langId } from '../../lang/active';
 
 export interface Sample {
   id: string;
@@ -69,9 +70,13 @@ export function parseSampleIndex(raw: unknown): Sample[] {
 
 type Fetch = (url: string) => Promise<Pick<Response, 'ok' | 'text'>>;
 
+/** Where the classics of the language being read are: samples/ for Chinese, samples/<id>/ for another language. */
 function baseUrl(): string {
-  return new URL('samples/', document.baseURI).href;
+  return new URL(isChinese() ? 'samples/' : `samples/${langId()}/`, document.baseURI).href;
 }
+
+/** The address of a file of the classics list (a cover). */
+export const sampleUrl = (path: string): string => baseUrl() + path;
 
 /** The sample list, or [] when the index is missing or unreadable. */
 export async function fetchSamples(fetchFn: Fetch = (u) => fetch(u)): Promise<Sample[]> {
@@ -108,7 +113,7 @@ export const sampleSourceName = (id: string): string => `sample:${id}`;
 /** Downloads one sample and turns it into a book (format 'sample', title and author from the index). */
 export async function loadSampleBook(
   s: Sample,
-  importText: (text: string, title?: string, author?: string) => ImportedBook,
+  importText: (text: string, title?: string, author?: string, markdown?: boolean) => ImportedBook,
   fetchFn: Fetch = (u) => fetch(u),
   /** The title as the library shows it (the reading script), for the messages. */
   shownTitle = s.title,
@@ -125,7 +130,7 @@ export async function loadSampleBook(
   if (!res.ok) throw new Error(`Could not download “${shownTitle}”. Check your connection and try again.`);
   const text = await res.text();
   if (/^\s*<(?:!doctype|html)/i.test(text)) throw new Error(`“${shownTitle}” is not available right now.`);
-  const book = importText(text, s.title, s.author);
+  const book = importText(text, s.title, s.author, /\.md$/i.test(s.file));
   // The classic's painting comes along as its cover. Without it (offline, not stored yet) the book still adds, drawn.
   const cover = s.cover ? await sampleCover(s) : null;
   return {

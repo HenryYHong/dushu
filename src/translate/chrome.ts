@@ -2,6 +2,7 @@
 // https://developer.chrome.com/docs/ai/translator-api
 import type { TranslateRequest, Translator } from '../types';
 import { chunkText } from './chunk';
+import { isChinese, lang } from '../lang/active';
 
 type ChromeAvailability = 'unavailable' | 'downloadable' | 'downloading' | 'available'
   // Names used by earlier Chrome builds.
@@ -29,8 +30,11 @@ export interface ChromeTranslator extends Translator {
   prepare(onProgress?: (fraction: number) => void): Promise<void>;
 }
 
-type Source = 'zh' | 'zh-Hant';
+/** 'zh' or 'zh-Hant' for Chinese; another language's tag ('ja', 'es') when a book in it is open. */
+type Source = string;
 const langs = (sourceLanguage: Source) => ({ sourceLanguage, targetLanguage: 'en' });
+/** The source a book other than Chinese translates from, or 'zh'. */
+const baseSource = (): Source => (isChinese() ? 'zh' : lang().tag);
 
 // Characters that differ between the scripts and are very common. A passage with more of one set than the other
 // is in that script (a few shared or mixed-in characters do not matter).
@@ -57,7 +61,7 @@ function api(): ChromeTranslatorStatic | null {
 
 export function chromeSupported(): boolean { return api() !== null; }
 
-async function rawAvailability(source: Source = 'zh'): Promise<'yes' | 'download' | 'no'> {
+async function rawAvailability(source: Source = baseSource()): Promise<'yes' | 'download' | 'no'> {
   const t = api();
   if (!t) return 'no';
   try {
@@ -74,7 +78,7 @@ async function rawAvailability(source: Source = 'zh'): Promise<'yes' | 'download
 /** One translator per source script: the model for traditional text is a different download from the simplified one. */
 const instances = new Map<Source, Promise<ChromeTranslatorInstance>>();
 
-function create(source: Source = 'zh', onProgress?: (fraction: number) => void): Promise<ChromeTranslatorInstance> {
+function create(source: Source = baseSource(), onProgress?: (fraction: number) => void): Promise<ChromeTranslatorInstance> {
   const t = api();
   if (!t) return Promise.reject(new Error('This browser has no built-in translator. Use Chrome 138 or newer on a computer.'));
   const have = instances.get(source);
@@ -88,7 +92,7 @@ function create(source: Source = 'zh', onProgress?: (fraction: number) => void):
     instances.delete(source); // let the next click try again
     const name = (e as { name?: string })?.name;
     if (name === 'NotAllowedError') throw new Error('Chrome needs a click to download the translation model. Press the download button in Settings.');
-    if (name === 'NotSupportedError') throw new Error('Chrome cannot translate Chinese to English on this device.');
+    if (name === 'NotSupportedError') throw new Error(`Chrome cannot translate ${isChinese() ? 'Chinese' : lang().name} to English on this device.`);
     throw new Error('Chrome could not start its translator: ' + ((e as Error)?.message ?? 'unknown error'));
   });
   instances.set(source, p);
@@ -129,9 +133,9 @@ export function createChromeTranslator(): ChromeTranslator {
   return {
     id: 'chrome',
     label: 'Chrome on-device',
-    availability: rawAvailability,
+    availability: () => rawAvailability(),
     async prepare(onProgress) {
-      await create('zh', onProgress);
+      await create(baseSource(), onProgress);
     },
     async translate(req: TranslateRequest, opts) {
       const signal = opts?.signal;
@@ -140,7 +144,7 @@ export function createChromeTranslator(): ChromeTranslator {
       if (state === 'no') throw new Error('Chrome\'s on-device translator is not available here.');
       // 'download' only works inside a click; create() reports NotAllowedError otherwise.
       // Traditional text uses the zh-Hant model when it is ready; otherwise the plain zh one, as before.
-      const source: Source = sourceFor(req.text) === 'zh-Hant' && (await rawAvailability('zh-Hant')) === 'yes' ? 'zh-Hant' : 'zh';
+      const source: Source = !isChinese() ? baseSource() : sourceFor(req.text) === 'zh-Hant' && (await rawAvailability('zh-Hant')) === 'yes' ? 'zh-Hant' : 'zh';
       const tr = await create(source);
       const chunks = chunkText(req.text, CHUNK);
       let done = '';

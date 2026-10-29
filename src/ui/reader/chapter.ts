@@ -9,9 +9,11 @@ import { icon } from '../icons';
 import { createTranslationPanel, type TranslationPanel } from '../popup/translation';
 import { anchorOf } from '../popup/position';
 import {
-  buildPinyin, displayTokens, pinyinVisible, refreshPinyin, refreshVisibility, renderTokens,
+  POS_SEL, buildPinyin, displayTokens, pinyinVisible, refreshPinyin, refreshVisibility, renderTokens,
   type RenderedParagraph, type RenderOptions,
 } from './render';
+import { isWord } from '../../lang/token';
+import { activeEngine, isChinese, lang } from '../../lang/active';
 
 export interface BlockState {
   index: number;
@@ -103,6 +105,8 @@ export const MAX_BLOCK_CHARS = 3000;
 const SHORT_PARAGRAPH = 28;
 
 const SENTENCE_END = '。！？；\n';
+/** Sentence ends in the languages written with spaces (checked after the Chinese ones). */
+const SENTENCE_END_SPACED = '.!?…';
 const CLAUSE_END = '，、：,;';
 const CLOSERS = '”’」』）》】';
 
@@ -114,7 +118,7 @@ export function splitLongText(text: string, max = MAX_BLOCK_CHARS): string[] {
   while (rest.length > max) {
     const win = rest.slice(0, max);
     const last = (chars: string) => Math.max(...[...chars].map((c) => win.lastIndexOf(c)));
-    let cut = last(SENTENCE_END);
+    let cut = last(isChinese() ? SENTENCE_END : SENTENCE_END + SENTENCE_END_SPACED);
     if (cut < max * 0.4) cut = Math.max(cut, last(CLAUSE_END));
     let at = cut >= max * 0.3 ? cut + 1 : max;
     while (at < rest.length && at < max + 8 && CLOSERS.includes(rest[at])) at++;
@@ -141,7 +145,9 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
   const store = ctx.store;
   const settings = (): Settings => ctx.settings.get();
   const article = h('article.rd-article');
-  article.setAttribute('lang', 'zh');
+  const L = lang();
+  const engine = activeEngine();
+  article.setAttribute('lang', L.tag);
   let disposed = false;
 
   // The title is shown as a heading unless the first block already says it.
@@ -184,10 +190,18 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
       hskLevel: hskLevels(dict),
     };
   };
-  const visible = (t: Token) => pinyinVisible(t.text, rule(), t.pinyin);
+  // A word of another language is known and leveled by its dictionary form (Token.key); a name never gets an English hint.
+  const levelOf = engine ? (key: string) => engine.level(key) : null;
+  const visible = (t: Token) => {
+    if (t.kind !== 'word' || !levelOf) return pinyinVisible(t.text, rule(), t.pinyin);
+    if (t.name && L.aid === 'hint') return false;
+    return pinyinVisible(t.key || t.text, { ...rule(), hskLevel: levelOf });
+  };
   const renderOptions = (): RenderOptions => {
     const s = settings();
-    return { style: s.pinyinStyle, toneColors: s.toneColors, sandhi: s.sandhi, visible, words: true };
+    const base: RenderOptions = { style: s.pinyinStyle, toneColors: s.toneColors, sandhi: s.sandhi, visible, words: true };
+    if (!engine) return base;
+    return { ...base, sandhi: false, aid: L.aid === 'furigana' ? 'furigana' : 'hint', hint: (t) => engine.hint(t), stress: !!L.stress && s.stress };
   };
   const lazy = !!o.lazyPinyin;
   let failed = 0;
@@ -252,7 +266,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     }
     if (kind === 'text' && (piece.cont || /^[　 ]/.test(text))) el.classList.add('rd-noindent');
     if (kind === 'text' && piece.more) el.classList.add('rd-more');
-    if (kind === 'text' && !/[\p{Script=Han}]/u.test(text)) el.classList.add('rd-plain');
+    if (kind === 'text' && isChinese() && !/[\p{Script=Han}]/u.test(text)) el.classList.add('rd-plain');
     else if (kind === 'text' && block.t === 'p' && text.length <= SHORT_PARAGRAPH) el.classList.add('rd-short');
     article.appendChild(el);
     return { index, kind, block, el, text, pieceStart: piece.start, rendered: null, trans: null, transBtn: null };
@@ -283,14 +297,15 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
       return;
     }
     markSaved(b);
-    if (/[\p{Script=Han}]/u.test(b.text) && b.block.t !== 'h') addTranslateButton(b);
+    if ((isChinese() ? /[\p{Script=Han}]/u : /\p{L}/u).test(b.text) && b.block.t !== 'h') addTranslateButton(b);
   }
 
   function markSaved(b: BlockState): void {
     if (!b.rendered) return;
     for (const v of b.rendered.views) {
-      v.el.classList.toggle('rd-saved', store.vocab.has(v.token.text));
-      v.el.classList.toggle('rd-known', store.known.has(v.token.text));
+      const w = v.token.key || v.token.text;
+      v.el.classList.toggle('rd-saved', store.vocab.has(w));
+      v.el.classList.toggle('rd-known', store.known.has(w));
     }
   }
 
@@ -388,7 +403,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
       const t = toks[mid];
       if (offset < t.start) hi = mid - 1;
       else if (offset >= t.end) lo = mid + 1;
-      else return t.kind === 'han' ? mid : -1;
+      else return isWord(t) ? mid : -1;
     }
     return -1;
   }
@@ -440,7 +455,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     const els: HTMLElement[] = [];
     let pending: HTMLElement[] = [];
     let inside = false;
-    for (const el of b.el.querySelectorAll<HTMLElement>('ruby.rd-c, .rd-pu')) {
+    for (const el of b.el.querySelectorAll<HTMLElement>(`${POS_SEL}, .rd-pu`)) {
       if (el.classList.contains('rd-pu')) { if (inside) pending.push(el); continue; }
       const off = Number(el.dataset.o);
       if (off >= start && off < end) {
@@ -476,7 +491,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
 
   function rectsOf(b: BlockState, start: number, end: number): DOMRect[] {
     const out: DOMRect[] = [];
-    for (const ruby of b.el.querySelectorAll<HTMLElement>('ruby.rd-c')) {
+    for (const ruby of b.el.querySelectorAll<HTMLElement>(POS_SEL)) {
       const off = Number(ruby.dataset.o);
       if (off < start || off >= end) continue;
       const q = ruby.getBoundingClientRect();

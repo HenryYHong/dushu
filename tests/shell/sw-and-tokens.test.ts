@@ -60,7 +60,7 @@ function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<st
     addEventListener: (t: string, fn: Handler) => { handlers[t] = fn; },
     skipWaiting() {}, clients: { claim: async () => {} },
   };
-  const src = swSource.replace('__BUILD__', 't').replace('__DATA_VERSION__', 'd').replace('__PRECACHE__', JSON.stringify(opts.precache ?? []));
+  const src = swSource.replace('__BUILD__', 't').replace('__DATA_VERSION__', 'd').replace('__PRECACHE__', JSON.stringify(opts.precache ?? [])).replace('__LANG_VERSIONS__', '{}');
   // A worker resolves a relative Request against its own URL.
   const SwRequest = class extends Request { constructor(input: string, init?: RequestInit) { super(new URL(input, 'https://app.test/').href, init); } };
   new Function('self', 'caches', 'fetch', 'Request', src)(self, fakeCaches, fakeFetch, SwRequest);

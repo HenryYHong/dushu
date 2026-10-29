@@ -6,6 +6,7 @@ import { bridgeFetch, hasMacBridge } from '../core/macBridge';
 import { CLOUD_EVENT, cloudFetch, cloudSession } from '../core/cloud';
 import type { Settings, TranslateRequest, Translator } from '../types';
 import { CLAUDE_LIMITS, DEFAULT_CLAUDE_MODEL } from './claudePrompts';
+import { isChinese, langId } from '../lang/active';
 
 export { buildUserMessage, CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL, SYSTEM_PROMPTS } from './claudePrompts';
 
@@ -165,7 +166,7 @@ export function createClaudeTranslator(
         response = await call('/api/claude/translate', {
           method: 'POST', signal: opts?.signal,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms,
+          body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(isChinese() ? {} : { lang: langId() }),
             model: settings.claudeModel || DEFAULT_CLAUDE_MODEL }),
         });
       } catch (e) {

@@ -6,7 +6,8 @@ import { canSpeak, speak, stopSpeaking } from '../../speech/tts';
 import type { Grade, MountFn, VocabItem } from '../../types';
 import { clear, h } from '../dom';
 import { icon } from '../icons';
-import { contextEl, pinyinEl, scriptView } from '../vocab/render';
+import { contextEl, pinyinEl, scriptView, textAttrs } from '../vocab/render';
+import { isChinese } from '../../lang/active';
 import { pageTitle } from '../pageHead';
 import { describeNextDue, ReviewSession } from './queue';
 import { reviewCards, reviewCount } from './learning';
@@ -86,7 +87,8 @@ export const mount: MountFn = (root, _params, ctx) => {
 
     const view = scriptView(settings.script, ctx.dictSync());
     const word = view.word(cur);
-    const lang = word === cur.trad && cur.trad !== cur.simp ? 'zh-Hant' : 'zh';
+    const ta = textAttrs(word === cur.trad && cur.trad !== cur.simp);
+    const lang = ta.lang;
     const len = [...word].length;
     const progress = h('div.rev-progress', { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': session.total, 'aria-valuenow': session.done },
       h('div.rev-progress-fill', { style: `width:${(session.done / session.total) * 100}%` }));
@@ -97,9 +99,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     );
 
     const front = h('div.rev-front', null,
-      h('div', { class: `rev-word zh${len > 4 ? ' rev-word-long' : len > 2 ? ' rev-word-mid' : ''}`, lang }, word),
+      h('div', { class: `rev-word ${ta.cls}${len > (isChinese() ? 4 : 12) ? ' rev-word-long' : len > (isChinese() ? 2 : 7) ? ' rev-word-mid' : ''}`, lang }, word),
       cur.context?.sentence
-        ? h('p.rev-ctx.zh', { lang }, contextEl(view.text(cur.context.sentence), [cur.simp, cur.trad], 'mark', 70))
+        ? h('p', { class: `rev-ctx ${ta.cls}`, lang }, contextEl(view.text(cur.context.sentence), [cur.simp, cur.trad], 'mark', 70))
         : null,
     );
     const back = h('div.rev-back', { hidden: !revealed },

@@ -2,7 +2,7 @@
 // shared by the EPUB and the Kindle (MOBI / AZW3) importers.
 import type { Block, Chapter } from '../types';
 import { blockText, splitAtChapterHeadings } from './chapters';
-import { countHan } from './han';
+import { countHan, unitScale } from './han';
 import { cleanAuthorName } from './meta';
 
 export interface SpineDoc {
@@ -105,7 +105,7 @@ export function dropTitlePage(chapters: Chapter[], title: string, author: string
   const first = chapters[0];
   if (!first || chapters.length < 2 || first.blocks.length > 4) return chapters;
   if (first.blocks.some((b) => b.t === 'img' || b.t === 'quote')) return chapters;
-  if (first.blocks.reduce((n, b) => n + countHan(blockText(b)), 0) > 40) return chapters;
+  if (first.blocks.reduce((n, b) => n + countHan(blockText(b)), 0) > 40 * unitScale()) return chapters;
   const names = [title, ...author.split(/,\s*/)].map(squash).filter(Boolean);
   const known = (t: string) => {
     const bare = squash(cleanAuthorName(t) || t);

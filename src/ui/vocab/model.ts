@@ -2,6 +2,7 @@
 // No DOM here so it can be tested in Node.
 import { formatInterval } from '../../core/srs';
 import { formatPinyin } from '../../core/pinyin';
+import { isChinese, lang } from '../../lang/active';
 import type { PinyinStyle, VocabItem } from '../../types';
 
 export type SortKey = 'added' | 'due' | 'pinyin';
@@ -33,6 +34,11 @@ export function matchesQuery(item: VocabItem, query: string): boolean {
 }
 
 function comparePinyin(a: VocabItem, b: VocabItem): number {
+  // Another language: alphabetical in that language (Japanese by its kana reading, so 食べる sits under た).
+  if (!isChinese()) {
+    const tag = lang().tag;
+    return (a.pinyin || a.simp).localeCompare(b.pinyin || b.simp, tag) || a.simp.localeCompare(b.simp, tag);
+  }
   const ba = pinyinBase(a.pinyin);
   const bb = pinyinBase(b.pinyin);
   if (ba !== bb) return ba < bb ? -1 : 1;

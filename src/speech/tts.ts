@@ -2,6 +2,7 @@
 import { detectScript } from '../core/text';
 import { bridgeFetch, hasMacBridge } from '../core/macBridge';
 import { cloudFetch, cloudSession } from '../core/cloud';
+import { isChinese as readingChinese, lang as readingLang } from '../lang/active';
 
 export interface SpeechOptions {
   rate?: number;
@@ -23,6 +24,10 @@ export function canSpeak(): boolean {
 
 const norm = (lang: string) => lang.replace('_', '-').toLowerCase();
 const isChinese = (v: SpeechSynthesisVoice) => /^(zh|cmn|yue)\b/.test(norm(v.lang));
+/** The language part of a tag ("es" of "es-MX"). */
+const primary = (lang: string) => norm(lang).split('-')[0];
+/** A voice for the language a book other than Chinese is read in. */
+const speaksLang = (v: SpeechSynthesisVoice, lang: string) => !!v.lang && primary(v.lang) === primary(lang);
 const voiceLanguage = (v: SpeechSynthesisVoice) => norm(v.lang).replace(/^yue-hk$/, 'zh-hk').replace(/^cmn-(?:hans-)?cn$/, 'zh-cn').replace(/^cmn-(?:hant-)?tw$/, 'zh-tw');
 const quality = (v: SpeechSynthesisVoice) => {
   const id = `${v.voiceURI} ${v.name}`.toLowerCase();
@@ -80,7 +85,8 @@ const isAccountVoice = (v: SpeechSynthesisVoice) => v.voiceURI.startsWith('dushu
 /** A voice whose audio is made elsewhere (the Mac, the sync server) and played here, rather than spoken by this browser. */
 const isRendered = (v: SpeechSynthesisVoice) => v.voiceURI.startsWith('dushu-mac:') || isAccountVoice(v);
 function accountVoices(): SpeechSynthesisVoice[] {
-  if (!cloudSession() || typeof Audio === 'undefined') return [];
+  // The account's voice is Chinese only (MeloTTS reads Mandarin).
+  if (!readingChinese() || !cloudSession() || typeof Audio === 'undefined') return [];
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return [];
   return [{ voiceURI: ACCOUNT_VOICE, name: 'Melo', lang: 'zh-CN', localService: false, default: false } as SpeechSynthesisVoice];
 }
@@ -98,7 +104,23 @@ export async function listChineseVoices(): Promise<SpeechSynthesisVoice[]> {
     rank(a) - rank(b) || Number(b.localService) - Number(a.localService) || quality(a) - quality(b) || a.name.localeCompare(b.name));
 }
 
+/** Voices for a language other than Chinese, best first: Premium and Enhanced ones on the device, then the rest. */
+export async function listVoicesFor(lang: string): Promise<SpeechSynthesisVoice[]> {
+  return (await loadVoices()).filter((v) => speaksLang(v, lang)).sort((a, b) =>
+    Number(b.localService) - Number(a.localService) || quality(a) - quality(b) || a.name.localeCompare(b.name));
+}
+
 export function pickVoice(voices: SpeechSynthesisVoice[], lang: string, override?: string): SpeechSynthesisVoice | null {
+  if (!/^(zh|cmn|yue)\b/.test(norm(lang))) {
+    const mine = voices.filter((v) => speaksLang(v, lang));
+    const hit = override ? mine.find((v) => v.voiceURI === override || v.name === override) : undefined;
+    if (hit) return hit;
+    // The region the book is written for first (es-ES for a Spanish book tagged es-ES); any region of the language after.
+    const want = norm(lang);
+    const ranked = [...mine].sort((a, b) => Number(norm(b.lang) === want) - Number(norm(a.lang) === want)
+      || Number(b.localService) - Number(a.localService) || quality(a) - quality(b));
+    return ranked[0] ?? null;
+  }
   const zh = voices.filter(isChinese);
   if (override) {
     const hit = zh.find(v => v.voiceURI === override || v.name === override);
@@ -126,10 +148,12 @@ const unspoken = (text: string) => /^[\s\p{P}\p{S}]*$/u.test(text);
  * after its mark; a piece with nothing to say (a lone ” or ……) joins the one before it, or is dropped at a paragraph's start
  * (a ○○○ separator).
  */
-function pieces(text: string, max = 180): { text: string; start: number }[] {
+function piecesOf(text: string, max = 180, spaced = false): { text: string; start: number }[] {
   const out: { text: string; start: number }[] = [];
-  // Only marks that can only close: after a sentence mark, ASCII " and ' may open the next quote.
-  for (const match of text.matchAll(/[^。！？!?；;\n]+[。！？!?；;]*[」』”’）】〉》]*|\n+/g)) {
+  // Only marks that can only close: after a sentence mark, ASCII " and ' may open the next quote. In a language with spaces a
+  // full stop ends a sentence too (with its closing quotes: «...», "...", »...«).
+  const re = spaced ? /[^。！？!?；;.…\n]+[。！？!?；;.…]*[」』”’）】〉》»«"]*|\n+/g : /[^。！？!?；;\n]+[。！？!?；;]*[」』”’）】〉》]*|\n+/g;
+  for (const match of text.matchAll(re)) {
     const raw = match[0];
     const leading = raw.length - raw.trimStart().length;
     const clean = raw.trim();
@@ -140,8 +164,15 @@ function pieces(text: string, max = 180): { text: string; start: number }[] {
       // Prefer a breathing point to cutting a long sentence mid-word.
       let end = Math.min(i + max, chars.length);
       if (end < chars.length) {
+        let found = false;
         for (let j = end - 1; j >= i + Math.floor(max / 2); j--) {
-          if (/[，、,：:]/.test(chars[j])) { end = j + 1; break; }
+          if (/[，、,：:]/.test(chars[j])) { end = j + 1; found = true; break; }
+        }
+        // With no comma, a language with spaces breaks between words rather than inside one.
+        if (!found && spaced) {
+          for (let j = end - 1; j >= i + Math.floor(max / 2); j--) {
+            if (chars[j] === ' ') { end = j + 1; break; }
+          }
         }
       }
       const part = chars.slice(i, end).join('');
@@ -377,7 +408,7 @@ function speakPiece(
     u.onend = () => finish(true);
     u.onstart = () => { if (!done) opts?.onStart?.(); };
     u.onerror = e => {
-      if (!done && e.error !== 'canceled' && e.error !== 'interrupted') opts?.onError?.('The speech voice could not play. Try another Chinese voice in Settings.');
+      if (!done && e.error !== 'canceled' && e.error !== 'interrupted') opts?.onError?.(`The speech voice could not play. Try another ${readingChinese() ? 'Chinese' : readingLang().name} voice in Settings.`);
       finish(false);
     };
     if (onBoundary) u.onboundary = (e) => onBoundary(e.charIndex, e.charLength || 1);
@@ -386,7 +417,7 @@ function speakPiece(
       if (nativePaused) speechSynthesis.pause();
       speechSynthesis.speak(u);
     } catch {
-      opts?.onError?.('This browser could not start audio. Try another Chinese voice in Settings.');
+      opts?.onError?.(`This browser could not start audio. Try another ${readingChinese() ? 'Chinese' : readingLang().name} voice in Settings.`);
       finish(false);
     }
   });
@@ -402,11 +433,14 @@ export async function speakSequence(
   stopSpeaking();
   const touchAudio = primeTouchAudio();
   const mine = generation;
-  const lang = opts?.lang ?? (detectScript(parts.join('')) === 'traditional' ? 'zh-TW' : 'zh-CN');
+  const lang = opts?.lang ?? (!readingChinese() ? readingLang().tag : detectScript(parts.join('')) === 'traditional' ? 'zh-TW' : 'zh-CN');
+  const spaced = !/^(zh|cmn|yue|ja)\b/.test(norm(lang));
+  const pieces = (text: string) => piecesOf(text, 180, spaced);
   let voice = pickVoice(await loadVoices(), lang, opts?.voice);
   if (mine !== generation) return false;
   if (!voice) {
-    opts?.onError?.('No Chinese voice is available. Choose or install a Chinese voice in Settings.');
+    const name = readingChinese() ? 'Chinese' : readingLang().name;
+    opts?.onError?.(`No ${name} voice is available. Choose or install a ${name} voice in Settings.`);
     return false;
   }
   // The paragraph this browser's own voice reads from: 0, or where the account's voice stopped.

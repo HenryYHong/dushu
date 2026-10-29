@@ -1,7 +1,9 @@
 // Remembers each word looked up in the reader, by local day, for practice (Vocabulary, Looked up). It runs after the card has
 // opened and never throws, so it can never slow a lookup down or get in its way.
-import type { AppContext, Dictionary, VocabItem } from '../../types';
+import type { AppContext, Dictionary, Token, VocabItem } from '../../types';
 import { glossFor, headwordsFor } from './saveWord';
+import { activeEngine } from '../../lang/active';
+import { hasLetters, langVocabItem, safeLookup } from '../../lang/words';
 
 /** The local day of a time, YYYY-MM-DD (the day as the reader lived it, not UTC). */
 export function localDay(ms: number): string {
@@ -17,11 +19,22 @@ export interface LookupInput {
   context?: VocabItem['context'];
   /** The book's own meaning for the word (its lexicon: a name, a term), as the card shows it. */
   bookGloss?: string;
+  /** Another language: the token as cut on the page. */
+  token?: Token;
 }
 
 export function logLookup(ctx: AppContext, dict: Dictionary, input: LookupInput, now = Date.now()): void {
   setTimeout(() => {
     try {
+      const engine = activeEngine();
+      if (engine) {
+        // Another language: the row is the word's dictionary form and its meaning, as its card would save it.
+        if (!hasLetters(input.word)) return;
+        const lu = safeLookup(engine, input.word, input.token, input.context?.sentence);
+        const item = langVocabItem(lu, { token: input.token, context: input.context, ownGloss: input.bookGloss, now });
+        void ctx.store.lookups.log({ day: localDay(now), id: item.id, word: input.word, pinyin: item.pinyin, gloss: item.gloss, context: item.context }, now).catch(() => {});
+        return;
+      }
       if (!/\p{Script=Han}/u.test(input.word)) return;
       const entries = dict.lookup(input.word);
       const { simp } = headwordsFor(dict, input.word, entries, input.syllables);

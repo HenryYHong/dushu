@@ -7,6 +7,7 @@ import { anchorOf } from '../popup/position';
 import { logLookup } from '../popup/lookupLog';
 import type { BlockState, ChapterView } from './chapter';
 import { rangeToSpans, spansText, type BlockSpan } from './selection';
+import { isWord } from '../../lang/token';
 
 const MAX_PHRASE = 1500;
 
@@ -71,7 +72,7 @@ export function createLookup(host: LookupHost): Lookup {
     const prev = [...toks].reverse().find((t) => t.end <= s);
     const next = toks.find((t) => t.start >= e);
     const word = b.text.slice(s, e);
-    const token = toks.find((t) => t.start === s && t.end === e && t.kind === 'han');
+    const token = toks.find((t) => t.start === s && t.end === e && isWord(t));
     const sentence = sentenceAround(b.text, s).text;
     active = { bi: b.index, s, e, kind: 'word' };
     const seq = ++openSeq;
@@ -84,6 +85,7 @@ export function createLookup(host: LookupHost): Lookup {
       ctx,
       word,
       reading: token?.pinyin,
+      token: token?.kind === 'word' ? token : undefined,
       anchor,
       getAnchor,
       keepAnchorVisible: true,
@@ -105,7 +107,7 @@ export function createLookup(host: LookupHost): Lookup {
       // A name or term the book defines is logged with the book's meaning, as its card shows it (Review uses it).
       const lex = host.lexicon();
       const entry = lex && (lex.get(word) ?? lex.get(dict.toSimplified(word)) ?? lex.get(dict.toTraditional(word)));
-      logLookup(ctx, dict, { word, syllables: token?.pinyin ?? [], around: { prev: prev?.text, next: next?.text }, bookGloss: entry?.gloss,
+      logLookup(ctx, dict, { word, token: token?.kind === 'word' ? token : undefined, syllables: token?.pinyin ?? [], around: { prev: prev?.text, next: next?.text }, bookGloss: entry?.gloss,
         context: { sentence, bookId: book.id, bookTitle: book.title, chapter: host.chapterIndex() } });
     }
   }
@@ -126,12 +128,12 @@ export function createLookup(host: LookupHost): Lookup {
       v.ensure(i);
       const toks = b.rendered!.tokens;
       if (dir === 1) {
-        const t = toks.find((x) => x.kind === 'han' && x.start >= (i === bi ? offset : 0));
+        const t = toks.find((x) => isWord(x) && x.start >= (i === bi ? offset : 0));
         if (t) return { b, s: t.start, e: t.end };
       } else {
         for (let k = toks.length - 1; k >= 0; k--) {
           const t = toks[k];
-          if (t.kind === 'han' && t.end <= (i === bi ? offset : Infinity)) return { b, s: t.start, e: t.end };
+          if (isWord(t) && t.end <= (i === bi ? offset : Infinity)) return { b, s: t.start, e: t.end };
         }
       }
     }
@@ -158,7 +160,7 @@ export function createLookup(host: LookupHost): Lookup {
       const longer = cands.filter((w) => w.length > len);
       if (longer.length) ne = s + longer[longer.length - 1].length;
       else {
-        const next = b.rendered!.tokens.find((t) => t.kind === 'han' && t.start >= e);
+        const next = b.rendered!.tokens.find((t) => isWord(t) && t.start >= e);
         if (next && next.start === e) ne = next.end; // merge with the touching next word
       }
     } else {

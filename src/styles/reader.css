@@ -806,3 +806,40 @@ html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x
 .rd-mark-label { grid-column: 1 / -1; font-size: 18px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rd-mark-remove { opacity: 0.55; flex: none; }
 .rd-toc-empty { padding: var(--space-5) var(--space-4); color: var(--text-3); font-size: 14px; line-height: 1.5; }
+
+/* ---------- words of other languages (lang/, render.ts renderWord) ----------
+   A word is one span. Japanese furigana pieces and the English hint over a hard word are rubies whose reading hangs out of
+   the flow like pinyin, so a page lays out the same with them on or off. */
+.rd-article:not(:lang(zh)) { font-kerning: normal; overflow-wrap: break-word; }
+/* Paragraphs: a first-line indent as printed books in these languages have it (Japanese: one character). */
+.rd-article:not(:lang(zh)) .rd-p { text-indent: 1.4em; margin-bottom: 0.35em; }
+.rd-article:lang(ja) .rd-p { text-indent: 1em; margin-bottom: 0.5em; }
+.rd-article:not(:lang(zh)) .rd-noindent { text-indent: 0; }
+.rd-article:not(:lang(zh)) .rd-p, .rd-article:not(:lang(zh)) .rd-quote { text-wrap: pretty; hyphens: manual; }
+.rd-article .rd-word { border-radius: 3px; }
+@media (hover: hover) {
+  .rd-w.rd-word.rd-dict:hover { background: color-mix(in srgb, var(--hl) 55%, transparent); }
+}
+/* Furigana: small, over the kanji they read. */
+.rd-article .rd-r rt { font-family: inherit; font-weight: 400; font-size: calc(var(--rd-rt, 0.46) * 1.05em); color: var(--text-2); }
+.rd-article .rd-r .rd-rtx { bottom: calc(100% - 0.14em); transform: translateX(-50%); }
+/* A hint: a short meaning over a hard word, set small in the interface's face and cut short rather than run into the next one. */
+.rd-article .rd-hw rt { font-family: var(--font-ui); font-weight: 450; font-size: calc(var(--rd-rt, 0.46) * 0.86em); letter-spacing: 0; color: var(--text-3); }
+.rd-article .rd-hw .rd-rtx {
+  bottom: calc(100% - 0.1em); transform: translateX(-50%); max-width: max(7em, 100%); overflow: hidden; text-overflow: ellipsis;
+}
+/* Russian stress: an acute over the stressed vowel, drawn by the stylesheet (the text itself is never changed). */
+.rd-stress { position: relative; }
+.rd-stress::after {
+  content: '\00B4'; position: absolute; left: 0.04em; right: 0; top: -0.38em; text-align: center; pointer-events: none;
+  color: var(--accent); font-weight: 600; line-height: 1;
+}
+/* Saved words: one vermilion stroke under the word, as for Chinese. */
+.rd-word.rd-saved { position: relative; }
+.rd-word.rd-saved::before {
+  content: ''; position: absolute; left: 0.06em; right: 0.06em; bottom: -0.04em; height: max(1.5px, 0.065em);
+  background: var(--saved); pointer-events: none;
+}
+.rd-h1 .rd-word.rd-saved::before { display: none; }
+/* The aid button's seal for hints ("En"): Latin letters in the seal, a little smaller. */
+.rd-seal.rd-seal-latin { font-family: var(--font-ui); font-size: 0.82em; letter-spacing: -0.02em; font-weight: 700; }

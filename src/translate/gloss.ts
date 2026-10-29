@@ -4,6 +4,8 @@ import { segment } from '../core/segment';
 import type { Dictionary, Token, Translator } from '../types';
 import { entriesForReading } from '../core/reading';
 import { wordSenseHint } from './contextSense';
+import { activeEngine } from '../lang/active';
+import { safeLookup, shortGlossOf } from '../lang/words';
 
 export interface GlossDeps {
   segment: (text: string, dict: Dictionary) => Token[];
@@ -55,7 +57,16 @@ export function glossText(text: string, dict: Dictionary, deps: GlossDeps = defa
     const py = g.pinyin ? ` (${g.pinyin})` : '';
     items.push(g.gloss ? `${g.word}${py}: ${g.gloss}` : `${g.word}${py}`);
   };
+  const engine = activeEngine();
   for (const token of deps.segment(text, dict)) {
+    if (token.kind === 'word' && engine) {
+      // Another language: the word, its reading (Japanese), and its first meaning.
+      const lu = safeLookup(engine, token.text, token);
+      const head = lu.entries[0]?.head;
+      push({ word: head && head !== token.text ? `${token.text} (${head})` : token.text, pinyin: token.reading && token.reading !== token.text ? token.reading : '',
+        gloss: shortGlossOf(lu.entries, 60) || (lu.name || token.name ? 'name' : '') });
+      continue;
+    }
     if (token.kind !== 'han') continue;
     const whole = glossOne(token, dict, deps, context);
     if (whole) push(whole);
@@ -73,7 +84,7 @@ export function createGlossTranslator(dict: Dictionary | null, deps: GlossDeps =
       if (!dict) throw new Error('The dictionary is still loading. Try again in a moment.');
       if (opts?.signal?.aborted) throw new DOMException('Translation canceled', 'AbortError');
       const out = glossText(req.text, dict, deps, req.context);
-      if (!out) throw new Error('There are no Chinese words to gloss here.');
+      if (!out) throw new Error(activeEngine() ? 'There are no words to gloss here.' : 'There are no Chinese words to gloss here.');
       opts?.onDelta?.(out);
       return out;
     },

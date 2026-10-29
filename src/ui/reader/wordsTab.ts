@@ -9,6 +9,10 @@ import { h } from '../dom';
 import { icon } from '../icons';
 import { glossFor, headwordsFor, vocabItemFor } from '../popup/saveWord';
 import { windowed, type Windowed } from './windowed';
+import { activeEngine, lang } from '../../lang/active';
+import { levelLabel, levelScheme } from '../../lang/labels';
+import { langVocabItem, safeLookup, shortGlossOf } from '../../lang/words';
+import type { WordLookup } from '../../lang/types';
 
 /** What the Words tab needs from the reader. */
 export interface TocWords {
@@ -56,7 +60,19 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
 
   const isKnown = (w: ChapterWord) => store.known.has(w.key) || store.known.has(w.word);
   const isSaved = (w: ChapterWord) => store.vocab.has(w.key) || store.vocab.has(w.word);
+  const engine = activeEngine();
+  /** Another language: each word's lookup once (its meaning, reading and level). */
+  const lookups = new Map<string, WordLookup>();
+  const lookupOf = (w: ChapterWord) => {
+    let lu = lookups.get(w.key);
+    if (!lu && engine) { lu = safeLookup(engine, w.word); lookups.set(w.key, lu); }
+    return lu;
+  };
   const pinyinOf = (w: ChapterWord) => {
+    if (engine) {
+      const r = lookupOf(w)?.entries[0]?.reading;
+      return r && r !== w.word ? r : '';
+    }
     const style = ctx.settings.get().pinyinStyle;
     return w.pinyin.filter(Boolean).map((s) => formatSyllable(s.toLowerCase(), style)).join(style === 'zhuyin' ? ' ' : '');
   };
@@ -64,7 +80,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     let g = glosses.get(w.key);
     if (g === undefined) {
       const dict = ctx.dictSync();
-      g = dict ? glossFor(dict, w.word, w.pinyin, { prev: w.prev, next: w.next }) : '';
+      g = engine ? shortGlossOf(lookupOf(w)?.entries ?? [], 60) : dict ? glossFor(dict, w.word, w.pinyin, { prev: w.prev, next: w.next }) : '';
       glosses.set(w.key, g);
     }
     return g;
@@ -105,7 +121,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     rove: 0,
     show: (i) => load(i),
     refreshText() { if (visible) { summary(); tab.window.repaint(); } },
-    reload() { data = null; glosses.clear(); if (visible && index >= 0) load(index, true); },
+    reload() { data = null; glosses.clear(); lookups.clear(); if (visible && index >= 0) load(index, true); },
     setVisible(on) { visible = on; },
     dispose() { tab.window.dispose(); offChange(); },
   };
@@ -115,18 +131,19 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     const word = text(w.word);
     const known = isKnown(w);
     const saved = isSaved(w);
-    const level = ctx.dictSync()?.hsk(w.key)?.hsk3;
+    const level = engine ? engine.level(w.key) : ctx.dictSync()?.hsk(w.key)?.hsk3;
+    const levelText = !level ? '' : engine ? levelLabel(level) : level === 7 ? 'HSK 7+' : `HSK ${level}`;
     const stop = pos === tab.rove ? '0' : '-1';
     const main = h('button.rd-name-main.rd-word-main', {
       type: 'button', tabindex: stop, 'data-k': 'main',
       onclick: (e: Event) => src.onWord({ ...w, word, sentence: text(w.sentence), prev: text(w.prev), next: text(w.next) }, (e.currentTarget as HTMLElement).getBoundingClientRect(), index),
     },
-    h('span.rd-name-word.zh', { lang: 'zh' }, word),
+    h('span.rd-name-word.zh', { lang: lang().tag }, word),
     h('span.rd-word-line', null,
       h('span.rd-name-py', null, pinyinOf(w)),
       h('span.rd-name-meta', null,
         h('span.rd-name-count', { title: `${plural(w.count, 'time')} in this chapter` }, `${w.count}×`),
-        level ? h('span.rd-word-hsk', { title: `HSK ${level === 7 ? '7–9' : level}` }, level === 7 ? 'HSK 7+' : `HSK ${level}`) : null)),
+        level ? h('span.rd-word-hsk', { title: engine ? `${levelScheme()} ${levelText}` : `HSK ${level === 7 ? '7–9' : level}` }, levelText) : null)),
     h('span.rd-word-gloss', null, gloss(w)));
     const saveBtn = h('button.icon-btn.rd-word-act', {
       type: 'button', tabindex: stop, 'data-k': 'save', 'aria-pressed': String(saved),
@@ -149,6 +166,11 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     try {
       const existing = (await store.vocab.get(w.key)) ?? (await store.vocab.get(word));
       if (existing) { await store.vocab.remove(existing.id); return; }
+      const lu = engine ? lookupOf(w) : undefined;
+      if (lu) {
+        await store.vocab.put(langVocabItem({ ...lu, key: w.key }, { context: { sentence: w.sentence, bookId: book.id, bookTitle: book.title, chapter: index } }));
+        return;
+      }
       await store.vocab.put(vocabItemFor(dict, {
         word, syllables: w.pinyin, around: { prev: text(w.prev), next: text(w.next) },
         context: { sentence: text(w.sentence), bookId: book.id, bookTitle: book.title, chapter: index },
@@ -159,7 +181,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
   async function toggleKnown(w: ChapterWord): Promise<void> {
     const dict = ctx.dictSync();
     const word = text(w.word);
-    const { simp, trad } = dict ? headwordsFor(dict, word, dict.lookup(word), w.pinyin) : { simp: w.key, trad: '' };
+    const { simp, trad } = dict && !engine ? headwordsFor(dict, word, dict.lookup(word), w.pinyin) : { simp: w.key, trad: '' };
     try {
       if (isKnown(w)) await store.known.remove([...new Set([simp, w.key, w.word, word, trad].filter(Boolean))]);
       else await store.known.add([simp || w.key]);
@@ -173,7 +195,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     nextBtn.disabled = index >= book.chapterCount - 1;
     share.textContent = '';
     if (!data) return;
-    if (!data.total) { share.appendChild(h('p.rd-words-note', null, 'No Chinese words in this chapter.')); return; }
+    if (!data.total) { share.appendChild(h('p.rd-words-note', null, engine ? 'No words in this chapter.' : 'No Chinese words in this chapter.')); return; }
     const s = wordShare(data, isKnown);
     const pct = Math.floor((s.known / s.total) * 100);
     share.append(
@@ -183,7 +205,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
         ? `${plural(s.fresh, 'new word')}${s.freshOften ? `, ${fmt(s.freshOften)} of them ${s.freshOften === 1 ? 'comes' : 'come'} up 3 or more times` : ''}.`
         : 'You know every word in this chapter.'),
     );
-    if (!store.known.count()) share.appendChild(h('p.rd-words-note', null, 'Mark words you know with the check, or mark whole HSK levels in Vocabulary.'));
+    if (!store.known.count()) share.appendChild(h('p.rd-words-note', null, `Mark words you know with the check, or mark whole ${levelScheme()} levels in Vocabulary.`));
   }
 
   function paint(): void {

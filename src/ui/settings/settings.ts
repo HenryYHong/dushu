@@ -11,6 +11,9 @@ import { speechGroup } from './speech';
 import { translationGroup } from './translation';
 import { ipadGroup } from './ipad';
 import { pageTitle } from '../pageHead';
+import { isChinese, lang, syncsHere } from '../../lang/active';
+import { aidName, aidWord, levelCount, levelLabel, levelScheme } from '../../lang/labels';
+import { langSelect } from '../langSwitch';
 
 export const mount: MountFn = (root, params, ctx) => {
   const { settings, store } = ctx;
@@ -22,9 +25,11 @@ export const mount: MountFn = (root, params, ctx) => {
   const theme = add(segmented('theme', 'Theme', [
     { value: 'system', label: 'Auto' }, { value: 'light', label: 'Light' }, { value: 'sepia', label: 'Sepia' }, { value: 'dark', label: 'Dark' },
   ], set('theme')));
-  const fontFamily = add(segmented('fontFamily', 'Font', [
-    { value: 'serif', label: 'Serif' }, { value: 'sans', label: 'Sans' }, { value: 'kai', label: 'Kai' },
-  ], set('fontFamily')));
+  const zh = isChinese();
+  const L = lang();
+  const fontFamily = add(segmented('fontFamily', 'Font', zh
+    ? [{ value: 'serif', label: 'Serif' }, { value: 'sans', label: 'Sans' }, { value: 'kai', label: 'Kai' }]
+    : [{ value: 'serif', label: 'Serif' }, { value: 'sans', label: 'Sans' }], set('fontFamily')));
   const fontSize = add(slider((s) => s[readingFontSizeKey(s)], 'Text size', { min: 14, max: 44, step: 1, unit: ' px' },
     (v) => settings.set({ [readingFontSizeKey(settings.get())]: v })));
   const lineHeight = add(slider('lineHeight', 'Line spacing', { min: 1.4, max: 3, step: 0.1, format: (n) => n.toFixed(1) }, set('lineHeight')));
@@ -43,10 +48,13 @@ export const mount: MountFn = (root, params, ctx) => {
   ], set('script')));
 
   // ---- pinyin ----
-  const pinyin = add(segmented('pinyin', 'Show pinyin', [
-    { value: 'off', label: 'Off' }, { value: 'all', label: 'All' }, { value: 'unknown', label: 'Unknown' }, { value: 'hsk', label: 'HSK' },
+  const pinyin = add(segmented('pinyin', `Show ${aidWord()}`, [
+    { value: 'off', label: 'Off' }, { value: 'all', label: 'All' }, { value: 'unknown', label: 'Unknown' }, { value: 'hsk', label: levelScheme() },
   ], set('pinyin')));
-  const hsk = add(slider('hskThreshold', 'Known up to', { min: 1, max: 7, step: 1, format: (n) => (n === 7 ? 'HSK 7-9' : `HSK ${n}`) }, set('hskThreshold')));
+  const hsk = add(slider('hskThreshold', 'Known up to', zh
+    ? { min: 1, max: 7, step: 1, format: (n) => (n === 7 ? 'HSK 7-9' : `HSK ${n}`) }
+    : { min: 1, max: levelCount(), step: 1, format: (n) => levelLabel(n) }, set('hskThreshold')));
+  const stress = add(toggle('stress', 'Mark the stressed vowel', set('stress')));
   const style = add(segmented('pinyinStyle', 'Pinyin style', [
     { value: 'marks', label: 'Tone marks' }, { value: 'numbers', label: 'Numbers' }, { value: 'zhuyin', label: 'Zhuyin' },
   ], set('pinyinStyle')));
@@ -61,7 +69,8 @@ export const mount: MountFn = (root, params, ctx) => {
   const paragraph = add(toggle('paragraphTranslate', 'Translate paragraphs', set('paragraphTranslate')));
 
   // Rows that only matter in one mode are hidden in the other (a dimmed row still looks like something you can change).
-  const hskRow = row('Known up to', 'Pinyin is hidden on characters you have met, with the same reading, in HSK words up to this level.', hsk);
+  const hskRow = row('Known up to', zh ? 'Pinyin is hidden on characters you have met, with the same reading, in HSK words up to this level.'
+    : `${aidName()} ${L.aid === 'furigana' ? 'are' : 'is'} hidden on words up to this level. ${L.levels.about}`, hsk);
   const spreadRow = row('Pages shown', 'Auto shows two pages on a wide screen held sideways.', spread);
   const turnRow = row('Page turn', null, pageTurn);
   const reading = group('Reading', null,
@@ -73,14 +82,22 @@ export const mount: MountFn = (root, params, ctx) => {
     row('Text size', 'Pages and Scroll each keep their own.', fontSize),
     row('Line spacing', null, lineHeight),
     row('Page width', null, pageWidth),
-    row('Characters', 'Show books in simplified (简体) or traditional (繁體) characters.', script));
-  const pinyinGroup = group('Pinyin', null,
-    row('Show pinyin', 'Unknown skips words you have marked as known. HSK also skips words up to your level.', pinyin),
+    zh ? row('Characters', 'Show books in simplified (简体) or traditional (繁體) characters.', script) : null);
+  const aidHelp = zh ? 'Unknown skips words you have marked as known. HSK also skips words up to your level.'
+    : L.aid === 'furigana' ? 'Readings in kana over words with kanji. Unknown skips words you have marked as known; JLPT also skips words up to your level.'
+    : 'A short English meaning over each word. Unknown skips words you have marked as known; Level also skips words up to your level.';
+  const pinyinGroup = group(aidName(), null,
+    row(`Show ${aidWord()}`, aidHelp, pinyin),
     hskRow,
-    row('Style', null, style),
-    row('Tone colors', 'Red, green, blue, purple and gray for tones 1 to 5.', tones),
-    row('Tone changes for yī and bù', '一个 as yí gè, 不是 as bú shì.', sandhi),
+    zh ? row('Style', null, style) : null,
+    zh ? row('Tone colors', 'Red, green, blue, purple and gray for tones 1 to 5.', tones) : null,
+    zh ? row('Tone changes for yī and bù', '一个 as yí gè, 不是 as bú shì.', sandhi) : null,
+    L.stress ? row('Stress marks', 'A mark over the stressed vowel of each word, as in a learner’s dictionary.', stress) : null,
     row('Learn known words as I read', AUTO_KNOWN_HELP, autoKnown));
+  // The language being read. Each one keeps its own books, words and settings; switching opens its library.
+  const language = group('Language', null,
+    row('Reading in', `Each language keeps its own library, words and settings.${syncsHere() ? '' : ` ${L.name} is not synced with your account yet: its books and words stay on this device.`}`,
+      { el: langSelect('select'), update: () => {} }));
   const lookup = group('Lookup', null,
     row('Look up a word by', null, trigger),
     row('Translate paragraphs', 'With a mouse, adds a translate button beside each paragraph in Scroll.', paragraph));
@@ -91,7 +108,7 @@ export const mount: MountFn = (root, params, ctx) => {
   const ipad = ipadGroup(params);
 
   // ---- preview ----
-  const sample = h('div.set-sample.zh', { lang: 'zh', 'aria-label': 'Preview sentence' });
+  const sample = h(zh ? 'div.set-sample.zh' : 'div.set-sample', { lang: L.tag, 'aria-label': 'Preview sentence' });
   const preview = h('section.set-preview.card', { 'aria-label': 'Preview' },
     h('div.set-preview-label', null, 'Preview'),
     sample);
@@ -109,8 +126,9 @@ export const mount: MountFn = (root, params, ctx) => {
 
   // A list of the sections at the left on a wide screen: the page is long.
   const sections: { id: string; label: string; el: HTMLElement }[] = [
+    { id: 'set-language', label: 'Language', el: language },
     { id: 'set-reading', label: 'Reading', el: reading },
-    { id: 'set-pinyin', label: 'Pinyin', el: pinyinGroup },
+    { id: 'set-pinyin', label: aidName(), el: pinyinGroup },
     { id: 'set-lookup', label: 'Lookup', el: lookup },
     { id: 'set-translation', label: 'Translation', el: translation.el },
     { id: 'set-speech', label: 'Speech', el: speech.el },

@@ -4,6 +4,8 @@ import { createAutoKnown, readingDwell, type AutoKnown, type ReadUnit, type Read
 import type { AppContext, Dictionary, Token } from '../../types';
 import type { BlockState, ChapterView } from './chapter';
 import type { Pager } from './pager';
+import { isWord } from '../../lang/token';
+import { activeEngine } from '../../lang/active';
 
 const TICK_MS = 1000;
 /** Chapter, block and offset as one increasing number (blocks are at most a few thousand characters). */
@@ -39,12 +41,12 @@ function unitOf(ch: number, b: BlockState, from: number, toks: Token[], needMs: 
   return {
     key: `${ch}:${b.index}:${from}`,
     needMs,
-    words: () => toks.map((t) => ({ id: `${ch}:${b.index}:${t.start}`, word: t.text })),
+    words: () => toks.map((t) => ({ id: `${ch}:${b.index}:${t.start}`, word: t.key || t.text })),
   };
 }
 
 const hanIn = (b: BlockState, from: number, to: number): Token[] =>
-  b.kind === 'text' && b.rendered ? b.rendered.tokens.filter((t) => t.kind === 'han' && t.start >= from && t.start < to) : [];
+  b.kind === 'text' && b.rendered ? b.rendered.tokens.filter((t) => isWord(t) && t.start >= from && t.start < to) : [];
 
 /** Pages: the part of every block on the spread on show; the whole spread has to stay up long enough to be read. */
 export function pagesView(v: ChapterView, ch: number, range: { start: { block: number; offset: number }; end: { block: number; offset: number } | null }): ReadView {
@@ -99,7 +101,8 @@ export function createLearning(host: LearningHost): Learning {
   const tracker = createAutoKnown({
     store: ctx.store,
     enabled: () => ctx.settings.get().autoKnown,
-    simplify: (w) => dict.toSimplified(w),
+    // Another language counts a word under its dictionary form, the key its known and saved words use.
+    simplify: (w) => activeEngine()?.normalize(w) || dict.toSimplified(w),
   });
 
   function current(): ReadView | null {
@@ -125,7 +128,7 @@ export function createLearning(host: LearningHost): Learning {
     lookedUp: (word, deliberate) => tracker.lookedUp(word, deliberate),
     helped(spans) {
       const words: string[] = [];
-      for (const sp of spans) for (const t of hanIn(sp.b, sp.start, sp.end)) words.push(t.text);
+      for (const sp of spans) for (const t of hanIn(sp.b, sp.start, sp.end)) words.push(t.key || t.text);
       tracker.helped(words);
     },
     restart: () => tracker.restart(),

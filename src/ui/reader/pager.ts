@@ -18,6 +18,7 @@ import {
   pagesLeftLabel, settleDuration, spreadCount, spreadOfPage, swipeCompletes, tapZone, turnTarget,
   type BlockPages, type PageGeometry,
 } from './pagination';
+import { POS_SEL } from './render';
 
 /** A reading position that survives re-pagination: a block and a UTF-16 offset inside it. */
 export interface Anchor { block: number; offset: number }
@@ -451,7 +452,7 @@ export function createPager(o: PagerOptions): Pager {
     const bi = Math.min(blockOfPage(l.cols, page), l.cols.length - 1);
     const cols = l.cols[bi];
     if (!cols || cols.first >= page) return { block: bi, offset: 0 };
-    const rubies = l.view.blocks[bi].el.querySelectorAll('ruby.rd-c');
+    const rubies = l.view.blocks[bi].el.querySelectorAll(POS_SEL);
     let lo = 0;
     let hi = rubies.length - 1;
     let found = -1;
@@ -470,7 +471,7 @@ export function createPager(o: PagerOptions): Pager {
     const c = l.cols[bi];
     if (!c) return 0;
     if (a.offset <= 0) return c.first;
-    const rubies = l.view.blocks[bi].el.querySelectorAll('ruby.rd-c');
+    const rubies = l.view.blocks[bi].el.querySelectorAll(POS_SEL);
     let lo = 0;
     let hi = rubies.length - 1;
     let found = -1;
@@ -786,7 +787,7 @@ export function createPager(o: PagerOptions): Pager {
       let rubyTop = -1;
       let kFirst = -1;
       if (b.kind === 'text' && (continuesBefore || continuesAfter)) {
-        const rubies = b.el.querySelectorAll('ruby.rd-c');
+        const rubies = b.el.querySelectorAll(POS_SEL);
         const [k, j] = rubiesOnPage(l, rubies, page);
         if (k >= 0) {
           kFirst = k;
@@ -805,7 +806,7 @@ export function createPager(o: PagerOptions): Pager {
       text.appendChild(frag);
       if (continuesBefore && kFirst >= 0) {
         // Slide the copy up so that its first character on this page lands where it is in the live chapter.
-        const own = clone.querySelectorAll('ruby.rd-c')[kFirst];
+        const own = clone.querySelectorAll(POS_SEL)[kFirst];
         if (own) {
           const inside = own.getBoundingClientRect().top - clone.getBoundingClientRect().top;
           const shift = inside - (rubyTop - top);

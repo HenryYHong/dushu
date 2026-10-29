@@ -8,6 +8,7 @@ import type { AppContext, Dictionary, Lexicon, LexiconEntry } from '../types';
 import { markedToNumbered, splitPinyinRun } from './pinyin';
 import { SURNAME_READINGS, COMPOUND_SURNAME_READINGS, NAME_CHAR_READINGS } from './names';
 import { COMPOUND_SURNAMES, SURNAMES } from './names';
+import { isChinese } from '../lang/active';
 export { capitalizePinyin, pinyinGroups } from './names';
 
 /** Detection hands the main thread back after this much work (ms), so a slice stays within a frame. */
@@ -831,6 +832,8 @@ export async function loadLexicon(ctx: AppContext, bookId: string, onUpdate?: (l
   const store = ctx.store;
   const read = async () => mergeLexicon(await store.lexicon.get(USER_SCOPE), await store.lexicon.get(bookId));
   const lex = await read();
+  // Name detection reads Chinese text; a book in another language has its names from its engine (Token.name).
+  if (!isChinese()) return lex;
   if (await store.lexicon.detected(bookId, DETECTOR_VERSION)) return lex;
   if (!running.has(bookId)) {
     const job = (async () => {

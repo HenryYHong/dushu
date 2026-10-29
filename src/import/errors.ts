@@ -1,3 +1,5 @@
+import { lang } from '../lang/active';
+
 /** A problem with the user's file, worded for the user. */
 export class ImportError extends Error {
   constructor(message: string) {
@@ -7,6 +9,12 @@ export class ImportError extends Error {
 }
 
 export const NO_CHINESE = 'No Chinese text found in this file. Dushu reads books written in Chinese characters.';
+
+/** The same, for the language being read (lang/active.ts). */
+export function noTextMessage(): string {
+  const L = lang();
+  return L.id === 'zh' ? NO_CHINESE : `No ${L.name} text found in this file. This library reads books written in ${L.name}.`;
+}
 
 export const PDF_HOST_MESSAGE =
   'The PDF reader could not start. This is a problem with how Dushu is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.';

@@ -2,7 +2,11 @@
 // Shared by the TXT, PDF, HTML, Markdown and EPUB importers.
 import type { Block, Chapter } from '../types';
 import { isBoilerplateLine } from './boilerplate';
-import { countHan } from './han';
+import { countHan, unitScale } from './han';
+import { lang } from '../lang/active';
+
+/** Whether the book is read in a language written with spaces (its wrapped lines join with a space, its headings are words). */
+const spacedLanguage = (): boolean => lang().spaced;
 import { normalizeNewlines } from './encoding';
 
 /** Target size of a section when a text has no chapter markers. */
@@ -127,6 +131,14 @@ const VOLUME_PREFIX = new RegExp(`^[卷篇]\\s*${NUM}+${SEP}`);
 const WORD_RE = new RegExp(`^(?:${WORDS.join('|')})[\\s\\u3000]*${NUM}*${SEP}`);
 const MARKER_COLON = new RegExp(`^(第\\s*${NUM}+\\s*[章回节節卷集部篇幕折场場话話])\\s*[:：]\\s*`);
 const LATIN_CHAPTER = /^chapter\s+(?:\d+|[ivxlcdm]+\b|one\b|two\b|three\b|four\b|five\b|six\b|seven\b|eight\b|nine\b|ten\b)/i;
+/**
+ * Chapter and part headings of the languages written with spaces: CAPÍTULO III, Chapitre premier, Erstes Kapitel, Capitolo
+ * XII, Глава первая, LIVRE DEUXIÈME, a Roman numeral alone on its line (II. or XIV). Volumes (Parte, Livre, Teil, Часть) are
+ * level 1.
+ */
+const ORDINAL_WORD = String.raw`(?:\d+|[IVXLCDM]+\b\.?|primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|premi(?:er|ère)|deuxième|troisième|second|erstes|zweites|drittes|vierte[sn]?|fünfte[sn]?|prim[oa]|secondo|terzo|quarto|quinto|primeiro|segundo|terceiro|перв\S*|втор\S*|трет\S*|четв[её]рт\S*|пят\S*)`;
+const SPACED_VOLUME = new RegExp(String.raw`^(?:parte|libro|livre|partie|tome|teil|buch|band|livro|часть|книга|том)\s+${ORDINAL_WORD}`, 'iu');
+const SPACED_CHAPTER = new RegExp(String.raw`^(?:cap[ií]tulo|chapitre|kapitel|capitolo|cap\.|глава)\s+${ORDINAL_WORD}|^(?:erstes|zweites|drittes|viertes|fünftes|sechstes|siebentes|siebtes|achtes|neuntes|zehntes)\s+kapitel\b|^[IVXLC]{1,7}\.?$`, 'iu');
 
 /** Is this single line a chapter heading? Level 1 for volumes (卷, 部, 集), 2 otherwise. */
 export function detectHeadingLine(line: string): { level: 1 | 2 } | null {
@@ -135,6 +147,10 @@ export function detectHeadingLine(line: string): { level: 1 | 2 } | null {
   if (/[。，；、]$/.test(t)) return null;
   if (VOLUME_WORD.test(t) || VOLUME_PREFIX.test(t)) return { level: 1 };
   if (NUMBERED.test(t) || WORD_RE.test(t) || LATIN_CHAPTER.test(t)) return { level: 2 };
+  if (spacedLanguage()) {
+    if (SPACED_VOLUME.test(t)) return { level: 1 };
+    if (SPACED_CHAPTER.test(t)) return { level: 2 };
+  }
   return null;
 }
 
@@ -194,6 +210,9 @@ export function detectWrapWidth(lines: string[]): number {
 
 function joinPieces(a: string, b: string): string {
   if (/[A-Za-z0-9,.;:!?)]$/.test(a) && /^[A-Za-z0-9(]/.test(b)) return `${a} ${b}`;
+  // A language written with spaces: the wrapped lines of a paragraph meet at a space (a word broken with a hyphen at the
+  // end of a line is joined back), whatever letters or marks they end and start with.
+  if (spacedLanguage()) return /\p{L}-$/u.test(a) && /^\p{Ll}/u.test(b) ? a.slice(0, -1) + b : `${a} ${b}`;
   return a + b;
 }
 
@@ -478,7 +497,7 @@ function cutAt(blocks: Block[], cuts: number[], firstTitle: string): Chapter[] {
 }
 
 /** Split blocks into parts of about `target` Han characters at paragraph boundaries. */
-export function splitBySize(blocks: Block[], target = PART_HAN): Block[][] {
+export function splitBySize(blocks: Block[], target = PART_HAN * unitScale()): Block[][] {
   const parts: Block[][] = [];
   let cur: Block[] = [];
   let acc = 0;
@@ -526,7 +545,7 @@ export function chaptersFromBlocks(input: Block[], opts: { title: string }): Cha
     chapters = cutAt(blocks, cuts, opts.title);
   } else {
     const han = blocks.reduce((n, b) => n + blockHan(b), 0);
-    if (han <= PART_HAN * 1.5) chapters = [{ title: wholeTitle(blocks, opts.title), blocks }];
+    if (han <= PART_HAN * unitScale() * 1.5) chapters = [{ title: wholeTitle(blocks, opts.title), blocks }];
     else chapters = splitBySize(blocks).map((p, i) => ({ title: `Part ${i + 1}`, blocks: p }));
   }
   return finalizeChapters(chapters).map((c) => {
@@ -572,7 +591,7 @@ export function splitAtChapterHeadings(c: Chapter): Chapter[] {
 
 /** Split one oversize chapter by its inner headings, then by size. */
 function splitOversize(c: Chapter): Chapter[] {
-  if (chapterHan(c) <= BIG_CHAPTER_HAN) return [c];
+  if (chapterHan(c) <= BIG_CHAPTER_HAN * unitScale()) return [c];
   const blocks = c.blocks.slice();
   const cuts = boundaries(blocks);
   let pieces: Chapter[];
@@ -580,11 +599,11 @@ function splitOversize(c: Chapter): Chapter[] {
   else pieces = [{ title: c.title, blocks }];
   const out: Chapter[] = [];
   for (const piece of pieces) {
-    if (chapterHan(piece) <= BIG_CHAPTER_HAN) {
+    if (chapterHan(piece) <= BIG_CHAPTER_HAN * unitScale()) {
       out.push(piece);
       continue;
     }
-    splitBySize(piece.blocks, BIG_PART_HAN).forEach((p, i) => {
+    splitBySize(piece.blocks, BIG_PART_HAN * unitScale()).forEach((p, i) => {
       const part: Chapter = { title: piece.title ? `${piece.title} (${i + 1})` : `Part ${i + 1}`, blocks: p };
       if (i > 0) part.cont = true;
       out.push(part);

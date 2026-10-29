@@ -1,6 +1,8 @@
 // Text decoding for files with no reliable charset: BOMs, strict UTF-8, then scoring candidates.
 import { COMMON_CHARS } from './commonChars';
 import { isHan } from './han';
+import { langId } from '../lang/active';
+import type { LangId } from '../lang/types';
 
 export interface Decoded {
   text: string;
@@ -65,6 +67,41 @@ export function scoreDecoding(text: string): number {
   return good / (han + bad * 2 + 1);
 }
 
+/**
+ * How well a decode reads as the language being read, when it is not Chinese: kana and common kanji for Japanese, lowercase
+ * Cyrillic for Russian (a KOI8-R file read as Windows-1251 comes out in capitals), accented Latin letters for the rest. Each
+ * candidate decodes something; the right one has the fewest strange characters.
+ */
+export function scoreFor(text: string, id: LangId): number {
+  let good = 0;
+  let bad = 0;
+  let seen = 0;
+  for (const ch of text) {
+    const cp = ch.codePointAt(0)!;
+    if (cp < 0x80) continue;
+    seen++;
+    if (cp === 0xfffd) { bad += 2; continue; }
+    if (id === 'ja') {
+      if ((cp >= 0x3040 && cp <= 0x30ff) || COMMON_CHARS.has(ch) || cp === 0x3005 || cp === 0x30fc) good++;
+      else if (isHan(cp) || (cp >= 0x3000 && cp <= 0x303f) || (cp >= 0xff00 && cp <= 0xffef) || (cp >= 0x2000 && cp <= 0x206f)) { /* neutral */ }
+      else bad++;
+    } else if (id === 'ru') {
+      if (cp >= 0x0430 && cp <= 0x044f) good++;
+      else if (cp === 0x0451 || (cp >= 0x0410 && cp <= 0x042f) || (cp >= 0x2000 && cp <= 0x206f) || cp === 0xab || cp === 0xbb || cp === 0xa0) { /* neutral */ }
+      else bad++;
+    } else if ((cp >= 0xc0 && cp <= 0xff && cp !== 0xd7 && cp !== 0xf7) || cp === 0x152 || cp === 0x153) good++;
+    else if ((cp >= 0xa0 && cp <= 0xbf) || (cp >= 0x2000 && cp <= 0x206f) || cp === 0x20ac) { /* neutral */ }
+    else bad++;
+  }
+  return seen ? good / (good + bad * 2 + 1) : 1;
+}
+
+/** The legacy encodings a file in each language may come in, most common first. */
+const LEGACY: Partial<Record<LangId, string[]>> = {
+  ja: ['shift_jis', 'euc-jp', 'iso-2022-jp'],
+  ru: ['windows-1251', 'koi8-r', 'ibm866'],
+};
+
 function decodeWith(bytes: Uint8Array, label: string): string {
   return new TextDecoder(label).decode(bytes);
 }
@@ -85,6 +122,8 @@ export function decodeText(bytes: Uint8Array, hint?: string): Decoded {
 
   const sample = bytes.subarray(0, Math.min(bytes.length, 131072));
   const declared = normalizeCharset(hint);
+  const id = langId();
+  if (id !== 'zh') return decodeOther(bytes, sample, declared, id);
   const candidates = ['gb18030', 'big5', 'utf-16le', 'utf-16be'];
   if (declared && !candidates.includes(declared) && declared !== 'utf-8') candidates.push(declared);
   let best = { label: 'gb18030', score: -1 };
@@ -92,6 +131,23 @@ export function decodeText(bytes: Uint8Array, hint?: string): Decoded {
     // UTF-16 decodes of single-byte data are noise; require plenty of zero bytes (ASCII mixed in) or an even length.
     if (label.startsWith('utf-16') && sample.length % 2 === 1 && isAscii(sample)) continue;
     let score = scoreDecoding(decodeWith(sample, label));
+    if (label === declared) score += 0.05;
+    if (score > best.score) best = { label, score };
+  }
+  return { text: decodeWith(bytes, best.label), encoding: best.label };
+}
+
+/** A book in another language: its legacy encodings (Shift_JIS, Windows-1251, Windows-1252 …) scored by how they read. */
+function decodeOther(bytes: Uint8Array, sample: Uint8Array, declared: string | undefined, id: LangId): Decoded {
+  const candidates = [...(LEGACY[id] ?? ['windows-1252', 'iso-8859-15']), 'utf-16le', 'utf-16be'];
+  if (declared && !candidates.includes(declared) && declared !== 'utf-8') candidates.push(declared);
+  let best = { label: candidates[0], score: -1 };
+  for (const label of candidates) {
+    if (label.startsWith('utf-16') && sample.length % 2 === 1 && isAscii(sample)) continue;
+    let text: string;
+    try { text = decodeWith(sample, label); } catch { continue; }
+    let score = scoreFor(text, id);
+    if (label.startsWith('utf-16') && /\u0000/.test(text)) score -= 1;
     if (label === declared) score += 0.05;
     if (score > best.score) best = { label, score };
   }
@@ -135,5 +191,6 @@ export function plausibleText(bytes: Uint8Array, decoded: Decoded): boolean {
   let high = 0;
   for (const ch of text) if (ch.codePointAt(0)! > 0x7f) high++;
   if (high < 20) return true; // nearly all ASCII: the content check after import decides
-  return scoreDecoding(text) >= 0.3;
+  const id = langId();
+  return id === 'zh' ? scoreDecoding(text) >= 0.3 : scoreFor(text, id) >= 0.3;
 }

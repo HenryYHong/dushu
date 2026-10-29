@@ -17,6 +17,9 @@ import { linkMac } from './core/cloudLink';
 import { signInButton } from './ui/signIn';
 import { reviewCount } from './ui/review/learning';
 import { scriptView } from './ui/vocab/render';
+import { activeEngine, isChinese, lang, setActiveEngine, storeName, syncsHere } from './lang/active';
+import { noChineseDictionary } from './lang/noChinese';
+import { langChip } from './ui/langSwitch';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -54,7 +57,9 @@ const parseHash = () => parseRoute(location.hash, (r) => Object.prototype.hasOwn
 
 async function boot(): Promise<void> {
   injectFonts();
-  const settings = createSettingsStore();
+  const L = lang();
+  document.documentElement.dataset.lang = L.id;
+  const settings = createSettingsStore(undefined, L.id);
   applyTheme(settings.get());
   settings.subscribe((s, changed) => { if (changed.includes('theme')) applyTheme(s); });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(settings.get()));
@@ -69,19 +74,28 @@ async function boot(): Promise<void> {
   }, 5000);
 
   // The dictionary takes longest to be ready, so it starts first: its files download and parse while the library opens.
-  const dictUrl = new URL('data/', document.baseURI).href;
+  // Another language loads its own engine (src/lang/<id>) from data/<id>/; screens written for Chinese then see an empty
+  // Chinese dictionary (lang/noChinese.ts) and the engine does the work (lang/active.ts activeEngine).
+  const dictUrl = new URL(isChinese() ? 'data/' : `data/${L.id}/`, document.baseURI).href;
   // On a first visit the files are also handed to the offline copy (sw.js, FIRST_VISIT_CACHE), which then only asks the
   // server whether they are current instead of downloading all 9 MB again.
   const handoff = import.meta.env.PROD && 'serviceWorker' in navigator && !navigator.serviceWorker.controller && 'caches' in window
     ? caches.open('dushu-first-visit') : null;
   handoff?.catch(() => {});
   const keep = handoff ? (url: string, res: Response) => void handoff.then((c) => c.put(url, res)).catch(() => {}) : undefined;
-  let early: Promise<Dictionary> | null = loadDictionary(dictUrl, { keep, onBytes: setDictBytes });
+  const loadDict = (opts: Parameters<typeof loadDictionary>[1]): Promise<Dictionary> => {
+    if (isChinese()) return loadDictionary(dictUrl, opts);
+    return L.load!().then((m) => m.loadEngine(dictUrl)).then((engine) => {
+      setActiveEngine(engine);
+      return noChineseDictionary(engine);
+    });
+  };
+  let early: Promise<Dictionary> | null = loadDict({ keep, onBytes: setDictBytes });
   early.catch(() => {}); // reported by the first ctx.dict() below
 
   let store: Store;
   try {
-    store = await openStore();
+    store = await openStore(storeName());
   } catch (e) {
     // Only a newer on-disk database lands here; everything else falls back to memory.
     console.error(e);
@@ -102,8 +116,13 @@ async function boot(): Promise<void> {
   const ctx: AppContext = {
     dict() {
       // A failed download is not kept: the next use (a lookup, opening a book) downloads it again.
-      dictPromise ??= (early ?? loadDictionary(dictUrl, { onBytes: setDictBytes })).then((d) => {
-        store.setNormalizer((w) => d.toSimplified(w));
+      dictPromise ??= (early ?? loadDict({ onBytes: setDictBytes })).then((d) => {
+        // Saved and known words match any form of a word: a script for Chinese, the dictionary form for the rest.
+        if (isChinese()) store.setNormalizer((w) => d.toSimplified(w));
+        else {
+          const engine = activeEngine();
+          if (engine) store.setNormalizer((w) => engine.normalize(w));
+        }
         return (dictReady = d);
       }, (e: unknown) => {
         dictPromise = null;
@@ -148,14 +167,14 @@ async function boot(): Promise<void> {
   ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not download the dictionary. Check your connection; Dushu will try again.', { ms: 8000 }); });
   // Saved words, known words, reading places, lookups and bookmarks, kept the same on every device signed in to the sync
   // account (or connected to the Mac). Signed in, a device also learns where the Mac is, for the Mac's books.
-  startSync(store, { settings });
+  if (syncsHere()) startSync(store, { settings });
   void linkMac();
   window.addEventListener(CLOUD_EVENT, () => void linkMac());
   // Whether this account is the owner's (the Mac and Claude settings follow it): asked on each start.
   if (cloudSession()) void accountInfo().catch(() => {});
   // Books in the account: this device's go up and the account's come down, on open, on sign-in, when the app comes back to
   // the front and every few minutes, and each run says what it did (or what went wrong, once).
-  const accountBooks = () => { if (cloudSession()) void syncBooks(store); };
+  const accountBooks = () => { if (cloudSession() && syncsHere()) void syncBooks(store); };
   const toldErrors = new Set<string>();
   window.addEventListener(BOOKS_EVENT, (e) => {
     const r = (e as CustomEvent<BooksReport>).detail;
@@ -174,6 +193,7 @@ async function boot(): Promise<void> {
     h('a.app-navlink', { href, title: label, 'aria-label': label, 'data-route': href.replace(/^#\/?/, '') }, icon(ic), h('span.app-navlabel', null, label), extra ?? null);
   const nav = h('nav.app-nav', { 'aria-label': 'Main' },
     h('a.app-brand', { href: '#/' }, h('span.app-brand-zh', null, '读书'), h('span.app-brand-en', null, 'Dushu')),
+    langChip(),
     navLink('#/', 'Library', 'library'),
     navLink('#/vocab', 'Vocabulary', 'list'),
     navLink('#/review', 'Review', 'cards', reviewBadge),

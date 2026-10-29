@@ -20,9 +20,14 @@ export const SYSTEM_PROMPTS = {
   explain: translationSystem('explain', 'claude'),
 } as const;
 
+/** The system prompt for a request: Chinese's measured one, or the one for the language it names. */
+export function systemPromptFor(req: Pick<TranslateRequest, 'mode' | 'lang'>): string {
+  return req.lang ? translationSystem(req.mode, 'claude', {}, req.lang) : SYSTEM_PROMPTS[req.mode];
+}
+
 /** The user message: glossary, the sense the paragraph settles for 酒店 (if it does), the paragraph, then the sentence. */
-export function buildUserMessage(req: Pick<TranslateRequest, 'text' | 'context' | 'terms'>): string {
-  const hint = wordSenseHint(req.text, req.context ?? '');
+export function buildUserMessage(req: Pick<TranslateRequest, 'text' | 'context' | 'terms' | 'lang'>): string {
+  const hint = req.lang ? null : wordSenseHint(req.text, req.context ?? '');
   return translationMessage(req, { hints: hint ? { [hint.word]: hint.sense } : undefined });
 }
 

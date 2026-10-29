@@ -13,6 +13,8 @@
 const BUILD = '__BUILD__';
 const DATA_VERSION = '__DATA_VERSION__';
 const PRECACHE = __PRECACHE__;
+/** Each language other than Chinese: the version of its data and classics (vite.config.ts), naming its own cache. */
+const LANG_VERSIONS = __LANG_VERSIONS__;
 const UI_FONTS = ['fonts/newsreader-roman.woff2', 'fonts/newsreader-italic.woff2'];
 
 const APP_CACHE = `dushu-app-${BUILD}`;
@@ -30,6 +32,9 @@ const MATCH = { ignoreVary: true };
 const relPath = (url) => decodeURIComponent(url.pathname.slice(SCOPE.length));
 const isFontSlice = (p) => p.startsWith('assets/') && p.endsWith('.woff2');
 const isStatic = (p) => p.startsWith('data/') || p.startsWith('fonts/') || p.startsWith('samples/');
+/** data/ja/… or samples/es/…: the language's id, when it has a cache of its own. */
+const langOf = (p) => { const m = /^(?:data|samples)\/([a-z]{2})\//.exec(p); return m && LANG_VERSIONS[m[1]] ? m[1] : null; };
+const langCache = (id) => `dushu-lang-${id}-${LANG_VERSIONS[id]}`;
 // Vite names every built file in assets/ with a hash of its contents (name-HASH.ext).
 const isHashed = (p) => /^assets\/.+-[\w-]{8}\.\w+$/.test(p);
 
@@ -83,8 +88,9 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
+    const langs = new Set(Object.keys(LANG_VERSIONS).map(langCache));
     for (const name of await caches.keys()) {
-      if (name.startsWith('dushu-') && name !== APP_CACHE && name !== STATIC_CACHE && name !== FONT_CACHE) await caches.delete(name);
+      if (name.startsWith('dushu-') && name !== APP_CACHE && name !== STATIC_CACHE && name !== FONT_CACHE && !langs.has(name)) await caches.delete(name);
     }
     await self.clients.claim();
   })());
@@ -139,6 +145,9 @@ self.addEventListener('fetch', (event) => {
   } else if (isFontSlice(path)) {
     // Hashed file names never change, so this cache outlives every app and data update.
     event.respondWith(cacheFirst(request, FONT_CACHE));
+  } else if (langOf(path)) {
+    // Another language's dictionary and classics: kept in its own cache until that language's files change.
+    event.respondWith(cacheFirst(request, langCache(langOf(path))));
   } else if (isStatic(path)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
   } else if (path.startsWith('assets/')) {

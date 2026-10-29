@@ -12,7 +12,7 @@ import { confirmDialog, formDialog } from './dialogs';
 import { compactCount, plural, progressFraction, progressLabel } from './format';
 import { ACCEPT, createImporter, jobStage, loadImporters, prefetchImporters, type Importer, type Job } from './importer';
 import { pasteDialog } from './paste';
-import { fetchSamples, hasSamplePainting, loadSampleBook, sampleCover, sampleSourceName, type Sample } from './samples';
+import { fetchSamples, hasSamplePainting, loadSampleBook, sampleCover, sampleSourceName, type Sample, sampleUrl } from './samples';
 import { BRIDGE_EVENT, isMacOrigin } from '../../core/macBridge';
 import { REMOTE_PROGRESS_EVENT } from '../../core/sync';
 import { addedMessage, duplicateMacBooks, fetchMacBookFile, fetchMacBooks, forgetRemovedList, isMacBook, macItemFor, syncMacBooks, type MacBook, type MacState } from './macBooks';
@@ -23,6 +23,16 @@ import { CLOUD_EVENT, cloudBase, cloudSession } from '../../core/cloud';
 import { openSignIn } from '../signIn';
 import { isStandalone, onIPhoneOrIPad } from '../fullscreen';
 import { forgetBookInAccount, syncBooks } from '../../core/cloudBooks';
+import { isChinese, lang } from '../../lang/active';
+
+/**
+ * A book's length as a reader thinks of it: characters for Chinese and Japanese, words for the languages written with spaces
+ * (the stored count is letters there, lang/units: about six letters and a space to a word). `short`: "chars" on a card.
+ */
+function sizeLabel(count: number, short: boolean): string {
+  if (lang().spaced) return `${compactCount(Math.round(count / 5.6))} words`;
+  return `${compactCount(count)} ${short ? 'chars' : 'characters'}`;
+}
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
 
@@ -304,7 +314,7 @@ export const mount: MountFn = (root, _params, ctx) => {
           h('div.lib-card-title.zh', null, shown(b.title)),
           h('div.lib-card-author', null, b.author ? shown(b.author) : ' '),
           progressBar(progressFraction(p)),
-          h('div.lib-card-meta', null, h('span', null, progressLabel(p)), h('span', null, `${compactCount(b.charCount)} chars`)),
+          h('div.lib-card-meta', null, h('span', null, progressLabel(p)), h('span', null, sizeLabel(b.charCount, true))),
           shares.line(b))),
       menuBtn);
     return card;
@@ -362,7 +372,7 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   function sampleCard(s: Sample, existing: BookMeta | undefined): HTMLElement {
     const busy = importer.jobs.some((j) => j.label === `“${s.title}”`);
-    const size = [s.chapters && plural(s.chapters, 'chapter'), s.chars && `${compactCount(s.chars)} characters`].filter(Boolean).join(' · ');
+    const size = [s.chapters && plural(s.chapters, 'chapter'), s.chars && sizeLabel(s.chars, false)].filter(Boolean).join(' · ');
     const go = existing
       ? h('a.btn.btn-sm', { href: readHref(existing.id) }, 'Open')
       : h('button.btn.btn-sm.lib-add', {
@@ -476,7 +486,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     const listing = await fetchMacBooks();
     if (!alive) return;
     macState = listing.state;
-    macItems = listing.books;
+    // The Mac's books are the owner's Chinese books: another language's library never takes them.
+    macItems = isChinese() ? listing.books : [];
     macBooks.hidden = !(macState === 'ready' && macItems.length);
     renderMacNote();
     if (auto && macState === 'ready' && macItems.length) {
@@ -514,7 +525,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   /** A classic not added yet: its drawn cover, with its painting as the board. */
   function sampleCoverEl(s: Sample): HTMLElement {
     const drawn = generatedCover(s.title, s.author, 'sm', bookEra({ title: s.title, author: s.author, sourceName: sampleSourceName(s.id) }), sampleLabel(s));
-    if (s.cover) setCoverArt(drawn, new URL(`samples/${s.cover}`, document.baseURI).href);
+    if (s.cover) setCoverArt(drawn, sampleUrl(s.cover));
     return h('div.lib-cover-wrap.lib-cover-wrap-sm', null, drawn);
   }
 

@@ -2,8 +2,10 @@
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../translate/claudePrompts';
 import type { Settings, SettingsStore } from '../types';
 import { cleanCovers } from '../core/covers';
+import type { LangId } from '../lang/types';
 
 export const SETTINGS_KEY = 'dushu.settings.v1';
+const CHINESE_KEY = SETTINGS_KEY;
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
@@ -30,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   spread: 'auto',
   pageTurn: 'slide',
   covers: '',
+  stress: true,
 };
 
 type Rule = (v: unknown) => unknown | undefined; // returns the clean value, or undefined if unusable
@@ -72,6 +75,7 @@ const RULES: { [K in keyof Settings]: Rule } = {
   spread: oneOf('auto', 'single', 'double'),
   pageTurn: oneOf('flip', 'slide', 'none'),
   covers: cleanCovers,
+  stress: bool,
 };
 
 const KEYS = Object.keys(RULES) as (keyof Settings)[];
@@ -82,8 +86,8 @@ export function readingFontSizeKey(s: Settings): 'fontSize' | 'scrollFontSize' {
 }
 
 /** A complete, valid Settings from untrusted input: bad or missing fields fall back to defaults. */
-export function sanitizeSettings(raw: unknown): Settings {
-  const out: Record<string, unknown> = { ...DEFAULT_SETTINGS };
+export function sanitizeSettings(raw: unknown, defaults: Settings = DEFAULT_SETTINGS): Settings {
+  const out: Record<string, unknown> = { ...defaults };
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     const src = raw as Record<string, unknown>;
     for (const k of KEYS) {
@@ -112,17 +116,26 @@ function defaultStorage(): Storage | undefined {
   try { return globalThis.localStorage; } catch { return undefined; } // access can throw when site data is blocked
 }
 
-function load(storage: Storage | undefined): Settings {
+/**
+ * The defaults for a language other than Chinese: no hints over words until asked for (Japanese shows furigana over the
+ * words you have not marked known, like pinyin), and no Kai face, which only Chinese has.
+ */
+export function defaultsFor(id: LangId): Settings {
+  if (id === 'zh') return { ...DEFAULT_SETTINGS };
+  return { ...DEFAULT_SETTINGS, pinyin: id === 'ja' ? 'unknown' : 'off', hskThreshold: 2, script: 'original', fontSize: id === 'ja' ? 22 : 21, scrollFontSize: id === 'ja' ? 26 : 23, lineHeight: id === 'ja' ? 2 : 1.6, sandhi: false };
+}
+
+function load(storage: Storage | undefined, key: string, defaults: Settings): Settings {
   try {
-    const raw = storage?.getItem(SETTINGS_KEY);
+    const raw = storage?.getItem(key);
     if (raw) {
-      const clean = sanitizeSettings(JSON.parse(raw));
+      const clean = sanitizeSettings(JSON.parse(raw), defaults);
       // Older versions kept an Anthropic key here. The key now lives only on the Mac, so rewrite the entry without it.
-      if (raw.includes('claudeApiKey')) { try { storage?.setItem(SETTINGS_KEY, JSON.stringify(clean)); } catch { /* read-only storage */ } }
+      if (raw.includes('claudeApiKey')) { try { storage?.setItem(key, JSON.stringify(clean)); } catch { /* read-only storage */ } }
       return clean;
     }
   } catch { /* corrupt JSON or blocked storage: use defaults */ }
-  return { ...DEFAULT_SETTINGS };
+  return { ...defaults };
 }
 
 /** Set once a device has moved to simplified characters, the default since 2026-10-24 (before, it was "As written"). */
@@ -132,11 +145,17 @@ const PAGES_KEY = 'dushu.settings.pages.v1';
 /** Set once a device has moved to sliding pages, the default since 2026-10-26 (before, Flip). */
 const SLIDE_KEY = 'dushu.settings.slide.v1';
 
-export function createSettingsStore(storage: Storage | undefined = defaultStorage()): SettingsStore {
-  let s = load(storage);
+/**
+ * `id` is the language the page reads: Chinese keeps dushu.settings.v1, another language its own key (langKey), so a
+ * Japanese reader's furigana choice never changes how Chinese shows pinyin.
+ */
+export function createSettingsStore(storage: Storage | undefined = defaultStorage(), id: LangId = 'zh'): SettingsStore {
+  const SETTINGS_KEY = id === 'zh' ? CHINESE_KEY : CHINESE_KEY.replace(/^dushu\./, `dushu.${id}.`);
+  const defaults = defaultsFor(id);
+  let s = load(storage, SETTINGS_KEY, defaults);
   // Saved settings hold every value, so a device that kept the old default ("As written") moves to simplified once; a
-  // later choice of "As written" stays.
-  try {
+  // later choice of "As written" stays. (Chinese only: the other languages started with today's defaults.)
+  if (id === 'zh') try {
     if (storage && !storage.getItem(SIMPLIFIED_KEY)) {
       if (s.script === 'original' && storage.getItem(SETTINGS_KEY)) {
         s = { ...s, script: 'simplified' };
@@ -171,7 +190,7 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
     globalThis.addEventListener('storage', (e: Event) => {
       const ev = e as StorageEvent;
       if (ev.storageArea !== storage || (ev.key !== SETTINGS_KEY && ev.key !== null)) return;
-      const next = load(storage);
+      const next = load(storage, SETTINGS_KEY, defaults);
       const changed = KEYS.filter((k) => next[k] !== s[k]);
       s = next;
       if (changed.length) notify(changed);

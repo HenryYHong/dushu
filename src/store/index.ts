@@ -6,8 +6,11 @@ import { hanBefore, moveByPercent, placeAt, textHan } from '../core/place';
 import { bookKey, canonical, mergeLookups, olderKeys, progressWire } from '../core/syncKeys';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
+import { countHan } from '../import/han';
 import { TABLES, createIdbBackend, createMemoryBackend, friendlyError, type Backend, type Table } from './db';
-import { SETTINGS_KEY, sanitizePatch, sanitizeSettings } from './settings';
+import { SETTINGS_KEY, defaultsFor, sanitizePatch, sanitizeSettings } from './settings';
+import { langId, langKey } from '../lang/active';
+import { LANGS, isLangId } from '../lang/registry';
 
 export { QUOTA_MESSAGE } from './db';
 
@@ -17,17 +20,6 @@ export type { BackupReport };
 
 // ------------------------------------------------------------------ helpers ---
 
-/** Han code points: Unified (incl. Ext A–J), compatibility ideographs, and 〇. */
-function isHan(cp: number): boolean {
-  return (cp >= 0x4e00 && cp <= 0x9fff) || (cp >= 0x3400 && cp <= 0x4dbf) ||
-    (cp >= 0xf900 && cp <= 0xfaff) || (cp >= 0x20000 && cp <= 0x323af) || cp === 0x3007;
-}
-
-function countHan(s: string): number {
-  let n = 0;
-  for (const ch of s) if (isHan(ch.codePointAt(0)!)) n++;
-  return n;
-}
 
 function chapterHan(c: Chapter): number {
   let n = countHan(c.title);
@@ -753,11 +745,11 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       const bookIdentities = await backupBookIdentities(db);
       let settings: Partial<Settings> | undefined;
       try {
-        const raw = globalThis.localStorage?.getItem(SETTINGS_KEY);
-        if (raw) settings = sanitizeSettings(JSON.parse(raw));
+        const raw = globalThis.localStorage?.getItem(langKey(SETTINGS_KEY));
+        if (raw) settings = sanitizeSettings(JSON.parse(raw), defaultsFor(langId()));
       } catch { /* no settings to include */ }
       return JSON.stringify({
-        app: 'dushu', version: 1, exportedAt: new Date().toISOString(),
+        app: 'dushu', version: 1, exportedAt: new Date().toISOString(), ...(langId() !== 'zh' ? { lang: langId() } : {}),
         settings, vocab, known: [...knownWords], knownAuto: [...autoWords], progress, reviews, lexicon, bookIdentities,
       });
     },
@@ -767,6 +759,9 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         let data: unknown;
         try { data = JSON.parse(json); } catch { throw new Error('That file is not a Dushu backup (it is not valid JSON).'); }
         if (!isObj(data) || data.app !== 'dushu') throw new Error('That file is not a Dushu backup.');
+        // A backup made while reading another language holds that language's words: they would be noise here.
+        const from = isLangId(data.lang) ? data.lang : 'zh';
+        if (from !== langId()) throw new Error(`That backup is from Dushu in ${LANGS[from].name}. Switch to ${LANGS[from].name} to restore it.`);
         if (typeof data.version === 'number' && data.version > 1) {
           throw new Error('That backup was made by a newer version of Dushu. Update the app and try again.');
         }

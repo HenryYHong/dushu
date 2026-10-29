@@ -4,6 +4,7 @@
 // the highest total log-probability. Everything else is split by character class.
 import type { Dictionary, Token, TokenKind, Lexicon } from '../types';
 import { isHanCodePoint } from './text';
+import { activeEngine } from '../lang/active';
 
 /** Used when the dictionary does not report the corpus size (jieba dict.txt.big). */
 const DEFAULT_TOTAL = 83_170_339;
@@ -194,6 +195,9 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
  * Han tokens carry numbered pinyin per code point from dict.pinyinFor, with the neighbouring tokens as context.
  */
 export function segment(text: string, dict: Dictionary, lexicon?: Lexicon): Token[] {
+  // A book in another language is cut by that language's engine (src/lang); everything below is Chinese.
+  const engine = activeEngine();
+  if (engine) return engine.segment(text);
   const tokens: Token[] = [];
   const n = text.length;
   const total = dict.meta?.counts?.wordTotal || DEFAULT_TOTAL;

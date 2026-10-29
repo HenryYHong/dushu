@@ -3,6 +3,7 @@
 // slices with a pause between them, so a long chapter never holds up the page. ARCHITECTURE.md 5.3.
 import type { Dictionary, Lexicon } from '../types';
 import { segment } from './segment';
+import { isWord } from '../lang/token';
 
 export interface ChapterWord {
   /** The counting form (simplified): one row per word, whichever script the chapter is shown in. */
@@ -88,14 +89,16 @@ export async function chapterWords(texts: readonly string[], dict: Dictionary, l
     try { tokens = segment(text, dict, lexicon); } catch { continue; }
     for (let t = 0; t < tokens.length; t++) {
       const tok = tokens[t];
-      if (tok.kind !== 'han') continue;
-      if (lexicon?.has(tok.text)) { names++; continue; }
-      const key = dict.toSimplified(tok.text) || tok.text;
-      const reading = (tok.pinyin ?? []).join(' ');
+      if (!isWord(tok)) continue;
+      if (lexicon?.has(tok.text) || tok.name) { names++; continue; }
+      // Another language's word is counted under its dictionary form (fuimos and fue are one word, ir), shown as that form.
+      const other = tok.kind === 'word';
+      const key = other ? tok.key || tok.text : dict.toSimplified(tok.text) || tok.text;
+      const reading = other ? '' : (tok.pinyin ?? []).join(' ');
       let row = byKey.get(key);
       if (!row) {
         row = {
-          key, word: tok.text, count: 0, pinyin: tok.pinyin ?? [], first: total,
+          key, word: other ? tok.lemma || tok.text : tok.text, count: 0, pinyin: other ? [] : tok.pinyin ?? [], first: total,
           sentence: sentenceAround(text, tok.start, tok.end),
           prev: tokens[t - 1]?.text ?? '', next: tokens[t + 1]?.text ?? '',
           readings: new Map(),

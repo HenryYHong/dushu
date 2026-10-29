@@ -9,6 +9,8 @@ import { icon } from '../icons';
 import { openShortcuts } from '../shortcuts';
 import { fullscreenSupported, isFullscreen, isStandalone, setFullscreen } from '../fullscreen';
 import { rateLabel } from '../settings/speech';
+import { isChinese, lang } from '../../lang/active';
+import { aidName, aidWord, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 
 export interface Popover { el: HTMLElement; anchor: HTMLElement; close(): void }
 
@@ -207,8 +209,20 @@ export const PINYIN_MODES: { value: PinyinMode; label: string; hint: string }[] 
   { value: 'hsk', label: 'HSK', hint: 'Hide words at or below an HSK level' },
 ];
 
+/** The modes as this language says them: the same four choices, about furigana or hints instead of pinyin. */
+export function aidModes(): { value: PinyinMode; label: string; hint: string }[] {
+  if (isChinese()) return PINYIN_MODES;
+  const furigana = lang().aid === 'furigana';
+  return [
+    { value: 'off', label: 'Off', hint: furigana ? 'No furigana' : 'No hints' },
+    { value: 'all', label: 'All', hint: furigana ? 'Readings over every word with kanji' : 'A short meaning over every word' },
+    { value: 'unknown', label: 'Unknown', hint: 'Hide words you marked as known' },
+    { value: 'hsk', label: levelScheme(), hint: `Hide words at or below a ${levelScheme() === 'JLPT' ? 'JLPT level' : 'level'}` },
+  ];
+}
+
 export function pinyinModeLabel(m: PinyinMode): string {
-  return PINYIN_MODES.find((p) => p.value === m)?.label ?? 'Off';
+  return aidModes().find((p) => p.value === m)?.label ?? 'Off';
 }
 
 /**
@@ -220,15 +234,18 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const set = (p: Partial<Settings>) => ctx.settings.set(p);
   const syncs: (() => void)[] = [];
   const add = <T extends { el: HTMLElement; sync(): void }>(c: T) => { syncs.push(c.sync); return c; };
-  const items = PINYIN_MODES.map((m) =>
+  const modeList = aidModes();
+  const zh = isChinese();
+  const items = modeList.map((m) =>
     h('button.rd-opt', { type: 'button', role: 'menuitemradio', onclick: () => set({ pinyin: m.value }) },
       h('span.rd-opt-name', null, m.label), h('span.rd-opt-hint', null, m.hint)));
   const level = h('span.rd-level-val');
+  const top = zh ? 7 : levelCount();
   const stepper = h('div.rd-stepper', null,
-    h('span.rd-row-label', null, 'Known up to HSK'),
+    h('span.rd-row-label', null, zh ? 'Known up to HSK' : 'Known up to'),
     h('button.rd-step', { type: 'button', 'aria-label': 'Lower level', onclick: () => set({ hskThreshold: get().hskThreshold - 1 }) }, icon('minus')),
     level,
-    h('button.rd-step', { type: 'button', 'aria-label': 'Higher level', onclick: () => set({ hskThreshold: get().hskThreshold + 1 }) }, icon('plus')));
+    h('button.rd-step', { type: 'button', 'aria-label': 'Higher level', onclick: () => set({ hskThreshold: Math.min(top, get().hskThreshold + 1) }) }, icon('plus')));
   const style = add(segmented<Settings['pinyinStyle']>(
     [{ value: 'marks', label: 'hǎo' }, { value: 'numbers', label: 'hao3' }, { value: 'zhuyin', label: 'ㄏㄠˇ' }],
     () => get().pinyinStyle, (v) => set({ pinyinStyle: v })));
@@ -237,23 +254,26 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const learn = add(toggle(() => get().autoKnown, (v) => set({ autoKnown: v })));
   learn.el.title = AUTO_KNOWN_HELP;
   // Learning from reading changes what Unknown hides, so it sits under the modes while Unknown is the one chosen.
-  const learnRow = row('Learn known words as I read', learn.el, 'Words you read past often lose their pinyin');
-  const modes = h('div.rd-menu', { role: 'menu', 'aria-label': 'Show pinyin' }, items, stepper);
+  const learnRow = row('Learn known words as I read', learn.el, `Words you read past often lose their ${aidWord()}`);
+  const modes = h('div.rd-menu', { role: 'menu', 'aria-label': `Show ${aidWord()}` }, items, stepper);
   const share = h('p.rd-share', { 'aria-live': 'polite' });
+  const stress = add(toggle(() => get().stress, (v) => set({ stress: v })));
+  const look = zh ? section('Look', row('Style', style.el), row('Tone colors', tones.el), row('Tone changes', sandhi.el, 'yí gè, bú shì'))
+    : lang().stress ? section('Look', row('Stress marks', stress.el, 'The stressed vowel of each word')) : null;
   const el = h('div.rd-menu.rd-pinyin-menu', null,
-    section('Show pinyin', modes, share, learnRow),
-    section('Look', row('Style', style.el), row('Tone colors', tones.el), row('Tone changes', sandhi.el, 'yí gè, bú shì')));
+    section(`Show ${aidWord()}`, modes, share, learnRow),
+    look);
   const sync = () => {
     const s = get();
-    items.forEach((b, i) => b.setAttribute('aria-checked', String(PINYIN_MODES[i].value === s.pinyin)));
-    level.textContent = s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
+    items.forEach((b, i) => b.setAttribute('aria-checked', String(modeList[i].value === s.pinyin)));
+    level.textContent = !zh ? levelLabel(s.hskThreshold) : s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
     stepper.hidden = s.pinyin !== 'hsk';
     // Both modes hide known words, so both learn from reading.
     const filtered = s.pinyin === 'unknown' || s.pinyin === 'hsk';
     learnRow.hidden = !filtered;
     const c = filtered ? coverage?.() : null;
     share.hidden = !c?.words;
-    if (c?.words) share.textContent = `Pinyin on ${Math.round((100 * c.shown) / c.words)}% of this chapter's words`;
+    if (c?.words) share.textContent = `${aidName()} on ${Math.round((100 * c.shown) / c.words)}% of this chapter's words`;
     syncs.forEach((f) => f());
   };
   sync();
@@ -276,8 +296,9 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
     h('button.rd-step.rd-step-lg', { type: 'button', 'aria-label': 'Larger text', title: 'Larger (])', onclick: () => set({ [sizeKey()]: get()[sizeKey()] + 2 }) }, h('span', { style: 'font-size:20px' }, 'A')));
   syncs.push(() => { sizeVal.textContent = `${get()[sizeKey()]} px`; });
 
-  const font = add(segmented<Settings['fontFamily']>(
-    [{ value: 'serif', label: '宋体', title: 'Serif', cls: 'rd-f-serif' }, { value: 'sans', label: '黑体', title: 'Sans', cls: 'rd-f-sans' }, { value: 'kai', label: '楷体', title: 'Kai', cls: 'rd-f-kai' }],
+  const font = add(segmented<Settings['fontFamily']>(isChinese()
+    ? [{ value: 'serif', label: '宋体', title: 'Serif', cls: 'rd-f-serif' }, { value: 'sans', label: '黑体', title: 'Sans', cls: 'rd-f-sans' }, { value: 'kai', label: '楷体', title: 'Kai', cls: 'rd-f-kai' }]
+    : [{ value: 'serif', label: 'Serif', title: 'Serif' }, { value: 'sans', label: 'Sans', title: 'Sans' }],
     () => get().fontFamily, (v) => set({ fontFamily: v })));
   const lh = add(slider(1.4, 3, 0.1, () => get().lineHeight, (v) => set({ lineHeight: v }), (v) => v.toFixed(1)));
   const width = add(slider(480, 1200, 20, () => get().pageWidth, (v) => set({ pageWidth: v }), (v) => `${v}px`));
@@ -331,7 +352,7 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
       widthRow,
       fullRow),
     section('Reading',
-      row('Characters', script.el, '简体 or 繁體'),
+      isChinese() ? row('Characters', script.el, '简体 or 繁體') : null,
       touch ? null : lookRow,
       // The switch only shows the hover button beside each paragraph; a touch screen has no hover (a double tap translates anyway).
       touch ? null : row('Translate paragraphs', ptrans.el, 'Drag across a sentence (Pages) or use the button (Scroll)'),

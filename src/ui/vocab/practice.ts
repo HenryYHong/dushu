@@ -4,9 +4,9 @@
 import type { AppContext, LookupRow } from '../../types';
 import { clear, h } from '../dom';
 import { icon } from '../icons';
-import { vocabItemFor } from '../popup/saveWord';
+import { itemFromLookupRow } from '../popup/saveWord';
 import { speak } from '../../speech/tts';
-import { contextEl, pinyinEl, scriptView } from './render';
+import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
 
 const nodes = (...list: (HTMLElement | null)[]): HTMLElement[] => list.filter((n): n is HTMLElement => n !== null);
 
@@ -51,12 +51,13 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
     const view = scriptView(s.script, ctx.dictSync());
     const word = view.text(r.word);
     progress.textContent = `${done + 1} of ${total}`;
-    body.append(h('div.prc-word.zh', { lang: 'zh' }, word));
+    const ta = textAttrs();
+    body.append(h('div', { class: `prc-word ${ta.cls}`, lang: ta.lang }, word));
     if (shown) {
       body.append(...nodes(
         r.pinyin ? pinyinEl(r.pinyin, s.pinyinStyle, s.toneColors, 'prc-py') : null,
         r.gloss ? h('div.prc-gloss', null, r.gloss) : null,
-        r.context?.sentence ? h('div.prc-ctx.zh', { lang: 'zh' }, contextEl(view.text(r.context.sentence), [word, r.word, r.id], 'b', 120)) : null,
+        r.context?.sentence ? h('div', { class: `prc-ctx ${ta.cls}`, lang: ta.lang }, contextEl(view.text(r.context.sentence), [word, r.word, r.id], 'b', 120)) : null,
         h('div.prc-tools', null,
           h('button.btn.btn-sm', { type: 'button', onclick: () => say(r) }, icon('speaker'), 'Say it'),
           saveButton(r)),
@@ -81,7 +82,7 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
     if (ctx.store.vocab.has(r.id)) return;
     try {
       const dict = await ctx.dict();
-      await ctx.store.vocab.put(vocabItemFor(dict, { word: r.word, syllables: r.pinyin ? r.pinyin.split(' ') : [], context: r.context }));
+      await ctx.store.vocab.put(itemFromLookupRow(dict, r));
       ctx.toast(`Saved ${r.id} to your flashcards.`);
       if (overlay.isConnected) draw();
     } catch (e) {

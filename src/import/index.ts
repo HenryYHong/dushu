@@ -2,11 +2,13 @@
 // Contract: ARCHITECTURE.md section 4.5.
 import type { ImportedBook } from '../types';
 import { detectScript } from '../core/text';
+import { isChinese, langId } from '../lang/active';
+import { wrongLanguage } from '../lang/detect';
 import { decodeText, stripBidi } from './encoding';
 import { importEpub } from './epub';
 import { DAMAGED_MESSAGE } from './zip';
 import { importMobi, looksLikeMobi } from './mobi';
-import { ImportError, NO_CHINESE, pdfStartFailure } from './errors';
+import { ImportError, noTextMessage, pdfStartFailure } from './errors';
 import { countHan } from './han';
 import { joinSplitParagraphs, normalizePunctuation, totalHan } from './chapters';
 import { importHtml, importMarkdown } from './html';
@@ -119,12 +121,19 @@ function finish(book: ImportedBook): ImportedBook {
   const han = totalHan(chapters);
   let letters = 0;
   for (const c of chapters) for (const b of c.blocks) if (b.t === 'p' || b.t === 'h' || b.t === 'quote') letters += b.text.replace(/\s/g, '').length;
-  if (han < 5 || (han < 500 && han / Math.max(letters, 1) < 0.02)) throw new ImportError(NO_CHINESE);
+  if (han < 5 || (han < 500 && han / Math.max(letters, 1) < 0.02)) throw new ImportError(noTextMessage());
 
   let sample = '';
   for (const c of chapters) {
     for (const b of c.blocks) if (b.t === 'p' || b.t === 'quote') sample += b.text;
     if (sample.length > 60000) break;
+  }
+  // Another language's library takes books in that language only (a Chinese library keeps taking what it always took).
+  if (!isChinese()) {
+    const wrong = wrongLanguage(sample, langId());
+    if (wrong) throw new ImportError(wrong);
+    const title = capChars(book.title) || 'Untitled';
+    return { ...book, title, author: capChars(book.author), chapters, script: 'unknown', importVersion: IMPORT_VERSION };
   }
   // A title or author is a label: no direction controls, and never a paragraph long.
   const title = capChars(book.title) || 'Untitled';
@@ -171,10 +180,17 @@ export async function importFile(file: Blob & { name: string }, opts?: { onProgr
 /** What pasted text with no title of its own is called. ui/library/importer.ts shows the same words while it is added. */
 export const PASTED_TITLE = 'Pasted text';
 
-/** Pasted text → one book; chapters detected like TXT. */
-export function importText(text: string, title?: string, author?: string): ImportedBook {
+/**
+ * Pasted text → one book; chapters detected like TXT. `markdown`: the text is Markdown (the classics of the languages other
+ * than Chinese are kept so: # title, ## chapters), its headings make the chapters.
+ */
+export function importText(text: string, title?: string, author?: string, markdown = false): ImportedBook {
   const trimmed = text.trim();
   if (!trimmed) throw new ImportError('There is no text to import.');
+  if (markdown) {
+    const book = importMarkdown(new TextEncoder().encode(trimmed), 'book.md');
+    return finish({ ...book, title: title?.trim() || book.title, author: author?.trim() || book.author });
+  }
   return finish(
     bookFromText(trimmed, {
       format: 'paste',

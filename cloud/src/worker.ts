@@ -302,7 +302,8 @@ async function aiTranslate(request: Request, env: Env): Promise<Response> {
     const text = (choice?.message?.content ?? answer.response ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
     return choice?.finish_reason === 'length' && text ? `${text} …` : text;
   };
-  const hint = wordSenseHint(req.text, req.context ?? req.text);
+  // The sense hints read the Chinese dictionary's word list: a passage in another language has none.
+  const hint = req.lang ? null : wordSenseHint(req.text, req.context ?? req.text);
   try {
     const result = await translateChecked(
       { ...req, context: contextWindow(req.context ?? req.text, req.text) },

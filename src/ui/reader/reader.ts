@@ -24,6 +24,10 @@ import { createPager, type Pager } from './pager';
 import { wordNear } from './wordNear';
 import { pointToOffset, rangeToSpans, snapToCodePoint, spansText } from './selection';
 import { createToc } from './toc';
+import { isWord } from '../../lang/token';
+import { isChinese, lang } from '../../lang/active';
+import { aidName, aidSeal, aidWord, levelLabel } from '../../lang/labels';
+import { POS_SEL } from './render';
 
 const BAR_H = 52;
 /** A second tap within this long and this far (CSS px) of the first is a double tap. */
@@ -163,8 +167,9 @@ export const mount: MountFn = async (root, params, ctx) => {
   const pinyinLabel = h('span.rd-pill-label');
   // The 拼 seal: solid while pinyin shows, an outline (朱文) when it is off. The mode follows it ("All", "HSK 3"); on a
   // phone the label is set smaller, and on the narrowest only the HSK level stays beside the seal.
-  const pinyinSeal = h('span.rd-seal.zh', { 'aria-hidden': 'true' }, '拼');
-  const pinyinBtn = h('button.rd-pill.rd-pinyin-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Pinyin (P)', onclick: () => togglePinyinMenu() },
+  const L = lang();
+  const pinyinSeal = h(`span.rd-seal${isChinese() || L.id === 'ja' ? '.zh' : '.rd-seal-latin'}`, { 'aria-hidden': 'true', lang: L.tag }, aidSeal());
+  const pinyinBtn = h('button.rd-pill.rd-pinyin-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: `${aidName()} (P)`, onclick: () => togglePinyinMenu() },
     pinyinSeal, pinyinLabel) as HTMLButtonElement;
   const aaBtn = h('button.rd-pill.rd-aa-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': 'Display settings', title: 'Display settings', onclick: () => toggleDisplayMenu() },
     h('span.rd-aa', { 'aria-hidden': 'true' }, 'Aa')) as HTMLButtonElement;
@@ -381,13 +386,13 @@ export const mount: MountFn = async (root, params, ctx) => {
     const s = ctx.settings.get();
     try {
       await speakSequence(texts, {
-        rate: s.ttsRate, voice: s.ttsVoice, lang: langOf(s) === 'zh-Hant' ? 'zh-TW' : 'zh-CN',
+        rate: s.ttsRate, voice: s.ttsVoice, lang: !isChinese() ? L.tag : langOf(s) === 'zh-Hant' ? 'zh-TW' : 'zh-CN',
         getRate: () => ctx.settings.get().ttsRate,
         // The words as the reader shows them, so the voice is timed word by word where it can be.
         wordStarts: (i) => {
           const b = blocks[i];
           v.ensure(b.index);
-          return (b.rendered?.tokens ?? []).filter(t => t.kind === 'han' && t.start >= offsets[i]).map(t => t.start - offsets[i]);
+          return (b.rendered?.tokens ?? []).filter(t => isWord(t) && t.start >= offsets[i]).map(t => t.start - offsets[i]);
         },
         onStart: () => {
           if (mine !== speechRun || audioStarted) return;
@@ -425,7 +430,7 @@ export const mount: MountFn = async (root, params, ctx) => {
         // The words the voice is saying: every shown word that overlaps the range it reported.
         const from = offsets[i] + at;
         const to = from + Math.max(1, len);
-        const words = (b.rendered?.tokens ?? []).filter(t => t.kind === 'han' && t.start < to && t.end > from);
+        const words = (b.rendered?.tokens ?? []).filter(t => isWord(t) && t.start < to && t.end > from);
         if (!words.length) return;
         const start = words[0].start;
         const end = words[words.length - 1].end;
@@ -477,27 +482,31 @@ export const mount: MountFn = async (root, params, ctx) => {
     const hant = langOf(s) === 'zh-Hant' ? '-hant' : '';
     // A book's spine between two pages belongs to the flip; pages that slide or just change sit side by side without it.
     rd.classList.toggle('rd-turn-flip', s.pageTurn === 'flip');
-    const font = s.fontFamily === 'sans' ? `var(--font-sans${hant})` : s.fontFamily === 'kai' ? `var(--font-kai${hant})` : `var(--font-serif${hant})`;
+    // Another language reads in its own faces (lang/registry.ts); Kai is Chinese only.
+    const font = !isChinese() ? (s.fontFamily === 'sans' ? L.fonts.sans : L.fonts.serif)
+      : s.fontFamily === 'sans' ? `var(--font-sans${hant})` : s.fontFamily === 'kai' ? `var(--font-kai${hant})` : `var(--font-serif${hant})`;
     rd.style.setProperty('--rd-font', font);
     // Traditional fonts draw ， 。 、 ： ； in the middle of the box (the Taiwan convention). The pinyin grid gives a mark half a
     // cell and expects its ink at the left, as simplified fonts draw it, so in a traditional book the marks come from the
     // simplified stack of the same family (rd is not inside the lang="zh-Hant" text, so these resolve to the simplified ones).
-    rd.style.setProperty('--rd-pu-font', !hant ? font : s.fontFamily === 'sans' ? 'var(--font-sans)' : s.fontFamily === 'kai' ? 'var(--font-kai)' : 'var(--font-serif)');
+    rd.style.setProperty('--rd-pu-font', !hant || !isChinese() ? font : s.fontFamily === 'sans' ? 'var(--font-sans)' : s.fontFamily === 'kai' ? 'var(--font-kai)' : 'var(--font-serif)');
     rd.style.setProperty('--rd-size', `${s[readingFontSizeKey(s)]}px`);
     // Pinyin sits in the space between lines, so lines need room for it whenever pinyin can show.
     rd.style.setProperty('--rd-lh', String(effectiveLineHeight(s.lineHeight, s.pinyin)));
     rd.style.setProperty('--rd-width', `${s.pageWidth}px`);
     rd.classList.toggle('rd-py-off', s.pinyin === 'off');
-    rd.classList.toggle('rd-grid', s.pinyin !== 'off');
-    rd.classList.toggle('rd-zy', s.pinyinStyle === 'zhuyin');
+    // The even grid gives every Chinese character a cell; furigana and hints sit over words of any width instead.
+    rd.classList.toggle('rd-grid', isChinese() && s.pinyin !== 'off');
+    rd.classList.toggle('rd-zy', isChinese() && s.pinyinStyle === 'zhuyin');
     rd.classList.toggle('rd-pt-on', s.paragraphTranslate);
     rd.classList.toggle('rd-hover-mode', s.lookupTrigger === 'hover');
     // The cell, the pinyin size and the paragraph indent for the grid (both layouts use them).
     if (rd.isConnected) applyGridVars(rd, readingSize(s), s.pinyinStyle);
-    const level = s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
-    if (s.pinyin === 'hsk') pinyinLabel.replaceChildren(h('span.rd-pill-pre', null, 'HSK '), level);
+    const level = !isChinese() ? levelLabel(s.hskThreshold) : s.hskThreshold >= 7 ? '7-9' : String(s.hskThreshold);
+    if (s.pinyin === 'hsk' && isChinese()) pinyinLabel.replaceChildren(h('span.rd-pill-pre', null, 'HSK '), level);
+    else if (s.pinyin === 'hsk') pinyinLabel.textContent = level;
     else pinyinLabel.textContent = pinyinModeLabel(s.pinyin);
-    pinyinBtn.setAttribute('aria-label', `Pinyin: ${pinyinLabel.textContent}`);
+    pinyinBtn.setAttribute('aria-label', `${aidName()}: ${pinyinLabel.textContent}`);
     pinyinBtn.dataset.mode = s.pinyin;
     pinyinBtn.dataset.level = level;
   }
@@ -544,10 +553,11 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (paged) {
       // Anything that moves the text: the pager takes the chapter out of the layout first, so the browser does not lay all of
       // it out at the new size at once (that is what froze the page for a second or more).
-      const moves = changed.includes('script') || changed.some((k) => LAYOUT_KEYS.includes(k) || k === 'pinyin');
+      const redraw = changed.includes('script') || changed.includes('stress');
+      const moves = redraw || changed.some((k) => LAYOUT_KEYS.includes(k) || k === 'pinyin');
       if (moves) pager?.freeze();
       applyLayout(s);
-      if (changed.includes('script')) {
+      if (redraw) {
         v.el.lang = langOf(s);
         closePopup();
         clearCursor();
@@ -567,7 +577,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     }
     keepPlace((top) => {
       applyLayout(s);
-      if (changed.includes('script')) {
+      if (changed.includes('script') || changed.includes('stress')) {
         v.el.lang = langOf(s);
         closePopup();
         // reconvert empties every drawn block. Nothing may measure the page until the blocks down to the place are drawn again:
@@ -703,7 +713,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       return el ? { words: el.querySelectorAll('.rd-w').length, shown: el.querySelectorAll('.rd-w:not(.rd-nopy)').length } : null;
     });
     menuSync = m.sync;
-    openPopover(pinyinBtn, m.el, () => { menuSync = null; }, { label: 'Pinyin' });
+    openPopover(pinyinBtn, m.el, () => { menuSync = null; }, { label: aidName() });
   }
   function toggleDisplayMenu(): void {
     if (popoverOpenFor(aaBtn)) { closePopover(); return; }
@@ -714,6 +724,7 @@ export const mount: MountFn = async (root, params, ctx) => {
 
   /** Language tag for the text: lets the browser pick regional glyph shapes and the right speech voice. */
   function langOf(s: Settings): string {
+    if (!isChinese()) return L.tag;
     if (s.script === 'traditional') return 'zh-Hant';
     if (s.script === 'simplified') return 'zh-Hans';
     return book!.script === 'traditional' ? 'zh-Hant' : 'zh-Hans';
@@ -974,7 +985,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   function scrollOffsetAtTop(b: BlockState): number {
     const y = BAR_H + 4;
     if (b.el.getBoundingClientRect().top >= y) return 0;
-    const rubies = b.el.querySelectorAll<HTMLElement>('ruby.rd-c');
+    const rubies = b.el.querySelectorAll<HTMLElement>(POS_SEL);
     let lo = 0;
     let hi = rubies.length - 1;
     let found = -1;
@@ -1316,7 +1327,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       liftTimer = window.setTimeout(() => { if (!disposed && liftWanted !== null) liftPage(liftWanted); }, wait);
       return;
     }
-    const mark = stage.querySelector<HTMLElement>('.rd-c.rd-active, .rd-c.rd-sel');
+    const mark = stage.querySelector<HTMLElement>('.rd-c.rd-active, .rd-c.rd-sel, .rd-o.rd-active, .rd-o.rd-sel');
     const r = mark?.getBoundingClientRect();
     if (!r) return;
     // Lift until the word's bottom clears the sheet, by as much as it takes: the only limit is the word itself, whose pinyin must not
@@ -1481,12 +1492,14 @@ export const mount: MountFn = async (root, params, ctx) => {
         ? 'Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.'
         : 'Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.'],
       // The seal as the bar draws it, so the button is easy to find.
-      [touch ? 'Tap ' : 'Click ', h('span.rd-seal.zh', null, '拼'), touch ? ' at the top' : ' at the top (or press P)',
-        " to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level."],
+      [touch ? 'Tap ' : 'Click ', h(`span.rd-seal${isChinese() || L.id === 'ja' ? '.zh' : '.rd-seal-latin'}`, null, aidSeal()), touch ? ' at the top' : ' at the top (or press P)',
+        isChinese() ? " to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level."
+          : L.aid === 'furigana' ? " to choose where furigana show: every word, words you don't know yet, or words above your JLPT level."
+          : " to show short English hints over words: every word, words you don't know yet, or words above your level."],
     ];
     const s = ctx.settings.get();
     if (s.pinyin === 'unknown' && store.known.count() === 0) {
-      lines.push(['Right now every word has pinyin. Mark a word as known in its card and its pinyin goes away.']);
+      lines.push([`Right now every word has ${aidWord()}. Mark a word as known in its card and its ${aidWord()} goes away.`]);
     }
     const stop = () => {
       document.removeEventListener('pointerdown', close, true);

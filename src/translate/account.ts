@@ -4,6 +4,7 @@
 import { CLOUD_EVENT, cloudFetch, cloudSession } from '../core/cloud';
 import type { Settings, Translator } from '../types';
 import { ACCOUNT_TEXT } from './prompt';
+import { isChinese, langId } from '../lang/active';
 
 /** A used-up day or a refusal repeats if asked again soon: Automatic skips this translator for a while. */
 const BLOCK_MS = 10 * 60_000;
@@ -26,7 +27,7 @@ export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>): 
       const sent = cloudFetch('/ai/translate', {
         method: 'POST', signal: opts?.signal,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms }),
+        body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(isChinese() ? {} : { lang: langId() }) }),
       });
       if (!sent) throw new Error('Sign in to translate sentences through your account.');
       let response: Response;

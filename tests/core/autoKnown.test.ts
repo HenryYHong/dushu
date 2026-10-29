@@ -57,7 +57,10 @@ describe('what the help says', () => {
     expect(AUTO_KNOWN_HELP).toMatch(/in the Unknown and HSK pinyin modes/);
     const vocab = readFileSync(join(__dirname, '..', '..', 'src', 'ui', 'vocab', 'vocab.ts'), 'utf8');
     expect(vocab).not.toMatch(/unknown words only/i);
-    expect(vocab.match(/in the Unknown and HSK pinyin modes/g)).toHaveLength(2);
+    // Both lines name the modes through one helper, which says "HSK pinyin modes" for Chinese (and JLPT or Level modes for
+    // another language).
+    expect(vocab.match(/in the Unknown and \$\{modesName\(\)\}/g)).toHaveLength(2);
+    expect(vocab).toMatch(/isChinese\(\) \? 'HSK pinyin modes'/);
   });
 });
 

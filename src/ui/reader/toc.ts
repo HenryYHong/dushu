@@ -10,6 +10,7 @@ import { clear, h } from '../dom';
 import { icon } from '../icons';
 import { windowed } from './windowed';
 import { createWordsTab, type TocWords } from './wordsTab';
+import { lang } from '../../lang/active';
 
 export type TocTab = 'chapters' | 'words' | 'names' | 'bookmarks';
 
@@ -166,7 +167,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       tabindex: pos === roveName ? '0' : '-1',
       onclick: (e: Event) => names!.onWord(entry, (e.currentTarget as HTMLElement).getBoundingClientRect()),
     },
-    h('span.rd-name-word.zh', { lang: 'zh' }, word),
+    h('span.rd-name-word.zh', { lang: lang().tag }, word),
     h('span.rd-name-py', null, namePinyin(entry, style)),
     h('span.rd-name-meta', null,
       h('span.rd-name-kind', { 'data-kind': entry.kind }, KIND_LABEL[entry.kind]),
@@ -317,7 +318,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       markList.appendChild(h('div.rd-mark', { role: 'listitem' },
         h('button.rd-mark-go', { type: 'button', onclick: () => { close(); marks.pick(b); } },
           h('span.rd-mark-chapter', null, label(b.chapter)),
-          h('span.rd-mark-label.zh', { lang: 'zh' }, text(b.label) || '…'),
+          h('span.rd-mark-label.zh', { lang: lang().tag }, text(b.label) || '…'),
           h('span.rd-mark-date', null, date)),
         h('button.icon-btn.rd-mark-remove', { type: 'button', 'aria-label': `Remove the bookmark in ${label(b.chapter)}`, title: 'Remove',
           onclick: () => { marks.remove(b); void paintMarks(); } }, icon('trash'))));

@@ -13,6 +13,8 @@ import { addWordControl } from './bookCard';
 import { pinyinSpans } from './pinyinText';
 import { createTranslationPanel } from './translation';
 import { entriesForReading } from '../../core/reading';
+import { activeEngine, lang } from '../../lang/active';
+import { safeLookup, shortGlossOf } from '../../lang/words';
 
 export interface PhraseView {
   onKey(e: KeyboardEvent): boolean;
@@ -21,7 +23,7 @@ export interface PhraseView {
 
 const MAX_ROWS = 60;
 
-interface Row { word: string; syllables: string[]; reading?: string[]; prev?: string; next?: string }
+interface Row { word: string; syllables: string[]; reading?: string[]; prev?: string; next?: string; token?: Token }
 
 export function mountPhraseView(
   host: PopupHost,
@@ -33,15 +35,21 @@ export function mountPhraseView(
   const settings = ctx.settings.get();
   const lines = o.text.split('\n').filter((l) => l.trim());
   let speaking = false;
+  const engine = activeEngine();
+  const L = lang();
 
-  // Pinyin text, one paragraph per line.
-  const textBox = h('div.pp-phrase-text.zh');
+  // Pinyin text, one paragraph per line (another language: its words, with furigana for Japanese).
+  const textBox = h(engine ? 'div.pp-phrase-text' : 'div.pp-phrase-text.zh', engine ? { lang: L.tag } : null);
   const rows: Row[] = [];
   for (const line of lines) {
     const p = renderParagraph(line, dict, { tag: 'p', className: 'pp-line', style: settings.pinyinStyle, toneColors: settings.toneColors, sandhi: settings.sandhi, lexicon: o.lexicon });
     textBox.appendChild(p.el);
     const shown = displayTokens(p.tokens, settings.sandhi);
     shown.forEach((t: Token, i) => {
+      if (t.kind === 'word') {
+        rows.push({ word: t.text, syllables: [], token: t, prev: shown[i - 1]?.text, next: shown[i + 1]?.text });
+        return;
+      }
       if (t.kind !== 'han') return;
       rows.push({ word: t.text, syllables: t.pinyin ?? [], reading: p.tokens[i]?.pinyin,
         prev: shown[i - 1]?.text, next: shown[i + 1]?.text });
@@ -79,7 +87,8 @@ export function mountPhraseView(
 
   const head = h('header.pp-head', null,
     o.onBack ? h('button.icon-btn.pp-back', { onclick: () => o.onBack!(), title: 'Back', 'aria-label': 'Back' }, icon('arrowLeft')) : null,
-    h('div.pp-title', null, h('span.pp-kind', null, 'Phrase'), h('span.pp-muted', null, `${[...o.text.replace(/\s/g, '')].length} characters`)),
+    h('div.pp-title', null, h('span.pp-kind', null, 'Phrase'), h('span.pp-muted', null, engine && L.spaced
+      ? `${rows.length} word${rows.length === 1 ? '' : 's'}` : `${[...o.text.replace(/\s/g, '')].length} characters`)),
     h('div.pp-head-actions', null, speakBtn, copyBtn, closeBtn),
   );
 
@@ -90,6 +99,16 @@ export function mountPhraseView(
   const renderRows = (upTo: number) => {
     list.textContent = '';
     rows.slice(0, upTo).forEach((r) => {
+      if (engine) {
+        // Another language: the word, its reading (Japanese), and the first meaning of the entry it most likely is.
+        const lu = safeLookup(engine, r.word, r.token, o.context);
+        const reading = r.token?.reading && r.token.reading !== r.word ? r.token.reading : '';
+        list.appendChild(h('button.pp-wbw', { onclick: (e: Event) => openWord(r, (e.currentTarget as HTMLElement).getBoundingClientRect()) },
+          h('span.pp-wbw-word', { lang: L.tag }, r.word),
+          reading ? h('span.pp-py', { lang: L.tag }, reading) : h('span.pp-py'),
+          h('span.pp-wbw-gloss', null, shortGlossOf(lu.entries, 60) || (lu.name || r.token?.name ? 'name' : ''))));
+        return;
+      }
       const first = entriesForReading(dict.lookup(r.word), r.syllables, r.word, { prev: r.prev, next: r.next })[0];
       const own = o.lexicon && (o.lexicon.get(r.word) || o.lexicon.get(dict.toSimplified(r.word)) || o.lexicon.get(dict.toTraditional(r.word)));
       let gloss = '';

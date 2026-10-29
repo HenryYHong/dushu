@@ -1,6 +1,8 @@
 // Word and phrase popups. One is open at a time; opening one closes the other. Contract: ARCHITECTURE.md §5.2.
 import '../../styles/popup.css';
-import type { AppContext, Lexicon } from '../../types';
+import type { AppContext, Lexicon, Token } from '../../types';
+import { activeEngine } from '../../lang/active';
+import { mountLangWordView } from './langWordView';
 import { h } from '../dom';
 import { closeActivePopup, createHost } from './host';
 import { mountPhraseView } from './phraseView';
@@ -14,6 +16,8 @@ export interface WordPopupOptions {
   word: string;
   /** The base (non-sandhi) reading of the selected token as rendered in the book. */
   reading?: string[];
+  /** Another language: the token as cut on the page (its lemma and reading). */
+  token?: Token;
   /** Viewport rect of the word; the popup positions itself above/below and stays on screen. */
   anchor: DOMRect;
   context?: WordContext;
@@ -106,7 +110,9 @@ export function openWordPopup(o: WordPopupOptions): PopupHandle {
   const start = (dict: NonNullable<ReturnType<AppContext['dictSync']>>) => {
     if (host.closed) return;
     host.content.textContent = '';
-    view = mountWordView(host, o, dict, openPhrase);
+    // Another language's card reads its own engine (loaded with ctx.dict(), lang/active.ts).
+    const engine = activeEngine();
+    view = engine ? mountLangWordView(host, o, engine, openPhrase) : mountWordView(host, o, dict, openPhrase);
   };
 
   const dict = o.ctx.dictSync();
@@ -137,9 +143,9 @@ export function openPhrasePopup(o: PhrasePopupOptions): PopupHandle {
     onClose: () => { view?.dispose(); o.onClose?.(); },
   });
 
-  const openWord = (r: { word: string; syllables: string[]; reading?: string[]; prev?: string; next?: string }, anchor: DOMRect) => {
+  const openWord = (r: { word: string; syllables: string[]; reading?: string[]; prev?: string; next?: string; token?: Token }, anchor: DOMRect) => {
     openWordPopup({
-      ctx: o.ctx, word: r.word, anchor, prev: r.prev, next: r.next, reading: r.reading,
+      ctx: o.ctx, word: r.word, anchor, prev: r.prev, next: r.next, reading: r.reading, token: r.token,
       lexicon: o.lexicon, bookId: o.bookId, onLexiconChange: o.onLexiconChange,
       context: o.wordContext ?? (o.context ? { sentence: o.context } : undefined),
       onSheetTop: o.onSheetTop, restoreFocus: o.restoreFocus,

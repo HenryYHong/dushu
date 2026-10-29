@@ -5,13 +5,23 @@ import { applySandhi, formatSyllable, toneOf } from '../../core/pinyin';
 import { segment } from '../../core/segment';
 import type { Dictionary, Lexicon, PinyinMode, PinyinStyle, Token } from '../../types';
 import { widthOfPinyin } from './grid';
+import { isWord } from '../../lang/token';
 
 export interface PinyinDisplay {
   style: PinyinStyle;
   toneColors: boolean;
 }
 
-/** The DOM for one Han token. `chars[i]` lines up with the i-th code point of `token.text`. */
+/**
+ * The elements that carry a text offset (data-o): a Chinese character's ruby, and in any other language a word or a piece of
+ * one (rd-o). Placing pages, marks and the reading place all go through these.
+ */
+export const POS_SEL = 'ruby.rd-c, .rd-o';
+
+/**
+ * The DOM for one word. For Chinese, `chars[i]` lines up with the i-th code point of `token.text`. For another language it
+ * has one entry per piece that can carry an aid over it: a furigana piece, or the whole word for a hint.
+ */
 export interface TokenView {
   /** Index into the paragraph's token array. */
   index: number;
@@ -43,6 +53,11 @@ export interface RenderOptions extends PinyinDisplay {
   deferPinyin?: boolean;
   /** Give each word role=button and a spoken name (the word and its pinyin), for VoiceOver and Switch Control. */
   words?: boolean;
+  /** Another language: what goes over its words (furigana come with the tokens; a hint is asked of `hint`). */
+  aid?: 'furigana' | 'hint';
+  hint?: (t: Token) => string | undefined;
+  /** Russian: mark the stressed vowel. */
+  stress?: boolean;
 }
 
 /** Copy of the tokens with the sandhi rewrite applied (or not). The originals stay untouched. */
@@ -132,11 +147,104 @@ function decorateWord(view: TokenView, shown: Token, style: PinyinStyle): void {
   view.el.setAttribute('aria-label', wordName(view.token, shown, style));
 }
 
+/** The DOM for a word of a language other than Chinese (lang/types.ts): furigana pieces, a hint, a stress mark. */
+function renderWord(token: Token, index: number, opts: RenderOptions): TokenView {
+  const el = createEl('span', 'rd-w rd-word');
+  el.dataset.s = String(token.start);
+  el.dataset.e = String(token.end);
+  el.dataset.i = String(index);
+  if (token.inDict) el.classList.add('rd-dict');
+  if (token.name) el.classList.add('rd-name');
+  const chars: TokenView['chars'] = [];
+  const aid = opts.aid;
+  if (token.ruby?.length) {
+    // Japanese: kanji pieces carry their reading; kana are marked one character at a time, so a page can begin inside a word.
+    let offset = token.start;
+    for (const part of token.ruby) {
+      if (part.rt) {
+        const ruby = createEl('ruby', 'rd-o rd-r');
+        ruby.dataset.o = String(offset);
+        ruby.appendChild(document.createTextNode(part.text));
+        let rt: HTMLElement | null = null;
+        if (!opts.deferPinyin) { rt = makeAidRt(part.rt); ruby.appendChild(rt); }
+        chars.push({ ruby, rt, syllable: part.rt });
+        el.appendChild(ruby);
+      } else {
+        let o = offset;
+        for (const ch of part.text) {
+          const sp = createEl('span', 'rd-o');
+          sp.dataset.o = String(o);
+          sp.textContent = ch;
+          el.appendChild(sp);
+          o += ch.length;
+        }
+      }
+      offset += part.text.length;
+    }
+  } else {
+    // A spaced language: the word is one piece, wrapped in a ruby when it can carry a hint over it.
+    const box = aid === 'hint' ? createEl('ruby', 'rd-o rd-hw') : el;
+    box.dataset.o = String(token.start);
+    if (box !== el) el.classList.add('rd-has-hw');
+    appendStressed(box, token, opts.stress ?? false);
+    if (box !== el) {
+      const hint = opts.hint?.(token) ?? '';
+      let rt: HTMLElement | null = null;
+      if (hint && !opts.deferPinyin) { rt = makeAidRt(hint); box.appendChild(rt); }
+      chars.push({ ruby: box, rt, syllable: hint });
+      el.appendChild(box);
+    } else el.classList.add('rd-o');
+  }
+  const view: TokenView = { index, token, el, chars };
+  if (opts.words) {
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', token.reading && token.reading !== token.text ? `${token.text}, ${token.reading}` : token.text);
+  }
+  if (opts.visible && !opts.visible(token)) el.classList.add('rd-nopy');
+  return view;
+}
+
+/** The word's text, with its stressed vowel (Russian) in a span the stylesheet marks. */
+function appendStressed(box: HTMLElement, token: Token, stress: boolean): void {
+  const at = stress && token.stress !== undefined && token.stress >= 0 && token.stress < token.text.length ? token.stress : -1;
+  if (at < 0) { box.appendChild(document.createTextNode(token.text)); return; }
+  const cp = token.text.codePointAt(at)!;
+  const len = cp > 0xffff ? 2 : 1;
+  if (at > 0) box.appendChild(document.createTextNode(token.text.slice(0, at)));
+  const v = createEl('span', 'rd-stress');
+  v.textContent = token.text.slice(at, at + len);
+  box.appendChild(v);
+  if (at + len < token.text.length) box.appendChild(document.createTextNode(token.text.slice(at + len)));
+}
+
+/** An rt for furigana or a hint: the text as it is, no tone colors. */
+function makeAidRt(text: string): HTMLElement {
+  const rt = document.createElement('rt');
+  const label = createEl('span', 'rd-rtx');
+  label.textContent = text;
+  rt.appendChild(label);
+  rt.setAttribute('aria-hidden', 'true');
+  return rt;
+}
+
+/** What sits over a word of another language now (its furigana pieces, or its hint). */
+function aidTexts(token: Token, opts: RenderOptions): string[] {
+  if (token.ruby?.length) return token.ruby.filter((p) => p.rt).map((p) => p.rt!);
+  if (opts.aid === 'hint') return [opts.hint?.(token) ?? ''];
+  return [];
+}
+
 /** Build the nodes for a token list. Non-Han tokens become plain text nodes. */
 export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOptions): { nodes: DocumentFragment; views: TokenView[] } {
   const frag = document.createDocumentFragment();
   const views: TokenView[] = [];
   tokens.forEach((token, index) => {
+    if (token.kind === 'word') {
+      const view = renderWord(token, index, opts);
+      views.push(view);
+      frag.appendChild(view.el);
+      return;
+    }
     if (token.kind !== 'han') {
       const side = token.kind === 'punct' ? punctSide(token.text) : '';
       const quote = token.kind === 'punct' ? CURLY_QUOTES[token.text] : undefined;
@@ -199,6 +307,14 @@ export function buildPinyin(p: RenderedParagraph, opts: RenderOptions): void {
   p.pinyinBuilt = true;
   p.shown = displayTokens(p.tokens, opts.sandhi);
   for (const v of p.views) {
+    if (v.token.kind === 'word') {
+      const texts = aidTexts(v.token, opts);
+      v.chars.forEach((c, i) => {
+        c.syllable = texts[i] ?? '';
+        if (c.syllable && !c.rt) { c.rt = makeAidRt(c.syllable); c.ruby.appendChild(c.rt); }
+      });
+      continue;
+    }
     const shown = p.shown[v.index];
     const syls = shown.pinyin ?? [];
     v.chars.forEach((c, i) => {
@@ -230,6 +346,15 @@ export function renderParagraph(
 export function refreshPinyin(p: RenderedParagraph, opts: RenderOptions): void {
   p.shown = displayTokens(p.tokens, opts.sandhi);
   for (const v of p.views) {
+    if (v.token.kind === 'word') {
+      const texts = aidTexts(v.token, opts);
+      v.chars.forEach((c, i) => {
+        c.syllable = texts[i] ?? '';
+        const label = c.rt?.firstElementChild as HTMLElement | null;
+        if (label && label.textContent !== c.syllable) label.textContent = c.syllable;
+      });
+      continue;
+    }
     const shown = p.shown[v.index];
     const syls = shown.pinyin ?? [];
     v.chars.forEach((c, i) => {
@@ -282,6 +407,6 @@ export function pinyinVisible(word: string, rule: VisibilityRule, pinyin?: strin
 /** Han characters in the rendered paragraph's token array. */
 export function hanLength(tokens: Token[]): number {
   let n = 0;
-  for (const t of tokens) if (t.kind === 'han') n += [...t.text].length;
+  for (const t of tokens) if (isWord(t)) n += [...t.text].length;
   return n;
 }

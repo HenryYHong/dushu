@@ -7,11 +7,13 @@ import { pageTitle } from '../pageHead';
 import { openWordPopup } from '../popup/popup';
 import { confirmDialog } from './confirm';
 import { ankiTsv, dueLabel, filterAndSort, vocabCsv, type SortKey } from './model';
-import { contextEl, pinyinEl, scriptView } from './render';
+import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
+import { activeEngine, isChinese } from '../../lang/active';
+import { aidName, aidWord, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { createLookupsView } from './lookups';
 import { reviewCount } from '../review/learning';
 
-const SORT_LABELS: Record<SortKey, string> = { added: 'Newest first', due: 'Due soonest', pinyin: 'Pinyin A to Z' };
+const SORT_LABELS: Record<SortKey, string> = { added: 'Newest first', due: 'Due soonest', pinyin: isChinese() ? 'Pinyin A to Z' : 'A to Z' };
 const SORT_KEY = 'dushu.vocab.sort';
 const TAB_KEY = 'dushu.vocab.tab';
 type Tab = 'saved' | 'lookups';
@@ -63,7 +65,7 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   // ----------------------------------------------------------- toolbar ---
   const search = h('input', { class: 'input voc-search-input',
-    type: 'search', placeholder: 'Search words, pinyin, meanings', 'aria-label': 'Search vocabulary', autocomplete: 'off',
+    type: 'search', placeholder: isChinese() ? 'Search words, pinyin, meanings' : 'Search words and meanings', 'aria-label': 'Search vocabulary', autocomplete: 'off',
     oninput: () => { query = search.value; renderList(); },
   });
   const sortSel = h('select', { class: 'select voc-sort', 'aria-label': 'Sort', onchange: () => {
@@ -116,13 +118,14 @@ export const mount: MountFn = (root, _params, ctx) => {
     const due = dueLabel(it, now);
     const view = scriptView(settings.script, ctx.dictSync());
     const shownWord = view.word(it);
-    const word = h('span.voc-word.zh', { lang: shownWord === it.trad && it.trad !== it.simp ? 'zh-Hant' : 'zh' }, shownWord);
+    const ta = textAttrs(shownWord === it.trad && it.trad !== it.simp);
+    const word = h('span', { class: `voc-word ${ta.cls}`, lang: ta.lang }, shownWord);
     const meta = [it.context?.bookTitle && view.text(it.context.bookTitle), `Added ${fmtDate(it.addedAt)}`].filter(Boolean).join(' · ');
     const el = h('div', { class: 'voc-row', role: 'listitem', tabindex: 0, 'aria-label': `${it.simp}, ${it.gloss}` },
       h('div.voc-main', null,
         h('div.voc-line', null, word, pinyinEl(it.pinyin, settings.pinyinStyle, settings.toneColors, 'voc-py')),
         h('div.voc-gloss', null, it.gloss),
-        it.context?.sentence ? h('div.voc-ctx.zh', { lang: shownWord === it.trad && it.trad !== it.simp ? 'zh-Hant' : 'zh' }, contextEl(view.text(it.context.sentence), [it.simp, it.trad], 'b', 90)) : null,
+        it.context?.sentence ? h('div', { class: `voc-ctx ${ta.cls}`, lang: ta.lang }, contextEl(view.text(it.context.sentence), [it.simp, it.trad], 'b', 90)) : null,
         h('div.voc-meta.muted', null, meta),
       ),
       h('div.voc-side', null,
@@ -196,8 +199,13 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   // ------------------------------------------------------ known panel ---
   const knownCount = h('span.voc-known-count');
-  const levelSel = h('select', { class: 'select voc-level', 'aria-label': 'HSK level' },
-    [1, 2, 3, 4, 5, 6, 7].map((n) => h('option', { value: n }, n === 1 ? 'HSK 1' : n === 7 ? 'HSK 1 to 9' : `HSK 1 to ${n}`)));
+  /** "HSK pinyin modes" for Chinese (as it always said), "JLPT modes" or "Level modes" for another language. */
+  const modesName = () => (isChinese() ? 'HSK pinyin modes' : `${levelScheme()} modes`);
+  // Another language marks its own levels (JLPT N5 up, or A1 up); Chinese keeps HSK 1 to 9.
+  const levelName = (n: number) => !isChinese() ? (n === 1 ? levelLabel(1) : `${levelLabel(1)} to ${levelLabel(n)}`)
+    : n === 1 ? 'HSK 1' : n === 7 ? 'HSK 1 to 9' : `HSK 1 to ${n}`;
+  const levelSel = h('select', { class: 'select voc-level', 'aria-label': `${levelScheme()} level` },
+    Array.from({ length: isChinese() ? 7 : levelCount() }, (_, i) => i + 1).map((n) => h('option', { value: n }, levelName(n))));
   const knownList = h('div.voc-known-words');
   const knownDetails = h('details', { class: 'voc-known-details', ontoggle: () => renderKnownWords() },
     h('summary', null, 'Show known words'), knownList);
@@ -219,7 +227,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(knownList);
     if (!knownDetails.open) return;
     const all = store.known.all();
-    for (const w of all.slice(0, 300)) knownList.appendChild(h('span.chip.zh', { lang: 'zh' }, w));
+    const ta = textAttrs();
+    for (const w of all.slice(0, 300)) knownList.appendChild(h('span', { class: `chip ${ta.cls}`, lang: ta.lang }, w));
     if (all.length > 300) knownList.appendChild(h('span.muted', null, `and ${(all.length - 300).toLocaleString('en-US')} more`));
   }
 
@@ -227,14 +236,15 @@ export const mount: MountFn = (root, _params, ctx) => {
     const level = Number(levelSel.value);
     let dict;
     try { dict = await ctx.dict(); } catch { ctx.toast('The dictionary is not available.'); return; }
-    const words = dict.hskWords(level);
+    const engine = activeEngine();
+    const words = engine ? engine.levelWords(level) : dict.hskWords(level);
     const fresh = words.filter((w) => !store.known.has(w));
-    const label = level === 7 ? 'HSK 1 to 9' : level === 1 ? 'HSK 1' : `HSK 1 to ${level}`;
+    const label = levelName(level);
     if (!fresh.length) { ctx.toast(`All ${plural(words.length, 'word')} from ${label} are already marked as known.`); return; }
     const already = words.length - fresh.length;
     const ok = await confirmDialog({
       title: `Mark ${label} as known?`,
-      body: `${plural(fresh.length, 'word')} will be added to your known words${already ? ` (${already.toLocaleString('en-US')} already known)` : ''}. Known words get no pinyin in the Unknown and HSK pinyin modes. Your saved flashcards are not changed.`,
+      body: `${plural(fresh.length, 'word')} will be added to your known words${already ? ` (${already.toLocaleString('en-US')} already known)` : ''}. Known words get no ${aidWord()} in the Unknown and ${modesName()}. Your saved flashcards are not changed.`,
       confirmLabel: `Add ${fresh.length.toLocaleString('en-US')}`,
     });
     if (!ok || !alive) return;
@@ -246,7 +256,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const n = store.known.count();
     const ok = await confirmDialog({
       title: 'Clear all known words?',
-      body: `This removes ${plural(n, 'word')} from your known list. Pinyin will show above them again. Saved flashcards are not changed.`,
+      body: `This removes ${plural(n, 'word')} from your known list. ${aidName()} will show above them again. Saved flashcards are not changed.`,
       confirmLabel: 'Clear known words',
       danger: true,
     });
@@ -290,7 +300,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('span.chip.voc-known-total', null, knownCount),
       icon('chevronDown', 'icon voc-known-chev')),
     h('div.voc-known-body', null,
-      h('p.voc-known-sub.muted', null, 'Words you know. They get no pinyin in the Unknown and HSK pinyin modes.'),
+      h('p.voc-known-sub.muted', null, `Words you know. They get no ${aidWord()} in the Unknown and ${modesName()}.`),
       learnedNote,
       h('div.voc-known-actions', null,
         levelSel,

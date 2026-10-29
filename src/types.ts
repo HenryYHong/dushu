@@ -89,7 +89,14 @@ export interface Dictionary {
 
 // ---------------------------------------------------------- segmentation ---
 
-export type TokenKind = 'han' | 'latin' | 'num' | 'punct' | 'space' | 'other';
+/**
+ * 'han' is a Chinese word (core/segment.ts). 'word' is a word of any other language a book is read in (src/lang): the
+ * same role, a thing to look up, but no per-character pinyin. Use `isWord` (src/lang/token.ts) to ask "can this be looked up".
+ */
+export type TokenKind = 'han' | 'word' | 'latin' | 'num' | 'punct' | 'space' | 'other';
+
+/** One piece of a Japanese word for furigana: `rt` is the reading shown over `text` (kanji); kana and letters have none. */
+export interface RubyPart { text: string; rt?: string }
 
 export interface Token {
   /** Text exactly as it appears in the source paragraph. */
@@ -102,6 +109,19 @@ export interface Token {
   pinyin?: string[];
   /** True when `text` is a dictionary headword. */
   inDict: boolean;
+  // ---- 'word' tokens only (src/lang). ----
+  /** The key the word is looked up, saved and marked known under: its dictionary form, folded (LangEngine.normalize). */
+  key?: string;
+  /** Dictionary form as written (食べる for 食べた, ir for fuimos). */
+  lemma?: string;
+  /** Japanese: furigana pieces covering `text` exactly. */
+  ruby?: RubyPart[];
+  /** Japanese: the whole word's reading in hiragana. */
+  reading?: string;
+  /** Russian: UTF-16 offset inside `text` of the stressed vowel, when it is known and the word has more than one vowel. */
+  stress?: number;
+  /** A proper noun (a person or place), as the engine could tell. */
+  name?: true;
 }
 
 // ----------------------------------------------------------------- books ---
@@ -341,6 +361,8 @@ export interface Settings {
   pageTurn: 'flip' | 'slide' | 'none';
   /** Covers picked in the book cards' menus, "key:classic,key:modern" by book sync key (core/covers.ts). */
   covers: string;
+  /** Russian: mark the stressed vowel of each word (lang/registry.ts `stress`). */
+  stress: boolean;
 }
 
 export interface SettingsStore {
@@ -521,6 +543,8 @@ export interface TranslateRequest {
   terms?: { word: string; pinyin: string; gloss: string; kind?: 'name' | 'term' | 'idiom' }[];
   /** translate = English only; explain = translation + short notes on words and grammar. */
   mode: 'translate' | 'explain';
+  /** The language of `text` when it is not Chinese (src/lang): the prompt and the checks follow it. */
+  lang?: 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru';
 }
 
 export interface Translator {

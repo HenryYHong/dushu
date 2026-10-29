@@ -1,6 +1,8 @@
 // What saving a word makes: the flashcard's spellings and gloss for the reading on screen. Shared by the word card and the
 // reader's Words tab, so a word saved from either has the same card.
-import type { Dictionary, DictEntry, VocabItem } from '../../types';
+import type { Dictionary, DictEntry, LookupRow, VocabItem } from '../../types';
+import { activeEngine } from '../../lang/active';
+import { langVocabItem, safeLookup } from '../../lang/words';
 import { newSrs } from '../../core/srs';
 import { entriesForReading } from '../../core/reading';
 import { sameReading, shortGloss } from './defs';
@@ -61,5 +63,25 @@ export function vocabItemFor(dict: Dictionary, input: SaveWordInput): VocabItem 
     const c = input.context;
     item.context = { sentence: c.sentence, bookId: c.bookId, bookTitle: c.bookTitle, chapter: c.chapter };
   }
+  return item;
+}
+
+/**
+ * The flashcard for a word from "Looked up" (Review's new cards, Practice's Save). Chinese reads the dictionary for the reading
+ * logged; another language asks its engine, and keeps the key the row was logged under so it stays the same word.
+ */
+export function itemFromLookupRow(dict: Dictionary, r: Pick<LookupRow, 'id' | 'word' | 'pinyin' | 'gloss' | 'context'>, now = Date.now()): VocabItem {
+  const engine = activeEngine();
+  if (engine) {
+    const lu = safeLookup(engine, r.word, undefined, r.context?.sentence);
+    // The entry the row was logged under first (its key), so a word saved from the list is the word that was looked up.
+    const entries = [...lu.entries].sort((a, b) => Number(engine.normalize(b.head) === r.id) - Number(engine.normalize(a.head) === r.id));
+    const item = langVocabItem({ ...lu, key: r.id, entries }, { context: r.context, ownGloss: r.gloss, now });
+    if (r.pinyin && !item.pinyin) item.pinyin = r.pinyin;
+    return item;
+  }
+  const item = vocabItemFor(dict, { word: r.word, syllables: r.pinyin ? r.pinyin.split(' ') : [], context: r.context, now });
+  // A name or term only the book defines: the meaning logged with the lookup (the book's own, as its card showed it).
+  if (!item.gloss && r.gloss) item.gloss = r.gloss;
   return item;
 }

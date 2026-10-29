@@ -2,7 +2,7 @@
 // new cards. A looked-up word becomes a saved word (with its schedule) the first time it is graded, so the words being learned
 // come up in Review without saving each one by hand.
 import type { Dictionary, LookupRow, Store, VocabItem } from '../../types';
-import { vocabItemFor } from '../popup/saveWord';
+import { itemFromLookupRow } from '../popup/saveWord';
 
 /** New cards from looked-up words in one session at most: the rest wait for the next one. */
 export const NEW_PER_SESSION = 20;
@@ -43,9 +43,7 @@ export async function reviewCards(store: Store, getDict: () => Promise<Dictionar
   const seen = new Set(due.map((v) => v.id));
   const fresh: VocabItem[] = [];
   for (const r of rows) {
-    const item = vocabItemFor(dict, { word: r.word, syllables: r.pinyin ? r.pinyin.split(' ') : [], context: r.context, now });
-    // A name or term only the book defines: the meaning logged with the lookup (the book's own, as its card showed it).
-    if (!item.gloss && r.gloss) item.gloss = r.gloss;
+    const item = itemFromLookupRow(dict, r, now);
     if (seen.has(item.id) || store.vocab.has(item.id)) continue;
     seen.add(item.id);
     fresh.push(item);

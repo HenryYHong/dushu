@@ -4,9 +4,9 @@ import type { AppContext, LookupRow } from '../../types';
 import { clear, h } from '../dom';
 import { icon } from '../icons';
 import { openWordPopup } from '../popup/popup';
-import { vocabItemFor } from '../popup/saveWord';
+import { itemFromLookupRow } from '../popup/saveWord';
 import { localDay } from '../popup/lookupLog';
-import { contextEl, pinyinEl, scriptView } from './render';
+import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
 import { openPractice } from './practice';
 
 const DAY_MS = 86_400_000;
@@ -105,7 +105,8 @@ export function createLookupsView(ctx: AppContext): LookupsView {
   function row(r: LookupRow, view: ReturnType<typeof scriptView>): HTMLElement {
     const s = ctx.settings.get();
     const shown = view.text(r.word);
-    const word = h('span.voc-word.zh', { lang: 'zh' }, shown);
+    const ta = textAttrs();
+    const word = h('span', { class: `voc-word ${ta.cls}`, lang: ta.lang }, shown);
     const saved = store.vocab.has(r.id);
     const meta = [r.context?.bookTitle && view.text(r.context.bookTitle), r.count > 1 ? `looked up ${r.count} times` : ''].filter(Boolean).join(' · ');
     const star = h('button.icon-btn.voc-lk-save', {
@@ -116,7 +117,7 @@ export function createLookupsView(ctx: AppContext): LookupsView {
       h('div.voc-main', null,
         h('div.voc-line', null, word, r.pinyin ? pinyinEl(r.pinyin, s.pinyinStyle, s.toneColors, 'voc-py') : null),
         r.gloss ? h('div.voc-gloss', null, r.gloss) : null,
-        r.context?.sentence ? h('div.voc-ctx.zh', { lang: 'zh' }, contextEl(view.text(r.context.sentence), [shown, r.word, r.id], 'b', 90)) : null,
+        r.context?.sentence ? h('div', { class: `voc-ctx ${ta.cls}`, lang: ta.lang }, contextEl(view.text(r.context.sentence), [shown, r.word, r.id], 'b', 90)) : null,
         meta ? h('div.voc-meta.muted', null, meta) : null,
       ),
       h('div.voc-side', null,
@@ -138,7 +139,7 @@ export function createLookupsView(ctx: AppContext): LookupsView {
     if (store.vocab.has(r.id)) { ctx.toast(`${r.id} is already in your flashcards.`); return; }
     try {
       const dict = await ctx.dict();
-      await store.vocab.put(vocabItemFor(dict, { word: r.word, syllables: r.pinyin ? r.pinyin.split(' ') : [], context: r.context }));
+      await store.vocab.put(itemFromLookupRow(dict, r));
       ctx.toast(`Saved ${r.id} to your flashcards.`);
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not save the word.');

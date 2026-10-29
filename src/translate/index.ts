@@ -6,6 +6,7 @@ import { createAccountTranslator } from './account';
 import { createGlossTranslator } from './gloss';
 import { createMyMemoryTranslator } from './mymemory';
 import { createLocalTranslator, qualityLocalAvailable } from './localMeaning';
+import { isChinese } from '../lang/active';
 
 export type { ChromeTranslator } from './chrome';
 export { chromeSupported } from './chrome';
@@ -49,12 +50,13 @@ export async function pickTranslator(settings: Settings, dict: Dictionary | null
     const claude = getTranslator('claude', settings, dict);
     if (await claude.availability() === 'yes') return claude;
   }
-  if (await qualityLocalAvailable()) return local;
+  // The Mac's local model was measured on Chinese books only; another language goes to it only when chosen.
+  if (isChinese() && await qualityLocalAvailable()) return local;
   const account = getTranslator('account', settings, dict);
   if (await account.availability() === 'yes') return account;
   const chromeState = await chrome.availability();
   if (chromeState === 'yes') return chrome;
-  if (await local.availability() === 'yes') return local;
+  if (isChinese() && await local.availability() === 'yes') return local;
   if (chromeState === 'download') return chrome;
   return getTranslator('gloss', settings, dict);
 }

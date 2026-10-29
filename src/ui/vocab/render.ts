@@ -3,9 +3,20 @@ import { formatSyllable, toneOf } from '../../core/pinyin';
 import type { Dictionary, PinyinStyle, Settings, VocabItem } from '../../types';
 import { h } from '../dom';
 import { excerpt, splitContext } from './model';
+import { isChinese, lang } from '../../lang/active';
+
+/**
+ * The class and language a saved word or its sentence is set with: Chinese text gets the Chinese face (.zh) and zh or
+ * zh-Hant; another language its own tag, in the book face of that language.
+ */
+export function textAttrs(traditional = false): { cls: string; lang: string } {
+  return isChinese() ? { cls: 'zh', lang: traditional ? 'zh-Hant' : 'zh' } : { cls: 'lw', lang: lang().tag };
+}
 
 /** Numbered pinyin ("ni3 hao3") as spans in the user's style, colored by tone when asked. */
 export function pinyinEl(numbered: string, style: PinyinStyle, toneColors: boolean, cls = ''): HTMLElement {
+  // Another language's reading (Japanese kana, Russian with its stress marked) is shown as it is.
+  if (!isChinese()) return h('span', { class: `lw-reading ${cls}`.trim(), lang: lang().tag }, numbered);
   const el = h('span', { class: `zh-py ${cls}`.trim() });
   numbered.split(/\s+/).filter(Boolean).forEach((syl, i) => {
     if (i) el.appendChild(document.createTextNode(' '));

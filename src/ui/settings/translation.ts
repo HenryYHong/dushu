@@ -8,6 +8,7 @@ import { getTranslator, listTranslators, chromeSupported, type ChromeTranslator 
 import { CLAUDE_MODELS, fetchClaudeStatus, hasClaudeRoute, resetClaudeStatus, type ClaudeStatus } from '../../translate/claude';
 import { qualityLocalAvailable } from '../../translate/localMeaning';
 import { group, nextId, row, toggle } from './controls';
+import { isChinese, lang } from '../../lang/active';
 
 type Avail = 'yes' | 'download' | 'no';
 type Choice = Settings['translator'];
@@ -38,7 +39,7 @@ export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | n
     if (claude.limitMessage) return { text: 'Daily limit used', kind: 'warn' };
     return { text: 'Unavailable', kind: 'off' };
   }
-  if (id === 'chrome') return { text: chromeSupported() ? 'Not available for Chinese' : 'Not supported in this browser', kind: 'off' };
+  if (id === 'chrome') return { text: chromeSupported() ? `Not available for ${isChinese() ? 'Chinese' : lang().name}` : 'Not supported in this browser', kind: 'off' };
   if (id === 'account') return cloudSession() ? { text: 'Used up for today', kind: 'warn' } : { text: 'Sign in to use', kind: 'off' };
   return { text: 'Unavailable', kind: 'off' };
 }

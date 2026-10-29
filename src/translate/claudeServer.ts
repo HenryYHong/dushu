@@ -3,7 +3,8 @@
 // same way, build the same prompt and stream the answer the same way; the browser only ever sends the passage.
 import Anthropic from '@anthropic-ai/sdk';
 import type { TranslateRequest } from '../types';
-import { CLAUDE_LIMITS, CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL, SYSTEM_PROMPTS, buildUserMessage, clampContext } from './claudePrompts';
+import { CLAUDE_LIMITS, CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL, buildUserMessage, clampContext, systemPromptFor } from './claudePrompts';
+import { otherLang } from '../lang/names';
 
 /** The slice of the SDK used here, so tests can inject a fake. */
 export interface ServerStream {
@@ -26,7 +27,7 @@ export const badRequest = (status: number, message: string): Parsed => ({ ok: fa
 export function parseTranslateBody(value: unknown): Parsed {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return badRequest(400, 'The translation request was not understood.');
   const v = value as Record<string, unknown>;
-  if (typeof v.text !== 'string' || !v.text.trim()) return badRequest(400, 'Select some Chinese text to translate.');
+  if (typeof v.text !== 'string' || !v.text.trim()) return badRequest(400, 'Select some text to translate.');
   if (v.text.length > CLAUDE_LIMITS.text) return badRequest(413, 'That passage is too long for one request. Select a shorter one.');
   if (v.mode !== 'translate' && v.mode !== 'explain') return badRequest(400, 'The translation request was not understood.');
   if (v.context !== undefined && typeof v.context !== 'string') return badRequest(400, 'The translation request was not understood.');
@@ -42,7 +43,9 @@ export function parseTranslateBody(value: unknown): Parsed {
     }
   }
   const text = v.text.trim();
-  return { ok: true, request: { text, mode: v.mode, model, terms,
+  // A book in another language names it; a request that names none is Chinese, as every request was before languages.
+  const lang = otherLang(v.lang);
+  return { ok: true, request: { text, mode: v.mode, model, terms, ...(lang ? { lang } : {}),
     context: typeof v.context === 'string' && v.context.trim() ? clampContext(v.context.trim(), text) : undefined } };
 }
 
@@ -80,7 +83,7 @@ export function claudeBody(request: ParsedRequest, effort: 'low' | 'medium'): Re
     model: request.model,
     max_tokens: Math.min(8000, Math.max(1000, size)),
     output_config: { effort },
-    system: SYSTEM_PROMPTS[request.mode],
+    system: systemPromptFor(request),
     messages: [{ role: 'user', content: buildUserMessage(request) }],
   };
   // Server-side fallback exists for Sonnet only; Haiku has none.

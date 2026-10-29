@@ -30,19 +30,23 @@ function woff2Only(): Plugin {
  * One hash of the bytes of every file under these folders of the build. The static cache is named by it, so a release that
  * changes only a classic or a font, or a data file whose size stays the same, still reaches installed apps.
  */
-export function contentVersion(dist: string, dirs: string[]): string {
+export function contentVersion(dist: string, dirs: string[], skip: (path: string) => boolean = () => false): string {
   const hash = createHash('sha1');
   for (const dir of dirs) {
     const root = join(dist, dir);
     if (!existsSync(root)) continue;
     const files = (readdirSync(root, { recursive: true }) as string[]).map((f) => f.split(sep).join('/')).sort();
     for (const f of files) {
-      if (!statSync(join(root, f)).isFile()) continue;
+      if (skip(`${dir}/${f}`) || !statSync(join(root, f)).isFile()) continue;
       hash.update(`${dir}/${f}\0`).update(readFileSync(join(root, f))).update('\0');
     }
   }
   return hash.digest('hex').slice(0, 10);
 }
+
+/** The languages other than Chinese, whose data (data/<id>/) and classics (samples/<id>/) have caches of their own. */
+export const OTHER_LANGS = ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru'];
+const LANG_PATH = new RegExp(`^(?:data|samples)/(?:${OTHER_LANGS.join('|')})/`);
 
 /** The largest classic downloaded ahead on a first visit, in bytes; longer ones are stored when first added. */
 export const SAMPLE_PRECACHE_MAX = 256 * 1024;
@@ -65,9 +69,15 @@ export function serviceWorker(): Plugin {
       // (1.4 MB) and the Chinese CMaps (0.8 MB) are, so a PDF imports offline; sw.js copies unchanged hashed files from the
       // previous build's cache, so an update does not download them again.
       const assets = readdirSync(join(dist, 'assets')).filter((f) => /\.(js|mjs|css|bcmap)$/.test(f));
-      const data = readdirSync(join(dist, 'data'));
+      // Chinese data only: another language's folder is a directory here, and it is never downloaded ahead (it is stored the
+      // first time that language is opened, in a cache of its own named by its own contents, so a Chinese update keeps it).
+      const data = readdirSync(join(dist, 'data')).filter((f) => statSync(join(dist, 'data', f)).isFile());
       const build = createHash('sha1').update(assets.join('|')).digest('hex').slice(0, 10);
-      const dataVersion = contentVersion(dist, ['data', 'samples', 'fonts']);
+      const dataVersion = contentVersion(dist, ['data', 'samples', 'fonts'], (p) => LANG_PATH.test(p));
+      const langVersions: Record<string, string> = {};
+      for (const id of OTHER_LANGS) {
+        if (existsSync(join(dist, 'data', id)) || existsSync(join(dist, 'samples', id))) langVersions[id] = contentVersion(dist, [`data/${id}`, `samples/${id}`]);
+      }
       const icons = existsSync(join(dist, 'icons')) ? readdirSync(join(dist, 'icons')).map((f) => `icons/${f}`) : [];
       // The short classics (and their index) are fetched ahead too, so adding one works without a connection. The long
       // novels (about 4 MB together over the wire) are not: each is stored the first time someone adds it.
@@ -76,7 +86,8 @@ export function serviceWorker(): Plugin {
         : [];
       const precache = [...assets.map((f) => `assets/${f}`), ...data.map((f) => `data/${f}`), ...samples, 'icon.svg', 'manifest.webmanifest', ...icons];
       writeFileSync(swPath, readFileSync(swPath, 'utf8')
-        .replace('__BUILD__', build).replace('__DATA_VERSION__', dataVersion).replace('__PRECACHE__', JSON.stringify(precache)));
+        .replace('__BUILD__', build).replace('__DATA_VERSION__', dataVersion).replace('__PRECACHE__', JSON.stringify(precache))
+        .replace('__LANG_VERSIONS__', JSON.stringify(langVersions)));
     },
   };
 }

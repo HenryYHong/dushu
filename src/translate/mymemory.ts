@@ -3,6 +3,7 @@
 // Never add the `de=` email parameter.
 import type { TranslateRequest, Translator } from '../types';
 import { chunkText } from './chunk';
+import { isChinese, lang } from '../lang/active';
 
 const ENDPOINT = 'https://api.mymemory.translated.net/get';
 const MAX_CHUNK = 500;
@@ -30,7 +31,8 @@ async function translateChunk(
   signal: AbortSignal | undefined,
   fetchFn: typeof fetch,
 ): Promise<string> {
-  const url = `${ENDPOINT}?q=${encodeURIComponent(chunk)}&langpair=${encodeURIComponent('zh-CN|en')}`;
+  const from = isChinese() ? 'zh-CN' : lang().tag;
+  const url = `${ENDPOINT}?q=${encodeURIComponent(chunk)}&langpair=${encodeURIComponent(`${from}|en`)}`;
   let res: Response;
   try {
     res = await fetchFn(url, { signal });
