@@ -181,6 +181,12 @@
 }
 .pp-phrase-text .rd-rtx { position: absolute; left: 50%; bottom: calc(100% - 0.28em); transform: translateX(-50%); white-space: nowrap; }
 .pp-phrase-text rt:empty { display: none; }
+/* Another language: the sentence as the page sets it, no pinyin cells. Furigana sit close over their kanji; hints are off. */
+.pp-phrase-text:not(.zh) { font-family: var(--font-book); font-size: 21px; line-height: 2; }
+.pp-phrase-text:not(.zh) ruby { padding: 0; white-space: normal; }
+.pp-phrase-text:not(.zh) rt { font-family: inherit; font-weight: 400; font-size: 10.5px; color: var(--text-2); }
+.pp-phrase-text:not(.zh) .rd-rtx { bottom: calc(100% - 0.1em); }
+.pp-phrase-text:not(.zh) .rd-hw rt { display: none; }
 .pp-wbw-list { display: flex; flex-direction: column; }
 .pp-wbw-note { margin: 0 0 6px; font-size: 12px; line-height: 1.4; }
 .pp-wbw {
