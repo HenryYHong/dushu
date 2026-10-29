@@ -223,3 +223,23 @@ describe('the classics, kept as Markdown', () => {
     for (const p of ps) { expect(p.text).toBe(p.text.trim()); expect(p.text).toMatch(/\.$/); }
   });
 });
+
+describe('chapter headings in other languages', () => {
+  it('know a chapter numbered in words as well as in figures', () => {
+    const cases: [string, string[]][] = [
+      ['es', ['Capítulo uno', 'Capítulo veintiuno', 'Capítulo séptimo', 'CAPÍTULO 3']],
+      ['fr', ['Chapitre deux', 'Chapitre onzième', 'Chapitre un']],
+      ['de', ['Kapitel drei', 'Kapitel dreizehn', 'Zweites Kapitel']],
+      ['it', ['Capitolo due', 'Capitolo diciassette', 'Capitolo ventuno']],
+      ['pt', ['Capítulo dois', 'Capítulo três']],
+      ['ru', ['Глава один', 'Глава пятнадцать', 'Глава седьмая']],
+    ];
+    for (const [id, lines] of cases) {
+      setLangForTests(id as Parameters<typeof setLangForTests>[0]);
+      for (const line of lines) expect(detectHeadingLine(line), `${id}: ${line}`).toEqual({ level: 2 });
+    }
+    setLangForTests('es');
+    expect(detectHeadingLine('Capítulo unos días después llegó')).toBeNull();
+    expect(detectHeadingLine('Aquella mañana Lucía salió de casa.')).toBeNull();
+  });
+});

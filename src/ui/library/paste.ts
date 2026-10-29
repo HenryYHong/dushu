@@ -3,6 +3,7 @@ import type { BookMeta } from '../../types';
 import { h } from '../dom';
 import { showModal } from './dialogs';
 import { lang, langId } from '../../lang/active';
+import { wrongLanguage } from '../../lang/detect';
 
 const HAN = /[㐀-䶿一-鿿豈-﫿\u{20000}-\u{323af}]/u;
 /** Text of the language being read: Han for Chinese, kana or kanji for Japanese, Cyrillic for Russian, Latin letters otherwise. */
@@ -24,7 +25,9 @@ export function pasteDialog(submit: (text: string, title: string, author: string
     const sync = () => {
       const has = ownText().test(text.value);
       go.disabled = !has;
-      hint.textContent = text.value.trim() && !has ? `No ${L.id === 'zh' ? 'Chinese characters' : `${L.name} text`} found in this text.` : headingHint;
+      // Another language says which language it sees instead, and where that text can go.
+      const elsewhere = !has && L.id !== 'zh' && text.value.trim() ? wrongLanguage(text.value.slice(0, 4000), L.id)?.replace(/^This book/, 'This text') : null;
+      hint.textContent = elsewhere ?? (text.value.trim() && !has ? `No ${L.id === 'zh' ? 'Chinese characters' : `${L.name} text`} found in this text.` : headingHint);
     };
     text.addEventListener('input', sync);
     sync();

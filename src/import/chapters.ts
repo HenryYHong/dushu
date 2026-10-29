@@ -136,7 +136,9 @@ const LATIN_CHAPTER = /^chapter\s+(?:\d+|[ivxlcdm]+\b|one\b|two\b|three\b|four\b
  * XII, Глава первая, LIVRE DEUXIÈME, a Roman numeral alone on its line (II. or XIV). Volumes (Parte, Livre, Teil, Часть) are
  * level 1.
  */
-const ORDINAL_WORD = String.raw`(?:\d+|[IVXLCDM]+\b\.?|primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|premi(?:er|ère)|deuxième|troisième|second|erstes|zweites|drittes|vierte[sn]?|fünfte[sn]?|prim[oa]|secondo|terzo|quarto|quinto|primeiro|segundo|terceiro|перв\S*|втор\S*|трет\S*|четв[её]рт\S*|пят\S*)`;
+/** Numbers spelled out (Capítulo uno, Chapitre deux, Kapitel drei, Глава один), each a whole word. */
+const CARDINAL_WORD = String.raw`(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieci\p{L}+|veint\p{L}*|sext[oa]|s[ée]ptim[oa]|octav[oa]|noven[oa]|d[ée]cim[oa]|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingt|\p{L}+ième|eins|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|\p{L}+zehn|zwanzig|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|undici|dodici|\p{L}+dici|dici\p{L}+|vent\p{L}*|sest[oa]|settim[oa]|ottav[oa]|non[oa]|um|uma|dois|duas|três|sete|oito|dez|treze|quatorze|vinte|oitav[oa]|один|два|три|четыре|пять|шесть|семь|восемь|девять|десять|\p{L}+надцать|двадцать|шест\p{L}*|седьм\p{L}*|восьм\p{L}*|девят\p{L}*|десят\p{L}*)(?!\p{L})`;
+const ORDINAL_WORD = String.raw`(?:\d+|[IVXLCDM]+\b\.?|primer[oa]?|segund[oa]|tercer[oa]?|cuart[oa]|quint[oa]|premi(?:er|ère)|deuxième|troisième|second|erstes|zweites|drittes|vierte[sn]?|fünfte[sn]?|prim[oa]|secondo|terzo|quarto|quinto|primeiro|segundo|terceiro|перв\S*|втор\S*|трет\S*|четв[её]рт\S*|пят\S*|${CARDINAL_WORD})`;
 const SPACED_VOLUME = new RegExp(String.raw`^(?:parte|libro|livre|partie|tome|teil|buch|band|livro|часть|книга|том)\s+${ORDINAL_WORD}`, 'iu');
 const SPACED_CHAPTER = new RegExp(String.raw`^(?:cap[ií]tulo|chapitre|kapitel|capitolo|cap\.|глава)\s+${ORDINAL_WORD}|^(?:erstes|zweites|drittes|viertes|fünftes|sechstes|siebentes|siebtes|achtes|neuntes|zehntes)\s+kapitel\b|^[IVXLC]{1,7}\.?$`, 'iu');
 
