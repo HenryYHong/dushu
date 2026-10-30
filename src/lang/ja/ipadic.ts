@@ -173,6 +173,8 @@ class Nodes {
   }
 }
 
+const NO_BREAKS: readonly number[] = [];
+
 /** Offset added to unknown-word record indices so one Int32 column holds both kinds. */
 const UNK = 1 << 30;
 
@@ -255,10 +257,14 @@ export class Ipadic {
     this.headAtEnd[end] = id;
   }
 
-  /** The best morpheme path through text[from, to). */
-  analyze(text: string, from = 0, to = text.length): Morpheme[] {
+  /**
+   * The best morpheme path through text[from, to). `breaks` (offsets into `text`, ascending) are places no morpheme may
+   * cross: the edges of a reading the book prints (都｜洛陽《らくよう》 is 都 | 洛陽, whatever IPADIC would have glued).
+   */
+  analyze(text: string, from = 0, to = text.length, breaks: readonly number[] = NO_BREAKS): Morpheme[] {
     const n = to - from;
     if (n <= 0) return [];
+    let nextBreak = 0;
     if (this.headAtEnd.length < n + 2) this.headAtEnd = new Int32Array(Math.max(n + 2, this.headAtEnd.length * 2));
     const head = this.headAtEnd;
     head.fill(-1, 0, n + 2);
@@ -274,10 +280,13 @@ export class Ipadic {
       if (head[i] < 0) continue; // nothing reaches here (the low half of a surrogate pair)
       const c0 = text.charCodeAt(from + i);
       if (c0 >= 0xdc00 && c0 <= 0xdfff) continue;
+      // Nothing that starts here may run past the next break.
+      while (nextBreak < breaks.length && breaks[nextBreak] - from <= i) nextBreak++;
+      const limit = nextBreak < breaks.length ? Math.min(n, breaks[nextBreak] - from) : n;
       // Dictionary words starting here: walk the trie over the UTF-8 bytes of the following characters.
       let found = false;
       let node = 0;
-      for (let j = i; j < n; j++) {
+      for (let j = i; j < limit; j++) {
         let cp = text.charCodeAt(from + j);
         if (cp >= 0xd800 && cp <= 0xdbff) break; // the dictionary has no astral characters
         let ok = true;
@@ -308,13 +317,13 @@ export class Ipadic {
       const step = (k: number) => (text.charCodeAt(from + k) >= 0xd800 && text.charCodeAt(from + k) <= 0xdbff ? 2 : 1);
       if (cls.group) {
         let k = i + step(i);
-        while (k < n && this.classOf(text, from + k).id === cls.id) k += step(k);
+        while (k < limit && this.classOf(text, from + k).id === cls.id) k += step(k);
         lens.add(k - i);
       }
       // Unknown kanji are taken one at a time (as kuromoji does): MeCab's two-kanji guesses glue the wrong pairs (級俸|上 as
       // 俸上), and words.ts joins single kanji that JMdict knows as a whole.
       const maxLen = cls.name === 'KANJI' ? 1 : cls.length;
-      for (let k = i, c = 0; c < maxLen && k < n; c++) {
+      for (let k = i, c = 0; c < maxLen && k < limit; c++) {
         if (c > 0 && this.classOf(text, from + k).id !== cls.id) break;
         k += step(k);
         lens.add(k - i);

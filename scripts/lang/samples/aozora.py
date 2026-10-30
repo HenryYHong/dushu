@@ -5,7 +5,9 @@
 
 Writes <outdir>/<id>.md (and prints the 底本 footer, so the first-publication year can be checked).
 Cleaning: header and 底本 footer removed, ［＃…］ annotations removed (heading annotations become
-"## " lines), ｜ removed, 漢字《かんじ》 becomes 漢字, gaiji (※［＃…、U+xxxx］) replaced by the code point.
+"## " lines), gaiji (※［＃…、U+xxxx］) replaced by the code point. The publisher's ruby stays as Aozora writes it,
+漢字《かんじ》 and ｜一人《ひとり》 (｜ only where Aozora has it): the app takes it out of the text on import
+(src/import/aozora.ts) and shows it as the book's own furigana.
 """
 import io, re, sys, unicodedata, urllib.request, urllib.parse, zipfile, os
 UA = {'User-Agent': 'Dushu-sample-fetcher/0.1 (personal reading app)'}
@@ -41,8 +43,6 @@ def convert(text, levels):
         out.append(line)
     body = '\n'.join(out)
     body = re.sub(r'［＃[^］]*］', '', body)
-    body = body.replace('｜', '')
-    body = re.sub(r'《[^》]*》', '', body)
     body = unicodedata.normalize('NFC', body)
     paras = [l.strip() for l in body.split('\n') if l.strip()]
     res = '\n\n'.join(paras)

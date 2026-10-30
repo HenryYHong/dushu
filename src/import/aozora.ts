@@ -21,6 +21,8 @@ export function parseAozoraRuby(text: string): { text: string; ruby: RubySpan[] 
   let out = '';
   const ruby: RubySpan[] = [];
   let bar = -1;
+  // A base never reaches back into the one before it: 比較的《ひかくてき》呑気《のんき》 is two words, both kanji.
+  let floor = 0;
   for (let i = 0; i < text.length;) {
     const ch = text[i];
     if (ch === '｜') { bar = out.length; i++; continue; }
@@ -30,7 +32,7 @@ export function parseAozoraRuby(text: string): { text: string; ruby: RubySpan[] 
         let start = bar;
         if (start < 0) {
           start = out.length;
-          while (start > 0) {
+          while (start > floor) {
             const b = before(out, start);
             if (!KANJI.test(b.ch)) break;
             start = b.at;
@@ -40,6 +42,7 @@ export function parseAozoraRuby(text: string): { text: string; ruby: RubySpan[] 
         // Japanese also sets titles in 《》 (《朝日新聞》): with nothing under it, or kanji in it, it is not a reading and stays.
         if (start < out.length && !/\p{Script=Han}/u.test(rt)) {
           ruby.push({ start, end: out.length, rt });
+          floor = out.length;
           bar = -1;
           i = close + 1;
           continue;

@@ -10,6 +10,7 @@
 //   - A number and its counter are one word (三本 さんぼん); a surname and the given name after it are one name.
 //   - Nouns, prefixes and suffixes side by side become one word when JMdict has the whole (子供たち, 一日中, 支那).
 //   - Particles, the copula after a noun (静か|な, 学生|だった) and honorific suffixes (太郎|さん) are their own words.
+import type { RubyPart } from '../../types';
 import type { Morpheme } from './ipadic';
 import { isKanaCode, toHiragana } from './kana';
 import { approximateParts, counterBase, counterReading, isNumeralText, numberParts, numeralValue } from './numbers';
@@ -40,6 +41,11 @@ export interface Word {
   unknown: boolean;
   /** Joined from several IPADIC words because JMdict lists the whole; its reading may need JMdict's (rendaku). */
   compound?: boolean;
+  /**
+   * The book prints the reading of the word or of its kanji (杜子春《とししゅん》, 断《き》れた): its furigana as printed, kana
+   * between. `reading` and `lemmaReading` then follow the print, and only dictionary entries read that way fit the word.
+   */
+  printed?: RubyPart[];
 }
 
 export type WordClass = 'verb' | 'adj' | 'noun' | 'adjna' | 'pronoun' | 'adverb' | 'particle' | 'conj' | 'interj' | 'prenoun' | 'aux' | 'prefix' | 'suffix' | 'counter' | 'number' | 'symbol' | 'other';
@@ -64,6 +70,9 @@ function classOf(m: Morpheme): WordClass {
     case '接頭詞': return 'prefix';
     case '記号': return 'symbol';
     case '名詞':
+      // The の that makes a clause a noun (見えるのが) and the の/ん of explanation (なのです, 何なんだ) are particles to a
+      // learner; IPADIC files them as dependent nouns, and as nouns they ranked 野 "field" first.
+      if (m.pos1 === '非自立' && (m.surface === 'の' || m.surface === 'ん')) return 'particle';
       if (m.pos1 === '代名詞') return 'pronoun';
       if (m.pos1 === '形容動詞語幹') return 'adjna';
       if (m.pos1 === '数') return 'number';
@@ -116,8 +125,18 @@ const AFTER_STEM: Record<string, string> = {
   やすい: 'easy to (yasui)', 易い: 'easy to (yasui)', にくい: 'hard to (nikui)', 難い: 'hard to (nikui)', づらい: 'hard to (zurai)', 辛い: 'hard to (zurai)',
   がたい: 'hard to (gatai)',
 };
+/**
+ * Verbs IPADIC files as non-independent after a stem that add a meaning of their own (慣れ切る, 貧乏になり出す, 落ちかかる): in
+ * the word, unless JMdict lists the stem and the verb as one word (泣き出す "to burst into tears").
+ */
+const AFTER_STEM_VERB: Record<string, string> = {
+  切る: 'completely (kiru)', きる: 'completely (kiru)', 出す: 'start to (dasu)', だす: 'start to (dasu)',
+  かかる: 'about to (kakaru)', 掛かる: 'about to (kakaru)', 掛る: 'about to (kakaru)', 直す: 'again (naosu)', なおす: 'again (naosu)',
+};
 
 interface Builder {
+  /** JMdict, for the verbs after a stem that make a word of their own with it. */
+  ctx?: WordContext;
   ms: Morpheme[];
   forms: string[];
   /** The last morpheme taken was the conjunctive て/で (a construction verb may follow). */
@@ -177,7 +196,14 @@ function auxLabel(b: Builder, m: Morpheme, next: Morpheme | undefined): string[]
   if (m.pos === '助詞' && m.pos1 === '並立助詞' && (m.surface === 'たり' || m.surface === 'だり')) return ['tari'];
   if (b.afterTe && (m.pos === '動詞') && AFTER_TE[m.base]) { b.afterTe = false; return [AFTER_TE[m.base]]; }
   if (m.pos === '動詞' && m.pos1 === '非自立' && CONTRACTED[m.base] && (prev.cform.startsWith('連用'))) return [CONTRACTED[m.base]];
-  if ((m.pos === '動詞' || m.pos === '形容詞') && m.pos1 === '非自立' && AFTER_STEM[m.base] && prev.cform.startsWith('連用')) return [AFTER_STEM[m.base]];
+  if ((m.pos === '動詞' || m.pos === '形容詞') && m.pos1 === '非自立' && AFTER_STEM[m.base] && prev.cform.startsWith('連用')) {
+    // なさる is a command only as なさい; お上げなさる, お持ちなさいます are just honorific.
+    if (m.base === 'なさる' && !m.cform.startsWith('命令')) return ['honorific (nasaru)'];
+    return [AFTER_STEM[m.base]];
+  }
+  if (m.pos === '動詞' && m.pos1 === '非自立' && AFTER_STEM_VERB[m.base] && prev === b.head && prev.cform.startsWith('連用') && !b.ctx?.has(prev.surface + m.base)) return [AFTER_STEM_VERB[m.base]];
+  // 云えない: IPADIC has no potential 云える and takes 云え for the imperative; before ない it is the potential.
+  if (m.pos === '形容詞' && m.base === 'ない' && prev === b.head && b.head.pos === '動詞' && b.head.cform.startsWith('命令') && b.head.ctype.startsWith('五段')) return ['potential', 'negative'];
   if (m.pos === '形容詞' && m.pos1 === '非自立' && m.base === 'ほしい' && b.afterTe) { b.afterTe = false; return ['want someone to (te hoshii)']; }
   if (m.pos === '名詞' && m.pos1 === '接尾' && m.pos2 === '助動詞語幹' && m.base === 'そう') return ['looks like (sou)'];
   if (m.pos === '名詞' && m.pos1 === '接尾' && m.pos2 === '特殊' && (m.base === 'さ' || m.base === 'み') && b.head.pos === '形容詞' && prev === b.head) return ['noun (-' + (m.base === 'さ' ? 'sa' : 'mi') + ')'];
@@ -242,9 +268,9 @@ function makeWord(ms: Morpheme[], forms: string[], lemma: string, cls: WordClass
 }
 
 /** Takes the endings that belong to the verb or adjective at ms[i]; returns the word and the index after it. */
-function inflected(ms: Morpheme[], i: number, prefix: Morpheme[] = []): [Word, number] {
+function inflected(ms: Morpheme[], i: number, prefix: Morpheme[] = [], ctx?: WordContext): [Word, number] {
   const head = ms[i];
-  const b: Builder = { ms: [head], forms: [], afterTe: false, head, causative: false };
+  const b: Builder = { ctx, ms: [head], forms: [], afterTe: false, head, causative: false };
   let j = i + 1;
   while (j < ms.length) {
     const labels = auxLabel(b, ms[j], ms[j + 1]);
@@ -254,10 +280,19 @@ function inflected(ms: Morpheme[], i: number, prefix: Morpheme[] = []): [Word, n
     b.afterTe = isTe(ms[j]);
     j++;
   }
-  const own = headForm(head, b.ms.length === 1);
+  const own = b.forms[0] === 'potential' && head.cform.startsWith('命令') ? [] : headForm(head, b.ms.length === 1);
   const forms = [...own, ...b.forms];
   const all = [...prefix, ...b.ms];
   let lemma = head.base !== '*' ? head.base : head.surface;
+  // A godan conditional stem before た, て or ます cannot be (IPADIC's 分れ|た as 分る): it is the ichidan verb 分れる.
+  const after = ms[i + 1];
+  if (head.ctype.startsWith('五段') && head.cform === '仮定形' && after && (after.base === 'た' || after.base === 'ます' || isTe(after)) && ctx?.has(head.surface + 'る')) {
+    const word = makeWord(all, forms, head.surface + 'る', 'verb');
+    word.ctype = '一段';
+    const r = readingOf(head);
+    word.lemmaReading = r ? r + 'る' : '';
+    return [word, j];
+  }
   if (prefix.length) lemma = prefix.map((m) => m.surface).join('') + lemma;
   const word = makeWord(all, forms, lemma, prefix.length ? 'verb' : classOf(head));
   word.ctype = head.ctype;
@@ -275,7 +310,7 @@ export function groupWords(ms: Morpheme[], ctx: WordContext): Word[] {
     const cls = classOf(m);
     // A する-noun and its する: 勉強した. (できる after it is the potential: 勉強できる.)
     if ((m.pos1 === 'サ変接続' && m.pos === '名詞') && ms[i + 1]?.pos === '動詞' && ms[i + 1].base === 'する' && ms[i + 1].pos1 === '自立') {
-      const [w, j] = inflected(ms, i + 1, [m]);
+      const [w, j] = inflected(ms, i + 1, [m], ctx);
       w.lemma = m.surface + 'する';
       w.cls = 'verb';
       w.ctype = 'サ変・スル';
@@ -284,7 +319,7 @@ export function groupWords(ms: Morpheme[], ctx: WordContext): Word[] {
       continue;
     }
     if (m.pos === '動詞' || m.pos === '形容詞') {
-      const [w, j] = inflected(ms, i);
+      const [w, j] = inflected(ms, i, [], ctx);
       out.push(w);
       i = j;
       continue;
@@ -295,6 +330,12 @@ export function groupWords(ms: Morpheme[], ctx: WordContext): Word[] {
       w.cls = 'aux';
       out.push(w);
       i = j;
+      continue;
+    }
+    // A na-adjective and the そう "looks" after it: 親切そう is 親切, looking so.
+    if (cls === 'adjna' && ms[i + 1]?.pos === '名詞' && ms[i + 1].pos1 === '接尾' && ms[i + 1].pos2 === '助動詞語幹' && ms[i + 1].base === 'そう') {
+      out.push(makeWord([m, ms[i + 1]], ['looks like (sou)'], m.surface, 'adjna', { lemmaReading: readingOf(m) }));
+      i += 2;
       continue;
     }
     // Numbers: a run of kanji numerals (or of digits), and the counter after it.
@@ -312,12 +353,15 @@ export function groupWords(ms: Morpheme[], ctx: WordContext): Word[] {
       if (counter) {
         group.push(counter);
         const plain = counterBase(counter.surface) ?? readingOf(counter);
-        const reading = parts.length && plain ? counterReading(parts, value, counter.surface, plain) : '';
-        const w = makeWord(group, [], text + counter.surface, 'counter');
+        let reading = parts.length && plain ? counterReading(parts, value, counter.surface, plain) : '';
+        // 目 after the counter makes it an ordinal: 三年目 "the third year", 八日目.
+        const nth = ms[j + 1]?.surface === '目' && ms[j + 1].pos === '名詞' && ms[j + 1].pos1 === '接尾';
+        if (nth) { group.push(ms[j + 1]); if (reading) reading += 'め'; }
+        const w = makeWord(group, [], group.map((x) => x.surface).join(''), 'counter');
         if (reading) { w.reading = reading; w.pieces = [{ text: w.text, reading }]; }
         w.lemmaReading = w.reading;
         out.push(w);
-        i = j + 1;
+        i = j + (nth ? 2 : 1);
       } else {
         const w = makeWord(group, [], text, 'number');
         if (parts.length) { w.reading = parts.join(''); w.pieces = [{ text, reading: w.reading }]; w.lemmaReading = w.reading; }
@@ -347,6 +391,8 @@ export function groupWords(ms: Morpheme[], ctx: WordContext): Word[] {
     }
     const w = makeWord([m], [], m.base !== '*' && m.pos !== '記号' ? m.base : m.surface, cls === 'number' ? 'number' : cls);
     if (nk) w.name = nk;
+    // ん in んだ, なんです is the explanatory の said quickly: defined under の.
+    if (cls === 'particle' && m.pos === '名詞' && m.surface === 'ん') { w.lemma = 'の'; w.lemmaReading = 'の'; w.forms = ['contraction']; }
     out.push(w);
     i++;
   }

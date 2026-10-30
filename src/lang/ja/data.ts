@@ -194,6 +194,32 @@ export class Jmdict {
     return this.index.has(form);
   }
 
+  /** Forms longer than three letters, by their first two; built the first time a prefix is asked for. */
+  private byPrefix: Map<string, string[]> | null = null;
+
+  /** Forms that start with `prefix` (two letters or more) and are longer than it, at most `limit`. */
+  formsStartingWith(prefix: string, limit = 400): string[] {
+    if (prefix.length < 2) return [];
+    if (!this.byPrefix) {
+      const m = new Map<string, string[]>();
+      for (const f of this.index.keys()) {
+        if (f.length < 3) continue;
+        const k = f.slice(0, 2);
+        const list = m.get(k);
+        if (list) list.push(f);
+        else m.set(k, [f]);
+      }
+      this.byPrefix = m;
+    }
+    const out: string[] = [];
+    for (const f of this.byPrefix.get(prefix.slice(0, 2)) ?? []) {
+      if (f.length <= prefix.length || !f.startsWith(prefix)) continue;
+      out.push(f);
+      if (out.length >= limit) break;
+    }
+    return out;
+  }
+
   /** Entry ids on the JLPT list of `level` (1 = N5). */
   levelIdsOf(level: number): readonly number[] {
     return this.levelIds[level] ?? [];

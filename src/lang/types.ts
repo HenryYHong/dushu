@@ -56,6 +56,11 @@ export interface WordLookup {
   chars?: KanjiInfo[];
   /** A proper noun (a person or place) the dictionary does not list. */
   name?: boolean;
+  /**
+   * The fixed phrase the word is part of where it stands (sin embargo, потому что), folded: the first entry is then the
+   * phrase's, and `key` stays the word's own (what the reader marks known or saved).
+   */
+  phrase?: string;
 }
 
 export interface KanjiInfo {
@@ -95,6 +100,12 @@ export interface LangEngine {
    * reader asks for hints. Undefined when the dictionary has none.
    */
   hint(token: Token): string | undefined;
+  /**
+   * A new book opens: forget what the last one taught the engine (the names it uses). Given the book's text, learn its names
+   * up front, so a name that starts a sentence on the first page is read as one (Platero y yo opens "Platero es pequeño").
+   * Optional; without it an engine learns a book's names as it reads its paragraphs.
+   */
+  beginBook?(text?: string): void;
   /** Facts about the data that loaded (counts, sources), shown in About. */
   readonly meta: { built: string; counts: Record<string, number>; sources: { name: string; license: string; url: string }[] };
 }

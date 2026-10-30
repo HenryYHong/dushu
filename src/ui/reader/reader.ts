@@ -2,7 +2,7 @@
 // Two layouts share everything else: Scroll (one long column) and Pages (paginated like a book, ARCHITECTURE.md 5.7).
 // Contract: ARCHITECTURE.md 5.3 and 5.7.
 import '../../styles/reader.css';
-import type { Bookmark, Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, Progress, Settings } from '../../types';
+import type { Bookmark, Chapter, Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, Progress, Settings } from '../../types';
 import { readingFontSizeKey } from '../../store/settings';
 import { canSpeak, pauseSpeaking, resumeSpeaking, setSpeakingRate, speakSequence, stopSpeaking } from '../../speech/tts';
 import { EMPTY_LEXICON, isDetecting, loadLexicon } from '../../core/lexicon';
@@ -25,7 +25,7 @@ import { wordNear } from './wordNear';
 import { pointToOffset, rangeToSpans, snapToCodePoint, spansText } from './selection';
 import { createToc } from './toc';
 import { isWord } from '../../lang/token';
-import { isChinese, lang } from '../../lang/active';
+import { activeEngine, isChinese, lang } from '../../lang/active';
 import { aidName, aidSeal, aidWord, levelLabel } from '../../lang/labels';
 import { POS_SEL } from './render';
 
@@ -731,10 +731,23 @@ export const mount: MountFn = async (root, params, ctx) => {
     return book!.script === 'traditional' ? 'zh-Hant' : 'zh-Hans';
   }
 
+  /**
+   * The first chapter this reader opens tells the engine a new book has begun: it forgets the last book's names and learns
+   * this one's from the text (Platero y yo's first page opens "Platero es pequeño"; 清 is Kiyo only in 坊っちゃん).
+   */
+  let bookBegun = false;
+  function beginBook(chapter: Chapter): void {
+    if (bookBegun) return;
+    bookBegun = true;
+    const text = chapter.blocks.map((b) => ('text' in b ? b.text : '')).join('\n');
+    try { activeEngine()?.beginBook?.(text); } catch (e) { console.error('Could not start the book in the engine', e); }
+  }
+
   /** Build a chapter view for the Pages layout (its pinyin is drawn near the eye only: `lazyPinyin`). */
   async function makeView(index: number): Promise<ChapterView | null> {
     const chapter = await store.books.chapter(book!.id, index);
     if (!chapter) return null;
+    beginBook(chapter);
     const v = createChapterView({
       ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, lazyPinyin: true,
       onResize: () => { if (paged) pager?.relayout(); },
@@ -843,6 +856,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     const chapter = await store.books.chapter(book!.id, index);
     if (seq !== loadSeq || disposed) return;
     if (!chapter) throw new Error('The chapter is not in the library.');
+    beginBook(chapter);
     const old = scrollView;
     const v = createChapterView({ ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon });
     v.el.lang = langOf(ctx.settings.get());

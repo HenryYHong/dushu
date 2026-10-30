@@ -40,11 +40,18 @@ const ONES = ['', 'いち', 'に', 'さん', 'よん', 'ご', 'ろく', 'なな'
  */
 export function approximateParts(s: string): string[] | null {
   const ds = [...s];
-  if (ds.length !== 2 || !(ds[0] in DIGITS) || !(ds[1] in DIGITS)) return null;
-  const a = DIGITS[ds[0]];
-  const b = DIGITS[ds[1]];
+  const x = ds[ds.length - 2];
+  const y = ds[ds.length - 1];
+  if (ds.length < 2 || !(x in DIGITS) || !(y in DIGITS)) return null;
+  const a = DIGITS[x];
+  const b = DIGITS[y];
   if (a < 1 || b !== a + 1) return null;
-  return [ONES[a] === 'よん' ? 'し' : ONES[a], ONES[b]];
+  const pair = [ONES[a] === 'よん' ? 'し' : ONES[a], ONES[b]];
+  if (ds.length === 2) return pair;
+  // The tens or hundreds before the pair: 十三四 "thirteen or fourteen" じゅうさんし, 二十五六.
+  const head = numeralValue(ds.slice(0, -2).join(''));
+  if (head === null || head < 10 || head % 10 !== 0) return null;
+  return [...numberParts(head), ...pair];
 }
 
 /** The reading of a number as parts ("350" → ["さん", "びゃく", "ご", "じゅう"]), so a counter can change the last one. */
