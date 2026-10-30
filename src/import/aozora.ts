@@ -55,9 +55,13 @@ export function parseAozoraRuby(text: string): { text: string; ruby: RubySpan[] 
   return { text: out, ruby };
 }
 
-/** Every block and title of a Japanese book with its ruby notation taken out (the readings kept on the blocks). */
+/**
+ * Every block and title of a Japanese book with its ruby notation taken out (the readings kept on the blocks). A run of
+ * two or more kanji the book reads one way wherever it prints a reading also gets that reading where it prints none:
+ * 杜子春 has its 《とししゅん》 once, in the middle of the story, and is the hero's name from the first line.
+ */
 export function takeAozoraRuby(chapters: Chapter[]): Chapter[] {
-  return chapters.map((c) => ({
+  const parsed = chapters.map((c) => ({
     ...c,
     title: c.title.includes('《') ? parseAozoraRuby(c.title).text : c.title,
     blocks: c.blocks.map((b): Block => {
@@ -66,7 +70,36 @@ export function takeAozoraRuby(chapters: Chapter[]): Chapter[] {
       return ruby.length ? { ...b, text, ruby } : { ...b, text };
     }),
   }));
+  // The book's own readings of kanji runs, kept only where it always reads the run the same way.
+  const read = new Map<string, string | null>();
+  for (const c of parsed) for (const b of c.blocks) {
+    if (!('ruby' in b) || !b.ruby) continue;
+    for (const r of b.ruby) {
+      const base = b.text.slice(r.start, r.end);
+      if ([...base].length < 2 || !KANJI_RUN.test(base)) continue;
+      const had = read.get(base);
+      read.set(base, had === undefined || had === r.rt ? r.rt : null);
+    }
+  }
+  if (![...read.values()].some(Boolean)) return parsed;
+  return parsed.map((c) => ({
+    ...c,
+    blocks: c.blocks.map((b): Block => {
+      if (b.t !== 'p' && b.t !== 'h' && b.t !== 'quote') return b;
+      const own = b.ruby ?? [];
+      const added: RubySpan[] = [];
+      for (const m of b.text.matchAll(KANJI_RUNS)) {
+        const rt = read.get(m[0]);
+        const start = m.index, end = start + m[0].length;
+        if (rt && !own.some((r) => r.start < end && r.end > start)) added.push({ start, end, rt });
+      }
+      return added.length ? { ...b, ruby: [...own, ...added].sort((x, y) => x.start - y.start) } : b;
+    }),
+  }));
 }
+
+const KANJI_RUN = /^[\p{Script=Han}々〆ヶ〇]+$/u;
+const KANJI_RUNS = /[\p{Script=Han}々〆ヶ〇]+/gu;
 
 /** The spans of `ruby` inside text[from, to), moved to start at `from` (for a piece of a long paragraph). */
 export function sliceRuby(ruby: readonly RubySpan[] | undefined, from: number, to: number): RubySpan[] | undefined {
