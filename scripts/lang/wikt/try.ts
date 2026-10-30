@@ -6,7 +6,7 @@ const ROOT = join(import.meta.dirname ?? __dirname, '..', '..', '..');
 const lang = process.argv[2];
 const mod = await import(`${ROOT}/src/lang/spaced/${lang}.ts`);
 const t0 = performance.now();
-const eng = await mod.loadEngine('/', { fetchBytes: (n: string) => readFile(join(ROOT, 'public/data', lang, n)) });
+const eng = await mod.loadEngine('/', { fetchBytes: (n: string) => readFile(join(process.env.DUSHU_LANG_DATA || join(ROOT, 'public/data'), lang, n)) });
 console.log('load ms', Math.round(performance.now() - t0));
 for (const arg of process.argv.slice(3)) {
   if (arg.includes(' ')) {

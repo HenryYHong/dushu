@@ -12,7 +12,7 @@ const JUNK = /^(?:Used|Indicates|Generic|Refers|Optionally|Expresses|Emphasi[sz]
 const total: Record<string, number> = {};
 for (const lang of langs.length ? langs : ['es', 'fr', 'de', 'it', 'pt', 'ru']) {
   const mod = await import(`${ROOT}/src/lang/spaced/${lang}.ts`);
-  const eng = await mod.loadEngine('/', { fetchBytes: (n: string) => readFile(join(ROOT, 'public/data', lang, n)) });
+  const eng = await mod.loadEngine('/', { fetchBytes: (n: string) => readFile(join(process.env.DUSHU_LANG_DATA || join(ROOT, 'public/data'), lang, n)) });
   const dir = join(ROOT, 'public/samples', lang);
   const files = (await readdir(dir)).filter((f) => f.endsWith('.md')).sort();
   const c = { words: 0, noHint: 0, junk: 0, rareLemma: 0, adverbOverContent: 0, cutWord: 0 };

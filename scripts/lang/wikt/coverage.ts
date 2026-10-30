@@ -8,7 +8,7 @@ import { join } from 'node:path';
 const ROOT = join(import.meta.dirname ?? __dirname, '..', '..', '..');
 const [lang, file, ...flags] = process.argv.slice(2);
 const mod = await import(`${ROOT}/src/lang/spaced/${lang}.ts`);
-const eng = await mod.loadEngine('/', { fetchBytes: (n: string) => readFile(join(ROOT, 'public/data', lang, n)) });
+const eng = await mod.loadEngine('/', { fetchBytes: (n: string) => readFile(join(process.env.DUSHU_LANG_DATA || join(ROOT, 'public/data'), lang, n)) });
 const text = await readFile(file, 'utf8');
 const paragraphs = text.split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
 

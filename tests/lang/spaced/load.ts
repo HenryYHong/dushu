@@ -6,13 +6,15 @@ import type { LangEngine, WordLookup } from '../../../src/lang/types';
 import type { Token } from '../../../src/types';
 
 const ROOT = join(__dirname, '..', '..', '..');
+/** DUSHU_LANG_DATA=<dir> reads <dir>/<id>/ instead (a build made elsewhere, checked before it replaces public/data). */
+const DATA = process.env.DUSHU_LANG_DATA || join(ROOT, 'public', 'data');
 const cache = new Map<string, Promise<LangEngine>>();
 
 export function loadLang(id: 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru'): Promise<LangEngine> {
   let p = cache.get(id);
   if (!p) {
     p = import(`../../../src/lang/spaced/${id}.ts`).then((m: { loadEngine: (base: string, opts: object) => Promise<LangEngine> }) =>
-      m.loadEngine('/', { fetchBytes: (name: string) => readFile(join(ROOT, 'public', 'data', id, name)) }));
+      m.loadEngine('/', { fetchBytes: (name: string) => readFile(join(DATA, id, name)) }));
     cache.set(id, p);
   }
   return p;
