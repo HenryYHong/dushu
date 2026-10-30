@@ -21,6 +21,69 @@
     "coverCredit": "Guo Xi, Early Spring (早春图), 1072. National Palace Museum, Taipei. Public domain, via Wikimedia Commons."
   },
   {
+    "id": "xiandai-duanwen",
+    "title": "现代短文四篇",
+    "author": "许地山、胡适等",
+    "script": "simplified",
+    "file": "xiandai-duanwen.txt",
+    "level": "Beginner",
+    "blurb": "Four short modern pieces Chinese children read at school: peanuts at a family supper, Mr. Close Enough, a rickshaw puller, and three cats.",
+    "source": "https://zh.wikisource.org/wiki/落花生",
+    "note": "Published from 1919 to 1925, so it is in the US public domain (published before 1931). Lu Xun and Xu Dishan died over 70 years ago; Hu Shi (died 1962) and Zheng Zhenduo (died 1958) are public domain in China but may still be protected where copyright lasts 70 years after death. Xu Dishan's possessive 底 is printed 的, as in modern editions.",
+    "simplified": {
+      "title": "现代短文四篇",
+      "author": "许地山、胡适等"
+    },
+    "traditional": {
+      "title": "現代短文四篇",
+      "author": "許地山、胡適等"
+    },
+    "cover": "covers/xiandai-duanwen.jpg",
+    "coverCredit": "Attributed to Su Hanchen, Children Playing on a Winter Day (冬日婴戏图), 12th century. National Palace Museum, Taipei. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "dongwu-gushi",
+    "title": "动物故事三篇",
+    "author": "鲁迅、爱罗先珂",
+    "script": "simplified",
+    "file": "dongwu-gushi.txt",
+    "level": "Beginner",
+    "blurb": "Rabbits, ducklings and a lonely chick: two stories Lu Xun wrote in Beijing in 1922, and a fable by his blind Russian friend Eroshenko in Lu Xun's translation.",
+    "source": "https://zh.wikisource.org/wiki/兔和貓",
+    "note": "Published in 1922, so it is in the US public domain (published before 1931). Lu Xun died in 1936 and Vasily Eroshenko in 1952, more than 70 years ago.",
+    "simplified": {
+      "title": "动物故事三篇",
+      "author": "鲁迅、爱罗先珂"
+    },
+    "traditional": {
+      "title": "動物故事三篇",
+      "author": "魯迅、愛羅先珂"
+    },
+    "cover": "covers/dongwu-gushi.jpg",
+    "coverCredit": "Li Di, Chicks Waiting to Be Fed (鸡雏待饲图), 1197. Palace Museum, Beijing. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "xinshi",
+    "title": "新诗六首",
+    "author": "徐志摩、胡适等",
+    "script": "simplified",
+    "file": "xinshi.txt",
+    "level": "Beginner",
+    "blurb": "Six short modern poems from the 1920s, among them Xu Zhimo's Saying Goodbye to Cambridge Again and Dai Wangshu's Rain Alley. Short, musical and good for reading aloud.",
+    "source": "https://zh.wikisource.org/wiki/再別康橋",
+    "note": "Published from 1922 to 1928, so it is in the US public domain (published before 1931). Xu Zhimo, Liu Bannong and Dai Wangshu died over 70 years ago; Hu Shi (died 1962) is public domain in China but may still be protected where copyright lasts 70 years after death.",
+    "simplified": {
+      "title": "新诗六首",
+      "author": "徐志摩、胡适等"
+    },
+    "traditional": {
+      "title": "新詩六首",
+      "author": "徐志摩、胡適等"
+    },
+    "cover": "covers/xinshi.jpg",
+    "coverCredit": "Ma Yuan, Walking on a Mountain Path in Spring (山径春行图), early 13th century. National Palace Museum, Taipei. Public domain, via Wikimedia Commons."
+  },
+  {
     "id": "kong-yiji",
     "title": "孔乙己",
     "author": "鲁迅",
@@ -61,6 +124,69 @@
     },
     "cover": "covers/guxiang.jpg",
     "coverCredit": "Ma Yuan, Angler on a Wintry Lake (寒江独钓图), about 1195. Tokyo National Museum. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "zhaohua-xishi",
+    "title": "朝花夕拾 三篇",
+    "author": "鲁迅",
+    "script": "simplified",
+    "file": "zhaohua-xishi.txt",
+    "level": "Intermediate",
+    "blurb": "Three of Lu Xun's memoirs of growing up: his nanny and the picture book she found him, the family garden and the old school, and his teacher in Japan.",
+    "source": "https://zh.wikisource.org/wiki/朝花夕拾",
+    "note": "Written in 1926 and published as a book in 1928, so it is in the US public domain (published before 1931). Lu Xun died in 1936, more than 70 years ago.",
+    "simplified": {
+      "title": "朝花夕拾 三篇",
+      "author": "鲁迅"
+    },
+    "traditional": {
+      "title": "朝花夕拾 三篇",
+      "author": "魯迅"
+    },
+    "cover": "covers/zhaohua-xishi.jpg",
+    "coverCredit": "Attributed to Zhao Chang, Bamboo and Insects (竹虫图), Song dynasty. Tokyo National Museum. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "zhu-ziqing-sanwen",
+    "title": "朱自清散文四篇",
+    "author": "朱自清",
+    "script": "simplified",
+    "file": "zhu-ziqing-sanwen.txt",
+    "level": "Intermediate",
+    "blurb": "Four of Zhu Ziqing's best-loved essays: on passing time, his father buying oranges at a station, a lotus pond by moonlight, and his five children.",
+    "source": "https://zh.wikisource.org/wiki/背影",
+    "note": "Published from 1922 to 1928, so it is in the US public domain (published before 1931). Zhu Ziqing died in 1948, more than 70 years ago.",
+    "simplified": {
+      "title": "朱自清散文四篇",
+      "author": "朱自清"
+    },
+    "traditional": {
+      "title": "朱自清散文四篇",
+      "author": "朱自清"
+    },
+    "cover": "covers/zhu-ziqing-sanwen.jpg",
+    "coverCredit": "Unknown Song dynasty painter, Lotus Rising from the Water (出水芙蓉图). Palace Museum, Beijing. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "chunfeng-chenzui",
+    "title": "春风沉醉的晚上",
+    "author": "郁达夫",
+    "script": "simplified",
+    "file": "chunfeng-chenzui.txt",
+    "level": "Intermediate",
+    "blurb": "A jobless writer in a Shanghai slum and the young cigarette-factory worker in the next room. Yu Dafu's story of two poor people in 1920s Shanghai.",
+    "source": "https://zh.wikisource.org/wiki/春風沉醉的晚上",
+    "note": "Published in 1923, so it is in the US public domain (published before 1931). Yu Dafu died in 1945, more than 70 years ago.",
+    "simplified": {
+      "title": "春风沉醉的晚上",
+      "author": "郁达夫"
+    },
+    "traditional": {
+      "title": "春風沉醉的晚上",
+      "author": "郁達夫"
+    },
+    "cover": "covers/chunfeng-chenzui.jpg",
+    "coverCredit": "Ma Lin, Waiting for Guests by Lamplight (秉烛夜游图), about 1250. National Palace Museum, Taipei. Public domain, via Wikimedia Commons."
   },
   {
     "id": "kuangren-riji",

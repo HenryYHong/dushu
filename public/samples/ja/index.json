@@ -44,6 +44,21 @@
     "coverCredit": "Utagawa Kuniyoshi, cats in many poses, 1852. Public domain, via Wikimedia Commons."
   },
   {
+    "id": "hitofusa-no-budo",
+    "title": "一房の葡萄",
+    "author": "有島武郎",
+    "script": "unknown",
+    "file": "hitofusa-no-budo.md",
+    "level": "Beginner",
+    "blurb": "A shy boy at a foreign school in Yokohama steals a classmate's paints. A kind teacher and a bunch of grapes help him set it right.",
+    "source": "https://www.aozora.gr.jp/cards/000025/card211.html",
+    "note": "Published in 1920 in the children's magazine Akai Tori, and the author died in 1923, so it is in the US public domain (published before 1931).",
+    "chapters": 3,
+    "chars": 6405,
+    "cover": "covers/hitofusa-no-budo.jpg",
+    "coverCredit": "Juan Fernández el Labrador, Still Life with Four Bunches of Grapes, 1630s. Museo del Prado, Madrid. Public domain, via Wikimedia Commons."
+  },
+  {
     "id": "rashomon",
     "title": "羅生門",
     "author": "芥川龍之介",
@@ -88,6 +103,20 @@
     "coverCredit": "Utagawa Yoshitora, Steam Railroad in Tokyo, 1871. Honolulu Museum of Art. Public domain, via Wikimedia Commons."
   },
   {
+    "id": "takasebune",
+    "title": "高瀬舟",
+    "author": "森鷗外",
+    "script": "unknown",
+    "file": "takasebune.md",
+    "level": "Intermediate",
+    "blurb": "A constable on the night boat out of Kyoto takes a prisoner into exile and wonders why the man looks so content.",
+    "source": "https://www.aozora.gr.jp/cards/000129/card45245.html",
+    "note": "Published in 1916 in the magazine Chūō Kōron, and the author died in 1922, so it is in the US public domain (published before 1931).",
+    "chars": 8807,
+    "cover": "covers/takasebune.jpg",
+    "coverCredit": "Utagawa Hiroshige, The Yodo River, from Famous Places in Kyoto, 1830s. Rijksmuseum, Amsterdam. Public domain, via Wikimedia Commons."
+  },
+  {
     "id": "kokoro",
     "title": "こころ",
     "author": "夏目漱石",
@@ -116,5 +145,35 @@
     "chars": 323012,
     "cover": "covers/wagahai.jpg",
     "coverCredit": "Hishida Shunsō, Black Cat, 1910. Eisei Bunko Museum. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "koya-hijiri",
+    "title": "高野聖",
+    "author": "泉鏡花",
+    "script": "unknown",
+    "file": "koya-hijiri.md",
+    "level": "Advanced",
+    "blurb": "A traveling monk tells of a mountain crossing one summer: a snake on the path, a forest of leeches, and a lovely woman in a lonely house.",
+    "source": "https://www.aozora.gr.jp/cards/000050/card521.html",
+    "note": "Published in 1900 in the magazine Shin Shōsetsu, and the author died in 1939, so it is in the US public domain (published before 1931).",
+    "chapters": 26,
+    "chars": 36919,
+    "cover": "covers/koya-hijiri.jpg",
+    "coverCredit": "Katsushika Hokusai, The Amida Falls in the Far Reaches of the Kisokaidō Road, from A Tour of Waterfalls in Various Provinces, about 1827. Metropolitan Museum of Art, New York. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "gan",
+    "title": "雁",
+    "author": "森鷗外",
+    "script": "unknown",
+    "file": "gan.md",
+    "level": "Advanced",
+    "blurb": "Tokyo, 1880. A moneylender's kept woman falls quietly for a medical student who walks past her house every evening.",
+    "source": "https://www.aozora.gr.jp/cards/000129/card45224.html",
+    "note": "Published in the magazine Subaru from 1911 to 1913 and as a book in 1915, and the author died in 1922, so it is in the US public domain (published before 1931).",
+    "chapters": 24,
+    "chars": 74632,
+    "cover": "covers/gan.jpg",
+    "coverCredit": "Utagawa Hiroshige, Wild Geese Flying under the Full Moon, about 1833. Metropolitan Museum of Art, New York. Public domain, via Wikimedia Commons."
   }
 ]

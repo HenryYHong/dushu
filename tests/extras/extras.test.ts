@@ -55,7 +55,9 @@ describe('samples', () => {
 
   it('lists the sample books with every field', () => {
     expect(index.length).toBeGreaterThanOrEqual(5);
-    expect(index.length).toBeLessThanOrEqual(12);
+    expect(index.length).toBeLessThanOrEqual(24);
+    // A real choice at every level: the library shows them as Easy, Intermediate and Advanced.
+    for (const level of ['Beginner', 'Intermediate', 'Advanced']) expect(index.filter((b) => b.level === level).length, level).toBeGreaterThanOrEqual(4);
     for (const b of index) {
       for (const k of ['id', 'title', 'author', 'script', 'file', 'level', 'blurb', 'source', 'note']) expect(b[k]).toBeTruthy();
       expect(['simplified', 'traditional']).toContain(b.script);
@@ -69,7 +71,8 @@ describe('samples', () => {
     for (const b of index) {
       const text = readFileSync(root + 'public/samples/' + b.file, 'utf8');
       expect(han(text)).toBeGreaterThan(150);
-      expect(text).not.toMatch(/\{\{|\}\}|\[\[|\]\]|<\/?[a-z]+|&[a-z]+;|编辑|編輯|\r|�/);
+      // Wikisource's [编辑] edit links, not the word itself (郁达夫's 编辑先生, "the editor").
+      expect(text).not.toMatch(/\{\{|\}\}|\[\[|\]\]|<\/?[a-z]+|&[a-z]+;|\[编辑\]|\[編輯\]|\r|�/);
       const lines = text.split('\n');
       expect(lines[lines.length - 1]).toBe('');
       for (const l of lines.slice(0, -1)) expect(l.trim()).toBe(l);

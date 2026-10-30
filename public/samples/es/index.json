@@ -30,6 +30,35 @@
     "coverCredit": "Modesto Teixidor, Women Riding a Donkey, about 1890. Museo Art Nouveau y Art Déco Casa Lis, Salamanca. Public domain, via Wikimedia Commons."
   },
   {
+    "id": "la-edad-de-oro",
+    "title": "La Edad de Oro (selección)",
+    "author": "José Martí",
+    "script": "unknown",
+    "file": "la-edad-de-oro.md",
+    "level": "Beginner",
+    "blurb": "Stories and poems José Martí wrote for the children of the Americas: three liberators, a rich boy and his poor cousin, a girl's old black doll, a magic shrimp and a pair of pink shoes.",
+    "source": "https://www.gutenberg.org/ebooks/19898",
+    "note": "Published in 1889 as a monthly for children by an author who died in 1895, so it is in the public domain worldwide.",
+    "chapters": 8,
+    "chars": 64765,
+    "cover": "covers/la-edad-de-oro.jpg",
+    "coverCredit": "Joaquín Sorolla, Strolling along the Seashore (Paseo a orillas del mar), 1909. Museo Sorolla, Madrid. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "raton-perez",
+    "title": "Ratón Pérez",
+    "author": "Luis Coloma",
+    "script": "unknown",
+    "file": "raton-perez.md",
+    "level": "Beginner",
+    "blurb": "Little King Buby loses his first tooth, and Ratón Pérez, the mouse who comes for children's teeth, takes him across Madrid to the home of a poor boy.",
+    "source": "https://www.gutenberg.org/ebooks/36558",
+    "note": "Written in the early 1890s for the boy king Alfonso XIII and printed in this edition in 1911; the author died in 1915, so it is in the public domain worldwide. The old spellings á, ó and é of the words a, o and e are modernized.",
+    "chars": 21659,
+    "cover": "covers/raton-perez.jpg",
+    "coverCredit": "Francisco Domingo Marqués, Alfonso XIII as a Child, 1889. Patrimonio Nacional, Royal Collections, Madrid. Public domain, via Wikimedia Commons."
+  },
+  {
     "id": "quiroga-cuentos",
     "title": "Cuentos de amor, de locura y de muerte (selección)",
     "author": "Horacio Quiroga",
@@ -75,6 +104,21 @@
     "coverCredit": "Francisco de Goya, The Parasol (El quitasol), 1777. Museo del Prado, Madrid. Public domain, via Wikimedia Commons."
   },
   {
+    "id": "adios-cordera",
+    "title": "¡Adiós, Cordera! y otros cuentos",
+    "author": "Leopoldo Alas «Clarín»",
+    "script": "unknown",
+    "file": "adios-cordera.md",
+    "level": "Intermediate",
+    "blurb": "Five stories by Clarín, led by his most famous: two children in Asturias, their old cow Cordera, and the railway that takes her away.",
+    "source": "https://www.gutenberg.org/ebooks/62361",
+    "note": "Collected in El Señor y lo demás, son cuentos in 1893 (this text follows the 1919 printing), and the author died in 1901, so it is in the public domain worldwide.",
+    "chapters": 5,
+    "chars": 119872,
+    "cover": "covers/adios-cordera.jpg",
+    "coverCredit": "Rosa Bonheur, A Shepherdess with a Goat and Two Cows in a Meadow, about 1842–45. Dahesh Museum of Art, New York. Public domain, via Wikimedia Commons."
+  },
+  {
     "id": "lazarillo-de-tormes",
     "title": "La vida de Lazarillo de Tormes",
     "author": "Anónimo",
@@ -103,5 +147,35 @@
     "chars": 292213,
     "cover": "covers/marianela.jpg",
     "coverCredit": "Francisco de Goya, The Blind Guitarist (El ciego de la guitarra), 1778. Museo del Prado, Madrid. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "don-quijote",
+    "title": "Don Quijote de la Mancha (primera parte)",
+    "author": "Miguel de Cervantes",
+    "script": "unknown",
+    "file": "don-quijote.md",
+    "level": "Advanced",
+    "blurb": "A country gentleman reads so many tales of chivalry that he sets out as a knight errant, with Sancho Panza as his squire, and mistakes windmills for giants.",
+    "source": "https://www.gutenberg.org/ebooks/2000",
+    "note": "Published in 1605 by an author who died in 1616, so it is in the public domain worldwide. This is the whole first part, chapters I to LII, without the prologue and prefatory verses.",
+    "chapters": 52,
+    "chars": 991201,
+    "cover": "covers/don-quijote.jpg",
+    "coverCredit": "Gustave Doré, Don Quixote among his books, engraved by Héliodore Pisan for Don Quixote, 1863. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "martin-fierro",
+    "title": "El gaucho Martín Fierro",
+    "author": "José Hernández",
+    "script": "unknown",
+    "file": "martin-fierro.md",
+    "level": "Advanced",
+    "blurb": "A gaucho sings his own life in verse: sent to the frontier, robbed of his home and family, he becomes an outlaw on the pampa. The national poem of Argentina.",
+    "source": "https://www.gutenberg.org/ebooks/14765",
+    "note": "Published in 1872 by an author who died in 1886, so it is in the public domain worldwide. A few slips of the transcription are corrected from the 1894 printing.",
+    "chapters": 13,
+    "chars": 62706,
+    "cover": "covers/martin-fierro.jpg",
+    "coverCredit": "Juan Manuel Blanes, One of the Three Chiripás (Uno de los tres chiripás), about 1881. Museo Nacional de Artes Visuales, Montevideo. Public domain, via Wikimedia Commons."
   }
 ]

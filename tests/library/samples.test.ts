@@ -23,7 +23,8 @@ function jpegSize(b: Buffer): [number, number] {
 describe('the classics\' covers', () => {
   it('are public-domain pictures: 600 by 840 JPEGs of a modest size, each credited', () => {
     const list = parseSampleIndex(realIndex).filter((x) => x.cover);
-    expect(list.length).toBe(10);
+    // Every classic has one.
+    expect(list.length).toBe(parseSampleIndex(realIndex).length);
     for (const x of list) {
       const bytes = readFileSync(join(samplesDir, x.cover!));
       expect([...bytes.subarray(0, 3)], x.id).toEqual([0xff, 0xd8, 0xff]);

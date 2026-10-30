@@ -30,6 +30,51 @@
     "coverCredit": "Heinrich Hoffmann, Struwwelpeter, the title figure of Der Struwwelpeter, 1845. Public domain, via Wikimedia Commons."
   },
   {
+    "id": "grimm-maerchen",
+    "title": "Grimms Märchen (Auswahl)",
+    "author": "Jacob und Wilhelm Grimm",
+    "script": "unknown",
+    "file": "grimm-maerchen.md",
+    "level": "Beginner",
+    "blurb": "Nine of the best-known fairy tales, from the Frog King and Hansel and Gretel to Snow White and Rumpelstiltskin.",
+    "source": "https://www.gutenberg.org/ebooks/77905",
+    "note": "Collected and published from 1812 to 1857 by authors who died in 1859 and 1863, so it is in the public domain worldwide. The text is that of a 1921 edition, in the spelling of its day.",
+    "chapters": 9,
+    "chars": 77057,
+    "cover": "covers/grimm-maerchen.jpg",
+    "coverCredit": "Arthur Rackham, Hansel and Gretel at the witch’s house, for the Grimms’ fairy tales, 1909. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "heidi",
+    "title": "Heidi (Auswahl)",
+    "author": "Johanna Spyri",
+    "script": "unknown",
+    "file": "heidi.md",
+    "level": "Beginner",
+    "blurb": "Five-year-old Heidi is brought up the mountain to live with her gruff grandfather and spends her first summer with the goats. The first three chapters.",
+    "source": "https://www.gutenberg.org/ebooks/7500",
+    "note": "Published in 1880 and the author died in 1901, so it is in the public domain worldwide. The spelling is modernized.",
+    "chapters": 3,
+    "chars": 65478,
+    "cover": "covers/heidi.jpg",
+    "coverCredit": "Giovanni Segantini, Midday in the Alps, 1891. Segantini Museum, St. Moritz. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "lessing-fabeln",
+    "title": "Fabeln (Auswahl)",
+    "author": "Gotthold Ephraim Lessing",
+    "script": "unknown",
+    "file": "lessing-fabeln.md",
+    "level": "Beginner",
+    "blurb": "Forty-six short prose fables about foxes, ravens, wolves and donkeys, each with a sharp point. Most are only a few lines long.",
+    "source": "https://www.gutenberg.org/ebooks/9375",
+    "note": "Published in 1759 and the author died in 1781, so it is in the public domain worldwide.",
+    "chapters": 46,
+    "chars": 37310,
+    "cover": "covers/lessing-fabeln.jpg",
+    "coverCredit": "Franz Marc, The Foxes, 1913. Public domain, via Wikimedia Commons."
+  },
+  {
     "id": "immensee",
     "title": "Immensee",
     "author": "Theodor Storm",
@@ -75,6 +120,20 @@
     "coverCredit": "Liang Kai, Shakyamuni Emerging from the Mountains, 13th century. Tokyo National Museum. Public domain, via Wikimedia Commons."
   },
   {
+    "id": "kleider-machen-leute",
+    "title": "Kleider machen Leute",
+    "author": "Gottfried Keller",
+    "script": "unknown",
+    "file": "kleider-machen-leute.md",
+    "level": "Intermediate",
+    "blurb": "A poor tailor in a fine cloak is taken for a Polish count in a small Swiss town and never finds the right moment to tell the truth.",
+    "source": "https://www.gutenberg.org/ebooks/28042",
+    "note": "Published in 1874 and the author died in 1890, so it is in the public domain worldwide.",
+    "chars": 92805,
+    "cover": "covers/kleider-machen-leute.jpg",
+    "coverCredit": "Carl Spitzweg, The Arrival of the Stagecoach, about 1859. Grohmann Museum, Milwaukee. Public domain, via Wikimedia Commons."
+  },
+  {
     "id": "werther",
     "title": "Die Leiden des jungen Werther",
     "author": "Johann Wolfgang von Goethe",
@@ -103,5 +162,35 @@
     "chars": 589728,
     "cover": "covers/effi-briest.jpg",
     "coverCredit": "Caspar David Friedrich, Woman at a Window, 1822. Alte Nationalgalerie, Berlin. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "faust",
+    "title": "Faust. Der Tragödie erster Teil",
+    "author": "Johann Wolfgang von Goethe",
+    "script": "unknown",
+    "file": "faust.md",
+    "level": "Advanced",
+    "blurb": "The scholar Faust makes a wager with the devil Mephistopheles and wins the love of young Gretchen, with tragic results. A play in verse.",
+    "source": "https://www.gutenberg.org/ebooks/2229",
+    "note": "Published in 1808 by an author who died in 1832, so it is in the public domain worldwide.",
+    "chapters": 28,
+    "chars": 191975,
+    "cover": "covers/faust.jpg",
+    "coverCredit": "Georg Friedrich Kersting, Faust in His Study, 1829. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "tod-in-venedig",
+    "title": "Der Tod in Venedig",
+    "author": "Thomas Mann",
+    "script": "unknown",
+    "file": "tod-in-venedig.md",
+    "level": "Advanced",
+    "blurb": "An aging, famous writer travels to Venice, falls under the spell of a beautiful boy, and stays on as cholera spreads through the city.",
+    "source": "https://www.gutenberg.org/ebooks/12108",
+    "note": "Published in 1912, so it is in the US public domain (published before 1931). The author died in 1955, so it is also in the public domain where copyright lasts 70 years after death.",
+    "chapters": 5,
+    "chars": 169395,
+    "cover": "covers/tod-in-venedig.jpg",
+    "coverCredit": "Claude Monet, San Giorgio Maggiore, Twilight, 1908. National Museum Cardiff. Public domain, via Wikimedia Commons."
   }
 ]

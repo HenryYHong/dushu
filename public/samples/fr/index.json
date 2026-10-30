@@ -29,6 +29,36 @@
     "coverCredit": "Pierre-Auguste Renoir, La Loge (The Theater Box), 1874. The Courtauld, London. Public domain, via Wikimedia Commons."
   },
   {
+    "id": "fables-de-la-fontaine",
+    "title": "Fables (sélection)",
+    "author": "Jean de La Fontaine",
+    "script": "unknown",
+    "file": "fables-de-la-fontaine.md",
+    "level": "Beginner",
+    "blurb": "Forty-five short fables in rhyming verse, including The Crow and the Fox and The Tortoise and the Hare. Animals talk, and each story has a moral.",
+    "source": "https://fr.wikisource.org/wiki/Fables_de_La_Fontaine_(éd._1874)",
+    "note": "Published in 1668 to 1694 by an author who died in 1695, so it is in the public domain worldwide. The spelling is that of an 1874 edition.",
+    "chapters": 45,
+    "chars": 57613,
+    "cover": "covers/fables-de-la-fontaine.jpg",
+    "coverCredit": "Gustave Moreau, Phoebus and Boreas, watercolor for La Fontaine’s Fables, 1879. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "les-malheurs-de-sophie",
+    "title": "Les Malheurs de Sophie (extraits)",
+    "author": "Comtesse de Ségur",
+    "script": "unknown",
+    "file": "les-malheurs-de-sophie.md",
+    "level": "Beginner",
+    "blurb": "Four-year-old Sophie keeps getting into trouble at her family’s country house: a wax doll left in the sun, eyebrows cut off, stolen cream. The first twelve chapters.",
+    "source": "https://fr.wikisource.org/wiki/Les_Malheurs_de_Sophie",
+    "note": "Published in 1858 and the author died in 1874, so it is in the public domain worldwide.",
+    "chapters": 13,
+    "chars": 81276,
+    "cover": "covers/les-malheurs-de-sophie.jpg",
+    "coverCredit": "Horace Castelli, Sophie’s mother mends the wax doll, illustration for Les Malheurs de Sophie, 19th century. Public domain, via Wikimedia Commons."
+  },
+  {
     "id": "le-horla",
     "title": "Le Horla",
     "author": "Guy de Maupassant",
@@ -101,5 +131,50 @@
     "chars": 683023,
     "cover": "covers/madame-bovary.jpg",
     "coverCredit": "Albert-Auguste Fourié, The Death of Madame Bovary, 1883. Musée des Beaux-Arts de Rouen. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "notre-dame-de-paris",
+    "title": "Notre-Dame de Paris",
+    "author": "Victor Hugo",
+    "script": "unknown",
+    "file": "notre-dame-de-paris.md",
+    "level": "Advanced",
+    "blurb": "Paris in 1482: Quasimodo, the hunchbacked bell-ringer of Notre-Dame, the street dancer Esmeralda, and the priest who cannot stop thinking about her. A long novel.",
+    "source": "https://www.gutenberg.org/ebooks/19657",
+    "note": "Published in 1831 (final edition 1832) by an author who died in 1885, so it is in the public domain worldwide.",
+    "chapters": 61,
+    "chars": 1028686,
+    "cover": "covers/notre-dame-de-paris.jpg",
+    "coverCredit": "Charles Meryon, Le Stryge (The Vampire), a chimera on Notre-Dame looking over Paris, etching, 1853. National Gallery of Art, Washington. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "du-cote-de-chez-swann",
+    "title": "Du côté de chez Swann",
+    "author": "Marcel Proust",
+    "script": "unknown",
+    "file": "du-cote-de-chez-swann.md",
+    "level": "Advanced",
+    "blurb": "The first part of In Search of Lost Time: childhood summers in Combray, a madeleine dipped in tea, and Swann’s jealous love for Odette. Famous for very long sentences.",
+    "source": "https://www.gutenberg.org/ebooks/2650",
+    "note": "Published in 1913 and the author died in 1922, so it is in the public domain worldwide.",
+    "chapters": 4,
+    "chars": 991924,
+    "cover": "covers/du-cote-de-chez-swann.jpg",
+    "coverCredit": "James Tissot, The Circle of the Rue Royale, 1868, with Charles Haas, a model for Swann, at the right. Musée d’Orsay, Paris. Public domain, via Wikimedia Commons."
+  },
+  {
+    "id": "les-fleurs-du-mal",
+    "title": "Les Fleurs du mal",
+    "author": "Charles Baudelaire",
+    "script": "unknown",
+    "file": "les-fleurs-du-mal.md",
+    "level": "Advanced",
+    "blurb": "Poems of Paris, love, boredom and death that changed French poetry. All 126 poems of the 1861 edition, in rich and difficult verse.",
+    "source": "https://fr.wikisource.org/wiki/Les_Fleurs_du_mal_(1861)",
+    "note": "Published in 1857 and revised in 1861 by an author who died in 1867, so it is in the public domain worldwide. The text and spelling are those of the 1861 edition.",
+    "chapters": 127,
+    "chars": 144803,
+    "cover": "covers/les-fleurs-du-mal.jpg",
+    "coverCredit": "Carlos Schwabe, Spleen et Idéal, after Les Fleurs du mal, 1907. Public domain, via Wikimedia Commons."
   }
 ]
