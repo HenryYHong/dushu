@@ -16,17 +16,17 @@
   {
    "name": "English Wiktionary (German entries), extracted by kaikki.org (wiktextract)",
    "license": "CC BY-SA 4.0 (and GFDL)",
-   "url": "https://kaikki.org/dictionary/German/kaikki.org-dictionary-German.jsonl.gz"
+   "url": "https://kaikki.org/dictionary/German/"
   },
   {
    "name": "FrequencyWords (OpenSubtitles 2018 full list), Hermit Dave",
    "license": "CC BY-SA 4.0",
-   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_full.txt"
+   "url": "https://github.com/hermitdave/FrequencyWords"
   },
   {
    "name": "FrequencyWords English list (to choose the plainest English hint), Hermit Dave",
    "license": "CC BY-SA 4.0",
-   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt"
+   "url": "https://github.com/hermitdave/FrequencyWords"
   },
   {
    "name": "Universal Dependencies UD_German-GSD treebank (which lemma and part of speech a word usually is)",
@@ -35,7 +35,7 @@
   },
   {
    "name": "Universal Dependencies UD_German-HDT treebank (which lemma and part of speech a word usually is)",
-   "license": "CC BY-SA 4.0",
+   "license": "CC BY-SA 4.0 (annotation; its text is for academic use and is not used)",
    "url": "https://github.com/UniversalDependencies/UD_German-HDT"
   }
  ]

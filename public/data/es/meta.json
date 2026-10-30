@@ -16,17 +16,17 @@
   {
    "name": "English Wiktionary (Spanish entries), extracted by kaikki.org (wiktextract)",
    "license": "CC BY-SA 4.0 (and GFDL)",
-   "url": "https://kaikki.org/dictionary/Spanish/kaikki.org-dictionary-Spanish.jsonl.gz"
+   "url": "https://kaikki.org/dictionary/Spanish/"
   },
   {
    "name": "FrequencyWords (OpenSubtitles 2018 full list), Hermit Dave",
    "license": "CC BY-SA 4.0",
-   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/es/es_full.txt"
+   "url": "https://github.com/hermitdave/FrequencyWords"
   },
   {
    "name": "FrequencyWords English list (to choose the plainest English hint), Hermit Dave",
    "license": "CC BY-SA 4.0",
-   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt"
+   "url": "https://github.com/hermitdave/FrequencyWords"
   },
   {
    "name": "Universal Dependencies UD_Spanish-AnCora treebank (which lemma and part of speech a word usually is)",
