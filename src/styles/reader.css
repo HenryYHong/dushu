@@ -829,6 +829,11 @@ html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x
 .rd-article .rd-hw rt { font-family: var(--font-ui); font-weight: 450; font-size: max(10px, calc(var(--rd-rt, 0.46) * 1.1em)); letter-spacing: 0; color: var(--text-3); }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw { display: inline-grid; justify-items: center; text-indent: 0; }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw > * { grid-area: 1 / 1; }
+/* A phrase's hint (Había una vez "once upon a time") starts over its first word and runs on over the words after it, which
+   carry none: it takes no width, so the phrase's words keep their spacing. */
+.rd-article .rd-phrase-head:not(.rd-nopy) > .rd-hw { justify-items: start; }
+.rd-article .rd-phrase-head > .rd-hw > rt { width: 0; overflow: visible; }
+.rd-article .rd-phrase-head > .rd-hw .rd-rtx { width: max-content; max-width: 16em; }
 /* After an elision (qu’on) the word keeps to the left of its cell, against the word it is joined to. */
 .rd-article .rd-elided + .rd-word:not(.rd-nopy) > .rd-hw { justify-items: start; }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw > .rd-hb { line-height: 1.2; }

@@ -122,6 +122,11 @@ export interface Token {
   stress?: number;
   /** A proper noun (a person or place), as the engine could tell. */
   name?: true;
+  /**
+   * A word of a fixed phrase with a hint of its own (Había una vez "once upon a time"): 'head' for its first word, 'rest' for
+   * the others. The reader shows the phrase's hint once, over the head, instead of over every word.
+   */
+  inPhrase?: 'head' | 'rest';
 }
 
 // ----------------------------------------------------------------- books ---

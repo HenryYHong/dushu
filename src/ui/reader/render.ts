@@ -186,7 +186,9 @@ function renderWord(token: Token, index: number, opts: RenderOptions): TokenView
     // An elided word (French d’, l’, qu’; Italian dell’) carries no hint: one would hold it apart from the word it leans on.
     const elided = /['’]$/.test(token.text);
     if (elided) el.classList.add('rd-elided');
-    const box = aid === 'hint' && !elided ? createEl('ruby', 'rd-o rd-hw') : el;
+    // A fixed phrase's hint stands once, over its first word, and runs on over the rest (Había una vez "once upon a time").
+    if (token.inPhrase === 'head') el.classList.add('rd-phrase-head');
+    const box = aid === 'hint' && !elided && token.inPhrase !== 'rest' ? createEl('ruby', 'rd-o rd-hw') : el;
     box.dataset.o = String(token.start);
     if (box !== el) el.classList.add('rd-has-hw');
     // Under a hint the word sits in its own span, so the stylesheet can set word and hint in one cell as wide as the wider.

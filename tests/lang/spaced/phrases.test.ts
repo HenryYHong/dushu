@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { SPANISH } from '../../../src/lang/spaced/es';
 import { FRENCH } from '../../../src/lang/spaced/fr';
 import { RUSSIAN } from '../../../src/lang/spaced/ru';
-import { loadCustom, lookupIn, tok } from './load';
+import { loadCustom, loadLang, lookupIn, tok } from './load';
 
 const ES = ['# words\thint\tsenses', 'sin embargo\thowever\tnevertheless|however', 'a pesar de\tdespite\tdespite|in spite of',
   'de pronto\tsuddenly\tsuddenly|all of a sudden', 'en seguida\tat once\tat once|immediately'].join('\n');
@@ -75,5 +75,15 @@ describe('fixed phrases', () => {
   it('are optional: without the file, words read one by one', async () => {
     const eng = await loadCustom(SPANISH, { 'phrases.tsv.gz': '' });
     expect(eng.hint(tok(eng, 'Y sin embargo estaba ya en Buenos Aires, y ella no lo sabía.', 'embargo'))).not.toBe('however');
+  });
+});
+
+describe('a phrase over the page', () => {
+  it('marks its first word as the head and the others as the rest, so its hint stands once', async () => {
+    const es = await loadLang('es');
+    const t = es.segment('Había una vez un hombre que vivía en Buenos Aires.').filter((x) => x.kind === 'word');
+    expect(t.slice(0, 3).map((x) => x.inPhrase)).toEqual(['head', 'rest', 'rest']);
+    expect(es.hint(t[0])).toBe('once upon a time');
+    expect(t[3].inPhrase).toBeUndefined();
   });
 });

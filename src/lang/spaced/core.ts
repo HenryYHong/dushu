@@ -2333,6 +2333,8 @@ export class SpacedEngine implements LangEngine {
       for (let j = m.start; j < free; j++) {
         const ch = this.chosen.get(words[j].t);
         if (ch) ch.phrase = m.phrase;
+        // The reader shows a phrase's hint once, over its first word (types.ts Token.inPhrase).
+        if (m.phrase.hint && m.len > 1) words[j].t.inPhrase = j === m.start ? 'head' : 'rest';
       }
     }
   }
