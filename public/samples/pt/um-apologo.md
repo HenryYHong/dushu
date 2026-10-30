@@ -42,4 +42,4 @@ Parece que a agulha não disse nada; mas um alfinete, de cabeça grande e não m
 
 — Anda, aprende, tola. Cansas-te em abrir caminho para ela e ela é que vai gozar da vida, enquanto aí ficas na caixinha de costura. Faze como eu, que não abro caminho para ninguém. Onde me espetam, fico.
 
-Contei esta história a um professor de melancolia, que me disse, abanando a cabeça: — Também eu tenho servido de agulha a muita linhaordinária!
+Contei esta história a um professor de melancolia, que me disse, abanando a cabeça: — Também eu tenho servido de agulha a muita linha ordinária!
