@@ -575,11 +575,21 @@ describe('Chinese "Erase all data"', () => {
     const zh = createSettingsStore(localStorage, 'zh');
     zh.set({ translateTo: 'fr' });
     localStorage.setItem('dushu.settings.v1.extra', '1');
+    // Opening another language marks the device (ui/langSwitch.ts), as the app does.
+    localStorage.setItem('dushu.langs-used.v1', '1');
     expect(createSettingsStore(localStorage, 'es').get().translateTo).toBe('fr');
     await eraseAllData({ store: { wipe: async () => {} } } as never);
     expect(localStorage.getItem('dushu.settings.v1')).toBeNull();
     expect(JSON.parse(localStorage.getItem(TARGET_KEY)!)).toMatchObject({ to: 'fr' });
     // The Spanish library opens in French whether or not it ever saved a setting of its own.
     expect(createSettingsStore(localStorage, 'es').get().translateTo).toBe('fr');
+  });
+
+  it('takes it with everything else from a reader who never opened another language', async () => {
+    localStorage.clear();
+    createSettingsStore(localStorage, 'zh').set({ translateTo: 'fr' });
+    await eraseAllData({ store: { wipe: async () => {} } } as never);
+    expect(localStorage.getItem(TARGET_KEY)).toBeNull();
+    expect(createSettingsStore(localStorage, 'zh').get().translateTo).toBe('en');
   });
 });

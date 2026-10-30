@@ -108,6 +108,9 @@ function buildFiles() {
   return out;
 }
 
+/** A home folder (/Users/name/, /home/name/) or a temporary folder of this machine (/private/tmp/…, /var/folders/…). */
+const LOCAL_PATH = /\/(?:Users|home)\/[A-Za-z0-9._-]+\/|\/private\/(?:tmp|var)\/[A-Za-z0-9._-]+|\/var\/folders\/[A-Za-z0-9_]+/g;
+
 function lineOf(text, index) { return text.slice(0, index).split('\n').length; }
 
 function scanText(where, text) {
@@ -115,6 +118,8 @@ function scanText(where, text) {
   for (const m of text.matchAll(EMAIL)) if (!BENIGN_EMAIL_DOMAIN.test(m[1])) { count++; fail(`${where}:${lineOf(text, m.index)}`, 'an email address'); if (count > 3) break; }
   for (const m of text.matchAll(TAILNET)) fail(`${where}:${lineOf(text, m.index)}`, 'a Tailscale hostname');
   for (const m of text.matchAll(API_KEY)) if (!FAKE_KEY.test(m[0])) fail(`${where}:${lineOf(text, m.index)}`, 'an Anthropic API key');
+  // A path on the machine it was built on: it names the account, and a scratch folder names the tool that made it.
+  for (const m of text.matchAll(LOCAL_PATH)) fail(`${where}:${lineOf(text, m.index)}`, 'a path on this machine', m[0]);
   for (const s of secrets) {
     const at = text.indexOf(s.value);
     if (at >= 0) fail(`${where}:${lineOf(text, at)}`, s.label);

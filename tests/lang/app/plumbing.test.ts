@@ -399,3 +399,20 @@ describe('the language translations go into', () => {
     expect([...(zh.el.querySelector('select') as HTMLSelectElement).options].map((o) => o.value).filter((c) => c.startsWith('zh'))).toEqual([]);
   });
 });
+
+describe('Local only', () => {
+  it('follows the reader into every library, the Chinese choice made before languages existed included', async () => {
+    const { LOCAL_ONLY_KEY } = await import('../../../src/store/settings');
+    const storage = memoryStorage();
+    // A reader who turned Local only on in Chinese before this release: no shared key yet.
+    storage.setItem('dushu.settings.v1', JSON.stringify({ localOnly: true }));
+    expect(createSettingsStore(storage, 'es').get().localOnly).toBe(true);
+    const zh = createSettingsStore(storage, 'zh');
+    expect(zh.get().localOnly).toBe(true);
+    expect(storage.getItem(LOCAL_ONLY_KEY)).toBe('1');
+    // Turned off in Japanese: the last choice made in any library is the one every library starts from.
+    createSettingsStore(storage, 'ja').set({ localOnly: false });
+    expect(createSettingsStore(storage, 'zh').get().localOnly).toBe(false);
+    expect(createSettingsStore(storage, 'fr').get().localOnly).toBe(false);
+  });
+});

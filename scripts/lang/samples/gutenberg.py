@@ -1,5 +1,5 @@
 #!/usr/bin/env python3 -I
-"""Strip the Project Gutenberg header, footer and licence from a downloaded ebook text.
+"""Strip the Project Gutenberg header, footer and license from a downloaded ebook text.
   python3 -I gutenberg.py in.txt out.txt
 Prints the title line and the length. Every mention of Project Gutenberg is removed from the body."""
 import re, sys, unicodedata

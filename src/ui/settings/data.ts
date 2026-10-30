@@ -53,10 +53,13 @@ export async function eraseAllData(ctx: AppContext): Promise<void> {
   // The other languages' libraries are left alone, and so are their settings, the language translated into among them: they
   // read it from TARGET_KEY whenever they open, so taking it would put the Spanish library back on English, or not, depending
   // on whether it had ever saved a setting of its own.
+  // A reader who never opened another language has no other library to keep it for: theirs goes with everything else.
   const others = LANG_IDS.filter((id) => id !== 'zh').map((id) => `dushu.${id}.`);
   try {
-    for (const k of Object.keys(localStorage)) {
-      if (k.startsWith('dushu.') && k !== TARGET_KEY && !others.some((o) => k.startsWith(o))) localStorage.removeItem(k);
+    const keys = Object.keys(localStorage);
+    const otherLibraries = keys.some((k) => others.some((o) => k.startsWith(o)) || k === 'dushu.langs-used.v1');
+    for (const k of keys) {
+      if (k.startsWith('dushu.') && !(otherLibraries && k === TARGET_KEY) && !others.some((o) => k.startsWith(o))) localStorage.removeItem(k);
     }
   } catch { /* storage blocked: nothing to remove */ }
   // An empty device stays empty: the words on the Mac come back only when sync is turned on again.

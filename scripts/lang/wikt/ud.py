@@ -4,7 +4,9 @@ Wiktionary says what a word can be (fue is a form of ser and of ir; padre is a n
 text says what it usually is. build.py uses these counts to share the subtitle counts among the lemmas a form can be,
 to order the sections of a headword, and to write the prior the engine uses when nothing in the sentence decides.
 
-Only treebanks under an open licence that allows a public website (no NC) are read. Files are streamed, never saved.
+Only treebanks under an open license that allows a public website (no NC) are read. Files are streamed, never saved.
+What reaches the data is counts (how often a spelling is which lemma and part of speech), never a treebank's text: UD_German-HDT
+licenses its annotation CC BY-SA 4.0 and its text (heise.de) for academic use only, and only the annotation is counted.
 """
 import collections
 import gzip
@@ -16,13 +18,13 @@ import kaikki
 RAW = 'https://raw.githubusercontent.com/UniversalDependencies/{tb}/master/{f}'
 SITE = 'https://github.com/UniversalDependencies/{tb}'
 
-# code -> [(treebank, licence, [files])]
+# code -> [(treebank, license, [files])]
 TREEBANKS = {
     'es': [('UD_Spanish-AnCora', 'CC BY 4.0', ['es_ancora-ud-train.conllu', 'es_ancora-ud-dev.conllu', 'es_ancora-ud-test.conllu']),
            ('UD_Spanish-GSD', 'CC BY-SA 4.0', ['es_gsd-ud-train.conllu', 'es_gsd-ud-dev.conllu', 'es_gsd-ud-test.conllu'])],
     'fr': [('UD_French-GSD', 'CC BY-SA 4.0', ['fr_gsd-ud-train.conllu', 'fr_gsd-ud-dev.conllu', 'fr_gsd-ud-test.conllu'])],
     'de': [('UD_German-GSD', 'CC BY-SA 4.0', ['de_gsd-ud-train.conllu', 'de_gsd-ud-dev.conllu', 'de_gsd-ud-test.conllu']),
-           ('UD_German-HDT', 'CC BY-SA 4.0', ['de_hdt-ud-train-a-1.conllu', 'de_hdt-ud-dev.conllu'])],
+           ('UD_German-HDT', 'CC BY-SA 4.0 (annotation; its text is for academic use and is not used)', ['de_hdt-ud-train-a-1.conllu', 'de_hdt-ud-dev.conllu'])],
     'it': [('UD_Italian-Old', 'CC BY-SA 4.0', ['it_old-ud-train.conllu', 'it_old-ud-dev.conllu', 'it_old-ud-test.conllu']),
            ('UD_Italian-MarkIT', 'CC BY 4.0', ['it_markit-ud-train.conllu', 'it_markit-ud-dev.conllu', 'it_markit-ud-test.conllu']),
            ('UD_Italian-ParlaMint', 'CC BY-SA 4.0', ['it_parlamint-ud-train.conllu', 'it_parlamint-ud-test.conllu']),

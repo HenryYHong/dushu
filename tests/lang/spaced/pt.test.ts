@@ -61,7 +61,7 @@ describe('Portuguese keys, levels and hints', () => {
     expect(hints).toMatchObject({ Eu: 'I', não: 'not', tenho: 'to have', casa: 'house', mas: 'but', ir: 'to go' });
   });
 
-  it('credit Wiktionary and the frequency list with their licences', async () => {
+  it('credit Wiktionary and the frequency list with their licenses', async () => {
     const pt = await loadLang('pt');
     expect(pt.meta.sources.map((s) => s.license)).toContain('CC BY-SA 4.0 (and GFDL)');
     expect(pt.meta.counts.entries).toBeGreaterThan(40000);

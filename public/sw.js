@@ -92,6 +92,14 @@ self.addEventListener('activate', (event) => {
     for (const name of await caches.keys()) {
       if (name.startsWith('dushu-') && name !== APP_CACHE && name !== STATIC_CACHE && name !== FONT_CACHE && !langs.has(name)) await caches.delete(name);
     }
+    // A service worker from before the languages filed a language's files with the Chinese data (data/es/, samples/ja/ in
+    // the static cache). They are read only from the language's own cache now, so the copies there would only take room.
+    try {
+      const statics = await caches.open(STATIC_CACHE);
+      for (const req of await statics.keys()) {
+        if (langOf(relPath(new URL(req.url)))) await statics.delete(req);
+      }
+    } catch { /* a cache that cannot be read is left as it is */ }
     await self.clients.claim();
   })());
 });

@@ -765,7 +765,9 @@ export function createPager(o: PagerOptions): Pager {
     face.appendChild(chrome);
     if (page >= l.pages) return face;
     ensurePinyinPages(l, page, page);
-    const text = h('div.rd-article.rd-clone');
+    // The copy reads in the page's language, so the stylesheet sets it exactly as the page it shows (the rules for the other
+    // languages are :not(:lang(zh)); without lang a Chinese copy took them, and its lines broke differently mid-turn).
+    const text = h('div.rd-article.rd-clone', { lang: l.view.el.lang || null });
     face.appendChild(text);
     // Pinyin hangs above the first line of a block; leave room for it above the window.
     const head = Math.ceil(settings().fontSize * 1.2);

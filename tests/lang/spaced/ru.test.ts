@@ -69,7 +69,7 @@ describe('Russian keys, levels and hints', () => {
     expect(hints['Это']).toMatch(/^this/);
   });
 
-  it('credit Wiktionary and the frequency list with their licences', async () => {
+  it('credit Wiktionary and the frequency list with their licenses', async () => {
     const ru = await loadLang('ru');
     expect(ru.meta.sources.map((s) => s.license)).toContain('CC BY-SA 4.0 (and GFDL)');
     expect(ru.meta.counts.entries).toBeGreaterThan(40000);

@@ -18,7 +18,11 @@ const BOOKS: { id: Id; book: string; found: number; unknown: number }[] = [
   { id: 'ru', book: 'ru-kashtanka', found: 0.945, unknown: 0.03 },
 ];
 
-/** CPU budget for segmenting 10,000 characters of the book, warm (a laptop takes 4 to 15 ms). */
+/**
+ * Budget for segmenting 10,000 characters of the book, warm: the best wall time of five runs (a laptop takes 10 to 45 ms).
+ * Wall, not CPU: the process's CPU time counts V8's background compiler and collector threads, 2 to 4 times the wall time
+ * and swinging from run to run, which failed the deploy's build now and then for no slowness a reader would see.
+ */
 const SEGMENT_10K_MS = 60;
 
 describe.each(BOOKS)('$id on $book', ({ id, book, found, unknown }) => {
@@ -55,10 +59,10 @@ describe.each(BOOKS)('$id on $book', ({ id, book, found, unknown }) => {
     const text = (await fixture(book)).join('\n\n').slice(0, 10000);
     expect(text.length).toBe(10000);
     // The words were met above, so this times the reading of a page (context, names, stress), not the first lookups.
-    eng.segment(text.slice(0, 1500)); // warm up the JIT
-    const runs = [0, 1, 2].map(() => measure(() => eng.segment(text)));
-    const best = Math.min(...runs.map((r) => r.cpu));
-    console.log(`${id} segment 10,000 chars: ${best.toFixed(0)} ms cpu (${runs.map((r) => r.wall.toFixed(0)).join(', ')} ms wall)`);
+    eng.segment(text); // warm up the JIT on the whole page
+    const runs = [0, 1, 2, 3, 4].map(() => measure(() => eng.segment(text)));
+    const best = Math.min(...runs.map((r) => r.wall));
+    console.log(`${id} segment 10,000 chars: ${best.toFixed(0)} ms wall at best (${runs.map((r) => r.cpu.toFixed(0)).join(', ')} ms cpu)`);
     expect(best).toBeLessThan(SEGMENT_10K_MS * PERF_SLACK);
   }, 60000);
 });

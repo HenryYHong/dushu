@@ -45,7 +45,7 @@ What it writes to public/data/<id>/ (the engine in src/lang/spaced/ reads it; th
                    not sum to 100: each section of a key gets the key's share, and a proper noun the line's highest.
   phrases.tsv.gz   fixed phrases: words folded lower-case and cut as the engine cuts them ("c' est à dire"), the hint,
                    then senses as in entries.tsv.gz (write_phrases).
-  meta.json        build date, counts, sources and licences.
+  meta.json        build date, counts, sources and licenses.
 
 Rules are found on folded strings: the engine folds a word on the page the same way, cuts it at every point, and asks
 which rules add what follows the cut; the key is what precedes the cut plus what the rule removed. Nothing needs to
@@ -2701,12 +2701,13 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
         'counts': counts,
         'sources': [
             {'name': f'English Wiktionary ({cfg["name"]} entries), extracted by kaikki.org (wiktextract)',
-             'license': 'CC BY-SA 4.0 (and GFDL)', 'url': kaikki.kaikki_url(cfg['name'])},
+             'license': 'CC BY-SA 4.0 (and GFDL)', 'url': f'https://kaikki.org/dictionary/{cfg["name"]}/'},
+            # The pages that credit the work and carry its license, not the raw files the builder downloads.
             {'name': 'FrequencyWords (OpenSubtitles 2018 full list), Hermit Dave',
-             'license': 'CC BY-SA 4.0', 'url': FREQ_URL.format(c=cfg['freq'])},
+             'license': 'CC BY-SA 4.0', 'url': 'https://github.com/hermitdave/FrequencyWords'},
             {'name': 'FrequencyWords English list (to choose the plainest English hint), Hermit Dave',
              'license': 'CC BY-SA 4.0',
-             'url': EN_FREQ_URL},
+             'url': 'https://github.com/hermitdave/FrequencyWords'},
             *ud.sources(code),
         ],
     }

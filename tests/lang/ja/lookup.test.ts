@@ -188,7 +188,7 @@ describe('levels, hints, meta', () => {
     expect(ja.hint({ text: '。', start: 0, end: 1, kind: 'punct', inDict: false })).toBeUndefined();
   });
 
-  it('describes its data and every licence', () => {
+  it('describes its data and every license', () => {
     expect(ja.meta.built).toMatch(/^\d{4}-\d\d-\d\d$/);
     expect(ja.meta.counts.entries).toBeGreaterThan(200000);
     expect(ja.meta.counts.kanji).toBeGreaterThan(10000);

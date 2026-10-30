@@ -39,7 +39,7 @@
     },
     {
       "name": "IPADIC 2.7.0 (mecab-ipadic), as packaged by kuromoji.js",
-      "license": "IPADIC licence (free use, modification and redistribution with the copyright notice; NAIST and ICOT)",
+      "license": "IPADIC license (free use, modification and redistribution with the copyright notice; NAIST and ICOT)",
       "url": "https://github.com/taku910/mecab/tree/master/mecab-ipadic"
     },
     {

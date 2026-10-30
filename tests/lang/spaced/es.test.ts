@@ -148,7 +148,7 @@ describe('Spanish keys, levels and hints', () => {
     }
   });
 
-  it('credit Wiktionary and the frequency list with their licences', async () => {
+  it('credit Wiktionary and the frequency list with their licenses', async () => {
     const es = await loadLang('es');
     expect(es.meta.sources.map((s) => s.license)).toContain('CC BY-SA 4.0 (and GFDL)');
     expect(es.meta.sources.some((s) => /FrequencyWords/.test(s.name))).toBe(true);

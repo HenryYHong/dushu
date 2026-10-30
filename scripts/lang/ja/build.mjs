@@ -3,7 +3,7 @@
 //   kuromoji/*.dat.gz  IPADIC as kuromoji.js ships it (the zero padding at the end of some files removed)
 //   jmdict.tsv.gz      JMdict (English), one entry per line, with JLPT levels
 //   kanji.tsv.gz       KANJIDIC2: meanings, readings, strokes, grade, old JLPT level
-//   meta.json          build date, counts, sources and licences
+//   meta.json          build date, counts, sources and licenses
 //
 // Usage: node scripts/lang/ja/build.mjs [--work <dir>]
 // Downloads go to <dir> (default: $TMPDIR/dushu-ja-build); they are kept for the next run unless --clean is given.
@@ -81,7 +81,7 @@ function buildKuromoji() {
     writeFileSync(join(dir, `${name}.gz`), out);
     sizes[`kuromoji/${name}.gz`] = out.length;
   }
-  // IPADIC's licence asks for its notice in every copy; kuromoji's NOTICE.md carries it.
+  // IPADIC's license asks for its notice in every copy; kuromoji's NOTICE.md carries it.
   writeFileSync(join(dir, 'NOTICE.md'), readFileSync(join(KUROMOJI, '..', 'NOTICE.md')));
   return sizes;
 }
@@ -300,7 +300,7 @@ async function main() {
       { name: 'jmdict-simplified (JSON edition of JMdict and KANJIDIC2)', license: 'CC BY-SA 4.0 (data), MIT (code)', url: 'https://github.com/scriptin/jmdict-simplified' },
       { name: 'JLPT word lists by Jonathan Waller (tanos.co.uk)', license: 'CC BY', url: 'http://www.tanos.co.uk/jlpt/' },
       { name: 'yomitan-jlpt-vocab: Waller\'s lists matched to JMdict entries, by Stephen Kraus', license: 'CC BY-SA 4.0', url: 'https://github.com/stephenmk/yomitan-jlpt-vocab' },
-      { name: 'IPADIC 2.7.0 (mecab-ipadic), as packaged by kuromoji.js', license: 'IPADIC licence (free use, modification and redistribution with the copyright notice; NAIST and ICOT)', url: 'https://github.com/taku910/mecab/tree/master/mecab-ipadic' },
+      { name: 'IPADIC 2.7.0 (mecab-ipadic), as packaged by kuromoji.js', license: 'IPADIC license (free use, modification and redistribution with the copyright notice; NAIST and ICOT)', url: 'https://github.com/taku910/mecab/tree/master/mecab-ipadic' },
       { name: 'kuromoji.js 0.1.2 (Takuya Asano, Atilika Inc.; dictionary format and Viterbi search, ported in src/lang/ja/ipadic.ts)', license: 'Apache-2.0', url: 'https://github.com/takuyaa/kuromoji.js' },
     ],
     files: sizes,

@@ -10,6 +10,7 @@ import { isAccountOwner } from '../../core/cloud';
 import { activeEngine, isChinese, lang, syncsHere } from '../../lang/active';
 import { aidWord, levelScheme } from '../../lang/labels';
 import type { LangId } from '../../lang/types';
+import { fetchSamples } from '../library/samples';
 
 export { SHORTCUTS };
 
@@ -215,14 +216,48 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
         h('dl.ab-keys-list', null, g.rows.map((r) => h('div.ab-key-row', null, h('dt', null, keyCaps(r)), h('dd', null, r.what)))))))),
     h('section.ab-section', null,
       h('h2.section-title', null, 'Data sources and licenses'),
-      h('p.ab-p', null, 'The dictionaries are shared under their own licenses, listed here. Their definitions are used and adapted under those licenses, and the dictionary data stays under them. The covers of the classics are public-domain paintings; each book says which in its note.'),
+      h('p.ab-p', null, 'The dictionaries are shared under their own licenses, listed here with each one. Their definitions are used and adapted under those licenses, and the dictionary data stays under them. Thanks to everyone who wrote them.'),
       sources.length
         ? h('div.ab-table.card', { role: 'table', 'aria-label': 'Data sources' },
             [...sources, { name: 'Newsreader', license: 'SIL Open Font License 1.1', url: 'https://github.com/productiontype/Newsreader' }].map((src) => h('div.ab-source', { role: 'row' },
               h('div.ab-source-main', { role: 'cell' }, h('a.ab-source-name', { href: src.url, target: '_blank', rel: 'noopener' }, src.name, icon('external'))),
-              h('span.ab-source-license', { role: 'cell' }, src.license))))
+              h('span.ab-source-license', { role: 'cell' }, licenseLink(src.license)))))
         : h('p.muted', null, loading ? 'Loading…' : 'The source list is not available right now.')),
+    coversSection(),
   );
+}
+
+/** The licenses the sources name, by how their name starts, with the page that holds each one's terms. */
+const LICENSE_URLS: [RegExp, string][] = [
+  [/^CC BY-SA 4\.0/, 'https://creativecommons.org/licenses/by-sa/4.0/'],
+  [/^CC BY-SA 3\.0/, 'https://creativecommons.org/licenses/by-sa/3.0/'],
+  [/^CC BY 4\.0/, 'https://creativecommons.org/licenses/by/4.0/'],
+  [/^CC0/, 'https://creativecommons.org/publicdomain/zero/1.0/'],
+  [/^Apache-2\.0/, 'https://www.apache.org/licenses/LICENSE-2.0'],
+  [/^SIL Open Font License/, 'https://openfontlicense.org/'],
+  [/^MIT\b/, 'https://opensource.org/license/mit'],
+];
+
+/** A license as a link to its terms when it is one of the known ones (CC BY-SA asks for that), else as text. */
+function licenseLink(license: string): Node {
+  const url = LICENSE_URLS.find(([re]) => re.test(license))?.[1];
+  return url ? h('a', { href: url, target: '_blank', rel: 'noopener' }, license) : document.createTextNode(license);
+}
+
+/** Each classic's cover painting, by book: filled in when the language's list of classics has loaded. */
+function coversSection(): HTMLElement {
+  const list = h('ul.ab-steps');
+  const section = h('section.ab-section', { hidden: true },
+    h('h2.section-title', null, 'Covers'),
+    h('p.ab-p', null, 'The classics wear public-domain paintings and drawings.'),
+    list);
+  void fetchSamples().then((samples) => {
+    const credited = samples.filter((s) => s.coverCredit);
+    if (!credited.length) return;
+    for (const s of credited) list.appendChild(h('li', null, h('span', { lang: lang().tag }, s.title), ': ', s.coverCredit!));
+    section.hidden = false;
+  });
+  return section;
 }
 
 function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {

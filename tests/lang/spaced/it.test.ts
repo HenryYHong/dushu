@@ -54,7 +54,7 @@ describe('Italian keys, levels and hints', () => {
     expect(hints).toMatchObject({ Il: 'the', aveva: 'to have', casa: 'house', e: 'and', voleva: 'to want', fare: 'to do, make' });
   });
 
-  it('credit Wiktionary and the frequency list with their licences', async () => {
+  it('credit Wiktionary and the frequency list with their licenses', async () => {
     const it_ = await loadLang('it');
     expect(it_.meta.sources.map((s) => s.license)).toContain('CC BY-SA 4.0 (and GFDL)');
     expect(it_.meta.counts.entries).toBeGreaterThan(80000);

@@ -3,11 +3,11 @@
 Set SAMPLES_CACHE to a scratch directory (downloads are cached there, never in the repo).
 Run scripts with `python3 -I` from anywhere; build_<lang>.py import this module via sys.path.
 """
-import json, os, re, subprocess, sys, unicodedata
+import json, os, re, subprocess, sys, tempfile, unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-CACHE = os.environ.get('SAMPLES_CACHE') or '/private/tmp/claude-501/-Users-henryhong/66587f90-0e17-4554-a541-9c383a79266b/scratchpad/samples-build/cache'
+CACHE = os.environ.get('SAMPLES_CACHE') or os.path.join(tempfile.gettempdir(), 'dushu-samples')
 os.makedirs(CACHE, exist_ok=True)
 
 def _run(*a):
@@ -16,7 +16,7 @@ def _run(*a):
     return r.stdout
 
 def gutenberg(ebook):
-    """Plain text of a Project Gutenberg ebook, header/footer/licence removed."""
+    """Plain text of a Project Gutenberg ebook, header/footer/license removed."""
     dl, out = os.path.join(CACHE, f'pg{ebook}.dl'), os.path.join(CACHE, f'pg{ebook}.txt')
     if not os.path.exists(out):
         _run(os.path.join(HERE, 'fetch.sh'), 'gutenberg', str(ebook), dl)

@@ -189,7 +189,20 @@ On the hosted site, everything is local to your browser. Books, saved words, pro
 | hanzi-writer, hanzi-writer-data | Stroke-order animation | MIT, Arphic Public License |
 | Wikisource | The bundled classics (all public domain) | public domain |
 
-The About page in the app lists the same sources with links.
+The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Russian) add:
+
+| Source | Used for | License |
+|---|---|---|
+| JMdict and KANJIDIC2 (EDRDG), via jmdict-simplified | Japanese words, readings, senses and kanji | CC BY-SA 4.0 |
+| IPADIC 2.7.0, as packaged by kuromoji.js | Cutting Japanese text into words | IPADIC license (notice kept), Apache-2.0 |
+| JLPT lists (Jonathan Waller), matched by yomitan-jlpt-vocab | Japanese levels | CC BY 4.0 |
+| English Wiktionary via kaikki.org (wiktextract) | Words, forms and senses of the European languages and Russian | CC BY-SA 4.0 (and GFDL) |
+| FrequencyWords (Hermit Dave, OpenSubtitles 2018) | How common a word is; the plainest English hint | CC BY-SA 4.0 |
+| Universal Dependencies treebanks | Counts of which lemma and part of speech a spelling usually is (no treebank text is used) | each treebank's license, listed in the app |
+| Aozora Bunko, Project Gutenberg, Wikisource | The bundled classics (public domain in the United States) | public domain |
+| Wikimedia Commons and museum open-access images | The classics' cover paintings (public domain) | public domain |
+
+The About page in the app lists every source with a link and its license, and the cover painting of each classic.
 
 ## Fonts and icons
 

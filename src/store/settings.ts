@@ -163,6 +163,23 @@ function sharedTarget(storage: Storage | undefined): { to: string; at?: number }
   } catch { return undefined; } // blocked storage or a value that is not ours: the library's own value stands
 }
 
+/**
+ * "Local only" is the reader's too, not one library's: a reader who chose never to send a sentence to an online translator
+ * while reading Chinese has not chosen otherwise by opening a Spanish book. '1' or '0', written when it changes in any library;
+ * a library that finds no key yet takes the Chinese library's choice (a reader who set it before languages existed).
+ */
+export const LOCAL_ONLY_KEY = 'dushu.local-only.v1';
+
+function sharedLocalOnly(storage: Storage | undefined, id: LangId): boolean | undefined {
+  try {
+    const raw = storage?.getItem(LOCAL_ONLY_KEY);
+    if (raw === '1' || raw === '0') return raw === '1';
+    if (id === 'zh') return undefined;
+    const zh = JSON.parse(storage?.getItem(CHINESE_KEY) ?? 'null') as { localOnly?: unknown } | null;
+    return typeof zh?.localOnly === 'boolean' ? zh.localOnly : undefined;
+  } catch { return undefined; } // blocked storage or a value that is not ours: the library's own value stands
+}
+
 /** Set once a device has moved to simplified characters, the default since 2026-10-24 (before, it was "As written"). */
 const SIMPLIFIED_KEY = 'dushu.settings.simplified.v1';
 /** Set once a device has moved to the Pages layout (reading like a book), the default since 2026-10-25 (before, Scroll). */
@@ -206,6 +223,12 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
   // The reader's language as last chosen in any library (a store that never had one keeps English).
   const shared = sharedTarget(storage)?.to;
   if (shared && shared !== s.translateTo) s = { ...s, translateTo: shared };
+  // Local only as last chosen in any library; the Chinese library seeds the key with its own choice the first time.
+  const localOnly = sharedLocalOnly(storage, id);
+  if (localOnly !== undefined && localOnly !== s.localOnly) s = { ...s, localOnly };
+  else if (localOnly === undefined && id === 'zh') {
+    try { storage?.setItem(LOCAL_ONLY_KEY, s.localOnly ? '1' : '0'); } catch { /* read-only storage */ }
+  }
   const subs = new Set<(s: Settings, changed: (keyof Settings)[]) => void>();
   const notify = (changed: (keyof Settings)[]) => {
     for (const fn of [...subs]) {
@@ -217,10 +240,11 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
   if (storage && typeof globalThis.addEventListener === 'function') {
     globalThis.addEventListener('storage', (e: Event) => {
       const ev = e as StorageEvent;
-      if (ev.storageArea !== storage || (ev.key !== SETTINGS_KEY && ev.key !== TARGET_KEY && ev.key !== null)) return;
+      if (ev.storageArea !== storage || (ev.key !== SETTINGS_KEY && ev.key !== TARGET_KEY && ev.key !== LOCAL_ONLY_KEY && ev.key !== null)) return;
       const next = load(storage, SETTINGS_KEY, defaults);
-      // A tab reading another language changed the reader's language: this library follows.
+      // A tab reading another language changed the reader's language or Local only: this library follows.
       next.translateTo = sharedTarget(storage)?.to ?? next.translateTo;
+      next.localOnly = sharedLocalOnly(storage, id) ?? next.localOnly;
       const changed = KEYS.filter((k) => next[k] !== s[k]);
       s = next;
       if (changed.length) notify(changed);
@@ -236,6 +260,7 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
       try {
         storage?.setItem(SETTINGS_KEY, JSON.stringify(s));
         if (changed.includes('translateTo')) storage?.setItem(TARGET_KEY, JSON.stringify({ to: s.translateTo, at: Date.now() }));
+        if (changed.includes('localOnly')) storage?.setItem(LOCAL_ONLY_KEY, s.localOnly ? '1' : '0');
       } catch { /* private mode or quota: keep in memory */ }
       notify(changed);
     },

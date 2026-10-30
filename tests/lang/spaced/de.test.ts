@@ -78,7 +78,7 @@ describe('German keys, levels and hints', () => {
     expect(hints).toMatchObject({ Ich: 'I', habe: 'to have', Haus: 'house', und: 'and', nicht: 'not', hier: 'here' });
   });
 
-  it('credit Wiktionary and the frequency list with their licences', async () => {
+  it('credit Wiktionary and the frequency list with their licenses', async () => {
     const de = await loadLang('de');
     expect(de.meta.sources.map((s) => s.license)).toContain('CC BY-SA 4.0 (and GFDL)');
     expect(de.meta.counts.entries).toBeGreaterThan(60000);
