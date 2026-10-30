@@ -322,7 +322,7 @@ describe('Aozora ruby', () => {
       { t: 'p', text: '杜子春《とししゅん》は驚いて、上手《じょうず》に話した。清《きよ》' },
       { t: 'p', text: '上手《うわて》に出た。' },
     ] }]);
-    expect(book[0].blocks[0]).toEqual({ t: 'p', text: '杜子春という若者がいました。上手な清', ruby: [{ start: 0, end: 3, rt: 'とししゅん' }] });
+    expect(book[0].blocks[0]).toEqual({ t: 'p', text: '杜子春という若者がいました。上手な清', ruby: [{ start: 0, end: 3, rt: 'とししゅん', inferred: true }] });
   });
 
   it('comes out of a Japanese import and is passed to the engine with the paragraph', async () => {

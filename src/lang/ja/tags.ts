@@ -86,3 +86,14 @@ export function tagNotes(tags: readonly string[]): string[] {
 export function isFringeSense(tags: readonly string[]): boolean {
   return tags.includes('arch') || tags.includes('obs') || tags.includes('rare');
 }
+
+/** Registers a reader of a novel meets only now and then: slang, euphemism, the vulgar, a dialect, children's words. */
+const MARKED = new Set(['col', 'sl', 'net-sl', 'm-sl', 'euph', 'vulg', 'X', 'derog', 'sens', 'chn', 'joc', 'dated', 'hist']);
+
+/**
+ * A sense that is not the plain word: fringe (above), colloquial, slang, euphemism, dialect, or a specialist's (sumo,
+ * Buddhism, anatomy). Never moved ahead of a plain one: あそこ is "there" before it is "genitals", 筈 "should" before "nock".
+ */
+export function isMarkedSense(tags: readonly string[]): boolean {
+  return isFringeSense(tags) || tags.some((t) => MARKED.has(t) || t in DIALECT || t in FIELD);
+}

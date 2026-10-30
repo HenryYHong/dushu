@@ -46,6 +46,11 @@ export interface Word {
    * between. `reading` and `lemmaReading` then follow the print, and only dictionary entries read that way fit the word.
    */
   printed?: RubyPart[];
+  /**
+   * The senses its use on the page points to, as a pattern over a sense's glosses and notes: those go first. Set by the
+   * engine from the words around it (と after a quotation is /quot/, ため after a clause /^(sake|consequence)/).
+   */
+  use?: RegExp;
 }
 
 export type WordClass = 'verb' | 'adj' | 'noun' | 'adjna' | 'pronoun' | 'adverb' | 'particle' | 'conj' | 'interj' | 'prenoun' | 'aux' | 'prefix' | 'suffix' | 'counter' | 'number' | 'symbol' | 'other';
@@ -206,7 +211,11 @@ function auxLabel(b: Builder, m: Morpheme, next: Morpheme | undefined): string[]
   if (m.pos === '形容詞' && m.base === 'ない' && prev === b.head && b.head.pos === '動詞' && b.head.cform.startsWith('命令') && b.head.ctype.startsWith('五段')) return ['potential', 'negative'];
   if (m.pos === '形容詞' && m.pos1 === '非自立' && m.base === 'ほしい' && b.afterTe) { b.afterTe = false; return ['want someone to (te hoshii)']; }
   if (m.pos === '名詞' && m.pos1 === '接尾' && m.pos2 === '助動詞語幹' && m.base === 'そう') return ['looks like (sou)'];
-  if (m.pos === '名詞' && m.pos1 === '接尾' && m.pos2 === '特殊' && (m.base === 'さ' || m.base === 'み') && b.head.pos === '形容詞' && prev === b.head) return ['noun (-' + (m.base === 'さ' ? 'sa' : 'mi') + ')'];
+  if (m.pos === '名詞' && m.pos1 === '接尾' && m.pos2 === '特殊' && (m.base === 'さ' || m.base === 'み') && b.head.pos === '形容詞' && prev === b.head) {
+    // なさそう, よさそう: the さ that ない and よい take before そう, no noun.
+    if (m.base === 'さ' && next?.pos2 === '助動詞語幹' && next.base === 'そう') return [];
+    return ['noun (-' + (m.base === 'さ' ? 'sa' : 'mi') + ')'];
+  }
   return null;
 }
 
@@ -393,6 +402,11 @@ export function groupWords(ms: Morpheme[], ctx: WordContext): Word[] {
     if (nk) w.name = nk;
     // ん in んだ, なんです is the explanatory の said quickly: defined under の.
     if (cls === 'particle' && m.pos === '名詞' && m.surface === 'ん') { w.lemma = 'の'; w.lemmaReading = 'の'; w.forms = ['contraction']; }
+    // A dependent noun said the same way, ん for の (妙なおやじがあったもんだ: もの, not 門 "gate"), is defined under its full form.
+    else if (m.pos === '名詞' && m.pos1 === '非自立' && m.surface.length > 1 && m.surface.endsWith('ん') && ctx.has(m.surface.slice(0, -1) + 'の')) {
+      w.lemma = w.lemmaReading = m.surface.slice(0, -1) + 'の';
+      w.forms = ['contraction'];
+    }
     out.push(w);
     i++;
   }

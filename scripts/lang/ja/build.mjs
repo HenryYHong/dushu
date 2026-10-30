@@ -106,25 +106,69 @@ function formText(f, flags, extra = '') {
   return clean(f.text) + (fl ? `#${fl}` : '') + extra;
 }
 
-/** JLPT level per JMdict entry number: 1 = N5 (easiest) … 5 = N1; a word on two lists keeps the easier. */
-function readJlpt() {
+/**
+ * JLPT level per JMdict entry number: 1 = N5 (easiest) … 5 = N1; a word on two lists keeps the easier. Each row's spelling
+ * (its kanji and kana columns, when the file has them) is kept for the entry numbers this JMdict no longer has.
+ */
+export function readJlpt(work = WORK) {
   const level = new Map();
+  const spelled = [];
   let rows = 0;
   for (const n of [5, 4, 3, 2, 1]) {
-    const lines = readFileSync(join(WORK, `jlpt-n${n}.csv`), 'utf8').split('\n').slice(1);
+    const [head = '', ...lines] = readFileSync(join(work, `jlpt-n${n}.csv`), 'utf8').split('\n');
+    const cols = head.split(',').map((c) => c.trim().toLowerCase());
+    const ki = cols.indexOf('kanji');
+    const ka = cols.indexOf('kana');
     for (const line of lines) {
-      const id = line.split(',')[0]?.trim();
+      const cells = line.split(',');
+      const id = cells[0]?.trim();
       if (!/^\d+$/.test(id)) continue;
       rows++;
       const lv = 6 - n;
       if (!level.has(id) || level.get(id) > lv) level.set(id, lv);
+      if (ki > 0 || ka > 0) spelled.push({ id, lv, kanji: ki > 0 ? (cells[ki] ?? '').trim() : '', kana: ka > 0 ? (cells[ka] ?? '').trim() : '' });
     }
   }
-  return { level, rows };
+  return { level, rows, spelled };
+}
+
+/**
+ * Rows whose entry number this JMdict does not have (merged or renumbered since the lists were matched to it: 顔, 父 and 母,
+ * N5 words, came out with no level) go to the entry spelled with their kanji and read with their kana, a common one first.
+ * Returns the rows left unmatched.
+ */
+export function matchBySpelling(words, jlpt) {
+  const known = new Set(words.map((w) => w.id));
+  const lost = jlpt.spelled.filter((r) => !known.has(r.id) && (r.kanji || r.kana));
+  if (!lost.length) return [];
+  const want = new Set(lost.map((r) => r.kanji || r.kana));
+  const byForm = new Map();
+  for (const w of words) {
+    for (const f of [...w.kanji, ...w.kana]) {
+      if (!want.has(f.text)) continue;
+      const list = byForm.get(f.text) ?? [];
+      if (!list.includes(w)) list.push(w);
+      byForm.set(f.text, list);
+    }
+  }
+  const left = [];
+  for (const r of lost) {
+    const found = (byForm.get(r.kanji || r.kana) ?? []).filter((w) => !r.kana || w.kana.some((k) => k.text === r.kana));
+    const w = found.find((x) => x.kanji.some((k) => k.common) || x.kana.some((k) => k.common)) ?? found[0];
+    if (!w) { left.push(r); continue; }
+    jlpt.level.delete(r.id);
+    if (!jlpt.level.has(w.id) || jlpt.level.get(w.id) > r.lv) jlpt.level.set(w.id, r.lv);
+  }
+  return left;
 }
 
 function buildJmdict(jlpt) {
   const j = readZipJson(join(WORK, JMDICT_ZIP));
+  // A beginner's word (N5, N4) the lists name but this JMdict cannot be matched to stops the build; harder ones are listed.
+  const left = matchBySpelling(j.words, jlpt);
+  if (left.length) console.warn(`JLPT: ${left.length} rows match no entry by number or spelling: ${left.slice(0, 20).map((r) => `${r.kanji || r.kana} (N${6 - r.lv})`).join(' ')}`);
+  const basic = left.filter((r) => r.lv <= 2);
+  if (basic.length) throw new Error(`JLPT: N5/N4 words with no entry: ${basic.map((r) => r.kanji || r.kana).join(' ')}`);
   const lines = [];
   const counts = { entries: 0, senses: 0, glosses: 0, jlptEntries: 0, common: 0 };
   const usedKanji = new Set();
@@ -270,4 +314,5 @@ async function main() {
   if (CLEAN) rmSync(WORK, { recursive: true, force: true });
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// Run as a script; imported (by a test of the JLPT matching), only the functions.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((e) => { console.error(e); process.exit(1); });

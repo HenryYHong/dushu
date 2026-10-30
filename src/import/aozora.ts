@@ -57,8 +57,10 @@ export function parseAozoraRuby(text: string): { text: string; ruby: RubySpan[] 
 
 /**
  * Every block and title of a Japanese book with its ruby notation taken out (the readings kept on the blocks). A run of
- * two or more kanji the book reads one way wherever it prints a reading also gets that reading where it prints none:
- * 杜子春 has its 《とししゅん》 once, in the middle of the story, and is the hero's name from the first line.
+ * two or more kanji the book reads one way wherever it prints a reading also gets that reading where it prints none,
+ * marked inferred: 杜子春 has its 《とししゅん》 once, in the middle of the story, and is the hero's name from the first line.
+ * The engine takes an inferred reading only for a word its dictionary lacks: 閉口《へこ》 printed once is a gloss of that
+ * one place, and 閉口 elsewhere stays へいこう.
  */
 export function takeAozoraRuby(chapters: Chapter[]): Chapter[] {
   const parsed = chapters.map((c) => ({
@@ -91,7 +93,7 @@ export function takeAozoraRuby(chapters: Chapter[]): Chapter[] {
       for (const m of b.text.matchAll(KANJI_RUNS)) {
         const rt = read.get(m[0]);
         const start = m.index, end = start + m[0].length;
-        if (rt && !own.some((r) => r.start < end && r.end > start)) added.push({ start, end, rt });
+        if (rt && !own.some((r) => r.start < end && r.end > start)) added.push({ start, end, rt, inferred: true });
       }
       return added.length ? { ...b, ruby: [...own, ...added].sort((x, y) => x.start - y.start) } : b;
     }),

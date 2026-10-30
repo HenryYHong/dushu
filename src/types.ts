@@ -133,7 +133,13 @@ export type Script = 'simplified' | 'traditional' | 'mixed' | 'unknown';
  * A reading the book itself prints over a stretch of its text (Aozora Bunko's 杜子春《とししゅん》): UTF-16 offsets into the
  * block's text, end exclusive. Japanese only for now (import/aozora.ts); the engine takes it over its own guess.
  */
-export interface RubySpan { start: number; end: number; rt: string }
+export interface RubySpan {
+  start: number;
+  end: number;
+  rt: string;
+  /** Not printed here: the book prints this reading over the same kanji elsewhere (import/aozora.ts takeAozoraRuby). */
+  inferred?: true;
+}
 
 export type Block =
   | { t: 'p'; text: string; ruby?: RubySpan[] }

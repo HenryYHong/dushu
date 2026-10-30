@@ -17,6 +17,7 @@ function tok(sentence: string, word: string): Token {
 const tap = (sentence: string, word: string): WordLookup => ja.lookup(word, { token: tok(sentence, word) });
 const gloss = (sentence: string, word: string) => tap(sentence, word).entries[0]?.senses[0]?.glosses[0];
 const furigana = (t: Token) => (t.ruby ?? []).map((p) => (p.rt ? `${p.text}(${p.rt})` : p.text)).join('');
+const texts = (sentence: string) => ja.segment(sentence).map((t) => t.text);
 
 describe('grammar words', () => {
   it('reads the の that makes a clause a noun, and the ん of explanation, as the particle の (not 野 "field")', () => {
@@ -176,5 +177,113 @@ describe('words IPADIC cuts up', () => {
   it('reads 云えない as the potential, and 十三四 as thirteen or fourteen', () => {
     expect(tap('何とも云えない好い匂が、絶間なくあたりへ溢れて居ります。', '云えない').form).toBe('potential negative');
     expect(tok('この質屋に勘太郎という十三四の倅が居た。', '十三四').reading).toBe('じゅうさんよん');
+  });
+});
+
+describe('senses the page chooses (a second audit)', () => {
+  it('keeps JMdict’s first sense when it can be the word on the page, and never moves a colloquial one ahead', () => {
+    // ある and ござる after で are the copula, "to be"; their (after -te) senses are for てある.
+    expect(gloss('ただ懲役に行かないで生きているばかりである。', 'ある')).toBe('to be');
+    expect(gloss('極楽は丁度朝なのでございましょう。', 'ございましょう')).toBe('to be');
+    // A number, はず, 否や, あすこ: IPADIC's nouns, and JMdict's first senses fit them.
+    expect(gloss('この犍陀多と云う男は、人を殺したり家に火をつけたり、いろいろ悪事を働いた大泥坊でございますが、それでもたった一つ、善い事を致した覚えがございます。', '一つ')).toBe('one');
+    expect(gloss('こう考えて見ると、今でも相続が出来るはずだ。', 'はず')).toMatch(/^should/);
+    expect(gloss('墨のような黒雲が一面にあたりをとざすや否や、うす紫の稲妻がやにわに闇を二つに裂いて', '否や')).toMatch(/^as soon as/);
+    expect(gloss('「先生のお宅の墓地はあすこにあるんですか」と私がまた口を利き出した。', 'あすこ')).toMatch(/^there/);
+    expect(gloss('「また来ましたね」といった。', 'また')).toBe('again');
+    expect(gloss('そこで、そうかね、もう死ぬのかね、と上から覗き込むようにして聞いて見た。', '上から')).toBe('from above');
+    // ない after じゃ is "not", an auxiliary's sense, not "nonexistent".
+    expect(gloss('「若い時はあんな人じゃなかったんですよ。', 'なかった')).toBe('not');
+    // An adverb whose first sense is a noun's moves its adverb ahead: 幸い "luckily".
+    expect(gloss('幸い、側を見ますと、翡翠のような色をした蓮の葉の上に、極楽の蜘蛛が一匹', '幸い')).toMatch(/^luckily/);
+  });
+
+  it('reads a na-adjective before a verb as an adverb, and before the copula as the adjective (大変)', () => {
+    expect(gloss('口惜しかったから、兄の横っ面を張って大変叱られた。', '大変')).toBe('very');
+    expect(gloss('そんな事があったら、大変でございます。', '大変')).not.toBe('very');
+  });
+
+  it('takes a と alone after a quotation for the particle that quotes, not 戸 "door"', () => {
+    const s = '「お前は何を考えているのだ」と、横柄に声をかけました。';
+    expect(tok(s, 'と').key).toBe('と');
+    expect(gloss(s, 'と')).toMatch(/quot/);
+    // 何を is 何 "what" and を here, not 何を "why".
+    expect(tok(s, '何').key).toBe('何');
+  });
+
+  it('chooses the sense of ため, 通り, ほか, 以上 and な by the words around them', () => {
+    expect(gloss('おれのために、おっかさんが早く死んだんだと云った。', 'ため')).toMatch(/^sake/);
+    expect(gloss('ましてとうとう三年目の春、又杜子春が以前の通り、一文無しになって見ると', '通り')).toMatch(/same way/);
+    expect(gloss('するとその地獄の底に、犍陀多と云う男が一人、ほかの罪人と一しょに蠢いている姿が、御眼に止まりました。', 'ほか')).toMatch(/^another \(/);
+    expect(gloss('引き受けた以上は赴任せねばならぬ。', '以上')).toMatch(/^since/);
+    // な ending a sentence after だ stresses it; "don't" follows only a verb's dictionary form.
+    expect(gloss('「そうか。それは可哀そうだな」', 'な')).not.toBe("don't");
+    expect(gloss('早く行くな', 'な')).toBe("don't");
+  });
+
+  it('reads め after a noun as the suffix that scorns, not 目, and an ordinal 目 by its parts', () => {
+    expect(tok('「この剛情者め。どうしても返事をしなければ、', 'め').key).not.toBe('目');
+    expect(gloss('「この剛情者め。どうしても返事をしなければ、', 'め')).toMatch(/damn/);
+    const third = tap('ましてとうとう三年目の春、又杜子春が以前の通り、一文無しになって見ると', '三年目');
+    expect(third.parts?.map((p) => p.text).join('')).toBe('三年目');
+    expect(third.parts?.[third.parts.length - 1].gloss).toMatch(/ordinal/);
+  });
+
+  it('reads kana words by the words around them: もん is もの, いけない the word いけない, かい the question, つく 付く', () => {
+    expect(tok('妙なおやじがあったもんだ。', 'もん').key).toBe('物');
+    expect(tap('妙なおやじがあったもんだ。', 'もん').form).toBe('contraction');
+    expect(tok('お母さんがあまり仰山な手紙を書くものだからいけない」', 'いけない').key).toBe('いけない');
+    const must = tap('「しかし気を付けないといけない。恋は罪悪なんだから。', '付けないといけない');
+    expect(must).toMatchObject({ key: 'つける', form: 'must (nai to ikenai)' });
+    expect(tok('じゃ、私の顔が見えるかいと一心に聞くと、', 'かい').key).not.toBe('回');
+    expect(tok('ところがふと気がつきますと、蜘蛛の糸の下の方には', 'つきます').key).toBe('付く');
+    expect(gloss('たまに聞えるものと云っては、ただ罪人がつく微な嘆息ばかりでございます。', 'つく')).toMatch(/breathe out/);
+    expect(gloss('それからあのぼんやり光っている恐しい針の山も、足の下になってしまいました。', 'あの')).toMatch(/^that/);
+  });
+
+  it('keeps 違いない whole and splits what only looks like a phrase (時には, ないと云った, それと)', () => {
+    expect(tok('「いや、いや、これも小さいながら、命のあるものに違いない。」', '違いない').key).toBe('違いない');
+    expect(texts('私が大金持になった時には、世辞も追従もしますけれど')).toContain('時');
+    expect(texts('一人が光る事は光るが切れそうもないと云った。')).toContain('ない');
+    // After a clause, an expression that takes one stays whole: 代りに "instead of".
+    expect(texts('私の所では満足が得られない代りに危険もないが')).toContain('代りに');
+  });
+
+  it('reads 金, 行って, 大 and 方 by the words around them', () => {
+    expect(tok('これはずっと後の事であるが金を三円ばかり貸してくれた事さえある。', '金').reading).toBe('かね');
+    expect(tok('車で行っても二十銭は取られた。', '行って')).toMatchObject({ key: '行く', reading: 'いって' });
+    expect(tok('いろいろ悪事を働いた大泥坊でございますが', '大').reading).toBe('おお');
+    // 都 alone is みやこ "the capital"; と is the 都 of 東京都.
+    expect(tok('唐の都洛陽の西の門の下に、ぼんやり空を仰いでいる、一人の若者がありました。', '都').reading).toBe('みやこ');
+    const how = tok('老人の尋ね方が急でしたから、杜子春はさすがに眼を伏せて', '方');
+    expect(how.reading).toBe('かた');
+    // A noun IPADIC took for a suffix after a verb's stem is still the noun: 骨 ほね.
+    expect(tok('もうその時には二匹の馬も、肉は裂け骨は砕けて、息も絶え絶えに', '骨').reading).toBe('ほね');
+  });
+
+  it('gives the furigana of the entry a verb is keyed to (浮き上って うきあがって), and joins 恐しい before の', () => {
+    const t = tok('たまにそのくら暗からぼんやり浮き上っているものがあると思いますと', '浮き上っている');
+    expect(t.key).toBe('浮き上がる');
+    expect(furigana(t)).toBe('浮(う)き上(あが)っている');
+    expect(tok('これを見ると、驚いたのと恐しいのとで、しばらくはただ', '恐しい').key).toBe('恐ろしい');
+  });
+
+  it('drops the noun -sa from なさそう and よさそう', () => {
+    expect(tap('「おれの行く田舎には笹飴はなさそうだ」と云って聞かしたら', 'なさそう').form).toBe('looks like (sou)');
+  });
+
+  it('shows the parts of a counted number the dictionary lacks', () => {
+    const l = tap('二丁ほど沖へ出ると、先生は後ろを振り返って私に話し掛けた。', '二丁');
+    expect(l.parts?.map((p) => p.text)).toEqual(['二', '丁']);
+    expect(l.parts?.[0].gloss).toBe('two');
+  });
+});
+
+describe('levels of grammar words', () => {
+  it('puts the particles the N5 syllabus teaches at N5, whatever the word lists matched to them', () => {
+    for (const p of ['と', 'か', 'だけ', 'くらい', 'は', 'を']) expect(ja.level(p), p).toBe(1);
+    const s = '「いや、いや、これも小さいながら、命のあるものに違いない。」と、こう急に思い返して';
+    expect(tap(s, 'と').entries[0].level).toBe(1);
+    expect(ja.levelWords(1)).toContain('と');
   });
 });

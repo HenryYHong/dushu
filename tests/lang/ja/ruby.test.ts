@@ -132,8 +132,70 @@ describe('a reading the book prints', () => {
     // 数限《かずかぎり》もない: the start of 数限りない "countless".
     expect(tok('蜘蛛の糸の下の方には、数限《かずかぎり》もない罪人たちが', '数限')).toMatchObject({ key: '数限りない' });
     expect(tok('蜘蛛の糸の下の方には、数限《かずかぎり》もない罪人たちが', '数限').name).toBeUndefined();
-    // A reading in old kana (水晶《すいしよう》) is the dictionary's すいしょう.
-    expect(tok('丁度｜地獄《じごく》の底に当って居りますから、水晶《すいしよう》のような水を透き徹して', '水晶')).toMatchObject({ key: '水晶', reading: 'すいしよう' });
+    // A reading in old kana (水晶《すいしよう》) is the dictionary's すいしょう, and shows as the dictionary spells it.
+    const crystal = tok('丁度｜地獄《じごく》の底に当って居りますから、水晶《すいしよう》のような水を透き徹して', '水晶');
+    expect(crystal).toMatchObject({ key: '水晶', reading: 'すいしょう' });
+    expect(furigana(crystal)).toBe('水晶(すいしょう)');
+  });
+
+  it('takes a word printed over in katakana or read its own way for the word, not a name (卓布, 整然, 洋机)', () => {
+    const cloth = '模様の織り出された厚い糊《のり》の硬《こわ》い卓布《テーブルクロース》が美しくかつ清らかに電燈の光を射返《いかえ》していた。';
+    expect(tok(cloth, '卓布').name).toBeUndefined();
+    expect(look(cloth, '卓布').entries[0].senses[0].glosses[0]).toMatch(/tablecloth/);
+    // 硬《こわ》い is 硬い "stiff", read as printed, not its homophone 怖い "scary".
+    expect(tok(cloth, '硬い').key).toBe('硬い');
+    expect(furigana(tok(cloth, '硬い'))).toBe('硬(こわ)い');
+    const tidy = '書斎なども実に整然《きちり》と片付いていた。';
+    expect(tok(tidy, '整然')).toMatchObject({ key: '整然', reading: 'きちり' });
+    expect(tok(tidy, '整然').name).toBeUndefined();
+    const desk = '書斎には洋机《テーブル》と椅子《いす》の外《ほか》に、沢山の書物が美しい背皮《せがわ》を並べて、硝子越《ガラスごし》に電燈《でんとう》の光で照らされていた。';
+    expect(tok(desk, '洋机').name).toBeUndefined();
+    expect(tok(desk, '硝子越').name).toBeUndefined();
+    // 外《ほか》に is "besides", and the furigana is the book's.
+    expect(look(desk, '外').entries[0].senses[0].glosses[0]).toMatch(/^(besides|except)/);
+    // Pieces the analyzer or the dictionary read as printed are a word too: 執着力 しゅうじゃく + りょく.
+    expect(tok('私は先生の性質の特色として、こんな執着力《しゅうじゃくりょく》をいまだかつて想像した事さえなかった。', '執着力').name).toBeUndefined();
+    // The Chinese names of the tales, read kanji by kanji, stay names.
+    expect(tok('「いかにもおれは峨眉山《がびさん》に棲《す》んでいる、鉄冠子《てっかんし》という仙人だ。', '鉄冠子')).toMatchObject({ name: true, reading: 'てっかんし' });
+  });
+
+  it('shows the words a compound the dictionary lacks is made of, read as printed (竹杖, 紅茶茶碗)', () => {
+    const cane = look('おお、幸《さいわい》、ここに竹杖《たけづえ》が一本落ちている。', '竹杖');
+    expect(cane.entries).toEqual([]);
+    expect(cane.parts?.map((p) => `${p.text}:${p.gloss}`)).toEqual(['竹:bamboo', '杖:cane']);
+    const cup = look('奥さんは手に紅茶茶碗《こうちゃぢゃわん》を持ったまま、笑いながらそこに立っていた。', '紅茶茶碗');
+    expect(cup.parts?.map((p) => p.text)).toEqual(['紅茶', '茶碗']);
+  });
+
+  it('reads a verb spelled its own way as the verb that shares a kanji or a meaning, then as its own spelling', () => {
+    // 撲《う》って is 打つ or 殴る, "to strike", not 売る "to sell".
+    const hit = '母が病気で死ぬ二三日《にさんち》前台所で宙返りをしてへっついの角で肋骨《あばらぼね》を撲《う》って大いに痛かった。';
+    expect(look(hit, '撲って').entries[0].senses[0].glosses[0]).toMatch(/strike|hit/);
+    // 淋《さむ》しい is 寂しい, which JMdict reads さびしい: its entry, with the book's furigana.
+    expect(look('「私はちっとも淋《さむ》しくはありません」', '淋しく').entries[0].senses[0].glosses[0]).toMatch(/lonely/);
+    // 傾《かたぶ》けて is 傾ける, not "can tilt" (傾く).
+    const tilt = tok('と思うと、すらりと揺《ゆら》ぐ茎《くき》の頂《いただき》に、心持首を傾《かたぶ》けていた細長い一輪の蕾《つぼみ》が', '傾けていた');
+    expect(tilt.key).toBe('傾ける');
+    // A common verb read so is the word when nothing closer is: 伴《つ》れて is 連れる.
+    expect(tok('先生が一人の西洋人を伴《つ》れていたからである。', '伴れていた').key).toBe('連れる');
+  });
+
+  it('keeps the old okurigana after a reading in the word (憚かる, 悪るい, 蟠まり, 磯近く, 机掛け)', () => {
+    expect(tok('これは世間を憚《はば》かる遠慮というよりも、その方が私にとって自然だからである。', '憚かる').key).toBe('はばかる');
+    expect(tok('それから英語の教師に古賀《こが》とか云う大変顔色の悪《わ》るい男が居た。', '悪るい').key).toBe('悪い');
+    expect(tok('自分と夫の間には何の蟠《わだか》まりもない、またないはずであるのに、やはり何かある。', '蟠まり').key).toBe('わだかまり');
+    // With no dictionary word for the whole, the kana are still the last kanji's: 近く, 掛け.
+    const shore = words('そうして遠浅《とおあさ》の磯近《いそちか》くにわいわい騒いでいる多人数《たにんず》の間《あいだ》を通り抜けて');
+    expect(shore.map((w) => w.text)).toContain('磯近く');
+    expect(shore.map((w) => w.text)).not.toContain('くに');
+    expect(words('書斎の硝子戸《ガラスど》から冬に入《い》って稀《まれ》に見るような懐かしい和《やわ》らかな日光が机掛《つくえか》けの上に射《さ》していた。').map((w) => w.text)).toContain('机掛け');
+    // What follows such a word is read in its sentence still: 例の通り "as usual", から "because" after a verb.
+    expect(look('或《あ》る時先生が例の通りさっさと海から上がって来て', '通り').entries[0].senses[0].glosses[0]).toMatch(/same way/);
+    expect(look('独りで極めて一人で喋舌《しゃべ》るから、こっちは困まって顔を赤くした。', 'から').entries[0].senses[0].glosses[0]).toMatch(/^because/);
+    // A na-adjective read so takes the copula な, not the な that ends a sentence.
+    const kind = words('先生からもう少し濃《こまや》かな言葉を予期して掛《かか》ったのである。');
+    expect(kind.find((w) => w.text === '濃か')?.key).toBe('細やか');
+    expect(kind.find((w) => w.text === 'な')?.key).toBe('だ');
   });
 
   it('looks up a printed name from a copy of its token (a token rebuilt by the UI)', () => {
@@ -177,5 +239,23 @@ describe('a reading the book prints', () => {
     expect(spans).toBeGreaterThan(3000);
     // The few left are the importer's: a reading whose base it ran back over the reading before (比較的呑気《のんき》).
     expect(agree / spans).toBeGreaterThan(0.99);
+  });
+});
+
+describe('a reading the book prints elsewhere', () => {
+  it('is taken for a name the dictionary lacks, not for a word it has (a one-off gloss)', async () => {
+    const { takeAozoraRuby } = await import('../../../src/import/aozora');
+    // 杜子春 is read once, mid-story; 閉口《へこ》 is a gloss of one place in Botchan, and 閉口 is へいこう anywhere else.
+    const [c] = takeAozoraRuby([{ title: '一', blocks: [
+      { t: 'p', text: '杜子春は閉口した。' },
+      { t: 'p', text: '杜子春《とししゅん》は驚いて、すっかり閉口《へこ》んだ。' },
+    ] }]);
+    const b = c.blocks[0] as { text: string; ruby?: { start: number; end: number; rt: string; inferred?: true }[] };
+    expect(b.ruby?.every((r) => r.inferred)).toBe(true);
+    const toks = ja.segment(b.text, { ruby: b.ruby });
+    const at = (s: string) => toks.find((t) => t.text.startsWith(s))!;
+    expect(furigana(at('杜子春'))).toBe('杜子春(とししゅん)');
+    expect(at('杜子春').name).toBe(true);
+    expect(at('閉口').reading).toMatch(/^へいこう/);
   });
 });
