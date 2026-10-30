@@ -49,14 +49,6 @@ export function switchLang(id: LangId): void {
   location.assign(url.href);
 }
 
-/**
- * Whether this language syncs with the account and the Mac. Off for the languages other than Chinese until the sync
- * format that keeps each language's records apart (core/sync.ts, '@<id>:' keys) is live on every Chinese device: a Chinese
- * copy from before it would take a Japanese saved word for a Chinese one.
- */
-export const OTHER_LANGUAGES_SYNC = false;
-export const syncsHere = (): boolean => isChinese() || OTHER_LANGUAGES_SYNC;
-
 /** The engine of a language other than Chinese, once main.ts has loaded it (null for Chinese and before it loads). */
 export const activeEngine = (): LangEngine | null => engine;
 export function setActiveEngine(e: LangEngine | null): void {

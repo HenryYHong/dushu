@@ -10,7 +10,7 @@ import { isoBase64URL, isoUint8Array } from '@simplewebauthn/server/helpers';
 import { AccountCore, BOOK_CHUNK, CloudError, LimitsCore, OWNER_ONLY_CLAUDE, allowedEmail, normalEmail, type ClaudeLimits, type Invite, type PasskeyRecord, type SignedIn, type Take } from './account';
 import { sqlLimits, sqlStore, type SqlStorage } from './sqlStore';
 import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
-import { SYNC_LIMITS, SyncError } from '../../src/core/syncExchange';
+import { SYNC_LIMITS, SyncError, syncLang } from '../../src/core/syncExchange';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
 import { describeError, parseTranslateBody, runClaude, targetEcho, type ServerClient } from '../../src/translate/claudeServer';
 import { ACCOUNT_TEXT, contextWindow, translateChecked, unverifiedDetail } from '../../src/translate/prompt';
@@ -605,8 +605,12 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   }
   if (path === '/books') {
     const { stub, secret: s } = bearer(request, env);
-    // Covers (keys c…) only for an app that reads them: an older one would take a picture for a book.
-    if (request.method === 'GET') return call(env, stub, 'books', { covers: new URL(request.url).searchParams.has('covers') }, s);
+    // Covers (keys c…) only for an app that reads them: an older one would take a picture for a book. A library other than
+    // Chinese names its language (?lang=ja) and gets only its own books; without one, the Chinese books, as before languages.
+    if (request.method === 'GET') {
+      const q = new URL(request.url).searchParams;
+      return call(env, stub, 'books', { covers: q.has('covers'), ...(q.has('lang') ? { lang: q.get('lang') } : {}) }, s);
+    }
     if (request.method === 'POST') return call(env, stub, 'book-start', await readJson(request, 4096), s);
     if (request.method === 'DELETE') return call(env, stub, 'book-drop', { key: new URL(request.url).searchParams.get('key') ?? '' }, s);
     throw new CloudError(405, 'Not allowed.');
@@ -687,7 +691,13 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'signout': core.signOut(session); return json(200, { ok: true });
       case 'status': return json(200, core.status(session, now));
       case 'sync': return json(200, core.sync(session, body, now));
-      case 'books': return json(200, core.listBooks(session, now, body.covers === true));
+      case 'books': {
+        // A language's list comes named ({ lang, books }), so its library can tell this Worker from one before languages, which
+        // answers every request with its Chinese books as a bare list.
+        const lang = syncLang(body.lang);
+        const books = core.listBooks(session, now, body.covers === true, lang);
+        return json(200, lang ? { lang, books } : books);
+      }
       case 'book-start': return json(200, core.startBook(session, body, now));
       case 'book-drop': core.dropBook(session, str(body.key), now); return json(200, { ok: true });
       case 'chunk-put': return json(200, core.putBookChunk(session, key, index, bytes!, now, url.searchParams.get('u') ?? ''));

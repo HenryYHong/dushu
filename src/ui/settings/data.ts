@@ -3,7 +3,7 @@ import type { AppContext, BackupReport } from '../../types';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { confirmDialog } from '../library/dialogs';
-import { currentSyncer, setSyncEnabled } from '../../core/sync';
+import { currentSyncer, setSyncEnabled, withoutSync } from '../../core/sync';
 import { group, row } from './controls';
 import { isChinese, lang, langId } from '../../lang/active';
 import { LANG_IDS } from '../../lang/registry';
@@ -36,19 +36,29 @@ export function describeReport(r: BackupReport): string {
  * Removes books, words, progress, review history and every dushu.* key in localStorage but the other languages' (dushu.<id>.*
  * and the language translated into, which they share). The Mac's books come back the next
  * time the library reaches the Mac: they are always there. Another language removes only its own library and its own
- * dushu.<id>.* keys: Chinese, the sign-in, the Mac link and sync are not its to touch (lang/active.ts).
+ * dushu.<id>.* keys: Chinese, the sign-in and the Mac link are not its to touch (lang/active.ts). Either way the library's sync
+ * is turned off, so what the account or the Mac keeps of it does not come straight back.
  */
 export async function eraseAllData(ctx: AppContext): Promise<void> {
+  // A sync under way could bring words back after the wipe: one waiting on the hub's answer when Delete everything is pressed
+  // would write it into the empty library. This page's syncer is stopped and waited for (it applies nothing once stopped), and
+  // the wipe holds the sync lock, so a sync in another tab ends first and finds its switch off after.
+  await currentSyncer()?.stop();
+  await withoutSync(() => erase(ctx));
+}
+
+async function erase(ctx: AppContext): Promise<void> {
   if (!isChinese()) {
     await ctx.store.wipe();
     const own = `dushu.${langId()}.`;
     try {
       for (const k of Object.keys(localStorage)) if (k.startsWith(own)) localStorage.removeItem(k);
     } catch { /* storage blocked: nothing to remove */ }
+    // An empty library stays empty: its words and books in the account (or on the Mac) come back only when its sync is turned
+    // on again. Its own switch (dushu.<id>.sync.off.v1, written after the keys above went): the Chinese library syncs on.
+    setSyncEnabled(false);
     return;
   }
-  // A sync that is running could bring words back in the middle of the wipe.
-  currentSyncer()?.stop();
   await ctx.store.wipe();
   // The other languages' libraries are left alone, and so are their settings, the language translated into among them: they
   // read it from TARGET_KEY whenever they open, so taking it would put the Spanish library back on English, or not, depending
@@ -116,7 +126,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
       title: 'Delete all data?',
       message: isChinese()
         ? 'This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Books from your Mac come back the next time this device reaches it. Sync is turned off here, so the words kept on your Mac stay there until you turn sync back on.'
-        : `This removes every book, word, review record, reading place and setting of your ${lang().name} library from this browser, and it can’t be undone. Your other languages stay as they are.`,
+        : `This removes every book, word, review record, reading place and setting of your ${lang().name} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for ${lang().name} here, so what your account or your Mac keeps of it stays there until you turn its sync back on.`,
       confirmLabel: 'Delete everything',
       danger: true,
     });

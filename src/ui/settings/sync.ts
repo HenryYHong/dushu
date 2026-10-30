@@ -1,6 +1,7 @@
 // The Sync row in "Your Mac and iPad": the switch, what the last sync did, and Sync now.
 import { SYNC_EVENT, currentSyncer, setSyncEnabled, syncEnabled, type SyncStatus } from '../../core/sync';
 import { CLOUD_EVENT, cloudBase } from '../../core/cloud';
+import { isChinese, lang } from '../../lang/active';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { row } from './controls';
@@ -21,7 +22,8 @@ export function ago(ms: number, now = Date.now()): string {
 export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date.now()): string {
   const waiting = st.pending ? ` ${n(st.pending, 'change')} from this device will sync when it can.` : '';
   if (st.state === 'memory') return 'This browser is blocking local storage, so nothing here can sync.';
-  if (!enabled || st.state === 'off') return `Sync is off on this device.${st.pending ? ` ${n(st.pending, 'change')} here have not been sent.` : ''}`;
+  // Each language has its own switch: say which one is off, outside Chinese.
+  if (!enabled || st.state === 'off') return `Sync is off ${isChinese() ? 'on this device' : `for ${lang().name} on this device`}.${st.pending ? ` ${n(st.pending, 'change')} here have not been sent.` : ''}`;
   if (st.state === 'none') return cloudBase()
     ? 'Sign in above, or connect this device to your Mac, and your words, reading places and bookmarks sync.'
     : 'Connect this device to your Mac above, and your words and reading places sync through it.';
@@ -31,6 +33,8 @@ export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date
     : `Your Mac did not answer. It may be asleep, or Tailscale is off on this device.${waiting}`;
   if (st.state === 'refused') return 'Your Mac did not accept this device. Sign in to Tailscale with the same account as the Mac.';
   if (st.state === 'error') return `Sync did not finish: ${st.message ?? 'unknown error'}${waiting}`;
+  // A hub from before this language synced: the records wait here (core/sync.ts says which hub and what to do).
+  if (st.state === 'outdated') return `${st.message ?? 'Your sync server is older than this version of Dushu.'}${st.pending ? ` ${n(st.pending, 'change')} from this device ${st.pending === 1 ? 'is' : 'are'} waiting.` : ''}`;
   if (st.state === 'syncing' && !st.lastOk) return 'Syncing with your Mac…';
   if (!st.lastOk) return 'Not synced yet.';
   const c = st.counts;
@@ -57,10 +61,11 @@ export function syncRow(): { el: HTMLElement; dispose(): void } {
   window.addEventListener(CLOUD_EVENT, show);
   const tick = window.setInterval(show, 30_000);
   show();
+  const what = isChinese() ? 'Words' : `${lang().name} words`;
   const el = row('Sync',
     cloudBase()
-      ? 'Words, lookups, bookmarks and your place in each book. Changes made offline sync when you are back online.'
-      : 'Words, lookups, bookmarks and your place in each book, on every device connected to this Mac.',
+      ? `${what}, lookups, bookmarks and your place in each book. Changes made offline sync when you are back online.`
+      : `${what}, lookups, bookmarks and your place in each book, on every device connected to this Mac.`,
     h('div.set-sync', null, h('div.set-sync-top', null, toggle, now), status));
   return { el, dispose() { window.removeEventListener(SYNC_EVENT, show); window.removeEventListener(CLOUD_EVENT, show); window.clearInterval(tick); } };
 }

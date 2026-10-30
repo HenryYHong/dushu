@@ -20,7 +20,7 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
       account.el,
       sync.el,
       row('Install', 'Open Dushu from that icon and it works offline.', h('span', null, 'In Safari: Share, then Add to Home Screen')),
-      row('Books', 'Books you add are kept in your account, up to 200 MB, and show up on every device you sign in on. Deleting one deletes it everywhere.', h('span', null, 'Import book, in the library')));
+      row('Books', 'Books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.', h('span', null, 'Import book, in the library')));
     return { el, dispose() { sync.dispose(); account.dispose(); } };
   }
   const mac = macRows(params);

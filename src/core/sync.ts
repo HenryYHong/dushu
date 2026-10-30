@@ -5,13 +5,23 @@
 // saying what it last agreed on with the Mac, so it can tell its own changes (sent with the time they happened) from the
 // Mac's (applied when newer). Those rows live in the same database as the data: a wipe or an eviction clears both, so a
 // device that lost its data looks new and only receives; it never tells the Mac its words were deleted.
+//
+// Each language's library syncs on its own (lang/active.ts). Chinese sends and takes its records as it did before languages
+// synced, byte for byte. Another language sends its records with '@<id>:' in front of the same keys ('@ja:v:食べる') and
+// `lang: 'ja'` in the request, takes only records that start so, and keeps the rest of this file's names without the prefix
+// (its rows are in its own database). It sends nothing to a hub until the hub has named its language: a hub from before
+// languages drops those records and answers without naming it, and the library then keeps them unsent and says the hub needs
+// updating ('outdated').
 import type { Bookmark, BookMeta, LookupRow, Progress, Settings, SettingsStore, Store, SyncRow, VocabItem } from '../types';
+import type { LangId } from '../lang/types';
+import { langId } from '../lang/active';
+import { LANGS } from '../lang/registry';
 import { cleanBookmark, cleanLookup, cleanProgress, cleanVocab } from '../store';
-import { DEFAULT_SETTINGS, sanitizePatch } from '../store/settings';
+import { defaultsFor, sanitizePatch } from '../store/settings';
 import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge';
-import { CLOUD_EVENT, accountMark, cloudFetch, cloudSession, forgetSession } from './cloud';
-import { SYNCED_SETTINGS, bookKey, canonical, hash, isSyncedSetting, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
+import { CLOUD_EVENT, accountInfo, accountMark, cloudFetch, cloudSession, forgetSession, isAccountOwner } from './cloud';
+import { SYNCED_SETTINGS, bookKey, canonical, hash, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 
 export { bookKey, canonical, hash };
 
@@ -21,21 +31,30 @@ export const SYNC_EVENT = 'dushu:sync';
 export const REMOTE_PROGRESS_EVENT = 'dushu:remote-progress';
 
 const OFF_KEY = 'dushu.sync.off.v1';
-/** The accounts each Mac's records were copied into (copyMacIntoAccount), as 'email|mac origin'. */
+/**
+ * A library's own Sync switch. Chinese keeps OFF_KEY ('1' when off). Another language has dushu.<id>.sync.off.v1, '1' off and
+ * '0' on. Until it has one it follows the Chinese switch, and its syncer's start writes that down (createSyncer): a reader who
+ * turned sync off before languages synced (or a QA run that turns it off before the app starts) has not turned it on for
+ * Japanese by opening Japanese, and from then on each switch is its own. Deleting the Japanese library's data turns off only
+ * its switch, and deleting the Chinese library's (which turns the Chinese one off) leaves a Japanese library that has synced.
+ */
+const offKey = (lang: LangId): string => (lang === 'zh' ? OFF_KEY : `dushu.${lang}.sync.off.v1`);
+/** The accounts each Mac's records were copied into (copyMacIntoAccount), as 'email|mac origin'. Per library: Chinese keeps
+ * this key, another language dushu.<id>.cloud.mac-copied.v1, since each copies its own records. */
 const COPIED_KEY = 'dushu.cloud.mac-copied.v1';
+const copiedKey = (lang: LangId): string => (lang === 'zh' ? COPIED_KEY : `dushu.${lang}.cloud.mac-copied.v1`);
 /** A copy that failed (the Mac asleep, Tailscale off) is tried again after this long, never on every sync. */
 const COPY_RETRY_MS = 5 * 60_000;
 const META = '#meta';
 
-// The settings that sync (SYNCED_SETTINGS) are listed in syncKeys.ts, where the hubs check them too.
+// The settings that sync (SYNCED_SETTINGS, librarySettings) are listed in syncKeys.ts, where the hubs check them too.
 export { SYNCED_SETTINGS };
-const synced = isSyncedSetting;
 // Every name there is a setting.
 const _settingNames: readonly (keyof Settings)[] = SYNCED_SETTINGS;
 void _settingNames;
-/** A setting's value as it travels, checked; undefined when it is not one Dushu can use. */
-function settingHere(name: string, data: unknown): { v: unknown } | undefined {
-  if (!synced(name) || !data || typeof data !== 'object') return undefined;
+/** A setting's value as it travels, checked; undefined when it is not one Dushu can use, or not one this library syncs. */
+function settingHere(name: string, data: unknown, lang: LangId): { v: unknown } | undefined {
+  if (!isSyncedSetting(name, lang) || !data || typeof data !== 'object') return undefined;
   const patch = sanitizePatch({ [name]: (data as { v?: unknown }).v }) as Record<string, unknown>;
   return name in patch ? { v: patch[name] } : undefined;
 }
@@ -43,7 +62,8 @@ function settingHere(name: string, data: unknown): { v: unknown } | undefined {
 const CHUNK = 1000;
 const MAX_KEY = 160;
 
-export type SyncState = 'off' | 'none' | 'idle' | 'syncing' | 'asleep' | 'refused' | 'signedout' | 'error' | 'memory';
+/** 'outdated': the hub is from before this library's language synced (or does not know it yet); its records wait here. */
+export type SyncState = 'off' | 'none' | 'idle' | 'syncing' | 'asleep' | 'refused' | 'signedout' | 'error' | 'memory' | 'outdated';
 export interface SyncStatus {
   state: SyncState;
   /** What this device syncs with: the sync account online, or the Mac. */
@@ -58,8 +78,23 @@ export interface SyncStatus {
 }
 
 interface WireRecord { key: string; at: number; data: unknown }
-interface Reply { epoch: string; version: number; records: WireRecord[]; counts?: SyncStatus['counts'] }
-interface Meta { epoch?: string; cursor: number }
+interface Reply { epoch: string; version: number; records: WireRecord[]; counts?: SyncStatus['counts']; lang?: unknown }
+
+/**
+ * A library's records as the hub has them, in the library's own names: Chinese as they come (take() reads only keys like
+ * 'v:…', so another language's are passed over); another language only those with its prefix, without it.
+ */
+function ownRecords(records: WireRecord[], prefix: string): WireRecord[] {
+  if (!prefix) return records;
+  return records.filter((r) => typeof r?.key === 'string' && r.key.startsWith(prefix)).map((r) => ({ ...r, key: r.key.slice(prefix.length) }));
+}
+/**
+ * What a library last agreed on with a hub: its copy (`epoch`) and how far it has taken (`cursor`). `asked`: where a hub
+ * that did not name this library's language last answered from (another language only). It is kept apart from the cursor:
+ * such a hub can hold the language's records all the same (a Worker rolled back to a version from before languages keeps
+ * and lists the '@ja:' records the newer one stored), and a cursor moved past them would never ask for them again.
+ */
+interface Meta { epoch?: string; cursor: number; asked?: { epoch: string; version: number } }
 
 // ------------------------------------------------------------------ keys ---
 
@@ -117,7 +152,7 @@ function bookmarkLocal(id: string, data: unknown, books: Books): Bookmark | null
 
 /** Everything this device would send, by record key, with the time each record says it last changed. */
 type Snapshot = Map<string, { data: unknown; sig: string; at: number; bare?: string }>;
-async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, settings?: SettingsStore): Promise<Snapshot> {
+async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, settings: SettingsStore | undefined, lang: LangId): Promise<Snapshot> {
   const out: Snapshot = new Map();
   const put = (key: string, data: unknown, at: number, bare?: string) => {
     if (key.length <= MAX_KEY) out.set(key, { data, sig: sigOf(data), at, ...(bare ? { bare } : {}) });
@@ -136,9 +171,10 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, 
   if (settings) {
     // Before a device first syncs a setting, one it left at the default goes as time 0 (it lands only where the account has
     // none) and one it changed as time 1 (it beats a default, never a change made since). After that, a change is stamped
-    // when it is made, like any other.
+    // when it is made, like any other. The default is the library's own: Spanish text starts at 21 px, Chinese at 22.
     const s = settings.get();
-    for (const name of SYNCED_SETTINGS) put(`o:${name}`, { v: s[name] }, s[name] === DEFAULT_SETTINGS[name] ? 0 : 1);
+    const defaults = defaultsFor(lang);
+    for (const name of librarySettings(lang)) put(`o:${name}`, { v: s[name] }, s[name] === defaults[name] ? 0 : 1);
   }
   // A place kept for a book that is not here (deleted here, or sent before the book arrived) is still sent: a place read
   // here and deleted before the Mac heard of it reaches the Mac all the same.
@@ -154,34 +190,63 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, 
 
 let copying: Promise<boolean> | null = null;
 let copyFailedAt = 0;
+/**
+ * Where a Mac from before languages last answered a library's copy, by Mac and language ('<origin>|ja'). The next try asks
+ * from there, so that Mac sends only what changed since rather than every Chinese record it holds, every five minutes for as
+ * long as the page syncs. The whole read (`since: 0`) waits until the Mac names the language.
+ */
+const macAsked = new Map<string, { epoch: string; version: number }>();
 
 /**
  * Once per account and Mac: everything the Mac holds (the words, places, lookups and bookmarks of every device that synced
  * through it) goes into the account, each record with the time it changed. The account's merge keeps whichever copy is newer,
  * so this never undoes a change made since. Resolves true when it copied (the caller syncs again to take the records).
+ * Each library copies its own records: the Japanese one asks the Mac for '@ja:' records and sends them as Japanese. A Mac or
+ * account from before languages synced (the reply does not name the language) is tried again later, never marked copied; the
+ * syncer starts the copy only once the account has named its library's language. The Mac's records are its owner's: an account
+ * someone else made (signed in on the owner's iPad to try an invite) never gets them.
  */
-export function copyMacIntoAccount(now = Date.now()): Promise<boolean> {
+export function copyMacIntoAccount(now = Date.now(), lang: LangId = langId()): Promise<boolean> {
   const s = cloudSession();
   const base = bridgeBase();
   if (!s || base === null || copying || now - copyFailedAt < COPY_RETRY_MS) return copying ?? Promise.resolve(false);
-  const mark = accountMark(s, base || globalThis.location?.origin || '');
+  const mac = base || globalThis.location?.origin || '';
+  const mark = accountMark(s, mac);
+  const prefix = langPrefix(lang);
+  const where = `${mac}|${lang}`;
+  const named = prefix ? { lang } : {};
+  const served = (reply: Partial<Reply> | null) => !prefix || reply?.lang === lang;
   let done: string[] = [];
-  try { done = JSON.parse(globalThis.localStorage?.getItem(COPIED_KEY) ?? '[]') as string[]; } catch { /* none yet */ }
+  try { done = JSON.parse(globalThis.localStorage?.getItem(copiedKey(lang)) ?? '[]') as string[]; } catch { /* none yet */ }
   if (!Array.isArray(done)) done = [];
   if (done.includes(mark)) return Promise.resolve(false);
   const json = { 'Content-Type': 'application/json' };
   copying = (async () => {
     try {
-      const res = await bridgeFetch('/api/sync', { method: 'POST', headers: json, body: JSON.stringify({ since: 0, changes: [] }), signal: AbortSignal.timeout(20_000) });
-      if (res.status === 503) return false; // a Mac without its sync folder holds nothing to copy
-      if (!res.ok) throw new Error(`The Mac answered ${res.status}`);
-      const reply = await res.json() as Partial<Reply>;
-      const records = Array.isArray(reply.records) ? reply.records : [];
+      // Whose the account is, as the server last said (GET /me, asked here when this device has not heard yet).
+      if (!isAccountOwner() && (await accountInfo())?.owner !== true) throw new Error('Not the owner’s account');
+      /** The Mac's records of this library from `from` (all of them without it); null when the Mac has no sync folder. */
+      const ask = async (from?: { epoch: string; version: number }): Promise<Partial<Reply> | null> => {
+        const since = from ? { epoch: from.epoch, since: from.version } : { since: 0 };
+        const res = await bridgeFetch('/api/sync', { method: 'POST', headers: json, body: JSON.stringify({ ...since, changes: [], ...named }), signal: AbortSignal.timeout(20_000) });
+        if (res.status === 503) return null; // a Mac without its sync folder holds nothing to copy
+        if (!res.ok) throw new Error(`The Mac answered ${res.status}`);
+        const reply = await res.json() as Partial<Reply>;
+        if (served(reply)) { macAsked.delete(where); return reply; }
+        if (typeof reply.epoch === 'string' && Number.isInteger(reply.version)) macAsked.set(where, { epoch: reply.epoch, version: reply.version as number });
+        throw new Error('The Mac does not keep this language yet');
+      };
+      const was = macAsked.get(where);
+      if (was && (await ask(was)) === null) return false;
+      const reply = await ask();
+      if (!reply) return false;
+      const records = ownRecords(Array.isArray(reply.records) ? reply.records : [], prefix).map((r) => ({ ...r, key: prefix + r.key }));
       for (let i = 0; i < records.length; i += CHUNK) {
-        const r = await cloudFetch('/sync', { method: 'POST', headers: json, body: JSON.stringify({ changes: records.slice(i, i + CHUNK) }), signal: AbortSignal.timeout(20_000) });
+        const r = await cloudFetch('/sync', { method: 'POST', headers: json, body: JSON.stringify({ changes: records.slice(i, i + CHUNK), ...named }), signal: AbortSignal.timeout(20_000) });
         if (!r?.ok) throw new Error(`The sync server answered ${r?.status}`);
+        if (prefix && !served(await r.json().catch(() => null) as Partial<Reply> | null)) throw new Error('The sync server does not keep this language yet');
       }
-      try { globalThis.localStorage?.setItem(COPIED_KEY, JSON.stringify([...done, mark])); } catch { /* copied again next time: harmless */ }
+      try { globalThis.localStorage?.setItem(copiedKey(lang), JSON.stringify([...done, mark])); } catch { /* copied again next time: harmless */ }
       return records.length > 0;
     } catch {
       copyFailedAt = now;
@@ -199,15 +264,25 @@ export interface Syncer {
   /** Sync soon: several changes in a row make one sync. */
   soon(ms?: number): void;
   status(): SyncStatus;
-  stop(): void;
+  /**
+   * Stops syncing. Resolves once a sync under way has ended: its request is cancelled and nothing it brings back is applied,
+   * so a wipe that waits for it (Delete all data) is not filled again from the hub.
+   */
+  stop(): Promise<void>;
 }
 
-export function syncEnabled(): boolean {
-  try { return globalThis.localStorage?.getItem(OFF_KEY) !== '1'; } catch { return true; }
-}
-export function setSyncEnabled(on: boolean): void {
+/** Whether the library `lang` syncs on this device (offKey). */
+export function syncEnabled(lang: LangId = langId()): boolean {
   try {
-    if (on) globalThis.localStorage?.removeItem(OFF_KEY);
+    const own = lang === 'zh' ? null : globalThis.localStorage?.getItem(offKey(lang));
+    if (own === '1' || own === '0') return own === '0';
+    return globalThis.localStorage?.getItem(OFF_KEY) !== '1';
+  } catch { return true; }
+}
+export function setSyncEnabled(on: boolean, lang: LangId = langId()): void {
+  try {
+    if (lang !== 'zh') globalThis.localStorage?.setItem(offKey(lang), on ? '0' : '1');
+    else if (on) globalThis.localStorage?.removeItem(OFF_KEY);
     else globalThis.localStorage?.setItem(OFF_KEY, '1');
   } catch { /* storage blocked: stays as it was */ }
   if (on) void active?.run();
@@ -231,7 +306,7 @@ export function hasSyncHub(): boolean {
  */
 export async function syncBeforeOpen(ms = 600, recentMs = 20_000): Promise<void> {
   const s = active;
-  if (!s || !syncEnabled() || !hasSyncHub()) return;
+  if (!s || !syncEnabled() || !hasSyncHub() || s.status().state === 'outdated') return;
   const last = s.status().lastOk;
   if (last !== undefined && Date.now() - last < recentMs) return;
   await Promise.race([s.run(), new Promise<void>((r) => setTimeout(r, ms))]);
@@ -242,14 +317,25 @@ export interface SyncOptions {
   send?: (body: string, keepalive: boolean) => Promise<Response> | null;
   /** Sync while the page is visible, this often. */
   everyMs?: number;
-  /** The settings to keep the same on every device (SYNCED_SETTINGS); without it, settings are left alone. */
+  /** The settings to keep the same on every device (librarySettings); without it, settings are left alone. */
   settings?: SettingsStore;
   now?: () => number;
+  /** The library synced: the page's language (lang/active.ts) unless a test runs several on one page. */
+  lang?: LangId;
+}
+
+/**
+ * Runs `fn` while no sync runs in any tab of this site: each sync holds the Web Lock 'dushu-sync' (run), so one under way in
+ * another tab ends before `fn` starts, and one asked for meanwhile starts after it. Without locks, `fn` simply runs.
+ */
+export async function withoutSync<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = (globalThis.navigator as Navigator | undefined)?.locks;
+  return locks?.request ? await locks.request('dushu-sync', async () => await fn()) : await fn();
 }
 
 /** Starts the app's syncer (one per page); the one before it stops. */
 export function startSync(store: Store, opts: SyncOptions = {}): Syncer {
-  active?.stop();
+  void active?.stop();
   active = createSyncer(store, opts);
   return active;
 }
@@ -257,8 +343,21 @@ export function startSync(store: Store, opts: SyncOptions = {}): Syncer {
 /** A syncer for one store. startSync is the app's way in; tests make several, one per device. */
 export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   const now = opts.now ?? (() => Date.now());
+  const lang = opts.lang ?? langId();
+  /** '' for Chinese, '@ja:' for Japanese: in front of every key this library sends, and of every key it takes. */
+  const prefix = langPrefix(lang);
+  if (prefix) {
+    try {
+      const ls = globalThis.localStorage;
+      if (ls && ls.getItem(offKey(lang)) === null) ls.setItem(offKey(lang), ls.getItem(OFF_KEY) === '1' ? '1' : '0');
+    } catch { /* storage blocked: it follows the Chinese switch (syncEnabled) */ }
+  }
+  /** Cancels the request under way when the syncer stops. */
+  const halt = new AbortController();
   const send = opts.send ?? ((body: string, keepalive: boolean) => {
-    const init: RequestInit = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive, signal: AbortSignal.timeout(20_000) };
+    const timeout = AbortSignal.timeout(20_000);
+    const signal = typeof AbortSignal.any === 'function' ? AbortSignal.any([timeout, halt.signal]) : timeout;
+    const init: RequestInit = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive, signal };
     if (cloudSession()) return cloudFetch('/sync', init);
     return hasMacBridge() ? bridgeFetch('/api/sync', init) : null;
   });
@@ -276,6 +375,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   };
 
   async function once(): Promise<void> {
+    if (stopped) return;
     if (store.backend === 'memory') { setStatus({ state: 'memory' }); return; }
     const list = await store.books.list();
     const books: Books = { keyOf: new Map(), idOf: new Map(), newer: new Map() };
@@ -321,7 +421,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
 
     // 2. What changed here since the last agreement, stamped now (or, for a record the Mac has never heard of, with
     //    the time the record itself carries, so an old copy on a new device does not beat a newer one elsewhere).
-    const current = await snapshot(store, books, rows, opts.settings);
+    const current = await snapshot(store, books, rows, opts.settings, lang);
     const t = now();
     /** When a setting's value was chosen, if the settings know (SettingsStore.chosenAt), and never later than now. */
     const chosenAt = (key: string): number | undefined => {
@@ -379,28 +479,46 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const unheard = new Set<string>();
     const unsent = () => dirty().filter((r) => !unheard.has(r.key));
     setStatus({ pending: dirty().length });
-    if (!syncEnabled()) { setStatus({ state: 'off' }); return; }
-    // Signed in and able to reach the Mac: what the Mac holds goes into the account once, beside this sync (never in its
-    // way when the Mac is asleep), and a sync right after takes it.
-    if (!opts.send && cloudSession() && hasMacBridge()) void copyMacIntoAccount().then((copied) => { if (copied) soon(0); });
+    if (!syncEnabled(lang)) { setStatus({ state: 'off' }); return; }
+    /** The hub's copy is new (or was reset), or this device moved to another hub: everything here goes to it again. */
+    const restart = async (epoch: string) => {
+      const all = [...rows.values()]
+        .filter((r) => r.key !== META && (r.sig === '-' ? !r.key.startsWith('p:') : current.has(r.key)))
+        .map((r) => ({ ...r, dirty: 1 as const }));
+      meta.epoch = epoch;
+      meta.cursor = 0;
+      await store.sync.write([...all, { key: META, at: 0, sig: '', held: meta }], [], rows);
+      for (const r of all) rows.set(r.key, r);
+    };
 
     // 3. Send what changed and take what the Mac has that is newer.
     let restarted = false;
     let first = true;
+    let copied = false;
     for (;;) {
-      const outgoing = unsent().slice(0, CHUNK);
+      const hub = cloudSession() ? 'cloud' : 'mac';
+      /**
+       * Another language's library sends nothing to a hub until the hub has named the language: one from before languages drops
+       * the records without a word, and the Worker live before them counts them toward the Chinese library's room, so a nearly
+       * full one would answer "full" to Japanese words. Until then it only asks: from the start for a library that never synced,
+       * and from where such a hub last answered (meta.asked), so it does not send every Chinese record again each time.
+       */
+      const asked = prefix ? meta.asked : undefined;
+      const outgoing = prefix && (asked || meta.epoch === undefined) ? [] : unsent().slice(0, CHUNK);
       if (!outgoing.length && !first) break;
       first = false;
       const body = JSON.stringify({
-        epoch: meta.epoch, since: meta.cursor,
-        changes: outgoing.map((r) => ({ key: r.key, at: r.at, data: r.sig === '-' ? null : current.get(r.key)?.data ?? null })),
+        epoch: asked ? asked.epoch : meta.epoch, since: asked ? asked.version : meta.cursor,
+        changes: outgoing.map((r) => ({ key: prefix + r.key, at: r.at, data: r.sig === '-' ? null : current.get(r.key)?.data ?? null })),
+        ...(prefix ? { lang } : {}),
       });
-      const hub = cloudSession() ? 'cloud' : 'mac';
       const request = send(body, leaving && body.length < 60_000);
       // Signed out by the server: that stays what Settings says until this device signs in again.
       if (!request) { setStatus({ state: status.state === 'signedout' ? 'signedout' : 'none', hub: undefined }); return; }
       let response: Response;
-      try { response = await request; } catch { setStatus({ state: 'asleep', hub }); return; }
+      try { response = await request; } catch { if (!stopped) setStatus({ state: 'asleep', hub }); return; }
+      // Stopped meanwhile (Delete all data waits for this sync before it wipes): nothing the hub sent is applied.
+      if (stopped) return;
       if (response.status === 401 && hub === 'cloud') {
         // Signed out on the server (from another device, or long unused): signed out here too, so Settings offers to sign in.
         setStatus({ state: 'signedout', hub });
@@ -415,27 +533,49 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         return;
       }
       const reply = await response.json().catch(() => null) as Reply | null;
+      if (stopped) return;
       if (!reply || typeof reply.epoch !== 'string' || !Number.isInteger(reply.version) || !Array.isArray(reply.records)) {
         setStatus({ state: 'error', hub, message: `${hub === 'cloud' ? 'The sync server' : 'Your Mac'} sent an answer Dushu did not understand.` });
         return;
       }
-      if (meta.epoch && reply.epoch !== meta.epoch && !restarted) {
-        // The Mac's copy is new (or was reset): everything here goes to it again, then everything it has comes back.
-        restarted = true;
-        const all = [...rows.values()]
-          .filter((r) => r.key !== META && (r.sig === '-' ? !r.key.startsWith('p:') : current.has(r.key)))
-          .map((r) => ({ ...r, dirty: 1 as const }));
-        meta.epoch = reply.epoch;
-        meta.cursor = 0;
-        await store.sync.write([...all, { key: META, at: 0, sig: '', held: meta }], [], rows);
-        for (const r of all) rows.set(r.key, r);
+      if (prefix && reply.lang !== lang) {
+        // A hub from before this language synced: it answered with its Chinese records (and, rolled back from a newer version,
+        // with this language's records too, which it keeps). Nothing is taken and nothing is marked sent, and the cursor stays
+        // where this library last agreed with a hub that named the language (Meta): once this hub is updated, the next request
+        // asks from there and gets every record of this language past it. A hub with another copy is a restart, which sets the
+        // cursor to 0, so what this device agreed on with the last hub goes to this one.
+        if (meta.epoch && reply.epoch !== meta.epoch) await restart(reply.epoch);
+        meta.asked = { epoch: reply.epoch, version: reply.version };
+        await store.sync.write([{ key: META, at: 0, sig: '', held: meta }], [], rows);
+        const name = LANGS[lang].name;
+        setStatus({
+          state: 'outdated', hub, lastOk: undefined, counts: undefined, pending: dirty().length,
+          message: `${hub === 'cloud' ? 'The sync server is older than this version of Dushu' : 'Dushu on your Mac is older than this page'} and does not keep ${name} yet. Your ${name} words, places and bookmarks stay on this device and sync once it is updated.`,
+        });
+        return;
+      }
+      if (asked) {
+        // Updated since it last answered without the language: this answer starts where that one ended (meta.asked), past any
+        // record of this language the hub kept before. The next request asks from the cursor last agreed, then what waited
+        // here goes.
+        delete meta.asked;
+        await store.sync.write([{ key: META, at: 0, sig: '', held: meta }], [], rows);
         first = true;
         continue;
       }
+      if (meta.epoch && reply.epoch !== meta.epoch && !restarted) {
+        // The Mac's copy is new (or was reset): everything here goes to it again, then everything it has comes back.
+        restarted = true;
+        await restart(reply.epoch);
+        first = true;
+        continue;
+      }
+      const theirs: Reply = prefix ? { ...reply, records: ownRecords(reply.records, prefix) } : reply;
       const sent = new Set(outgoing.map((r) => r.key));
-      const echoed = new Set(reply.records.map((r) => r?.key));
+      const echoed = new Set(theirs.records.map((r) => r?.key));
       for (const key of sent) if (key.startsWith('o:') && !echoed.has(key)) unheard.add(key);
-      const kept = await take(reply, rows, books, sent, current);
+      const kept = await take(theirs, rows, books, sent, current);
+      if (stopped) return;
       meta.epoch = reply.epoch;
       meta.cursor = reply.version;
       const cleared = outgoing.map((r) => rows.get(r.key)!).filter((r) => r.dirty && sent.has(r.key) && !kept.has(r.key) && !unheard.has(r.key)).map((r) => {
@@ -446,6 +586,13 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       await store.sync.write([...cleared, { key: META, at: 0, sig: '', held: meta }], [], rows);
       for (const r of cleared) rows.set(r.key, r);
       setStatus({ state: 'idle', hub, lastOk: now(), pending: dirty().length, counts: reply.counts });
+      if (!copied && !opts.send && hub === 'cloud' && hasMacBridge()) {
+        // Signed in and able to reach the Mac: what the Mac holds goes into the account once, beside this sync (never in its
+        // way when the Mac is asleep), and a sync right after takes it. Started once the account has answered for this library,
+        // so an account from before languages is never sent another language's records.
+        copied = true;
+        void copyMacIntoAccount(Date.now(), lang).then((done) => { if (done) soon(0); });
+      }
       if (!unsent().length) break;
     }
   }
@@ -494,7 +641,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         return b ? sigOf(bookmarkWire(b, books)) : null;
       }
       if (kind === 'o') {
-        const v = settingHere(id, data);
+        const v = settingHere(id, data, lang);
         return v ? sigOf(v) : null;
       }
       const wire = cleanProgress({ ...(data as object), bookId: 'held' });
@@ -572,7 +719,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         if (base?.sig !== '-') lookupsDel.push(at);
         next.push({ key: r.key, at: r.at, sig: '-' });
       } else if (kind === 'o') {
-        const v = settingHere(id, data);
+        const v = settingHere(id, data, lang);
         if (!v || !opts.settings) continue;
         // Chosen here while this sync was under way: the choice here is newer and goes with the next sync.
         const sent = (current.get(r.key)?.data as { v?: unknown } | undefined)?.v;
@@ -612,7 +759,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         next.push({ key: r.key, at: r.at, sig });
       }
     }
-    if (!next.length) return kept;
+    if (!next.length || stopped) return kept;
     for (const p of moved.values()) if (!progressPut.some((q) => q.bookId === p.bookId && q.updatedAt >= p.updatedAt)) progressPut.push(p);
     await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, lookupsPut, lookupsDel, bookmarksPut, bookmarksDel, rows: next, seen: rows });
     // Settings chosen on another device, after their rows: the sync this change asks for finds nothing new to send.
@@ -647,7 +794,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     if (stopped) return Promise.resolve();
     if (running) { again = true; return running; }
     const go = async () => {
-      if (syncEnabled() && hasSyncHub()) setStatus({ state: 'syncing' });
+      if (syncEnabled(lang) && hasSyncHub()) setStatus({ state: 'syncing' });
       try {
         const locks = (globalThis.navigator as Navigator | undefined)?.locks;
         // One tab at a time: two tabs of the same site share the rows.
@@ -678,7 +825,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   });
   const setProgress = store.progress.set;
   store.progress.set = async (p) => { await setProgress(p); soon(5000); };
-  const offSettings = opts.settings?.subscribe((_s, changed) => { if (changed.some(synced)) soon(3000); });
+  const offSettings = opts.settings?.subscribe((_s, changed) => { if (changed.some((name) => isSyncedSetting(name, lang))) soon(3000); });
   const onVisible = () => {
     leaving = document.visibilityState === 'hidden';
     if (leaving) { clearTimeout(timer); void run(); } else soon(200);
@@ -701,6 +848,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     status: () => status,
     stop() {
       stopped = true;
+      halt.abort();
       clearTimeout(timer);
       if (interval) clearInterval(interval);
       offChange();
@@ -712,6 +860,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       globalThis.removeEventListener?.(CLOUD_EVENT, onWake);
       globalThis.removeEventListener?.('hashchange', onRoute);
       if (active === syncer) active = null;
+      return running ?? Promise.resolve();
     },
   };
   void run();

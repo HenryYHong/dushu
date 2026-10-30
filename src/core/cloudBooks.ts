@@ -4,14 +4,22 @@
 // uploaded by the first device signed in that has it, and downloaded by every other. The classics are not kept (any device
 // adds them from the public site). Deleting a book in the Library removes it from the account too; a book from the Mac has no
 // Delete, so it stays.
+//
+// Each language's library has its own books there. Chinese asks as it did before languages synced (its books keep their keys,
+// and a request that names no language is Chinese). Another language names itself (?lang=ja) and keeps its books under its
+// prefix ('@ja:b1x2y3', syncKeys.ts): a Worker from before languages refuses such a key and lists only its Chinese books. The
+// Worker keeps another language's books where that one never looks (cloud/src/sqlStore.ts), so even rolled back to it, it
+// cannot hand a Japanese book to a Chinese library; and this Chinese library passes over any book with a prefix all the same.
+// The marks below are the library's own (langKey).
 import { strFromU8, strToU8, zipSync } from 'fflate';
 import type { Block, BookMeta, Chapter, ImportedBook, Store } from '../types';
 import { Archive } from '../import/zip';
 import { bytesOf } from '../store';
 import { accountMark, cloudBase, cloudFetch, cloudSession } from './cloud';
-import { bookKey, olderKeys } from './syncKeys';
+import { bookKey, langPrefix, olderKeys } from './syncKeys';
+import { syncEnabled } from './sync';
 import { withBookLock } from './bookLock';
-import { syncsHere } from '../lang/active';
+import { isChinese, lang, langId, langKey } from '../lang/active';
 
 /** The server's piece size (cloud/src/account.ts BOOK_CHUNK). */
 export const BOOK_CHUNK = 1024 * 1024;
@@ -24,17 +32,19 @@ const BAD_RETRY_MS = 86_400_000;
 const ZIP_TIME = new Date('2000-01-01T00:00:00Z');
 const FORMATS = new Set(['epub', 'txt', 'pdf', 'html', 'md', 'mobi', 'azw3', 'paste', 'sample']);
 const SCRIPTS = new Set(['simplified', 'traditional', 'mixed', 'unknown']);
+/** A book's key in the account: as it is for Chinese, '@ja:' in front for Japanese. */
+const keyThere = (key: string): string => langPrefix(langId()) + key;
 
 export interface AccountBook { key: string; title: string; author: string; size: number; sha: string; chunks: number; addedAt: number }
 
 function list(key: string): string[] {
   try {
-    const v = JSON.parse(globalThis.localStorage?.getItem(key) ?? '[]') as unknown;
+    const v = JSON.parse(globalThis.localStorage?.getItem(langKey(key)) ?? '[]') as unknown;
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
   } catch { return []; }
 }
 function setList(key: string, values: string[]): void {
-  try { globalThis.localStorage?.setItem(key, JSON.stringify([...new Set(values)])); } catch { /* tried again next time */ }
+  try { globalThis.localStorage?.setItem(langKey(key), JSON.stringify([...new Set(values)])); } catch { /* tried again next time */ }
 }
 
 async function sha256(bytes: Uint8Array): Promise<string> {
@@ -135,9 +145,18 @@ async function ok(res: Promise<Response> | null): Promise<Response> {
   return r;
 }
 
+const isEntry = (b: unknown): b is AccountBook => !!b && typeof b === 'object' && typeof (b as AccountBook).key === 'string';
+
+/** This library's books in the account, under their keys here (without a language's prefix). */
 export async function accountBooks(): Promise<AccountBook[]> {
-  const data = await (await ok(cloudFetch('/books?covers', { signal: AbortSignal.timeout(20_000) }))).json() as unknown;
-  return Array.isArray(data) ? data.filter((b): b is AccountBook => !!b && typeof b === 'object' && typeof (b as AccountBook).key === 'string') : [];
+  const prefix = langPrefix(langId());
+  const data = await (await ok(cloudFetch(prefix ? `/books?covers&lang=${langId()}` : '/books?covers', { signal: AbortSignal.timeout(20_000) }))).json() as unknown;
+  if (!prefix) return Array.isArray(data) ? data.filter((b) => isEntry(b) && b.key[0] !== '@') : [];
+  // A Worker that keeps each language's books answers a language with { lang, books }. One from before languages answers with
+  // a bare list (its Chinese books), and nothing in it is this library's: nothing goes up or comes down until it is updated.
+  const named = data && typeof data === 'object' && (data as { lang?: unknown }).lang === langId() ? (data as { books?: unknown }).books : undefined;
+  if (!Array.isArray(named)) throw new Error(`The sync server is older than this version of Dushu and does not keep ${lang().name} books yet. They stay on this device until it is updated.`);
+  return named.filter((b): b is AccountBook => isEntry(b) && b.key.startsWith(prefix)).map((b) => ({ ...b, key: b.key.slice(prefix.length) }));
 }
 
 /**
@@ -147,13 +166,13 @@ export async function accountBooks(): Promise<AccountBook[]> {
 async function upload(key: string, meta: BookMeta, bytes: Uint8Array): Promise<boolean> {
   const sha = await sha256(bytes);
   const json = { 'Content-Type': 'application/json' };
-  const start = await (await ok(cloudFetch('/books', { method: 'POST', headers: json, body: JSON.stringify({ key, title: meta.title, author: meta.author, size: bytes.byteLength, sha }), signal: AbortSignal.timeout(20_000) }))).json() as { upload?: unknown; complete?: unknown };
+  const start = await (await ok(cloudFetch('/books', { method: 'POST', headers: json, body: JSON.stringify({ key: keyThere(key), title: meta.title, author: meta.author, size: bytes.byteLength, sha }), signal: AbortSignal.timeout(20_000) }))).json() as { upload?: unknown; complete?: unknown };
   // The account has this very package already (another device put it there).
   if (start.complete === true) return true;
   const u = typeof start.upload === 'string' ? `&u=${encodeURIComponent(start.upload)}` : '';
   for (let i = 0; i * BOOK_CHUNK < bytes.byteLength; i++) {
     const piece = bytes.slice(i * BOOK_CHUNK, (i + 1) * BOOK_CHUNK);
-    const res = cloudFetch(`/books/chunk?key=${encodeURIComponent(key)}&i=${i}${u}`, {
+    const res = cloudFetch(`/books/chunk?key=${encodeURIComponent(keyThere(key))}&i=${i}${u}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: piece, signal: AbortSignal.timeout(60_000),
     });
     if ((await res)?.status === 409) return false;
@@ -164,14 +183,14 @@ async function upload(key: string, meta: BookMeta, bytes: Uint8Array): Promise<b
 
 function badBooks(): Record<string, number> {
   try {
-    const v = JSON.parse(globalThis.localStorage?.getItem(BAD_KEY) ?? '{}') as unknown;
+    const v = JSON.parse(globalThis.localStorage?.getItem(langKey(BAD_KEY)) ?? '{}') as unknown;
     return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, number> : {};
   } catch { return {}; }
 }
 function setBad(id: string, at: number | null): void {
   const all = badBooks();
   if (at === null) delete all[id]; else all[id] = at;
-  try { globalThis.localStorage?.setItem(BAD_KEY, JSON.stringify(all)); } catch { /* tried again next time */ }
+  try { globalThis.localStorage?.setItem(langKey(BAD_KEY), JSON.stringify(all)); } catch { /* tried again next time */ }
 }
 
 async function download(book: AccountBook): Promise<ImportedBook> {
@@ -184,7 +203,7 @@ async function downloadBytes(book: AccountBook): Promise<Uint8Array> {
   const out = new Uint8Array(book.size);
   let at = 0;
   for (let i = 0; i < book.chunks; i++) {
-    const r = await ok(cloudFetch(`/books/chunk?key=${encodeURIComponent(book.key)}&i=${i}`, { signal: AbortSignal.timeout(60_000) }));
+    const r = await ok(cloudFetch(`/books/chunk?key=${encodeURIComponent(keyThere(book.key))}&i=${i}`, { signal: AbortSignal.timeout(60_000) }));
     const piece = new Uint8Array(await r.arrayBuffer());
     if (at + piece.byteLength > out.byteLength) throw new Error(`“${book.title}” in your account is damaged.`);
     out.set(piece, at);
@@ -213,14 +232,26 @@ async function importMacFile(bytes: Uint8Array, book: AccountBook): Promise<Impo
   return { ...imported, note: `mac-book:${book.sha}` };
 }
 
-/** Deleted here on purpose: removed from the account too (now, or on the next try), and never downloaded again here. */
+/**
+ * Whether this library's books go to and come from the account: signed in, and for a language other than Chinese, its Sync
+ * switch on, so a library whose data was deleted (Settings → Delete all data turns its sync off) stays empty. Chinese books go
+ * with the account whenever it is signed in, as they always have.
+ */
+export function accountBooksHere(): boolean {
+  return !!cloudSession() && (isChinese() || syncEnabled());
+}
+
+/**
+ * Deleted here on purpose: removed from the account too (now, or on the next try), and never downloaded again here. Only this
+ * library's copy: the same book in another language's library has another key there ('@ja:…'), and stays.
+ */
 export function forgetBookInAccount(meta: BookMeta): void {
-  // The account's books are Chinese: deleting a book in another language's library leaves the account alone.
-  if (!syncsHere()) return;
+  // A library whose sync is off leaves the account alone, as it leaves its words (accountBooksHere).
+  if (!isChinese() && !syncEnabled()) return;
   const key = bookKey(meta);
   if (key.startsWith('s')) return;
   setList(REMOVED_KEY, [...list(REMOVED_KEY), key]);
-  void cloudFetch(`/books?key=${encodeURIComponent(key)}`, { method: 'DELETE' })?.catch(() => {});
+  void cloudFetch(`/books?key=${encodeURIComponent(keyThere(key))}`, { method: 'DELETE' })?.catch(() => {});
 }
 
 /** Fired on window after each run that did something or failed: `{ added: titles, uploaded: titles, error? }` (main.ts says so). */
@@ -234,9 +265,8 @@ let running: Promise<{ added: BookMeta[]; uploaded: number }> | null = null;
  * is tried again on the next call). Resolves with the books it added here and how many it uploaded.
  */
 export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: number }> {
-  // The account's books are Chinese (lang/active.ts): another language's library neither sends its books up nor takes the
-  // account's in, whichever screen asks.
-  if (!syncsHere()) return Promise.resolve({ added: [], uploaded: 0 });
+  // Another language's library with its sync off neither sends its books up nor takes the account's in (accountBooksHere).
+  if (!isChinese() && !syncEnabled()) return Promise.resolve({ added: [], uploaded: 0 });
   running ??= (async () => {
     const added: BookMeta[] = [];
     const up: string[] = [];
@@ -247,7 +277,7 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
     try {
       const removed = list(REMOVED_KEY);
       // Removals that did not reach the account before.
-      for (const key of removed) await cloudFetch(`/books?key=${encodeURIComponent(key)}`, { method: 'DELETE' })?.catch(() => {});
+      for (const key of removed) await cloudFetch(`/books?key=${encodeURIComponent(keyThere(key))}`, { method: 'DELETE' })?.catch(() => {});
       const inAccount = await accountBooks();
       // Read in the book lock: a book being added from the Mac this moment is seen whole, with its mark.
       const local = await withBookLock(() => store.books.list());

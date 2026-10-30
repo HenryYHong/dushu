@@ -551,14 +551,17 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   clears the counts). An added word updates the open page in place (the store's `known` change → `refreshMarks`), never re-segmenting.
 
 ### 4.11 Sync through the Mac or a sync account (`core/sync.ts`, `core/syncExchange.ts`, `scripts/sync-bridge.ts`, `cloud/`)
-Saved words (with their SRS state), known words (with the learned-from-reading mark), the reading place in each book, looked-up words and
-bookmarks are the same on every device connected to the Mac. Books, settings, review logs and names are not synced.
+Saved words (with their SRS state), known words (with the learned-from-reading mark), the reading place in each book, looked-up words,
+bookmarks and the reading settings (`SYNCED_SETTINGS`) are the same on every device connected to the Mac or signed in to the account, and
+books go through the account. Review logs and names are not synced. Each language's library syncs on its own, apart (**Languages** below).
 - **The Mac** (`scripts/sync-bridge.ts`, route `POST /api/sync`, owner-only through `bridgeRequest`, CORS like the other bridge routes)
   keeps one file, `state.json` in the folder `DUSHU_SYNC_DIR` names (an absolute path; the owner's is `.dushu-local/sync`):
   `{ epoch, version, records: { key: { at, data, rev } } }`. There is no default folder: only `scripts/start-local.mjs` (Dushu.command,
   `npm start`, the login item) sets it, and a server started any other way (`npm run dev`, `npm run preview`, a QA script) answers 503
   `{ off: true }`. A save by another process on the same folder (a new inode) is read before the next merge, never overwritten.
-  Keys: `v:<word id>`, `k:<word>`, `p:<book key>`, `l:<day>:<word id>` (a looked-up word), `b:<bookmark id>`; `data: null` is a deletion. A request sends `{ epoch, since, changes: [{ key, at, data }] }`;
+  Keys: `v:<word id>`, `k:<word>`, `p:<book key>`, `l:<day>:<word id>` (a looked-up word), `b:<bookmark id>`, `o:<setting>`, with
+  `@<language>:` in front for a language other than Chinese; `data: null` is a deletion. A request sends `{ epoch, since, changes: [{ key, at, data }] }`
+  (and `lang` for a language other than Chinese);
   each change wins when its `at` is later (a tie goes to the larger JSON, so every copy agrees; an `at` more than 10 minutes ahead of the
   Mac's clock is clamped). Looked-up words are the exception: two copies of a word's day merge (`mergeLookups` in `core/syncKeys.ts`: the
   larger count, the earliest first and latest last lookup, the words of the copy looked up last), and the device gets the merged copy back
@@ -566,7 +569,8 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   record with `rev > since` plus the current value of every change that lost, the new `version`, and counts. A different `epoch` (or a
   cursor past the end) gets everything. Writes are atomic; before the first write of a day the previous file is kept as
   `state-YYYY-MM-DD.json` (14 kept); a file that cannot be parsed is set aside, never overwritten. Limits: 8 MB body (a larger one is read
-  to the end, then refused with 413), 5,000 changes, 32 KB per record (a larger record is answered like a change that lost).
+  to the end, then refused with 413), 5,000 changes, 160 characters per key without its language's prefix, 32 KB per record (a larger
+  record is answered like a change that lost). A request carries one library, so these never add up across languages.
 - **The merge** (`core/syncExchange.ts` `exchange`, over a `RecordTable`) is shared by both hubs: the Mac's table is the JSON file, the
   account's is SQLite. A device syncs with one hub: the account when signed in (`core/cloud.ts` `cloudSession`), else the Mac. Switching
   is an epoch change, so the device sends everything to the new hub and takes what it has (the restart path below).
@@ -581,14 +585,72 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   `*.ts.net`; the page's CSP adds `CLOUD_URL`'s origin to connect-src at build (`scripts/bridge-csp.ts`; the dev server also allows
   wrangler dev on port 8787). Sign in: the top bar's Sign in button (`ui/signIn.ts`, shown while signed out) and Settings → Your Mac
   and iPad → Sync account, the same panel (`ui/settings/account.ts`); both appear once `CLOUD_URL` is set.
+- **Languages.** Each language's library syncs on its own through the same hubs, its records kept apart by key:
+  - *Records.* Chinese keeps its keys and sends `{ epoch, since, changes }` exactly as before languages synced. Another language sends
+    its keys with `@<id>:` in front (`@ja:v:食べる`, `@es:p:<book key>`, `@fr:o:fontSize`) and `lang: '<id>'`, takes only records that
+    start with its prefix and strips it (`ownRecords`); its rows (in its own database) keep the bare keys. The Chinese app from before
+    reads only keys whose second character is `:`, so it could never take a Japanese word for a Chinese one even if it saw one.
+  - *Hubs* (`exchange`): a request syncs one library. Without `lang` (or with one the hub does not know) it is Chinese: keys with a
+    prefix are refused, and the reply holds only Chinese records and counts, as before. With a known `lang` (`OTHER_LANGS` in
+    `core/syncKeys.ts`) only keys with its prefix are kept, the reply holds only them, its counts (`countRecord` reads the kind after
+    the prefix), and `lang` named back. `RecordTable.changed` and `counts` take the library (`inLang`); the account's SQL picks it by
+    `substr(key, …)`. The version counts every library's changes, so a Chinese cursor moves past Japanese ones. `GET /sync` and the
+    Mac's `GET /api/sync` report the Chinese library, as before.
+  - *Settings.* A language syncs its own settings (`librarySettings`: the list without `translateTo` and `localOnly`, plus `stress`),
+    each compared with its own defaults (`defaultsFor`). `translateTo` and `localOnly` are the reader's: each device spreads them to
+    its libraries (`TARGET_KEY`, `LOCAL_ONLY_KEY`) and only the Chinese library syncs them; synced by every library, two libraries on
+    one device would undo each other on every sync. The hubs refuse them under a prefix.
+  - *Room.* The account keeps two record rooms (100 MB each for the owner, 20 MB each for everyone else, in bytes of JSON;
+    `RecordRoom` in `cloud/src/account.ts`): the Chinese library's, as before, so Japanese words never crowd out Chinese ones and the
+    Chinese app from before is answered as it was; and one shared by the seven other languages (keys starting with `@`), so an
+    account holds at most twice what it did, not eight times. The 413 for the shared one says "for all your languages but Chinese
+    together". Only what the merge keeps counts: `exchange` decides every change before it writes and hands the room the bytes it
+    would add, so a deletion that loses (time 0, or older than the copy kept) frees nothing and a key deleted and saved again in
+    one request counts once. Tombstones of keys never kept still cost nothing (as before languages; bounded only per request).
+    Book room stays one for the account (1 GB, 200 MB): books are what storage costs.
+  - *A hub from before languages* drops a prefixed record without a word and answers without `lang`. So another language's library
+    sends nothing to a hub until a reply has named its language: a library that never synced asks first (`changes: []`), and the
+    Worker from before languages, which counts every change toward the Chinese room, never sees its words (a nearly full Chinese
+    library would otherwise answer "full" to Japanese). A reply that does not name the language is taken as `outdated`: nothing is
+    taken or marked sent, the cursor stays where the library last agreed with a hub that named the language (such a hub can hold
+    the language's records all the same: rolled back from this version, it keeps and lists the `@ja:` records the newer one stored,
+    and a cursor moved past them would never ask for them again), a hub with another epoch is a restart (cursor 0, everything sent
+    again once it is updated), and `#meta.asked` keeps where it answered from. The next syncs only ask, from `asked`, so it does not
+    send its Chinese records again each time. The first reply that names the language drops `asked`, and the library asks again
+    from its own cursor, then sends what waited. Settings: "The sync server is older than this version of Dushu and does not keep
+    Japanese yet…", or "Dushu on your Mac is older than this page…".
+  - *Rolling back.* Main's Worker over an account this one wrote: it answers Chinese devices the `@` records too (they read only
+    keys like `v:…`, so nothing is taken), counts them as nothing, and refuses `@` keys; another language's library is `outdated`
+    and loses nothing (above). Its room sums every record, so while it runs the other languages' bytes count against the Chinese
+    20 MB, and a Chinese word that fits today can be refused as full; the next deploy gives the room back. It never sees another
+    language's books (Books below). The same holds for the Mac's server started from an older checkout on the same folder.
+  - *Switch.* Each library has its own Sync switch: Chinese `dushu.sync.off.v1`; another language `dushu.<id>.sync.off.v1` (`'1'` off,
+    `'0'` on). Until it is set it follows the Chinese one, and the library's first syncer writes that down (a reader who turned sync
+    off, or a QA run that does, has not turned it on for Japanese by opening Japanese); from then on each is its own, so Chinese
+    Delete all data leaves a Japanese library that has synced. Its account books follow it too (`accountBooksHere`), so a library
+    whose data was deleted stays empty.
+  - *The Mac's records into the account* (`copyMacIntoAccount`) go library by library, each with its own mark
+    (`dushu.<id>.cloud.mac-copied.v1`, cleared with the others when the account is deleted, `MARK_LISTS`). The syncer starts the copy
+    only after the account has answered for its library, so an account from before languages is never sent one. A Mac that does
+    not name the language is tried again in 5 minutes, never marked, and asked from where it last answered (`macAsked`) so it does
+    not send its Chinese records each time; the whole read waits until it names the language.
 - **Books in the account** (`core/cloudBooks.ts`, run by the Library: on open, on sign-in and 3 s after a book is added): a book is kept as
   the app stored it, a zip (`book.json` with its text and details, images as `a/<i>`) made by `packBook` and checked by `unpackBook`
   (the bounded `import/zip.ts` reader), so a device that downloads it adds the same book with the same sync key and its held place
   lands. `GET|POST|DELETE /books`, `GET|PUT /books/chunk?key&i` (1 MiB pieces, the last one shorter; whole once every piece is in);
-  `books` and `book_chunks` tables in the account's SQLite; 200 MB a book, 1 GB an account; the package's SHA-256 is checked after a
+  `books` and `book_chunks` tables in the account's SQLite (another language's in `lang_books` and `lang_book_chunks`); 200 MB a book, 1 GB an account; the package's SHA-256 is checked after a
   download. The first device signed in that has a book uploads it (`dushu.cloud.books-up.v1`, per email and key); one this device put
   there that is gone was deleted elsewhere and stays deleted. Library Delete calls `forgetBookInAccount` (`dushu.cloud.books-removed.v1`,
-  retried until the server has it, and never downloaded again here). Classics (`s` keys) are not kept.
+  retried until the server has it, and never downloaded again here). Classics (`s` keys) are not kept. A language other than Chinese
+  keeps its books under its prefix (`@ja:b1x2y3`, the same file in two libraries is two books), asks `GET /books?covers&lang=ja` and
+  gets `{ lang, books }`, and keeps its marks under its own keys (`dushu.ja.cloud.books-up.v1` …). A request that names no language
+  is Chinese and lists only books without a prefix, as before, and the Chinese library passes over any key starting with `@` itself.
+  A Worker from before languages refuses `@` in a key (`BOOK_KEY`) and answers a language with its bare Chinese list, so a new
+  Japanese library there sends and takes nothing and says the server needs updating; deleting there names `@ja:<key>`, which it does
+  not have. Another language's books are kept in `lang_books` and `lang_book_chunks` (`SHELVES` in `cloud/src/sqlStore.ts`) because
+  that Worker lists every book in `books` and serves any piece of `book_chunks` by key: rolled back to it, the Worker would hand a
+  Japanese book to every Chinese library signed in, the released app included, again on every run. It never reads the other tables.
+  The Mac's books (`scripts/account-books.ts`, covers) stay Chinese.
 - **Claude through the account** (`GET /claude/status`, `POST /claude/translate`): the same request checks, prompt, effort, fallback
   and NDJSON stream as the Mac (`src/translate/claudeServer.ts`, used by `scripts/claude-bridge.ts` too), with the owner's key as the
   Worker secret `ANTHROPIC_API_KEY`. A request is counted before it is sent (`claudeStart`, 429 `daily_limit` past the limits) and its
@@ -611,14 +673,16 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   (800; the owner's is the whole 4,000) and everyone's (4,000). With read-aloud's 48,000 characters (about 4,300 neurons), the day stays
   under Workers AI's free 10,000, so nothing is ever billed. Answer: `{ text, unverified? }`.
 - **Bringing a device everything**: `copyMacIntoAccount` (core/sync.ts) runs beside a sync on a signed-in device that reaches the Mac,
-  once per account and Mac (`dushu.cloud.mac-copied.v1`; a failure waits 5 minutes): it reads every Mac record (`since: 0`, no changes)
+  once the account has answered, once per account and Mac (`dushu.cloud.mac-copied.v1`; a failure waits 5 minutes), and only into the
+  owner's account (`isAccountOwner`, or `GET /me` when this device has not heard yet: the owner's iPad signed in to an account someone
+  else made gives it nothing of the Mac): it reads every Mac record (`since: 0`, no changes)
   and sends them to the account with their own times, so the account's merge keeps whichever copy is newer; a sync right after takes
   them. `core/cloudLink.ts`: a device on the Mac stores the Mac's private address in the account (`POST /me {mac}`, only an https
   `*.ts.net` origin); a signed-in device elsewhere that is not connected learns it (`GET /me`) and connects, so the Library adds the
   Mac's books when Tailscale is on. Disconnecting on purpose (`disconnectMac`) sets `dushu.mac-bridge.declined.v1`, and it stays so.
 - **A device** keeps one row per record in the store's `sync` table (`SyncRow`: `at`, `sig` = hash of the record, `dirty` when not yet sent,
   `fresh` for a word saved before it ever synced, `held` for a place in a book the device does not have: sent by the Mac before the book
-  arrived, or kept by `store.books.remove`; `#meta` holds `epoch` and the cursor). `store.books.add` (and `update`, when marking a book as
+  arrived, or kept by `store.books.remove`; `#meta` holds `epoch`, the cursor and, for another language on a hub from before languages, `asked`). `store.books.add` (and `update`, when marking a book as
   the Mac's changes its key) lands a held place in the same transaction, so a book deleted and added again opens where it was. These rows live in the same IndexedDB as the data, so a wipe or an eviction clears both: the device looks new and only receives;
   sync never reads "missing" as "deleted" unless the device had agreed on the record before. A run (Web Locks `dushu-sync`, one tab at a time):
   apply held places whose book arrived; compare a snapshot of the store with the rows and mark what changed (stamped now; a place with its
@@ -635,8 +699,20 @@ bookmarks are the same on every device connected to the Mac. Books, settings, re
   shown again, when the connected Mac changes, when back online, and every 45 s while visible. The reader waits up to 1.5 s for a sync
   before it reads the saved place (`syncBeforeOpen`), never saves a place that did not move (so opening a book on a stale device cannot
   overwrite a newer place), and when another device's place arrives for the open book it offers "Go there" (`dushu:remote-progress`).
-- **Settings** → Your Mac and iPad → Sync: a switch (localStorage `dushu.sync.off.v1`), Sync now, and the status. Delete all data turns
-  sync off on that device, so the Mac's copy stays there until it is turned on again. The memory fallback never syncs.
+- **Settings** → Your Mac and iPad → Sync: a switch (localStorage `dushu.sync.off.v1`, or the language's own), Sync now, and the
+  status. Delete all data turns that library's sync off on that device, so the Mac's (or the account's) copy stays there until it is
+  turned on again; another language's turns off only its own. It first stops the syncer and waits for a sync under way (`stop()`
+  cancels its request and applies nothing it brings), then wipes holding the `dushu-sync` lock (`withoutSync`), so a reply on its way
+  never fills the empty library again. The memory fallback never syncs.
+- **Tests that check the releases against each other** run the app and Worker live on 2026-10-30, frozen in
+  `tests/fixtures/released/` (main ff6ab6c, `syncKeys.ts` included, import paths changed only): `tests/core/sync-languages.test.ts`
+  (hub and device), `tests/cloud/sync-languages.test.ts` (the Worker, the Mac copy, the SQL on a real SQLite beside main's own),
+  `tests/cloud/books-languages.test.ts`. The released Worker reads the accounts as main's SQL would (`releasedView` in
+  `tests/cloud/helpers.ts`: every record, every byte, the `books` table only), and they run new, released, new again, as a rollback would.
+- **Deploying languages**: the Worker first (`npm run cloud:deploy`), then the Mac's server (restart it from the updated checkout), then
+  the site. Any order loses nothing (a library whose hub is older waits, `outdated`), but this order never shows the message. After
+  that, roll the Worker forward rather than back: a rollback loses nothing either, but the Chinese room counts every language while
+  it runs (Rolling back, above).
 
 ## 5. UI
 
@@ -1048,9 +1124,10 @@ exists.
 - **Each language is its own library.** Chinese keeps the `dushu` database and the `dushu.*` keys; another language uses the
   database `dushu-<id>` and the keys `dushu.<id>.*` (`langKey`, `storeName`), so its books, words, places and settings never mix
   with the Chinese ones. A backup records its language and is refused by another one.
-- **Sync is off for the other languages** (`OTHER_LANGUAGES_SYNC`, `syncsHere`) until the record format that keeps languages apart is
-  on every Chinese device: the hubs keep records by key (`v:<word>` …), and a Chinese copy from before would take a Japanese saved word
-  for a Chinese one. Account books and the Mac's books are Chinese only for the same reason.
+- **Each library syncs on its own** (§4.11 Languages): its words, known words, places, lookups, bookmarks and its own settings travel
+  as `@<id>:<key>` with `lang` in the request, its books in the account as `@<id>:<book key>`, and Chinese sends and takes exactly
+  what it did before. `translateTo` and `localOnly` are the reader's and sync with the Chinese library only. Each library has its own
+  Sync switch (starting from the Chinese one), and its Delete all data turns off only its own. The Mac's books stay Chinese.
 - **The contract** is `lang/types.ts`: a language's engine (`src/lang/<id>`, loaded by `lang/registry.ts`) segments a paragraph into
   tokens (kind `'word'`, with `key` = the folded dictionary form every form of a word shares, `lemma`, Japanese `ruby` and `reading`,
   Russian `stress`, `name`), looks a word up (`WordLookup`: entries with senses, the form on the page "past tense of …", the parts of a

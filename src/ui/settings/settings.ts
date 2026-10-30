@@ -10,7 +10,7 @@ import { speechGroup } from './speech';
 import { translationGroup } from './translation';
 import { ipadGroup } from './ipad';
 import { pageTitle } from '../pageHead';
-import { isChinese, lang, syncsHere } from '../../lang/active';
+import { isChinese, lang } from '../../lang/active';
 import { aidName, aidWord, autoKnownHelp, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { langSelect } from '../langSwitch';
 
@@ -95,7 +95,7 @@ export const mount: MountFn = (root, params, ctx) => {
     row('Learn known words as I read', autoKnownHelp(), autoKnown));
   // The language being read. Each one keeps its own books, words and settings; switching opens its library.
   const language = group('Language', null,
-    row('Reading in', `Each language keeps its own library, words and settings.${syncsHere() ? '' : ` ${L.name} is not synced with your account yet: its books and words stay on this device.`}`,
+    row('Reading in', 'Each language keeps its own library, words and settings, and syncs them on its own.',
       { el: langSelect('select'), update: () => {} }));
   const lookup = group('Lookup', null,
     row('Look up a word by', null, trigger),

@@ -2,7 +2,7 @@
 // The app reading a language other than Chinese: which library and settings it uses, how text is cut, counted, drawn, saved,
 // decoded, imported and translated. The engines themselves are tested in tests/lang/ja and tests/lang/spaced.
 import { afterEach, describe, expect, it } from 'vitest';
-import { isChinese, langKey, setLangForTests, storeName, syncsHere } from '../../../src/lang/active';
+import { isChinese, langKey, setLangForTests, storeName } from '../../../src/lang/active';
 import { segment } from '../../../src/core/segment';
 import { countHan, unitScale } from '../../../src/import/han';
 import { createSettingsStore, defaultsFor } from '../../../src/store/settings';
@@ -33,11 +33,9 @@ const memoryStorage = (): Storage => {
 describe('which library a language opens', () => {
   it('keeps Chinese on its old names and gives every other language its own', () => {
     setLangForTests('zh');
-    expect([isChinese(), storeName(), langKey('dushu.settings.v1'), syncsHere()]).toEqual([true, 'dushu', 'dushu.settings.v1', true]);
+    expect([isChinese(), storeName(), langKey('dushu.settings.v1')]).toEqual([true, 'dushu', 'dushu.settings.v1']);
     setLangForTests('ja', fakeEngine('ja'));
     expect([isChinese(), storeName(), langKey('dushu.settings.v1')]).toEqual([false, 'dushu-ja', 'dushu.ja.settings.v1']);
-    // Not synced until the record format that keeps languages apart is on every Chinese device.
-    expect(syncsHere()).toBe(false);
   });
 
   it('keeps a language’s settings apart from Chinese, with its own defaults', () => {
@@ -245,19 +243,22 @@ describe('chapter headings in other languages', () => {
 });
 
 describe('another language leaves Chinese data alone', () => {
-  it('neither uploads its books to the account nor takes the account’s in, and deleting a book leaves the account alone', async () => {
+  // How its books and records go through the account is in tests/cloud/books-languages.test.ts and tests/core/sync-languages.test.ts.
+  it('with its sync off, neither uploads its books to the account nor takes the account’s in, and deleting a book leaves the account alone', async () => {
     const { syncBooks, forgetBookInAccount } = await import('../../../src/core/cloudBooks');
     const fetched: string[] = [];
     const realFetch = globalThis.fetch;
-    globalThis.fetch = (async (url: string) => { fetched.push(String(url)); return new Response('{"books":[]}'); }) as typeof fetch;
+    globalThis.fetch = (async (url: string) => { fetched.push(String(url)); return new Response('{"lang":"ja","books":[]}'); }) as typeof fetch;
     localStorage.setItem('dushu.cloud.url.v1', 'http://localhost:8787');
     localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: 't', email: 'reader@example.com' }));
+    localStorage.setItem('dushu.ja.sync.off.v1', '1');
     try {
       setLangForTests('ja');
       const store = { books: { list: async () => [{ id: 'b1', title: '吾輩は猫である', author: '夏目漱石', charCount: 9 }] } } as never;
       expect(await syncBooks(store)).toEqual({ added: [], uploaded: 0 });
       forgetBookInAccount({ id: 'b1', title: '吾輩は猫である', author: '夏目漱石', charCount: 9 } as never);
       expect(fetched).toEqual([]);
+      expect(localStorage.getItem('dushu.ja.cloud.books-removed.v1')).toBeNull();
       expect(localStorage.getItem('dushu.cloud.books-removed.v1')).toBeNull();
     } finally {
       globalThis.fetch = realFetch;
@@ -274,12 +275,13 @@ describe('another language leaves Chinese data alone', () => {
     setLangForTests('ja');
     await eraseAllData(ctx);
     expect(wiped).toBe(1);
+    // Its own sync is turned off, so the account's copy does not come straight back; Chinese sync is not.
     expect(Object.fromEntries(Object.keys(localStorage).sort().map((k) => [k, localStorage.getItem(k)]))).toEqual(
-      Object.fromEntries(Object.entries(keep).sort()));
-    // Chinese "Delete all data" takes every Chinese key and turns its sync off, as before, but not another language's settings.
+      Object.fromEntries(Object.entries({ ...keep, 'dushu.ja.sync.off.v1': '1' }).sort()));
+    // Chinese "Delete all data" takes every Chinese key and turns its sync off, as before, but not another language's keys.
     setLangForTests('zh');
     await eraseAllData(ctx);
-    expect(Object.keys(localStorage).sort()).toEqual(['dushu.es.settings.v1', 'dushu.sync.off.v1']);
+    expect(Object.keys(localStorage).sort()).toEqual(['dushu.es.settings.v1', 'dushu.ja.sync.off.v1', 'dushu.sync.off.v1']);
     localStorage.clear();
   });
 
@@ -414,5 +416,21 @@ describe('Local only', () => {
     createSettingsStore(storage, 'ja').set({ localOnly: false });
     expect(createSettingsStore(storage, 'zh').get().localOnly).toBe(false);
     expect(createSettingsStore(storage, 'fr').get().localOnly).toBe(false);
+  });
+});
+
+describe('the classics of every language', () => {
+  it('offer at least four books at each level, each with its cover', async () => {
+    const { readFileSync, existsSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    for (const id of ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru']) {
+      const dir = join(__dirname, '..', '..', '..', 'public', 'samples', id);
+      const rows = JSON.parse(readFileSync(join(dir, 'index.json'), 'utf8')) as { id: string; level: string; cover?: string; file: string }[];
+      for (const level of ['Beginner', 'Intermediate', 'Advanced']) expect(rows.filter((r) => r.level === level).length, `${id} ${level}`).toBeGreaterThanOrEqual(4);
+      for (const r of rows) {
+        expect(existsSync(join(dir, r.file)), `${id}/${r.file}`).toBe(true);
+        expect(r.cover && existsSync(join(dir, r.cover)), `${id}/${r.id} cover`).toBe(true);
+      }
+    }
   });
 });

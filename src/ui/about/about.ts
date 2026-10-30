@@ -7,7 +7,7 @@ import { icon } from '../icons';
 import { SHORTCUTS, keyCaps } from '../shortcuts';
 import { connectedMac, isMacOrigin } from '../../core/macBridge';
 import { isAccountOwner } from '../../core/cloud';
-import { activeEngine, isChinese, lang, syncsHere } from '../../lang/active';
+import { activeEngine, isChinese, lang } from '../../lang/active';
 import { aidWord, levelScheme } from '../../lang/labels';
 import type { LangId } from '../../lang/types';
 import { fetchSamples } from '../library/samples';
@@ -188,8 +188,8 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
     h('div.page-head', null, h('div', null, pageTitle('about', 'About Dushu'))),
     h('section.ab-section', null,
       h('p.ab-lead', null, `Dushu is for reading real books in ${L.name}. Tap a word to see its meaning${furigana ? ' and reading' : ''}, and tap it twice to translate the whole sentence.`),
-      h('p.ab-p', null, 'It runs in your browser. Your books and words stay on this device. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.'),
-      h('p.ab-p', null, `Each language is its own library, with its own books, words and settings. Switch languages in Settings or with the language menu at the top.${syncsHere() ? '' : ` ${L.name} does not sync with your account yet: its books and words stay on this device for now.`}`)),
+      h('p.ab-p', null, 'It runs in your browser. Your books and words stay on this device, and in your account if you sign in, where only you can see them. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.'),
+      h('p.ab-p', null, 'Each language is its own library, with its own books, words and settings, and each syncs with your account on its own. Switch languages in Settings or with the language menu at the top.')),
     h('section.ab-section', null, h('h2.section-title', null, 'How to use it'), steps(how)),
     h('section.ab-section', null, h('h2.section-title', null, 'Levels'), h('p.ab-p', null, levels)),
     h('section.ab-section', null,

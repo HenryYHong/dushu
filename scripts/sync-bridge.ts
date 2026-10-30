@@ -1,4 +1,5 @@
 // Saved words, known words, reading places, looked-up words and bookmarks, kept on the Mac so every device the owner connects shows the same ones.
+// Every language's library is in the one file, apart (src/core/syncExchange.ts: '@ja:v:…' beside the Chinese 'v:…').
 // Owner-only (bridgeRequest). The shared copy is one JSON file in the folder DUSHU_SYNC_DIR names (the owner's is
 // .dushu-local/sync, never in the repo, the build or the public site), written atomically, with one copy per day kept for
 // two weeks. The merge itself is src/core/syncExchange.ts (shared with the sync account online); src/core/sync.ts is the
@@ -10,7 +11,7 @@ import { isAbsolute, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { bridgeRequest } from './private-access';
-import { SYNC_LIMITS, SyncError, countRecord, exchange, noCounts, type RecordTable, type StoredRecord, type SyncReply, type WireRecord } from '../src/core/syncExchange';
+import { SYNC_LIMITS, SyncError, countRecord, exchange, inLang, noCounts, type RecordTable, type StoredRecord, type SyncReply, type WireRecord } from '../src/core/syncExchange';
 
 export { SYNC_LIMITS, SyncError };
 export type { SyncReply, WireRecord };
@@ -83,9 +84,10 @@ export function createSyncStore(opts: SyncStoreOptions = {}) {
     seen = mine;
   }
 
-  function counts(s: SyncState): SyncReply['counts'] {
+  /** One library's counts ('' Chinese, 'ja' Japanese …): every language's records are in the one file. */
+  function counts(s: SyncState, lang: string): SyncReply['counts'] {
     const c = noCounts();
-    for (const [key, r] of Object.entries(s.records)) countRecord(c, key, r.data);
+    for (const [key, r] of Object.entries(s.records)) if (inLang(key, lang)) countRecord(c, key, r.data);
     return c;
   }
 
@@ -96,22 +98,23 @@ export function createSyncStore(opts: SyncStoreOptions = {}) {
       set version(v: number) { s.version = v; },
       get: (key) => s.records[key],
       put: (key, record) => { s.records[key] = record; },
-      changed: (since, also) => Object.entries(s.records).filter(([key, r]) => r.rev > since || also.has(key)).map(([key, r]) => ({ key, at: r.at, data: r.data })),
-      counts: () => counts(s),
+      changed: (since, also, lang) => Object.entries(s.records).filter(([key, r]) => inLang(key, lang) && (r.rev > since || also.has(key))).map(([key, r]) => ({ key, at: r.at, data: r.data })),
+      counts: (lang) => counts(s, lang),
     };
   }
 
   return {
     /** Merges `changes` and returns every record newer than `since`, plus the current value of any change that lost. */
-    exchange(input: { epoch?: unknown; since?: unknown; changes?: unknown }): SyncReply {
+    exchange(input: { epoch?: unknown; since?: unknown; changes?: unknown; lang?: unknown }): SyncReply {
       const s = load();
       const { reply, changed } = exchange(table(s), input, now());
       if (changed) save(s);
       return reply;
     },
+    /** The Chinese library's status, as before languages synced. */
     status(): Omit<SyncReply, 'records'> {
       const s = load();
-      return { epoch: s.epoch, version: s.version, counts: counts(s) };
+      return { epoch: s.epoch, version: s.version, counts: counts(s, '') };
     },
   };
 }

@@ -17,7 +17,7 @@ import { linkMac } from './core/cloudLink';
 import { signInButton } from './ui/signIn';
 import { reviewCount } from './ui/review/learning';
 import { scriptView } from './ui/vocab/render';
-import { activeEngine, isChinese, lang, setActiveEngine, storeName, syncsHere } from './lang/active';
+import { activeEngine, isChinese, lang, setActiveEngine, storeName } from './lang/active';
 import { noChineseDictionary } from './lang/noChinese';
 import { langChip } from './ui/langSwitch';
 
@@ -166,15 +166,16 @@ async function boot(): Promise<void> {
   // Start parsing the dictionary right away; the library does not wait for it.
   ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not download the dictionary. Check your connection; Dushu will try again.', { ms: 8000 }); });
   // Saved words, known words, reading places, lookups and bookmarks, kept the same on every device signed in to the sync
-  // account (or connected to the Mac). Signed in, a device also learns where the Mac is, for the Mac's books.
-  if (syncsHere()) startSync(store, { settings });
+  // account (or connected to the Mac), each language's library apart. Signed in, a device also learns where the Mac is, for
+  // the Mac's books.
+  startSync(store, { settings });
   void linkMac();
   window.addEventListener(CLOUD_EVENT, () => void linkMac());
   // Whether this account is the owner's (the Mac and Claude settings follow it): asked on each start.
   if (cloudSession()) void accountInfo().catch(() => {});
   // Books in the account: this device's go up and the account's come down, on open, on sign-in, when the app comes back to
   // the front and every few minutes, and each run says what it did (or what went wrong, once).
-  const accountBooks = () => { if (cloudSession() && syncsHere()) void syncBooks(store); };
+  const accountBooks = () => { if (cloudSession()) void syncBooks(store); };
   const toldErrors = new Set<string>();
   window.addEventListener(BOOKS_EVENT, (e) => {
     const r = (e as CustomEvent<BooksReport>).detail;

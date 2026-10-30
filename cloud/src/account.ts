@@ -2,7 +2,8 @@
 // these per email, or per account made with a passkey, in a Durable Object with its own SQLite database (sqlStore.ts); tests
 // keep it in memory. Every method is synchronous over the store, so a Durable Object runs each one as a single transaction;
 // the hashing and the passkey signatures are checked before.
-import { countRecord, exchange, noCounts, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
+import { countRecord, exchange, inLang, noCounts, recordSize, syncLang, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
+import { OTHER_LANGS } from '../../src/core/syncKeys';
 
 export const CODE_TTL_MS = 10 * 60_000;
 export const CODE_GAP_MS = 30_000;
@@ -27,7 +28,10 @@ export interface SignedIn { email: string; name?: string; created: string }
 
 /** A book kept in the account: a package the app made of the stored book (core/cloudBooks.ts), in BOOK_CHUNK pieces. */
 export interface BookEntry {
-  /** The book's sync key (core/syncKeys bookKey): the same book on every device. */
+  /**
+   * The book's sync key (core/syncKeys bookKey): the same book on every device. A Chinese book's is the key itself, as before
+   * languages synced; another language's has its prefix in front ('@ja:b1x2y3'), so the same file in two libraries is two books.
+   */
   key: string;
   title: string;
   author: string;
@@ -43,16 +47,32 @@ export interface BookEntry {
 
 /** An upload left unfinished this long (a tab closed, a device that never came back) gives its space back. */
 export const STALE_UPLOAD_MS = 86_400_000;
-/** Words, places, settings and the rest an account keeps, in bytes of JSON: the owner's, and everyone else's. */
+/**
+ * Words, places, settings and the rest an account keeps, in bytes of JSON: the owner's, and everyone else's. Two rooms of this
+ * size (RecordRoom): the Chinese library's, as before languages synced, so a reader of Chinese and Japanese is never refused
+ * Chinese words for the Japanese ones and the Chinese app from before is answered exactly as it was; and one shared by the
+ * other seven languages. 40 MB at most for an account that is not the owner's, beside its 200 MB of books.
+ */
 export const OWNER_RECORD_BYTES = 100 * 1024 * 1024;
 export const SHARED_RECORD_BYTES = 20 * 1024 * 1024;
 
 export const BOOK_CHUNK = 1024 * 1024;
 export const BOOK_MAX_BYTES = 200 * 1024 * 1024;
-/** Books an account keeps: the owner's, and everyone else's (the free plan stores 5 GB in all). */
+/**
+ * Books an account keeps: the owner's, and everyone else's (the free plan stores 5 GB in all). The room is the account's, in
+ * all its languages together: books are what the storage costs, and eight rooms would be more than the plan holds.
+ */
 export const ACCOUNT_BOOK_BYTES = 1024 * 1024 * 1024;
 export const SHARED_BOOK_BYTES = 200 * 1024 * 1024;
-const BOOK_KEY = /^[A-Za-z0-9._-]{1,160}$/;
+/** A book's key, with a language's prefix in front when it is not Chinese ('@ja:b1x2y3'). A Worker from before languages
+ * refused '@' here, so a new app's Japanese book could never be kept as a Chinese one there (core/cloudBooks.ts). */
+const BOOK_KEY = new RegExp(`^(?:@(?:${OTHER_LANGS.join('|')}):)?[A-Za-z0-9._-]{1,160}$`);
+/** The library a kept book belongs to: '' for Chinese, else its language ('@ja:b1x2y3' is Japanese). */
+const bookLang = (key: string): string => (key[0] === '@' ? key.slice(1, key.indexOf(':')) : '');
+
+/** The record rooms (OWNER_RECORD_BYTES): the Chinese library's (keys without '@'), and every other language's together. */
+export type RecordRoom = 'chinese' | 'others';
+export const recordRoom = (key: string): RecordRoom => (key[0] === '@' ? 'others' : 'chinese');
 
 /** Where an account keeps its state. */
 export interface AccountStore {
@@ -64,6 +84,10 @@ export interface AccountStore {
   putSession(hash: string, session: Session): void;
   dropSession(hash: string): void;
   sessions(): { hash: string; used: number }[];
+  /**
+   * Every book, of every language. A Chinese book and another language's ('@ja:…') are kept on separate shelves (sqlStore.ts:
+   * `books`, `lang_books`), so a Worker from before languages, which lists and serves whatever is in `books`, never sees one.
+   */
   books(): BookEntry[];
   putBook(entry: BookEntry): void;
   /** Removes the book and every piece of it. */
@@ -71,8 +95,8 @@ export interface AccountStore {
   putChunk(key: string, index: number, data: Uint8Array): void;
   getChunk(key: string, index: number): Uint8Array | undefined;
   chunkCount(key: string): number;
-  /** Bytes of JSON in the records. */
-  recordBytes(): number;
+  /** Bytes of JSON in the records of one room (RecordRoom). */
+  recordBytes(room: RecordRoom): number;
   /** Forgets everything: the account deleted. */
   wipe(): void;
 }
@@ -311,10 +335,14 @@ export class AccountCore {
     this.store.dropSession(sessionHash);
   }
 
-  /** The books kept in the account (whole ones only), and with `covers` the covers the owner's Mac put there (keys c…). */
-  listBooks(sessionHash: string, now: number, covers = false): Omit<BookEntry, 'complete'>[] {
+  /**
+   * The books kept in the account (whole ones only) for the library `lang` names, with their keys as kept ('@ja:…' for
+   * Japanese), and with `covers` the covers the owner's Mac put there (keys c…, Chinese). A request that names no language is
+   * Chinese, as every one was before languages synced: it never lists another language's book.
+   */
+  listBooks(sessionHash: string, now: number, covers = false, lang = ''): Omit<BookEntry, 'complete'>[] {
     this.authorize(sessionHash, now);
-    return this.store.books().filter((b) => b.complete && (covers || !b.key.startsWith('c'))).map(({ complete: _c, ...b }) => { void _c; return b; });
+    return this.store.books().filter((b) => b.complete && inLang(b.key, lang) && (covers || !b.key.startsWith('c'))).map(({ complete: _c, ...b }) => { void _c; return b; });
   }
 
   /**
@@ -337,7 +365,11 @@ export class AccountCore {
     for (const b of this.store.books()) if (b.key !== key && !b.complete && now - b.addedAt > STALE_UPLOAD_MS) this.store.dropBook(b.key);
     const others = this.store.books().filter((b) => b.key !== key).reduce((n, b) => n + b.size, 0);
     const room = this.owner() ? ACCOUNT_BOOK_BYTES : SHARED_BOOK_BYTES;
-    if (others + size > room) throw new CloudError(413, `Your account is full: it keeps up to ${room >= 1024 ** 3 ? `${room / 1024 ** 3} GB` : `${room / 1024 ** 2} MB`} of books. Delete a book to make room.`);
+    if (others + size > room) {
+      // The room is shared by the languages: say so when another language's books take some of it (they are not in this library).
+      const shared = this.store.books().some((b) => b.key !== key && bookLang(b.key) !== bookLang(key)) ? ', in all your languages together' : '';
+      throw new CloudError(413, `Your account is full: it keeps up to ${room >= 1024 ** 3 ? `${room / 1024 ** 3} GB` : `${room / 1024 ** 2} MB`} of books${shared}. Delete a book to make room.`);
+    }
     const text = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
     this.store.dropBook(key);
     const upload = crypto.randomUUID();
@@ -428,49 +460,56 @@ export class AccountCore {
     return this.store.records(epoch, Number(this.store.getMeta('version') ?? 0) || 0);
   }
 
-  sync(sessionHash: string, input: { epoch?: unknown; since?: unknown; changes?: unknown }, now: number): SyncReply {
+  sync(sessionHash: string, input: { epoch?: unknown; since?: unknown; changes?: unknown; lang?: unknown }, now: number): SyncReply {
     this.authorize(sessionHash, now);
     const table = this.table();
-    // An account keeps so much (more for the owner): changes that would grow it past that are refused, ones that shrink it never.
+    // An account keeps so much in each room (more for the owner): a merge that would grow the request's room past that is
+    // refused, one that shrinks it never. The merge says what it would keep before it writes (exchange), so a change that
+    // loses, or another language's change in the request (never kept), is not counted.
+    const lang = syncLang(input.lang);
+    const kind: RecordRoom = lang ? 'others' : 'chinese';
     const room = this.owner() ? OWNER_RECORD_BYTES : SHARED_RECORD_BYTES;
-    if (Array.isArray(input.changes) && input.changes.length) {
-      const size = (data: unknown) => (data === null || data === undefined ? 0 : JSON.stringify(data).length);
-      let grow = 0;
-      for (const c of input.changes as { key?: unknown; data?: unknown }[]) {
-        if (!c || typeof c.key !== 'string') continue;
-        grow += size(c.data) - size(table.get(c.key)?.data);
+    const { reply, changed } = exchange(table, input, now, (grow) => {
+      if (grow > 0 && this.store.recordBytes(kind) + grow > room) {
+        throw new CloudError(413, `Your account is full: it keeps up to ${room / 1024 / 1024} MB of words, places and settings${lang ? ' for all your languages but Chinese together' : ''}.`, 'full');
       }
-      if (grow > 0 && this.store.recordBytes() + grow > room) {
-        throw new CloudError(413, `Your account is full: it keeps up to ${room / 1024 / 1024} MB of words, places and settings.`, 'full');
-      }
-    }
-    const { reply, changed } = exchange(table, input, now);
+    });
     if (changed) this.store.setMeta('version', String(table.version));
     return reply;
   }
 
+  /** The Chinese library's status, as before languages synced (GET /sync; the app reads its counts from each sync's reply). */
   status(sessionHash: string, now: number): Omit<SyncReply, 'records'> {
     this.authorize(sessionHash, now);
     const table = this.table();
-    return { epoch: table.epoch, version: table.version, counts: table.counts() };
+    return { epoch: table.epoch, version: table.version, counts: table.counts('') };
   }
 }
 
 /** An account kept in memory, for tests. */
-export function memoryStore(): AccountStore & { data: Map<string, { at: number; data: unknown; rev: number }> } {
+export function memoryStore(): AccountStore & {
+  data: Map<string, { at: number; data: unknown; rev: number }>;
+  shelves: Record<RecordRoom, { books: Map<string, BookEntry>; chunks: Map<string, Uint8Array> }>;
+} {
   const meta = new Map<string, string>();
   const sessions = new Map<string, Session>();
   const data = new Map<string, { at: number; data: unknown; rev: number }>();
-  const books = new Map<string, BookEntry>();
-  const chunks = new Map<string, Uint8Array>();
+  // The shelves sqlStore keeps: Chinese books (its `books` and `book_chunks`), and the other languages' (`lang_books` …).
+  const shelves = { chinese: { books: new Map<string, BookEntry>(), chunks: new Map<string, Uint8Array>() }, others: { books: new Map<string, BookEntry>(), chunks: new Map<string, Uint8Array>() } };
+  const shelf = (key: string) => shelves[recordRoom(key)];
   return {
     data,
-    books: () => [...books.values()],
-    putBook: (b) => { books.set(b.key, b); },
-    dropBook: (key) => { books.delete(key); for (const k of [...chunks.keys()]) if (k.startsWith(`${key}\u0000`)) chunks.delete(k); },
-    putChunk: (key, i, d) => { chunks.set(`${key}\u0000${i}`, d.slice()); },
-    getChunk: (key, i) => chunks.get(`${key}\u0000${i}`),
-    chunkCount: (key) => [...chunks.keys()].filter((k) => k.startsWith(`${key}\u0000`)).length,
+    shelves,
+    books: () => [...shelves.chinese.books.values(), ...shelves.others.books.values()],
+    putBook: (b) => { shelf(b.key).books.set(b.key, b); },
+    dropBook: (key) => {
+      const { books, chunks } = shelf(key);
+      books.delete(key);
+      for (const k of [...chunks.keys()]) if (k.startsWith(`${key}\u0000`)) chunks.delete(k);
+    },
+    putChunk: (key, i, d) => { shelf(key).chunks.set(`${key}\u0000${i}`, d.slice()); },
+    getChunk: (key, i) => shelf(key).chunks.get(`${key}\u0000${i}`),
+    chunkCount: (key) => [...shelf(key).chunks.keys()].filter((k) => k.startsWith(`${key}\u0000`)).length,
     getMeta: (k) => meta.get(k),
     setMeta: (k, v) => { if (v === null) meta.delete(k); else meta.set(k, v); },
     records: (epoch, version) => ({
@@ -478,10 +517,10 @@ export function memoryStore(): AccountStore & { data: Map<string, { at: number; 
       version,
       get: (key) => data.get(key),
       put: (key, r) => { data.set(key, r); },
-      changed: (since, also) => [...data].filter(([k, r]) => r.rev > since || also.has(k)).map(([key, r]) => ({ key, at: r.at, data: r.data })),
-      counts: () => {
+      changed: (since, also, lang) => [...data].filter(([k, r]) => inLang(k, lang) && (r.rev > since || also.has(k))).map(([key, r]) => ({ key, at: r.at, data: r.data })),
+      counts: (lang) => {
         const c = noCounts();
-        for (const [k, r] of data) countRecord(c, k, r.data);
+        for (const [k, r] of data) if (inLang(k, lang)) countRecord(c, k, r.data);
         return c;
       },
     }),
@@ -489,8 +528,11 @@ export function memoryStore(): AccountStore & { data: Map<string, { at: number; 
     putSession: (h, s) => { sessions.set(h, s); },
     dropSession: (h) => { sessions.delete(h); },
     sessions: () => [...sessions].map(([hash, s]) => ({ hash, used: s.used })),
-    recordBytes: () => [...data.values()].reduce((n, r) => n + (r.data === null ? 0 : JSON.stringify(r.data).length), 0),
-    wipe: () => { meta.clear(); sessions.clear(); data.clear(); books.clear(); chunks.clear(); },
+    recordBytes: (room) => [...data].reduce((n, [k, r]) => n + (recordRoom(k) === room ? recordSize(r.data) : 0), 0),
+    wipe: () => {
+      meta.clear(); sessions.clear(); data.clear();
+      for (const s of Object.values(shelves)) { s.books.clear(); s.chunks.clear(); }
+    },
   };
 }
 

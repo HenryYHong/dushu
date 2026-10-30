@@ -1,6 +1,24 @@
 // How sync names books and records (core/sync.ts). Apart from it so the store can name a book's place when the book is
 // deleted, and find a place kept for a book when it is added again.
-import type { BookMeta, Progress } from '../types';
+import type { BookMeta, Progress, Settings } from '../types';
+import type { LangId } from '../lang/types';
+
+/**
+ * The languages other than Chinese. Each one's records travel and are kept with '@<id>:' in front of the key Chinese would
+ * use ('@ja:v:食べる', '@es:p:<book key>', '@fr:o:fontSize'), and its books in the account the same way ('@ja:b1x2y3'), so
+ * the same word or book in two libraries is two records. Chinese keeps its keys as they were before languages synced: a
+ * Chinese device from before reads only keys whose second character is ':' (take in core/sync.ts), so a Japanese saved word
+ * never lands in its Chinese library. A hub keeps only the prefixes listed here (syncExchange.ts): a language added later
+ * needs the hubs updated first, and until then its device keeps its records unsent and says so.
+ */
+export const OTHER_LANGS = ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru'] as const satisfies readonly Exclude<LangId, 'zh'>[];
+export type OtherLang = (typeof OTHER_LANGS)[number];
+// Every language but Chinese is listed: one added to LangId and not here fails to compile.
+const _everyLanguage: [Exclude<LangId, 'zh' | OtherLang>] extends [never] ? true : false = true;
+void _everyLanguage;
+export const isOtherLang = (v: unknown): v is OtherLang => typeof v === 'string' && (OTHER_LANGS as readonly string[]).includes(v);
+/** What a library's keys start with: nothing for Chinese, '@ja:' for Japanese. */
+export const langPrefix = (id: string): string => (isOtherLang(id) ? `@${id}:` : '');
 
 /**
  * The settings that follow the reader from device to device, one record each (o:<name>). The rest belong to the device: its
@@ -16,7 +34,23 @@ export const SYNCED_SETTINGS = ['theme', 'fontFamily', 'fontSize', 'scrollFontSi
   'pinyinStyle', 'toneColors', 'sandhi', 'autoKnown', 'script', 'paragraphTranslate', 'translator', 'claudeModel', 'localOnly', 'ttsRate',
   'layout', 'pageTurn', 'covers', 'translateTo'] as const;
 export type SyncedSetting = (typeof SYNCED_SETTINGS)[number];
-export const isSyncedSetting = (name: string): name is SyncedSetting => (SYNCED_SETTINGS as readonly string[]).includes(name);
+
+/**
+ * The reader's settings rather than one library's: French chosen while reading Chinese is French in the Spanish library too.
+ * Each device spreads them to its libraries itself (TARGET_KEY and LOCAL_ONLY_KEY in store/settings.ts), and only the Chinese
+ * library syncs them. Synced by every library, two libraries on one device would fight: the Spanish one sending French it
+ * read from the device while the Chinese one takes German from another, each undoing the other on every sync.
+ */
+export const READER_SETTINGS = ['translateTo', 'localOnly'] as const satisfies readonly SyncedSetting[];
+/** Settings only the other languages use (Russian stress marks), so only their libraries sync them. */
+export const OTHER_LANG_SETTINGS = ['stress'] as const satisfies readonly (keyof Settings)[];
+const OTHER_SYNCED: readonly (keyof Settings)[] = [
+  ...SYNCED_SETTINGS.filter((n) => !(READER_SETTINGS as readonly string[]).includes(n)), ...OTHER_LANG_SETTINGS,
+];
+
+/** The settings a library syncs: Chinese the whole list, as before languages synced; another language its own ones. */
+export const librarySettings = (lang: string = 'zh'): readonly (keyof Settings)[] => (isOtherLang(lang) ? OTHER_SYNCED : SYNCED_SETTINGS);
+export const isSyncedSetting = (name: string, lang: string = 'zh'): name is keyof Settings => (librarySettings(lang) as readonly string[]).includes(name);
 
 /** cyrb53: a fast 53-bit string hash, as base36. Enough to tell versions of a record (or books) apart. */
 export function hash(s: string): string {

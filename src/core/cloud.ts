@@ -1,6 +1,7 @@
 // The sync account online (cloud/): sign in with a passkey (core/passkey.ts) or an emailed code, and sync from anywhere without
 // Tailscale or the Mac. A device signed in syncs with the account instead of the Mac (core/sync.ts). The session is kept in
 // this browser only.
+import { OTHER_LANGS } from './syncKeys';
 
 /** The sync server. Empty: this build has none, and Settings does not offer to sign in. */
 export const CLOUD_URL = 'https://dushu-sync.henryhong.workers.dev';
@@ -84,8 +85,12 @@ export async function requestCode(email: string): Promise<void> {
 export function accountMark(s: CloudSession, rest: string): string {
   return s.created ? `${s.email}|${s.created}|${rest}` : `${s.email}|${rest}`;
 }
-/** The lists of such marks (books put in the account, the Mac copied into it). */
-export const MARK_LISTS = ['dushu.cloud.books-up.v1', 'dushu.cloud.mac-copied.v1'];
+/**
+ * The lists of such marks (books put in the account, the Mac copied into it): the Chinese library's and each other language's
+ * own (dushu.ja.cloud.books-up.v1 …), all cleared when the account is deleted, whichever library deletes it.
+ */
+export const MARK_LISTS = ['dushu.cloud.books-up.v1', 'dushu.cloud.mac-copied.v1']
+  .flatMap((key) => [key, ...OTHER_LANGS.map((id) => key.replace(/^dushu\./, `dushu.${id}.`))]);
 
 /** Signs this device in with the emailed code. */
 export async function signIn(email: string, code: string): Promise<CloudSession> {
