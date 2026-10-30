@@ -1163,19 +1163,19 @@ def keep_form(form):
     return True
 
 
-CURATED = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'curated.json')
+CURATED = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'curated')
 
 
 def load_curated(code):
     """Hand-written facts for the commonest words, where Wiktionary glosses grammar ("masculine singular definite
     article") instead of a meaning a reader can glance at ("the"), or has a word only as a pointer (mi "apocopic form of
-    mío"). curated.json, per language: "key" or "key|part of speech" -> a hint, or {"hint", "gloss", "notes"} (a gloss
+    mío"). curated/<code>.json, one file per language: "key" or "key|part of speech" -> a hint, or {"hint", "gloss", "notes"} (a gloss
     becomes the entry's first sense, and makes the entry if Wiktionary has none); "=form" -> the hint of one form (hay
     "there is" though haber is "to have"); "+phrase" -> a fixed phrase of common words alone that phrases.tsv.gz may
     list (write_phrases), with its hint or "" for Wiktionary's."""
     try:
-        with open(CURATED, encoding='utf-8') as f:
-            data = json.load(f).get(code, {})
+        with open(os.path.join(CURATED, code + '.json'), encoding='utf-8') as f:
+            data = json.load(f)
     except FileNotFoundError:
         return {}
     return {k: v for k, v in data.items() if not k.startswith('//')}
@@ -2146,7 +2146,7 @@ PHRASE_MAX = 4000
 PHRASE_MIN_COUNT = 200            # subtitle count every word of a phrase reaches
 PHRASE_GZ_MAX = 150_000
 # A phrase made only of the commonest words is most often those words one by one ("y eso" is "and that", not "what's up";
-# "para eso" is "for that", not "might as well"): it is written only when curated.json lists it ("+por eso").
+# "para eso" is "for that", not "might as well"): it is written only when curated/<code>.json lists it ("+por eso").
 PHRASE_TOP_WORDS = 150
 PHRASE_POS = {'adv', 'conj', 'prep', 'intj', 'phrase', 'adj', 'pron', 'det', 'particle', 'noun', 'verb', 'num',
               'contraction', 'postp'}
@@ -2184,7 +2184,7 @@ def write_phrases(code, phrase_entries, word_count, top_words, known, entries, c
     """phrases.tsv.gz: `<words folded lower-case, space-separated>\t<hint>\t<sense>\t<sense>...` (senses as in
     entries.tsv.gz), commonest first; the engine's findPhrases reads it. Returns how many were written.
 
-    curated.json lists the phrases of common words alone that are fixed all the same: "+por eso": "therefore" (a hint, or
+    curated/<code>.json lists the phrases of common words alone that are fixed all the same: "+por eso": "therefore" (a hint, or
     "" for Wiktionary's), and it makes the phrase when Wiktionary has none."""
     listed = {phrase_key(code, k[1:], known): (k[1:], v) for k, v in curated.items() if k.startswith('+')}
     best = {}
