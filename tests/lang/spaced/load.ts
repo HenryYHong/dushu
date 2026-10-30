@@ -2,6 +2,7 @@
 // fixtures/ (public-domain books, a few thousand words each).
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { SpacedLang } from '../../../src/lang/spaced/core';
 import type { LangEngine, WordLookup } from '../../../src/lang/types';
 import type { Token } from '../../../src/types';
 
@@ -18,6 +19,17 @@ export function loadLang(id: 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru'): Promise<L
     cache.set(id, p);
   }
   return p;
+}
+
+/**
+ * An engine for a language with rules of a test's own (a context hook), and data files of its own in place of the built ones
+ * (`extra`: a file name to its text, such as a phrases.tsv.gz the builder has not written yet). Not cached.
+ */
+export async function loadCustom(lang: SpacedLang, extra: Record<string, string> = {}): Promise<LangEngine> {
+  const { loadSpacedEngine } = await import('../../../src/lang/spaced/core');
+  return loadSpacedEngine(lang, '/', {
+    fetchBytes: async (name: string) => (name in extra ? new TextEncoder().encode(extra[name]) : readFile(join(DATA, lang.id, name))),
+  });
 }
 
 export async function fixture(name: string): Promise<string[]> {

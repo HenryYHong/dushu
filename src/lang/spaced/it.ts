@@ -25,6 +25,19 @@ export const ITALIAN: SpacedLang = {
     if (first === 'gli' || first.startsWith('glie')) out.push(stem + "'");
     return [...new Set(out)];
   },
+  respell(f) {
+    const out: string[] = [];
+    // Collodi and Verga write j for i between vowels: bujo, gioja, ajutato are buio, gioia, aiutato.
+    if (f.includes('j')) out.push(f.replace(/(?<=[aeiouàèéìòù])j(?=[aeiouàèéìòù]|$)/g, 'i'));
+    // Verse and dialogue clip a final vowel: "Non mi picchiar tanto forte!" is picchiare, aver avere, esser essere, dir
+    // dire, son sono, condur condurre; "Il pover'uomo" is povero.
+    // Not a lone letter: Dante's "ve l cervel" is il.
+    const base = f.endsWith("'") ? f.slice(0, -1) : f;
+    if (base.length < 2) return out;
+    if (f.endsWith("'")) out.push(base + 'o', base + 'a', base + 'e', base + 'i');
+    else if (/[lrnm]$/.test(base)) out.push(base + 'e', base + 'o', base + 're');
+    return out;
+  },
   beforeNoun: ['il', 'un', 'uno', 'una', 'del', 'dello', 'della', 'dei', 'degli', 'delle', 'al', 'allo', 'alla', 'ai', 'agli',
     'alle', 'dal', 'dallo', 'dalla', 'dai', 'dagli', 'dalle', 'nel', 'nello', 'nella', 'nei', 'negli', 'nelle', 'sul', 'sullo',
     'sulla', 'sui', 'sugli', 'sulle', 'mio', 'mia', 'miei', 'mie', 'tuo', 'tua', 'tuoi', 'tue', 'suo', 'sua', 'suoi', 'sue',
@@ -32,8 +45,15 @@ export const ITALIAN: SpacedLang = {
     'quel', 'quello', 'quella', 'quei', 'quegli', 'quelle', 'ogni', 'qualche', 'alcuni', 'alcune', 'molto', 'molta', 'molti',
     'molte', 'tanti', 'tante', 'pochi', 'poche', 'tutti', 'tutte', 'i', 'molto', 'più'],
   beforeVerb: ['io', 'tu', 'lui', 'lei', 'noi', 'voi', 'mi', 'ti', 'si', 'ci', 'vi', 'ne', 'non', "m'", "t'", "s'", "c'", "v'"],
-  articleOrPronoun: ['lo', 'la', 'le', 'gli', "l'"],
+  // li is "them" before a verb ("E chi te li ha mangiati?", Pinocchio) and the old plural article before a noun.
+  articleOrPronoun: ['lo', 'la', 'le', 'gli', 'li', "l'"],
   prepositions: ['di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'senza', 'sopra', 'sotto', 'verso', 'contro', "d'"],
+  // il sole is the sun, not solo's feminine plural; una zia an aunt.
+  genderBefore: { il: 'm', lo: 'm', un: 'm', uno: 'm', del: 'm', dello: 'm', al: 'm', allo: 'm', dal: 'm', nel: 'm', sul: 'm',
+    col: 'm', questo: 'm', quel: 'm', quello: 'm', la: 'f', una: 'f', della: 'f', alla: 'f', dalla: 'f', nella: 'f', sulla: 'f',
+    questa: 'f', quella: 'f' },
+  // "è arrivato un Pesce-cane" (Pinocchio) has arrived, not arrivato "successful"; ha letto, not letto "bed".
+  auxiliaries: ['essere', 'avere'],
   reflexive: { always: ['si'], ifPronominal: ['mi', 'ti', 'ci', 'vi'],
     imperative: { ti: '(?<!formal )second-person singular [a-z ]*imperative', vi: '(?<!formal )second-person plural [a-z ]*imperative', ci: 'first-person plural [a-z ]*imperative', si: 'formal|third-person [a-z ]*imperative' } },
 };

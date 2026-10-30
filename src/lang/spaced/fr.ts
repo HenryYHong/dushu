@@ -22,7 +22,9 @@ export const FRENCH: SpacedLang = {
   negation: { particles: ['ne', "n'"], words: ['pas', 'point', 'plus', 'jamais', 'rien', 'guère', 'personne', 'aucun', 'aucune', 'nullement'] },
   prepositions: ['de', "d'", 'à', 'en', 'dans', 'pour', 'par', 'sans', 'sur', 'sous', 'avec', 'chez', 'entre', 'vers', 'contre',
     'après', 'avant', 'depuis', 'pendant', 'parmi'],
-  reflexive: { always: ['se', "s'"], ifPronominal: ['me', "m'", 'te', "t'", 'nous', 'vous'] },
+  // Levez-vous "stand up", Assieds-toi: an imperative with its own person's pronoun hyphened to it is reflexive.
+  reflexive: { always: ['se', "s'"], ifPronominal: ['me', "m'", 'te', "t'", 'nous', 'vous'],
+    imperative: { vous: 'second-person plural [a-z ]*imperative', toi: 'second-person singular [a-z ]*imperative', nous: 'first-person plural [a-z ]*imperative' } },
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

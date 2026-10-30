@@ -1076,3 +1076,37 @@ exists.
 - **Classics.** `public/samples/<id>/index.json` and Markdown texts (`# Title`, `## Chapter`), with public-domain paintings as covers.
 - **Offline.** Each language's data and classics live in a cache of their own (`sw.js`, `dushu-lang-<id>-<version>`), named by their
   contents (`vite.config.ts` `__LANG_VERSIONS__`): stored the first time the language opens, kept through Chinese updates.
+- **Reading a word in its sentence (the spaced languages, `lang/spaced/core.ts`).** `segment()` reads each word alone (every entry it can
+  be, scored by frequency, the treebank prior and its spelling), then reads the paragraph left to right, once, choosing among each word's
+  readings from its neighbors. First it asks the language's own rules, `SpacedLang.context` (`lang/spaced/context.ts`):
+
+  `context?: (q: ContextQuery) => { prefer: (r: ContextReading, i: number) => boolean; margin: number; reflexive?: boolean } | null`
+
+  `q` has the word, its sentence's words (each with its text, folded `low`, readings likeliest first with key, head, part of speech,
+  gender, form description, hint and score, the reading already `chosen` for the words before it, the marks `before` and `after` it, and
+  whether it is a name), `prev`/`next` when only space separates them, `sentenceStart` and `question`. The likeliest preferred reading
+  wins if it is within `margin` nats of the likeliest one (`CONTEXT_MARGIN`, 5, for a weak cue; `Infinity` for a decisive one);
+  `reflexive` forces the verb's reflexive sense or keeps it off. An answer replaces the generic rules for that word; `null` leaves it
+  to them. French en after s' or n', or before a finite verb, is the pronoun:
+  `context: (q) => q.word.low === 'en' && (["s'", "n'"].includes(q.prev?.low ?? '') || (q.next && isFiniteVerb(q.next.readings[0])))
+  ? { prefer: (r) => r.pos === 'pronoun', margin: Infinity } : null`. Rules that hold in one language (sí, solo, der/die/das, sie/Sie,
+  его/их, да, все/всё, ci, come, que, se …) go there; the generic ones stay in core: an article or a determiner that agrees before a
+  noun, a preposition before a noun or an infinitive, an auxiliary before a past participle, la/lo/l' as the article or the pronoun by
+  all the next word's readings (and the pair agreeing), an agreeing adjective after a noun, a function word's bonus taken back where it
+  cannot stand, a preposition with nothing after it as the adverb, an interjection standing apart.
+- **Fixed phrases.** `public/data/<id>/phrases.tsv.gz` is optional: `<words folded, lower-case, space-separated as segment() cuts them
+  (c' est à dire)>\t<hint>\t<sense>\t<sense>…`. Adjacent words that spell a phrase (longest first, at most 4; an elided word matches its
+  full form, parce qu' matching parce que, and a contraction may end one, a pesar del matching a pesar de) all take its hint, and a
+  lookup of any of them (`WordLookup.phrase`) shows the phrase first with the form "part"; the key stays the word's own.
+- **German separable verbs** (`SpacedLang.separable`): a particle ending its clause (before a mark, und + not another particle, or zu +
+  an infinitive) and the clause's finite verb are one reading when the dictionary has particle + verb: both take its key, lemma and
+  hint ("ich stehe schon auf" is aufstehen), the card leads with it and shows both pieces.
+- **Names and sentence starts.** A sentence starts after . ! ? …, after a colon (not in German) and after `SpacedLang.sentenceOpeners`
+  (default « “ „ ¿ ¡ —). A capital in mid-sentence makes a name; a capitalized word the book uses so in mid-sentence, if the dictionary
+  has it only as a rare word (Platero "silversmith"), stays a name at a sentence start: each engine keeps such names, bounded, and
+  `LangEngine.beginBook(text)` (the reader calls it when a book opens) forgets the last book's and learns the new one's up front. An
+  unknown capitalized word at a sentence start is not a name.
+- **Spellings a book has its own way.** When nothing reads a word, the engine tries the other accent (Collodi's sè is sé), the word
+  without its accents (fué), with one added or as an accented headword without them (oir is oír, Machado's ceu céu), and
+  `SpacedLang.respell` (Italian bujo → buio, picchiar → picchiare; Portuguese cabellos → cabelos, visinho → vizinho), only after the
+  enclitic split (verte is ver + te, not verter's verté).

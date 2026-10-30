@@ -8,6 +8,9 @@ export const RUSSIAN: SpacedLang = {
   script: 'cyrillic',
   stress: true,
   hyphenClitics: ['то', 'ка', 'нибудь', 'либо', 'таки', 'де', 'с'],
+  // «Кто хлебал в моей чашке!» (Tolstoy) starts a sentence; „ opens inner quotes, and — stands between subject and
+  // predicate (Москва — столица), so it starts nothing.
+  sentenceOpeners: '«„',
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {
