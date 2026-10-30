@@ -1,6 +1,6 @@
 // The contract between the app and the engine of a language a book is read in, other than Chinese. Chinese keeps its own
 // modules (core/dict.ts, core/segment.ts, core/pinyin.ts); every other language plugs in here. LANGUAGES.md explains it.
-import type { Token } from '../types';
+import type { RubySpan, Token } from '../types';
 
 /** The languages Dushu reads. 'zh' is the original app; the rest load an engine from src/lang/<id>/. */
 export type LangId = 'zh' | 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru';
@@ -78,8 +78,10 @@ export interface LangEngine {
    * A paragraph as tokens that cover it exactly (concatenated `text` === input; `start`/`end` UTF-16 offsets). Words of the
    * language are kind 'word' with `key` (and `lemma`, `ruby`, `reading`, `stress`, `name` as the language has them); spaces
    * 'space', punctuation 'punct' (one token per mark), digits 'num', anything in another script 'latin' or 'other'.
+   * `ruby`: readings the book prints over stretches of this paragraph (types.ts RubySpan). An engine that knows what to do
+   * with them takes them over its own guess (a span is one word, read as printed); others ignore them.
    */
-  segment(text: string): Token[];
+  segment(text: string, opts?: { ruby?: readonly RubySpan[] }): Token[];
   /** The entries for a word on the page. `token` is the token it was cut as, when it was tapped (it carries the lemma). */
   lookup(surface: string, ctx?: { token?: Token; sentence?: string }): WordLookup;
   /** The key for a word with no context (store.known/vocab use it to match any form of a word): its folded dictionary form. */

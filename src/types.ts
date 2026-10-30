@@ -129,10 +129,16 @@ export interface Token {
 export type BookFormat = 'epub' | 'txt' | 'pdf' | 'html' | 'md' | 'mobi' | 'azw3' | 'paste' | 'sample';
 export type Script = 'simplified' | 'traditional' | 'mixed' | 'unknown';
 
+/**
+ * A reading the book itself prints over a stretch of its text (Aozora Bunko's 杜子春《とししゅん》): UTF-16 offsets into the
+ * block's text, end exclusive. Japanese only for now (import/aozora.ts); the engine takes it over its own guess.
+ */
+export interface RubySpan { start: number; end: number; rt: string }
+
 export type Block =
-  | { t: 'p'; text: string }
-  | { t: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; text: string }
-  | { t: 'quote'; text: string }
+  | { t: 'p'; text: string; ruby?: RubySpan[] }
+  | { t: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; text: string; ruby?: RubySpan[] }
+  | { t: 'quote'; text: string; ruby?: RubySpan[] }
   | { t: 'img'; asset: string; alt?: string }
   | { t: 'hr' };
 

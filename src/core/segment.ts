@@ -2,7 +2,7 @@
 //
 // Han runs are cut with the jieba method: build the DAG of dictionary words over the run and take the path with
 // the highest total log-probability. Everything else is split by character class.
-import type { Dictionary, Token, TokenKind, Lexicon } from '../types';
+import type { Dictionary, Token, TokenKind, Lexicon, RubySpan } from '../types';
 import { isHanCodePoint } from './text';
 import { activeEngine } from '../lang/active';
 
@@ -194,10 +194,10 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
  * Split `text` into tokens that cover it exactly (concatenating every token's text gives `text`).
  * Han tokens carry numbered pinyin per code point from dict.pinyinFor, with the neighbouring tokens as context.
  */
-export function segment(text: string, dict: Dictionary, lexicon?: Lexicon): Token[] {
+export function segment(text: string, dict: Dictionary, lexicon?: Lexicon, ruby?: readonly RubySpan[]): Token[] {
   // A book in another language is cut by that language's engine (src/lang); everything below is Chinese.
   const engine = activeEngine();
-  if (engine) return engine.segment(text);
+  if (engine) return engine.segment(text, ruby?.length ? { ruby } : undefined);
   const tokens: Token[] = [];
   const n = text.length;
   const total = dict.meta?.counts?.wordTotal || DEFAULT_TOTAL;

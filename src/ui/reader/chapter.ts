@@ -14,6 +14,7 @@ import {
 } from './render';
 import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang } from '../../lang/active';
+import { sliceRuby } from '../../import/aozora';
 
 export interface BlockState {
   index: number;
@@ -158,7 +159,8 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
       let start = 0;
       const parts = splitLongText(block.text);
       parts.forEach((text, k) => {
-        pieces.push({ block: { ...block, text }, src, start, cont: k > 0, more: k < parts.length - 1 });
+        const ruby = 'ruby' in block ? sliceRuby(block.ruby, start, start + text.length) : undefined;
+        pieces.push({ block: { ...block, text, ruby }, src, start, cont: k > 0, more: k < parts.length - 1 });
         start += text.length;
       });
     } else pieces.push({ block, src, start: 0, cont: false, more: false });
@@ -280,7 +282,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
   function renderBlock(b: BlockState): void {
     if (b.rendered || b.kind !== 'text') return;
     try {
-      const tokens = segment(b.text, dict, shownLexicon());
+      const tokens = segment(b.text, dict, shownLexicon(), 'ruby' in b.block ? b.block.ruby : undefined);
       const opts = renderOptions();
       const shown = displayTokens(tokens, opts.sandhi);
       const { nodes, views } = renderTokens(tokens, shown, { ...opts, deferPinyin: lazy });

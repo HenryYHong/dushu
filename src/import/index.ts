@@ -4,6 +4,7 @@ import type { ImportedBook } from '../types';
 import { detectScript } from '../core/text';
 import { isChinese, langId } from '../lang/active';
 import { wrongLanguage } from '../lang/detect';
+import { takeAozoraRuby } from './aozora';
 import { decodeText, stripBidi } from './encoding';
 import { importEpub } from './epub';
 import { DAMAGED_MESSAGE } from './zip';
@@ -117,7 +118,9 @@ function tidyChapters(chapters: ImportedBook['chapters']): ImportedBook['chapter
 
 /** Last checks and the fields every importer leaves blank: reject non-Chinese files, detect the script. */
 function finish(book: ImportedBook): ImportedBook {
-  const chapters = tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0)));
+  let chapters = tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0)));
+  // A Japanese text from Aozora Bunko (or written the same way) keeps its publisher's readings beside the text.
+  if (langId() === 'ja') chapters = takeAozoraRuby(chapters);
   const han = totalHan(chapters);
   let letters = 0;
   for (const c of chapters) for (const b of c.blocks) if (b.t === 'p' || b.t === 'h' || b.t === 'quote') letters += b.text.replace(/\s/g, '').length;

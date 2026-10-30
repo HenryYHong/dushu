@@ -292,3 +292,38 @@ describe('another language leaves Chinese data alone', () => {
     expect(defaultsFor('ru').stress).toBe(true);
   });
 });
+
+describe('Aozora ruby', () => {
+  it('takes the publisher’s readings out of the text and keeps them by offset', async () => {
+    const { parseAozoraRuby, sliceRuby, takeAozoraRuby } = await import('../../../src/import/aozora');
+    // 杜子春 (Akutagawa): a run of kanji before 《》; ｜ where the base is not a plain run of kanji; a reading after kana dropped.
+    const r = parseAozoraRuby('或春の日暮です。唐の都洛陽《らくよう》の西の門の下に、杜子春《とししゅん》という若者が｜一人《ひとり》いました。');
+    expect(r.text).toBe('或春の日暮です。唐の都洛陽の西の門の下に、杜子春という若者が一人いました。');
+    const at = (w: string) => r.ruby.find((s) => r.text.slice(s.start, s.end) === w)?.rt;
+    expect(at('都洛陽')).toBe('らくよう');
+    expect(at('杜子春')).toBe('とししゅん');
+    expect(at('一人')).toBe('ひとり');
+    expect(r.ruby).toHaveLength(3);
+    // A kanji outside the BMP stays whole.
+    const big = parseAozoraRuby('𠮟《しか》る');
+    expect(big).toEqual({ text: '𠮟る', ruby: [{ start: 0, end: 2, rt: 'しか' }] });
+    // Titles in 《》 are not readings: nothing under it, or kanji in it.
+    expect(parseAozoraRuby('《》と《書名》、新聞《朝日新聞》')).toEqual({ text: '《》と《書名》、新聞《朝日新聞》', ruby: [] });
+    expect(sliceRuby(r.ruby, 10, 40)?.every((s) => s.start >= 0 && s.end <= 30)).toBe(true);
+    const [c] = takeAozoraRuby([{ title: '一', blocks: [{ t: 'p', text: '清《きよ》が泣いた。' }, { t: 'hr' }] }]);
+    expect(c.blocks[0]).toEqual({ t: 'p', text: '清が泣いた。', ruby: [{ start: 0, end: 1, rt: 'きよ' }] });
+  });
+
+  it('comes out of a Japanese import and is passed to the engine with the paragraph', async () => {
+    setLangForTests('ja');
+    const book = importText('# 坊っちゃん\n\n## 一\n\n十年来召し使っている清《きよ》という下女が、泣きながらおやじに詫《あやま》った。\n', undefined, undefined, true);
+    const p = book.chapters[0].blocks.find((b) => b.t === 'p') as { text: string; ruby?: { start: number; end: number; rt: string }[] };
+    expect(p.text).toBe('十年来召し使っている清という下女が、泣きながらおやじに詫った。');
+    expect(p.ruby?.map((s) => [p.text.slice(s.start, s.end), s.rt])).toEqual([['清', 'きよ'], ['詫', 'あやま']]);
+    const seen: unknown[] = [];
+    const engine = { ...fakeEngine('ja'), segment: (text: string, opts?: unknown) => { seen.push(opts); return [{ text, start: 0, end: text.length, kind: 'other' as const, inDict: false }]; } };
+    setLangForTests('ja', engine);
+    segment(p.text, noChineseDictionary(engine), undefined, p.ruby);
+    expect(seen).toEqual([{ ruby: p.ruby }]);
+  });
+});
