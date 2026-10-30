@@ -444,3 +444,13 @@ describe('choosing among several CEDICT entries', () => {
     expect(n).toBeGreaterThan(150000);
   });
 });
+
+describe('骰子: shǎizi, as it is said', () => {
+  it('reads shǎizi over the text, and the card keeps tóuzi as the dictionary reading', async () => {
+    expect(await inSentence('他们在掷骰子。', '骰子')).toBe('shai3 zi5');
+    expect(await inSentence('桌上有两颗骰子。', '骰子')).toBe('shai3 zi5');
+    expect(await inSentence('我扔了色子。', '色子')).toBe('shai3 zi5');
+    const readings = (await dictP).lookup('骰子').map((e) => e.pinyin);
+    expect(readings).toEqual(['shai3 zi5', 'tou2 zi5']);
+  });
+});
