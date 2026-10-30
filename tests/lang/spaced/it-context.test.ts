@@ -40,12 +40,14 @@ describe('Italian come', () => {
 describe('Italian ci, vi', () => {
   it('reads ci as "there" with a verb of being, going or believing, and "us" otherwise', async () => {
     const it_ = await loadLang('it');
-    const there = { pos: 'adverb', hint: 'there; about it' };
+    // The adverb, with the sense it has where it stands: "there" with being and going, "about it" with believing and thinking.
+    const there = { pos: 'adverb', hint: 'there' };
+    const about = { pos: 'adverb', hint: 'about it' };
     const us = { pos: 'pronoun', hint: 'us' };
     expect(read(it_, '— Qui non ci sono signori! — replicò duramente il burattinaio.', 'ci')).toMatchObject(there);
-    expect(read(it_, 'Pinocchio ci pensò un poco, e poi disse risolutamente:', 'ci')).toMatchObject(there);
+    expect(read(it_, 'Pinocchio ci pensò un poco, e poi disse risolutamente:', 'ci')).toMatchObject(about);
     expect(read(it_, 'Ma ormai mi sono impietosito e ci vuol pazienza.', 'ci')).toMatchObject(there);
-    expect(read(it_, '— Ma io... — rispose, impacciata, Adriana, — io non ci credo, ecco...', 'ci')).toMatchObject(there);
+    expect(read(it_, '— Ma io... — rispose, impacciata, Adriana, — io non ci credo, ecco...', 'ci')).toMatchObject(about);
     expect(read(it_, 'Lei lo denunzii, non abbia riguardo, non tema per noi... Ci farà un bene, creda, un gran bene!', 'Ci')).toMatchObject(us);
     expect(read(it_, 'lì non studieremo più; lì ci divertiremo dalla mattina alla sera e staremo sempre allegri.', 'ci')).toMatchObject(us);
     // Past a modal to its infinitive: told us.
@@ -64,7 +66,8 @@ describe('Italian ci, vi', () => {
 describe('Italian via, se, loro, demonstratives', () => {
   it('reads via as "away" after a verb, the street after an article, "come on" standing apart', async () => {
     const it_ = await loadLang('it');
-    expect(read(it_, '— Non lo buttar via: tutto in questo mondo può far comodo.', 'via')).toMatchObject({ pos: 'adverb', hint: 'away' });
+    // After buttare it is the phrase buttare via, found by the verb's infinitive.
+    expect(read(it_, '— Non lo buttar via: tutto in questo mondo può far comodo.', 'via')).toMatchObject({ pos: 'phrase', hint: 'to throw away' });
     expect(read(it_, 'nel tempo che i ciuchini galoppavano e che il carro correva sui ciottoli della via maestra, gli parve al burattino di sentire una voce', 'via')).toMatchObject({ pos: 'noun', hint: 'street' });
     expect(read(it_, 'Via, via, non ci pensiamo!', 'via')).toMatchObject({ pos: 'interjection', hint: 'come on' });
   });
@@ -96,7 +99,8 @@ describe('Italian words read by the word before or after', () => {
     const it_ = await loadLang('it');
     expect(read(it_, '— Ohi! tu m’hai fatto male! — gridò rammaricandosi la solita vocina.', 'male').hint).toBe('harm, pain');
     expect(read(it_, '— Povero Merlo! — disse Pinocchio al Gatto — perchè l’hai trattato così male?', 'male').hint).toBe('badly');
-    expect(read(it_, '— Passate pure, — disse il falegname, senza aver la forza di rizzarsi in piedi.', 'pure')).toMatchObject({ pos: 'adverb', hint: 'also; go ahead' });
+    // After an order "go ahead", elsewhere "also".
+    expect(read(it_, '— Passate pure, — disse il falegname, senza aver la forza di rizzarsi in piedi.', 'pure')).toMatchObject({ pos: 'adverb', hint: 'go ahead' });
     expect(read(it_, 'e sebbene sentisse avvicinarsi la morte, pure sperava sempre che da un momento a un altro sarebbe capitata qualche anima pietosa', 'pure').pos).toBe('conjunction');
     expect(read(it_, '— Non lo so, babbo, ma credetelo che è stata una nottata d’inferno, e me ne ricorderò fin che campo.', 'fin').key).toBe('fino');
     expect(read(it_, 'babbino mio, — disse Pinocchio — non c’è tempo da perdere. Bisogna pensar subito a fuggire.', 'Bisogna').key).toBe('bisognare');

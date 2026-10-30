@@ -188,6 +188,10 @@ const PLACE_VERBS = new Set(['essere', 'esserci', 'volere', 'volerci', 'stare', 
   'arrivare', 'restare', 'rimanere', 'vivere', 'abitare', 'morire', 'cascare', 'ricascare', 'cadere', 'passare', 'salire',
   'scendere', 'mettere', 'metterci', 'credere', 'pensare', 'ripensare', 'badare', 'riuscire', 'giocare', 'sperare', 'contare',
   'tenere', 'scapitare', 'durare', 'trovarsi', 'provare', 'piovere', 'correre', 'nascere']);
+/** ci and vi joined to a verb of place are "there" on the card: "Tu, Renzo, procura di venirci" (I promessi sposi). */
+export function italianCliticPart(verbKey: string, clitic: string): 'pronoun' | 'adverb' {
+  return (clitic === 'ci' || clitic === 'vi') && PLACE_VERBS.has(verbKey) && !['credere', 'pensare', 'ripensare', 'badare', 'sperare', 'contare'].includes(verbKey) ? 'adverb' : 'pronoun';
+}
 /** Of those, the ones a "we" does not make reflexive: "ci andremo" is there, "ci mettemmo a ridere" ourselves. */
 const PLACE_EVEN_WE = new Set(['essere', 'esserci', 'andare', 'venire', 'tornare', 'ritornare', 'entrare', 'arrivare', 'restare',
   'rimanere', 'vivere', 'stare', 'credere', 'pensare', 'riuscire', 'volere']);
@@ -208,12 +212,12 @@ function verbOf(q: ContextQuery): [ContextWord | undefined, ContextWord | undefi
  * porto io") and before si or ne ("come ci si giocasse", "ce n'era"); otherwise "us" or "ourselves" ("Ci farà un bene",
  * "lì ci divertiremo"). A "we" makes most verbs reflexive: "ci accordammo subito".
  */
-function ciThere(q: ContextQuery): boolean {
-  if (['mi', 'ti', "m'", "t'"].includes(q.prev?.low ?? '')) return true;
+function ciThere(q: ContextQuery): string {
+  if (['mi', 'ti', "m'", "t'"].includes(q.prev?.low ?? '')) return 'there';
   const n = q.next?.low ?? '';
-  if (['si', "s'", 'ne', "n'"].includes(n)) return true;
+  if (['si', "s'", 'ne', "n'"].includes(n)) return 'there';
   const [v] = verbOf(q);
-  if (!v) return false;
+  if (!v) return '';
   const fs = finiteForms(v);
   // The verb that says: past an auxiliary and the adverbs after it to its participle ("Ci avevo pensato", "che ci avesse
   // tanto impressionato", "ci siamo a poco a poco adattati"), past a modal to its infinitive ("Non ci ha voluto dire", "non
@@ -235,13 +239,16 @@ function ciThere(q: ContextQuery): boolean {
     participle ||= aux;
   }
   // avere alone is "there": "Io ci ho anche questo", "lei ci avrà parenti", "ci aveva due piaghe alle gambe".
-  if (k === 'avere' && !participle) return true;
+  if (k === 'avere' && !participle) return 'there';
   // essere says "there" whatever participle follows ("Che ci sia nascosto dentro qualcuno?", "Non ci sarebbe mancato
   // altro!"), but "ci siamo divertiti" is ourselves.
-  if (key(v) === 'essere') return !(participle && fs.every((f) => /first-person plural/.test(f)));
-  if (!PLACE_VERBS.has(k)) return false;
-  return !fs.length || !fs.every((f) => /first-person plural/.test(f)) || PLACE_EVEN_WE.has(k);
+  if (key(v) === 'essere') return participle && fs.every((f) => /first-person plural/.test(f)) ? '' : 'there';
+  if (!PLACE_VERBS.has(k)) return '';
+  return !fs.length || !fs.every((f) => /first-person plural/.test(f)) || PLACE_EVEN_WE.has(k) ? k : '';
 }
+
+/** Verbs whose ci is "about it", not "there": "io non ci credo", "Ci avevo pensato". */
+const CI_ABOUT = new Set(['credere', 'pensare', 'ripensare', 'badare', 'sperare', 'contare']);
 
 /** Verbs vi is "there" with: going, staying, succeeding in it. */
 const VI_PLACE = new Set(['andare', 'venire', 'tornare', 'ritornare', 'entrare', 'arrivare', 'restare', 'rimanere', 'stare',
@@ -520,9 +527,12 @@ export const italianContext: ContextRule = (q) => {
     case 'altro': case 'altra': case 'altri': case 'altre': case 'loro':
       if (!has('pronoun') || !has('determiner')) return null;
       return decisive(pos(determinerHere(q) ? 'determiner' : 'pronoun'));
-    case 'ci': case "c'": case 'ce':
+    case 'ci': case "c'": case 'ce': {
       if (!has('adverb')) return null;
-      return decisive(pos(ciThere(q) ? 'adverb' : 'pronoun'));
+      // Its sense where it stands, of the adverb's "there; about it" (ContextChoice.hint).
+      const verb = ciThere(q);
+      return verb ? { ...decisive(pos('adverb')), hint: CI_ABOUT.has(verb) ? 'about it' : 'there' } : decisive(pos('pronoun'));
+    }
     case 'vi': case "v'":
       if (!has('adverb')) return null;
       return decisive(pos(viThere(q) ? 'adverb' : 'pronoun'));
@@ -550,7 +560,9 @@ export const italianContext: ContextRule = (q) => {
       const gerund = !!q.next?.readings.some((r) => /\bgerund\b/.test(r.form)) || q.prev?.low === 'se';
       const concessive = w.before !== '' && q.words.slice(0, q.at).some((x) => ['sebbene', 'benché', 'benchè', 'quantunque', 'ancorché', 'ancorchè'].includes(x.low));
       if (gerund || concessive) return has('conjunction') ? decisive(pos('conjunction')) : null;
-      return has('adverb') ? decisive(pos('adverb')) : null;
+      // After an order opening its sentence, "go ahead"; elsewhere "also" (ContextChoice.hint).
+      const order = q.at === 1 && !!q.prev?.chosen && /\bimperative\b/.test(q.prev.chosen.form);
+      return has('adverb') ? { ...decisive(pos('adverb')), hint: order ? 'go ahead' : 'also, too' } : null;
     }
     case 'fin':
       // fin is fino's clipped form far more than fine's: "me ne ricorderò fin che campo", "fin dalla mattina"; but "alla fin

@@ -32,6 +32,10 @@ export const PORTUGUESE: SpacedLang = {
   },
   // Machado's 1899 spelling (pt-spelling.ts): cabellos cabelos, visinho vizinho, signaes sinais, comnosco conosco.
   respell: respellings,
+  // And his nouns without their accents, spelled like a verb's form: silencio, medico, musica, pagina.
+  looseAccents: true,
+  // "— Mas, Sr. Nogueira, que fará você todo esse tempo?" (Missa do Galo): the title is senhor, Nogueira the name.
+  titles: ['sr.', 'sra.', 'srs.', 'sras.', 'snr.', 'snra.', 'dr.'],
   beforeNoun: ['um', 'uma', 'uns', 'umas', 'do', 'da', 'dos', 'das', 'ao', 'aos', 'à', 'às', 'pelo', 'pela', 'pelos', 'pelas',
     'num', 'numa', 'meu', 'minha', 'meus', 'minhas', 'teu', 'tua', 'teus', 'tuas', 'seu', 'sua', 'seus', 'suas', 'nosso',
     'nossa', 'nossos', 'nossas', 'este', 'esta', 'estes', 'estas', 'esse', 'essa', 'esses', 'essas', 'aquele', 'aquela',

@@ -132,9 +132,9 @@ describe('Portuguese pronouns and comparatives', () => {
 
   it('que after a comparative is the conjunction (than), not the relative', async () => {
     const pt = await loadLang('pt');
-    // The conjunction's hint is "that" until a rule can show its "than" sense; what matters here is which word it is.
-    expect(hint(pt, 'Capitú um dia notou a differença, dizendo que os della eram mais bonitos que os meus.', 'que', 1)).toBe('that');
-    expect(hint(pt, 'Não estando abotoadas, as mangas caíram naturalmente, e eu vi-lhe metade dos braços, muito claros, e menos magros do que se poderiam supor.', 'que')).toBe('that');
+    // The conjunction, with its "than" sense as the hint (ContextChoice.hint).
+    expect(hint(pt, 'Capitú um dia notou a differença, dizendo que os della eram mais bonitos que os meus.', 'que', 1)).toBe('than');
+    expect(hint(pt, 'Não estando abotoadas, as mangas caíram naturalmente, e eu vi-lhe metade dos braços, muito claros, e menos magros do que se poderiam supor.', 'que')).toBe('than');
   });
 
   it('S. before a name is São or Santo', async () => {

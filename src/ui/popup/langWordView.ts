@@ -43,6 +43,10 @@ function links(head: string): HTMLElement {
     extra ? a(extra[0], extra[1]) : null);
 }
 
+const ASPECT: Record<'pf' | 'impf' | 'both', string> = { pf: 'Perfective', impf: 'Imperfective', both: 'Both aspects' };
+/** A stress-marked word as the book prints it (узна́ть → узнать); й and ё keep their marks. */
+const unstressed = (w: string): string => w.normalize('NFD').replace(/\u0301/g, '').normalize('NFC');
+
 export function mountLangWordView(
   host: PopupHost,
   o: WordPopupOptions,
@@ -97,6 +101,12 @@ export function mountLangWordView(
         showHead && e.reading && e.reading !== e.head ? h('span.pp-lang-reading', { lang: L.tag }, e.reading) : null,
         e.alts?.length ? h('span.pp-trad-note', null, 'Also ', h('span', { lang: L.tag }, e.alts.slice(0, 4).join(', '))) : null,
         ...chips));
+    }
+    // A Russian verb's aspect and its pair (взять: perfective, pair брать), the pair a tap away.
+    if (e.aspect) {
+      const pairs = (e.partners ?? []).slice(0, 3).map((p, i) => [i ? ', ' : null,
+        h('button.pp-xref', { type: 'button', onclick: () => push({ word: unstressed(p) }) }, h('span', { lang: L.tag }, p))]);
+      block.appendChild(h('p.pp-lang-aspect', null, ASPECT[e.aspect], pairs.length ? [pairs.length > 1 ? ' · pairs ' : ' · pair ', ...pairs.flat()] : null));
     }
     // Senses with the same part of speech run on under one label, as a printed dictionary sets them.
     const items: HTMLElement[] = [];

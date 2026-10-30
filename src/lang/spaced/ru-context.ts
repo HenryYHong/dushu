@@ -446,7 +446,34 @@ function keepsOn(q: ContextQuery): boolean {
 /** да before a comma, ! or ? stands alone: "yes" (— Да, вы наймите у нас. Ну, да, да!). Inside a clause, "and, but". */
 function da(q: ContextQuery): ContextChoice | null {
   if (!q.word.after || q.word.after.startsWith('-')) return null;
-  return has(q, (r) => r.pos === 'particle') ? choose((r) => r.pos === 'particle') : null;
+  // The particle has two sections ("yes", and the "let, may" of да будет); standing alone it is "yes", whichever leads.
+  return has(q, (r) => r.pos === 'particle') ? { ...choose((r) => r.pos === 'particle'), hint: 'yes' } : null;
+}
+
+/**
+ * потому and оттого before a comma and что are "because", the conjunction потому что cut in two: "Каштанка думала, что он
+ * говорит много потому, что очень умён" (Каштанка). The phrase needs its words side by side; the comma stands between them here.
+ */
+function because(q: ContextQuery): ContextChoice | null {
+  const after = q.words[q.at + 1];
+  return comma(q.word.after) && after?.low === 'что' ? { hint: 'because', margin: 0 } : null;
+}
+
+/**
+ * стать before an infinitive "began" ("Он стал думать, что ему делать", "Она стала засыпать", Каштанка), and the infinitive
+ * after стать, начать, перестать is imperfective: засыпать "to fall asleep", not the perfective "to fill up".
+ */
+const BEGIN = new Set(['стать', 'начать', 'начинать', 'перестать', 'переставать', 'продолжать', 'кончить', 'бросить']);
+function begin(q: ContextQuery): ContextChoice | null {
+  const w = q.word;
+  const past = (r: ContextReading): boolean => r.key === 'стать' && verb(r) && /\bpast\b/.test(r.form);
+  if (has(q, past) && infinitiveWord(q.next) && !q.next!.readings.some((r) => r.key === 'быть')) return { ...choose(past), hint: 'began', sense: /\bto begin\b/ };
+  const p = q.prev && read(q.prev);
+  if (p && BEGIN.has(p.key) && verb(p) && infinitiveWord(w) && has(q, (r) => infinitive(r) && r.aspect === 'impf')
+    && has(q, (r) => infinitive(r) && r.aspect === 'pf')) {
+    return choose((r) => infinitive(r) && r.aspect !== 'pf');
+  }
+  return null;
 }
 
 /**
@@ -992,7 +1019,7 @@ function verbOrNoun(q: ContextQuery): ContextChoice | null {
 
 const RULES: Partial<Record<string, (q: ContextQuery) => ContextChoice | null>> = {
   его: possessive, ее: possessive, их: possessive,
-  все: vse, да: da, что: chto, как: kak, чем: chem, то: to, есть: est, полноте: polnote, право: pravo, ровно: rovno,
+  все: vse, да: da, что: chto, потому: because, оттого: because, как: kak, чем: chem, то: to, есть: est, полноте: polnote, право: pravo, ровно: rovno,
   ничего: nichego, ни: ni, тем: tem, о: oh, несколько: neskolko, чего: chego,
   свет: svet, света: svet, свете: svet, свету: svet, светом: svet,
   самого: sam, самой: sam, самою: sam, самому: sam, самом: sam, самим: sam,
@@ -1014,6 +1041,6 @@ function noShortAfterNoun(q: ContextQuery): ContextChoice | null {
 export function russianContext(q: ContextQuery): ContextChoice | null {
   const rule = RULES[q.word.low];
   if (rule) return rule(q) ?? governed(q);
-  return standingAlone(q) ?? greeting(q) ?? ownReflexive(q) ?? governed(q) ?? predicate(q) ?? nounOrVerb(q) ?? verbOrNoun(q)
+  return begin(q) ?? standingAlone(q) ?? greeting(q) ?? ownReflexive(q) ?? governed(q) ?? predicate(q) ?? nounOrVerb(q) ?? verbOrNoun(q)
     ?? agreement(q) ?? genitiveCue(q) ?? substantive(q) ?? noShortAfterNoun(q);
 }

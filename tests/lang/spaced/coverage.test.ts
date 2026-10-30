@@ -14,7 +14,7 @@ const BOOKS: { id: Id; book: string; found: number; unknown: number }[] = [
   { id: 'fr', book: 'fr-miserables', found: 0.97, unknown: 0.01 },
   { id: 'de', book: 'de-verwandlung', found: 0.97, unknown: 0.02 },
   { id: 'it', book: 'it-pinocchio', found: 0.97, unknown: 0.025 },
-  { id: 'pt', book: 'pt-casmurro', found: 0.94, unknown: 0.05 },
+  { id: 'pt', book: 'pt-casmurro', found: 0.94, unknown: 0.02 },
   { id: 'ru', book: 'ru-kashtanka', found: 0.945, unknown: 0.03 },
 ];
 

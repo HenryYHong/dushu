@@ -32,6 +32,13 @@ export interface WordEntry {
   common?: boolean;
   /** Where it came from, for the credit line under the entry: 'JMdict', 'Wiktionary', 'name'. */
   source: string;
+  /**
+   * Russian verbs: the aspect, 'pf' perfective, 'impf' imperfective, 'both' (biaspectual), when the dictionary says. The card
+   * can then say "perfective; partner: брать" for взять.
+   */
+  aspect?: 'pf' | 'impf' | 'both';
+  /** The verbs of the other aspect, with their stress marked: брать for взять, узна́ть for узнавать. */
+  partners?: string[];
 }
 
 /** What tapping a word shows. */

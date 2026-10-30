@@ -33,7 +33,7 @@ describe('sí, solo, que', () => {
     expect(es.hint(tok(es, s, 'que'))).toBe('which, who, that');
     expect(es.hint(tok(es, 'Y no sabes tú que las estrellas bajan?', 'que'))).toBe('that');
     expect(es.hint(tok(es, 'Y no sabes tú que las estrellas bajan?', 'las'))).toBe('the');
-    expect(es.hint(tok(es, 'Una olla de algo más vaca que carnero, salpicón las más noches, duelos y quebrantos los sábados, lentejas los viernes, algún palomino de añadidura los domingos, consumían las tres partes de su hacienda.', 'que'))).toBe('that');
+    expect(es.hint(tok(es, 'Una olla de algo más vaca que carnero, salpicón las más noches, duelos y quebrantos los sábados, lentejas los viernes, algún palomino de añadidura los domingos, consumían las tres partes de su hacienda.', 'que'))).toBe('than');
     // lo que is "what".
     expect(es.hint(tok(es, '—¡Madre de Dios!—exclamó la Nela, cruzando las manos—. ¿Tendrá eso algo que ver con lo que yo siento?', 'que', 1))).toBe('what, that which');
   });

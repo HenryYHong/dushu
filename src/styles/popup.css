@@ -181,6 +181,7 @@
 }
 .pp-phrase-text .rd-rtx { position: absolute; left: 50%; bottom: calc(100% - 0.28em); transform: translateX(-50%); white-space: nowrap; }
 .pp-phrase-text rt:empty { display: none; }
+.pp-lang-aspect { margin: 2px 0 6px; font-size: 12.5px; color: var(--text-2); }
 /* Another language: the sentence as the page sets it, no pinyin cells. Furigana sit close over their kanji; hints are off. */
 .pp-phrase-text:not(.zh) { font-family: var(--font-book); font-size: 21px; line-height: 2; }
 .pp-phrase-text:not(.zh) ruby { padding: 0; white-space: normal; }

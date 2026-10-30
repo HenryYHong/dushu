@@ -11,6 +11,8 @@ export const FRENCH: SpacedLang = {
     "entr'"],
   hyphenClitics: ['je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'ce', 'le', 'la', 'les', 'lui', 'leur', 'moi',
     'toi', 'en', 'y', 't', "t'en", "m'en", "t'y", "m'y", 'là', 'ci'],
+  // "ce soir-là", "ce monde-là", "celui-ci": a noun before them, as well as a verb.
+  hyphenParticles: ['là', 'ci'],
   beforeNoun: ['un', 'une', 'des', 'du', 'au', 'aux', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses', 'notre',
     'nos', 'votre', 'vos', 'leurs', 'ce', 'cet', 'cette', 'ces', 'quel', 'quelle', 'quels', 'quelles', 'chaque', 'plusieurs',
     'quelques', 'aucun', 'aucune', 'certains', 'certaines'],
@@ -26,6 +28,10 @@ export const FRENCH: SpacedLang = {
   // Levez-vous "stand up", Assieds-toi: an imperative with its own person's pronoun hyphened to it is reflexive.
   reflexive: { always: ['se', "s'"], ifPronominal: ['me', "m'", 'te', "t'", 'nous', 'vous'],
     imperative: { vous: 'second-person plural [a-z ]*imperative', toi: 'second-person singular [a-z ]*imperative', nous: 'first-person plural [a-z ]*imperative' } },
+  // Flaubert and Perrault capitalize Madame and Monsieur in mid-sentence: courtesy, not names.
+  titles: ['madame', 'monsieur', 'mademoiselle', 'messieurs', 'mesdames', 'mesdemoiselles', 'mme', 'mlle', 'm.'],
+  // Candide's edition prints À and Ô without their accents: "A peine ont-ils mis le pied dans la ville", "O ciel !".
+  capitalAccent: { A: 'à', O: 'ô' },
   // en, des, que, si, leur, même, fort, tout … and the words next to them (fr-context.ts).
   context: frenchContext,
 };

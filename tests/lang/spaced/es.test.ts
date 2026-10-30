@@ -77,8 +77,8 @@ describe('Spanish lookups', () => {
     const look = lookupIn(es, 'No me acuerdo de nada.', 'acuerdo');
     expect(look.entries[0].head).toBe('acordar');
     expect(look.entries[0].senses[0].notes).toContain('reflexive');
-    // dar is not mostly reflexive: se dio prisa is not "to hit oneself".
-    expect(es.hint(tok(es, 'Se dio prisa a salir.', 'dio'))).toBe('to give');
+    // dar is not mostly reflexive: se dio prisa is not "to hit oneself"; with se it is the phrase darse prisa.
+    expect(es.hint(tok(es, 'Se dio prisa a salir.', 'dio'))).toBe('to hurry');
     // An imperative is reflexive only with its own pronoun: siéntate (sit down), dame (give me).
     expect(es.hint(tok(es, 'Siéntate aquí.', 'Siéntate'))).toBe('to sit down');
     expect(es.hint(tok(es, 'Dámelo ahora.', 'Dámelo'))).toBe('to give');

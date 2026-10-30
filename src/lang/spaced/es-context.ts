@@ -29,6 +29,8 @@ const CONJUNCTIONAL = new Set(['verdad', 'vez', 'veces', 'modo', 'manera', 'suer
 const INTENSIFIERS = new Set(['muy', 'tan', 'bastante', 'demasiado', 'harto', 'qué', 'poco']);
 /** Words after which an adjective is likelier than not, though a noun or verb may follow too: más viva, menos triste. */
 const COMPARATIVES = new Set(['más', 'menos']);
+/** The comparatives whose que is "than": "más vaca que carnero", "más lejos que Misiones todavía". */
+const COMPARISON = new Set(['más', 'menos', 'mejor', 'peor', 'mayor', 'menor']);
 /** Words of a comparison or a degree that a later que completes: "más vaca que carnero", "tanta sed que". */
 const DEGREE = new Set(['más', 'menos', 'mejor', 'peor', 'mayor', 'menor', 'antes', 'después', 'tan', 'tanto', 'tanta', 'tantos',
   'tantas', 'tal', 'tales', 'otro', 'otra', 'otros', 'otras', 'mismo', 'misma', 'mismos', 'mismas', 'igual', 'distinto',
@@ -87,6 +89,33 @@ const TIME = new Set(['año', 'día', 'mes', 'semana', 'hora', 'minuto', 'segund
 const SPAN = new Set(['un', 'una', 'unos', 'unas', 'algún', 'alguna', 'algunos', 'algunas', 'varios', 'varias', 'mucho', 'mucha',
   'muchos', 'muchas', 'poco', 'poca', 'pocos', 'pocas', 'tanto', 'tanta', 'tantos', 'tantas', 'cuánto', 'cuánta', 'cuántos',
   'cuántas', 'largo', 'larga', 'largos', 'largas', 'breve', 'breves', 'medio', 'media']);
+/**
+ * haber with no participle after it says that something exists, "there was": "Pero no había ni un pescado" (Cuentos de la
+ * selva), "Hubo un súbito silencio" (Platero y yo). Its forms and what each says (hay has a hint of its own).
+ */
+const IMPERSONAL_HABER: Record<string, string> = {
+  había: 'there was, there were', hubo: 'there was, there were', hubiera: 'there were', hubiese: 'there were',
+  habrá: 'there will be', habría: 'there would be', haya: 'there is, there are',
+};
+/** Adverbs that stand between impersonal haber and what there was: "no había allí más que", "hubo entonces un silencio". */
+const HABER_BETWEEN = new Set(['allí', 'allá', 'aquí', 'ahí', 'acá', 'entonces', 'ya', 'también', 'todavía', 'aún', 'siempre',
+  'luego', 'después', 'antes', 'apenas', 'casi', 'en']);
+/** What follows impersonal haber that no noun's reading says: "no había nada", "hubo quien", "no había ni un pescado". */
+const THERE_WAS = new Set(['nada', 'algo', 'nadie', 'alguien', 'quien', 'quienes', 'ni', 'mucho', 'mucha', 'muchos', 'muchas',
+  'poco', 'poca', 'pocos', 'pocas', 'tanto', 'tanta', 'tantos', 'tantas', 'tal', 'tales', 'más', 'menos', 'varios', 'varias',
+  'otro', 'otra', 'otros', 'otras', 'cosa', 'gente']);
+/**
+ * hacer's weather, "it is cold": "—Vamos, vamos; aquí hace frío" (El sombrero de tres picos), "Hacía mucho frío, además" (Cuentos
+ * de la selva), "hace buen tiempo". The word and what the weather is.
+ */
+const WEATHER: Record<string, string> = { frío: 'cold', calor: 'hot', fresco: 'cool', sol: 'sunny', viento: 'windy',
+  bochorno: 'muggy', buen: 'fine', bueno: 'fine', mal: 'bad weather', malo: 'bad weather', oscuro: 'dark' };
+/** Words between hace and the weather: "hace mucho frío", "hacía un frío", "hace tanto calor". */
+const WEATHER_BETWEEN = new Set(['mucho', 'mucha', 'un', 'una', 'tanto', 'tanta', 'poco', 'muy', 'bastante', 'algo', 'demasiado',
+  'tan', 'más', 'menos', 'un', 'gran', 'buen', 'mal']);
+/** hacer's forms of the third person singular, and the tense each says weather in. */
+const WEATHER_HACER: Record<string, string> = { hace: 'it is', hacía: 'it was', hizo: 'it was', hará: 'it will be', haría: 'it would be',
+  haga: 'it is', hiciera: 'it was', hiciese: 'it was' };
 /** Where come and go point: "ven aquí", "ven conmigo", "ve y acompáñale", "ve con cuidado". */
 const HITHER = new Set(['aquí', 'acá', 'allá', 'allí', 'ahí', 'a', 'al', 'con', 'conmigo', 'contigo', 'y', 'por', 'hacia', 'pronto',
   'tú', 'corriendo', 'luego', 'adentro', 'afuera', 'arriba', 'abajo', 'adelante']);
@@ -219,6 +248,17 @@ export function spanishContext(q: ContextQuery): ContextChoice | null {
   const has = (f: (r: ContextReading) => boolean): boolean => rs.some(f);
   const top = rs[0];
 
+  // El at a sentence start before a verb of the third person is Él "he", its accent dropped by the printer (es.ts
+  // capitalAccent): "El creía que estaba siempre en la ramada" (Cuentos de la selva), "¡El es un hombre bueno!". Before a noun
+  // it is the article, and before a word nearly as likely one: "El hombre enfermo aceptó", "El guarda arrepentido quizás daba
+  // largas razones", "El canto del grillo" (Platero y yo; canto is cantar's first person, which él never takes).
+  if (w.text === 'El' && q.sentenceStart && next && has((r) => r.key === 'él')) {
+    const verb = next.readings.find((r) => isFiniteVerb(r) && /\bthird-person singular\b/.test(r.form));
+    const noun = next.readings.find((r) => (nounish(r) && !/\bplural\b/.test(r.form)) || isParticiple(r));
+    if (verb && (!noun || verb.score > noun.score + 2)) return prefer((r) => r.key === 'él');
+    return null;
+  }
+
   // sí is "oneself" only after a preposition or before mismo: "dijo para sí", "a sí mismo", "por sí conocen las cosas".
   // Anywhere else it is "yes", the commonest word of Marianela's dialogue: "—Sí, señor", "Dicen que sí", "Eso sí que es
   // gracioso".
@@ -315,6 +355,36 @@ export function spanishContext(q: ContextQuery): ContextChoice | null {
     return null;
   }
 
+  // Impersonal haber, "there was": a third-person form with what there was after it, not a participle. "Pero no había ni un
+  // pescado" (Cuentos de la selva), "Hubo un súbito silencio" (Platero y yo), "No los había" (with nothing after it, once
+  // it has its pronoun). Not haber de or haber que ("había de ir", "hay que"), not after a subject ("yo había") nor after
+  // the participle the old books put first ("dicho había").
+  const there = IMPERSONAL_HABER[w.low];
+  if (there && has((r) => r.key === 'haber') && !(prev && (SUBJECTS.has(prev.low) || determiner(prev) || (prev.chosen && isParticiple(prev.chosen))))) {
+    const choice: ContextChoice = { prefer: (r) => r.key === 'haber', margin: Infinity, hint: there, sense: /\bthere be\b/ };
+    let i = q.at + 1;
+    while (i < q.words.length && i <= q.at + 2 && !q.words[i - 1].after && HABER_BETWEEN.has(q.words[i].low)) i++;
+    const after = i < q.words.length && !q.words[i - 1].after ? q.words[i] : undefined;
+    if (!after) return prev && ['lo', 'la', 'los', 'las'].includes(prev.low) ? choice : null;
+    if (after.low === 'de' || after.low === 'que' || after.readings.some(isParticiple)) return null;
+    const a = readAs(after);
+    if (THERE_WAS.has(after.low) || after.name || (a && (nounish(a) || ['article', 'determiner', 'numeral'].includes(a.pos)))) return choice;
+    return null;
+  }
+
+  // hacer's weather: "aquí hace frío" "it is cold", "Hacía mucho frío". Not with an object before the weather word: "hace un
+  // día de perros" is the time of day's, which the preposition reads.
+  const tense = WEATHER_HACER[w.low];
+  if (tense && has((r) => r.key === 'hacer')) {
+    let i = q.at + 1;
+    while (i < q.words.length && i <= q.at + 2 && !q.words[i - 1].after && WEATHER_BETWEEN.has(q.words[i].low) && !WEATHER[q.words[i].low]) i++;
+    const after = i < q.words.length && !q.words[i - 1].after ? q.words[i] : undefined;
+    // buen and mal need their tiempo: "hace buen tiempo"; but "hace mal" is "does harm".
+    const what = after && WEATHER[after.low];
+    const timed = !!after && (after.low !== 'buen' && after.low !== 'mal' || q.words[i + 1]?.low === 'tiempo');
+    if (what && timed) return { prefer: (r) => r.key === 'hacer', margin: Infinity, hint: `${tense} ${what}`, sense: /\bweather\b/ };
+  }
+
   // hace before a span of time is "ago": "—Dicen que hace tres años" (Marianela), "hace un rato", "hace mucho tiempo", "hace
   // poco"; before anything else it is hacer's: "hace frío", "hace mucho frío".
   if (w.low === 'hace' && next && has((r) => r.pos === 'preposition')) {
@@ -396,7 +466,28 @@ export function spanishContext(q: ContextQuery): ContextChoice | null {
   // "tanta sed que", which the conjunction reads; and so after a subject ("sabes tú que") or a noun that makes a conjunction
   // with it ("es verdad que", "cada vez que").
   if (w.low === 'que' && has((r) => r.pos === 'pronoun') && has((r) => r.pos === 'conjunction')) {
-    for (let i = q.at - 1; i >= Math.max(0, q.at - 4) && !q.words[i].after; i--) if (DEGREE.has(q.words[i].low)) return null;
+    // Past a noun, before a verb or a pronoun, que is the noun's relative: "Ya no habrá más pescados ni bichos que vengan a
+    // tomar agua" (Cuentos de la selva). Not after sino: "No hay más sino que tiene razón".
+    const verbAfter = !!next && (PROCLITICS.has(next.low) || next.low === 'no' || isVerb(next.readings[0]));
+    let noun = false;
+    for (let i = q.at - 1; i >= Math.max(0, q.at - 4) && !q.words[i].after; i--) {
+      if (q.words[i].chosen?.pos === 'noun') noun = true;
+      if (i === q.at - 1 && q.words[i].low === 'sino') break;
+      if (!DEGREE.has(q.words[i].low)) continue;
+      if (noun && verbAfter && COMPARISON.has(q.words[i].low)) return null;
+      // After a comparison que is the conjunction's "than": "Una olla de algo más vaca que carnero" (Don Quijote), "más lejos
+      // que Misiones todavía" (Cuentos de la selva). Not after a superlative, whose que is the relative: "la más hermosa que
+      // he visto", "el cuento más lindo que".
+      const b1 = q.words[i - 1];
+      const b2 = q.words[i - 2];
+      const definite = (x?: ContextWord): boolean => !!x && ['el', 'la', 'los', 'las', 'lo'].includes(x.low);
+      const superlative = !!b1 && !b1.after && (NOUN_DETERMINERS.has(b1.low) || b1.low === 'lo'
+        || (b1.chosen?.pos === 'noun' && !!b2 && !b2.after && definite(b2)));
+      if (COMPARISON.has(q.words[i].low) && !superlative) {
+        return { prefer: (r) => r.pos === 'conjunction', margin: Infinity, hint: 'than' };
+      }
+      return null;
+    }
     const p = prev?.chosen;
     if (!prev || prev.name || CONJUNCTIONAL.has(prev.low) || SUBJECTS.has(prev.low)) return null;
     if (prev.low === 'lo' || ['noun', 'article'].includes(p?.pos ?? '')

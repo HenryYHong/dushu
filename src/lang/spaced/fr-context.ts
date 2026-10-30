@@ -142,6 +142,17 @@ const NOT_RESTRICTIVE = new Set(['pas', 'point', 'rien', 'personne', 'aucun', 'a
 /** Comparatives whose que is "than" or "as" even after ne: "Jamais madame Bovary ne fut aussi belle qu'à cette époque". */
 const COMPARATIVE = new Set(['aussi', 'autant', 'tant', 'moins', 'mieux', 'meilleur', 'meilleure', 'pire', 'davantage', 'tel',
   'telle', 'même', 'autrement', 'plutôt']);
+/** Comparatives a later que completes as "than": "rien de plus beau que cette cour" (Perrault), "autre chose que". */
+const THAN = new Set(['plus', 'moins', 'mieux', 'meilleur', 'meilleure', 'meilleurs', 'meilleures', 'pire', 'pires', 'davantage',
+  'autre', 'autres', 'autrement', 'plutôt']);
+/** Comparatives a later que completes as "as": "Jamais madame Bovary ne fut aussi belle qu'à cette époque". */
+const AS = new Set(['aussi', 'autant']);
+/** Determiners that make a superlative of plus, whose que is then the relative: "le plus beau que j'aie vu". */
+const SUPERLATIVE = new Set(['le', 'la', 'les', "l'", 'du', 'des', 'au', 'aux', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa',
+  'ses', 'notre', 'nos', 'votre', 'vos', 'leur', 'leurs']);
+/** Nouns of time that même after them makes "very": "dès le soir même" (Perrault), "le jour même", "à l'instant même". */
+const TIME_NOUNS = new Set(['jour', 'soir', 'nuit', 'matin', 'instant', 'moment', 'heure', 'année', 'an', 'semaine', 'mois',
+  'lendemain', 'veille', 'temps', 'minute', 'seconde', 'époque', 'siècle']);
 /** Words that start a clause of their own between ne and que. */
 const CLAUSE_START = new Set(['que', "qu'", 'qui', 'quand', 'si', "s'", 'comme', 'lorsque', "lorsqu'", 'puisque', "puisqu'",
   'et', 'ou', 'mais', 'car', 'dont', 'où', 'quoique', "quoiqu'"]);
@@ -269,6 +280,31 @@ function du(q: ContextQuery): ContextChoice | null {
 }
 
 /**
+ * The comparison a que completes, a few words back in its clause: "than" after plus, moins, mieux, autre ("il ne se peut
+ * rien de plus beau que cette cour", Perrault), "as" after aussi, autant ("Jamais madame Bovary ne fut aussi belle qu'à cette
+ * époque"); '' when there is none. Not a superlative ("le plus beau que j'aie vu", the relative), nor plus after ne, which
+ * makes que "only": "il n'y avait plus que".
+ */
+function comparison(q: ContextQuery): string {
+  for (let i = q.at - 1, n = 0; i >= 0 && n < 6; i--, n++) {
+    const w = q.words[i];
+    // A verb between them takes the que as its own: "d'autres à demi brûlées criaient qu'on achevât" (Candide).
+    if (/[,;:()«»—–]/.test(w.after) || (i < q.at - 1 && (CLAUSE_START.has(w.low) || (!!w.chosen && finite(w.chosen))))) return '';
+    if (!THAN.has(w.low) && !AS.has(w.low)) continue;
+    if (/^autres?$/.test(w.low) && q.at - i > 2) continue;
+    // plus de, moins de say "than" with their de: "il y avait plus de cinquante ans qu'elle n'était sortie" (Perrault) is
+    // "since".
+    const a = q.words[i + 1];
+    if (a && !w.after && ['de', "d'"].includes(a.low)) return '';
+    const b = q.words[i - 1];
+    if (b && !b.after && SUPERLATIVE.has(b.low)) return '';
+    if (w.low === 'plus' && q.words.slice(Math.max(0, i - 4), i).some((x) => x.low === 'ne' || x.low === "n'")) return '';
+    return AS.has(w.low) ? 'as' : 'than';
+  }
+  return '';
+}
+
+/**
  * ne … que is "only": "parce que l'on n'en avait fait faire que sept" (Perrault), "Et elle n'aimait que cela" (La Parure).
  * A ne before it in its clause, with no pas, point, rien between and no comparative (aussi belle qu'à cette époque), que
  * not part of a conjunction (avant que) nor opening a clause of its own (supposer qu'il …), and the ne not one that a rien
@@ -282,6 +318,8 @@ function que(q: ContextQuery): ContextChoice | null {
     const verb = OBJECT_CLITIC.has(q.next.low) ? q.words[q.at + 2] : q.next;
     if (verb && /[-‐]/.test(verb.text) && !!verb.readings[0] && finite(verb.readings[0])) return decide(q, is('pronoun'));
   }
+  const compared = comparison(q);
+  if (compared && q.word.readings.some(is('conjunction'))) return { prefer: is('conjunction'), margin: Infinity, hint: compared };
   const only = is('adverb');
   if (!q.word.readings.some(only)) return null;
   if (q.prev && QUE_LOCUTION.has(q.prev.low)) return null;
@@ -353,6 +391,8 @@ function meme(q: ContextQuery): ContextChoice | null {
   const { prev, next } = q;
   const c = prev?.chosen;
   const adjective = is('adjective');
+  // After a noun of time, "very": "dès le soir même" (Perrault), "le jour même".
+  if (prev && c?.pos === 'noun' && TIME_NOUNS.has(c.key) && q.word.readings.some(adjective)) return { prefer: adjective, margin: Infinity, hint: 'very' };
   const nominal = !!c && (['noun', 'proper noun'].includes(c.pos) || prev!.name || STRONG_PRONOUN.has(prev!.low));
   if (nominal && next && !next.name && (OBJECT_CLITIC.has(next.low) || SUBJECT_CLITIC.has(next.low)
     || SUBJECT_OR_STRONG.has(next.low) || plainlyVerb(next))) return decide(q, is('adverb'));
@@ -555,7 +595,8 @@ function plus(q: ContextQuery): ContextChoice | null {
   for (let i = q.at - 1, n = 0; i >= 0 && n < 6; i--, n++) {
     const w = q.words[i];
     if (/[,;:()«»—–]/.test(w.after)) return null;
-    if (w.low === 'ne' || w.low === "n'") return decide(q, is('particle'));
+    // The particle "no longer" where the dictionary has one; else the adverb, saying so.
+    if (w.low === 'ne' || w.low === "n'") return decide(q, is('particle')) ?? { prefer: is('adverb'), margin: Infinity, hint: 'no longer, no more' };
     if (NEGATION.has(w.low) || CLAUSE_START.has(w.low) || COMPARATIVE.has(w.low)) return null;
   }
   return null;
@@ -655,7 +696,53 @@ function mort(q: ContextQuery): ContextChoice | null {
   return decide(q, is('adjective'));
 }
 
+/**
+ * A and O at a sentence start in Candide's edition are À and Ô, printed without their accents (the engine adds their
+ * readings, fr.ts capitalAccent): "A peine ont-ils mis le pied dans la ville", "A ce discours Candide s'évanouit", "O ciel !
+ * à quel excès se porte le zèle". Not A before a participle, which is avoir's: "A dit le roi ?".
+ */
+function capital(q: ContextQuery): ContextChoice | null {
+  const w = q.word;
+  if (!q.sentenceStart || (w.text !== 'A' && w.text !== 'O')) return null;
+  if (w.text === 'O') return w.after === '.' ? null : decide(q, (r) => r.key === 'ô');
+  const n = q.next?.readings[0];
+  return q.next && !(n && isParticiple(n)) ? decide(q, (r) => r.key === 'à') : null;
+}
+
+/**
+ * comme opening an exclamation is "how": "Comme la vie est singulière, changeante !" (La Parure). Not comme si "as if", nor a
+ * comparison the sentence goes on with ("Comme il faisait beau, …" has its comma before the clause it explains).
+ */
+function comme(q: ContextQuery): ContextChoice | null {
+  const last = q.words[q.words.length - 1];
+  if (!q.sentenceStart || !q.next || q.next.low === 'si' || q.next.low === "s'" || !last.after.includes('!') || q.question) return null;
+  return q.word.readings.some(is('conjunction')) ? { prefer: is('conjunction'), margin: Infinity, hint: 'how', sense: /\bhow\b/ } : null;
+}
+
+/**
+ * faire before an infinitive makes someone do it: "ce terrible don fit frémir toute l'assemblée" (Perrault), "On le fait
+ * tourner à droite" (Candide), "il fit venir le médecin". venir de before an infinitive has just done it: "la clef du cabinet
+ * qu'elle venait de retirer de la serrure" (Perrault), "Je viens d'aller consulter mon médecin" (Le Horla).
+ */
+function verbBeforeInfinitive(q: ContextQuery): ContextChoice | null {
+  const w = q.word;
+  const faire = (r: ContextReading): boolean => r.key === 'faire' && r.pos === 'verb';
+  const venir = (r: ContextReading): boolean => r.key === 'venir' && finite(r) && /\b(?:present|imperfect)\b/.test(r.form);
+  const inf = (x?: ContextWord): boolean => !!x && !x.name && !!x.readings[0] && infinitive(x.readings[0]);
+  if (w.readings.some(faire) && inf(q.next) && !['être', 'avoir'].includes(q.next!.readings[0].key)) {
+    return { prefer: faire, margin: Infinity, hint: 'to make, have (done)', sense: /\b(?:to cause|to make)\b/ };
+  }
+  // A pronoun may stand between: "ma soeur venait d'en partir" (Candide).
+  let de = q.next && ['de', "d'"].includes(q.next.low) && !q.next.after ? q.words[q.at + 2] : undefined;
+  if (de && OBJECT_CLITIC.has(de.low) && !de.after) de = q.words[q.at + 3];
+  // Not the phrase venir de "to come from", which the dictionary has: "il vient de Paris".
+  if (w.readings.some(venir) && inf(de)) return { prefer: venir, margin: Infinity, hint: 'to have just', sense: /\bhave just\b/, noPhrase: true };
+  return null;
+}
+
 const WORD_RULES: Record<string, (q: ContextQuery) => ContextChoice | null> = {
+  comme,
+  a: capital, o: capital,
   en, des, du, que, "qu'": que, si, leur, même: meme, fort, tout, toute: tout, voilà: voila, voici: voila, ce,
   personne, moyen, moyens: moyen, ensemble, le: lePronoun, la: lePronoun, les: lePronoun, "l'": lePronoun, vu, or, aussi,
   plus, pas, bien, un, une: un, uns: un, unes: un, dessous: placeAdverb, dessus: placeAdverb, dedans: placeAdverb,
@@ -920,10 +1007,35 @@ function reflexiveThroughClitic(q: ContextQuery, answer: ContextChoice | null): 
 }
 
 /** French's context rule (SpacedLang.context). */
+/**
+ * Fixed phrases the words around them undo (ContextChoice.noPhrase): "dans le petit bois qu'on appelait parc" (Candide) is the
+ * little wood, not petit bois "kindling"; "Ce dernier discours détermina Candide" this last speech, not ce dernier "the
+ * latter"; "les deux savants jugèrent à propos de rétablir le membre" (Bovary) saw fit to, and "Emma cherchait à savoir" to
+ * know, not "about" and "namely"; "avant de se mettre au lit" is going to bed, not se mettre à "to start"; "un petit homme
+ * fort laid" very ugly, not homme fort "strong man"; "Il ne venait pas grand monde" not many people, not "high society"; "le
+ * meilleur homme du monde" the best man in the world, not "man of the world"; "rien de plus beau" more beautiful, not de plus
+ * "moreover".
+ */
+function phraseUndone(q: ContextQuery): boolean {
+  const { prev, next } = q;
+  const w = q.word.low;
+  const adjective = (x?: ContextWord): boolean => !!x && !!x.readings[0] && ['adjective', 'adverb'].includes(x.readings[0].pos);
+  if (w === 'petit' && next?.low === 'bois' && prev?.chosen && ['article', 'determiner', 'contraction'].includes(prev.chosen.pos)) return true;
+  if (w === 'dernier' && prev?.low === 'ce' && next?.readings[0]?.pos === 'noun') return true;
+  if (w === 'à' && next && ['propos', 'savoir'].includes(next.low) && prev?.chosen?.pos === 'verb' && !['être', 'avoir'].includes(prev.chosen.key)) return true;
+  if (['au', 'aux'].includes(w) && prev?.chosen?.key === 'mettre') return true;
+  if (w === 'fort' && prev?.low === 'homme' && adjective(next)) return true;
+  if (w === 'grand' && next?.low === 'monde' && prev && ['pas', 'plus', 'guère', 'point'].includes(prev.low)) return true;
+  if (w === 'homme' && next?.low === 'du' && prev && ['meilleur', 'plus', 'moins', 'pire'].includes(prev.low)) return true;
+  if (w === 'plus' && prev?.low === 'de' && adjective(next) && !q.word.after) return true;
+  return false;
+}
+
 export function frenchContext(q: ContextQuery): ContextChoice | null {
   const own = WORD_RULES[q.word.low];
-  const answer = fusedReflexive(q) ?? (own ? own(q) : null) ?? seMettre(q) ?? gerund(q) ?? verbAfterSubject(q) ?? afterClitic(q)
+  const answer = fusedReflexive(q) ?? (own ? own(q) : null) ?? verbBeforeInfinitive(q) ?? seMettre(q) ?? gerund(q) ?? verbAfterSubject(q) ?? afterClitic(q)
     ?? afterIntensifier(q) ?? afterRestrictive(q) ?? infinitiveNoun(q) ?? adjectiveBeforeNoun(q) ?? afterCopula(q)
     ?? participleAfterNoun(q) ?? adjectiveAfterVerb(q) ?? imperative(q);
-  return reflexiveThroughClitic(q, answer);
+  const choice = reflexiveThroughClitic(q, answer);
+  return phraseUndone(q) ? { ...(choice ?? { margin: 0 }), noPhrase: true } : choice;
 }

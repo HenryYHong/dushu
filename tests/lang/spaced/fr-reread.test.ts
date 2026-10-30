@@ -145,7 +145,7 @@ describe('the small words: plus, pas, du, même, que, bien, or, mal, meilleur', 
   it('reads même after a noun the verb follows as "even", after a time as "very"', async () => {
     expect(await hint('Sa grande salle même était ornée d’une tapisserie.', 'même')).toBe('even');
     expect(await hint('Le sucre en poudre même lui parut plus blanc et plus fin qu’ailleurs.', 'même')).toBe('even');
-    expect(await hint('La Barbe-Bleue revint de son voyage dès le soir même, et dit qu’il avait reçu des lettres.', 'même')).toBe('same, very');
+    expect(await hint('La Barbe-Bleue revint de son voyage dès le soir même, et dit qu’il avait reçu des lettres.', 'même')).toBe('very');
     expect(await hint('La mairie se trouvant à une demi-lieue de la ferme, on s’y rendit à pied, et l’on revint de même, une fois la cérémonie faite à l’église.', 'même')).toBe('likewise');
   });
 

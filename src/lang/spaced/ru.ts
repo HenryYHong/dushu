@@ -13,6 +13,10 @@ export const RUSSIAN: SpacedLang = {
   // «Кто хлебал в моей чашке!» (Tolstoy) starts a sentence; „ opens inner quotes, and — stands between subject and
   // predicate (Москва — столица), so it starts nothing.
   sentenceOpeners: '«„',
+  // A capital letter and its period after one is an initial: "князя Б."; a capitalized word after г. (господин) a name: "по
+  // приказанию г. Ермолова" (Герой нашего времени).
+  titles: ['князь', 'княгиня', 'княжна', 'граф', 'графиня', 'барон', 'баронесса', 'господин', 'госпожа', 'генерал', 'полковник',
+    'капитан', 'майор', 'поручик', 'доктор', 'г.'],
   context: russianContext,
   respell(f) {
     const out: string[] = [];

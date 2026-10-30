@@ -31,6 +31,16 @@ export interface ContextReading {
   hint: string;
   /** How likely the reading is by the word alone, in nats (higher is likelier); a word's readings come sorted by it. */
   score: number;
+  /**
+   * The usage labels of the entry's first sense ('archaic', 'literary', 'informal', 'vulgar' …), so a rule can prefer the plain
+   * word: "la cagione cessa" (I promessi sposi) is cessare "ceases", not cesso's informal, vulgar adjective. Empty when none.
+   */
+  labels: string[];
+  /**
+   * Russian verbs: the aspect, 'pf' perfective, 'impf' imperfective, 'both'. After стать, начать, перестать only an
+   * imperfective stands: "Она стала засыпать" (Каштанка) is засыпать "to fall asleep", not the perfective "to fill up".
+   */
+  aspect?: 'pf' | 'impf' | 'both';
 }
 
 /** A word of the sentence as a context rule sees it. */
@@ -71,18 +81,44 @@ export interface ContextQuery {
   sentenceStart: boolean;
   /** The sentence ends with a question mark (Come stai? is "how", not "as"). */
   question: boolean;
+  /**
+   * The words of the paragraph's sentences before this one, as read (each with its `chosen` reading): what a sentence says
+   * of the ones before it. The Prokurist's "Sie haben vielleicht … nicht gelesen" (Die Verwandlung) is polite "you" because he
+   * has said "Herr Samsa" and "Ihre Eltern" a sentence earlier, with nothing polite in this one.
+   */
+  earlier: ContextWord[];
 }
 
 /** A context rule's answer: which readings fit, and how far below the likeliest one a fitting reading may be and still win. */
 export interface ContextChoice {
-  /** The readings that fit here; the likeliest of them wins (`i` is the reading's place in word.readings). */
-  prefer: (r: ContextReading, i: number) => boolean;
+  /**
+   * The readings that fit here; the likeliest of them wins (`i` is the reading's place in word.readings). Left out, the
+   * generic rules choose as if the rule had not answered, and only the answer's `hint`, `reflexive` and `noPhrase` hold.
+   */
+  prefer?: (r: ContextReading, i: number) => boolean;
   /**
    * In nats: CONTEXT_MARGIN (5) for a cue that may only choose between near readings, Infinity for one that decides however
    * unlikely the reading is alone (se before acuerdo). A choice that prefers every reading keeps the likeliest, and stops the
    * generic rules from moving the word.
    */
   margin: number;
+  /**
+   * What the word means where it stands, when that is one sense of the reading chosen, not a reading of its own: Spanish que
+   * after a comparison is the conjunction's "than" ("Una olla de algo más vaca que carnero", Don Quijote), impersonal había
+   * haber's "there was" ("Pero no había ni un pescado", Cuentos de la selva). It is the word's hint, and the card leads with
+   * the sense it names (the first sense with a gloss that starts so), or with the hint itself when no sense does.
+   */
+  hint?: string;
+  /**
+   * The sense the card leads with, when the hint does not start one of its glosses: hace in "aquí hace frío" (El sombrero de
+   * tres picos) says "it is cold" over the word and leads with hacer's "(impersonal) in expressions about the weather".
+   */
+  sense?: RegExp;
+  /**
+   * The word is not part of a fixed phrase here, however its neighbors are spelled: "dans le petit bois qu'on appelait parc"
+   * (Candide) is the little wood, not petit bois "kindling". Any word of a run that says so keeps the run from matching.
+   */
+  noPhrase?: boolean;
   /**
    * The verb is read with its reflexive sense (true) or not (false), whatever the pronouns next to it say: German "setzte er
    * sich" puts sich after the verb, where the generic rule does not look. Left out, the engine decides.

@@ -30,6 +30,10 @@ const as = (pos: string): ContextChoice => ({ prefer: (r) => r.pos === pos, marg
 const CONJ = as('conjunction');
 const PRON = as('pronoun');
 const DET = as('determiner');
+/** que after a comparative: the conjunction, whose "than" is its third sense (its hint says "that"). */
+const THAN: ContextChoice = { ...CONJ, hint: 'than' };
+/** The conjunction "than" after these, "that" or "before" after the rest (tão … que, antes que). */
+const thanAfter = (w: string): ContextChoice => (MORE_LESS.has(w) || /^outr[oa]s?$/.test(w) ? THAN : CONJ);
 
 /** The readings of a word near its likeliest: what it can plausibly be. */
 function near(w: ContextWord, margin = CONTEXT_MARGIN): ContextReading[] {
@@ -308,12 +312,12 @@ function que(q: ContextQuery): Choice {
   }
   // o que, os que: "Fez o que disse", what or the one that.
   if (['o', 'a', 'os', 'as'].includes(pl) && (pp === 'article' || pp === 'pronoun')) return N && nounOnly(N) ? DET : PRON;
-  if (compared(q) >= 0) return CONJ;
+  if (compared(q) >= 0) return THAN;
   if (pp === 'contraction') {
     // "mais do que o que se passou nas ruas": than, after a comparative; elsewhere do que is "of what" (depois do que se
     // passou), and daquelle que "of the one who".
     const PP = q.words[q.at - 2];
-    if ((pl === 'do' || pl === 'da') && PP && !P.before && COMPARATIVE.has(PP.low)) return CONJ;
+    if ((pl === 'do' || pl === 'da') && PP && !P.before && COMPARATIVE.has(PP.low)) return thanAfter(PP.low);
     return result(q) ? CONJ : PRON;
   }
   if (pp === 'conjunction') {
@@ -333,12 +337,12 @@ function que(q: ContextQuery): Choice {
   // agora que, ainda que, então que, mais que; but after an article the adverb stands for a noun: "foi o mais que pôde".
   if (pp === 'adverb') {
     const PP = q.words[q.at - 2];
-    return PP && !P.before && ['article', 'contraction'].includes(posOf(PP)) ? PRON : CONJ;
+    return PP && !P.before && ['article', 'contraction'].includes(posOf(PP)) ? PRON : thanAfter(pl);
   }
   if (result(q)) return CONJ;
   if (pp === 'pronoun') {
     // não menos que, nada menos que: than.
-    if (pl === 'menos' || pl === 'mais') return CONJ;
+    if (pl === 'menos' || pl === 'mais') return THAN;
     // A subject after its verb, and que what the verb says: "Dizem elles que …", "Supponha você que está no seminario";
     // but ser's is the relative: "Fui eu que cancei primeiro".
     const PP = q.words[q.at - 2];
@@ -356,12 +360,12 @@ function que(q: ContextQuery): Choice {
   }
   if (pp === 'adjective') {
     // melhor que a ama, mais forte que o outro, tão contente que trocou o homem: than, or the result.
-    if (COMPARATIVE.has(pl)) return CONJ;
+    if (COMPARATIVE.has(pl)) return thanAfter(pl);
     const PP = q.words[q.at - 2];
     if (PP && !P.before && ['mais', 'menos', 'tão', 'tanto', 'assim'].includes(PP.low)) {
       // But "o mais velho que" is the relative after the article.
       const PPP = q.words[q.at - 3];
-      return (PP.low === 'mais' || PP.low === 'menos') && PPP && !PP.before && ['article', 'contraction'].includes(posOf(PPP)) ? PRON : CONJ;
+      return (PP.low === 'mais' || PP.low === 'menos') && PPP && !PP.before && ['article', 'contraction'].includes(posOf(PPP)) ? PRON : thanAfter(PP.low);
     }
     // An adjective after a verb says what is good, possible or certain: "É bom que te sintas na alma do outro", "Não me
     // parece bonito que o nosso Bentinho ande mettido nos cantos". After a noun or an article it is the relative: "a

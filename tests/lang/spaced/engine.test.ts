@@ -298,8 +298,10 @@ describe('German', () => {
     const eng = await loadLang('de');
     // Immensee.
     expect(read(eng, 'Nun ging er gleich an die Arbeit; Nägel, Hammer und die nötigen Bretter waren schon bereit.', 'Hammer')).toMatch(/^Hammer /);
-    // Effi Briest: a capital with no noun of its own is the lower-case word (formal Ihnen is ihnen, "you").
-    expect(tok(eng, '»Nun, Kind«, sagte die Ritterschaftsrätin, »wie geht es Ihnen denn eigentlich?«', 'Ihnen').key).toBe('sie');
+    // Effi Briest: formal Ihnen is the polite Sie's, "you" (ihnen's own form hint "them" is the lower-case word's).
+    const ihnen = tok(eng, '»Nun, Kind«, sagte die Ritterschaftsrätin, »wie geht es Ihnen denn eigentlich?«', 'Ihnen');
+    expect(ihnen.key).toBe('Sie');
+    expect(eng.hint(ihnen)).toBe('you');
   });
 
   it('a compound’s hint is its head’s meaning, its pieces on the card (de-11): Weckuhr', async () => {

@@ -2,7 +2,7 @@
 // the verb (dimmi, farlo, andarsene).
 import type { LangEngine } from '../types';
 import { loadSpacedEngine, stripAccents, type LoadOpts, type SpacedLang } from './core';
-import { italianContext } from './it-context';
+import { italianCliticPart, italianContext } from './it-context';
 
 const CLITIC_START = /^(?:m|t|s|c|v|n|l)/;
 
@@ -62,10 +62,14 @@ export const ITALIAN: SpacedLang = {
   // "è arrivato un Pesce-cane" (Pinocchio) has arrived, not arrivato "successful"; ha letto, not letto "bed".
   auxiliaries: ['essere', 'avere'],
   // Elided too: "Anche Papiano s'alzò per riaccendere il lanternino" stood up, not alzare's "to lift"; "m'accorsi".
+  // A phrase of a pronominal verb is spelled with its infinitive: farsi coraggio, porsi in salvo.
   reflexive: { always: ['si', "s'"], ifPronominal: ['mi', 'ti', 'ci', 'vi', "m'", "t'", "c'", "v'"],
+    infinitive: (key) => (key.endsWith('rre') ? key.slice(0, -2) : key.slice(0, -1)) + 'si',
     imperative: { ti: '(?<!formal )second-person singular [a-z ]*imperative', vi: '(?<!formal )second-person plural [a-z ]*imperative', ci: 'first-person plural [a-z ]*imperative', si: 'formal|third-person [a-z ]*imperative' } },
   // come "like" or "how", ci "there" or "us", via "away" or the street, se ne andò, quella vocina …: it-context.ts.
   context: italianContext,
+  // venirci, andarci: ci "there" on the card.
+  cliticPart: italianCliticPart,
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

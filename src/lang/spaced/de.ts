@@ -20,6 +20,8 @@ export const GERMAN: SpacedLang = {
   // A word nothing reads: the spelling before 1996 (Laßt, Wußte), a capital a line of verse gave it (Angewurzelt), an
   // adjective's or participle's ending (zappelnden), a separable verb's zu-infinitive (zurückzuwandern) (de-spelling.ts).
   respell: germanRespell,
+  // The capitalized word after one is a name: "rief Meister Böck" (Max und Moritz), "Witwe Bolte", "Onkel Fritz".
+  titles: ['herr', 'frau', 'fräulein', 'onkel', 'tante', 'meister', 'schneider', 'witwe', 'gebrüder', 'jungfrau', 'pastor', 'doktor'],
   // »Elisabeth!« (Immensee) and „Komm“: German opens quotes with » and „; « and “ close them.
   sentenceOpeners: '»„‚›',
   // der/die/das as the article or a pronoun, sie "she" or "they", da "there" or "since", adverbs without an ending, sich

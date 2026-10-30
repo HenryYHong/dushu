@@ -361,9 +361,15 @@ const POSSESSIVE = (hint: RegExp) => (r: ContextReading): boolean => r.key === '
 const has = (w: ContextWord, f: (r: ContextReading) => boolean): boolean => w.readings.some(f);
 const prefer = (f: (r: ContextReading) => boolean, margin = DECIDE): ContextChoice => ({ prefer: f, margin });
 
-/** Another courtesy form in mid-sentence in the sentence (Sie, Ihnen, Ihr), which makes a sentence's first Sie polite too. */
+/**
+ * Another courtesy form in mid-sentence in the sentence (Sie, Ihnen, Ihr), which makes a sentence's first Sie polite too; or
+ * one read as polite in the paragraph's sentences before: the Prokurist's "Sie haben vielleicht … nicht gelesen" (Die
+ * Verwandlung) comes after his "Ihre Eltern" and "Herr Samsa" in the same speech.
+ */
 function politeSentence(q: ContextQuery): boolean {
-  return q.words.some((w, j) => j > 0 && j !== q.at && isCap(w) && ['sie', 'ihnen', 'ihr', 'ihre', 'ihrem', 'ihren', 'ihrer', 'ihres'].includes(w.low));
+  const courtesy = ['sie', 'ihnen', 'ihr', 'ihre', 'ihrem', 'ihren', 'ihrer', 'ihres'];
+  if (q.words.some((w, j) => j > 0 && j !== q.at && isCap(w) && courtesy.includes(w.low))) return true;
+  return q.earlier.some((w) => isCap(w) && courtesy.includes(w.low) && (w.chosen?.key === 'Sie' || w.chosen?.key === 'Ihr'));
 }
 
 /**
@@ -464,7 +470,24 @@ function ihr(q: ContextQuery): ContextChoice | null {
  * form hints can tell the two apart (requests-de.md).
  */
 function ihnen(q: ContextQuery): ContextChoice | null {
+  // Ihnen with a capital in mid-sentence is the polite Sie's "you": Effi Briest's "wie geht es Ihnen denn eigentlich?", the
+  // Prokurist's "Ihnen das alles unter vier Augen zu sagen" (Die Verwandlung).
+  if (q.word.text === 'Ihnen' && !q.sentenceStart && has(q.word, POLITE_SIE)) return prefer(POLITE_SIE);
   return q.word.low === 'ihnen' && has(q.word, THEY) ? prefer(THEY) : null;
+}
+
+/**
+ * laß, lass before whom or what it lets is lassen's "let!", not the adjective lass "weary" of the old spelling: "Laß uns eine
+ * Weile ausruhen" (Immensee), "laß mich".
+ */
+function lass(q: ContextQuery): ContextChoice | null {
+  const w = q.word;
+  if (w.low !== 'laß' && w.low !== 'lass') return null;
+  const imperative = (r: ContextReading): boolean => r.key === 'lassen' && /imperative/.test(r.form);
+  const n = joined(q, q.at) ? q.words[q.at + 1] : undefined;
+  const object = !!n && (['uns', 'mich', 'dich', 'ihn', 'sie', 'es', 'euch', 'mir', 'dir', 'ihm', 'ihr', 'doch', 'nur', 'ab', 'los',
+    'das', 'den', 'die', 'dem', 'mein', 'meine', 'dein', 'deine'].includes(n.low) || n.name);
+  return object && has(w, imperative) ? prefer(imperative) : null;
 }
 
 /**
@@ -1154,7 +1177,7 @@ function repeated(q: ContextQuery): ContextChoice | null {
   return has(w, (r) => r.pos === 'interjection') ? prefer((r) => r.pos === 'interjection') : null;
 }
 
-const RULES = [sie, ihr, ihnen, possessive, article, interjection, title, verbFirst, capitalNoun, stranded, adjectiveBeforeNoun,
+const RULES = [sie, ihr, ihnen, lass, possessive, article, interjection, title, verbFirst, capitalNoun, stranded, adjectiveBeforeNoun,
   participle, pastForm, afterArticle, shortAdverb, adverbial, da, particle, zu, clauseWord, selbst, repeated];
 
 export const germanContext: ContextRule = (q) => {
