@@ -6,25 +6,35 @@ import { createAccountTranslator } from './account';
 import { createGlossTranslator } from './gloss';
 import { createMyMemoryTranslator } from './mymemory';
 import { createLocalTranslator, qualityLocalAvailable } from './localMeaning';
-import { isChinese } from '../lang/active';
+import { isChinese, langId } from '../lang/active';
+import { targetFor } from './targets';
 
 export type { ChromeTranslator } from './chrome';
 export { chromeSupported } from './chrome';
 
-const chrome = createChromeTranslator(); // one instance: it owns the cached on-device model
+// Chrome's on-device models are cached in chrome.ts for the whole page, one per language pair, so a translator made for each
+// call shares them.
 const mymemory = createMyMemoryTranslator();
 const local = createLocalTranslator();
+
+/**
+ * The language this library's sentences go into: the reader's choice, or English when they chose none or chose the book's own
+ * language (a Spanish reader's Spanish books still translate into English).
+ */
+export function translateTarget(settings: Pick<Settings, 'translateTo'>): string {
+  return targetFor(settings.translateTo, langId());
+}
 
 export const TRANSLATOR_IDS: TranslatorId[] = ['local', 'chrome', 'claude', 'account', 'mymemory', 'gloss'];
 
 export function getTranslator(id: TranslatorId, settings: Settings, dict: Dictionary | null): Translator {
   switch (id) {
     case 'local': return local;
-    case 'chrome': return chrome;
+    case 'chrome': return createChromeTranslator(translateTarget(settings));
     case 'claude': return createClaudeTranslator(settings);
     case 'account': return createAccountTranslator(settings);
     case 'mymemory': return settings.localOnly ? withoutThirdParty(mymemory) : mymemory;
-    case 'gloss': return createGlossTranslator(dict);
+    case 'gloss': return createGlossTranslator(dict, undefined, translateTarget(settings));
   }
 }
 
@@ -54,6 +64,7 @@ export async function pickTranslator(settings: Settings, dict: Dictionary | null
   if (isChinese() && await qualityLocalAvailable()) return local;
   const account = getTranslator('account', settings, dict);
   if (await account.availability() === 'yes') return account;
+  const chrome = getTranslator('chrome', settings, dict);
   const chromeState = await chrome.availability();
   if (chromeState === 'yes') return chrome;
   if (isChinese() && await local.availability() === 'yes') return local;

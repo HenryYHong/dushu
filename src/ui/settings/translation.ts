@@ -1,14 +1,17 @@
-// The Translation group: provider list with live availability, Claude through the Mac (model, Local only, status, test), Chrome model download.
+// The Translation group: the language to translate into, provider list with live availability, Claude through the Mac (model,
+// Local only, status, test), Chrome model download.
 import type { AppContext, Settings, TranslatorId } from '../../types';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { BRIDGE_EVENT, hasMacBridge } from '../../core/macBridge';
 import { CLOUD_EVENT, cloudSession } from '../../core/cloud';
-import { getTranslator, listTranslators, chromeSupported, type ChromeTranslator } from '../../translate';
+import { getTranslator, listTranslators, chromeSupported, translateTarget, type ChromeTranslator } from '../../translate';
+import { chromePairName } from '../../translate/chrome';
+import { DEFAULT_TARGET, targetLanguage, targetsFor } from '../../translate/targets';
 import { CLAUDE_MODELS, fetchClaudeStatus, hasClaudeRoute, resetClaudeStatus, type ClaudeStatus } from '../../translate/claude';
 import { qualityLocalAvailable } from '../../translate/localMeaning';
 import { group, nextId, row, toggle } from './controls';
-import { isChinese, lang } from '../../lang/active';
+import { lang, langId } from '../../lang/active';
 
 type Avail = 'yes' | 'download' | 'no';
 type Choice = Settings['translator'];
@@ -24,7 +27,8 @@ const NAMES: Record<TranslatorId, { name: string; desc: string }> = {
   gloss: { name: 'Word-by-word gloss', desc: 'Each word with its first dictionary meaning. Works offline, but it is not a real translation.' },
 };
 
-export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | null, localOnly = false): { text: string; kind: 'ok' | 'warn' | 'off' } {
+/** `to`: the language translated into, for Chrome, whose models come one pair at a time (Chinese to French is its own). */
+export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | null, localOnly = false, to: string = DEFAULT_TARGET): { text: string; kind: 'ok' | 'warn' | 'off' } {
   if (id === 'claude' && localOnly) return { text: 'Local only is on', kind: 'off' };
   if ((id === 'mymemory' || id === 'account') && localOnly) return { text: 'Local only is on', kind: 'off' };
   if (a === 'yes') return { text: 'Ready', kind: 'ok' };
@@ -39,7 +43,7 @@ export function statusText(id: TranslatorId, a: Avail, claude?: ClaudeStatus | n
     if (claude.limitMessage) return { text: 'Daily limit used', kind: 'warn' };
     return { text: 'Unavailable', kind: 'off' };
   }
-  if (id === 'chrome') return { text: chromeSupported() ? `Not available for ${isChinese() ? 'Chinese' : lang().name}` : 'Not supported in this browser', kind: 'off' };
+  if (id === 'chrome') return { text: chromeSupported() ? `Not available for ${chromePairName(to)}` : 'Not supported in this browser', kind: 'off' };
   if (id === 'account') return cloudSession() ? { text: 'Used up for today', kind: 'warn' } : { text: 'Sign in to use', kind: 'off' };
   return { text: 'Unavailable', kind: 'off' };
 }
@@ -56,6 +60,33 @@ export function autoPick(avail: Record<TranslatorId, Avail>, qualityLocal = fals
 }
 
 const number = (n: number) => n.toLocaleString('en-US');
+
+/**
+ * The "Translate into" control: every listed language but the book's own, English first and the rest by name. When the saved
+ * choice is the book's own language (Spanish picked while reading Chinese, now in the Spanish library), these books go into
+ * English and the note says why.
+ */
+export function targetControl(settings: AppContext['settings']): { el: HTMLElement; id: string; update(s: Settings): void } {
+  const id = nextId('into');
+  const [english, ...rest] = targetsFor(langId());
+  const choices = [english, ...rest.sort((a, b) => a.name.localeCompare(b.name, 'en'))];
+  const select = h('select.select', { id, 'aria-label': 'Translate into' },
+    ...choices.map((t) => h('option', { value: t.code }, t.native === t.name ? t.name : `${t.name} · ${t.native}`))) as HTMLSelectElement;
+  select.addEventListener('change', () => settings.set({ translateTo: select.value }));
+  const note = h('div.set-help', { role: 'status' });
+  note.hidden = true;
+  return {
+    el: h('div', null, select, note),
+    id,
+    update(s) {
+      const to = translateTarget(s);
+      if (select.value !== to) select.value = to;
+      const own = s.translateTo !== to ? targetLanguage(s.translateTo) : undefined;
+      note.hidden = !own;
+      note.textContent = own ? `These books are in ${lang().name}, so they are translated into English. ${own.name} is used for your other books.` : '';
+    },
+  };
+}
 
 /** The lines under "Claude through your Mac": is the Mac there, is the key set up, how much was used today. */
 export function claudeStatusLines(status: ClaudeStatus | null, connected: boolean, account = false): { label: string; value: string; kind: 'ok' | 'warn' | 'off' }[] {
@@ -107,6 +138,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   const radios = new Map<Choice, HTMLInputElement>();
   const chips = new Map<Choice, HTMLElement>();
   const extras = new Map<Choice, HTMLElement>();
+  const descs = new Map<Choice, HTMLElement>();
   const rowEl = (value: Choice, title: string, desc: string): HTMLElement => {
     const input = h('input.set-radio', { type: 'radio', name, value }) as HTMLInputElement;
     input.addEventListener('change', () => { if (input.checked) settings.set({ translator: value }); });
@@ -115,8 +147,10 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
     chips.set(value, chip);
     const extra = h('div.set-prov-extra');
     extras.set(value, extra);
+    const help = h('span.set-help', null, desc);
+    descs.set(value, help);
     return h('label.set-prov', null, input,
-      h('span.set-prov-text', null, h('span.set-prov-name', null, title), h('span.set-help', null, desc), extra),
+      h('span.set-prov-text', null, h('span.set-prov-name', null, title), help, extra),
       chip);
   };
   // Signed in, Claude goes through the account's sync server, not the Mac: the words say so.
@@ -178,7 +212,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
     if (!alive) return;
     const localOnly = settings.get().localOnly;
     for (const id of ids) {
-      const st = statusText(id, avail[id], claudeStatus, localOnly);
+      const st = statusText(id, avail[id], claudeStatus, localOnly, translateTarget(settings.get()));
       paintChip(id, st.text, st.kind);
     }
     const pick = autoPick(avail, avail.local === 'yes' && await qualityLocalAvailable(), localOnly);
@@ -224,8 +258,10 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
     row('Local only', 'Never send a sentence to an online translator.', localOnly),
     row('Status', 'There is a daily limit, so the bill stays small.', h('div.set-status-wrap', null, statusBox, h('div.set-test', null, h('div.set-btn-row', null, refreshBtn, testBtn), testOut))));
 
+  const into = targetControl(settings);
   const el = group('Translation',
     'What translates a sentence when you tap a word twice or drag across it.',
+    row('Translate into', 'The language translations are written in. The app itself stays in English.', into, into.id),
     h('div.set-prov-wrap', null, list),
     claudeBox);
 
@@ -237,9 +273,16 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   // The gloss translator is only available once the dictionary has loaded.
   void ctx.dict().then(() => refresh(), () => {});
 
+  let shownTarget = translateTarget(settings.get());
   return {
     el,
     update(s) {
+      into.update(s);
+      // The dictionaries behind the gloss only give English, whatever language the reader translates into.
+      descs.get('gloss')!.textContent = translateTarget(s) === DEFAULT_TARGET ? NAMES.gloss.desc
+        : 'Each word with its first dictionary meaning, in English. Works offline, but it is not a real translation.';
+      // Chrome's model, and so whether it is ready, depends on the language translated into.
+      if (translateTarget(s) !== shownTarget) { shownTarget = translateTarget(s); void refresh(); }
       for (const [v, input] of radios) input.checked = s.translator === v;
       localOnly.update(s);
       testBtn.disabled = s.localOnly;

@@ -6,10 +6,15 @@ import type { BookMeta, Progress } from '../types';
  * The settings that follow the reader from device to device, one record each (o:<name>). The rest belong to the device: its
  * voice (each device has its own), hover or tap, and one or two pages side by side (that is about the screen). The hubs keep
  * only these names (syncExchange.ts).
+ *
+ * translateTo (the language sentences go into) was added after the others. A Chinese device from before it ignores the record
+ * (settingHere in core/sync.ts), so an older iPad keeps translating into English until it updates, and nothing else changes for
+ * it. A hub from before it drops an o: name it does not list without echoing it; the device keeps that row unsent and sends it
+ * again with each sync, with the time it was chosen (core/sync.ts `unheard`), so the choice arrives once the hub is updated.
  */
 export const SYNCED_SETTINGS = ['theme', 'fontFamily', 'fontSize', 'scrollFontSize', 'lineHeight', 'pageWidth', 'pinyin', 'hskThreshold',
   'pinyinStyle', 'toneColors', 'sandhi', 'autoKnown', 'script', 'paragraphTranslate', 'translator', 'claudeModel', 'localOnly', 'ttsRate',
-  'layout', 'pageTurn', 'covers'] as const;
+  'layout', 'pageTurn', 'covers', 'translateTo'] as const;
 export type SyncedSetting = (typeof SYNCED_SETTINGS)[number];
 export const isSyncedSetting = (name: string): name is SyncedSetting => (SYNCED_SETTINGS as readonly string[]).includes(name);
 

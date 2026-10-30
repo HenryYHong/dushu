@@ -323,6 +323,11 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     //    the time the record itself carries, so an old copy on a new device does not beat a newer one elsewhere).
     const current = await snapshot(store, books, rows, opts.settings);
     const t = now();
+    /** When a setting's value was chosen, if the settings know (SettingsStore.chosenAt), and never later than now. */
+    const chosenAt = (key: string): number | undefined => {
+      const at = key.startsWith('o:') ? opts.settings?.chosenAt?.(key.slice(2) as keyof Settings) : undefined;
+      return at === undefined ? undefined : Math.min(at, t);
+    };
     const changed: SyncRow[] = [];
     const bare = (cur: { bare?: string }) => (cur.bare ? { bare: cur.bare } : {});
     for (const [key, cur] of current) {
@@ -347,10 +352,12 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       // A change after the last agreement is stamped after it (a hybrid clock: the device's time, but never before the time
       // of the copy it changed), so a later change on a device whose clock is behind still wins. A place carries the time it
       // was read, so one read offline before a newer place elsewhere does not win. A known word with no row is time 0 (only
-      // where the Mac has none) on a device's first sync, and stamped now once it has synced: it was marked here since.
+      // where the Mac has none) on a device's first sync, and stamped now once it has synced: it was marked here since. A
+      // setting another library chose while this one was closed (translateTo, picked in the Spanish library on Monday and
+      // noticed here on Friday) is stamped when it was chosen, so a choice made since on another device still wins.
       const at = !base
         ? (key.startsWith('k:') && meta.epoch ? t : cur.at)
-        : key.startsWith('p:') ? Math.max(cur.at, base.at + 1) : Math.max(t, base.at + 1);
+        : key.startsWith('p:') ? Math.max(cur.at, base.at + 1) : Math.max(chosenAt(key) ?? t, base.at + 1);
       changed.push({ key, at, sig: cur.sig, dirty: 1, ...bare(cur), ...(base?.held !== undefined ? { held: base.held } : {}) });
     }
     for (const [key, base] of rows) {
@@ -363,6 +370,14 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       for (const r of changed) rows.set(r.key, r);
     }
     const dirty = () => [...rows.values()].filter((r) => r.dirty);
+    /**
+     * Settings sent in this sync that the hub did not keep. A hub keeps only the names it lists (syncKeys.ts) and echoes every
+     * one it kept, won or lost; a hub from before a setting existed (translateTo, covers) drops it without a word. Such a row
+     * stays dirty, with the time it was chosen, and goes again with the next sync, so the choice arrives once the hub is updated
+     * instead of being taken as delivered. Within this sync it is not sent again.
+     */
+    const unheard = new Set<string>();
+    const unsent = () => dirty().filter((r) => !unheard.has(r.key));
     setStatus({ pending: dirty().length });
     if (!syncEnabled()) { setStatus({ state: 'off' }); return; }
     // Signed in and able to reach the Mac: what the Mac holds goes into the account once, beside this sync (never in its
@@ -373,7 +388,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     let restarted = false;
     let first = true;
     for (;;) {
-      const outgoing = dirty().slice(0, CHUNK);
+      const outgoing = unsent().slice(0, CHUNK);
       if (!outgoing.length && !first) break;
       first = false;
       const body = JSON.stringify({
@@ -418,10 +433,12 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         continue;
       }
       const sent = new Set(outgoing.map((r) => r.key));
+      const echoed = new Set(reply.records.map((r) => r?.key));
+      for (const key of sent) if (key.startsWith('o:') && !echoed.has(key)) unheard.add(key);
       const kept = await take(reply, rows, books, sent, current);
       meta.epoch = reply.epoch;
       meta.cursor = reply.version;
-      const cleared = outgoing.map((r) => rows.get(r.key)!).filter((r) => r.dirty && sent.has(r.key) && !kept.has(r.key)).map((r) => {
+      const cleared = outgoing.map((r) => rows.get(r.key)!).filter((r) => r.dirty && sent.has(r.key) && !kept.has(r.key) && !unheard.has(r.key)).map((r) => {
         const { dirty: _d, ...rest } = r;
         void _d;
         return rest;
@@ -429,7 +446,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       await store.sync.write([...cleared, { key: META, at: 0, sig: '', held: meta }], [], rows);
       for (const r of cleared) rows.set(r.key, r);
       setStatus({ state: 'idle', hub, lastOk: now(), pending: dirty().length, counts: reply.counts });
-      if (!dirty().length) break;
+      if (!unsent().length) break;
     }
   }
 

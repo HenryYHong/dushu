@@ -7,6 +7,7 @@ import { CLOUD_EVENT, cloudFetch, cloudSession } from '../core/cloud';
 import type { Settings, TranslateRequest, Translator } from '../types';
 import { CLAUDE_LIMITS, DEFAULT_CLAUDE_MODEL } from './claudePrompts';
 import { isChinese, langId } from '../lang/active';
+import { answeredInto, targetField } from './targets';
 
 export { buildUserMessage, CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL, SYSTEM_PROMPTS } from './claudePrompts';
 
@@ -166,8 +167,9 @@ export function createClaudeTranslator(
         response = await call('/api/claude/translate', {
           method: 'POST', signal: opts?.signal,
           headers: { 'Content-Type': 'application/json' },
+          // `to` only for a language other than English, so a request into English is the one the Mac has always had.
           body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(isChinese() ? {} : { lang: langId() }),
-            model: settings.claudeModel || DEFAULT_CLAUDE_MODEL }),
+            ...targetField(req.to, langId()), model: settings.claudeModel || DEFAULT_CLAUDE_MODEL }),
         });
       } catch (e) {
         if ((e as { name?: string })?.name === 'AbortError') throw e;
@@ -192,12 +194,13 @@ export function createClaudeTranslator(
       let text = '';
       let stop: string | null = null;
       let finished = false;
+      let into: unknown;
       try {
         await readLines(response, line => {
-          let event: { type?: string; text?: string; stop?: string | null; message?: string; code?: string };
+          let event: { type?: string; text?: string; stop?: string | null; message?: string; code?: string; to?: unknown };
           try { event = JSON.parse(line); } catch { return; }
           if (event.type === 'text' && typeof event.text === 'string') { text += event.text; opts?.onDelta?.(text); }
-          else if (event.type === 'done') { finished = true; stop = event.stop ?? null; }
+          else if (event.type === 'done') { finished = true; stop = event.stop ?? null; into = event.to; }
           else if (event.type === 'error') throw new ClaudeError(event.message || 'Claude failed partway through.', event.code ?? 'error');
         });
       } catch (e) {
@@ -207,6 +210,8 @@ export function createClaudeTranslator(
       }
       if (!finished) throw new Error('The connection to your Mac ended before Claude finished. Try again.');
       if (!text.trim()) throw new Error('Claude sent back an empty answer. Try again.');
+      const answered = answeredInto(req.to, into, langId());
+      if (answered) opts?.onInto?.(answered);
       return stop === 'max_tokens' ? text.trim() + ' …' : text.trim();
     },
   };

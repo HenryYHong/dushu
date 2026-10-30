@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { TranslateRequest } from '../types';
 import { CLAUDE_LIMITS, CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL, buildUserMessage, clampContext, systemPromptFor } from './claudePrompts';
 import { otherLang } from '../lang/names';
+import { targetField } from './targets';
 
 /** The slice of the SDK used here, so tests can inject a fake. */
 export interface ServerStream {
@@ -45,8 +46,20 @@ export function parseTranslateBody(value: unknown): Parsed {
   const text = v.text.trim();
   // A book in another language names it; a request that names none is Chinese, as every request was before languages.
   const lang = otherLang(v.lang);
-  return { ok: true, request: { text, mode: v.mode, model, terms, ...(lang ? { lang } : {}),
+  // The language to translate into, from the list only (targets.ts): one that is not listed, or is the book's own, is English,
+  // and English is left out, so the prompt is the one an English request always had.
+  const to = targetField(v.to, lang ?? 'zh');
+  return { ok: true, request: { text, mode: v.mode, model, terms, ...(lang ? { lang } : {}), ...to,
     context: typeof v.context === 'string' && v.context.trim() ? clampContext(v.context.trim(), text) : undefined } };
+}
+
+/**
+ * The language the answer was asked in, for the reply: `{ to }` into another language, nothing into English. A browser that
+ * sent `to` and finds no echo is talking to a server from before the choice, which answered in English, and labels it so
+ * (src/ui/popup/translation.ts). Into English the reply is the one it always was.
+ */
+export function targetEcho(request: Pick<TranslateRequest, 'to'>): { to?: string } {
+  return request.to ? { to: request.to } : {};
 }
 
 export interface Failure { status: number; code: string; message: string }
@@ -78,7 +91,9 @@ export function describeError(e: unknown, home: KeyHome = 'mac', keyFix = ''): F
 
 /** The Messages request for a checked passage. */
 export function claudeBody(request: ParsedRequest, effort: 'low' | 'medium'): Record<string, unknown> {
-  const size = request.text.length * 2 + (request.mode === 'explain' ? 1200 : 600);
+  // Two tokens a source character were sized for English; the same sentence in Hindi, Thai or Greek takes more, so another
+  // language gets three.
+  const size = request.text.length * (request.to ? 3 : 2) + (request.mode === 'explain' ? 1200 : 600);
   const body: Record<string, unknown> = {
     model: request.model,
     max_tokens: Math.min(8000, Math.max(1000, size)),

@@ -3,6 +3,7 @@
 import type { TranslateRequest } from '../types';
 import { wordSenseHint } from './contextSense';
 import { translationMessage, translationSystem } from './prompt';
+import { intoName } from './targets';
 
 export const DEFAULT_CLAUDE_MODEL = 'claude-sonnet-5-5';
 /** Sonnet is the default and Haiku the cheaper option. Opus is never offered. */
@@ -20,13 +21,16 @@ export const SYSTEM_PROMPTS = {
   explain: translationSystem('explain', 'claude'),
 } as const;
 
-/** The system prompt for a request: Chinese's measured one, or the one for the language it names. */
-export function systemPromptFor(req: Pick<TranslateRequest, 'mode' | 'lang'>): string {
-  return req.lang ? translationSystem(req.mode, 'claude', {}, req.lang) : SYSTEM_PROMPTS[req.mode];
+/**
+ * The system prompt for a request: Chinese into English is the measured one; a book in another language, or a translation
+ * into a language other than English, names them (prompt.ts).
+ */
+export function systemPromptFor(req: Pick<TranslateRequest, 'mode' | 'lang' | 'to'>): string {
+  return req.lang || intoName(req.to) ? translationSystem(req.mode, 'claude', {}, req.lang, req.to) : SYSTEM_PROMPTS[req.mode];
 }
 
 /** The user message: glossary, the sense the paragraph settles for 酒店 (if it does), the paragraph, then the sentence. */
-export function buildUserMessage(req: Pick<TranslateRequest, 'text' | 'context' | 'terms' | 'lang'>): string {
+export function buildUserMessage(req: Pick<TranslateRequest, 'text' | 'context' | 'terms' | 'lang' | 'to'>): string {
   const hint = req.lang ? null : wordSenseHint(req.text, req.context ?? '');
   return translationMessage(req, { hints: hint ? { [hint.word]: hint.sense } : undefined });
 }

@@ -3,7 +3,8 @@
 // Never add the `de=` email parameter.
 import type { TranslateRequest, Translator } from '../types';
 import { chunkText } from './chunk';
-import { isChinese, lang } from '../lang/active';
+import { isChinese, lang, langId } from '../lang/active';
+import { chunkJoiner, targetFor, targetLanguage } from './targets';
 
 const ENDPOINT = 'https://api.mymemory.translated.net/get';
 const MAX_CHUNK = 500;
@@ -28,11 +29,12 @@ function decodeEntities(s: string): string {
 
 async function translateChunk(
   chunk: string,
+  to: string,
   signal: AbortSignal | undefined,
   fetchFn: typeof fetch,
 ): Promise<string> {
   const from = isChinese() ? 'zh-CN' : lang().tag;
-  const url = `${ENDPOINT}?q=${encodeURIComponent(chunk)}&langpair=${encodeURIComponent(`${from}|en`)}`;
+  const url = `${ENDPOINT}?q=${encodeURIComponent(chunk)}&langpair=${encodeURIComponent(`${from}|${to}`)}`;
   let res: Response;
   try {
     res = await fetchFn(url, { signal });
@@ -67,13 +69,18 @@ export function createMyMemoryTranslator(deps: { fetch?: typeof fetch } = {}): T
       return typeof navigator !== 'undefined' && navigator.onLine === false ? 'no' : 'yes';
     },
     async translate(req: TranslateRequest, opts) {
+      // The pair's target: 'en' unless the request names another listed language (MyMemory spells Chinese zh-CN and zh-TW).
+      const target = targetLanguage(targetFor(req.to, langId()))!;
+      const to = target.mymemory ?? target.code;
+      // Japanese and Chinese put no space between sentences, so neither between chunks (chunkJoiner).
+      const joiner = chunkJoiner(target.code);
       const parts: string[] = [];
       for (const chunk of chunkText(req.text, MAX_CHUNK)) {
         if (opts?.signal?.aborted) throw new DOMException('Translation canceled', 'AbortError');
-        parts.push(await translateChunk(chunk, opts?.signal, fetchFn));
-        opts?.onDelta?.(parts.join(' '));
+        parts.push(await translateChunk(chunk, to, opts?.signal, fetchFn));
+        opts?.onDelta?.(parts.join(joiner));
       }
-      return parts.join(' ');
+      return parts.join(joiner);
     },
   };
 }

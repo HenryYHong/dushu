@@ -98,3 +98,84 @@ describe('settings that follow the reader', () => {
     expect((await store.sync.rows()).some((r) => r.key.startsWith('o:'))).toBe(false);
   });
 });
+
+describe('the language translated into', () => {
+  /** A device whose libraries share `storage`, as one browser's do; the syncer reads the same clock as the settings. */
+  async function reader(storage = memStorage({ 'dushu.settings.pages.v1': '1', 'dushu.settings.simplified.v1': '1' })) {
+    const store = await openStore(`target-${Math.random()}`);
+    const open = () => {
+      const settings = createSettingsStore(storage);
+      const syncer = createSyncer(store, { everyMs: 0, settings, now: () => Date.now() });
+      syncers.push(syncer);
+      return { settings, syncer };
+    };
+    return { storage, store, open, ...open() };
+  }
+
+  it('is stamped when it was chosen, in whichever library, so an older choice never beats a newer one from another device', async () => {
+    const hour = 3_600_000;
+    const nine = Date.now() + hour;
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(nine);
+      const ipad = await reader();
+      const mac = await reader();
+      await ipad.syncer.run(); await mac.syncer.run();
+      // 10:00, iPad, reading a Spanish book: French. Only the Chinese library syncs, and it stays closed for now.
+      vi.setSystemTime(nine + hour);
+      ipad.syncer.stop();
+      createSettingsStore(ipad.storage, 'es').set({ translateTo: 'fr' });
+      // 11:00, Mac, in Chinese: German, synced at once.
+      vi.setSystemTime(nine + 2 * hour);
+      mac.settings.set({ translateTo: 'de' });
+      await mac.syncer.run();
+      // 12:00, the iPad opens Chinese. It starts from French, but German was chosen later and wins on both.
+      vi.setSystemTime(nine + 3 * hour);
+      const later = ipad.open();
+      expect(later.settings.get().translateTo).toBe('fr');
+      await later.syncer.run(); await mac.syncer.run();
+      expect([later.settings.get().translateTo, mac.settings.get().translateTo]).toEqual(['de', 'de']);
+      expect(createSettingsStore(ipad.storage, 'es').get().translateTo).toBe('de');
+
+      // A choice in the Spanish library made after the Mac's still wins when the Chinese library notices it.
+      vi.setSystemTime(nine + 4 * hour);
+      mac.settings.set({ translateTo: 'ko' });
+      await mac.syncer.run();
+      vi.setSystemTime(nine + 5 * hour);
+      later.syncer.stop();
+      createSettingsStore(ipad.storage, 'es').set({ translateTo: 'it' });
+      vi.setSystemTime(nine + 6 * hour);
+      const last = ipad.open();
+      await last.syncer.run(); await mac.syncer.run();
+      expect([last.settings.get().translateTo, mac.settings.get().translateTo]).toEqual(['it', 'it']);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('is sent again after a hub that dropped it, from before the setting, is updated', async () => {
+    const hub = globalThis.fetch;
+    let older = true;
+    // A hub from before translateTo drops the name, as main's exchange did: not kept, not echoed.
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (older && String(input).endsWith('/sync') && typeof init?.body === 'string') {
+        const body = JSON.parse(init.body) as { changes?: { key: string }[] };
+        body.changes = body.changes?.filter((c) => c.key !== 'o:translateTo');
+        init = { ...init, body: JSON.stringify(body) };
+      }
+      return hub(input, init);
+    });
+    const a = await reader();
+    const b = await reader();
+    await a.syncer.run(); await b.syncer.run();
+    a.settings.set({ translateTo: 'fr', fontSize: 30 });
+    await a.syncer.run(); await b.syncer.run();
+    // The rest arrives; the choice the hub did not keep waits on the device that made it.
+    expect(b.settings.get()).toMatchObject({ fontSize: 30, translateTo: 'en' });
+    expect(a.syncer.status().pending).toBe(1);
+    await a.syncer.run();
+    expect(a.syncer.status().pending).toBe(1);
+    older = false;
+    await a.syncer.run(); await b.syncer.run();
+    expect(b.settings.get().translateTo).toBe('fr');
+    expect([a.syncer.status().pending, b.syncer.status().pending]).toEqual([0, 0]);
+  });
+});

@@ -304,6 +304,9 @@ describe('Aozora ruby', () => {
     expect(at('杜子春')).toBe('とししゅん');
     expect(at('一人')).toBe('ひとり');
     expect(r.ruby).toHaveLength(3);
+    // Two readings in a row over kanji: each covers its own word (夏目漱石, こころ).
+    const two = parseAozoraRuby('比較的《ひかくてき》呑気《のんき》な人');
+    expect(two.ruby.map((s) => [two.text.slice(s.start, s.end), s.rt])).toEqual([['比較的', 'ひかくてき'], ['呑気', 'のんき']]);
     // A kanji outside the BMP stays whole.
     const big = parseAozoraRuby('𠮟《しか》る');
     expect(big).toEqual({ text: '𠮟る', ruby: [{ start: 0, end: 2, rt: 'しか' }] });
@@ -312,6 +315,14 @@ describe('Aozora ruby', () => {
     expect(sliceRuby(r.ruby, 10, 40)?.every((s) => s.start >= 0 && s.end <= 30)).toBe(true);
     const [c] = takeAozoraRuby([{ title: '一', blocks: [{ t: 'p', text: '清《きよ》が泣いた。' }, { t: 'hr' }] }]);
     expect(c.blocks[0]).toEqual({ t: 'p', text: '清が泣いた。', ruby: [{ start: 0, end: 1, rt: 'きよ' }] });
+    // 杜子春 is read once, mid-story: the first page's 杜子春 gets the reading too. A single kanji (清) or a run the book reads
+    // two ways (上手) is left to the engine.
+    const book = takeAozoraRuby([{ title: '一', blocks: [
+      { t: 'p', text: '杜子春という若者がいました。上手な清' },
+      { t: 'p', text: '杜子春《とししゅん》は驚いて、上手《じょうず》に話した。清《きよ》' },
+      { t: 'p', text: '上手《うわて》に出た。' },
+    ] }]);
+    expect(book[0].blocks[0]).toEqual({ t: 'p', text: '杜子春という若者がいました。上手な清', ruby: [{ start: 0, end: 3, rt: 'とししゅん' }] });
   });
 
   it('comes out of a Japanese import and is passed to the engine with the paragraph', async () => {
@@ -325,5 +336,66 @@ describe('Aozora ruby', () => {
     setLangForTests('ja', engine);
     segment(p.text, noChineseDictionary(engine), undefined, p.ruby);
     expect(seen).toEqual([{ ruby: p.ruby }]);
+  });
+});
+
+describe('the language translations go into', () => {
+  const TARGET_KEY = 'dushu.translate-to.v1';
+
+  it('follows the reader into every language’s library, the last choice made in any of them winning', () => {
+    const storage = memoryStorage();
+    const zh = createSettingsStore(storage, 'zh');
+    expect(zh.get().translateTo).toBe('en');
+    zh.set({ translateTo: 'fr' });
+    // A library opened later starts from it, though each keeps its own settings.
+    const es = createSettingsStore(storage, 'es');
+    expect(es.get().translateTo).toBe('fr');
+    es.set({ translateTo: 'de', fontSize: 30 });
+    expect(createSettingsStore(storage, 'zh').get()).toMatchObject({ translateTo: 'de', fontSize: 22 });
+    expect(createSettingsStore(storage, 'ja').get().translateTo).toBe('de');
+    // A value that is not on the list leaves each library with its own last choice.
+    storage.setItem(TARGET_KEY, 'klingon');
+    expect(createSettingsStore(storage, 'zh').get().translateTo).toBe('fr');
+    expect(createSettingsStore(storage, 'es').get().translateTo).toBe('de');
+  });
+
+  it('changes in a tab reading another language when this one changes it', () => {
+    const es = createSettingsStore(localStorage, 'es');
+    const seen: string[][] = [];
+    es.subscribe((_s, changed) => seen.push(changed));
+    localStorage.setItem(TARGET_KEY, 'it');
+    window.dispatchEvent(new StorageEvent('storage', { key: TARGET_KEY, storageArea: localStorage }));
+    expect(es.get().translateTo).toBe('it');
+    expect(seen).toEqual([['translateTo']]);
+    localStorage.clear();
+  });
+
+  it('offers every language but the book’s own, and says when a choice of it means English here', async () => {
+    const { targetControl } = await import('../../../src/ui/settings/translation');
+    setLangForTests('es', fakeEngine('es'));
+    const settings = createSettingsStore(memoryStorage(), 'es');
+    settings.set({ translateTo: 'es' });
+    const control = targetControl(settings);
+    control.update(settings.get());
+    const select = control.el.querySelector('select') as HTMLSelectElement;
+    const codes = [...select.options].map((o) => o.value);
+    expect(codes).not.toContain('es');
+    expect(codes[0]).toBe('en');
+    expect(codes).toEqual(expect.arrayContaining(['fr', 'zh', 'zh-Hant', 'ar']));
+    expect([...select.options].find((o) => o.value === 'fr')?.textContent).toBe('French · Français');
+    // Spanish, chosen while reading Chinese: Spanish books go into English, and Settings says why.
+    expect(select.value).toBe('en');
+    const note = control.el.querySelector('.set-help') as HTMLElement;
+    expect(note.hidden).toBe(false);
+    expect(note.textContent).toBe('These books are in Spanish, so they are translated into English. Spanish is used for your other books.');
+    select.value = 'fr';
+    select.dispatchEvent(new Event('change'));
+    control.update(settings.get());
+    expect(settings.get().translateTo).toBe('fr');
+    expect(note.hidden).toBe(true);
+    // In the Chinese library both Chinese scripts are the book's own.
+    setLangForTests('zh');
+    const zh = targetControl(createSettingsStore(memoryStorage(), 'zh'));
+    expect([...(zh.el.querySelector('select') as HTMLSelectElement).options].map((o) => o.value).filter((c) => c.startsWith('zh'))).toEqual([]);
   });
 });

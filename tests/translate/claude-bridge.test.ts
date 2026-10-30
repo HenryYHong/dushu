@@ -160,6 +160,14 @@ describe('the answer the browser receives', () => {
     ]);
   });
 
+  it('names the language it answered in on the done line, into another language only', async () => {
+    const { config } = setup();
+    const { send } = await serve(config);
+    expect(lines((await send('POST', '/api/claude/translate', { ...ask, to: 'es' })).text).at(-1)).toMatchObject({ type: 'done', to: 'es' });
+    // Into English (asked for, or a target the Mac does not list) the done line is the one it always was.
+    for (const to of [undefined, 'xx']) expect(Object.keys(lines((await send('POST', '/api/claude/translate', { ...ask, to })).text).at(-1)!)).toEqual(['type', 'stop', 'usage']);
+  });
+
   it('counts cached input tokens too', async () => {
     const { config } = setup(() => fakeStream(['x'], { usage: { input_tokens: 10, output_tokens: 2, cache_creation_input_tokens: 5, cache_read_input_tokens: 7 } }));
     const { send } = await serve(config);

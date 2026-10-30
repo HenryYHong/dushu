@@ -1,5 +1,6 @@
 // Settings in localStorage. Unknown keys are dropped, bad types reset, numbers clamped.
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../translate/claudePrompts';
+import { DEFAULT_TARGET, TARGET_CODES } from '../translate/targets';
 import type { Settings, SettingsStore } from '../types';
 import { cleanCovers } from '../core/covers';
 import type { LangId } from '../lang/types';
@@ -26,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   translator: 'auto',
   claudeModel: DEFAULT_CLAUDE_MODEL,
   localOnly: false,
+  translateTo: DEFAULT_TARGET,
   ttsVoice: '',
   ttsRate: 0.9,
   layout: 'pages',
@@ -68,6 +70,7 @@ const RULES: { [K in keyof Settings]-?: Rule } = {
   translator: oneOf('auto', 'local', 'chrome', 'claude', 'account', 'mymemory', 'gloss'),
   claudeModel: oneOf(...CLAUDE_MODELS.map(m => m.value)),
   localOnly: bool,
+  translateTo: oneOf(...TARGET_CODES),
   ttsVoice: text(200, true),
   ttsRate: num(0.5, 2, 2),
   layout: oneOf('scroll', 'pages'),
@@ -137,6 +140,29 @@ function load(storage: Storage | undefined, key: string, defaults: Settings): Se
   return { ...defaults };
 }
 
+/**
+ * The language sentences are translated into, for the whole device. Every language's library has its own settings, but this
+ * one is the reader's: French picked while reading Chinese is French in the Spanish library too. Each store reads it when it
+ * opens and writes it when it changes, so the last choice made in any library is the one every library starts from. Not
+ * under a language's prefix (dushu.<id>.), so deleting one language's library leaves it alone, and neither does Chinese
+ * "Erase all data" (the other libraries still read it). Held as {"to":"fr","at":<ms>}: `at` is when it was chosen, which
+ * sync stamps the Chinese library's change with (chosenAt), since only that library syncs and it may open days later.
+ */
+export const TARGET_KEY = 'dushu.translate-to.v1';
+
+function sharedTarget(storage: Storage | undefined): { to: string; at?: number } | undefined {
+  try {
+    const raw = storage?.getItem(TARGET_KEY);
+    if (!raw) return undefined;
+    // A bare code ("fr") is what the key held before it kept the time: a choice with no time.
+    let parsed: unknown;
+    try { parsed = JSON.parse(raw); } catch { parsed = raw; }
+    const v = (typeof parsed === 'string' ? { to: parsed } : parsed) as { to?: unknown; at?: unknown } | null;
+    if (!v || typeof v.to !== 'string' || !TARGET_CODES.includes(v.to)) return undefined;
+    return { to: v.to, ...(typeof v.at === 'number' && Number.isFinite(v.at) ? { at: v.at } : {}) };
+  } catch { return undefined; } // blocked storage or a value that is not ours: the library's own value stands
+}
+
 /** Set once a device has moved to simplified characters, the default since 2026-10-24 (before, it was "As written"). */
 const SIMPLIFIED_KEY = 'dushu.settings.simplified.v1';
 /** Set once a device has moved to the Pages layout (reading like a book), the default since 2026-10-25 (before, Scroll). */
@@ -177,6 +203,9 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
       storage.setItem(SLIDE_KEY, '1');
     }
   } catch { /* read-only storage: the saved choice stands */ }
+  // The reader's language as last chosen in any library (a store that never had one keeps English).
+  const shared = sharedTarget(storage)?.to;
+  if (shared && shared !== s.translateTo) s = { ...s, translateTo: shared };
   const subs = new Set<(s: Settings, changed: (keyof Settings)[]) => void>();
   const notify = (changed: (keyof Settings)[]) => {
     for (const fn of [...subs]) {
@@ -188,8 +217,10 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
   if (storage && typeof globalThis.addEventListener === 'function') {
     globalThis.addEventListener('storage', (e: Event) => {
       const ev = e as StorageEvent;
-      if (ev.storageArea !== storage || (ev.key !== SETTINGS_KEY && ev.key !== null)) return;
+      if (ev.storageArea !== storage || (ev.key !== SETTINGS_KEY && ev.key !== TARGET_KEY && ev.key !== null)) return;
       const next = load(storage, SETTINGS_KEY, defaults);
+      // A tab reading another language changed the reader's language: this library follows.
+      next.translateTo = sharedTarget(storage)?.to ?? next.translateTo;
       const changed = KEYS.filter((k) => next[k] !== s[k]);
       s = next;
       if (changed.length) notify(changed);
@@ -202,9 +233,17 @@ export function createSettingsStore(storage: Storage | undefined = defaultStorag
       const clean = sanitizePatch(patch);
       const changed = KEYS.filter((k) => k in clean && clean[k] !== s[k]);
       s = { ...s, ...clean };
-      try { storage?.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch { /* private mode or quota: keep in memory */ }
+      try {
+        storage?.setItem(SETTINGS_KEY, JSON.stringify(s));
+        if (changed.includes('translateTo')) storage?.setItem(TARGET_KEY, JSON.stringify({ to: s.translateTo, at: Date.now() }));
+      } catch { /* private mode or quota: keep in memory */ }
       notify(changed);
     },
     subscribe(fn) { subs.add(fn); return () => { subs.delete(fn); }; },
+    chosenAt(name) {
+      if (name !== 'translateTo') return undefined;
+      const shared = sharedTarget(storage);
+      return shared?.to === s.translateTo ? shared.at : undefined;
+    },
   };
 }

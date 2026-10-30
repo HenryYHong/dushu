@@ -7,7 +7,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import Anthropic from '@anthropic-ai/sdk';
 import type { Plugin } from 'vite';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../src/translate/claudePrompts';
-import { badRequest as bad, describeError as describe, parseTranslateBody, runClaude, type Failure, type Parsed, type ParsedRequest, type ServerClient } from '../src/translate/claudeServer';
+import { badRequest as bad, describeError as describe, parseTranslateBody, runClaude, targetEcho, type Failure, type Parsed, type ParsedRequest, type ServerClient } from '../src/translate/claudeServer';
 import { bridgeRequest } from './private-access';
 
 export { parseTranslateBody };
@@ -197,7 +197,7 @@ export function claudeHandler(overrides: Partial<ClaudeBridgeConfig> = {}) {
       const r = await runClaude(config.clientFactory(apiKey), request, config.effort, ctl.signal, delta => send({ type: 'text', text: delta }));
       ledger.add(0, r.usage.input, r.usage.output);
       if (r.failure) { fail(r.failure); return; }
-      send({ type: 'done', stop: r.stop, usage: r.usage });
+      send({ type: 'done', stop: r.stop, usage: r.usage, ...targetEcho(request) });
       res.end();
     } catch (e) {
       if (ctl.signal.aborted) { if (!res.writableEnded) res.end(); return; }

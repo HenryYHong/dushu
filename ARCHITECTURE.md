@@ -339,6 +339,25 @@ settings.sandhi is on (the caller decides).
   gloss so it is never empty. Claude and the local model can produce explain-style notes. `listTranslators(settings, dict)` and
   `TRANSLATOR_IDS` are exported for the Settings screen. Abort errors are `DOMException` named AbortError: ignore them.
 
+**The language translated into** is the reader's choice (Settings > Translation > Translate into, `settings.translateTo`, English by
+default). `translate/targets.ts` lists the 45 languages (code, English and native names, scripts) and is the one allowlist the browser,
+the Mac bridge and the Worker share: `TranslateRequest.to` carries a listed code, absent for English, so a request into English, its
+prompt and its checks are byte for byte what they were before (`tests/fixtures/translate/english-default.json`). A code that is not
+listed, or is the book's own language (`zh`/`zh-Hant` for a Chinese book, `es` for a Spanish one), means English, and the list in
+Settings hides the book's own language. The prompts name the target by its English name ("into Spanish", answers and Explain bullets
+in Spanish); Chrome asks for the pair (one model per pair, `zh>fr`); MyMemory's langpair ends in it (`zh-CN|zh-TW` for Chinese); the
+gloss stays English and is labeled "Word by word, in English". Into another language `checkTranslation` runs only the checks that
+hold in any language (an empty answer, numbers of three or more digits in any script's digits and grouping, or counted in ten
+thousands where the target counts that way, the source's script left over where the target writes another one, for an alphabet a word
+the source has and not one in capitals such as a Roman numeral, tone-numbered pinyin, extra paragraphs), not the English ones. Each library has its own settings, but this
+one is mirrored to `dushu.translate-to.v1` (`{to, at}`, `at` when it was chosen), which every library reads when it opens, so it
+follows the reader, and which Chinese "Erase all data" leaves for the other libraries. It also syncs (`o:translateTo`), stamped with
+`at` (`SettingsStore.chosenAt`): only the Chinese library syncs, and it may notice a choice made in another library days later, when
+a newer one from another device must still win. Older devices ignore the name; an older hub drops it without echoing it, and a device
+keeps any `o:` record a hub did not echo unsent until a hub keeps it. Servers echo the target they used (`claudeServer.ts targetEcho`):
+an answer with no echo to a request that sent `to` came from a server older than the choice and is labeled as English. Into a
+Latin-script language Chinese names are pinyin, except Vietnamese, which reads them the Sino-Vietnamese way (`pinyinNames: false`).
+
 Translation glossary records carry optional `kind: name|term|idiom`; name readings are not confused with rare object descriptions.
 The local translator performs at most one corrective retry for narrowly detected wine-shop/hotel sense contradictions and
 raw tone-numbered pinyin in an ordinary dictionary term. These checked chunks are buffered until accepted; repeated contradictions
@@ -1052,7 +1071,8 @@ exists.
   wrapped lines with a space; `lang/detect.ts` turns away a book plainly in another language and says where it belongs.
 - **Translating.** A request names its language (`TranslateRequest.lang`); `translate/prompt.ts otherSystem` gives the instructions for
   it, and `checkTranslation` runs only the checks that hold for any language. Chrome's translator and MyMemory translate from the
-  language's tag. The offline gloss reads the engine. The Mac's local model stays Chinese only on Automatic.
+  language's tag. The offline gloss reads the engine. The Mac's local model stays Chinese only on Automatic. The language translated
+  into (§4.7, `TranslateRequest.to`) is the reader's in every library; a choice of the book's own language means English there.
 - **Classics.** `public/samples/<id>/index.json` and Markdown texts (`# Title`, `## Chapter`), with public-domain paintings as covers.
 - **Offline.** Each language's data and classics live in a cache of their own (`sw.js`, `dushu-lang-<id>-<version>`), named by their
   contents (`vite.config.ts` `__LANG_VERSIONS__`): stored the first time the language opens, kept through Chinese updates.

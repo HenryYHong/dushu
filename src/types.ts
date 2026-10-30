@@ -357,6 +357,11 @@ export interface Settings {
   claudeModel: string;
   /** Keep every sentence on the Mac: no Claude and no MyMemory, only the local model, on-device Chrome and the dictionary. */
   localOnly: boolean;
+  /**
+   * The language sentences are translated into, a code from translate/targets.ts ('en' by default). It is the reader's own
+   * language, so it follows them into every language's library (store/settings.ts TARGET_KEY).
+   */
+  translateTo: string;
   ttsVoice: string;
   ttsRate: number;
   /** scroll = one long column per chapter; pages = paginated like a printed book (Apple Books style). */
@@ -377,6 +382,12 @@ export interface SettingsStore {
   set(patch: Partial<Settings>): void;
   /** Returns an unsubscribe function. Called after every set(). */
   subscribe(fn: (s: Settings, changed: (keyof Settings)[]) => void): () => void;
+  /**
+   * When the current value of a setting was chosen (ms epoch), for one that another library can choose while this one is
+   * closed (translateTo). Sync stamps the change with it, not with the time it noticed it, so a choice made days ago in
+   * the Spanish library does not beat one made since on another device. Undefined when not known.
+   */
+  chosenAt?(name: keyof Settings): number | undefined;
 }
 
 // --------------------------------------------------------------- lexicon ---
@@ -548,10 +559,15 @@ export interface TranslateRequest {
   context?: string;
   /** Book-specific readings/glosses, as reference data for names and specialist terms. */
   terms?: { word: string; pinyin: string; gloss: string; kind?: 'name' | 'term' | 'idiom' }[];
-  /** translate = English only; explain = translation + short notes on words and grammar. */
+  /** translate = the translation only; explain = translation + short notes on words and grammar. */
   mode: 'translate' | 'explain';
   /** The language of `text` when it is not Chinese (src/lang): the prompt and the checks follow it. */
   lang?: 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru';
+  /**
+   * The language to translate into (translate/targets.ts), absent for English: a request into English is byte for byte the
+   * one sent before the reader could choose. A code that is not listed, or is the book's own language, means English.
+   */
+  to?: string;
 }
 
 export interface Translator {
@@ -559,10 +575,16 @@ export interface Translator {
   label: string;
   /** 'yes' ready now, 'download' needs a one-time model download on user gesture, 'no' unusable. */
   availability(): Promise<'yes' | 'download' | 'no'>;
-  /** Streams partial output to onDelta (full text so far) when the provider supports it. */
+  /**
+   * Streams partial output to onDelta (full text so far) when the provider supports it. `onInto` is called when the answer is
+   * not in the language asked for: a Mac or sync server from before the choice existed ignores `to` and answers in English.
+   */
   translate(
     req: TranslateRequest,
-    opts?: { signal?: AbortSignal; onDelta?: (soFar: string) => void; onNote?: (note: { kind: 'unverified'; detail: string }) => void },
+    opts?: {
+      signal?: AbortSignal; onDelta?: (soFar: string) => void; onNote?: (note: { kind: 'unverified'; detail: string }) => void;
+      onInto?: (code: string) => void;
+    },
   ): Promise<string>;
 }
 

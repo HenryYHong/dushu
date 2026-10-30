@@ -7,13 +7,14 @@ import { segment } from '../../core/segment';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { createTranslationPanel, type TranslationPanel } from '../popup/translation';
+import { targetFor } from '../../translate/targets';
 import { anchorOf } from '../popup/position';
 import {
   POS_SEL, buildPinyin, displayTokens, pinyinVisible, refreshPinyin, refreshVisibility, renderTokens,
   type RenderedParagraph, type RenderOptions,
 } from './render';
 import { isWord } from '../../lang/token';
-import { activeEngine, isChinese, lang } from '../../lang/active';
+import { activeEngine, isChinese, lang, langId } from '../../lang/active';
 import { sliceRuby } from '../../import/aozora';
 
 export interface BlockState {
@@ -525,6 +526,16 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     }
   }
 
+  // An open paragraph translation is in the language chosen when it opened. A new choice (made in another tab, or brought by
+  // sync) translates the open ones again, so a paragraph never shows French under a setting that now says German.
+  const targetOf = (s: Settings) => targetFor(s.translateTo, langId());
+  let shownTarget = targetOf(ctx.settings.get());
+  const unsubTarget = ctx.settings.subscribe?.((s, changed) => {
+    if (!changed.includes('translateTo') || targetOf(s) === shownTarget) return;
+    shownTarget = targetOf(s);
+    for (const b of blocks) if (b.trans) { toggleTranslation(b); toggleTranslation(b); }
+  });
+
   const view: ChapterView = {
     el: article,
     blocks,
@@ -574,6 +585,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     dispose() {
       disposed = true;
       restToken++;
+      unsubTarget?.();
       for (const b of blocks) b.trans?.panel.destroy();
     },
   };

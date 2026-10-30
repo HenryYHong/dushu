@@ -7,6 +7,7 @@ import { currentSyncer, setSyncEnabled } from '../../core/sync';
 import { group, row } from './controls';
 import { isChinese, lang, langId } from '../../lang/active';
 import { LANG_IDS } from '../../lang/registry';
+import { TARGET_KEY } from '../../store/settings';
 
 
 export function backupFileName(d = new Date()): string {
@@ -32,7 +33,8 @@ export function describeReport(r: BackupReport): string {
 }
 
 /**
- * Removes books, words, progress, review history and every dushu.* key in localStorage. The Mac's books come back the next
+ * Removes books, words, progress, review history and every dushu.* key in localStorage but the other languages' (dushu.<id>.*
+ * and the language translated into, which they share). The Mac's books come back the next
  * time the library reaches the Mac: they are always there. Another language removes only its own library and its own
  * dushu.<id>.* keys: Chinese, the sign-in, the Mac link and sync are not its to touch (lang/active.ts).
  */
@@ -48,10 +50,14 @@ export async function eraseAllData(ctx: AppContext): Promise<void> {
   // A sync that is running could bring words back in the middle of the wipe.
   currentSyncer()?.stop();
   await ctx.store.wipe();
-  // The other languages' libraries are left alone, and so are their settings.
+  // The other languages' libraries are left alone, and so are their settings, the language translated into among them: they
+  // read it from TARGET_KEY whenever they open, so taking it would put the Spanish library back on English, or not, depending
+  // on whether it had ever saved a setting of its own.
   const others = LANG_IDS.filter((id) => id !== 'zh').map((id) => `dushu.${id}.`);
   try {
-    for (const k of Object.keys(localStorage)) if (k.startsWith('dushu.') && !others.some((o) => k.startsWith(o))) localStorage.removeItem(k);
+    for (const k of Object.keys(localStorage)) {
+      if (k.startsWith('dushu.') && k !== TARGET_KEY && !others.some((o) => k.startsWith(o))) localStorage.removeItem(k);
+    }
   } catch { /* storage blocked: nothing to remove */ }
   // An empty device stays empty: the words on the Mac come back only when sync is turned on again.
   setSyncEnabled(false);

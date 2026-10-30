@@ -6,6 +6,7 @@ import { entriesForReading } from '../core/reading';
 import { wordSenseHint } from './contextSense';
 import { activeEngine } from '../lang/active';
 import { safeLookup, shortGlossOf } from '../lang/words';
+import { DEFAULT_TARGET } from './targets';
 
 export interface GlossDeps {
   segment: (text: string, dict: Dictionary) => Token[];
@@ -75,10 +76,14 @@ export function glossText(text: string, dict: Dictionary, deps: GlossDeps = defa
   return items.join(' · ');
 }
 
-export function createGlossTranslator(dict: Dictionary | null, deps: GlossDeps = defaultDeps): Translator {
+/**
+ * `to`: the language the reader translates into. The dictionaries only give English, so for any other language the gloss
+ * says so in its name ("Word by word, in English"); Automatic still falls back to it last, since English meanings beat none.
+ */
+export function createGlossTranslator(dict: Dictionary | null, deps: GlossDeps = defaultDeps, to: string = DEFAULT_TARGET): Translator {
   return {
     id: 'gloss',
-    label: 'Word-by-word (offline)',
+    label: to === DEFAULT_TARGET ? 'Word-by-word (offline)' : 'Word by word, in English',
     async availability() { return dict ? 'yes' : 'no'; },
     async translate(req, opts) {
       if (!dict) throw new Error('The dictionary is still loading. Try again in a moment.');

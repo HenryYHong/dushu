@@ -5,6 +5,7 @@ import { CLOUD_EVENT, cloudFetch, cloudSession } from '../core/cloud';
 import type { Settings, Translator } from '../types';
 import { ACCOUNT_TEXT } from './prompt';
 import { isChinese, langId } from '../lang/active';
+import { answeredInto, targetField } from './targets';
 
 /** A used-up day or a refusal repeats if asked again soon: Automatic skips this translator for a while. */
 const BLOCK_MS = 10 * 60_000;
@@ -27,7 +28,8 @@ export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>): 
       const sent = cloudFetch('/ai/translate', {
         method: 'POST', signal: opts?.signal,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(isChinese() ? {} : { lang: langId() }) }),
+        body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(isChinese() ? {} : { lang: langId() }),
+          ...targetField(req.to, langId()) }),
       });
       if (!sent) throw new Error('Sign in to translate sentences through your account.');
       let response: Response;
@@ -35,7 +37,7 @@ export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>): 
         if ((e as { name?: string })?.name === 'AbortError') throw e;
         throw new Error('Could not reach the sync server. Check this device’s internet connection.');
       }
-      const data = await response.json().catch(() => null) as { text?: string; unverified?: string; error?: string; code?: string } | null;
+      const data = await response.json().catch(() => null) as { text?: string; unverified?: string; error?: string; code?: string; to?: unknown } | null;
       if (!response.ok) {
         if (response.status === 401) throw new Error('This device is signed out. Sign in again to translate sentences.');
         if (response.status === 429 || data?.code === 'no_model') blockedUntil = Date.now() + BLOCK_MS;
@@ -44,6 +46,8 @@ export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>): 
       const text = data?.text?.trim();
       if (!text) throw new Error('The sync server sent back an empty translation. Try again.');
       if (data?.unverified) opts?.onNote?.({ kind: 'unverified', detail: data.unverified });
+      const answered = answeredInto(req.to, data?.to, langId());
+      if (answered) opts?.onInto?.(answered);
       opts?.onDelta?.(text);
       return text;
     },

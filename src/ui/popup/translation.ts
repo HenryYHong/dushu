@@ -1,7 +1,9 @@
 // A translation block: picks a provider, streams the result, and offers Explain, a provider switcher,
 // retry, and the one-time on-device model download. Used by the phrase popup and paragraph translate.
-import type { AppContext, Dictionary, Lexicon, Translator, TranslatorId } from '../../types';
-import { getTranslator, listTranslators, pickTranslator, type ChromeTranslator } from '../../translate';
+import type { AppContext, Dictionary, Lexicon, Settings, Translator, TranslatorId } from '../../types';
+import { chromeSupported, getTranslator, listTranslators, pickTranslator, type ChromeTranslator } from '../../translate';
+import { chromePairName } from '../../translate/chrome';
+import { DEFAULT_TARGET, targetFor, targetLanguage } from '../../translate/targets';
 import { claudeReadySync } from '../../translate/claude';
 import { cloudBase, cloudSession } from '../../core/cloud';
 import type { TranslateOptions, TranslationNote } from '../../translate/prompt';
@@ -147,13 +149,38 @@ export function renderRichText(text: string): HTMLElement {
 
 export function createTranslationPanel(o: TranslationPanelOptions): TranslationPanel {
   const { ctx } = o;
+  // The language this panel translates into, for its whole life: a choice made in Settings meanwhile shows on the next one.
+  const to = targetFor(ctx.settings.get().translateTo, langId());
+  const into = to === DEFAULT_TARGET ? null : targetLanguage(to)!;
+  /**
+   * The settings this panel's translators are made from: the current ones, with the panel's language. Made from the current
+   * ones alone, a choice of French made in another tab (or brought by sync) while an English panel is open gave Chrome French
+   * (its pair, its availability) and left MyMemory and Claude in English, under one "Translation" header.
+   */
+  const settingsHere = (): Settings => ({ ...ctx.settings.get(), translateTo: to });
+  /**
+   * Why a translator cannot run, for the error and the provider menu. Chrome with a translator that lacks this pair names the
+   * pair (Not available for Chinese to Filipino), so the reader picks another language or provider, not another browser.
+   */
+  const unavailable = (id: TranslatorId) => (id === 'chrome' && chromeSupported() ? `Not available for ${chromePairName(to)}` : NOTES[id].no);
   const label = h('span.pp-tr-provider');
+  const section = h('span.pp-section', null, into ? `${into.name} translation` : 'Translation');
   const body = h('div.pp-tr-body', { 'aria-live': 'polite', 'aria-atomic': 'false', 'aria-busy': 'false' });
   const actions = h('div.pp-tr-actions');
   const menuHost = h('div.pp-tr-menuhost');
   const el = h('section.pp-tr', null,
-    h('div.pp-tr-head', null, h('span.pp-section', null, 'Translation'), label),
+    h('div.pp-tr-head', null, section, label),
     body, actions, menuHost);
+  /**
+   * Marks a translation's language, so it is read aloud and drawn as that language (Japanese kanji, Arabic right to left).
+   * `code`: the language the answer is in, the panel's unless the server behind it answered in another (onInto).
+   */
+  const tagged = (node: HTMLElement, code: string = to): HTMLElement => {
+    const t = code === DEFAULT_TARGET ? undefined : targetLanguage(code);
+    if (t) { node.lang = t.code; if (t.rtl) node.dir = 'rtl'; else node.removeAttribute('dir'); }
+    else { node.removeAttribute('lang'); node.removeAttribute('dir'); }
+    return node;
+  };
 
   let abort: AbortController | null = null;
   let seq = 0;
@@ -165,15 +192,22 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
   const setBusy = (b: boolean) => { busy = b; body.setAttribute('aria-busy', String(b)); };
   let resultText = '';
   let localReady = false;
-  let plainResult: { text: string; provider: Translator } | null = null;
+  let plainResult: { text: string; provider: Translator; into: string } | null = null;
   let retryAction: (() => void) | null = null;
   const changed = () => { if (!destroyed) o.onResize?.(); };
 
-  const setLabel = (t: Translator | null) => { label.textContent = t ? t.label : ''; };
+  const setLabel = (t: Translator | null, code: string = to) => {
+    label.textContent = t ? t.label : '';
+    // The gloss is English whatever the choice, so it is not called a Spanish translation.
+    const lang = code === DEFAULT_TARGET ? undefined : targetLanguage(code);
+    section.textContent = lang && t?.id !== 'gloss' ? `${lang.name} translation` : 'Translation';
+  };
 
   function appendReferences(t: Translator): void {
     if (t.id === 'gloss') {
-      body.appendChild(h('p.pp-tr-note', null, 'A word-by-word gloss, not a real translation. The first meanings may be wrong here.'));
+      // The dictionaries only give English, whatever language the reader translates into.
+      body.appendChild(h('p.pp-tr-note', null, into ? 'A word-by-word gloss in English, not a real translation. The first meanings may be wrong here.'
+        : 'A word-by-word gloss, not a real translation. The first meanings may be wrong here.'));
       return;
     }
     body.appendChild(h('p.pp-tr-note', null, 'Machine translation. Check rare or odd words against the list below.'));
@@ -211,7 +245,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     menuHost.hidden = true;
     changed();
 
-    const settings = ctx.settings.get();
+    const settings = settingsHere();
     const dict = ctx.dictSync();
     let t: Translator;
     try {
@@ -230,13 +264,13 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     try { availability = await t.availability(); } catch { availability = 'no'; }
     if (mine !== seq) return;
     if (availability === 'no') {
-      const note = NOTES[t.id].no;
-      showError(`${t.label} is not available. ${note}.`, null);
+      showError(`${t.label} is not available. ${unavailable(t.id)}.`, null);
       return;
     }
     if (availability === 'download') { showDownload(t as ChromeTranslator, mode, id === null, mine); return; }
 
-    const text = h('div.pp-tr-text');
+    // The gloss is English whatever the choice; any other translator answers in the chosen language.
+    const text = t.id === 'gloss' ? h('div.pp-tr-text') : tagged(h('div.pp-tr-text'));
     clear(body);
     body.appendChild(text);
     const paint = (s: string) => {
@@ -246,19 +280,27 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
       changed();
     };
     let note: TranslationNote | null = null;
+    // The language the answer came back in: the panel's, unless a server from before the choice answered in English.
+    let answered = to;
     try {
-      const options: TranslateOptions = { signal: ctl.signal, onDelta: paint, onNote: n => { note = n; } };
+      const options: TranslateOptions = { signal: ctl.signal, onDelta: paint, onNote: n => { note = n; }, onInto: code => { answered = code; } };
       const final = await t.translate(
         { text: o.text, context: o.context, mode,
           terms: translationTerms(o.text, o.lexicon, dict, { tagged: true }),
-          // Every translator learns the book's language here (a request without one is Chinese, as before languages).
-          ...(isChinese() ? {} : { lang: langId() as Exclude<LangId, 'zh'> }) },
+          // Every translator learns the book's language here (a request without one is Chinese, as before languages), and
+          // the language to translate into (a request without one is English, as before the choice).
+          ...(isChinese() ? {} : { lang: langId() as Exclude<LangId, 'zh'> }), ...(into ? { to } : {}) },
         options,
       );
       if (mine !== seq) return;
+      if (answered !== to) { tagged(text, answered); setLabel(t, answered); }
       paint(final);
       setBusy(false);
-      if (mode === 'translate') plainResult = { text: final, provider: t };
+      if (mode === 'translate') plainResult = { text: final, provider: t, into: answered };
+      if (into && answered !== to) {
+        body.appendChild(h('p.pp-tr-note', { 'data-other-language': '' },
+          `This answer is in ${targetLanguage(answered)?.name ?? 'English'}. The server that made it needs an update to translate into ${into.name}.`));
+      }
       // The checks could not confirm every detail: say so plainly instead of presenting a confident answer.
       if (note) body.appendChild(h('p.pp-tr-note', { 'data-unverified': '' }, `Unverified: ${(note as TranslationNote).detail}. Check the reference words below.`));
       appendReferences(t);
@@ -321,11 +363,11 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     changed();
     if (!withGloss || o.hasWordList) return;
     // Until the model is downloaded, still give a word-by-word gloss so the popup is never empty.
-    const gloss = getTranslator('gloss', ctx.settings.get(), ctx.dictSync());
+    const gloss = getTranslator('gloss', settingsHere(), ctx.dictSync());
     void gloss.translate({ text: o.text, mode: 'translate' }).then((g) => {
       if (mine !== seq || destroyed || !g) return;
       resultText = g;
-      body.append(h('p.pp-tr-note', null, 'Word by word, in the meantime:'), h('div.pp-tr-text', null, g));
+      body.append(h('p.pp-tr-note', null, into ? 'Word by word in English, in the meantime:' : 'Word by word, in the meantime:'), h('div.pp-tr-text', null, g));
       renderActions(retryAction);
       changed();
     }, () => { /* the gloss is a bonus */ });
@@ -366,9 +408,9 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
         lastMode = 'translate';
         current = plainResult.provider;
         resultText = plainResult.text;
-        setLabel(current);
+        setLabel(current, plainResult.into);
         clear(body);
-        body.appendChild(h('div.pp-tr-text', null, resultText));
+        body.appendChild(current.id === 'gloss' ? h('div.pp-tr-text', null, resultText) : tagged(h('div.pp-tr-text', null, resultText), plainResult.into));
         appendReferences(current);
         renderActions(null);
         changed();
@@ -390,12 +432,12 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     menuHost.hidden = false;
     menuHost.appendChild(h('div.pp-muted', null, 'Checking…'));
     changed();
-    const list = await listTranslators(ctx.settings.get(), ctx.dictSync());
+    const list = await listTranslators(settingsHere(), ctx.dictSync());
     if (destroyed || menuHost.hidden) return;
     clear(menuHost);
     const menu = h('div.pp-menu', { role: 'menu' });
     for (const { translator, availability } of list) {
-      const note = availability === 'no' ? NOTES[translator.id].no
+      const note = availability === 'no' ? unavailable(translator.id)
         : availability === 'download' ? 'Needs a one-time download'
         : NOTES[translator.id].yes;
       const item = h('button.pp-menu-item', {
@@ -412,7 +454,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     requestAnimationFrame(() => { if (!destroyed && typeof menu.scrollIntoView === 'function') menu.scrollIntoView({ block: 'nearest' }); });
   }
 
-  void getTranslator('local', ctx.settings.get(), ctx.dictSync()).availability().then(availability => {
+  void getTranslator('local', settingsHere(), ctx.dictSync()).availability().then(availability => {
     if (destroyed) return;
     localReady = availability === 'yes';
     if (localReady) { renderActions(retryAction); changed(); }

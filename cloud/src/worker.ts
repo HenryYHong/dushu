@@ -12,7 +12,7 @@ import { sqlLimits, sqlStore, type SqlStorage } from './sqlStore';
 import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
 import { SYNC_LIMITS, SyncError } from '../../src/core/syncExchange';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
-import { describeError, parseTranslateBody, runClaude, type ServerClient } from '../../src/translate/claudeServer';
+import { describeError, parseTranslateBody, runClaude, targetEcho, type ServerClient } from '../../src/translate/claudeServer';
 import { ACCOUNT_TEXT, contextWindow, translateChecked, unverifiedDetail } from '../../src/translate/prompt';
 import { wordSenseHint } from '../../src/translate/contextSense';
 
@@ -203,7 +203,7 @@ async function claudeTranslate(request: Request, env: Env, ctx: ExecutionContext
     try {
       const r = await runClaude(client, parsed.request, 'low', ctl.signal, (delta) => void send({ type: 'text', text: delta }));
       await call(env, stub, 'claude-used', { input: r.usage.input, output: r.usage.output }, s).catch(() => {});
-      await send(r.failure ? { type: 'error', code: r.failure.code, message: r.failure.message } : { type: 'done', stop: r.stop, usage: r.usage });
+      await send(r.failure ? { type: 'error', code: r.failure.code, message: r.failure.message } : { type: 'done', stop: r.stop, usage: r.usage, ...targetEcho(parsed.request) });
     } catch (e) {
       if (!ctl.signal.aborted) {
         const f = describeError(e, 'cloud', 'Replace ANTHROPIC_API_KEY on the sync server.');
@@ -284,13 +284,16 @@ async function aiTranslate(request: Request, env: Env): Promise<Response> {
   }
   const ai = env.AI;
   let neurons = 0;
+  // Into a language other than English (req.to, checked by parseTranslateBody) the answer gets twice the room: 700 tokens were
+  // sized for English, and the same sentence in Hindi or Thai takes more tokens. The neurons used are counted either way.
+  const maxTokens = req.to ? 1400 : 700;
   const generate = async (system: string, message: string): Promise<string> => {
     let answer: QwenAnswer;
     try {
       // "/no_think" is Qwen3's own switch: an answer at once, without a page of reasoning first.
       answer = await ai.run(TRANSLATE_MODEL, {
         messages: [{ role: 'system', content: system }, { role: 'user', content: `${message}\n/no_think` }],
-        max_tokens: 700, temperature: 0,
+        max_tokens: maxTokens, temperature: 0,
       }) as QwenAnswer;
     } catch (e) {
       console.error('Dushu translate', e);
@@ -311,7 +314,7 @@ async function aiTranslate(request: Request, env: Env): Promise<Response> {
       { target: 'local', prompt: { spelling: true }, hints: hint ? { [hint.word]: hint.sense } : undefined },
     );
     if (!result.text) throw new CloudError(502, 'The sync server sent back an empty translation. Try again.', 'empty');
-    return json(200, { text: result.text, ...(result.issues.length ? { unverified: unverifiedDetail(result.issues, req.lang) } : {}) });
+    return json(200, { text: result.text, ...(result.issues.length ? { unverified: unverifiedDetail(result.issues, req.lang) } : {}), ...targetEcho(req) });
   } finally {
     // What the model used past the part taken up front, whatever the outcome: it is spent either way.
     const rest = Math.max(0, Math.ceil(neurons) - TRANSLATE_UPFRONT);
