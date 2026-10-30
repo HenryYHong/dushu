@@ -243,3 +243,52 @@ describe('chapter headings in other languages', () => {
     expect(detectHeadingLine('Aquella mañana Lucía salió de casa.')).toBeNull();
   });
 });
+
+describe('another language leaves Chinese data alone', () => {
+  it('neither uploads its books to the account nor takes the account’s in, and deleting a book leaves the account alone', async () => {
+    const { syncBooks, forgetBookInAccount } = await import('../../../src/core/cloudBooks');
+    const fetched: string[] = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (url: string) => { fetched.push(String(url)); return new Response('{"books":[]}'); }) as typeof fetch;
+    localStorage.setItem('dushu.cloud.url.v1', 'http://localhost:8787');
+    localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: 't', email: 'reader@example.com' }));
+    try {
+      setLangForTests('ja');
+      const store = { books: { list: async () => [{ id: 'b1', title: '吾輩は猫である', author: '夏目漱石', charCount: 9 }] } } as never;
+      expect(await syncBooks(store)).toEqual({ added: [], uploaded: 0 });
+      forgetBookInAccount({ id: 'b1', title: '吾輩は猫である', author: '夏目漱石', charCount: 9 } as never);
+      expect(fetched).toEqual([]);
+      expect(localStorage.getItem('dushu.cloud.books-removed.v1')).toBeNull();
+    } finally {
+      globalThis.fetch = realFetch;
+      localStorage.clear();
+    }
+  });
+
+  it('deletes only its own library and settings with "Delete all data", and Chinese deletes leave the others', async () => {
+    const { eraseAllData } = await import('../../../src/ui/settings/data');
+    const keep = { 'dushu.settings.v1': '{}', 'dushu.cloud.v1': '{"token":"t"}', 'dushu.mac-bridge.v1': 'x', 'dushu.lang.v1': 'ja', 'dushu.es.settings.v1': '{}' };
+    for (const [k, v] of Object.entries({ ...keep, 'dushu.ja.settings.v1': '{}', 'dushu.ja.lookups.v1': '[]' })) localStorage.setItem(k, v);
+    let wiped = 0;
+    const ctx = { store: { wipe: async () => { wiped++; } } } as never;
+    setLangForTests('ja');
+    await eraseAllData(ctx);
+    expect(wiped).toBe(1);
+    expect(Object.fromEntries(Object.keys(localStorage).sort().map((k) => [k, localStorage.getItem(k)]))).toEqual(
+      Object.fromEntries(Object.entries(keep).sort()));
+    // Chinese "Delete all data" takes every Chinese key and turns its sync off, as before, but not another language's settings.
+    setLangForTests('zh');
+    await eraseAllData(ctx);
+    expect(Object.keys(localStorage).sort()).toEqual(['dushu.es.settings.v1', 'dushu.sync.off.v1']);
+    localStorage.clear();
+  });
+
+  it('keeps the Chinese wording of translation notes and settings', async () => {
+    const { unverifiedDetail } = await import('../../../src/translate/prompt');
+    expect(unverifiedDetail([{ code: 'chinese', message: '' }])).toBe('Chinese was left untranslated');
+    expect(unverifiedDetail([{ code: 'chinese', message: '' }], 'es')).toBe('some of the original was left untranslated');
+    expect(parseTranslateBody({ text: ' ', mode: 'translate' })).toMatchObject({ ok: false, message: 'Select some Chinese text to translate.' });
+    expect('stress' in defaultsFor('zh')).toBe(false);
+    expect(defaultsFor('ru').stress).toBe(true);
+  });
+});

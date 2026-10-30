@@ -5,6 +5,8 @@ import { icon } from '../icons';
 import { confirmDialog } from '../library/dialogs';
 import { currentSyncer, setSyncEnabled } from '../../core/sync';
 import { group, row } from './controls';
+import { isChinese, lang, langId } from '../../lang/active';
+import { LANG_IDS } from '../../lang/registry';
 
 
 export function backupFileName(d = new Date()): string {
@@ -31,14 +33,25 @@ export function describeReport(r: BackupReport): string {
 
 /**
  * Removes books, words, progress, review history and every dushu.* key in localStorage. The Mac's books come back the next
- * time the library reaches the Mac: they are always there.
+ * time the library reaches the Mac: they are always there. Another language removes only its own library and its own
+ * dushu.<id>.* keys: Chinese, the sign-in, the Mac link and sync are not its to touch (lang/active.ts).
  */
 export async function eraseAllData(ctx: AppContext): Promise<void> {
+  if (!isChinese()) {
+    await ctx.store.wipe();
+    const own = `dushu.${langId()}.`;
+    try {
+      for (const k of Object.keys(localStorage)) if (k.startsWith(own)) localStorage.removeItem(k);
+    } catch { /* storage blocked: nothing to remove */ }
+    return;
+  }
   // A sync that is running could bring words back in the middle of the wipe.
   currentSyncer()?.stop();
   await ctx.store.wipe();
+  // The other languages' libraries are left alone, and so are their settings.
+  const others = LANG_IDS.filter((id) => id !== 'zh').map((id) => `dushu.${id}.`);
   try {
-    for (const k of Object.keys(localStorage)) if (k.startsWith('dushu.')) localStorage.removeItem(k);
+    for (const k of Object.keys(localStorage)) if (k.startsWith('dushu.') && !others.some((o) => k.startsWith(o))) localStorage.removeItem(k);
   } catch { /* storage blocked: nothing to remove */ }
   // An empty device stays empty: the words on the Mac come back only when sync is turned on again.
   setSyncEnabled(false);
@@ -92,7 +105,9 @@ export function dataGroup(ctx: AppContext): HTMLElement {
   delBtn.addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: 'Delete all data?',
-      message: 'This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Books from your Mac come back the next time this device reaches it. Sync is turned off here, so the words kept on your Mac stay there until you turn sync back on.',
+      message: isChinese()
+        ? 'This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Books from your Mac come back the next time this device reaches it. Sync is turned off here, so the words kept on your Mac stay there until you turn sync back on.'
+        : `This removes every book, word, review record, reading place and setting of your ${lang().name} library from this browser, and it can’t be undone. Your other languages stay as they are.`,
       confirmLabel: 'Delete everything',
       danger: true,
     });
@@ -108,5 +123,5 @@ export function dataGroup(ctx: AppContext): HTMLElement {
     memoryWarning,
     row('Backup', 'Your words, known words, progress, review history and settings. Books are not included, so on another device import the same book files first.',
       h('div.set-backup', null, h('div.set-btn-row', null, exportBtn, importBtn, file), status)),
-    row('Delete all data', 'Removes books, words and settings from this browser.', delBtn));
+    row('Delete all data', isChinese() ? 'Removes books, words and settings from this browser.' : `Removes your ${lang().name} books, words and settings from this browser.`, delBtn));
 }

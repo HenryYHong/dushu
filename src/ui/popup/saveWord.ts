@@ -70,7 +70,8 @@ export function vocabItemFor(dict: Dictionary, input: SaveWordInput): VocabItem 
  * The flashcard for a word from "Looked up" (Review's new cards, Practice's Save). Chinese reads the dictionary for the reading
  * logged; another language asks its engine, and keeps the key the row was logged under so it stays the same word.
  */
-export function itemFromLookupRow(dict: Dictionary, r: Pick<LookupRow, 'id' | 'word' | 'pinyin' | 'gloss' | 'context'>, now = Date.now()): VocabItem {
+export function itemFromLookupRow(dict: Dictionary, r: Pick<LookupRow, 'id' | 'word' | 'pinyin' | 'gloss' | 'context'>, now = Date.now(),
+  { bookGloss = true }: { bookGloss?: boolean } = {}): VocabItem {
   const engine = activeEngine();
   if (engine) {
     const lu = safeLookup(engine, r.word, undefined, r.context?.sentence);
@@ -81,7 +82,8 @@ export function itemFromLookupRow(dict: Dictionary, r: Pick<LookupRow, 'id' | 'w
     return item;
   }
   const item = vocabItemFor(dict, { word: r.word, syllables: r.pinyin ? r.pinyin.split(' ') : [], context: r.context, now });
-  // A name or term only the book defines: the meaning logged with the lookup (the book's own, as its card showed it).
-  if (!item.gloss && r.gloss) item.gloss = r.gloss;
+  // A name or term only the book defines: the meaning logged with the lookup (the book's own, as its card showed it). Chinese
+  // Save in Vocabulary and Practice never took it (bookGloss false there), and keeps it that way.
+  if (bookGloss && !item.gloss && r.gloss) item.gloss = r.gloss;
   return item;
 }

@@ -6,7 +6,7 @@ import { hanBefore, moveByPercent, placeAt, textHan } from '../core/place';
 import { bookKey, canonical, mergeLookups, olderKeys, progressWire } from '../core/syncKeys';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
-import { countHan } from '../import/han';
+import { countHan as countLetters } from '../import/han';
 import { TABLES, createIdbBackend, createMemoryBackend, friendlyError, type Backend, type Table } from './db';
 import { SETTINGS_KEY, defaultsFor, sanitizePatch, sanitizeSettings } from './settings';
 import { langId, langKey } from '../lang/active';
@@ -20,6 +20,23 @@ export type { BackupReport };
 
 // ------------------------------------------------------------------ helpers ---
 
+/**
+ * Han code points: Unified (incl. Ext A–J), compatibility ideographs, and 〇. The store's own range, kept for Chinese as it
+ * was: a book's character count goes into its sync key (core/syncKeys.ts), so a wider range would give old and new devices
+ * different keys for the same book.
+ */
+function isHan(cp: number): boolean {
+  return (cp >= 0x4e00 && cp <= 0x9fff) || (cp >= 0x3400 && cp <= 0x4dbf) ||
+    (cp >= 0xf900 && cp <= 0xfaff) || (cp >= 0x20000 && cp <= 0x323af) || cp === 0x3007;
+}
+
+/** Chinese: Han characters (the range above); another language: its letters (import/han.ts). */
+function countHan(s: string): number {
+  if (langId() !== 'zh') return countLetters(s);
+  let n = 0;
+  for (const ch of s) if (isHan(ch.codePointAt(0)!)) n++;
+  return n;
+}
 
 function chapterHan(c: Chapter): number {
   let n = countHan(c.title);

@@ -6,6 +6,8 @@ import { claudeReadySync } from '../../translate/claude';
 import { cloudBase, cloudSession } from '../../core/cloud';
 import type { TranslateOptions, TranslationNote } from '../../translate/prompt';
 import { h, clear } from '../dom';
+import { isChinese, langId } from '../../lang/active';
+import type { LangId } from '../../lang/types';
 import { icon } from '../icons';
 import { formatSyllable } from '../../core/pinyin';
 import { segment } from '../../core/segment';
@@ -248,7 +250,9 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
       const options: TranslateOptions = { signal: ctl.signal, onDelta: paint, onNote: n => { note = n; } };
       const final = await t.translate(
         { text: o.text, context: o.context, mode,
-          terms: translationTerms(o.text, o.lexicon, dict, { tagged: true }) },
+          terms: translationTerms(o.text, o.lexicon, dict, { tagged: true }),
+          // Every translator learns the book's language here (a request without one is Chinese, as before languages).
+          ...(isChinese() ? {} : { lang: langId() as Exclude<LangId, 'zh'> }) },
         options,
       );
       if (mine !== seq) return;

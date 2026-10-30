@@ -23,7 +23,7 @@ import { CLOUD_EVENT, cloudBase, cloudSession } from '../../core/cloud';
 import { openSignIn } from '../signIn';
 import { isStandalone, onIPhoneOrIPad } from '../fullscreen';
 import { forgetBookInAccount, syncBooks } from '../../core/cloudBooks';
-import { isChinese, lang } from '../../lang/active';
+import { isChinese, lang, syncsHere } from '../../lang/active';
 
 /**
  * A book's length as a reader thinks of it: characters for Chinese and Japanese, words for the languages written with spaces
@@ -338,7 +338,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   async function remove(b: BookMeta): Promise<void> {
     const ok = await confirmDialog({
       title: 'Delete this book?',
-      message: cloudSession()
+      message: cloudSession() && syncsHere()
         ? `“${shown(b.title)}” will be removed from this device and from your account. Your place in it and your saved words stay: add it again and it opens where you left off.`
         : `“${shown(b.title)}” will be removed from this device. Your place in it and your saved words stay: add it again and it opens where you left off.`,
       confirmLabel: 'Delete',
@@ -566,7 +566,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   // ---- books in the sync account: a book added here goes up soon after (core/cloudBooks.ts; main.ts runs it on open too and
   // says what it did) ----
   let booksTimer: ReturnType<typeof setTimeout> | undefined;
-  const accountBooks = () => { if (alive && cloudSession()) void syncBooks(store); };
+  const accountBooks = () => { if (alive && cloudSession() && syncsHere()) void syncBooks(store); };
   const offBooks = store.onChange((what) => {
     if (what !== 'books') return;
     clearTimeout(booksTimer);

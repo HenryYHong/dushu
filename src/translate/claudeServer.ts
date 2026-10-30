@@ -27,7 +27,7 @@ export const badRequest = (status: number, message: string): Parsed => ({ ok: fa
 export function parseTranslateBody(value: unknown): Parsed {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return badRequest(400, 'The translation request was not understood.');
   const v = value as Record<string, unknown>;
-  if (typeof v.text !== 'string' || !v.text.trim()) return badRequest(400, 'Select some text to translate.');
+  if (typeof v.text !== 'string' || !v.text.trim()) return badRequest(400, otherLang(v.lang) ? 'Select some text to translate.' : 'Select some Chinese text to translate.');
   if (v.text.length > CLAUDE_LIMITS.text) return badRequest(413, 'That passage is too long for one request. Select a shorter one.');
   if (v.mode !== 'translate' && v.mode !== 'explain') return badRequest(400, 'The translation request was not understood.');
   if (v.context !== undefined && typeof v.context !== 'string') return badRequest(400, 'The translation request was not understood.');

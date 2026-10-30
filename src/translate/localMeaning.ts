@@ -100,7 +100,8 @@ export function createLocalTranslator(): Translator {
         opts?.signal?.throwIfAborted();
         const glossary = req.terms?.filter(term => text.includes(term.word)).slice(0, 30) ?? [];
         const evidence = req.context || req.text;
-        const hint = wordSenseHint(text, evidence);
+        // The sense hints read the Chinese dictionary's word list: a passage in another language has none.
+        const hint = req.lang ? null : wordSenseHint(text, evidence);
         // A sense contradiction is held back until it is checked, so a wrong answer is never streamed into the reader.
         const held = req.mode === 'translate' && (!!hint || glossary.some(term => term.kind === 'term'));
         const generate = async (system: string, message: string, onDelta?: (soFar: string) => void) => {
@@ -123,8 +124,8 @@ export function createLocalTranslator(): Translator {
         unresolved.push(...result.issues);
         if (held) opts?.onDelta?.(completed.join('\n\n'));
       }
-      if (!completed.length) throw new Error('Select some Chinese text to translate.');
-      if (unresolved.length) opts?.onNote?.({ kind: 'unverified', detail: unverifiedDetail(unresolved) });
+      if (!completed.length) throw new Error(req.lang ? 'Select some text to translate.' : 'Select some Chinese text to translate.');
+      if (unresolved.length) opts?.onNote?.({ kind: 'unverified', detail: unverifiedDetail(unresolved, req.lang) });
       return completed.join('\n\n');
     },
   };

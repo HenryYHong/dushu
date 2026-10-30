@@ -82,7 +82,7 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
     if (ctx.store.vocab.has(r.id)) return;
     try {
       const dict = await ctx.dict();
-      await ctx.store.vocab.put(itemFromLookupRow(dict, r));
+      await ctx.store.vocab.put(itemFromLookupRow(dict, r, Date.now(), { bookGloss: false }));
       ctx.toast(`Saved ${r.id} to your flashcards.`);
       if (overlay.isConnected) draw();
     } catch (e) {

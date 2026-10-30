@@ -311,7 +311,7 @@ async function aiTranslate(request: Request, env: Env): Promise<Response> {
       { target: 'local', prompt: { spelling: true }, hints: hint ? { [hint.word]: hint.sense } : undefined },
     );
     if (!result.text) throw new CloudError(502, 'The sync server sent back an empty translation. Try again.', 'empty');
-    return json(200, { text: result.text, ...(result.issues.length ? { unverified: unverifiedDetail(result.issues) } : {}) });
+    return json(200, { text: result.text, ...(result.issues.length ? { unverified: unverifiedDetail(result.issues, req.lang) } : {}) });
   } finally {
     // What the model used past the part taken up front, whatever the outcome: it is spent either way.
     const rest = Math.max(0, Math.ceil(neurons) - TRANSLATE_UPFRONT);

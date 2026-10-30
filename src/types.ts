@@ -361,8 +361,9 @@ export interface Settings {
   pageTurn: 'flip' | 'slide' | 'none';
   /** Covers picked in the book cards' menus, "key:classic,key:modern" by book sync key (core/covers.ts). */
   covers: string;
-  /** Russian: mark the stressed vowel of each word (lang/registry.ts `stress`). */
-  stress: boolean;
+  /** Russian: mark the stressed vowel of each word (lang/registry.ts `stress`). Absent in Chinese settings, which keep the
+   * keys they always had. */
+  stress?: boolean;
 }
 
 export interface SettingsStore {

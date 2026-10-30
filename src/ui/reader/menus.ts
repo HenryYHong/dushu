@@ -256,7 +256,7 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const learnRow = row('Learn known words as I read', learn.el, `Words you read past often lose their ${aidWord()}`);
   const modes = h('div.rd-menu', { role: 'menu', 'aria-label': `Show ${aidWord()}` }, items, stepper);
   const share = h('p.rd-share', { 'aria-live': 'polite' });
-  const stress = add(toggle(() => get().stress, (v) => set({ stress: v })));
+  const stress = add(toggle(() => get().stress ?? true, (v) => set({ stress: v })));
   const look = zh ? section('Look', row('Style', style.el), row('Tone colors', tones.el), row('Tone changes', sandhi.el, 'yí gè, bú shì'))
     : lang().stress ? section('Look', row('Stress marks', stress.el, 'The stressed vowel of each word')) : null;
   const el = h('div.rd-menu.rd-pinyin-menu', null,

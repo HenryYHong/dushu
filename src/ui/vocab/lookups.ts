@@ -139,7 +139,7 @@ export function createLookupsView(ctx: AppContext): LookupsView {
     if (store.vocab.has(r.id)) { ctx.toast(`${r.id} is already in your flashcards.`); return; }
     try {
       const dict = await ctx.dict();
-      await store.vocab.put(itemFromLookupRow(dict, r));
+      await store.vocab.put(itemFromLookupRow(dict, r, Date.now(), { bookGloss: false }));
       ctx.toast(`Saved ${r.id} to your flashcards.`);
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not save the word.');

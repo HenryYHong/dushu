@@ -32,7 +32,6 @@ export const DEFAULT_SETTINGS: Settings = {
   spread: 'auto',
   pageTurn: 'slide',
   covers: '',
-  stress: true,
 };
 
 type Rule = (v: unknown) => unknown | undefined; // returns the clean value, or undefined if unusable
@@ -50,7 +49,7 @@ const text = (maxLen: number, allowEmpty: boolean): Rule => (v) => {
   return t || allowEmpty ? t : undefined;
 };
 
-const RULES: { [K in keyof Settings]: Rule } = {
+const RULES: { [K in keyof Settings]-?: Rule } = {
   theme: oneOf('system', 'light', 'sepia', 'dark'),
   fontFamily: oneOf('serif', 'sans', 'kai'),
   fontSize: num(14, 44, 0),
@@ -122,7 +121,7 @@ function defaultStorage(): Storage | undefined {
  */
 export function defaultsFor(id: LangId): Settings {
   if (id === 'zh') return { ...DEFAULT_SETTINGS };
-  return { ...DEFAULT_SETTINGS, pinyin: id === 'ja' ? 'unknown' : 'off', hskThreshold: 2, script: 'original', fontSize: id === 'ja' ? 22 : 21, scrollFontSize: id === 'ja' ? 26 : 23, lineHeight: id === 'ja' ? 2 : 1.6, sandhi: false };
+  return { ...DEFAULT_SETTINGS, stress: true, pinyin: id === 'ja' ? 'unknown' : 'off', hskThreshold: 2, script: 'original', fontSize: id === 'ja' ? 22 : 21, scrollFontSize: id === 'ja' ? 26 : 23, lineHeight: id === 'ja' ? 2 : 1.6, sandhi: false };
 }
 
 function load(storage: Storage | undefined, key: string, defaults: Settings): Settings {

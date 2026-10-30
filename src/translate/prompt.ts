@@ -310,10 +310,11 @@ export function correctionNote(issues: readonly CheckIssue[]): string {
 }
 
 /** Plain-language reason shown beside an answer the checks could not confirm. */
-export function unverifiedDetail(issues: readonly CheckIssue[]): string {
+/** `lang`: the book's language when it is not Chinese (a Chinese note reads as it always has). */
+export function unverifiedDetail(issues: readonly CheckIssue[], lang?: string): string {
   const labels: Record<CheckIssue['code'], string> = {
     name: 'a name from the book may be missing or misspelled', negation: 'a negation may be missing', number: 'a number may be missing', unit: 'a unit may have been converted',
-    chinese: 'some of the original was left untranslated', pinyin: 'pinyin was left in the text', meta: 'it contains commentary', length: 'its length looks wrong',
+    chinese: lang ? 'some of the original was left untranslated' : 'Chinese was left untranslated', pinyin: 'pinyin was left in the text', meta: 'it contains commentary', length: 'its length looks wrong',
     sense: 'a word may have the wrong meaning',
   };
   return [...new Set(issues.map(issue => labels[issue.code]))].join('; ');

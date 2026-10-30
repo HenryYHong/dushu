@@ -11,6 +11,7 @@ import { bytesOf } from '../store';
 import { accountMark, cloudBase, cloudFetch, cloudSession } from './cloud';
 import { bookKey, olderKeys } from './syncKeys';
 import { withBookLock } from './bookLock';
+import { syncsHere } from '../lang/active';
 
 /** The server's piece size (cloud/src/account.ts BOOK_CHUNK). */
 export const BOOK_CHUNK = 1024 * 1024;
@@ -214,6 +215,8 @@ async function importMacFile(bytes: Uint8Array, book: AccountBook): Promise<Impo
 
 /** Deleted here on purpose: removed from the account too (now, or on the next try), and never downloaded again here. */
 export function forgetBookInAccount(meta: BookMeta): void {
+  // The account's books are Chinese: deleting a book in another language's library leaves the account alone.
+  if (!syncsHere()) return;
   const key = bookKey(meta);
   if (key.startsWith('s')) return;
   setList(REMOVED_KEY, [...list(REMOVED_KEY), key]);
@@ -231,6 +234,9 @@ let running: Promise<{ added: BookMeta[]; uploaded: number }> | null = null;
  * is tried again on the next call). Resolves with the books it added here and how many it uploaded.
  */
 export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: number }> {
+  // The account's books are Chinese (lang/active.ts): another language's library neither sends its books up nor takes the
+  // account's in, whichever screen asks.
+  if (!syncsHere()) return Promise.resolve({ added: [], uploaded: 0 });
   running ??= (async () => {
     const added: BookMeta[] = [];
     const up: string[] = [];
