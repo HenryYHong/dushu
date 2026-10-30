@@ -1,6 +1,13 @@
 // Spanish. Enclitic pronouns join the verb (dámelo, decirle, sentaos); articles and pronouns tell nouns from verbs.
 import type { LangEngine } from '../types';
-import { loadSpacedEngine, stripAccents, type LoadOpts, type SpacedLang } from './core';
+import { loadSpacedEngine, type LoadOpts, type SpacedLang } from './core';
+import { spanishContext } from './es-context';
+
+/**
+ * The word without its written accents (acute and grave), keeping the tilde of ñ and the diaeresis of ü: enséña is enseña,
+ * not "ensena", so "—A ver, enséñame tu cara" (Marianela) is enseñar + me.
+ */
+const stripStress = (s: string): string => s.normalize('NFD').replace(/[\u0300\u0301]/g, '').normalize('NFC');
 
 export const SPANISH: SpacedLang = {
   id: 'es',
@@ -9,9 +16,13 @@ export const SPANISH: SpacedLang = {
   encliticStems(stem, first) {
     // The written accent that keeps the stress (dá-me-lo, diciéndo-le) goes when the pronouns do; sentad + os is
     // sentaos and sentemos + nos is sentémonos.
-    const out = [stem, stripAccents(stem)];
-    if (first === 'os') out.push(stem + 'd', stripAccents(stem) + 'd');
-    if ((first === 'nos' || first === 'se') && stem.endsWith('mo')) out.push(stripAccents(stem) + 's');
+    const plain = stripStress(stem);
+    const out = [stem, plain];
+    // A stem of more than one syllable in -o with no written accent is the preterite that lost its accent to the pronoun:
+    // Galdós's "preguntome varias cosas" is preguntó + me. The present pregunto + me is written pregúntome.
+    if (plain === stem && /[aeiu][^aeiou]*o$/.test(stem)) out.unshift(stem.slice(0, -1) + 'ó');
+    if (first === 'os') out.push(stem + 'd', plain + 'd');
+    if ((first === 'nos' || first === 'se') && stem.endsWith('mo')) out.push(plain + 's');
     return [...new Set(out)];
   },
   // hay: what there is comes next (hay mates "there are gourds", not matar's "you kill").
@@ -31,6 +42,8 @@ export const SPANISH: SpacedLang = {
   // se on an infinitive or gerund is the verb's own (levantarse "to get up"); before a finite verb it may be impersonal.
   reflexive: { always: [], ifPronominal: ['se', 'me', 'te', 'nos', 'os'], joined: ['se'],
     imperative: { te: '(?<!formal )second-person singular [a-z ]*imperative', os: '(?<!formal )second-person plural [a-z ]*imperative', nos: 'first-person plural [a-z ]*imperative', se: 'formal|third-person [a-z ]*imperative' } },
+  // sí, solo, que, fuera, lo, les, reflexive pronouns and their verbs, adjectives against nouns and verbs (es-context.ts).
+  context: spanishContext,
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

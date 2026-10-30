@@ -2,6 +2,7 @@
 // a-t-il, donne-moi).
 import type { LangEngine } from '../types';
 import { loadSpacedEngine, type LoadOpts, type SpacedLang } from './core';
+import { frenchContext } from './fr-context';
 
 export const FRENCH: SpacedLang = {
   id: 'fr',
@@ -12,7 +13,7 @@ export const FRENCH: SpacedLang = {
     'toi', 'en', 'y', 't', "t'en", "m'en", "t'y", "m'y", 'là', 'ci'],
   beforeNoun: ['un', 'une', 'des', 'du', 'au', 'aux', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses', 'notre',
     'nos', 'votre', 'vos', 'leurs', 'ce', 'cet', 'cette', 'ces', 'quel', 'quelle', 'quels', 'quelles', 'chaque', 'plusieurs',
-    'quelques', 'aucun', 'aucune', 'certains', 'certaines', 'très', 'cette'],
+    'quelques', 'aucun', 'aucune', 'certains', 'certaines'],
   beforeVerb: ['je', "j'", 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'ne', "n'", 'me', "m'", 'te', "t'",
     'se', "s'", 'lui', 'y', 'en'],
   articleOrPronoun: ['le', 'la', 'les', "l'"],
@@ -25,6 +26,8 @@ export const FRENCH: SpacedLang = {
   // Levez-vous "stand up", Assieds-toi: an imperative with its own person's pronoun hyphened to it is reflexive.
   reflexive: { always: ['se', "s'"], ifPronominal: ['me', "m'", 'te', "t'", 'nous', 'vous'],
     imperative: { vous: 'second-person plural [a-z ]*imperative', toi: 'second-person singular [a-z ]*imperative', nous: 'first-person plural [a-z ]*imperative' } },
+  // en, des, que, si, leur, même, fort, tout … and the words next to them (fr-context.ts).
+  context: frenchContext,
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

@@ -2,6 +2,8 @@
 // (Haustürschlüssel = Haus + Tür + Schlüssel).
 import type { LangEngine } from '../types';
 import { loadSpacedEngine, type LoadOpts, type SpacedLang } from './core';
+import { germanContext } from './de-context';
+import { germanRespell, SEPARABLE_PARTICLES } from './de-spelling';
 
 export const GERMAN: SpacedLang = {
   id: 'de',
@@ -12,16 +14,17 @@ export const GERMAN: SpacedLang = {
   // fängt … an is anfangen, stehe … auf aufstehen, kehrte … zurück zurückkehren: the particle closes the clause. da is not
   // one here (er ist da is not dasein).
   separable: {
-    particles: ['ab', 'an', 'auf', 'aus', 'bei', 'beiseite', 'bereit', 'dabei', 'dahin', 'dar', 'davon', 'dazu', 'durch', 'ein',
-      'empor', 'entgegen', 'entlang', 'fest', 'fort', 'frei', 'heim', 'her', 'herab', 'heran', 'herauf', 'heraus', 'herbei',
-      'herein', 'herüber', 'herum', 'herunter', 'hervor', 'hin', 'hinab', 'hinauf', 'hinaus', 'hindurch', 'hinein', 'hinterher',
-      'hinüber', 'hinunter', 'hinweg', 'hinzu', 'hoch', 'kennen', 'los', 'mit', 'nach', 'nieder', 'preis', 'statt', 'teil',
-      'über', 'um', 'umher', 'unter', 'vor', 'voran', 'voraus', 'vorbei', 'vorüber', 'wahr', 'weg', 'weiter', 'wieder', 'zu',
-      'zurecht', 'zurück', 'zusammen'],
+    particles: SEPARABLE_PARTICLES,
     coordinators: ['und', 'oder', 'aber', 'sondern', 'denn'],
   },
+  // A word nothing reads: the spelling before 1996 (Laßt, Wußte), a capital a line of verse gave it (Angewurzelt), an
+  // adjective's or participle's ending (zappelnden), a separable verb's zu-infinitive (zurückzuwandern) (de-spelling.ts).
+  respell: germanRespell,
   // »Elisabeth!« (Immensee) and „Komm“: German opens quotes with » and „; « and “ close them.
   sentenceOpeners: '»„‚›',
+  // der/die/das as the article or a pronoun, sie "she" or "they", da "there" or "since", adverbs without an ending, sich
+  // after its verb … (de-context.ts).
+  context: germanContext,
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

@@ -24,7 +24,7 @@
  "// reviewers": "Hint overrides from the native reviewers of every entry with rank <= 2500 (2026-10-29). A verb's value is the whole hint field: \"main|reflexive\", or the main hint alone, which clears the reflexive one.",
  "che|determiner": "what",
  "MI|proper noun": "Milan",
- "ci|adverb": "there",
+ "ci|adverb": "there; about it",
  "mio|pronoun": "mine",
  "dovere|interjection": "my duty",
  "no|adverb": "no",
@@ -63,7 +63,7 @@
  "interessare|verb": "to interest",
  "squadra|noun": "team, squad",
  "arrivato|adjective": "arrived",
- "divertire|verb": "to amuse",
+ "divertire|verb": "to amuse|to have fun",
  "conto|noun": "account, bill",
  "sapete|verb": "you know",
  "quegli|pronoun": "those",
@@ -354,6 +354,178 @@
  "fare|verb": "to do, make",
  "appena|adverb": "just, as soon as",
  "quello|pronoun": "that, that one",
+ "// context": "Hints of the readings the context rules in src/lang/spaced/it-context.ts choose between (come \"like, as\" or \"how\", ci \"there\" or \"us\"), and words the books need that Wiktionary lacks or buries (2026-10-29).",
+ "come|conjunction": {
+  "hint": "like, as",
+  "gloss": "like, as (in a comparison: come un'anguilla \"like an eel\")"
+ },
+ "vi|adverb": "there",
+ "via|adverb": "away",
+ "via|interjection": {
+  "hint": "come on",
+  "gloss": "come on!, go on! (urging, or brushing something aside)"
+ },
+ "pure|adverb": "also; go ahead",
+ "pure|conjunction": "even though; yet",
+ "male|noun": "harm, pain",
+ "male|adverb": "badly",
+ "altro|pronoun": "another, something else",
+ "loro|pronoun": "they, them",
+ "lo|pronoun": "him, it",
+ "la|pronoun": "her, it",
+ "l'|pronoun": "him, her, it",
+ "gli|pronoun": "to him, to them",
+ "le|pronoun": "them; to her",
+ "intanto|adverb": "meanwhile",
+ "presto|adverb": "soon, quickly",
+ "quanto|adverb": "how, how much",
+ "uno|pronoun": "someone, one",
+ "colla|contraction": {
+  "hint": "with the",
+  "gloss": "with the",
+  "notes": [
+   "contraction of con + la"
+  ]
+ },
+ "colle|contraction": {
+  "hint": "with the",
+  "gloss": "with the",
+  "notes": [
+   "contraction of con + le"
+  ]
+ },
+ "cogli|contraction": {
+  "hint": "with the",
+  "gloss": "with the",
+  "notes": [
+   "contraction of con gli"
+  ]
+ },
+ "omino|noun": {
+  "hint": "little man",
+  "gloss": "little man",
+  "gender": "m"
+ },
+ "ei|pronoun": {
+  "hint": "he",
+  "gloss": "he (old form of egli)"
+ },
+ "eh|interjection": {
+  "hint": "eh",
+  "gloss": "eh; well (doubt, surprise, agreement)"
+ },
+ "ah|interjection": {
+  "hint": "ah",
+  "gloss": "ah! (surprise, pain, relief)"
+ },
+ "=accòrse": "noticed",
+ "=accòrsero": "noticed",
+ "ce|adverb": {
+  "hint": "there",
+  "gloss": "there (ci before lo, la, ne: ce n'era, ce l'ho)"
+ },
+ "tratto|noun": "stretch, moment; stroke",
+ "essa|pronoun": "she, it",
+ "accento|noun": "accent, tone",
+ "zampa|noun": "paw, leg",
+ "zappa|noun": "hoe",
+ "bambina|noun": "little girl",
+ "stringere|verb": "to clasp, squeeze|to draw close",
+ "gora|noun": "millpond",
+ "cava|noun": "quarry",
+ "lume|noun": "lamp, light",
+ "colla|noun": "glue",
+ "sospeso|adjective": "hanging, suspended",
+ "poltrona|noun": {
+  "hint": "armchair",
+  "gloss": "armchair"
+ },
+ "accennare|verb": "to hint, to gesture",
+ "affacciare|verb": "to show|to look out, appear",
+ "retta|noun": "heed, attention",
+ "solere|verb": "to be used to",
+ "ciuchino|noun": "little donkey",
+ "berretto|noun": "cap",
+ "quattrino|noun": "penny, coin",
+ "figliuola|noun": "daughter, girl",
+ "anellino|noun": {
+  "hint": "little ring",
+  "gloss": "little ring"
+ },
+ "vocina|noun": "little voice",
+ "tavoliere|noun": {
+  "hint": "gaming table",
+  "gloss": "gaming table, board"
+ },
+ "zampina|noun": {
+  "hint": "little paw",
+  "gloss": "little paw, little leg"
+ },
+ "figliuoli|noun": {
+  "hint": "sons, children",
+  "gloss": "sons, children (plural of figliuolo)",
+  "gender": "m"
+ },
+ "quantunque|conjunction": "although",
+ "monatto|noun": "plague corpse-carrier",
+ "solenne|adjective": "solemn",
+ "maritare|verb": "to marry off|to get married",
+ "patire|verb": "to suffer",
+ "sciara|noun": "lava field",
+ "rasciugare|verb": "to dry up",
+ "sicuro|adjective": "sure, safe",
+ "mettersi|verb": "to start, to put oneself",
+ "collera|noun": "anger",
+ "orecchia|noun": "ear",
+ "curato|noun": "parish priest",
+ "mai|adverb": "never, ever",
+ "corbello|noun": {
+  "hint": "basket",
+  "gloss": "basket, basketful"
+ },
+ "topi|noun": {
+  "hint": "mice",
+  "gloss": "mice (plural of topo)"
+ },
+ "san|noun": {
+  "hint": "saint",
+  "gloss": "Saint, before a name (san Martino, san Carlo)"
+ },
+ "=essi": "they, them",
+ "vite|noun": "vine; screw",
+ "intimo|noun": "inner self, depths",
+ "dotto|noun": "scholar",
+ "dare|verb": "to give|to devote oneself; to happen",
+ "que'|determiner": {
+  "hint": "those",
+  "gloss": "those (quei, before a noun: que' passi)"
+ },
+ "pe'|contraction": {
+  "hint": "for the",
+  "gloss": "for the (per i: pe' suoi commerci)"
+ },
+ "pel|contraction": {
+  "hint": "for the",
+  "gloss": "for the, by the (per il: pel capo)"
+ },
+ "sur|preposition": {
+  "hint": "on",
+  "gloss": "on (su before a vowel: sur un fondo)"
+ },
+ "par|verb": {
+  "hint": "seems",
+  "gloss": "seems (par is pare, from parere: mi par di vederli)"
+ },
+ "grida|noun": {
+  "hint": "proclamation, edict",
+  "gloss": "proclamation, edict (plural gride)",
+  "gender": "f"
+ },
+ "gride|noun": {
+  "hint": "proclamations, edicts",
+  "gloss": "proclamations, edicts (plural of grida)",
+  "gender": "f"
+ },
  "// phrases": "\"+phrase\": a fixed phrase of common words alone (por eso, потому что) that phrases.tsv.gz may list, with its hint; phrases with a rarer word (sin embargo) need no listing.",
  "+per favore": "please",
  "+invece di": "instead of",
@@ -364,5 +536,68 @@
  "+a un tratto": "suddenly",
  "+c'era una volta": "once upon a time",
  "+non più": "no longer",
- "+ancora una volta": "once again"
+ "+ancora una volta": "once again",
+ "+come se": "as if",
+ "+come mai": "how come",
+ "+per quanto": "however much",
+ "+pur troppo": "unfortunately",
+ "+pur di": "just to",
+ "+alla fine": "in the end",
+ "+del resto": "besides",
+ "+una volta": "once",
+ "+in fondo": "at the bottom; after all",
+ "+di nulla": "of nothing",
+ "+di cuore": "heartily",
+ "+altro mondo": "the next world",
+ "+a proposito": "by the way",
+ "+come si chiama": "what's it called",
+ "+bel paese": "fine country",
+ "+di punto in punto": "moment by moment",
+ "+in maniche di camicia": "in shirtsleeves",
+ "+figlio unico": "only child",
+ "+su per giù": "more or less",
+ "+più o meno": "more or less",
+ "+bene o male": "somehow",
+ "+al solito": "as usual",
+ "+cinque minuti": "five minutes",
+ "+mettere sul": "to put on",
+ "+stare a": "to stay",
+ "+in guardia": "on guard",
+ "+non se ne parla": "out of the question",
+ "+a denti stretti": "grudgingly",
+ "+chi va là": "who goes there?",
+ "+bagnato come un pulcino": "soaked to the skin",
+ "+padrona di casa": "landlady",
+ "+mettere insieme": "to put together",
+ "+a forza": "by force",
+ "+d'un tratto": "suddenly",
+ "+di tratto in tratto": "now and then",
+ "+qualche cosa": "something",
+ "+in libertà": "free, at liberty",
+ "+di sopra": "above",
+ "+di sotto": "below",
+ "+a mezzo": "halfway, half",
+ "+da capo": "again, from the start",
+ "+da capo a piedi": "from head to toe",
+ "+a capo": "at the head",
+ "+a capo basso": "with head bowed",
+ "+in capo a": "at the end of, within",
+ "+in capo al mondo": "to the ends of the earth",
+ "+in giro": "around",
+ "+a cuore": "to heart",
+ "+del caso": "of the case; of chance",
+ "+alla faccia": "to the face",
+ "+a monte": "upstream; called off",
+ "+presto o tardi": "sooner or later",
+ "+al più presto": "as soon as possible",
+ "+stringere il cuore": "to wring one's heart",
+ "+pensarci su": "to sleep on it",
+ "+farsi largo": "to make one's way",
+ "+porto di mare": "a busy, chaotic place",
+ "+alla meglio": "as best one can",
+ "+a mo' di": "by way of, like",
+ "+se mai": "if ever",
+ "+far sapere": "to let know",
+ "+di proposito": "on purpose",
+ "+s'intende": "of course"
 }

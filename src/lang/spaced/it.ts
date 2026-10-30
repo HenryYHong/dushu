@@ -2,6 +2,7 @@
 // the verb (dimmi, farlo, andarsene).
 import type { LangEngine } from '../types';
 import { loadSpacedEngine, stripAccents, type LoadOpts, type SpacedLang } from './core';
+import { italianContext } from './it-context';
 
 const CLITIC_START = /^(?:m|t|s|c|v|n|l)/;
 
@@ -11,13 +12,19 @@ export const ITALIAN: SpacedLang = {
   finalApostrophe: true,
   elisions: ["l'", "un'", "dell'", "all'", "dall'", "nell'", "sull'", "coll'", "quell'", "bell'", "sant'", "quest'", "d'", "c'",
     "m'", "t'", "s'", "v'", "n'", "gl'", "tutt'", "senz'", "com'", "dov'", "anch'", "cos'", "ch'", "mezz'", "buon'", "nessun'",
-    "qual'", "grand'", "pover'", "quand'", "ov'", "s'", "neanch'", "nemmen'"],
+    "qual'", "grand'", "pover'", "quand'", "ov'", "s'", "neanch'", "nemmen'",
+    // Pirandello's and Collodi's clipped words: "fors'anche", "diss'io", "mentr'egli", "quattr'anni", "mastr'Antonio",
+    // "nient'altro", "gliel'ho".
+    "fors'", "diss'", "mentr'", "quattr'", "altr'", "tant'", "quant'", "stess'", "nient'", "mastr'", "diciott'", "press'",
+    "poich'", "gliel'", "glien'", "mal'", "dev'", "trent'", "quarant'", "cinquant'"],
   enclitics: ['glielo', 'gliela', 'glieli', 'gliele', 'gliene', 'me', 'te', 'se', 'ce', 've', 'mi', 'ti', 'si', 'ci', 'vi',
     'ne', 'lo', 'la', 'li', 'le', 'gli'],
   encliticStems(stem, first) {
-    // farlo = far(e) + lo, porlo = por(re) + lo; dimmi = di' + mi and vattene = va' + te + ne double the pronoun's consonant.
+    // farlo = far(e) + lo, porlo = por(re) + lo; dimmi = di' + mi and vattene = va' + te + ne double the pronoun's consonant,
+    // after an order of one syllable only (di', da', fa', sta', va'): "i limiti angustissimi" is angusto's superlative, not
+    // angusti' + si + mi.
     const out = [stem, stem + 'e', stem + 're', stripAccents(stem)];
-    if (CLITIC_START.test(first) && stem.length >= 3 && stem.endsWith(first[0]) && stem[stem.length - 2] !== first[0]) {
+    if (CLITIC_START.test(first) && stem.length >= 3 && stem.length <= 4 && stem.endsWith(first[0]) && stem[stem.length - 2] !== first[0]) {
       const short = stem.slice(0, -1);
       out.push(short + "'", short, short.slice(0, -1) + stripAccents(short.slice(-1)) + "'");
       if (short === 'di') out.push('dì');
@@ -54,8 +61,11 @@ export const ITALIAN: SpacedLang = {
     questa: 'f', quella: 'f' },
   // "è arrivato un Pesce-cane" (Pinocchio) has arrived, not arrivato "successful"; ha letto, not letto "bed".
   auxiliaries: ['essere', 'avere'],
-  reflexive: { always: ['si'], ifPronominal: ['mi', 'ti', 'ci', 'vi'],
+  // Elided too: "Anche Papiano s'alzò per riaccendere il lanternino" stood up, not alzare's "to lift"; "m'accorsi".
+  reflexive: { always: ['si', "s'"], ifPronominal: ['mi', 'ti', 'ci', 'vi', "m'", "t'", "c'", "v'"],
     imperative: { ti: '(?<!formal )second-person singular [a-z ]*imperative', vi: '(?<!formal )second-person plural [a-z ]*imperative', ci: 'first-person plural [a-z ]*imperative', si: 'formal|third-person [a-z ]*imperative' } },
+  // come "like" or "how", ci "there" or "us", via "away" or the street, se ne andò, quella vocina …: it-context.ts.
+  context: italianContext,
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {

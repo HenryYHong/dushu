@@ -84,3 +84,53 @@ describe('German keys, levels and hints', () => {
     expect(de.meta.counts.entries).toBeGreaterThan(60000);
   });
 });
+
+describe('German spellings the dictionary has otherwise (de-spelling.ts, re-audit de-22)', () => {
+  it('read a participle or adjective with an ending the dictionary lists bare', async () => {
+    const de = await loadLang('de');
+    const beine = 'Er versuchte es wohl hundertmal, schloß die Augen, um die zappelnden Beine nicht sehen zu müssen.';
+    expect(tok(de, beine, 'zappelnden').key).toBe('zappeln');
+    expect(de.hint(tok(de, beine, 'zappelnden'))).toBe('to wriggle');
+    expect(tok(de, SAMSA, 'ungeheueren').key).toBe('ungeheuer');
+    // Die Verwandlung: the participle still reads as an adjective before its noun, and the noun after it as the noun.
+    const arme = 'Er eilte zu ihnen und suchte sie mit ausgebreiteten Armen in ihr Zimmer zu drängen.';
+    expect(tok(de, arme, 'ausgebreiteten').key).toBe('ausbreiten');
+    expect(tok(de, arme, 'Armen').key).toBe('Arm');
+  });
+
+  it('read the spelling before 1996 and a capital a line of verse gave', async () => {
+    const de = await loadLang('de');
+    expect(tok(de, 'Später rief sie: »Laßt mich doch zu Gregor, er ist ja mein unglücklicher Sohn!', 'Laßt').key).toBe('lassen');
+    expect(tok(de, 'Wußte Schneider Böck zu machen.', 'Wußte').key).toBe('wissen');
+    expect(tok(de, '»Leb wohl!« sagte er, »leb wohl, Elisabeth! Vergiß es nicht!«', 'Vergiß').key).toBe('vergessen');
+  });
+
+  it("read a separable verb's zu-infinitive as the verb, and its present participle with zu", async () => {
+    const de = await loadLang('de');
+    // Effi Briest: an altar rug "to be put together" from single squares.
+    const teppich = 'Beide waren fleißig bei der Arbeit, die der Herstellung eines aus Einzelquadraten zusammenzusetzenden Altarteppichs galt.';
+    expect(tok(de, teppich, 'zusammenzusetzenden').key).toBe('zusammensetzen');
+    expect(tok(de, 'durch die gegenüberstehende Tür trat er in einen kleinen Flur.', 'gegenüberstehende').key).toBe('gegenüberstehen');
+  });
+});
+
+describe('German hints of the re-audit (curated)', () => {
+  it('give a preposition its second common sense, and viel its plural and superlative', async () => {
+    const de = await loadLang('de');
+    const hint = (text: string, word: string, nth = 0): string | undefined => de.hint(tok(de, text, word, nth));
+    expect(hint('»Nach Indien, nach Indien!« sang er und schwenkte sich mit ihr im Kreise.', 'nach')).toBe('after; to');
+    expect(hint('Wir sprachen gestern abend, als du weggegangen warst, noch lange über dich.', 'über')).toBe('over; about');
+    expect(hint('statt dessen aber hatte er nur die vielen Beinchen, die ununterbrochen in der verschiedensten Bewegung waren.', 'vielen')).toBe('many');
+    expect(hint('Es waren lauter Verse, die meisten füllten höchstens eine Seite.', 'meisten')).toBe('most');
+    expect(hint('Aber du sagtest doch, er sei Landrat.', 'Landrat')).toBe('district administrator');
+  });
+
+  it('read the phrases the books have', async () => {
+    const de = await loadLang('de');
+    const hint = (text: string, word: string, nth = 0): string | undefined => de.hint(tok(de, text, word, nth));
+    expect(hint('Jetzt nur still und schnell nach Haus,', 'Haus')).toBe('home');
+    expect(hint('Aber Reinhard verlor alle Aufmerksamkeit; statt dessen verfaßte er ein langes Gedicht.', 'dessen')).toBe('instead');
+    expect(hint('die ganze Zeit über zitterte er unter dem Kanapee.', 'über')).toBe('all the while');
+    expect(hint('»Hm,« sagte er, »ich kann den gelben Vogel nicht leiden.«', 'leiden')).toBe("can't stand");
+  });
+});

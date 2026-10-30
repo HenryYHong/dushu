@@ -16,12 +16,18 @@
  "por|preposition": "for, by",
  "para|preposition": "for, to",
  "que|conjunction": "that",
- "que|pronoun": "that, which",
+ "que|pronoun": "which, who, that",
  "lo|pronoun": "it, him",
  "la|pronoun": "her, it",
  "le|pronoun": "to him, to her",
- "les|pronoun": "to them",
- "los|pronoun": "them",
+ "les|pronoun": {
+  "hint": "to them",
+  "gloss": "(to, for) them; (to, for) you (formal plural)"
+ },
+ "los|pronoun": {
+  "hint": "them",
+  "gloss": "them (masculine or mixed); you (formal plural)"
+ },
  "las|pronoun": "them",
  "se|pronoun": "oneself",
  "me|pronoun": "me, myself",
@@ -96,7 +102,7 @@
  "seguir|verb": "to follow, continue",
  "señor|noun": "sir, gentleman",
  "ya|conjunction": "now... now",
- "solo|adjective": "alone",
+ "solo|adjective": "alone, single",
  "favor|noun": "favor",
  "quedar|verb": "to remain, stay",
  "amigo|interjection": "aha!",
@@ -245,7 +251,7 @@
  "extra|adjective": "extra",
  "inútil|noun": "good-for-nothing",
  "marcar|verb": "to mark",
- "colocar|verb": "to place|to get a job",
+ "colocar|verb": "to place|to take one's place",
  "sabio|noun": "sage, wise man",
  "confundir|verb": "to confuse",
  "mentiroso|adjective": "lying, deceitful",
@@ -266,7 +272,7 @@
  "personaje|noun": "character",
  "vaso|noun": "glass",
  "corriente|adjective": "common, ordinary",
- "les|article": "to them",
+ "les|article": "the (gender-neutral)",
  "milla|noun": "mile",
  "aprovechar|verb": "to make use of|to take advantage",
  "resistir|verb": "to resist",
@@ -413,5 +419,224 @@
  "+sin duda": "no doubt",
  "+en cuanto": "as soon as",
  "+de todos modos": "anyway",
- "+por supuesto": "of course"
+ "+por supuesto": "of course",
+ "// stage 2": "Native read of Cuentos de la selva, Marianela and Platero y yo (2026-10-29), after the context rules in es-context.ts: hints the books showed wrong, reflexive hints that fit how the verb is used with se, and phrase hints that fit the literal use the books make of them.",
+ "replicar|verb": "to reply, retort",
+ "=repuso": "replied",
+ "flamenco|noun": "flamingo; Fleming",
+ "coral|noun": "coral; chorale",
+ "colorado|adjective": "red, colored",
+ "señorito|noun": "young master",
+ "joven|noun": "young person",
+ "dorado|noun": "dorado (river fish)",
+ "rico|adjective": "rich; tasty",
+ "medias|noun": "stockings",
+ "tendido|adjective": "lying, stretched out",
+ "malo|noun": "bad one, villain",
+ "tigra|noun": {
+  "hint": "tigress",
+  "gloss": "tigress (female tiger or jaguar)",
+  "gender": "f"
+ },
+ "ir|verb": "to go|to go away",
+ "levantar|verb": "to lift|to get up",
+ "curar|verb": "to cure|to get better",
+ "poner|verb": "to put|to start, become, put on",
+ "echar|verb": "to throw|to throw oneself, start to",
+ "volver|verb": "to return|to turn around, become",
+ "ver|verb": "to see",
+ "oír|verb": "to hear",
+ "decir|verb": "to say",
+ "morir|verb": "to die",
+ "buscar|verb": "to seek",
+ "tragar|verb": "to swallow",
+ "arreglar|verb": "to fix|to work out, get ready",
+ "alumbrar|verb": "to illuminate|to light up",
+ "dirigir|verb": "to direct|to head for",
+ "+lo que": "what, that which",
+ "+en seguida": "at once",
+ "+en medio": "in the middle",
+ "+de la tierra": "of the earth",
+ "+un momento": "a moment",
+ "+dentro de": "inside, within",
+ "+frente a": "facing, in front of",
+ "+en el fondo": "at the bottom; deep down",
+ "+de la mano": "by the hand, of the hand",
+ "+en absoluto": "absolutely, (not) at all",
+ "+en pie": "standing, on one's feet",
+ "+al aire": "into the air",
+ "+de miedo": "of fear",
+ "+a la luz de": "by the light of",
+ "+por el suelo": "along the ground",
+ "+a ellas": "to them",
+ "+a matar": "to kill",
+ "+de espaldas": "on one's back, from behind",
+ "+pedazo de pan": "piece of bread",
+ "+de gracia": "of grace",
+ "+por la cara": "down the face",
+ "+quedarse dormido": "to fall asleep",
+ "+se come": "one eats",
+ "+de boca": "of the mouth",
+ "+abajo de": "below",
+ "+de un vuelo": "in one flight",
+ "+en tiempos": "in times past",
+ "+hasta cierto punto": "to some extent",
+ "+hasta los ojos": "up to the eyes",
+ "+a cien": "at a hundred",
+ "+de pena": "of grief; awfully",
+ "+de pies a cabeza": "from head to toe",
+ "+música popular": "folk music",
+ "+vuelta al mundo": "trip around the world",
+ "+en plata": "into money; plainly",
+ "+solamente que": "only, except that",
+ "+buen rato": "a good while",
+ "+poca cosa": "little, a small thing",
+ "+como un rayo": "like lightning",
+ "+como un tiro": "like a shot",
+ "+ayuda de cámara": "valet",
+ "+hacer caso": "to heed",
+ "+a la hora de": "at the time of",
+ "+en tierra": "on the ground",
+ "+en punta": "pointed, on end",
+ "+a la cabeza": "to the head; at the head",
+ "+a un lado": "aside",
+ "+del brazo": "by the arm",
+ "+no creas": "don't think",
+ "+digo yo": "I say",
+ "+quieras que no": "like it or not",
+ "+cada hijo de vecino": "everyone",
+ "+de voluntad": "of will",
+ "+tomar la palabra": "to take the floor",
+ "+a maravilla": "marvelously",
+ "+por si acaso": "just in case",
+ "+para abajo": "downward",
+ "+dejar pasar": "to let pass",
+ "+hasta mañana": "until tomorrow",
+ "+en primer lugar": "in the first place",
+ "+a cambio de": "in exchange for",
+ "+de lejos": "from afar",
+ "+al rato": "a while later",
+ "+unos cuantos": "a few",
+ "+cosa de": "a matter of; about",
+ "+parece mentira": "it's hard to believe",
+ "+pues bien": "well then",
+ "+al hombro": "on one's shoulder",
+ "// stage 3": "Native re-audit of Cuentos de la selva, Marianela, Platero y yo, the Lazarillo and El sombrero de tres picos (2026-10-29): words whose first sense or first section is not the one these books mean (raya the stingray of El paso del Yabebirí, the Lazarillo's bread arca, es preciso), clippings and diminutives the build reads as another word (la señá Frasquita, lorito, pajaritos), the apocopic mal before a noun (el mal ciego), and phrase hints cut short or matched where the words are literal.",
+ "señá|noun": {
+  "hint": "Mrs.",
+  "gloss": "Mrs., missus (clipping of señora, before a woman's name)",
+  "gender": "f"
+ },
+ "mal|adjective": {
+  "hint": "bad",
+  "gloss": "bad",
+  "notes": [
+   "before a masculine singular noun"
+  ]
+ },
+ "lorito|noun": {
+  "hint": "little parrot",
+  "gloss": "little parrot (diminutive of loro)"
+ },
+ "pajarito|noun": {
+  "hint": "little bird",
+  "gloss": "little bird (diminutive of pájaro)"
+ },
+ "amiguito|noun": {
+  "hint": "little friend",
+  "gloss": "little friend, pal (diminutive of amigo)"
+ },
+ "moza|noun": {
+  "hint": "girl, young woman",
+  "gloss": "girl, young woman; maidservant",
+  "gender": "f"
+ },
+ "gama|noun": {
+  "hint": "doe; range",
+  "gloss": "doe (female fallow deer)"
+ },
+ "pobrecita|noun": {
+  "hint": "poor thing",
+  "gloss": "poor little thing (of a girl or woman)"
+ },
+ "pobrecilla|noun": {
+  "hint": "poor thing",
+  "gloss": "poor little thing (of a girl or woman)"
+ },
+ "chiquilla|noun": {
+  "hint": "little girl",
+  "gloss": "little girl, young girl"
+ },
+ "tontuela|noun": {
+  "hint": "silly girl",
+  "gloss": "silly girl, little goose"
+ },
+ "jovenzuela|noun": {
+  "hint": "young girl",
+  "gloss": "young girl, lass"
+ },
+ "biznieta|noun": {
+  "hint": "great-granddaughter",
+  "gloss": "great-granddaughter"
+ },
+ "raya|noun": "line; stingray",
+ "barro|noun": "mud, clay",
+ "preciso|adjective": "necessary; precise",
+ "arca|noun": "chest, ark",
+ "discreto|adjective": "discreet, sensible",
+ "encendido|adjective": "lit, glowing",
+ "cuadra|noun": "stable; city block",
+ "lazarillo|noun": "guide (for the blind)",
+ "mesón|noun": "inn",
+ "muñeca|noun": "doll; wrist",
+ "moguereño|adjective": "of Moguer",
+ "canario|adjective": "Canarian",
+ "maragato|adjective": "of La Maragatería",
+ "guayaquileño|adjective": "of Guayaquil",
+ "alpujarreño|adjective": "of Las Alpujarras",
+ "laceria|noun": {
+  "hint": "misery, want",
+  "gloss": "misery, wretchedness, want",
+  "notes": [
+   "archaic"
+  ],
+  "gender": "f"
+ },
+ "humero|noun": {
+  "hint": "chimney flue",
+  "gloss": "chimney flue, smoke duct",
+  "gender": "m"
+ },
+ "+más o menos": "more or less",
+ "+de mal en peor": "from bad to worse",
+ "+ir a la par": "to go hand in hand",
+ "+por cumplir": "out of duty",
+ "+de vez en cuando": "from time to time",
+ "+que sepa": "that one may know",
+ "+y tanto": "and so much",
+ "+se acabó": "it's over",
+ "+a mandar": "to order",
+ "+en el armario": "in the cupboard",
+ "dellas|contraction": {
+  "hint": "of them",
+  "gloss": "of them, from them (de + ellas)",
+  "notes": [
+   "obsolete"
+  ]
+ },
+ "dello|contraction": {
+  "hint": "of it",
+  "gloss": "of it, from it (de + ello)",
+  "notes": [
+   "obsolete"
+  ]
+ },
+ "destas|contraction": {
+  "hint": "of these",
+  "gloss": "of these, from these (de + estas)",
+  "notes": [
+   "obsolete"
+  ]
+ },
+ "basta|interjection": "enough!"
 }

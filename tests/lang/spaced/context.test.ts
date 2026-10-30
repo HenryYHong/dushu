@@ -25,8 +25,12 @@ const enRule: ContextRule = (q) => {
 
 describe('a language context rule', () => {
   it('chooses among a word’s readings: "et qu’elle en mourrait" is en "of it", not "in"', async () => {
-    const plain = await loadLang('fr');
+    // The generic rules alone (French without its own rules) read the preposition; French's rules (fr-context.ts) and the
+    // demonstration rule here both read the pronoun.
+    const plain = await loadCustom({ ...FRENCH, context: undefined });
     expect(plain.hint(tok(plain, PERRAULT, 'en', 1))).toBe('in');
+    const shipped = await loadLang('fr');
+    expect(shipped.hint(tok(shipped, PERRAULT, 'en', 1))).toBe('of it, some');
     const eng = await loadCustom({ ...FRENCH, context: enRule });
     expect(eng.hint(tok(eng, PERRAULT, 'en', 1))).toBe('of it, some');
     expect(lookupIn(eng, PERRAULT, 'en', 1).entries[0].senses[0].pos).toBe('pronoun');
@@ -60,9 +64,11 @@ describe('a language context rule', () => {
   });
 
   it('can say "yes" for да before a comma, where the generic rules keep the conjunction', async () => {
-    const plain = await loadLang('ru');
+    const plain = await loadCustom({ ...RUSSIAN, context: undefined });
     // The conjunction's hint (the native reviewers': conjunctive да is "and" at least as often as "but").
     expect(plain.hint(tok(plain, '— Да, вы наймите у нас.', 'Да'))).toBe('and, but');
+    const shipped = await loadLang('ru');
+    expect(shipped.hint(tok(shipped, '— Да, вы наймите у нас.', 'Да'))).toBe('yes');
     const eng = await loadCustom({
       ...RUSSIAN,
       context: (q) => (q.word.low === 'да' && /^[,!]/.test(q.word.after) ? { prefer: (r) => r.hint === 'yes', margin: Infinity } : null),
@@ -75,8 +81,10 @@ describe('a language context rule', () => {
   it('decides whether a verb is reflexive: "Er erinnerte sich" remembered, not reminded', async () => {
     // Die Verwandlung. German puts sich after the verb, where the generic rule does not look.
     const text = 'Er erinnerte sich, schon öfters im Bett irgendeinen vielleicht durch ungeschicktes Liegen erzeugten, leichten Schmerz empfunden zu haben.';
-    const plain = await loadLang('de');
+    const plain = await loadCustom({ ...GERMAN, context: undefined });
     expect(plain.hint(tok(plain, text, 'erinnerte'))).toBe('to remind');
+    const shipped = await loadLang('de');
+    expect(shipped.hint(tok(shipped, text, 'erinnerte'))).toBe('to remember');
     const eng = await loadCustom({
       ...GERMAN,
       context: (q) => (q.word.readings[0]?.pos === 'verb' && q.next?.low === 'sich' ? { prefer: () => true, margin: 0, reflexive: true } : null),

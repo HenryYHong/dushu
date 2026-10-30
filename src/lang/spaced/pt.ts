@@ -2,15 +2,8 @@
 // nouns from verbs.
 import type { LangEngine } from '../types';
 import { loadSpacedEngine, stripAccents, type LoadOpts, type SpacedLang } from './core';
-
-/**
- * Portuguese as spelled before the reforms of 1911 and 1943, the way the 1899 Dom Casmurro has it: doubled consonants
- * (cabellos, aggregado, metter), ph th y (phrase, theatro, typo), ct (acto, projecto), cç (acção), and veiu for veio.
- */
-function oldSpelling(f: string): string {
-  return f.replace(/([bcdfglmnptv])\1/g, '$1').replace(/ph/g, 'f').replace(/th/g, 't').replace(/y/g, 'i')
-    .replace(/c(?=[tç])/g, '').replace(/eiu$/, 'eio').replace(/'/g, '');
-}
+import { portugueseContext } from './pt-context';
+import { oldSpelling, respellings } from './pt-spelling';
 
 export const PORTUGUESE: SpacedLang = {
   id: 'pt',
@@ -27,24 +20,18 @@ export const PORTUGUESE: SpacedLang = {
     const out = [stem, plain];
     if (/^l[oa]s?$/.test(first)) out.push(plain + 'r', stem + 'r', plain + 'z', plain + 's');
     if (/^[oa]s?$/.test(first) && plain.endsWith('l') && plain.length >= 2) {
-      const b = plain.slice(0, -1);
-      for (const v of new Set([b, oldSpelling(b)])) out.push(v + 'r', v + 'z', v + 's');
-    }
-    if (first === 'nos') out.push(stem + 's');
-    return [...new Set(out)];
-  },
-  respell(f) {
-    const out = [oldSpelling(f)];
-    // visinho is vizinho, quizesse quisesse: s and z between vowels, one or the other.
-    for (const w of new Set([out[0], f])) {
-      for (let i = 1; i < w.length - 1; i++) {
-        if ((w[i] === 's' || w[i] === 'z') && /[aeiouáéíóúâêôãõ]/.test(w[i - 1]) && /[aeiouáéíóúâêôãõ]/.test(w[i + 1])) {
-          out.push(w.slice(0, i) + (w[i] === 's' ? 'z' : 's') + w.slice(i + 1));
-        }
+      // With its cedilla kept: "abraçal-o" is abraçar.
+      for (const b of new Set([stem.slice(0, -1), plain.slice(0, -1)])) {
+        for (const v of new Set([b, oldSpelling(b)])) out.push(v + 'r', v + 'z', v + 's');
       }
     }
+    if (first === 'nos') out.push(stem + 's');
+    // The verb in its old spelling, last: "approximou-se", "annunciou-me", "propoz-me" are aproximou, anunciou, propôs.
+    out.push(...respellings(plain));
     return [...new Set(out)];
   },
+  // Machado's 1899 spelling (pt-spelling.ts): cabellos cabelos, visinho vizinho, signaes sinais, comnosco conosco.
+  respell: respellings,
   beforeNoun: ['um', 'uma', 'uns', 'umas', 'do', 'da', 'dos', 'das', 'ao', 'aos', 'à', 'às', 'pelo', 'pela', 'pelos', 'pelas',
     'num', 'numa', 'meu', 'minha', 'meus', 'minhas', 'teu', 'tua', 'teus', 'tuas', 'seu', 'sua', 'seus', 'suas', 'nosso',
     'nossa', 'nossos', 'nossas', 'este', 'esta', 'estes', 'estas', 'esse', 'essa', 'esses', 'essas', 'aquele', 'aquela',
@@ -64,6 +51,8 @@ export const PORTUGUESE: SpacedLang = {
   auxiliaries: ['ter', 'haver'],
   reflexive: { always: ['se'], ifPronominal: ['me', 'te', 'nos', 'vos'],
     imperative: { te: '(?<!formal )second-person singular [a-z ]*imperative', vos: '(?<!formal )second-person plural [a-z ]*imperative', nos: 'first-person plural [a-z ]*imperative', se: 'third-person [a-z ]*imperative' } },
+  // que, se, nos, a before an infinitive, foi (ser or ir) and the rest that turn on their neighbors: pt-context.ts.
+  context: portugueseContext,
 };
 
 export function loadEngine(baseUrl: string, opts?: LoadOpts): Promise<LangEngine> {
