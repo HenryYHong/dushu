@@ -102,6 +102,15 @@ function closeMenu(): void { disposeMenu?.(); disposeMenu = null; }
 
 // ------------------------------------------------------------------ mount ---
 
+/** The levels of the classics, easiest first. The index files say Beginner, Intermediate or Advanced (public/samples). */
+const LEVELS = [
+  { key: 'easy', name: 'Easy', note: 'Short and plain: a good first book' },
+  { key: 'intermediate', name: 'Intermediate', note: 'Stories for grown-up readers' },
+  { key: 'advanced', name: 'Advanced', note: 'Novels and older, richer language' },
+] as const;
+type LevelKey = (typeof LEVELS)[number]['key'];
+const levelOf = (s: Sample): LevelKey => (/^(beginner|easy)/i.test(s.level ?? '') ? 'easy' : /^intermediate/i.test(s.level ?? '') ? 'intermediate' : 'advanced');
+
 export const mount: MountFn = (root, _params, ctx) => {
   const { store } = ctx;
   let alive = true;
@@ -359,15 +368,25 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(samplesEl);
     if (!loaded || !samples.length) return;
     const have = new Map(books.filter((b) => b.sourceName?.startsWith('sample:')).map((b) => [b.sourceName!, b]));
-    const loose = samples.filter((s) => !s.group);
-    const groups = new Map<string, Sample[]>();
-    for (const s of samples) if (s.group) groups.set(s.group, [...(groups.get(s.group) ?? []), s]);
+    const card = (s: Sample) => sampleCard(s, have.get(sampleSourceName(s.id)));
 
     samplesEl.appendChild(h('h2.lib-samples-title', null, 'Start with a classic'));
-    if (loose.length) samplesEl.appendChild(h('div.lib-sample-grid', null, loose.map((s) => sampleCard(s, have.get(sampleSourceName(s.id))))));
-    for (const [name, list] of groups) {
-      samplesEl.appendChild(h('h3.lib-sample-group', null, name));
-      samplesEl.appendChild(h('div.lib-sample-grid', null, list.map((s) => sampleCard(s, have.get(sampleSourceName(s.id))))));
+    // By level, easiest first, so a reader picks a first book by how hard it is; a named set (the four great novels) stays
+    // together inside its level.
+    for (const level of LEVELS) {
+      const here = samples.filter((s) => levelOf(s) === level.key);
+      if (!here.length) continue;
+      const section = h('section.lib-level', { 'data-level': level.key, 'aria-label': `${level.name} books` },
+        h('h3.lib-level-title', null, h('span.lib-level-name', null, level.name), h('span.lib-level-note', null, level.note)));
+      const loose = here.filter((s) => !s.group);
+      if (loose.length) section.appendChild(h('div.lib-sample-grid', null, loose.map(card)));
+      const groups = new Map<string, Sample[]>();
+      for (const s of here) if (s.group) groups.set(s.group, [...(groups.get(s.group) ?? []), s]);
+      for (const [name, list] of groups) {
+        section.appendChild(h('h4.lib-sample-group', null, name));
+        section.appendChild(h('div.lib-sample-grid', null, list.map(card)));
+      }
+      samplesEl.appendChild(section);
     }
   }
 
@@ -392,11 +411,12 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('div.lib-sample-cover', null, existing ? bookCover(existing, store, 'sm', ctx.settings.get().covers, sampleLabel(s)) : sampleCoverEl(s)),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
-          h('div.lib-sample-title.zh', null, sampleShown(s, 'title'))),
+          h('div.lib-sample-title.zh', null, sampleShown(s, 'title')),
+          h('span.lib-level-badge', { 'data-level': levelOf(s) }, LEVELS.find((l) => l.key === levelOf(s))!.name)),
         s.author ? h('div.lib-sample-author', null, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-sample-blurb', null, s.blurb) : null,
         h('div.lib-sample-foot', null,
-          h('span.muted.lib-sample-size', null, existing ? 'In your library' : [s.level, size].filter(Boolean).join(' · ')),
+          h('span.muted.lib-sample-size', null, existing ? 'In your library' : size),
           go)));
   }
 
