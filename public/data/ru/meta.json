@@ -1,16 +1,16 @@
 {
  "lang": "ru",
- "built": "2026-10-29",
+ "built": "2026-10-30",
  "counts": {
-  "entries": 56550,
-  "keys": 54094,
-  "forms": 614705,
-  "rules": 13408,
-  "paradigms": 9017,
-  "descriptions": 924,
-  "ranked": 39693,
-  "senses": 84282,
-  "priors": 5938
+  "entries": 56574,
+  "keys": 54118,
+  "forms": 948994,
+  "rules": 24191,
+  "paradigms": 10862,
+  "descriptions": 1263,
+  "ranked": 39573,
+  "senses": 84326,
+  "priors": 5789
  },
  "sources": [
   {

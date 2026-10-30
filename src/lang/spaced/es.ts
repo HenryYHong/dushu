@@ -41,6 +41,8 @@ export const SPANISH: SpacedLang = {
   // Only verbs the subtitles show mostly reflexive read so: se dio prisa is "hurried", not dar's "to hit oneself".
   // se on an infinitive or gerund is the verb's own (levantarse "to get up"); before a finite verb it may be impersonal.
   reflexive: { always: [], ifPronominal: ['se', 'me', 'te', 'nos', 'os'], joined: ['se'], infinitive: (key) => key + 'se',
+    persons: { me: 'first-person singular', te: 'second-person singular', se: 'third-person', nos: 'first-person plural',
+      os: 'second-person plural' },
     imperative: { te: '(?<!formal )second-person singular [a-z ]*imperative', os: '(?<!formal )second-person plural [a-z ]*imperative', nos: 'first-person plural [a-z ]*imperative', se: 'formal|third-person [a-z ]*imperative' } },
   // Quiroga's printers drop the accent of Él at a sentence start: "El creía que estaba siempre en la ramada".
   capitalAccent: { El: 'él' },

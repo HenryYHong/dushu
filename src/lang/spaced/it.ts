@@ -65,6 +65,9 @@ export const ITALIAN: SpacedLang = {
   // A phrase of a pronominal verb is spelled with its infinitive: farsi coraggio, porsi in salvo.
   reflexive: { always: ['si', "s'"], ifPronominal: ['mi', 'ti', 'ci', 'vi', "m'", "t'", "c'", "v'"],
     infinitive: (key) => (key.endsWith('rre') ? key.slice(0, -2) : key.slice(0, -1)) + 'si',
+    persons: { mi: 'first-person singular', "m'": 'first-person singular', ti: 'second-person singular', "t'": 'second-person singular',
+      si: 'third-person', "s'": 'third-person', ci: 'first-person plural', "c'": 'first-person plural', vi: 'second-person plural',
+      "v'": 'second-person plural' },
     imperative: { ti: '(?<!formal )second-person singular [a-z ]*imperative', vi: '(?<!formal )second-person plural [a-z ]*imperative', ci: 'first-person plural [a-z ]*imperative', si: 'formal|third-person [a-z ]*imperative' } },
   // come "like" or "how", ci "there" or "us", via "away" or the street, se ne andò, quella vocina …: it-context.ts.
   context: italianContext,

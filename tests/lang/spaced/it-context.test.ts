@@ -97,7 +97,8 @@ describe('Italian via, se, loro, demonstratives', () => {
 describe('Italian words read by the word before or after', () => {
   it('reads male, pure, fin, bisogna, presto, circa, intanto, prima, piuttosto, cosa where they stand', async () => {
     const it_ = await loadLang('it');
-    expect(read(it_, '— Ohi! tu m’hai fatto male! — gridò rammaricandosi la solita vocina.', 'male').hint).toBe('harm, pain');
+    // fare male "to hurt" is a phrase of its own (curated it.json): "tu m'hai fatto male" is "you hurt me".
+    expect(read(it_, '— Ohi! tu m’hai fatto male! — gridò rammaricandosi la solita vocina.', 'male').hint).toBe('to hurt');
     expect(read(it_, '— Povero Merlo! — disse Pinocchio al Gatto — perchè l’hai trattato così male?', 'male').hint).toBe('badly');
     // After an order "go ahead", elsewhere "also".
     expect(read(it_, '— Passate pure, — disse il falegname, senza aver la forza di rizzarsi in piedi.', 'pure')).toMatchObject({ pos: 'adverb', hint: 'go ahead' });

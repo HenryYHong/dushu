@@ -164,9 +164,15 @@ function adjectival(w: ContextWord | undefined): boolean {
   if (!w.readings.length) return ENDING.test(w.low);
   // ein, eine open a noun phrase of their own: "die noch ein Kind war" is a relative clause.
   if (w.readings[0].pos === 'article') return false;
-  return w.readings.some((r) => r.pos === 'numeral' || ((r.pos === 'adjective' || isParticiple(r)) && attributive(r, w.low))
+  return w.readings.some((r) => r.pos === 'numeral' || ((r.pos === 'adjective' || isParticiple(r) || declinedVerb(r)) && attributive(r, w.low))
     || (['determiner', 'pronoun', 'adverb'].includes(r.pos) && AFTER_ARTICLE.has(r.key)));
 }
+
+/**
+ * A verb's form declined like an adjective, its case named: a present participle the builder declines ("in der
+ * überfließenden Fülle", Werther, is überfließen's "genitive … singular"), between an article and its noun.
+ */
+const declinedVerb = (r: ContextReading): boolean => r.pos === 'verb' && /\b(?:nominative|accusative|dative|genitive)\b/.test(r.form);
 
 /**
  * An adjective or participle form that can stand before a noun: inflected (zappelnden, gekreuzten) or a headword in -e
@@ -182,6 +188,9 @@ function attributive(r: ContextReading, low: string): boolean {
   if (r.form === '') return r.pos === 'adjective' && low.endsWith('e');
   // A comparative with its own ending: "auf den höheren Teilen der Möbel".
   if (r.form === 'comparative') return /er(?:e|en|em|er|es)$/.test(low);
+  // An old spelling with its ending, which the dictionary describes as a spelling only: "Sie hat die goldnen Augen"
+  // (Immensee), "dem düstern Kabinette" (Werther).
+  if (r.pos === 'adjective' && /^(?:alternative|dated|archaic|obsolete)\b/.test(r.form) && /(?:en|nen|ern|rn|ln)$/.test(low)) return true;
   return /\b(?:nominative|accusative|dative|genitive|inflected|strong|weak|mixed|plural|singular|superlative|feminine|masculine|neuter)\b/.test(r.form);
 }
 
@@ -369,7 +378,24 @@ const prefer = (f: (r: ContextReading) => boolean, margin = DECIDE): ContextChoi
 function politeSentence(q: ContextQuery): boolean {
   const courtesy = ['sie', 'ihnen', 'ihr', 'ihre', 'ihrem', 'ihren', 'ihrer', 'ihres'];
   if (q.words.some((w, j) => j > 0 && j !== q.at && isCap(w) && courtesy.includes(w.low))) return true;
-  return q.earlier.some((w) => isCap(w) && courtesy.includes(w.low) && (w.chosen?.key === 'Sie' || w.chosen?.key === 'Ihr'));
+  // The sentences before count only inside one speech, still open where this sentence starts: "»Mutter?« rief die Schwester
+  // von der anderen Seite. Sie verständigten sich durch Gregors Zimmer." (Die Verwandlung) is narration, "they".
+  // A paragraph with no quotes at all is one speaker's, as the Prokurist's "Schonen Sie meine Eltern! … Sie haben vielleicht".
+  let open = true;
+  let polite = false;
+  const marks = (text: string): void => {
+    for (const ch of text) {
+      if ('»„'.includes(ch)) { open = true; polite = false; }
+      else if ('«“'.includes(ch)) { open = false; polite = false; }
+    }
+  };
+  for (const w of q.earlier) {
+    marks(w.before);
+    if (open && isCap(w) && courtesy.includes(w.low) && (w.chosen?.key === 'Sie' || w.chosen?.key === 'Ihr')) polite = true;
+  }
+  if (q.earlier.length) marks(q.earlier[q.earlier.length - 1].after);
+  marks(q.words[0]?.before ?? '');
+  return open && polite;
 }
 
 /**

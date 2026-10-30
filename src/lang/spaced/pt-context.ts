@@ -250,6 +250,64 @@ function compared(q: ContextQuery): number {
   return -1;
 }
 
+/**
+ * A comparative a few words back in que's clause that compares nothing with what que brings: the superlative, whose que is
+ * the relative ("Era o melhor que podia fazer", "o homem mais probo que conheci", "um dos melhores que", Memórias
+ * póstumas); "por mais preparado que estivesse", however prepared; and a comparative before a clause of its own, whose que
+ * is "that" ("É melhor que te vás embora...", "Ouvi mais tarde que casara", Os Maias). Not do que, which compares a clause
+ * too: "menos magros do que se poderiam supor" (Missa do Galo).
+ */
+function notCompared(q: ContextQuery): Choice | undefined {
+  const P = q.words[q.at - 1];
+  if (!P || P.low === 'do' || P.low === 'da') return undefined;
+  let noun = false;
+  for (let i = q.at - 1, n = 0; i >= 0 && n < 5; i--, n++) {
+    const w = q.words[i];
+    if (q.words[i + 1].before || w.low === 'que') return undefined;
+    if (!MORE_LESS.has(w.low)) {
+      noun ||= posOf(w) === 'noun' || w.name;
+      continue;
+    }
+    const before = w.before ? undefined : q.words[i - 1];
+    if (before && (DEFINITE.has(before.low) || ['article', 'contraction'].includes(posOf(before)))) return PRON;
+    // After a noun with its article, the superlative's relative only before a clause: "o homem mais probo que conheci", but
+    // "com a côr mais pallida que de costume" (Dom Casmurro) is paler than usual.
+    if (before && posOf(before) === 'noun' && !before.before && DEFINITE.has(q.words[i - 2]?.low ?? '')) return clauseAfter(q) ? PRON : undefined;
+    // Past a noun the clause is about it, the relative's, which the rules after decide: "não faria mais promessas que não
+    // pudesse pagar".
+    if (before?.low === 'por' || (!noun && clauseAfter(q))) return CONJ;
+    return undefined;
+  }
+  return undefined;
+}
+
+/** Articles, contractions and possessives that make a superlative of the mais after them: "o melhor que podia fazer". */
+const DEFINITE = new Set(['o', 'a', 'os', 'as', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'ao', 'aos', 'á', 'à',
+  'ás', 'às', 'pelo', 'pela', 'pelos', 'pelas', 'meu', 'minha', 'meus', 'minhas', 'teu', 'tua', 'seu', 'sua', 'seus', 'suas',
+  'nosso', 'nossa']);
+
+/**
+ * que opens a clause of its own, its verb right after it or past its pronouns, não or a subject: "É melhor que te vás
+ * embora...", "Ouvi mais tarde que casara", "não é menos certo que…". A comparison's que has what is compared after it,
+ * a noun or a pronoun ("mais bonitos que os meus", "melhor que a ama").
+ */
+function clauseAfter(q: ContextQuery): boolean {
+  for (let i = q.at + 1; i < q.words.length && i <= q.at + 4; i++) {
+    const w = q.words[i];
+    if (w.before) return false;
+    if (CLITICS.has(w.low) && !['o', 'a', 'os', 'as'].includes(w.low)) continue;
+    if (w.low === 'não' || SUBJECTS.has(keyOf(w))) continue;
+    // o, a before what can only be a verb, not before what can be a noun: "que o fizesse", but "era melhor que a ama".
+    if (['o', 'a', 'os', 'as'].includes(w.low)) {
+      const N = q.words[i + 1];
+      if (N && !N.before && near(N).some(isFiniteVerb) && !nounReadings(N).length) continue;
+      return false;
+    }
+    return near(w).some(isFiniteVerb) && w.readings[0]?.pos === 'verb';
+  }
+  return false;
+}
+
 /** Told to someone: a telling verb, a or ao, and the person (and their article or adjectives) right before que. */
 function toldTo(q: ContextQuery): boolean {
   for (let i = q.at - 1, n = 0; i > 0 && n < 4; i--, n++) {
@@ -298,6 +356,8 @@ function que(q: ContextQuery): Choice {
   // After a verb, what is said, thought or seen, and the cleft "é que": "Repito que sim", "Mais tarde é que eu soube que o
   // teatro era um eufemismo". In a question before a noun, "what": "Sabe que horas são?"
   if (pp === 'verb') return q.question && N && nounOnly(N) ? DET : CONJ;
+  const uncompared = notCompared(q);
+  if (uncompared) return uncompared;
   // A preposition before a noun asks which one: "De que sexo?", "com que mão havia de abençoar o povo".
   if (pp === 'preposition' && N && nounOnly(N)) return DET;
   if (pp === 'preposition') {
@@ -794,7 +854,63 @@ const SUBJECT_OF: Record<string, string> = { me: 'eu', te: 'tu', nos: 'nós' };
 const canBePerson = (p: string) => (r: ContextReading): boolean => isVerb(r) && !!r.form && r.form.split('; ').some((f) =>
   !/\bimperative\b/.test(f) && (p === 'me' ? /\bfirst(?:\/third)?-person singular\b/ : p === 'te' ? /\bsecond-person singular\b/ : /\bfirst-person plural\b/).test(f));
 
+/** What a passive se's subject opens with: an article, a determiner, a number, mais, tudo. */
+const SUBJECT_OPENERS = new Set(['o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'mais', 'tudo', 'outro', 'outra', 'outros',
+  'outras', 'algum', 'alguma', 'alguns', 'algumas', 'muitos', 'muitas', 'dois', 'dous', 'duas', 'tres', 'três']);
+/**
+ * A verb with se joined to it and its subject after it is passive, "was done", not reflexive: "matou-se um capado;
+ * encommendaram-se ás madres da Ajuda as compotas" (Memórias póstumas) a pig was killed, "Arranjaram-se mais cadeiras", "e
+ * depois se quizermos ir á Pena, arranjam-se lá os burros" (Os Maias). With nothing after it the verb is its own: "o papá
+ * matou-se com uma pistola", "Arranjava-se com graça e modestia" (Dom Casmurro).
+ */
+function passiveSe(q: ContextQuery): Choice {
+  if (!/[-‐]se$/.test(q.word.low) || !q.word.readings.some(isVerb) || q.word.after) return null;
+  // Not ir, whose foi-se is "went away" ("Foi-se o embryão", Memórias póstumas); nor a verb with its subject before it in its
+  // clause: "Eusebia sentou-se outra vez", "A Razão poz-se a rir".
+  if (q.word.readings.some((r) => r.key === 'ir')) return null;
+  for (let j = q.at - 1; j >= 0 && !q.words[j + 1].before; j--) {
+    if (['noun', 'name', 'pronoun', 'proper noun'].includes(posOf(q.words[j]))) return null;
+  }
+  let i = q.at + 1;
+  if (['lá', 'ali', 'aqui', 'então', 'também', 'logo', 'já'].includes(q.words[i]?.low ?? '') && !q.words[i].after) i++;
+  const N = q.words[i];
+  // "outra vez" is "again": "Calou-se outra vez." (Dom Casmurro).
+  // Nor a before an infinitive: "poz-se a rir".
+  const N2 = q.words[i + 1];
+  if (!N || N.before || !SUBJECT_OPENERS.has(N.low) || (/^outr[ao]$/.test(N.low) && N2?.low === 'vez')
+    || (N.low === 'a' && !!N2 && verbIs(N2, infinitive))) return null;
+  return { margin: 0, reflexive: false };
+}
+
+/**
+ * A fixed phrase the words around a verb undo (ContextChoice.noPhrase). acabar de is "to have just" in the present and
+ * imperfect only, and not denied: "acabava de nascer", but "Era elle, o viuvo, acabando de almoçar" (Os Maias) finishing,
+ * "Acabei de vestir-me ás pressas", "não acabava de entendel-as", "antes que acabasse de". querer dizer is "to mean" with
+ * nothing told to anyone: "—Ha uma coisa que eu lhe queria dizer!...", "—Mas eu queria dizer a você...", "Não me quiz dizer
+ * o que era" (Os Maias) want to tell.
+ */
+function phraseUndone(q: ContextQuery): boolean {
+  const P = q.prev;
+  const N = q.next;
+  const verb = q.word.readings.find(isVerb);
+  if (!verb || !N || q.word.after) return false;
+  if (verb.key === 'acabar' && (N.low === 'de' || N.low === "d'")) {
+    const now = !!verb.form && verb.form.split('; ').every((f) => /\b(?:present|imperfect)\b/.test(f) && !/\b(?:subjunctive|participle)\b/.test(f));
+    return !now || P?.low === 'não';
+  }
+  if (verb.key === 'querer' && N.low === 'dizer') {
+    const after = !N.after ? q.words[q.at + 2] : undefined;
+    return (!!P && ['me', 'te', 'lhe', 'lhes', 'nos', 'vos'].includes(P.low)) || (!!after && TO.has(after.low));
+  }
+  return false;
+}
+
 export function portugueseContext(q: ContextQuery): Choice {
+  const choice = portugueseRules(q);
+  return phraseUndone(q) ? { ...(choice ?? { margin: 0 }), noPhrase: true } : choice;
+}
+
+function portugueseRules(q: ContextQuery): Choice {
   const w = q.word.low;
   if (w === 'que') return que(q);
   if (w === 'se') return se(q);
@@ -939,6 +1055,8 @@ export function portugueseContext(q: ContextQuery): Choice {
   }
   const word = infinitiveAfter(q) ?? nounAfter(q) ?? verbAfterOf(q) ?? verbBeforeObject(q);
   if (word) return word;
+  const passive = passiveSe(q);
+  if (passive) return passive;
   const answer = serOrIr(q) ?? irAway(q) ?? terNotEstar(q) ?? ownPerson(q) ?? infinitiveReflexive(q);
   // The verb after se read as "if" is not reflexive: "se soubesse", "se fosse para o seminario" (went, not went away).
   const afterIf = q.prev?.low === 'se' && q.prev.chosen?.pos === 'conjunction' && canBeVerb(q.word);

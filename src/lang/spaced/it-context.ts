@@ -19,7 +19,7 @@
 //   Manzoni's ne', da' (nei, dai before a masculine plural), essi, par, quantunque, bravi (henchmen), stessi, volse
 //   s'era alzato, si era addormentato: a reflexive's compound tense; a modal lends its si to the infinitive (si volesse
 //   vendicare); a number before what it counts (venti paia); an obsolete form or a rare lemma gives way (sonno, girò)
-import { CONTEXT_MARGIN, isNounish, isParticiple, type ContextChoice, type ContextQuery, type ContextReading, type ContextRule, type ContextWord } from './context';
+import { CONTEXT_MARGIN, isFiniteVerb, isNounish, isParticiple, type ContextChoice, type ContextQuery, type ContextReading, type ContextRule, type ContextWord } from './context';
 
 /** Before a noun: what makes a word after it a noun, not a verb or an adverb. */
 const NOUN_SLOT = new Set(['article', 'determiner', 'contraction', 'preposition', 'adjective', 'numeral']);
@@ -511,14 +511,92 @@ function infinitiveAfter(q: ContextQuery): boolean {
 
 // ------------------------------------------------------------------------------------------------- the rule itself ---
 
+/**
+ * A fixed phrase the words around a verb undo (ContextChoice.noPhrase). volere dire is "to mean" with nothing said to anyone
+ * and nothing said already: "E io la prego di volermi dire se si possa far loro del bene" (I promessi sposi), "Non ci ha
+ * voluto dire, intanto, donde le fosse venuto quell'anellino" (Il fu Mattia Pascal), "lo voglio dire" want to tell, to say.
+ * "vuol dire un cervello bizzarro" means one.
+ */
+function phraseUndone(q: ContextQuery): boolean {
+  const verb = q.word.readings.find((r) => r.pos === 'verb');
+  const next = q.next;
+  if (!verb || verb.key !== 'volere' || !next || !/^dir(?:e|lo|la|gli|mi|ti|ci|vi|le|ne)?$/.test(next.low)) return false;
+  // A pronoun on volere (volermi), or before it past its auxiliary: "ce lo vuoi dire", "Non ci ha voluto dire". Not the
+  // conjunction se: "come se volesse dire".
+  if (/^voler(?:mi|ti|ci|vi|gli|lo|la|li|le|ne|celo|melo|telo)$/.test(q.word.low)) return true;
+  for (let i = q.at - 1; i >= 0 && i >= q.at - 3 && !q.words[i].after; i--) {
+    const x = q.words[i];
+    if (CLITICS.has(x.low) || /^(?:me|te|ce|ve|glie)$/.test(x.low)) return true;
+    if (!['avere', 'essere'].includes(x.chosen?.key ?? '')) break;
+  }
+  return false;
+}
+
+/** A reflexive pronoun stands before the verb, past the pronouns between (se ne accorse), or is joined to it (accortosi). */
+function ownPronoun(q: ContextQuery): boolean {
+  if (/(?:si|mi|ti|ci|vi|sene|mene|tene|cene|vene)$/.test(q.word.low)) return true;
+  for (let i = q.at - 1; i >= 0 && i >= q.at - 3; i--) {
+    const x = q.words[i];
+    if (x.after && i < q.at - 1) break;
+    if (['si', "s'", 'mi', "m'", 'ti', "t'", 'ci', "c'", 'vi', "v'", 'se', 'me', 'te', 'ce', 've'].includes(x.low)) return true;
+    if (!CLITICS.has(x.low) && !['ne', "n'", 'non'].includes(x.low)) break;
+  }
+  return false;
+}
+
 export const italianContext: ContextRule = (q) => {
+  const choice = italianRules(q);
+  return phraseUndone(q) ? { ...(choice ?? { margin: 0 }), noPhrase: true } : choice;
+};
+
+const italianRules: ContextRule = (q) => {
   const w = q.word;
   const low = w.low;
   const has = (p: string): boolean => w.readings.some((r) => r.pos === p);
   // A name before is a name, whatever its spelling reads as alone ("Lo stesso giorno Oliva corse piangendo").
   const prevPos = q.prev?.name ? 'proper noun' : chosenPos(q.prev);
 
+  // A pronominal verb's form with no pronoun of its own is the plain verb spelled alike: "Ma a nessuno la gente accorse in
+  // numero tale" (I promessi sposi), "Papiano e il Paleari accorsero a trattenermi" (Il fu Mattia Pascal) are accorrere "to
+  // rush", not accorgersi "to notice", which "s'accorse" is.
+  // A finite form only: a participle stands without its pronoun, "le strade in cui si trovava incamminato", "s'è avvisto".
+  if (w.readings.some((r) => isFiniteVerb(r) && r.key.endsWith('rsi')) && w.readings.some((r) => r.pos === 'verb' && !r.key.endsWith('rsi'))
+    && !ownPronoun(q)) {
+    return decisive((r) => !(r.pos === 'verb' && r.key.endsWith('rsi')));
+  }
+
+  // After molto, così, tanto … an adjective: "è cosa molto brutta" (I promessi sposi), not brutta "rough copy".
+  if (q.prev && ['molto', 'così', 'cosí', 'troppo', 'assai', 'sì'].includes(q.prev.low) && w.readings.some((r) => r.pos === 'noun')
+    && w.readings.some((r) => r.pos === 'adjective') && !w.readings.some((r) => r.pos === 'adverb') && !(q.next && q.next.readings[0]?.pos === 'noun')) {
+    return { prefer: (r) => r.pos === 'adjective', margin: CONTEXT_MARGIN };
+  }
+  // An adjective's feminine or masculine after an article, with nothing after it that could be its noun, is the noun spelled
+  // so: "«Oh!» disse la vecchia" (Pinocchio), "era una vecchia di casa" (I promessi sposi) are the old woman, not vecchio's
+  // feminine "old". Not before an adjective or a word that may be a noun: "la vecchia casa".
+  const lead = w.readings[0];
+  const own = w.readings.find((r) => r.pos === 'noun' && !r.form && r.key === low);
+  if (own && lead && lead.pos === 'adjective' && /^(?:feminine|masculine)(?: (?:singular|plural))?$/.test(lead.form)
+    && prevPos === 'article' && !(q.next && (q.next.readings.some((r) => ['noun', 'adjective', 'proper noun'].includes(r.pos))
+      || ['e', 'ed', 'o', 'od'].includes(q.next.low)))) {
+    return { prefer: (r) => r === own, margin: 4 };
+  }
+
   switch (low) {
+    case 'grida':
+      // After a plural determiner or adjective, grido's plural "cries": "un frastono di mille grida di trionfo" (I promessi
+      // sposi), "le sue grida", "alte grida". Manzoni's edict is la grida (plural gride).
+      if (q.prev && /^(?:le|mille|sue|tue|mie|loro|alte|tante|quelle|queste|delle|alle|dalle|nelle|sulle|colle|molte|poche|altre|due|tre|cento)$/.test(q.prev.low)
+        && w.readings.some((r) => r.key === 'grido')) return decisive((r) => r.key === 'grido');
+      // After a feminine singular, the edict: "dà fuori un'altra grida, ancor più vigorosa".
+      if (q.prev && /^(?:la|una|un'|altra|quella|questa|nuova|ogni|sua|tal|tale|della|alla|nella|colla|quell'|quest')$/.test(q.prev.low)
+        && w.readings.some((r) => r.key === 'grida' && r.pos === 'noun')) return decisive((r) => r.key === 'grida' && r.pos === 'noun');
+      return null;
+    case 'venti':
+      // The winds after an article or a preposition with its article, with no noun after it: "verrebbe asciugata da' venti"
+      // (Il principe); before a noun, twenty.
+      if ((prevPos === 'article' || prevPos === 'contraction' || /^[a-z]+'$/.test(q.prev?.low ?? '')) && !(q.next && q.next.readings[0]?.pos === 'noun')
+        && w.readings.some((r) => r.key === 'vento')) return decisive((r) => r.key === 'vento');
+      return null;
     case 'come':
     case "com'":
       if (!has('conjunction')) return null;
@@ -560,8 +638,12 @@ export const italianContext: ContextRule = (q) => {
       const gerund = !!q.next?.readings.some((r) => /\bgerund\b/.test(r.form)) || q.prev?.low === 'se';
       const concessive = w.before !== '' && q.words.slice(0, q.at).some((x) => ['sebbene', 'benché', 'benchè', 'quantunque', 'ancorché', 'ancorchè'].includes(x.low));
       if (gerund || concessive) return has('conjunction') ? decisive(pos('conjunction')) : null;
-      // After an order opening its sentence, "go ahead"; elsewhere "also" (ContextChoice.hint).
-      const order = q.at === 1 && !!q.prev?.chosen && /\bimperative\b/.test(q.prev.chosen.form);
+      // After an order heading its clause, "go ahead"; elsewhere "also" (ContextChoice.hint): "Via, fate presto, e venite pure
+      // senza timore" (I promessi sposi), "Ma creda pure che è stata una combinazione" (Il fu Mattia Pascal). Not a verb said
+      // of nobody, whose form is an imperative's too: "Bisogna pur considerare".
+      const c = q.prev?.chosen;
+      const head = q.at === 1 || (q.at >= 2 && (OPENERS.has(q.words[q.at - 2].low) || q.words[q.at - 2].after !== ''));
+      const order = head && !!c && /\bimperative\b/.test(c.form) && !['bisognare', 'occorrere', 'parere', 'sembrare', 'convenire', 'bastare'].includes(c.key);
       return has('adverb') ? { ...decisive(pos('adverb')), hint: order ? 'go ahead' : 'also, too' } : null;
     }
     case 'fin':

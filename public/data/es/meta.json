@@ -1,16 +1,16 @@
 {
  "lang": "es",
- "built": "2026-10-29",
+ "built": "2026-10-30",
  "counts": {
-  "entries": 104910,
-  "keys": 93408,
-  "forms": 620458,
-  "rules": 28677,
-  "paradigms": 6698,
-  "descriptions": 977,
-  "ranked": 46501,
-  "senses": 132120,
-  "priors": 8547
+  "entries": 104916,
+  "keys": 93413,
+  "forms": 629186,
+  "rules": 35689,
+  "paradigms": 6752,
+  "descriptions": 1212,
+  "ranked": 46490,
+  "senses": 132160,
+  "priors": 8126
  },
  "sources": [
   {

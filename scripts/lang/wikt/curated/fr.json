@@ -740,5 +740,55 @@
  "+aurez raison": "to be right",
  "+aurais raison": "to be right",
  "+aurait raison": "to be right",
- "+eut raison": "to be right"
+ "+eut raison": "to be right",
+ "que|conjunction#2": "than",
+ "comme|adverb": {
+  "hint": "how",
+  "gloss": "how (in exclamations: Comme la vie est singulière !)",
+  "prior": false
+ },
+ "// verified": "Phrases the native verifiers found misread where a verb's other forms find them (stage 3): a hint that says what the books mean, {\"spelled\": true} for one books have as often word for word, or a drop.",
+ "+passer la main": {
+  "spelled": true
+ },
+ "+mettre la main sur": {
+  "spelled": true
+ },
+ "+prendre la tête": {
+  "spelled": true
+ },
+ "+donner la main": {
+  "spelled": true
+ },
+ "+prendre la main": {
+  "spelled": true
+ },
+ "+entendre des voix": {
+  "spelled": true
+ },
+ "+être à la porte": {
+  "spelled": true
+ },
+ "+passer à côté de": {
+  "spelled": true
+ },
+ "+marcher droit": {
+  "spelled": true
+ },
+ "+être vivant": {
+  "spelled": true
+ },
+ "+prendre congé": "to take leave",
+ "+faire beau": "to be fine (weather)",
+ "+laisser aller": "to let go",
+ "+demander à voir": "to ask to see",
+ "+prendre l'air": "to get some air",
+ "+laisser entendre": "to imply",
+ "+laisser à penser": "to leave to the imagination",
+ "+faire loi": "to be law",
+ "+faire du bruit": "to make noise",
+ "+revenir de loin": "to have had a close call",
+ "+venir à l'esprit": "to come to mind",
+ "+toucher à sa fin": "to draw to a close",
+ "+faire part": "to share, announce"
 }

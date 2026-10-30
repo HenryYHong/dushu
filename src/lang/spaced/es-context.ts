@@ -105,6 +105,32 @@ const THERE_WAS = new Set(['nada', 'algo', 'nadie', 'alguien', 'quien', 'quienes
   'poco', 'poca', 'pocos', 'pocas', 'tanto', 'tanta', 'tantos', 'tantas', 'tal', 'tales', 'más', 'menos', 'varios', 'varias',
   'otro', 'otra', 'otros', 'otras', 'cosa', 'gente']);
 /**
+ * Nouns the old books have haber take as tener: "yo no había menester muchas salsas" (Lazarillo) "needed", "antes le había
+ * lástima que enemistad", "Tanta lástima haya Dios de mí".
+ */
+const HABER_OBJECTS = new Set(['menester', 'lástima']);
+
+/**
+ * haber that is no impersonal "there was" though nothing after it is a participle: tener's old sense with its subject before
+ * it past no or a pronoun ("yo no había menester"), with menester or lástima, with a pronoun of a person it was had for ("le
+ * había lástima"), and the auxiliary after a participle and que ("dejado que hubo el mozo el seminario", El sombrero de tres
+ * picos: once the young man had left).
+ */
+function oldHaber(q: ContextQuery): boolean {
+  const before = q.words.slice(0, q.at).reverse();
+  for (const x of before) {
+    if (x.after) break;
+    if (SUBJECTS.has(x.low)) return true;
+    if (x.low !== 'no' && !PROCLITICS.has(x.low)) break;
+  }
+  const prev = q.prev;
+  if (prev && HABER_OBJECTS.has(prev.low)) return true;
+  if (q.next && HABER_OBJECTS.has(q.next.low)) return true;
+  if (prev && ['me', 'te', 'le', 'nos', 'os', 'les'].includes(prev.low)) return true;
+  return !!prev && prev.low === 'que' && q.at >= 2 && !q.words[q.at - 2].after && !!q.words[q.at - 2].chosen && isParticiple(q.words[q.at - 2].chosen!);
+}
+
+/**
  * hacer's weather, "it is cold": "—Vamos, vamos; aquí hace frío" (El sombrero de tres picos), "Hacía mucho frío, además" (Cuentos
  * de la selva), "hace buen tiempo". The word and what the weather is.
  */
@@ -231,6 +257,48 @@ function afterRelative(q: ContextQuery): ContextChoice | null {
 }
 
 /**
+ * The comparative at words[i] makes a superlative, whose que is the relative: after a determiner ("la más hermosa que he
+ * visto", "lo más"), after a noun a definite article or possessive goes with ("el cuento más lindo que"), or as the second of
+ * two joined to one ("Era el pájaro más raro y más feo que puede darse", Cuentos de la selva).
+ */
+function superlative(q: ContextQuery, i: number): boolean {
+  // A definite article or a possessive: "un hombre más alto que yo" compares.
+  const definite = (x?: ContextWord): boolean => !!x && !x.after && /^(?:el|la|los|las|lo|mis?|tus?|sus?|nuestr[oa]s?|vuestr[oa]s?)$/.test(x.low);
+  for (let j = i - 1, n = 0; j >= 0 && n < 6 && !q.words[j].after; j--, n++) {
+    const x = q.words[j];
+    if (NOUN_DETERMINERS.has(x.low) || x.low === 'lo') return j === i - 1 || q.words.slice(j + 1, i).every((y) => y.chosen?.pos !== 'verb');
+    // A noun with its article before it: "el pájaro más", "la casa más".
+    if (x.chosen?.pos === 'noun') return definite(q.words[j - 1]);
+    // Past an earlier comparative and what it graded: "más raro y más feo".
+    if (!(COMPARISON.has(x.low) || ['y', 'e', 'o', 'ni'].includes(x.low) || x.chosen?.pos === 'adjective' || x.chosen?.pos === 'adverb')) return false;
+  }
+  return false;
+}
+
+/**
+ * A más or menos that compares nothing with what que brings, so its que is the conjunction "that" or a relative: "por más que
+ * digas" (Marianela) "however much"; "más vale que te vayas", "Valiera más que no hubiese día", "Más fácil sería que yo no te
+ * dejase bajar" (a clause after que); "nada más tenían que hacer allí" (Cuentos de la selva), "Harto hay más que decir de
+ * vos" (Lazarillo): tener que, haber que with an infinitive; "las puertas y casas más grandes que me parecía" (Lazarillo),
+ * "otras cosas más que no se pueden decir": a clause about what came before.
+ */
+function notCompared(q: ContextQuery, i: number): boolean {
+  if (i >= 1 && !q.words[i - 1].after && q.words[i - 1].low === 'por') return true;
+  const after = q.words[q.at + 1];
+  if (!after || q.word.after) return false;
+  const verbOf = (x?: ContextWord): ContextReading | undefined => x?.readings.find((r) => isFiniteVerb(r) && r.score > x.readings[0].score - 2);
+  // tener or haber between the comparative and que, or right before it, with an infinitive after que.
+  const near = [q.words[i - 1], ...q.words.slice(i + 1, q.at)];
+  if (near.some((x) => !!x && ['tener', 'haber'].includes(readAs(x)?.key ?? '')) && after.readings.some(isInfinitive)) return true;
+  // A clause: a finite verb, or a pronoun, no or a subject before one.
+  let j = q.at + 1;
+  while (j < q.words.length && j <= q.at + 4 && !q.words[j - 1].after
+    && (PROCLITICS.has(q.words[j].low) || q.words[j].low === 'no' || SUBJECTS.has(q.words[j].low))) j++;
+  const verb = j < q.words.length && !q.words[j - 1].after ? verbOf(q.words[j]) : undefined;
+  return !!verb && (j > q.at + 1 || !after.readings.some((r) => nounish(r) && r.score > verb.score));
+}
+
+/**
  * ir a + infinitive (going to), ir + gerund (going on), volver a + infinitive (again): the pronoun before them belongs to the
  * verb after. Not ir's preterite, which is going off to do it or so: "se fué a vivir al monte", "se fueron volando".
  */
@@ -241,7 +309,41 @@ function periphrasis(q: ContextQuery, verb: ContextReading): boolean {
   return verb.key === 'ir' && next.readings.some(isGerund);
 }
 
+/**
+ * A fixed phrase the words around a verb undo (ContextChoice.noPhrase). acabar de is "to have just" in the present and
+ * imperfect only: "acababan de colocar" (Cuentos de la selva), but "Cuando el joven acabó de hablarle" (Marianela) finished,
+ * "do acabé de conocer mi ruin dicha" (Lazarillo), "acaben de pasar la calle", "acabando de arrollar la manga"; and
+ * "acabamos de comer, aunque yo nunca empezaba" tells its present from its preterite only by the story. querer decir is "to
+ * mean" with nothing told to anyone: "lo que te quiero decir" (Lazarillo), "y quiero decir el despidiente", "si quería decir
+ * más" want to tell or to say. tener lugar is "to take place" but before de an infinitive's room: "como es larga, tiene lugar
+ * de tomar el cebo" (Lazarillo).
+ */
+function phraseUndone(q: ContextQuery): boolean {
+  const { prev, next } = q;
+  const verb = q.word.readings.find(isVerb);
+  if (!verb || !next || q.word.after) return false;
+  const second = !next.after ? q.words[q.at + 2] : undefined;
+  if (verb.key === 'acabar' && next.low === 'de') {
+    // An imperative's order aside ("acaba" is both); the imperfect subjunctive too, but not of what happens before or until
+    // something: "Es como si acabara de bajar del cielo" (Marianela), but "Antes de que Celipín acabara de hablar".
+    const parts = verb.form.split('; ').filter((p) => !/\bimperative\b/.test(p));
+    const until = q.words.slice(Math.max(0, q.at - 5), q.at).some((x) => ['antes', 'hasta', 'sin'].includes(x.low));
+    const now = (p: string): boolean => /\b(?:present|imperfect)\b/.test(p) && !/\b(?:subjunctive|participle)\b/.test(p);
+    return !parts.length || parts.some((p) => !now(p) && (until || !/\bimperfect subjunctive\b/.test(p)));
+  }
+  if (verb.key === 'querer' && next.low === 'decir') {
+    const told = !!prev && ['me', 'te', 'le', 'nos', 'os', 'les', 'se'].includes(prev.low);
+    return told || (!!second && (determiner(second) || ['algo', 'más', 'nada', 'mucho', 'poco', 'todo', 'cosas'].includes(second.low)));
+  }
+  return verb.key === 'tener' && next.low === 'lugar' && second?.low === 'de';
+}
+
 export function spanishContext(q: ContextQuery): ContextChoice | null {
+  const choice = spanishRules(q);
+  return phraseUndone(q) ? { ...(choice ?? { margin: 0 }), noPhrase: true } : choice;
+}
+
+function spanishRules(q: ContextQuery): ContextChoice | null {
   const w = q.word;
   const { prev, next } = q;
   const rs = w.readings;
@@ -360,7 +462,8 @@ export function spanishContext(q: ContextQuery): ContextChoice | null {
   // it has its pronoun). Not haber de or haber que ("había de ir", "hay que"), not after a subject ("yo había") nor after
   // the participle the old books put first ("dicho había").
   const there = IMPERSONAL_HABER[w.low];
-  if (there && has((r) => r.key === 'haber') && !(prev && (SUBJECTS.has(prev.low) || determiner(prev) || (prev.chosen && isParticiple(prev.chosen))))) {
+  if (there && has((r) => r.key === 'haber') && !(prev && (SUBJECTS.has(prev.low) || determiner(prev) || (prev.chosen && isParticiple(prev.chosen))))
+    && !oldHaber(q)) {
     const choice: ContextChoice = { prefer: (r) => r.key === 'haber', margin: Infinity, hint: there, sense: /\bthere be\b/ };
     let i = q.at + 1;
     while (i < q.words.length && i <= q.at + 2 && !q.words[i - 1].after && HABER_BETWEEN.has(q.words[i].low)) i++;
@@ -468,22 +571,22 @@ export function spanishContext(q: ContextQuery): ContextChoice | null {
   if (w.low === 'que' && has((r) => r.pos === 'pronoun') && has((r) => r.pos === 'conjunction')) {
     // Past a noun, before a verb or a pronoun, que is the noun's relative: "Ya no habrá más pescados ni bichos que vengan a
     // tomar agua" (Cuentos de la selva). Not after sino: "No hay más sino que tiene razón".
-    const verbAfter = !!next && (PROCLITICS.has(next.low) || next.low === 'no' || isVerb(next.readings[0]));
+    // la, lo, los, las only as a verb's pronoun: "No tiene más educación que la que ella misma se ha dado" compares.
+    const article = !!next && ['la', 'lo', 'los', 'las'].includes(next.low) && !isVerb(readAs(q.words[q.at + 2]));
+    const verbAfter = !!next && ((PROCLITICS.has(next.low) && !article) || next.low === 'no' || isVerb(next.readings[0]));
     let noun = false;
     for (let i = q.at - 1; i >= Math.max(0, q.at - 4) && !q.words[i].after; i--) {
       if (q.words[i].chosen?.pos === 'noun') noun = true;
       if (i === q.at - 1 && q.words[i].low === 'sino') break;
+      // A que of its own ends the reach of a comparison: "No tiene más educación que la que ella misma se ha dado"
+      // (Marianela) compares with "la que", whose que is the relative.
+      if (q.words[i].low === 'que') break;
       if (!DEGREE.has(q.words[i].low)) continue;
       if (noun && verbAfter && COMPARISON.has(q.words[i].low)) return null;
       // After a comparison que is the conjunction's "than": "Una olla de algo más vaca que carnero" (Don Quijote), "más lejos
       // que Misiones todavía" (Cuentos de la selva). Not after a superlative, whose que is the relative: "la más hermosa que
       // he visto", "el cuento más lindo que".
-      const b1 = q.words[i - 1];
-      const b2 = q.words[i - 2];
-      const definite = (x?: ContextWord): boolean => !!x && ['el', 'la', 'los', 'las', 'lo'].includes(x.low);
-      const superlative = !!b1 && !b1.after && (NOUN_DETERMINERS.has(b1.low) || b1.low === 'lo'
-        || (b1.chosen?.pos === 'noun' && !!b2 && !b2.after && definite(b2)));
-      if (COMPARISON.has(q.words[i].low) && !superlative) {
+      if (COMPARISON.has(q.words[i].low) && !superlative(q, i) && !notCompared(q, i)) {
         return { prefer: (r) => r.pos === 'conjunction', margin: Infinity, hint: 'than' };
       }
       return null;

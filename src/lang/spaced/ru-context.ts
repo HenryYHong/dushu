@@ -467,7 +467,9 @@ const BEGIN = new Set(['стать', 'начать', 'начинать', 'пер
 function begin(q: ContextQuery): ContextChoice | null {
   const w = q.word;
   const past = (r: ContextReading): boolean => r.key === 'стать' && verb(r) && /\bpast\b/.test(r.form);
-  if (has(q, past) && infinitiveWord(q.next) && !q.next!.readings.some((r) => r.key === 'быть')) return { ...choose(past), hint: 'began', sense: /\bto begin\b/ };
+  // Not стало after a predicative, "it became": "Мне страшно стало оставаться одному" (Белые ночи).
+  const said = !!q.prev && q.word.low === 'стало' && /о$/.test(q.prev.low) && read(q.prev)?.pos !== 'noun';
+  if (has(q, past) && !said && infinitiveWord(q.next) && !q.next!.readings.some((r) => r.key === 'быть')) return { ...choose(past), hint: 'began', sense: /\bto begin\b/ };
   const p = q.prev && read(q.prev);
   if (p && BEGIN.has(p.key) && verb(p) && infinitiveWord(w) && has(q, (r) => infinitive(r) && r.aspect === 'impf')
     && has(q, (r) => infinitive(r) && r.aspect === 'pf')) {
@@ -835,6 +837,11 @@ function genitiveCue(q: ContextQuery): ContextChoice | null {
   const n1 = q.words[q.at + 1];
   if ((p && SMALL_NUMBERS.has(p.low)) || (q.next && SMALL_NUMBERS.has(q.next.low))) {
     const count = (r: ContextReading): boolean => r.pos === 'noun' && !r.form && r.key !== q.word.low;
+    // A feminine noun after две is spelled and stressed as its nominative plural: "хоть бы две скалы, похожие одна на
+    // другую" (Герой нашего времени) is ска́лы, not the genitive скалы́.
+    const femPlural = (r: ContextReading): boolean => r.pos === 'noun' && r.gender === 'f'
+      && slotsOf(r, q.word).some((sl) => sl.plural === true && sl.cases.has('nominative'));
+    if (p && SMALL_NUMBERS.has(p.low) && has(q, femPlural)) return choose(femPlural, NEAR);
     return choose(has(q, count) ? count : gen, NEAR);
   }
   const n2 = q.words[q.at + 2];
@@ -854,7 +861,11 @@ function genitiveCue(q: ContextQuery): ContextChoice | null {
   // стройны", A Hero of Our Time). A weak cue: "на том свете душа ее" is the soul, not душ's "of the shower".
   const said = !!pr && pr.pos === 'noun' && slotsOf(pr, p!).some((sl) => sl.cases.has('nominative'))
     && /\bplural\b/.test(t.form) === /\bplural\b/.test(pr.form);
-  if (p && !p.name && pr?.pos === 'noun' && (t.pos === 'noun' || (shortForm(t) && !said)) && has(q, singular)) {
+  // Not to choose a noun's stress alone: "Со всех сторон горы неприступные" (Герой нашего времени) are го́ры the subject, "При
+  // этом имени глаза Казбича засверкали" глаза́; a word after a noun is not always its genitive, and a wrong stress is worse
+  // than none.
+  const stressOnly = rs.filter(singular).every((r) => sameEntry(r, t));
+  if (p && !p.name && pr?.pos === 'noun' && (t.pos === 'noun' || (shortForm(t) && !said)) && has(q, singular) && !stressOnly) {
     // A genitive already is the genitive: "После обеда часов в шесть" is час's, not часы "clock".
     return gen(t) ? choose((r) => r === t) : choose(singular, AFTER_NOUN);
   }

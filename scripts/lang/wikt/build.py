@@ -104,6 +104,11 @@ def fold(code, s):
     return s.lower()
 
 
+def strip_accents(s):
+    """già -> gia, está -> esta: a folded word as subtitles often write it."""
+    return unicodedata.normalize('NFC', ''.join(ch for ch in unicodedata.normalize('NFD', s) if not unicodedata.combining(ch)))
+
+
 def stress_index(code, written):
     """Russian: the index (in the folded word) of the stressed vowel, -1 when the spelling does not mark it."""
     if code != 'ru':
@@ -315,6 +320,27 @@ def merge_cells(sets):
     return out
 
 
+def desc_atoms(text):
+    """The single cells a description names: "first/third-person singular present indicative/subjunctive; third-person
+    singular imperative" is five, "nominative/accusative plural" two. A qualifier ("(archaic)") stays with each cell."""
+    out = []
+    for part in text.split('; '):
+        m = re.match(r'^(.*?)(\s*\([^()]*\))?$', part)
+        core, qual = m.group(1), m.group(2) or ''
+        choices = [[]]
+        for w in core.split(' '):
+            if '/' in w and w.endswith('-person'):
+                alts = [a + '-person' for a in w[:-len('-person')].split('/')]
+            else:
+                alts = w.split('/')
+            choices = [c + [a] for c in choices for a in alts][:64]
+        for c in choices:
+            atom = ' '.join(c) + qual
+            if atom not in out:
+                out.append(atom)
+    return tuple(out)
+
+
 # ------------------------------------------------------------------------------------------------------ senses ---
 
 SKIP_POS = {'prefix', 'suffix', 'infix', 'circumfix', 'interfix', 'affix', 'character', 'symbol', 'punct',
@@ -504,6 +530,8 @@ def labels_of(raw, gloss):
 
 
 HEADING = re.compile(r'^(?:[A-Z][a-z]+ )?(?:senses?|uses?|meanings?)\b[^.]{0,60}\.?$|^[^.]{0,40}\bsenses\.$', re.I)
+RELATING_TO = re.compile(r'^(?:(?:of|from)(?:,? or|,? and|,)? )*(?:(?:or|and) )?(?:relating|pertaining|belonging) to '
+                         r'([^,]+?)(?:,.*)?$', re.I)
 TRANSLATED_AS = re.compile(r'(?:^|\.\s+)translated as ["“]([^"”]+)["”]', re.I)
 MORE_QUOTED = re.compile(r'\s*(?:,\s*)?(?:or|and|/)\s*["“]([^"”]{1,30})["”]')
 LETTER_NAME = re.compile(r'^(?:the )?(?:name of the )?(?:Latin|Cyrillic)[- ]script letter\b|^The (?:name of the )?letter\b', re.I)
@@ -550,7 +578,7 @@ def construction_note(raw):
     return t if re.match(r'^(?:with|\+|in|of|followed|after|before|usually|chiefly|often)\b', t) else ''
 
 
-def sense_rows(code, senses):
+def sense_rows(code, senses, pos=''):
     """The entry's real senses as (notes, glosses) pairs, nested subsenses grouped under the gloss they refine."""
     out = []
     for s in senses:
@@ -564,7 +592,18 @@ def sense_rows(code, senses):
         if con:
             out.append([con[0] + labels_of(raw[-1] if raw else '', gl[-1]), con[1], None])
             continue
-        if s.get('form_of') or s.get('alt_of') or 'form-of' in tags or 'alt-of' in tags or 'compound-of' in tags:
+        m = pos == 'contraction' and re.match(r'^contraction of ([^\s;:,()+]+(?:\s*\+?\s*[^\s;:,()+]+)+)\.?$', gl[-1])
+        if m:
+            # Old ones are old: pelle "per le" (dated) never leads pelle "skin" (Pinocchio: "la pelle").
+            weak_ = [t for t in tags if t in WEAK_LABELS or t in ('literary', 'poetic')]
+            out.append([['contraction of ' + m.group(1)] + weak_, [CONTRACTION_MARK + re.sub(r'\s*\+\s*', ' ', m.group(1))], None])
+            continue
+        # Russian родитель "parent", явление "phenomenon": a noun formed from a verb, which kaikki tags form-of with no
+        # word it is a form of. Its senses are its meanings.
+        lexical = 'form-of' in tags and not (s.get('form_of') or s.get('alt_of')) and not is_pointer(gl[-1]) and \
+            not any(t in ORDER for t in tags)
+        if not lexical and (s.get('form_of') or s.get('alt_of') or 'form-of' in tags or 'alt-of' in tags or
+                            'compound-of' in tags):
             tail = pointer_tail(gl[-1])
             if not tail or 'compound-of' in tags:
                 continue
@@ -615,7 +654,10 @@ def sense_rows(code, senses):
         out.append([notes, [child], None])
     rows = [(n, g) for n, g, _ in out]
     # Senses a reader of today rarely means (archaic, obsolete, rare) go after the rest, in their own order: partir is
-    # "to leave" before the old "to share".
+    # "to leave" before the old "to share"; so does a contraction that gives only its pieces, after one that says what
+    # it means (t'es "you're").
+    marked = [r for r in rows if r[1][0].startswith(CONTRACTION_MARK)]
+    rows = [r for r in rows if not r[1][0].startswith(CONTRACTION_MARK)] + marked
     return [r for r in rows if not weak_notes(r[0])] + [r for r in rows if weak_notes(r[0])]
 
 
@@ -750,9 +792,11 @@ def plainness(part):
     return worst * (1 + 0.6 * (len(part.split()) - 1))
 
 
-def hint_of(glosses_list, head='', pos=''):
+def hint_of(glosses_list, head='', pos='', phrase=False):
     """One short gloss for running text ("house", "to go"): from the first sense that has a plain one, the plainest of
-    its synonyms ("to desire, to want" -> "to want"), parentheses and explanations dropped."""
+    its synonyms ("to desire, to want" -> "to want"), parentheses and explanations dropped. A `phrase`'s first gloss of up
+    to five words is kept whole when it has no short synonym: morir de hambre is "to die of hunger", not "to die"; tener
+    presente "to bear in mind", not "to bear"."""
     first_long = ''
     content = pos in ('verb', 'noun', 'adj', 'adv')
     for si, gl in enumerate(glosses_list[:4]):
@@ -769,6 +813,10 @@ def hint_of(glosses_list, head='', pos=''):
                     at = q.end()
                 return clip(', '.join(dict.fromkeys(quoted[:3])))
             g = strip_parens(g)
+            # Moguer's moguereño "of, from or relating to Moguer": "of Moguer", not "of" (a place's name ends at its comma).
+            m = RELATING_TO.match(g)
+            if m and ';' not in g:
+                g = 'of ' + m.group(1)
             # закричать "to begin to shout", захотеть "to begin to want": the verb is the meaning (the prefix's "begin"
             # is the aspect).
             if pos == 'verb':
@@ -820,6 +868,8 @@ def hint_of(glosses_list, head='', pos=''):
             parts = [p for j, p in enumerate(parts) if not re.match(r'(?:its|their) ', p) and
                      (j == 0 or p.lower().strip('.') not in RIDERS)] or parts
             short = [p for p in parts if len(p.split()) <= 3]
+            if phrase and not short and parts and len(parts[0].split()) <= 5 and len(parts[0]) <= 40:
+                return clip(parts[0])
             if short:
                 best = short[0]
                 if EN_RANK and content and plainness(best) > 10000:
@@ -890,6 +940,13 @@ FEMALE_OF = re.compile(r'^(?:female|feminine)(?: equivalent)? of ([^\s,;:()]+?)(
                        r'([^;:()“”]{2,40}))?\.?$', re.I)
 # The gloss of a female noun that says only what it is the female of, filled in when the entries are written.
 FEMALE_MARK = '\x00female '
+DIMINUTIVE_OF = re.compile(r'^diminutive of ([^\s,;:()]+?)(?:\s*\(“([^”]{1,40})”\)|(?:,| *:) +(?:a |an )?([^;:()“”]{2,40}))?\.?$',
+                           re.I)
+# The gloss of a diminutive, "little" and its noun's hint (lorito "little parrot"), filled in when the entries are written.
+DIMINUTIVE_MARK = '\x00little '
+# The gloss of a contraction Wiktionary gives only its pieces for (Italian pei "contraction of per i"): the pieces' hints
+# ("for the"), filled in when the entries are written.
+CONTRACTION_MARK = '\x00pieces '
 SUPERSCRIPT = re.compile(r'\s*[¹²³⁴⁵⁶⁷⁸⁹⁰]+$')          # него́ ² in the Russian pronoun table
 OBLIQUE = {'genitive', 'dative', 'accusative', 'instrumental', 'prepositional'}
 # Parts of speech a pointer may step between (an article's form is a determiner's), and those it may not (a noun's
@@ -944,6 +1001,26 @@ def female_gloss(hint):
     return swapped if swapped != h else 'female ' + h
 
 
+def ru_short_forms(long):
+    """A Russian past passive participle's short forms, which the tables leave out, with their stress: отворённый ->
+    отворён, отворена́, отворено́, отворены́ (Pushkin's "дверь была отворена́"); сде́ланный -> сде́лан, сде́лана …;
+    уби́тый -> уби́т, уби́та …."""
+    w = unicodedata.normalize('NFC', long or '')
+    ends = (('masculine', 'singular'), ('feminine', 'singular'), ('neuter', 'singular'), ('plural',))
+    if w.endswith('ённый'):
+        b = w[:-5]
+        spelled = [b + 'ён', b + 'ена́', b + 'ено́', b + 'ены́']
+    elif re.search('нный$', w) and '\u0301' in unicodedata.normalize('NFD', w)[:-4]:
+        b = w[:-3]
+        spelled = [b, b + 'а', b + 'о', b + 'ы']
+    elif w.endswith('тый'):
+        b = w[:-2]
+        spelled = [b, b + 'а', b + 'о', b + 'ы']
+    else:
+        return []
+    return [(unicodedata.normalize('NFC', f), ['short-form', *t]) for f, t in zip(spelled, ends)]
+
+
 def clitic_verb(pattern, fk, by_key, entries):
     m = pattern.fullmatch(fk)
     return bool(m) and any(entries[i].pos == 'verb' for i in by_key.get(m.group(1), ()))
@@ -961,13 +1038,34 @@ def variant_word(desc):
         return 'misspelling'
     if re.search(r'eye[- ]dialect|pronunciation', d):
         return 'eye dialect'
-    if re.search(r'clipping|aphetic|apocop|colloquial|informal', d):
+    if re.search(r'apocop', d):
+        return 'apocopic'
+    if re.search(r'clipping|aphetic|colloquial|informal', d):
         return 'colloquial'
     return 'alternative spelling'
 
 
 # Votes the treebanks' readings of a spelling count as against the subtitle estimate: sé seen 14 times moves it by 14/34.
 UD_WEIGHT = 20
+# A word's weight is held to OWN_SLACK times what the forms only it can be say, where those make up OWN_MIN of its use or
+# more (the cells' shares undercount some forms, so not exactly what they say).
+OWN_SLACK = 10
+OWN_MIN = 0.25
+# The floor of a word spelled so does not stand against a noun's or adjective's gender or number form that alone could be
+# AGREE_SHARE of the spelling.
+AGREE_SHARE = 0.25
+# The floor: a word spelled so starts with this share of the spelling's count; against such a gender or number form, with
+# AGREE_FLOOR of it.
+OWN_FLOOR = 0.5
+AGREE_FLOOR = 0.1
+# The floor stands unless the treebanks, having seen the spelling three times or more, read it as the word spelled so
+# less than this share of the time.
+UD_FLOOR = 0.25
+# A form description whose own spellings are under this share of its part of speech's is counted by its cells instead.
+SPARSE_CELL = 0.001
+# A spelling without accents counts as its accented twin written in haste when the twin, so spelled, is this many times
+# commoner in the subtitles than every word the spelling can be is by its own forms.
+TWIN_RATIO = 10
 # An imperative or a subjunctive (rare_form) never takes more than half a spelling from a noun written exactly so.
 RARE_FLOOR = 0.5
 # The prior (prior.tsv.gz): spellings the subtitles saw at least this often get a line from them, and the subtitle
@@ -1057,6 +1155,10 @@ def shared_table(code, key, pos, forms):
     def fits(r, h):
         if h[3]:                       # a demonstrative: its distance (éste, ésta, esto, éstos; not eso)
             return r[3] == h[3]
+        # A possessive determiner agrees with its noun: German Ihr's Ihre ("Ihre Stellung", Die Verwandlung) is its
+        # feminine and plural, not another possessive (the rows of mein, dein carry their person).
+        if pos == 'det' and not r[0] and not h[0]:
+            return True
         if r[0] != h[0] or r[1] != h[1] or r[4] != h[4]:
             return False
         return not h[2] or not r[2] or bool(r[2] & h[2])
@@ -1169,10 +1271,21 @@ CURATED = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'curated')
 def load_curated(code):
     """Hand-written facts for the commonest words, where Wiktionary glosses grammar ("masculine singular definite
     article") instead of a meaning a reader can glance at ("the"), or has a word only as a pointer (mi "apocopic form of
-    mío"). curated/<code>.json, one file per language: "key" or "key|part of speech" -> a hint, or {"hint", "gloss", "notes"} (a gloss
-    becomes the entry's first sense, and makes the entry if Wiktionary has none); "=form" -> the hint of one form (hay
-    "there is" though haber is "to have"); "+phrase" -> a fixed phrase of common words alone that phrases.tsv.gz may
-    list (write_phrases), with its hint or "" for Wiktionary's."""
+    mío"). curated/<code>.json, one file per language:
+      "key" or "key|part of speech" -> a hint, or {"hint", "gloss", "notes", "gender", "prior", "of", "form"}: a gloss
+          becomes the entry's first sense, and makes the entry if Wiktionary has none; "prior": false keeps the
+          treebanks' readings of the word off this section (a section of comme "how" must not take comme's adverbs);
+          "of": "quis" makes the word a form of that word's lemma (Machado's quiz, "obsolete spelling of quis", is
+          querer's though Portuguese has the noun quiz), described as "form".
+      "key|part of speech#2": the second section of that part of speech, in Wiktionary's order (que's second
+          conjunction is "than"); "key|part of speech~text": the section one of whose senses has the text in it (der's
+          relative pronoun, "der|pronoun~relative").
+      "=form" -> the hint of one form (hay "there is" though haber is "to have").
+      "+phrase" -> a fixed phrase of common words alone that phrases.tsv.gz may list (write_phrases), with its hint, ""
+          for Wiktionary's, {"hint", "gloss"} to lead the card with the gloss, or null (or "-phrase") to leave
+          Wiktionary's phrase out where books have the words one by one ("di nulla" "of nothing", not "you're
+          welcome"); {"spelled": true} (with a hint or not) keeps the phrase but has the engine find it only as spelled,
+          not through another form of its verb ("Il se passa la main sur le visage" is no passer la main "to step down")."""
     try:
         with open(os.path.join(CURATED, code + '.json'), encoding='utf-8') as f:
             data = json.load(f)
@@ -1221,6 +1334,7 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
     rules = {}
     entry_tokens = collections.defaultdict(set)   # entry -> {(rule, desc[, stress])}
     covered = set()                               # hash((entry, folded form)) of every pair with a token
+    table_pairs = set()                           # hash((entry, folded form)) of the forms an entry's own table lists
     interned = {}
     pointers = []                        # (form, target word, pos, description, written spelling or None, kind)
     phrase_entries = []                  # multiword entries (sin embargo, parce que), for phrases.tsv.gz
@@ -1236,7 +1350,12 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
     bare_female = set()                           # entries that are only "female equivalent of X" (profesora)
     closed_forms = set()                          # folded forms a pronoun, determiner, article or adjective lists
     form_owner = collections.defaultdict(list)    # folded form of a contraction, determiner... -> [(entry, desc)]
+    table_owner = collections.defaultdict(list)   # folded form a verb's own table lists -> [(entry, desc)]
+    pronoun_forms = []                            # Italian: (entry, folded form, tags) a -rsi verb's table gives with its pronoun
+    declined = []                                 # German: (verb entry, participle, description) to decline once all are read
+    meaning_forms = []                            # pronoun form sections kept for the meaning they give (los "them")
     degree_forms = {}                             # (entry, folded form) -> [(tags, written)]: comparatives, decided later
+    noun_forms = set()                            # folded forms a noun's own table lists (a comparative gives way to one)
     aspects = {}                                  # Russian verb entry -> (aspect, [partners])
     # Russian: how often each spelling occurs in the subtitles, to put the likelier stress of a spelling first.
     surface_count = {}
@@ -1255,7 +1374,7 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             if word in plain_:
                 yo_count[word] = yo_count.get(word, 0) + count
 
-    def add_token(idx, fk, desc, written, pref=0):
+    def add_token(idx, fk, desc, written, pref=0, pointer=False):
         """A form of entry idx: the rule that makes it, its description and (Russian) its stress. `pref` orders the tokens
         of one rule (0 first): the engine keeps the first of an entry's equally likely readings of a spelling."""
         k = entries[idx].key
@@ -1269,6 +1388,10 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
         if pref:
             token_pref[(idx, tok)] = pref
         covered.add(hash((idx, fk)))
+        if not pointer:
+            table_pairs.add(hash((idx, fk)))
+        if entries[idx].pos == 'noun':
+            noun_forms.add(fk)
 
     for e in kaikki.entries(cfg['name'], extract_in=extract):
         n_read += 1
@@ -1294,10 +1417,14 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                 if hd and fold(code, hd) == key:
                     written = hd
                     break
-        rows = sense_rows(code, senses)
+        rows = sense_rows(code, senses, pos)
         # Pointers: "plural of casa", "third-person singular preterite of ir", "apocopic form of le, la". A contraction
         # that says what it means (al "to the", au, zum) is a word of its own, not a form of its preposition.
-        own_contraction = pos == 'contraction' and bool(rows)
+        # Not one that gives only its pieces, and is old (Dante's sen "se + ne" still points at se).
+        own_contraction = pos == 'contraction' and any(not (g[0].startswith(CONTRACTION_MARK) and weak_notes(n))
+                                                       for n, g in rows)
+        mine = []                                 # this section's pointers: (target, description, kind)
+        pointing = meaning_only = 0               # senses that point somewhere; of them, those that say a meaning
         for s in senses:
             if own_contraction:
                 break
@@ -1309,6 +1436,8 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                 m = is_pointer(g0) and re.search(r'\bof ([^\s,;:.()]+)', g0)
                 if m:
                     targets = [m.group(1)]
+            if targets:
+                pointing += 1
             if not targets or 'combined-form' in stags or 'compound-of' in stags or \
                     any(t.startswith('object-') for t in stags):
                 continue
@@ -1316,6 +1445,7 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             if any(re.search(r'\bcombined with\b', g) for g in gl):
                 continue
             if gl and pointer_tail(gl[-1]) and s.get('form_of') and not any(t in ORDER for t in stags if t != 'accusative'):
+                meaning_only += 1
                 continue
             if not keep_form(w):
                 continue
@@ -1341,15 +1471,21 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                 desc = desc + ' (' + ', '.join(notes[:2]) + ')'
             for tw in targets:
                 tw = re.sub(r'\s*\(.*$', '', tw).strip()
-                # kaikki sometimes links the rest of the gloss too: ho -> "avere and", gran -> "grande m or f by sense".
-                tw = re.sub(r'^(\S+)\s+(?:and|or|m|f|n|by)\b.*$', r'\1', tw)
+                # kaikki sometimes links the rest of the gloss too: ho -> "avere and", gran -> "grande m or f by sense",
+                # sur -> "su used before words beginning with u".
+                tw = re.sub(r'^(\S+)\s+(?:and|or|m|f|n|by|used|when|before|after|especially)\b.*$', r'\1', tw)
                 if tw and ' ' not in tw and fold(code, tw) != key:
                     pointers.append((w, intern(tw), intern(pos), intern(desc[:80]), written if written != w else None,
                                      kind))
+                    mine.append((tw, desc[:80], kind))
+                elif tw and fold(code, tw) == key:
+                    mine.append((tw, desc[:80], 'self'))
         # A section Wiktionary heads as a form ("verb form": había, est, сказала) is the lemma's: an explanation it
         # adds ("makes pluperfect to verbs") must not make había a word of its own.
-        if rows and any(re.search(r'\bforms?$', (h.get('a') or {}).get('2', '')) for h in e.get('h') or [] if h.get('n') == 'head') \
-                and any(s.get('form_of') or s.get('alt_of') for s in senses):
+        # Not when every sense that points says a meaning: Spanish los (pronoun form) is "accusative of ellos; them", so
+        # it points nowhere, and "Y el hombre los echó con la escoba" (Quiroga) had no pronoun to read.
+        form_head = any(re.search(r'\bforms?$', (h.get('a') or {}).get('2', '')) for h in e.get('h') or [] if h.get('n') == 'head')
+        if rows and pointing > meaning_only and form_head:
             rows = []
         female_only = adjectival = False
         if pos == 'noun':
@@ -1371,7 +1507,45 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                     adjectival = 'adjectival' in (s.get('tags') or [])
                     rows = [(['feminine of ' + m.group(1)], [q or FEMALE_MARK + m.group(1)])] + rows
                     break
+            # pajaritos is first the "diminutive of pájaro (birdie)", then slang: the diminutive leads, as Wiktionary's
+            # gloss or "little" and its noun's hint (filled in when the entries are written). Not before a meaning of
+            # its own, which a diminutive so often has: bombilla is a light bulb, not a "little bomba", palomita
+            # popcorn, conejillo a guinea pig.
+            for s in senses[:1]:
+                m = DIMINUTIVE_OF.match(clean_gloss((s.get('glosses') or [''])[-1]))
+                q = m and (m.group(2) or m.group(3))
+                if m and rows and m.group(1)[:1].islower() and \
+                        not set(s.get('tags') or []) & {'slang', 'vulgar', 'obsolete', 'archaic'} and \
+                        all(marked_notes(n) or weak_notes(n) for n, g in rows if g != [q]):
+                    rows = [(['diminutive of ' + m.group(1)], [q or DIMINUTIVE_MARK + m.group(1)])] + \
+                        [r for r in rows if r[1] != [q]]
         if not rows:
+            # An alternative form's own inflections, and a participle's declension, point where the section points:
+            # Collodi's figliuoli is the plural of figliuolo, "alternative form of figliolo", so figliolo's; Russian
+            # отворённая is отворить's participle (отворённый) in the feminine.
+            mine = [m for m in mine if m[2] != 'self']
+            if mine and len({t for t, _, _ in mine}) == 1 and e.get('f'):
+                tw, pdesc, pkind = mine[0]
+                participle = pos == 'verb' and 'participle' in pdesc
+                if pkind == 'variant' or participle:
+                    rows_ = [(f[0], f[1] or []) for f in e['f']]
+                    if participle and code == 'ru':
+                        rows_ += ru_short_forms(written)
+                    by_form = collections.OrderedDict()      # form -> [tags]: воющим is instrumental and dative
+                    for form, tags in rows_:
+                        form = SUPERSCRIPT.sub('', form)
+                        if code == 'it':
+                            form = italian_spelling(form)
+                        if 'canonical' in tags or any(t in SKIP_ROW_TAGS for t in tags) or not keep_form(form) \
+                                or fold(code, form) == key or (pos == 'noun' and {'masculine', 'feminine'} & set(tags)):
+                            continue
+                        by_form.setdefault(form, []).append(tags)
+                    for form, tagsets in by_form.items():
+                        d_ = merge_descriptions(tagsets)
+                        if not d_:
+                            continue
+                        d_ = (pdesc + ' (' + d_ + ')') if participle else (d_ + ' (' + variant_word(pdesc) + ')')
+                        pointers.append((form, intern(tw), intern(pos), intern(d_[:100]), form, 'formof'))
             continue
         real = [s for s in senses if not (s.get('form_of') or s.get('alt_of'))]
         weak = all(weak_notes(notes) for notes, _ in rows) or adjectival
@@ -1384,6 +1558,8 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
         reading = written if written != w or (cfg.get('stress') and 'ё' in w.lower() and vowel_count(w) > 1) else ''
         entries.append(Entry(key, w, reading, pos, gender_of(e, real), rows[:8], weak, len(by_key[key])))
         by_key[key].append(idx)
+        if form_head and meaning_only and pos in ('pron', 'det'):
+            meaning_forms.append(idx)
         if female_only and rows[0][1][0].startswith(FEMALE_MARK):
             bare_female.add(idx)
         if code == 'ru' and pos == 'verb':
@@ -1395,10 +1571,14 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                     aspects[idx] = (ASPECTS[a['2']], [x for x in partners if x and ' ' not in x][:3])
                     break
         sense_tags = {t for x in real for t in (x.get('tags') or [])}
-        feminine_head = 'feminine' in sense_tags and 'masculine' not in sense_tags
         own_gender = entries[idx].gender
+        # хозяйка lists хозяин as its "masculine" (a feminine noun's table names the male word): its senses, whose
+        # first is the pointer "female equivalent of хозяин", do not all say feminine, its gender does.
+        feminine_head = ('feminine' in sense_tags or (own_gender == 'f' and pos == 'noun')) and 'masculine' not in sense_tags
         forms = e.get('f') or []
         table = shared_table(code, key, pos, forms)
+        if code == 'ru':
+            forms = forms + [[re.sub(r'^\(([^()]+)\)', r'\1', f[0])] + f[1:] for f in forms if re.match(r'^\([^()]+\)\S', f[0])]
         cells = collections.OrderedDict()         # folded form -> [(tag set, written spelling)]
         others = []
         for i, f in enumerate(forms):
@@ -1407,6 +1587,23 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                 form = italian_spelling(form)
             if table and i in table[0]:
                 continue
+            # accorgersi's table writes its pronoun: "si accòrse" (Collodi: "Geppetto si accòrse di avere in bocca la
+            # parrucca"), whose verb is accòrse, read as accorse. Decided once every entry is read: lavorarsi's are
+            # lavorare's own.
+            if code == 'it' and pos == 'verb' and key.endswith('rsi') and ' ' in form:
+                bare = italian_spelling(re.sub(r'^(?:mi|ti|si|ci|vi|me|te|se|ce|ve) (?:ne )?', '', form))
+                if keep_form(bare) and not any(t in SKIP_ROW_TAGS for t in tags):
+                    pronoun_forms.append((idx, fold(code, bare), frozenset(tags)))
+                continue
+            # A separable verb's table writes the main clause, "trat hinaus"; a subordinate clause joins it, "als er auf
+            # die Diele hinaustrat" (Immensee).
+            if code == 'de' and pos == 'verb' and ' ' in form:
+                pv = form.split(' ')
+                if len(pv) == 2 and key.startswith(pv[1]) and pv[1][:1].islower():
+                    form = pv[1] + pv[0]
+            # тёплый's comparative is written "(по)тепле́е": тепле́е here, потепле́е at the end of the table.
+            if code == 'ru' and form.startswith('('):
+                form = re.sub(r'^\([^()]+\)', '', form)
             # la lists el and los as its masculine: those are the other word, not forms of la.
             if feminine_head and 'masculine' in tags and 'feminine' not in tags:
                 continue
@@ -1430,7 +1627,7 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                 others.append((fk, frozenset(tags), form))
                 continue
             ts = frozenset(tags)
-            if pos == 'adj' and ts & {'comparative', 'superlative'}:
+            if (pos == 'adj' or (code == 'ru' and pos == 'adv')) and ts & {'comparative', 'superlative'}:
                 # bien lists meilleur as its comparative, but meilleur is an adjective of its own ("better"): decided
                 # once every entry is read.
                 cell = degree_forms.setdefault((idx, fk), [])
@@ -1440,7 +1637,7 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             cell = cells.setdefault(fk, [])
             if (ts, form) not in cell:
                 cell.append((ts, form))
-            if table and len(f) > 2 and set(tags) & OBLIQUE:
+            if table and len(f) > 2 and set(tags) & OBLIQUE and pos == 'pron':
                 # A personal pronoun's object form is glossed as one: меня "me", ihm "him", not я "I", er "he". German
                 # genitives (meiner, deiner) are spelled like the possessives, and capitals are the polite Sie's.
                 eng = object_pronoun(table[1][i])
@@ -1457,6 +1654,21 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             if code == 'it' and pos == 'verb' and set(tags) == {'participle', 'past'} and fk.endswith('o'):
                 for end, extra in (('a', ('feminine', 'singular')), ('i', ('masculine', 'plural')), ('e', ('feminine', 'plural'))):
                     cells.setdefault(fk[:-1] + end, []).append((frozenset(('participle', 'past') + extra), ''))
+        if code == 'de' and pos == 'adj' and len(key) > 4 and key[-2:] in ('el', 'er', 'en'):
+            # Older books keep the stem's e and drop the ending's: "in den dunkeln Seitengängen", "zu den obern Zimmern"
+            # (Immensee) for dunklen, oberen; or drop the stem's: goldne for goldene.
+            for fk, cell in list(cells.items()):
+                for end in ('em', 'en', 'er', 'es', 'e'):
+                    if fk in (key + end, key[:-2] + key[-1] + end):
+                        if key[-2:] in ('el', 'er') and end in ('en', 'em'):
+                            alt = key + end[-1]
+                        elif key[-2:] == 'en':
+                            alt = key[:-2] + 'n' + end
+                        else:
+                            break
+                        if alt not in cells:
+                            cells[alt] = [(ts | {'dated'}, wr) for ts, wr in cell]
+                        break
         if others:
             other_gender.append((idx, others))
         if code == 'ru':
@@ -1465,6 +1677,8 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             own_forms.add(fk)
             if pos in ('pron', 'det', 'article', 'adj'):
                 closed_forms.add(fk)
+            if pos == 'verb':
+                table_owner[fk].append((idx, merge_descriptions([ts for ts, _ in cell])))
             if code != 'ru':
                 add_token(idx, fk, merge_descriptions([ts for ts, _ in cell]), None)
                 if pos in ('contraction', 'det', 'pron', 'article'):
@@ -1472,9 +1686,64 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                 continue
             for pref, (tagsets, wr) in enumerate(stress_groups(cell, p_plural)):
                 add_token(idx, fk, merge_descriptions(tagsets), wr, pref)
+        if code == 'de' and pos == 'verb':
+            # A participle before a noun is declined like an adjective: "um die zappelnden Beine nicht sehen zu müssen"
+            # (Die Verwandlung) is zappeln's present participle, which the table gives only as zappelnd.
+            for fk, cell in list(cells.items()):
+                tags_ = {t for ts, _ in cell for t in ts}
+                if 'infinitive-zu' in tags_ and fk.endswith('en'):
+                    # "eines aus Einzelquadraten zusammenzusetzenden Altarteppichs" (Effi Briest): the zu-infinitive as
+                    # a participle, "to be put together".
+                    for end in ('d', 'de', 'den', 'der', 'des', 'dem'):
+                        if fk + end not in cells:
+                            own_forms.add(fk + end)
+                            add_token(idx, fk + end, 'present participle with zu' + (' (declined)' if end != 'd' else ''), None)
+                if 'participle' in tags_ and not tags_ & {'infinitive', 'infinitive-zu'} and fk[-1:] in ('d', 't', 'n'):
+                    declined.append((idx, fk, merge_descriptions([ts for ts, _ in cell]) + ' (declined)'))
+
+    # accorgersi has no accorgere: its forms are its own. lavorarsi has lavorare, whose table they are.
+    by_form = collections.defaultdict(list)
+    for idx, fk, ts in pronoun_forms:
+        k = entries[idx].key
+        if not any(entries[i].pos == 'verb' for b in (k[:-2] + 'e', k[:-2] + 're') for i in by_key.get(b, ())):
+            by_form[(idx, fk)].append(ts)
+    for (idx, fk), tss in by_form.items():
+        own_forms.add(fk)
+        table_owner[fk].append((idx, merge_descriptions(tss)))
+        add_token(idx, fk, merge_descriptions(tss), None)
+    del pronoun_forms, by_form
+
+    # A pronoun's form section kept for its meaning (los "accusative of ellos; them") is not needed where a pronoun's
+    # own table has the form: German ihn stays er's "him", as before.
+    for idx in meaning_forms:
+        en = entries[idx]
+        if any(entries[j].pos == en.pos and j != idx for j, _ in form_owner.get(en.key, ())):
+            by_key[en.key].remove(idx)
+    del meaning_forms
+    # A dated contraction spelled like another word is that word: German in "in + den", Italian pelle "per le" (skin).
+    for idx, en in enumerate(entries):
+        if en.pos == 'contraction' and en.weak and en.senses and en.senses[0][1][0].startswith(CONTRACTION_MARK) and \
+                any(j != idx and not entries[j].weak and entries[j].pos != 'name' for j in by_key.get(en.key, ())):
+            by_key[en.key].remove(idx)
 
     adj_keys = {k for k, ids in by_key.items() if any(entries[i].pos == 'adj' for i in ids)}
+    # Not a participle that is an adjective of its own: betrunken "drunk" declines as itself, and betrunkene must not
+    # become betrinken's ("der betrunkene Mann" is drunk, not "to get drunk").
+    for idx, fk, d_ in declined:
+        if fk in adj_keys:
+            continue
+        for end in ('e', 'en', 'er', 'es', 'em'):
+            if fk + end not in own_forms and hash((idx, fk + end)) not in covered:
+                add_token(idx, fk + end, d_, None)
+    del declined
+    # Nor a comparative spelled like a noun's form, or like a word Wiktionary points at as a word of its own: "гоняя
+    # голубей" (Капитанская дочка) is голубь's "doves", not голубой's colloquial "bluer"; подальше, побольше, получше are
+    # дальше, больше, лучше ("further", "more", "better"), whose по- spelling a table gives as "(по)дальше", not далёкий's.
+    # (A pointer at a headword: веселей "alternative form of веселее" points at a comparative that is no word of its own.)
+    pointed_forms = {fold(code, f_) for f_, t_, _, _, _, k_ in pointers if k_ != 'formof' and fold(code, t_) in by_key}
     for (idx, fk), cell in degree_forms.items():
+        if code == 'ru' and (fk in noun_forms or fk in pointed_forms):
+            continue
         if fk not in adj_keys:
             own_forms.add(fk)
             for pref, (tagsets, wr) in enumerate(stress_groups(cell, None) if code == 'ru' else [([t for t, _ in cell], None)]):
@@ -1490,6 +1759,7 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
         if any(i != idx and i not in bare_female and entries[i].pos != 'name' for i in by_key[en.key]) or \
                 en.key in closed_forms or '.' in en.key:
             by_key[en.key].remove(idx)
+    female_keys = {entries[i].key for i in bare_female}     # keys a bare female equivalent spells (pointers below)
     del bare_female
 
     # muchacho's muchacha, parrain's marraine: a form of the masculine only when it is no noun of its own.
@@ -1509,13 +1779,56 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
     # ---- hand-written senses for the commonest words
     curated = load_curated(code)
     pos_code = {v: k for k, v in POS_NAMES.items()}
+    no_prior = set()                              # entries the treebanks' readings must not go to (curated "prior": false)
+    curated_made = set()                          # keys of entries a curated gloss made (Wiktionary has none)
+
+    def section_of(i):
+        """(nth section of its head and part of speech, 1-based in Wiktionary's order, and its senses as text)."""
+        en = entries[i]
+        nth = 1 + sum(1 for j in by_key[en.key] if j != i and entries[j].head == en.head and entries[j].pos == en.pos
+                      and entries[j].seq < en.seq)
+        return nth, ' '.join(g for _, gl in en.senses for g in gl).lower()
+
+    def curated_ids(ck):
+        """The entries a curated key names: "head", "head|pos", "head|pos#2", "head|pos~text"."""
+        word, _, sel = ck.partition('|')
+        pos_name, nth, text = sel, None, None
+        if '#' in sel:
+            pos_name, _, n_ = sel.partition('#')
+            nth = int(n_) if n_.isdigit() else None
+        elif '~' in sel:
+            pos_name, _, text = sel.partition('~')
+        ids = [i for i in by_key.get(fold(code, word), []) if not pos_name or POS_NAMES.get(entries[i].pos, entries[i].pos) == pos_name]
+        if nth is not None:
+            ids = [i for i in ids if section_of(i)[0] == nth]
+        if text is not None:
+            ids = [i for i in ids if text.lower() in section_of(i)[1]]
+        return ids, word, pos_name, nth is not None or text is not None
+
+    # The curated hint of each entry, the most particular key first ("que|conjunction#2" before "que|conjunction").
+    curated_of = {}
     for ck, cv in curated.items():
-        if not isinstance(cv, dict) or 'gloss' not in cv or ck.startswith('='):
+        if ck.startswith(('=', '+', '-')) or ('#' not in ck and '~' not in ck):
             continue
-        word, _, pos_name = ck.partition('|')
+        for i in curated_ids(ck)[0]:
+            curated_of[i] = cv
+    for ck, cv in curated.items():
+        if not isinstance(cv, dict) or ck.startswith(('=', '+', '-')):
+            continue
+        ids, word, pos_name, particular = curated_ids(ck)
         k = fold(code, word)
-        ids = [i for i in by_key.get(k, []) if not pos_name or POS_NAMES.get(entries[i].pos, entries[i].pos) == pos_name]
+        if cv.get('prior') is False:
+            no_prior.update(ids)
+        if cv.get('of'):
+            # Machado's quiz is querer's (quis), though Portuguese has the noun quiz: a pointer Wiktionary's own rules
+            # leave out, kept because a reader said so.
+            pointers.append((word, intern(cv['of']), intern(pos_code.get(pos_name, pos_name or 'noun')),
+                             intern(cv.get('form', '')), None, 'curated'))
+        if 'gloss' not in cv:
+            continue
         sense = (list(cv.get('notes', [])), [cv['gloss']])
+        if particular and not ids:
+            continue
         if ids:
             for i in ids:
                 rest = [x for x in entries[i].senses if x[1] != sense[1]]
@@ -1525,6 +1838,9 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             entries.append(Entry(k, word, '', pos_code.get(pos_name, pos_name or 'noun'), cv.get('gender', ''), [sense],
                                  False, len(by_key[k])))
             by_key[k].append(idx)
+            curated_made.add(k)
+            if cv.get('prior') is False:
+                no_prior.add(idx)
 
     # ---- pointers -> forms of lemma entries
     def target_entries(word, pos):
@@ -1540,12 +1856,6 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
         near = [i for i in ids if entries[i].pos in loose]
         return near or ids
 
-    # A pointer at a word that is itself only a pointer (Italian un' -> una -> uno, fué -> fue -> ser) follows it, up to
-    # two steps.
-    pointed = collections.defaultdict(list)
-    for form, tw, pos, desc, written, kind in pointers:
-        pointed[fold(code, form)].append((tw, pos, desc, kind))
-
     def resolve(tw, pos, depth=0):
         """The entries a pointer reaches: (entry, the description the next step gives (fue: "third-person singular
         preterite indicative" of ser), None when it points at a headword; the description of a spelling variant on the
@@ -1556,8 +1866,20 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
         owners = [(i, d) for i, d in form_owner.get(fold(code, tw), ()) if entries[i].pos == pos]
         if owners and not any(entries[i].pos == pos for i in ids):
             return [(i, d or None, None) for i, d in owners]
+        # No word but a name: a pointer of its own, or a verb's form, before the name spelled alike. Collodi's figliuoli
+        # is the plural of figliuolo, "alternative form of figliolo", not of the surname Figliuolo; par is the "apocopic
+        # form of pare", parere's "seems"; Spanish ta the "clipping of está", estar's.
+        if pos in ('noun', 'verb') and depth < 2 and all(entries[i].pos == 'name' for i in ids):
+            chain = chain_of(tw, pos, depth)
+            if chain:
+                return chain
+            if pos == 'verb' and table_owner.get(fold(code, tw)):
+                return [(i, d or None, None) for i, d in table_owner[fold(code, tw)]]
         if ids or depth >= 2:
             return [(i, None, None) for i in ids]
+        return chain_of(tw, pos, depth)
+
+    def chain_of(tw, pos, depth):
         out = {}
         for tw2, pos2, desc2, kind2 in pointed.get(fold(code, tw), ()):
             # ves is "plural of ve", the letter v; ve is also "go!" (ir). A step that changes the part of speech is
@@ -1571,27 +1893,71 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
     # Words with an entry of their own, and the few spellings a pointer must not take over.
     # Not one that is only archaic (pt á "wing", which a pre-reform á "to the" must not become).
     word_keys = {k for k, ids in by_key.items() if any(entries[i].pos != 'name' and not entries[i].weak for i in ids)}
+    other_pointed = {fold(code, f_) for f_, _, _, _, _, k_ in pointers if k_ != 'formof'}
     clitic_form = CLITIC_FORM.get(code)
-    n_pointer_pairs = 0
-    n_dropped = collections.Counter()
-    for form, tw, pos, desc, written, kind in pointers:
+
+    def left_out(form, desc, kind):
+        """Why a pointer is left out ('' to keep it): the same for the chains below as for the forms it makes."""
         fk = fold(code, form)
         # cuarto is "synonym of dinero" in Andalusia, ay "obsolete spelling of hay", Schneider "agent noun of
         # schneiden", muchacha "female equivalent of muchacho": a word with an entry of its own is that word, and
         # the pointer would only put another word's meaning first (¡Ay! read as haber "to have"). An elision is
         # grammar, not spelling: l' "the" is still le the pronoun's l' in "je l'ai vu".
         if kind in ('synonym', 'variant', 'derived') and (fk in word_keys if kind != 'derived' else fk in noun_keys) \
-                and not ELISION_DESC.search(desc):
-            n_dropped[kind] += 1
-            continue
+                and (not ELISION_DESC.search(desc) or (fk in curated_made and re.search(r'clipp', desc, re.I))):
+            return kind
         # aquella is aquel's feminine before it is the accentless aquélla; haberlo is haber + lo before it is an archaic
-        # spelling of habérselas.
-        if kind == 'variant' and (fk in own_forms or (clitic_form and clitic_verb(clitic_form, fk, by_key, entries))):
-            n_dropped[kind] += 1
+        # spelling of habérselas. A clipping is a word cut short, not a spelling: señá, the Sombrero's "clipping of
+        # señora" (the miller's wife is señá Frasquita on every page), is señora's though señar's voseo imperative is
+        # spelled so too; not over a form a reader meets: habita, the "colloquial clipping of habitación", is habitar's
+        # "lives" ("En dónde habitas", Bécquer).
+        clipping_ = re.search(r'clipp', desc, re.I) and all(
+            re.search(r'imperative|subjunctive', d_) and not re.search(r'indicative|participle|infinitive|gerund', d_)
+            for _, d_ in table_owner.get(fk, [(0, '')]))
+        if kind == 'variant' and not clipping_ and \
+                (fk in own_forms or (clitic_form and clitic_verb(clitic_form, fk, by_key, entries))):
+            return kind
+        # A form a variant's or participle's own table gives is no other word, nor another word's form: suo's old
+        # spelling so lists sa, se and sia, which are sapere's, "if" and essere's.
+        if kind == 'formof' and (fk in word_keys or fk in own_forms or fk in other_pointed):
+            return kind
+        return ''
+
+    # A pointer at a word that is itself only a pointer (Italian un' -> una -> uno, fué -> fue -> ser) follows it, up to
+    # two steps, even one left out where it stands (Machado's cousas is the plural of cousa, an old spelling of coisa,
+    # though cousa is coser's too). Not through a form a variant's own table gives (a misspelling's that lists asido
+    # made Bécquer's "asida" hacer's), nor a clipping over a form a reader meets (habitas, "plural of habita", is not
+    # habitación's by way of the clipping).
+    pointed = collections.defaultdict(list)
+    for form, tw, pos, desc, written, kind in pointers:
+        if kind != 'formof' and not (re.search(r'clipp', desc, re.I) and left_out(form, desc, kind)):
+            pointed[fold(code, form)].append((tw, pos, desc, kind))
+
+    n_pointer_pairs = 0
+    n_dropped = collections.Counter()
+    for form, tw, pos, desc, written, kind in pointers:
+        fk = fold(code, form)
+        why = left_out(form, desc, kind)
+        if why:
+            n_dropped[why] += 1
             continue
-        for idx, inner, via in resolve(tw, pos):
+        reached = resolve(tw, pos)
+        # A word of its own reaches another only directly, not by way of a spelling variant: pari "peers" is the "plural
+        # of paro", and paro an "alternative form of paio", but "Co' vostri pari" (Manzoni) is no pairs. A word that is only
+        # another's female is no word of its own: Machado's hespanhola, "feminine of hespanhol" (the old espanhol), is
+        # espanhol's feminine, "Spanish" ("uma dama hespanhola, Marcella", Memórias póstumas).
+        if fk in word_keys and fk not in female_keys:
+            reached = [r for r in reached if r[2] is None]
+        # A form one section of a noun lists in its own table is not a form of a section of another gender: Alte, the
+        # plural of der Alte "old man", is no form of das Alter "age" ("Wir Alten haben uns im Leben schon genug
+        # umhergetrieben", Immensee).
+        if len(reached) > 1:
+            own_g = {entries[i].gender for i, _, _ in reached if hash((i, fk)) in covered}
+            if own_g:
+                reached = [r for r in reached if entries[r[0]].gender in own_g or not entries[r[0]].gender]
+        for idx, inner, via in reached:
             d = desc
-            if inner and kind == 'variant':
+            if inner and kind in ('variant', 'curated'):
                 # fué is the "superseded spelling of fue": fue's own description (ser and ir's preterite), as old spelling.
                 d = inner + ' (' + variant_word(desc) + ')'
             elif via and kind != 'variant' and not d.endswith(')'):
@@ -1604,7 +1970,7 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             if fk == entries[idx].key or hash((idx, fk)) in covered:
                 continue
             n_pointer_pairs += 1
-            add_token(idx, fk, d, written or form)
+            add_token(idx, fk, d, written or form, pointer=True)
     del pointers, covered
 
     # ---- paradigms, and matching a written word through them (as the engine does)
@@ -1642,6 +2008,16 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                     if p is not None and r in paradigm_rules[p]:
                         out.add(i)
         return out
+
+    # A contraction Wiktionary gives only the pieces of reads as their hints when they are small words (Italian pei "for
+    # the", German durchs "through the"); one of a verb and a pronoun (gibt's, wars) is the verb's, as before.
+    for idx, en in enumerate(entries):
+        if en.senses and all(g[0].startswith(CONTRACTION_MARK) for _, g in en.senses) and idx in by_key.get(en.key, ()):
+            for j, p_ in enumerate(en.senses[0][1][0][len(CONTRACTION_MARK):].split()):
+                cands_ = {entries[i].pos for i in match(fold(code, p_)) if entries[i].pos != 'name'}
+                if not cands_ & ({'prep', 'conj', 'contraction'} if j == 0 else {'article', 'det', 'pron', 'adv'}):
+                    by_key[en.key].remove(idx)
+                    break
 
     def forms_match(fk):
         return match(fk) - set(by_key.get(fk, ()))
@@ -1698,8 +2074,8 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
         an = ud_surface.get(fk)
         if not an:
             return None
-        exact = set(by_key.get(fk, ()))
-        cands = list(exact) + [i for i in forms_match(fk) if i not in exact]
+        exact = set(by_key.get(fk, ())) - no_prior
+        cands = list(exact) + [i for i in forms_match(fk) if i not in exact and i not in no_prior]
         mass = collections.Counter()
         for (upos, lemma), n in an.items():
             tiers = ud.UPOS.get(upos, [])
@@ -1783,6 +2159,36 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
     phrase_words |= {w_ for k_ in curated if k_.startswith('+') for w_ in phrase_words_of(code, k_[1:], known_)}
     word_count = {}                               # the subtitle counts of the words of fixed phrases
     top_words = set()                             # the commonest words, which a phrase of them alone must be listed
+    # Subtitles drop accents: Italian ones write già as gia 205,703 times, and gia is otherwise only a form of the archaic
+    # gire "to go", which that count made the 98th word of Italian (and the reading of girò in "si girò"); Spanish ones
+    # write numero for número, which made numerar "to number" the 3,188th word. A spelling that is a current word
+    # without its accent, no current word itself (el is the article though él has an accent), and far rarer as anything
+    # it can be than that word is with its accent, is that word written in haste: it counts for none of the forms it
+    # spells. (French signifie is signifier's, though signifié is a word: signifier is common.)
+    twins = collections.defaultdict(list)         # spelling without accents -> current keys with them
+    if code in ('es', 'it', 'pt'):
+        for k, ids in by_key.items():
+            if strip_accents(k) != k and any(not entries[i].weak and entries[i].pos != 'name' for i in ids):
+                twins[strip_accents(k)].append(k)
+    twin_count = collections.Counter()            # a current key with accents -> its subtitle count, so spelled
+    held = []                                     # (word, count, cells): spellings that may be a twin in haste
+    careless = set()                              # folded spellings that were
+    # DUSHU_DEBUG_KEYS="gire staio": where each of these keys gets its count, printed after the last round.
+    debug_keys = {fold(code, w_) for w_ in os.environ.get('DUSHU_DEBUG_KEYS', '').split()}
+    debug_from = collections.defaultdict(list)
+
+    def take(word, count, cells):
+        ks = {entries[i].key for i, _ in cells}
+        if len(ks) == 1:
+            base[next(iter(ks))] += count
+            if next(iter(ks)) in debug_keys:
+                debug_from[next(iter(ks))].append((count, word, 'alone'))
+            pos_set = {POS_NAMES.get(entries[i].pos, entries[i].pos) for i, _ in cells}
+            if len(pos_set) == 1 and len({d for _, d in cells}) == 1:
+                unambiguous.append((next(iter(ks)), pos_set.pop(), cells[0][1], count))
+        else:
+            ambiguous.append((tuple(cells), count, fold(code, word)))
+
     for word, count in iter_freq(code, freq_path):
         if count < 3:
             break
@@ -1792,17 +2198,24 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             counts.setdefault(word, count)
         if word in phrase_words:
             word_count[word] = word_count.get(word, 0) + count
+        fk = fold(code, word)
+        if twins and fk in by_key and strip_accents(fk) in twins:
+            twin_count[fk] += count
         cells = surface_cells(word)
-        ks = {entries[i].key for i, _ in cells}
-        if not ks:
+        if not cells:
             continue
-        if len(ks) == 1:
-            base[next(iter(ks))] += count
-            pos_set = {POS_NAMES.get(entries[i].pos, entries[i].pos) for i, _ in cells}
-            if len(pos_set) == 1 and len({d for _, d in cells}) == 1:
-                unambiguous.append((next(iter(ks)), pos_set.pop(), cells[0][1], count))
-        else:
-            ambiguous.append((tuple(cells), count, fold(code, word)))
+        if fk in twins and not any(d == -1 and entries[i].key == fk and not entries[i].weak and entries[i].pos != 'name'
+                                   for i, d in cells):
+            held.append((word, count, cells))
+            continue
+        take(word, count, cells)
+    for word, count, cells in held:
+        fk = fold(code, word)
+        if max(twin_count[t] for t in twins[fk]) >= TWIN_RATIO * (max(base[entries[i].key] for i, _ in cells) + 1):
+            careless.add(fk)
+            continue
+        take(word, count, cells)
+    del held, twin_count
 
     def floor_ok(k):
         for i in by_key.get(k, ()):
@@ -1817,25 +2230,48 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
     floor = {k: floor_ok(k) for k in {fk for _, _, fk in ambiguous} | {fk[:1].upper() + fk[1:] for _, _, fk in ambiguous}
              if k in by_key}
 
-    # How often a word of a part of speech stands in each form, from the spellings that can be only one reading.
+    descs_text = {v: k for k, v in descs.items()}
+    atoms_of = {-1: ('\x00head',)}
+
+    def cells_of(d):
+        """The single cells a form's description names, each once (desc_atoms), cached by description."""
+        if d not in atoms_of:
+            atoms_of[d] = desc_atoms(descs_text.get(d, ''))
+        return atoms_of[d]
+
+    # How often a word of a part of speech stands in each single cell, from the spellings that can be only one reading;
+    # a spelling that fills several cells counts for each a like part.
+    # How often a word of a part of speech is in a form: counted from the spellings of that very description (first/third
+    # person singular present subjunctive, which Spanish verbs always share), or, where those are too few to say (under
+    # SPARSE_CELL of the part of speech), from the cells it names counted where a spelling fills one alone. haber's he, "first-person singular present; second-person singular
+    # imperative", is a pair no other verb has, so by its description it had no count at all and "he" was the adverb
+    # "here is" (ranked 224th) in every subtitle; by its cells it is the first person tengo is.
     cell_n = collections.Counter()                # (part of speech, description) -> count
+    alone_n = collections.Counter()               # (part of speech, single cell) -> count of spellings filling it alone
     pos_n = collections.Counter()                 # part of speech -> count
     for k, pos, d, count in unambiguous:
         cell_n[(pos, d)] += count
+        cs = cells_of(d)
+        if len(cs) == 1:
+            alone_n[(pos, cs[0])] += count
         pos_n[pos] += count
     del unambiguous
-
-    descs_text = {v: k for k, v in descs.items()}
 
     def rare_form(d):
         """An imperative or a subjunctive and nothing else: forms a reader meets far less than the cells counted from
         unambiguous spellings suggest (which undercount the first person, whose -o is so often a noun's too)."""
-        t = descs_text.get(d, '') if d != -1 else ''
-        return bool(re.search(r'imperative|subjunctive', t)) and not re.search(r'indicative|participle|infinitive|gerund', t)
+        # Every cell of it: haber's he is "first-person singular present; second-person singular imperative", the
+        # present first.
+        return d != -1 and all(re.search(r'imperative|subjunctive', c) and
+                               not re.search(r'indicative|participle|infinitive|gerund', c) for c in cells_of(d))
 
     def p_cell(e, d):
+        """How often a word of entry e's part of speech is in the form described by d (see cell_n)."""
         pos = POS_NAMES.get(entries[e].pos, entries[e].pos)
-        return (cell_n.get((pos, d), 0) + 0.5) / (pos_n.get(pos, 0) + 50)
+        n = cell_n.get((pos, d), 0)
+        if d != -1 and n < SPARSE_CELL * pos_n.get(pos, 0):
+            n = max(n, sum(alone_n.get((pos, c), 0) for c in cells_of(d)))
+        return (n + 0.5) / (pos_n.get(pos, 0) + 50)
 
     def ud_share(fk, ks):
         mass = ud_mass(fk) if not cfg.get('keep_case') else (ud_mass(fk) or ud_mass(fk[:1].upper() + fk[1:]))
@@ -1845,28 +2281,136 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                 by[entries[i].key] += m
         return by, sum(by.values())
 
+    def spelled_so(k, fk):
+        return k == fk or (cfg.get('keep_case') and k.lower() == fk.lower())
+
     shares = {}                                   # folded form -> ({key: share}, {entry: weight}, treebank count)
     n_rare_floor = []
+    ud_of = {fk: ud_share(fk, {entries[i].key for i, _ in cells}) for cells, _, fk in ambiguous}
+    ud_own = {}                                   # a capitalized German key -> how the treebanks read it so
+    # The floor is for a word spelled so against another word's verb form (como against comer's "I eat"), not against
+    # another noun's plural or adjective's feminine that is common enough to be most of the spelling itself: mala is
+    # malo's "bad" before it is a suitcase.
+    agreeing = collections.defaultdict(list)       # spelling -> [(entry, description)]: gender and number forms
+    for cells, _, fk in ambiguous:
+        for i, d in cells:
+            if d >= 0 and entries[i].pos in ('noun', 'adj') and GENDER_NUMBER_ONLY.match(descs_text.get(d, '')):
+                agreeing[fk].append((i, d))
+
+    # A word is as common as the forms only it can be say. amigar "to befriend" is spelled like amigo and amiga in two of
+    # its cells ("I befriend", "befriends"), and the two shares held each other up until amigar was the 888th word of
+    # Spanish; amigamos, amigaron, amigar itself, which nothing else can be, are all but absent from the subtitles.
+    # Where such forms make up a fair part of a word's use (by the cells' shares), its weight in the next round is held
+    # to OWN_SLACK times what they say.
+    add_of = {r: add for (_, add), r in rules.items()}
+    sole_of = {}
+
+    def sole(form):
+        """The one key a written form can be, as the subtitles' lower-case spelling of it ('' when several or none)."""
+        if form not in sole_of:
+            w_ = form[:1].lower() + form[1:] if cfg.get('keep_case') else form
+            ks_ = {entries[i].key for i, _ in surface_cells(w_)}
+            sole_of[form] = next(iter(ks_)) if len(ks_) == 1 and fold(code, w_) not in careless else ''
+        return sole_of[form]
+    own_share = collections.Counter()
+    shared_keys = {entries[i].key for cells, _, _ in ambiguous for i, _ in cells}
+    for idx, en in enumerate(entries):
+        if en.pos == 'name' or en.key not in shared_keys:
+            continue
+        sh = p_cell(idx, -1) if sole(en.key) == en.key else 0.0
+        p = entry_paradigm.get(idx)
+        for r, ds in (paradigm_descs[p].items() if p is not None else ()):
+            form = en.key[:len(en.key) - len(rule_list[r])] + add_of[r]
+            # The table's own cells only: a diminutive's forms by way of a pointer (peor's peorcitos, "masculine plural")
+            # are not peor's plural, and say nothing of how common peor is.
+            if en.key.endswith(rule_list[r]) and hash((idx, form)) in table_pairs and sole(form) == en.key:
+                sh += sum(p_cell(idx, d) for d in ds)
+                if en.key in debug_keys:
+                    print('DEBUG own', en.key, form, [(descs_text[d], round(p_cell(idx, d), 4)) for d in ds])
+        own_share[en.key] = max(own_share[en.key], sh)
+    del sole_of, table_pairs
+    # Not a word the treebanks have as a lemma: valer is used mostly as vale ("vale la pena", "vale" OK), which its other
+    # forms do not say.
+    cap = {k: max(OWN_SLACK * (base[k] + 1) / sh, base[k] + 1) for k, sh in own_share.items()
+           if sh >= OWN_MIN and sum(ud_lemma_pos.get(k, {}).values()) < 3}
+
+    def own_floor(k, d, fk, count, ud_by, ud_n, other_key):
+        """The share of the spelling the word spelled so starts with (OWN_FLOOR; all of it for a word a reader added), 0 for
+        none: none where the treebanks
+        read the spelling as another word (as this one less than UD_FLOOR of the time: Italian nove is the number "nine"
+        though the treebank of Dante's Italian has it as nuove "new" seven times in ten), AGREE_FLOOR against another
+        word's gender or number form that alone could be AGREE_SHARE of it."""
+        # An interjection gets none against another word's form (it vattene is andarsene's "go away!"), but stands on its
+        # own against another interjection (German na, a variant of nein too).
+        ok = floor.get(k) or (not other_key and any(entries[i].pos == 'intj' for i in by_key.get(k, ())))
+        # A word a reader added (Manzoni's grida "proclamation", la grida) is a word of its own wherever it is spelled so.
+        if d == -1 and k in curated_made and spelled_so(k, fk):
+            return 1
+        if d == -1 and ok and k != fk:
+            # German subtitles are in lower case: the noun Essen is judged by how the treebanks read Essen, not essen,
+            # where they have it (as a name, du at the start of a sentence is du).
+            if k not in ud_own:
+                by_ = collections.Counter()
+                for i, m in (ud_mass(k) or {}).items():
+                    by_[entries[i].key] += m
+                ud_own[k] = (by_, sum(by_.values()))
+            if ud_own[k][1] >= 3:
+                ud_by, ud_n = ud_own[k]
+        if not (d == -1 and ok and spelled_so(k, fk)):
+            return 0
+        # Against a common gender or number form, a lower floor, not none: the noun spelled so is often what a book
+        # means after its article ("«Oh!» disse la vecchia", Pinocchio, is the old woman; "mettersi ne' miei panni" (I
+        # promessi sposi) clothes, not panno's "cloths"), though mala is malo's "bad" before it is a suitcase. So where
+        # the treebanks read the spelling as that word: they file panni under panno.
+        agree = {entries[j].key for j, dj in agreeing.get(fk, ()) if entries[j].key != k}
+        if ud_n >= 3 and ud_by[k] < UD_FLOOR * ud_n:
+            return AGREE_FLOOR if agree and max(ud_by, key=lambda x: ud_by[x]) in agree else 0
+        if any(lemma_w.get(entries[j].key, 1) * p_cell(j, dj) >= AGREE_SHARE * count for j, dj in agreeing.get(fk, ())):
+            return AGREE_FLOOR
+        return OWN_FLOOR
+
     lemma_w = {k: base[k] + 1 for k in base}
+    took = {}                                     # (key, spelling) -> the count the key took from the spelling last round
+    floored = set()                               # (key, spelling): the word spelled so, started on the floor
+    agreed = set()                                # (key, spelling): started on the lower floor (AGREE_FLOOR)
+    # A word the treebanks have as a lemma at all is a word people write: it keeps what it took (Platero's cuesta "slope",
+    # every spelling of which is costar's too, is no staio).
+    in_treebanks = {k for k in shared_keys if ud_lemma_pos.get(k)}
+    verb_spelled = {fk for cells, _, fk in ambiguous if any(d >= 0 and entries[i].pos == 'verb' for i, d in cells)}
     for rnd in range(3):
         total = collections.Counter(base)
+        took_now = {}
         for cells, count, fk in ambiguous:
             w_entry = collections.Counter()
             # An interjection spelled like another word's form is mostly that form itself (it vattene "go away!" is
             # andarsene's imperative, es venga "come on!" venir's), and takes none of the spelling from it.
             other_key = {entries[i].key for i, _ in cells if entries[i].pos != 'intj'}
-            if rnd == 0:
-                # The floor stands where the treebanks do not read the spelling as another word: they have "so" as
-                # sapere's "I know" every time, never so "under" (Non lo so, Pinocchio).
-                ud_by, ud_n = ud_share(fk, {entries[i].key for i, _ in cells})
+            # The floor stands where the treebanks do not read the spelling as another word: they have "so" as
+            # sapere's "I know" every time, never so "under" (Non lo so, Pinocchio).
+            ud_by, ud_n = ud_of[fk]
             for i, d in cells:
                 k = entries[i].key
                 if entries[i].pos == 'intj' and other_key - {k}:
                     continue
-                lw = lemma_w.get(k, 1)
-                if rnd == 0 and d == -1 and floor.get(k) and (k == fk or (cfg.get('keep_case') and k.lower() == fk.lower())) \
-                        and not (ud_n >= 3 and ud_by[k] < 0.5 * ud_n):
-                    lw += max(count * 0.5, 1)
+                # How common a word is, as its other spellings say: what it took from this spelling last round is left
+                # out, or a rare word, one the treebanks never name, lifts itself on a common form spelled like one of
+                # its own (staio "bushel", whose plural stai is stare's "you are", took a tenth of 357,000 stai and
+                # ranked 607th). A word spelled so
+                # keeps what it took when it started on the floor, or when the spelling is no verb's: against a verb
+                # form, whose cell says little of how often a verb has it (vale is most of valer), the noun vale
+                # "voucher" took a little more each round until it was most of "no vale nada". A particle or pronoun
+                # keeps it all the same: the treebanks call Russian давайте "let's" the verb давать.
+                floor_ = own_floor(k, d, fk, count, ud_by, ud_n, other_key) if rnd == 0 else 0
+                # The lower floor is a start only: what the word takes after it is left out like any other's.
+                if floor_ >= OWN_FLOOR:
+                    floored.add((k, fk))
+                elif floor_:
+                    agreed.add((k, fk))
+                keeps = (k, fk) in floored or k in in_treebanks or (d == -1 and spelled_so(k, fk) and (k, fk) not in agreed and (
+                    fk not in verb_spelled or entries[i].pos in ('particle', 'pron', 'det', 'article', 'conj')))
+                lw = lemma_w.get(k, 1) if keeps else max(lemma_w.get(k, 1) - took.get((k, fk), 0), 1)
+                if floor_:
+                    lw += max(count * floor_, 1)
                 w_entry[i] += lw * p_cell(i, d)
             w_key = collections.Counter()
             for i, wv in w_entry.items():
@@ -1877,7 +2421,7 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             # A word written exactly so is at least as likely as a rare form of another (an imperative, a vosotros form):
             # "de tanta sed" is thirst, though ser is ten thousand times commoner than sed and has an imperative sed.
             # Not an interjection, which is mostly the imperative itself (vattene "go away!" is andarsene's).
-            own = next((k for k in ks if floor.get(k) and (k == fk or (cfg.get('keep_case') and k.lower() == fk.lower()))
+            own = next((k for k in ks if floor.get(k) and spelled_so(k, fk)
                         and any(entries[i].pos in ('noun', 'adj') for i in by_key.get(k, ()))), None)
             # Not against a participle, which a book has after every auxiliary (it infilata is infilare's in "infilata
             # la porta di casa", not infilata "string").
@@ -1898,7 +2442,16 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
             # (a frozenset of strings iterates in a different order each run).
             for k in ks:
                 total[k] += count * share[k]
-        lemma_w = {k: v + 1 for k, v in total.items()}
+                took_now[(k, fk)] = count * share[k]
+                if rnd == 2 and k in debug_keys:
+                    debug_from[k].append((round(count * share[k]), fk, round(share[k], 3)))
+        lemma_w = {k: min(v + 1, cap.get(k, math.inf)) for k, v in total.items()}
+        took = took_now
+    del took, floored, agreed
+    for k in sorted(debug_keys):
+        print('DEBUG key', k, 'base', base.get(k, 0), 'total', round(total.get(k, 0)), 'own', round(own_share.get(k, 0), 3),
+              'cap', round(cap.get(k, 0)),
+              sorted(debug_from[k], reverse=True)[:12])
     if stats:
         print(' pointers left out (a word of its own, a clitic verb, a verb\'s gender):', dict(n_dropped))
         print(f' rare-form floor on {len(n_rare_floor)} spellings:', ' '.join(sorted(n_rare_floor, key=lambda f: -base.get(f, 0))[:80]))
@@ -1935,6 +2488,8 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
     # The sections of a headword in the order a reader most likely means them (padre the noun before padre "cool"),
     # by the treebanks; the page's own order where they say nothing. Line numbers are the entry ids the engine uses.
     def section_weight(idx):
+        if idx in no_prior:
+            return 0.0
         en = entries[idx]
         pos_name = POS_NAMES.get(en.pos, en.pos)
         w = 0.0
@@ -1953,12 +2508,12 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
                                                  topical(entries[i]), entries[i].seq)))
     new_id = {old: new for new, old in enumerate(order)}
 
-    def hint_for(en):
+    def hint_for(en, idx=None):
         """The hint column: a curated hint as written (a verb's "main|reflexive", or the main one alone, which clears the
         reflexive hint), else the hint of the senses and, for a verb, of its first reflexive sense."""
-        cur = curated.get(en.head + '|' + POS_NAMES.get(en.pos, en.pos), curated.get(en.head))
+        cur = curated_of.get(idx) or curated.get(en.head + '|' + POS_NAMES.get(en.pos, en.pos), curated.get(en.head))
         if isinstance(cur, dict):
-            cur = cur.get('hint') or hint_of([cur['gloss'].split('; ')], en.head, en.pos)
+            cur = cur.get('hint') or (hint_of([cur['gloss'].split('; ')], en.head, en.pos) if cur.get('gloss') else '')
         if cur:
             return cur
         senses = en.senses
@@ -1989,18 +2544,42 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
     noun_hint = {}
     for idx in order:
         en = entries[idx]
-        if en.pos == 'noun' and en.key not in noun_hint and not en.senses[0][1][0].startswith(FEMALE_MARK):
-            noun_hint[en.key] = hint_for(en)
+        if en.pos == 'noun' and en.key not in noun_hint and not en.senses[0][1][0].startswith((FEMALE_MARK, DIMINUTIVE_MARK)):
+            noun_hint[en.key] = hint_for(en, idx)
     for idx, en in enumerate(entries):
         if en.senses and en.senses[0][1][0].startswith(FEMALE_MARK):
             male = en.senses[0][1][0][len(FEMALE_MARK):]
             entries[idx] = en._replace(senses=[(en.senses[0][0], [female_gloss(noun_hint.get(fold(code, male)) or male)])]
                                        + en.senses[1:])
+    # lorito "little parrot": the diminutive's noun's hint; a noun the dictionary lacks leaves the senses after it.
+    for idx, en in enumerate(entries):
+        if en.senses and en.senses[0][1][0].startswith(DIMINUTIVE_MARK):
+            h = re.sub(r'^(?:a|an|the) ', '', re.split(r'[,;|]', noun_hint.get(fold(code, en.senses[0][1][0][len(DIMINUTIVE_MARK):]), ''))[0].strip())
+            rest = en.senses[1:]
+            entries[idx] = en._replace(senses=[(en.senses[0][0], ['little ' + h])] + rest if h and not h.startswith('to ')
+                                       else rest or [(en.senses[0][0], [en.senses[0][0][0]])])
+    # Italian pei "for the": the hints of per and i (il's plural), a contraction Wiktionary gives only the pieces of.
+    def piece_hint(p_, first):
+        ids = [i for i in match(fold(code, p_)) if entries[i].pos != 'name']
+        if not ids:
+            return ''
+        rank_pos = ['prep', 'contraction', 'conj'] if first else ['article', 'det', 'pron', 'adv']
+        i = min(ids, key=lambda i: (rank_pos.index(entries[i].pos) if entries[i].pos in rank_pos else 9, new_id.get(i, 10 ** 9)))
+        return re.split(r'[,;|]', hint_for(entries[i], i))[0].strip()
+    for idx, en in enumerate(entries):
+        if any(g[0].startswith(CONTRACTION_MARK) for _, g in en.senses):
+            senses_ = []
+            for notes, g in en.senses:
+                if g[0].startswith(CONTRACTION_MARK):
+                    hs = [piece_hint(p_, j == 0) for j, p_ in enumerate(g[0][len(CONTRACTION_MARK):].split())]
+                    g = [' '.join(hs) if all(hs) else notes[0]]
+                senses_.append((notes, g))
+            entries[idx] = en._replace(senses=senses_)
 
     lines = []
     for idx in order:
         en = entries[idx]
-        hint = hint_for(en)
+        hint = hint_for(en, idx)
         sense_cols = []
         for notes, gl in en.senses:
             col = ('{' + ', '.join(dict.fromkeys(notes)) + '}' if notes else '') + '|'.join(gl)
@@ -2035,13 +2614,21 @@ def build(code, extract=None, freq_path=None, out_root=OUT_ROOT, stats=False, en
         top = max(sub[0], key=sub[0].get)
         # A noun or adjective spelled exactly so is left to the sentence when the subtitles prefer another reading: pt
         # testa is a forehead in "com a testa um pouco franzida" (Missa do galo), though subtitles test things.
-        if any(d == -1 and entries[i].key != top and entries[i].pos in ('noun', 'adj') for i, d in sub[3]):
+        # So is a noun's plural or an adjective's feminine: "il lui pinçait ses grosses joues" (Candide) is cheeks, though
+        # subtitles play (tu joues).
+        if any((d == -1 or (GENDER_NUMBER_ONLY.match(descs_text.get(d, '')) and
+                            (entries[i].pos == 'adj' or 'plural' in descs_text.get(d, ''))))
+               and entries[i].key != top and entries[i].pos in ('noun', 'adj') for i, d in sub[3]):
             return False
         # Nor when the word spelled exactly so leads: its share stands on the floor it was given, not on counts (it so
         # "under" over sapere's "I know", as a guess; "Non lo so" is sapere).
         if any(d == -1 and entries[i].key == top for i, d in sub[3]):
             return False
-        return sub[0][top] >= CONFIDENT_SHARE or all(entries[i].key == top or rare_form(d) for i, d in sub[3])
+        # Nor a regional interjection, which takes no share where another word is spelled so (sé "yes" in Chile beside
+        # saber; not ¡viva!).
+        return sub[0][top] >= CONFIDENT_SHARE or all(entries[i].key == top or rare_form(d) or (
+            entries[i].pos == 'intj' and (entries[i].weak or all(marked_notes(n) for n, _ in entries[i].senses)))
+            for i, d in sub[3])
 
     forms_ = {fk for fk, (_, _, c, _) in shares.items() if c >= PRIOR_MIN_SUBTITLES}
     forms_ |= {fk for fk, an in ud_surface.items() if sum(an.values()) >= 3}
@@ -2155,6 +2742,9 @@ CLOSED_POS = {'article', 'det', 'pron', 'prep', 'conj', 'contraction', 'particle
 DEFINITE = {'es': {'el', 'la', 'los', 'las', 'lo'}, 'fr': {'le', 'la', 'les', "l'"},
             'it': {'il', 'lo', 'la', 'i', 'gli', 'le', "l'"}, 'pt': {'o', 'os', 'as'},
             'de': {'der', 'die', 'das', 'den', 'dem', 'des'}, 'ru': set()}
+# A possessive and a noun are that too: "Habt ihr meine Rede begriffen?" (Immensee) is my speech, not meine Rede "my point
+# exactly".
+DEFINITE['de'] |= {'mein', 'meine', 'dein', 'deine', 'sein', 'seine', 'ihr', 'ihre', 'unser', 'unsere', 'euer', 'eure'}
 
 
 def phrase_words_of(code, phrase, known):
@@ -2186,15 +2776,23 @@ def write_phrases(code, phrase_entries, word_count, top_words, known, entries, c
 
     curated/<code>.json lists the phrases of common words alone that are fixed all the same: "+por eso": "therefore" (a hint, or
     "" for Wiktionary's), and it makes the phrase when Wiktionary has none."""
-    listed = {phrase_key(code, k[1:], known): (k[1:], v) for k, v in curated.items() if k.startswith('+')}
+    listed = {phrase_key(code, k[1:], known): (k[1:], v) for k, v in curated.items() if k.startswith('+') and v is not None}
+    # "+que sepa": null or "-que sepa": a phrase the books have as its words one by one ("Mas también quiero que sepa
+    # vuestra merced que…", Lazarillo), left out.
+    dropped = {phrase_key(code, k[1:], known) for k, v in curated.items()
+               if k.startswith('-') or (k.startswith('+') and v is None)}
     best = {}
     for e in phrase_entries:
-        if e.get('p') not in PHRASE_POS:
-            continue
         words = phrase_words_of(code, e['w'], known)
+        key = ' '.join(words)
+        # A prepositional phrase only when a reader listed it ("+da capo a piedi"): Wiktionary has hundreds (a bocca
+        # chiusa, au chaud), which would push phrases books have more often out of the PHRASE_MAX.
+        if e.get('p') not in PHRASE_POS and not (e.get('p') == 'prep_phrase' and key in listed):
+            continue
         if not 2 <= len(words) <= 4 or any(not re.search(r'\w', w) for w in words):
             continue
-        key = ' '.join(words)
+        if key in dropped:
+            continue
         full = [w for w in words if not w.endswith("'")]
         counts_ = [word_count.get(w, 0) for w in full]
         if not counts_ or min(counts_) < PHRASE_MIN_COUNT:
@@ -2210,18 +2808,33 @@ def write_phrases(code, phrase_entries, word_count, top_words, known, entries, c
         if any(re.match(r'(?i)used other than', r[1][0]) for r in rows_all) and key not in listed:
             continue
         rows = [r for r in rows_all if not re.match(r'(?i)used other than', r[1][0])]
+        # A figurative sense first and a plain one after: the plain one leads, which a book means where it has the words.
+        # "tirò fuori il suo mezzo pane" (I promessi sposi) took out, not tirare fuori {figurative} "to pipe up".
+        if rows and 'figurative' in rows[0][0]:
+            plain = next((r for r in rows[1:] if not r[0]), None)
+            if plain:
+                rows = [plain] + [r for r in rows if r is not plain]
         # tal que {colloquial} "for example" is "such that" in a book; en estado (adjective) "pregnant" is "en estado grave".
-        if not rows or (key not in listed and (set(rows[0][0]) & (WEAK_LABELS | {'literary', 'colloquial', 'informal'})
+        # Nor a euphemism: "ele tornou a bater uma, duas, três pancadas" (A cartomante) is no "bater uma".
+        if not rows or (key not in listed and (set(rows[0][0]) & (WEAK_LABELS | {'literary', 'colloquial', 'informal',
+                                                                               'euphemistic', 'vulgar', 'slang'})
                                                 or marked_notes(rows[0][0]) or regional(rows[0][0])
                                                 or (e['p'] == 'adj' and len(words) == 2))):
             continue
         cur = curated.get(e['w'] + '|' + POS_NAMES.get(e['p'], e['p']), curated.get(e['w']))
-        hint = (cur.get('hint') if isinstance(cur, dict) else cur) or (listed.get(key, ('', ''))[1]) or \
-            hint_of([g for _, g in rows], e['w'], e['p'])
+        lv = listed.get(key, ('', ''))[1]
+        hint = (cur.get('hint') if isinstance(cur, dict) else cur) or (lv.get('hint') if isinstance(lv, dict) else lv) or \
+            hint_of([g for _, g in rows], e['w'], e['p'], phrase=True)
         if not hint:
             continue
-        score = min(counts_)
+        # A phrase a reader listed is always written: "+par conséquent" lost to the cut at PHRASE_MAX by its rarest
+        # word's count, and conséquent read as the musical "countersubject" (La Parure).
+        score = 10 ** 9 if key in listed else min(counts_)
         cols = [('{' + ', '.join(dict.fromkeys(n)) + '}' if n else '') + '|'.join(g) for n, g in rows[:4]]
+        if isinstance(lv, dict) and lv.get('gloss'):
+            # "+alla fine": {"hint": "in the end", "gloss": "in the end, finally"}: the card leads with what the books mean,
+            # not Wiktionary's "on one's last legs".
+            cols = [lv['gloss']] + [c for c in cols if c != lv['gloss']]
         if key in best:
             # Two sections of one phrase (por favor the adverb and the interjection): the first's hint, both's senses.
             prev = best[key]
@@ -2229,14 +2842,22 @@ def write_phrases(code, phrase_entries, word_count, top_words, known, entries, c
             del prev[2][6:]
             continue
         best[key] = [score, hint.split('|')[0], cols]
-    for key, (phrase, hint) in listed.items():
+    for key, (phrase, lv) in listed.items():
+        hint = lv.get('hint') if isinstance(lv, dict) else lv
         if key not in best and hint and 2 <= len(key.split()) <= 4:
-            best[key] = [10 ** 9, hint, [hint]]
+            best[key] = [10 ** 9, hint, [lv.get('gloss') or hint] if isinstance(lv, dict) else [hint]]
+    # "+passer la main": {"spelled": true}: a phrase books have as often word for word, which the engine finds only as
+    # spelled, not through another form of its verb ("Il se passa la main sur le visage", Madame Bovary). Written "=words".
+    spelled = {k for k, (_, lv) in listed.items() if isinstance(lv, dict) and lv.get('spelled')}
+    # Russian т. е. ("that is"): the engine keeps т. as an abbreviation but cuts the last period off, so a phrase ending
+    # in one is also written without it.
+    for key in [k for k in best if k.endswith('.') and len(k.split()) > 1]:
+        best.setdefault(key[:-1], list(best[key]))
     ranked = sorted(best.items(), key=lambda x: (-x[1][0], x[0]))[:PHRASE_MAX]
     header = (f'# Dushu {LANGS[code]["name"]} fixed phrases, from English Wiktionary (CC BY-SA 4.0) via kaikki.org: words '
               'folded lower-case, hint, senses. Commonest first.\n')
     while True:
-        text = header + '\n'.join('\t'.join([k, h, *cols]) for k, (_, h, cols) in ranked) + '\n'
+        text = header + '\n'.join('\t'.join([('=' if k in spelled else '') + k, h, *cols]) for k, (_, h, cols) in ranked) + '\n'
         path = os.path.join(out_dir, 'phrases.tsv.gz')
         write_gz(path, text)
         if os.path.getsize(path) <= PHRASE_GZ_MAX or len(ranked) < 100:

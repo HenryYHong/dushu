@@ -286,11 +286,23 @@ function du(q: ContextQuery): ContextChoice | null {
  * makes que "only": "il n'y avait plus que".
  */
 function comparison(q: ContextQuery): string {
+  // que after et, ou, mais starts a clause of its own: "elle prétendit qu'elle allait mieux et qu'elle se lèverait" (Bovary).
+  if (q.at >= 1 && ['et', 'ou', 'mais', 'ni'].includes(q.words[q.at - 1].low)) return '';
+  let noun = false;
   for (let i = q.at - 1, n = 0; i >= 0 && n < 6; i--, n++) {
     const w = q.words[i];
     // A verb between them takes the que as its own: "d'autres à demi brûlées criaient qu'on achevât" (Candide).
     if (/[,;:()«»—–]/.test(w.after) || (i < q.at - 1 && (CLAUSE_START.has(w.low) || (!!w.chosen && finite(w.chosen))))) return '';
-    if (!THAN.has(w.low) && !AS.has(w.low)) continue;
+    if (!THAN.has(w.low) && !AS.has(w.low)) {
+      noun ||= w.chosen?.pos === 'noun';
+      continue;
+    }
+    // aussi right before que is "also": "Il faut dire aussi que la bête en valait la peine" (Lettres de mon moulin).
+    if (w.low === 'aussi' && i === q.at - 1) return '';
+    // Past a noun, a clause after que is about the noun, the relative's: "non moins surprise des paroles que proférait cet
+    // homme" (Candide), "un autre papier qu'elle ne connaissait pas" (Bovary).
+    // ("un aussi étrange animal que l'homme a été formé", Candide, compares: aussi and autant take a clause after their que.)
+    if (noun && !AS.has(w.low) && clauseAfter(q)) return '';
     if (/^autres?$/.test(w.low) && q.at - i > 2) continue;
     // plus de, moins de say "than" with their de: "il y avait plus de cinquante ans qu'elle n'était sortie" (Perrault) is
     // "since".
@@ -302,6 +314,22 @@ function comparison(q: ContextQuery): string {
     return AS.has(w.low) ? 'as' : 'than';
   }
   return '';
+}
+
+/**
+ * que opens a clause: a finite verb comes right after it or after its subject (a pronoun, or a determiner and a noun) and the
+ * pronouns before the verb: "que proférait cet homme", "qu'elle ne connaissait pas", "que l'adultère avivait".
+ */
+function clauseAfter(q: ContextQuery): boolean {
+  let i = q.at + 1;
+  const at = (j: number): ContextWord | undefined => (j < q.words.length && !q.words[j - 1].after ? q.words[j] : undefined);
+  const subject = at(i);
+  if (!subject) return false;
+  if (SUBJECT_CLITIC.has(subject.low) || SUBJECT_OR_STRONG.has(subject.low) || ['ce', "c'"].includes(subject.low)) i++;
+  else if (subject.readings[0] && ['article', 'determiner'].includes(subject.readings[0].pos) && at(i + 1)?.readings[0]?.pos === 'noun') i += 2;
+  while (at(i) && (OBJECT_CLITIC.has(at(i)!.low) || ['ne', "n'"].includes(at(i)!.low))) i++;
+  const verb = at(i);
+  return !!verb && !!verb.readings[0] && finite(verb.readings[0]);
 }
 
 /**
@@ -716,6 +744,22 @@ function capital(q: ContextQuery): ContextChoice | null {
 function comme(q: ContextQuery): ContextChoice | null {
   const last = q.words[q.words.length - 1];
   if (!q.sentenceStart || !q.next || q.next.low === 'si' || q.next.low === "s'" || !last.after.includes('!') || q.question) return null;
+  // Its clause has a verb: "— comme le premier jour, aux Comices!" (Bovary) has none, like the first day; "Comme vous voilà
+  // faite!" (Candide) has voilà. Not "comme il y a deux ans", like two years ago, nor a clause before a narrated one: "Comme je
+  // m'arrêtais à regarder un géant des batailles, qui portait trois fleurs magnifiques, je vis" (Le Horla) is "as".
+  // Right after a subject pronoun any finite reading counts: "comme tu sues!" (Bovary) is suer's, though savoir's sues leads.
+  const verb = (w: ContextWord, i: number): boolean => ['voilà', 'voici'].includes(w.low)
+    || w.readings.some((r) => finite(r) && (r.score > (w.readings[0]?.score ?? 0) - 3 || SUBJECT_OR_STRONG.has(q.words[i - 1]?.low)
+      || SUBJECT_CLITIC.has(q.words[i - 1]?.low)));
+  let comma = q.words.findIndex((w, i) => i >= q.at && /[,;:—–]/.test(w.after));
+  if (comma < 0) comma = q.words.length - 1;
+  if (!q.words.slice(q.at + 1, comma + 1).some((w, j) => verb(w, q.at + 1 + j))) return null;
+  const span = q.words[q.at + 4];
+  if (q.next.low === 'il' && q.words[q.at + 2]?.low === 'y' && q.words[q.at + 3]?.low === 'a' && span
+    && (span.readings.some((r) => r.pos === 'numeral') || ['un', 'une', 'quelques', 'des'].includes(span.low))) return null;
+  const narrated = q.words.some((w, i) => i > comma && SUBJECT_CLITIC.has(w.low) && /[,;]/.test(q.words[i - 1].after)
+    && !!q.words[i + 1]?.readings.some((r) => finite(r) && /\bpast historic\b/.test(r.form)));
+  if (narrated) return null;
   return q.word.readings.some(is('conjunction')) ? { prefer: is('conjunction'), margin: Infinity, hint: 'how', sense: /\bhow\b/ } : null;
 }
 
@@ -1022,12 +1066,27 @@ function phraseUndone(q: ContextQuery): boolean {
   const adjective = (x?: ContextWord): boolean => !!x && !!x.readings[0] && ['adjective', 'adverb'].includes(x.readings[0].pos);
   if (w === 'petit' && next?.low === 'bois' && prev?.chosen && ['article', 'determiner', 'contraction'].includes(prev.chosen.pos)) return true;
   if (w === 'dernier' && prev?.low === 'ce' && next?.readings[0]?.pos === 'noun') return true;
-  if (w === 'à' && next && ['propos', 'savoir'].includes(next.low) && prev?.chosen?.pos === 'verb' && !['être', 'avoir'].includes(prev.chosen.key)) return true;
-  if (['au', 'aux'].includes(w) && prev?.chosen?.key === 'mettre') return true;
+  const second = next && !next.after ? q.words[q.at + 2] : undefined;
+  const infinitiveAt = (x?: ContextWord): boolean => !!x && !!x.readings[0] && infinitive(x.readings[0]);
+  // à propos de before an infinitive only ("jugèrent à propos de rétablir"): "s'égorger à propos de la Sainte Vierge"
+  // (Candide) is "about", "l'apothicaire vint à propos" (Bovary) "at the right time".
+  if (w === 'à' && next?.low === 'propos' && prev?.chosen?.pos === 'verb' && !['être', 'avoir'].includes(prev.chosen.key)
+    && ['de', "d'"].includes(second?.low ?? '') && infinitiveAt(q.words[q.at + 3])) return true;
+  if (w === 'à' && next?.low === 'savoir' && prev?.chosen?.pos === 'verb' && !['être', 'avoir'].includes(prev.chosen.key)) return true;
   if (w === 'fort' && prev?.low === 'homme' && adjective(next)) return true;
   if (w === 'grand' && next?.low === 'monde' && prev && ['pas', 'plus', 'guère', 'point'].includes(prev.low)) return true;
   if (w === 'homme' && next?.low === 'du' && prev && ['meilleur', 'plus', 'moins', 'pire'].includes(prev.low)) return true;
-  if (w === 'plus' && prev?.low === 'de' && adjective(next) && !q.word.after) return true;
+  // But de plus belle, "la conversation interrompue reprenait de plus belle" (Le Tour du monde), is "all the more".
+  if (w === 'plus' && prev?.low === 'de' && adjective(next) && !q.word.after && next!.low !== 'belle') return true;
+  // mal before a participle is "badly", not avoir mal "to hurt": "J'ai mal dormi" (Le Horla), "il avait mal entendu".
+  if (w === 'mal' && prev?.chosen?.key === 'avoir' && !!next?.readings.some((r) => isParticiple(r) && r.score > next.readings[0].score - 3)) return true;
+  // A verb's phrase ends where the words go on otherwise: venir de "to come from" is no "le moment n'était pas venu de dire
+  // à son maître" (Le Tour du monde), "L'envie lui vint de retourner chez Lheureux" (Bovary), whose de has an infinitive
+  // after it (venir de with an infinitive in the present or imperfect is "to have just", verbBeforeInfinitive). vouloir dire
+  // is "to mean", but "Je m'écriai, je voulus dire, Arrêtez, barbares!" (Candide) wanted to say what follows.
+  const verb = q.word.readings.find((r) => r.pos === 'verb');
+  if (verb?.key === 'venir' && next && ['de', "d'"].includes(next.low) && infinitiveAt(second)) return true;
+  if (verb?.key === 'vouloir' && next?.low === 'dire' && /[,:;«]/.test(next.after) && !/\b(?:present|imperfect)\b/.test(verb.form)) return true;
   return false;
 }
 

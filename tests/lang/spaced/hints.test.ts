@@ -237,3 +237,147 @@ describe('fixed phrases', () => {
     expect(await hintIn('ru', 'потому что вот уже восемь лет, как я живу в Петербурге, и почти ни одного знакомства не умел завести.', 'потому')).toBe('because');
   });
 });
+
+/** The data lines of one of a language's files (entries.tsv.gz, prior.tsv.gz …), comments left out. */
+async function dataLines(id: string, file: string): Promise<string[]> {
+  return gunzipSync(await readFile(join(DATA, id, file))).toString('utf8').split('\n').filter((l) => l && !l.startsWith('#'));
+}
+
+describe('how common a word is: only the share of its spellings that is its own', () => {
+  it('keeps a rare word spelled like another word\'s common form rare (staio, gire, he, mala)', async () => {
+    const it_ = await loadLang('it');
+    const es = await loadLang('es');
+    // staio "bushel" took a tenth of stare's stai, gire "to go" the subtitles' gia (già), he the auxiliary's he.
+    // (gire was the 98th word of Italian, staio the 607th, he the 224th of Spanish; now none is among the 2,500 commonest.)
+    for (const [eng, key] of [[it_, 'staio'], [it_, 'gire'], [es, 'he'], [es, 'mala']] as const) {
+      expect(eng.level(key) ?? 7, key).toBeGreaterThan(3);
+    }
+    // Pinocchio: girò is girare, no longer the archaic gire.
+    expect(tok(it_, 'Pinocchio girò la chiave, e la porta si aprì.', 'girò').lemma).toBe('girare');
+    // Lazarillo: "Yo he cumplido con mi deber" is haber's he.
+    expect(tok(es, 'Yo he cumplido con mi deber.', 'he').lemma).toBe('haber');
+    expect(tok(es, 'o tres días ya dichos moría mala muerte, tanto que otra cosa no hacía', 'mala').lemma).toBe('malo');
+  });
+
+  it('reads a form that fills two cells no other verb shares as that verb (fr va, Candide: "Il va de France droit sur l\'Espagne")', async () => {
+    const fr = await loadLang('fr');
+    expect(tok(fr, 'Il va de France droit sur l’Espagne.', 'va').lemma).toBe('aller');
+    expect(fr.level('va') ?? 7).toBeGreaterThan(4);
+  });
+
+  it('keeps a noun the treebanks name, whose spellings are all a verb\'s too (Platero: "al empezar la cuesta")', async () => {
+    const es = await loadLang('es');
+    expect(tok(es, 'Todos los días, cuando, al empezar la cuesta, tomamos el atajo, tú la has visto en su puesto verde.', 'cuesta').lemma).toBe('cuesta');
+  });
+});
+
+describe('the builder\'s pointers and the forms tables leave out', () => {
+  it('gives Spanish los a pronoun of its own (Quiroga: "Y el hombre los echó con la escoba")', async () => {
+    const es = await loadLang('es');
+    const card = lookupIn(es, 'Y el hombre los echó con la escoba.', 'los');
+    expect(card.entries.some((e) => e.senses[0]?.pos === 'pronoun' && e.senses.some((s) => s.glosses.join(' ').includes('them')))).toBe(true);
+  });
+
+  it('reaches the lemma through an alternative form and its own plural (Collodi: "ai tonnini tuoi figliuoli")', async () => {
+    const it_ = await loadLang('it');
+    expect(tok(it_, 'Ti prego, per l’amore che porti ai tonnini tuoi figliuoli; aiutaci, o siamo perduti.', 'figliuoli').key).toBe('figliolo');
+    // sur, "su used before words beginning with u" (Manzoni), and pe', the "truncation of pei" (Pirandello).
+    expect(tok(it_, '«Intendo,» disse il conte zio; e sur un certo fondo di goffaggine, dipintogli in viso dalla natura', 'sur').key).toBe('su');
+    expect(tok(it_, 'mio padre non ebbe mai pe’ suoi commerci stabile sede', 'pe’').key).toBe('pei');
+  });
+
+  it('files a reflexive verb\'s forms written with their pronoun (Collodi: "Geppetto si accòrse di avere in bocca")', async () => {
+    const it_ = await loadLang('it');
+    expect(tok(it_, 'Finito il combattimento, mastr’Antonio si trovò fra le mani la parrucca gialla di Geppetto, e Geppetto si accòrse di avere in bocca la parrucca brizzolata del falegname.', 'accòrse').key).toBe('accorgersi');
+    expect(tok(it_, 'Ma i due, quando s’accorsero d’essere osservati, si fermarono anch’essi, si parlaron sottovoce, e tornarono indietro.', 'accorsero').key).toBe('accorgersi');
+  });
+
+  it('reads Machado\'s quiz as querer\'s quis (curated "of")', async () => {
+    const pt = await loadLang('pt');
+    const t = tok(pt, 'Minha mãe quiz saber o que era.', 'quiz');
+    expect(t.key).toBe('querer');
+    expect(pt.hint(t)).toBe('wanted');
+  });
+
+  it('keeps a noun made from a verb (Капитанская дочка: "Родители мои благословили меня")', async () => {
+    const ru = await loadLang('ru');
+    expect(tok(ru, 'Родители мои благословили меня.', 'Родители').key).toBe('родитель');
+    // Герой нашего времени: Wiktionary's продолжение, with its stress, where a curated stand-in had none.
+    expect(tok(ru, 'В продолжение двух дней мои дела ужасно подвинулись.', 'продолжение').stress).toBe(7);
+  });
+
+  it('gives a participle its short forms and declension, and an adjective its comparative, with their stress', async () => {
+    const ru = await loadLang('ru');
+    // Герой нашего времени: "В конце коридора была отворена дверь в боковую комнату".
+    const door = tok(ru, 'Мы вышли в коридор. В конце коридора была отворена дверь в боковую комнату.', 'отворена');
+    expect(door.key).toBe('отворить');
+    expect(stressed(door.text, door.stress)).toBe('отворена́');
+    // Белые ночи: "и солнце-то было в старину теплее".
+    expect(tok(ru, 'И моложе-то она была в старину, и солнце-то было в старину теплее, и сливки в старину не так скоро кисли, — все в старину!', 'теплее').key).toBe('теплый');
+  });
+
+  it('lists no feminine noun as the masculine\'s form (хозяин is no "masculine" of хозяйка)', async () => {
+    const ru = await loadLang('ru');
+    const card = lookupIn(ru, 'глядя на опрокинутое лицо хозяина, который в свою очередь уже совсем успел потеряться', 'хозяина');
+    expect(card.entries.map((e) => e.head)).not.toContain('хозяйка');
+  });
+
+  it('declines German participles and Ihr, keeps das Alter\'s forms its own, and joins a separable verb', async () => {
+    const de = await loadLang('de');
+    // Effi Briest: "die nach den Seebädern hinausführende Hauptstraße".
+    expect(tok(de, 'das mit seiner Front auf die nach den Seebädern hinausführende Hauptstraße, mit seinem Giebel aber auf ein zwischen der Stadt und den Dünen liegendes Wäldchen herniederblickte', 'hinausführende').key).toBe('hinausführen');
+    // Die Verwandlung: the Prokurist's "Ihre Stellung".
+    expect(await hintIn('de', 'Und Ihre Stellung ist durchaus nicht die festeste.', 'Ihre')).toBe('your');
+    // Immensee: "Wir Alten" are old people, not das Alter "age".
+    const alten = lookupIn(de, 'Wir Alten haben uns im Leben schon genug umhergetrieben', 'Alten');
+    expect(alten.entries.find((e) => e.head === 'Alter' && e.gender === 'n')).toBeUndefined();
+    // Immensee: "von einem Guckfenster, welches nach der Diele hinausging", a subordinate clause's joined verb.
+    expect(tok(de, 'von einem Guckfenster, welches nach der Diele hinausging, der grüne Vorhang weggeschoben', 'hinausging').key).toBe('hinausgehen');
+    // Werther: the old spelling of trockenen.
+    expect(tok(de, 'Sie hat einen trocknen Husten, die Knochen stehn ihr zum Gesichte heraus', 'trocknen').key).toBe('trocken');
+    expect(await hintIn('de', 'Während der Überfahrt ließ Elisabeth ihre Hand auf dem Rande des Kahnes ruhen.', 'Überfahrt')).toBe('crossing');
+  });
+
+  it('reads a contraction Wiktionary gives only the pieces of by its pieces (durchs, pei)', async () => {
+    expect(await hintIn('de', 'dann liefen beide Kinder durchs Haus in den Garten', 'durchs')).toBe('through the');
+    expect(await hintIn('it', 'mio padre non ebbe mai pe’ suoi commerci stabile sede', 'pe’')).toBe('for the');
+  });
+
+  it('hints a demonym by its place and a diminutive by its noun (Platero: "otoño moguereño", "cabecitas finas")', async () => {
+    expect(await hintIn('es', '¡Claras tardes del otoño moguereño!', 'moguereño')).toBe('of Moguer');
+    expect(await hintIn('es', 'Se adivinan cabezotas obscuras de asnos, y cabecitas finas de niños', 'cabecitas')).toBe('little head');
+  });
+});
+
+describe('curated hints of one section, and phrases a reader leaves out or rewrites', () => {
+  it('hints one section of a word and keeps a curated section off the treebanks\' readings (fr que "than", comme "how")', async () => {
+    const entries = (await dataLines('fr', 'entries.tsv.gz')).map((l) => l.split('\t'));
+    const que = entries.filter((c) => c[0] === 'que' && c[3] === 'conjunction').map((c) => c[8]);
+    expect(que).toEqual(['that', 'than']);
+    const comme = entries.findIndex((c) => c[0] === 'comme' && c[3] === 'adverb');
+    expect(entries[comme][8]).toBe('how');
+    const prior = (await dataLines('fr', 'prior.tsv.gz')).find((l) => l.startsWith('comme\t')) ?? '';
+    expect(prior.split('\t')[1].split(' ').map((x) => +x.split(':')[0])).not.toContain(comme);
+  });
+
+  it('leaves out a phrase a reader dropped, and one Wiktionary calls a euphemism', async () => {
+    const es = await loadLang('es');
+    // Lazarillo: "quiero que sepa vuestra merced" is no "que yo sepa".
+    expect(lookupIn(es, 'Mas también quiero que sepa vuestra merced que, con todo lo que adquiría', 'sepa').phrase).toBeUndefined();
+    const pt = await loadLang('pt');
+    // A cartomante: "ele tornou a bater uma, duas, três pancadas".
+    expect(lookupIn(pt, 'a curiosidade fustigava-lhe o sangue, as fontes latejavam-lhe; ele tornou a bater uma, duas, três pancadas.', 'uma').phrase).toBeUndefined();
+    const de = await loadLang('de');
+    // Immensee: a possessive and a noun are that, unless listed (meine Rede, not "my point exactly").
+    expect(lookupIn(de, '»Habt ihr meine Rede begriffen?«', 'Rede').phrase).toBeUndefined();
+  });
+
+  it('leads a listed phrase\'s card with the reader\'s gloss, and always writes a listed phrase', async () => {
+    const it_ = await loadLang('it');
+    const fine = lookupIn(it_, 'e dopo aver resistito un bel pezzo, alla fine non ne potè più', 'fine');
+    expect(fine.phrase).toBe('alla fine');
+    expect(fine.entries[0].senses[0].glosses[0]).toBe('in the end, finally');
+    // La Parure: "par conséquent" was cut at PHRASE_MAX by its rarest word.
+    expect(await hintIn('fr', 'Je n’ai pas de toilette et, par conséquent, je ne peux aller à cette fête.', 'conséquent')).toBe('consequently');
+  });
+});

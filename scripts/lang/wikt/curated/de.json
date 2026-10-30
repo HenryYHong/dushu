@@ -352,12 +352,18 @@
  "doch|conjunction": "but, yet",
  "wie|conjunction": "as, like",
  "erst|adverb": "only; first",
- "damit|adverb": {"hint": "with it", "gloss": "with it, with that, by that"},
+ "damit|adverb": {
+  "hint": "with it",
+  "gloss": "with it, with that, by that"
+ },
  "sondern|conjunction": "but, rather",
  "leicht|adverb": "easily, slightly",
  "sicher|adverb": "surely, safely",
  "da|conjunction": "since, as",
- "Bedienerin|noun": {"hint": "charwoman", "gloss": "charwoman, cleaning woman; maid"},
+ "Bedienerin|noun": {
+  "hint": "charwoman",
+  "gloss": "charwoman, cleaning woman; maid"
+ },
  "Kanapee|noun": "sofa",
  "Schneider|noun": "tailor",
  "erwidern|verb": "to reply",
@@ -442,8 +448,15 @@
  "=meiste": "most",
  "=wenige": "few",
  "=wenigen": "few",
+ "Überfahrt|noun": {
+  "hint": "crossing",
+  "gloss": "crossing, passage (by ship or ferry)",
+  "gender": "f"
+ },
  "// phrases": "\"+phrase\": a fixed phrase of common words alone (por eso, потому что) that phrases.tsv.gz may list, with its hint; phrases with a rarer word (sin embargo) need no listing.",
  "+vor allem": "above all",
+ "+mein Gott": "my God",
+ "+meine Güte": "my goodness",
  "+auf einmal": "suddenly",
  "+nach Hause": "home",
  "+zu Hause": "at home",
@@ -467,5 +480,9 @@
  "+die ganze Zeit über": "all the while",
  "+über und über": "all over",
  "+auf gut Glück": "at random",
- "+nicht leiden": "can't stand"
+ "+nicht leiden": "can't stand",
+ "// verified": "Phrases the native verifiers found missing or misread (stage 3).",
+ "+zugrunde gehen": "to perish",
+ "+abgesehen von": "apart from",
+ "Spuk|noun": "haunting"
 }

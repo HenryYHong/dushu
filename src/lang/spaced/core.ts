@@ -52,6 +52,17 @@ export interface SpacedLang {
   /** Words that can follow a verb after a hyphen (French dit-il, a-t-il; Portuguese dá-me, dar-te-ei). */
   hyphenClitics?: string[];
   /**
+   * Of those, the subject pronouns of an inversion (French), and the person each says: "Que vois-je là !" (Le Horla) is
+   * voir's first-person singular, not the imperative "see!". Those that also follow an imperative as its object (nous, vous,
+   * the keys of `reflexive.imperative`) make an inversion only in a question or after a word of the clause, not after one
+   * of `coordinators` or an interjection: "— Mais dépêchez-vous, mère Rolet!" (Madame Bovary) is an order, "Mais que
+   * voulez-vous, c'est le maire" an inversion. Left out, a hyphened pronoun is the verb's object (Portuguese "diga-me",
+   * Russian "Подойди-ка"), and an imperative stays one.
+   */
+  hyphenSubjects?: Record<string, string>;
+  /** Coordinating conjunctions, after which a clause starts afresh and an order may come: mais, et, donc. */
+  coordinators?: string[];
+  /**
    * Of those, the ones that follow a noun as well (French là, ci): after them alone the word is not only a verb. Bovary's "ce
    * soir-là" is the evening, not seoir's soir "to suit"; "ce monde-là" the world.
    */
@@ -85,6 +96,12 @@ export interface SpacedLang {
      * reflexive pronoun and a finite verb find them: "se daba cuenta" is darse cuenta "to realize".
      */
     infinitive?: (key: string) => string;
+    /**
+     * The person each reflexive pronoun says, for a pronoun before a verb to be the verb's own only where the verb's form
+     * has that person: "me doy cuenta" is darse cuenta, but "me dan a entender" (Marianela) is dar "they give me to
+     * understand" and "Mi lascino andare" (I promessi sposi) lasciare "let me go". 'third-person' takes any number.
+     */
+    persons?: Record<string, string>;
     /**
      * Pronouns that make an infinitive or gerund they are joined to reflexive, whatever the verb's usual use: no pudo
      * levantarse "could not get up", yéndose al campo. Spanish se before a finite verb may be impersonal (se dice) or stand for
@@ -396,16 +413,18 @@ class Data {
 
   /**
    * phrases.tsv.gz (optional): `<words folded lower-case, space-separated>\t<hint>\t<sense>\t<sense>...`, one phrase a line,
-   * the words cut as segment() cuts them (c' est à dire); senses as in entries.tsv.gz ({notes}gloss|gloss).
+   * the words cut as segment() cuts them (c' est à dire); senses as in entries.tsv.gz ({notes}gloss|gloss). Words that start
+   * with = make a phrase found only as spelled (Phrase.spelled): `=passer la main`.
    */
   parsePhrases(text: string): void {
     for (const line of text.split('\n')) {
       if (!line || line.charCodeAt(0) === 35 /* # */) continue;
       const cols = line.split('\t');
-      const words = cols[0].trim().split(/ +/);
+      const spelled = cols[0].startsWith('=');
+      const words = (spelled ? cols[0].slice(1) : cols[0]).trim().split(/ +/);
       if (words.length < 2 || words.length > MAX_PHRASE) continue;
       const key = words.join(' ');
-      this.phrases.set(key, { key, hint: cols[1] ?? '', senses: cols.slice(2).join('\t') });
+      this.phrases.set(key, { key, hint: cols[1] ?? '', senses: cols.slice(2).join('\t'), ...(spelled ? { spelled } : {}) });
       if ((this.phraseLen.get(words[0]) ?? 0) < words.length) this.phraseLen.set(words[0], words.length);
     }
   }
@@ -520,11 +539,18 @@ interface Prior { p: Map<number, number>; weight: number }
  */
 const USAGE_LABEL = /\b(?:slang|vulgar|regional|dialectal|dialect|nonstandard|proscribed|neologism|gender-neutral|text messaging|mathematics|arithmetic|law|officialese|computing|music)\b/;
 
+/** Usage notes that move a sense away from a word's plain meaning, so it cannot stand for the word in a compound's hint. */
+const SHIFTING_NOTE = /\b(?:card|heraldry|dated|obsolete|archaic|offensive|derogatory|slang|vulgar|figurative|in compounds|music|military|law|computing|Internet|sports?|chess|nautical|hunting|mining)\b/;
+
 /** Phrases have at most this many words. */
 const MAX_PHRASE = 4;
 
-/** A fixed phrase from phrases.tsv.gz. */
-interface Phrase { key: string; hint: string; senses: string }
+/**
+ * A fixed phrase from phrases.tsv.gz. `spelled`: found only as the book spells its words (or with its verb's infinitive),
+ * not through another form of the verb: the builder marks the phrases books have as often word for word ("passer la main"
+ * is "to step down", but "Il se passa la main sur le visage", Madame Bovary).
+ */
+interface Phrase { key: string; hint: string; senses: string; spelled?: boolean }
 
 /**
  * One way a word on the page can be read: an entry, and the form it is of that entry (desc -1: the headword itself).
@@ -561,6 +587,8 @@ const NOUNISH = new Set(['noun', 'adjective', 'numeral', 'proper noun']);
 const UNRANKED = 80000;
 /** Russian: how far below its entry's first stress a form with another stress spelled alike starts (сло́ва after слова́). */
 const ALT_STRESS = 2;
+/** German: how far a reading with its umlaut taken off starts below one spelled as on the page (Stühl is Stuhl). */
+const STRIPPED = 2.25;
 /** Nats a word gains for being spelled exactly like the headword it is read as. */
 const EXACT_BONUS = 1;
 const CLOSED_EXACT_BONUS = 3;
@@ -633,8 +661,8 @@ interface Chosen {
   sense?: RegExp;
   /** The language's rule keeps the word out of fixed phrases here (le petit bois "the little wood"). */
   noPhrase?: boolean;
-  /** A verb with its subject hyphened after it in a question or after a word: an inversion, not an imperative. */
-  inverted?: boolean;
+  /** A verb with its subject hyphened after it (vois-je, faites-vous): the subject pronoun of the inversion. */
+  inverted?: string;
 }
 
 /** A word of a paragraph as segment() hands it to the context passes. */
@@ -704,6 +732,13 @@ export class SpacedEngine implements LangEngine {
     if (!text) return;
     const seen = new Set<string>();
     // A capital after a lower-case word or a comma is in mid-sentence.
+    // German: a capital after a title is a name wherever the book has it (Max und Moritz's "Wußte Schneider Böck zu machen"
+    // makes "Einen, der sich Böck benannte" Böck the tailor, not Bock "buck" with its umlaut taken off).
+    if (this.lang.keepCase && this.titles.size) {
+      for (const m of text.matchAll(/(\p{L}+)\s+(?=(\p{Lu}[\p{L}\p{M}]+))/gu)) {
+        if (this.titles.has(m[1].toLowerCase()) && NON_ASCII.test(m[2]) && !this.candidates(m[2], true).some((c) => c.penalty < STRIPPED)) this.names.add(m[2]);
+      }
+    }
     for (const m of text.matchAll(/(?<=[\p{Ll},;] +)\p{Lu}[\p{L}\p{M}]+/gu)) {
       const w = m[0];
       if (seen.has(w)) continue;
@@ -833,11 +868,19 @@ export class SpacedEngine implements LangEngine {
         if (out.length) break;
       }
     }
-    if (!out.length && NON_ASCII.test(f) && !this.lang.keepCase) {
-      // Old spellings (fué, á, dió) and words typed without their accents. Not German, whose books keep their umlauts:
-      // Meister Böck (Max und Moritz) is no Bock "buck".
+    if (!out.length && NON_ASCII.test(f)) {
+      // Old spellings (fué, á, dió) and words typed without their accents. German's old umlauts too: "Er schlug die Stühl und
+      // Vögel tot" (Struwwelpeter) are Stuhl, "versiegelte einige Päcke" (Werther) Pack, "die Kamerädin". A name after a title
+      // is read as spelled (readWords): Meister Böck (Max und Moritz) is no Bock "buck".
       const plain = stripAccents(f);
-      if (plain !== f) d.match(plain, out, 2);
+      if (plain !== f && !this.lang.keepCase) d.match(plain, out, 2);
+      else if (plain !== f) {
+        // A common word only, not a name's look-alike: Effi Briest's Wüllersdorf and Kögel stay names, not Wullersdorf or
+        // Kogel "a kind of hood".
+        const found: Cand[] = [];
+        d.match(plain, found, STRIPPED);
+        out.push(...found.filter((c) => d.rank[c.e] > 0 && d.rank[c.e] <= 25000 && d.pos[c.e] !== 'proper noun'));
+      }
     }
     if (this.lang.looseAccents && !NON_ASCII.test(f) && out.length && out.every((c) => c.desc >= 0 && d.pos[c.e] === 'verb')) {
       // Machado's silencio, medico, musica: the accented noun below the verb form (looseAccents).
@@ -847,7 +890,7 @@ export class SpacedEngine implements LangEngine {
         out.push(...found.filter((c) => c.desc < 0 && ['noun', 'adjective'].includes(d.pos[c.e]) && d.rank[c.e] > 0));
       }
     }
-    if (loose && !out.length) this.matchAccented(f, out, 2);
+    if (loose && !out.length) this.matchAccented(f, out, 2, isUpper(word[0] ?? ''));
     if (loose && !out.length && this.lang.respell) {
       // The book's older spelling: Collodi's bujo and picchiar for buio and picchiare, Machado's cabellos and visinho.
       // Every respelling, ranked together: Manzoni's man is mano, not mane "morning".
@@ -857,7 +900,7 @@ export class SpacedEngine implements LangEngine {
       if (f.endsWith("'")) for (const v of this.lang.respell(f)) for (const a of this.accentVariants(v)) if (/[^\x00-\x7f]$/.test(a)) d.match(a, out, 2);
       if (!out.length) {
         for (const v of this.lang.respell(f)) {
-          if (v !== f) this.matchAccented(v, out, 2.5);
+          if (v !== f) this.matchAccented(v, out, 2.5, isUpper(word[0] ?? ''));
           if (out.length) break;
         }
       }
@@ -866,9 +909,17 @@ export class SpacedEngine implements LangEngine {
       // German before 1996: muß, wußte for muss, wusste. Also where the old spelling reads as another word, so the context
       // rules can choose: "Muß man mit Vergnügen hören" (Max und Moritz) is müssen, not das Muss; "Laß uns eine Weile
       // ausruhen" (Immensee) lassen, not lass "weary"; "Floß ein Wasser mit Gebrause" has fließen beside the raft.
+      // When the ß spelling reads already, the ss one is only a reading below it: "mit Fasten und Buße" (Siddhartha) is
+      // penance, not Bus's Busse; "das Umschlossensein alles Großen" groß, not Gros; "in gleichem Maße" Maß, not Masse.
+      // (Of the same word the ss spelling leads as before: Fluß is Fluss, gewiß the adverb gewiss.)
       const ss = f.replace(/ß/g, 'ss');
-      d.match(ss, out, 0.5);
-      if (isUpper(f[0] ?? '')) d.match(lowerFirst(ss), out, 0.8);
+      const own = new Set(out.map((c) => d.key[c.e].toLowerCase()));
+      const found: Cand[] = [];
+      d.match(ss, found, 0.5);
+      for (const c of found) if (own.size && !own.has(d.key[c.e].toLowerCase())) c.penalty += 2.5;
+      // A capital at a sentence start keeps its verb: "»Muß nur mal wieder nach dir sehen;" (Effi Briest) is müssen.
+      if (isUpper(f[0] ?? '')) d.match(lowerFirst(ss), found, 0.8);
+      out.push(...found);
     }
     if (!out.length && this.lang.keepCase && !isUpper(f[0] ?? '')) {
       // heute abend for heute Abend.
@@ -940,13 +991,15 @@ export class SpacedEngine implements LangEngine {
 
   /**
    * Matches for a word written without the accents its dictionary form has: one accent added (oir -> oír), else any
-   * headword spelled so without its accents (two left off, or a cedilla: coracao -> coração).
+   * headword spelled so without its accents (two left off, or a cedilla: coracao -> coração). `cap`: the word has a capital,
+   * so a name may be it ("¡El io." in Platero y yo is the donkey's bray, not the moon Ío).
    */
-  private matchAccented(f: string, out: Cand[], penalty: number): void {
-    // Only a headword in the frequency list, or a verb's form (oir is oír): the Lazarillo's laceria "misery" is not lacería
-    // "strapwork", nor humero "flue" húmero "humerus".
+  private matchAccented(f: string, out: Cand[], penalty: number, cap = false): void {
+    // Only a headword in the frequency list, a verb's form (oir is oír) or a name: the Lazarillo's laceria "misery" is not
+    // lacería "strapwork", nor humero "flue" húmero "humerus"; but "«THEODORE ROUAULT.»" (Madame Bovary) is Théodore. Any in
+    // a book that leaves its accents off (looseAccents): Machado's truismo, Alencar's moquem are truísmo, moquém.
     const d = this.data;
-    const fits = (c: Cand): boolean => d.rank[c.e] > 0 || d.pos[c.e] === 'verb';
+    const fits = (c: Cand): boolean => !!this.lang.looseAccents || d.rank[c.e] > 0 || d.pos[c.e] === 'verb' || (cap && d.pos[c.e] === 'proper noun');
     const take = (s: string): void => {
       const found: Cand[] = [];
       d.match(s, found, penalty);
@@ -1073,8 +1126,9 @@ export class SpacedEngine implements LangEngine {
       return res;
     };
     for (let cut = 3; cut <= w.length - 3; cut++) {
-      // A present participle's ending is no Ende "end": "der Schreitende", "den Eintretenden" (Immensee).
-      if (/^ende[nrsm]?$/i.test(w.slice(cut))) continue;
+      // A present participle's ending is no Ende "end": "der Schreitende", "den Eintretenden" (Immensee), whose front is a
+      // verb's stem. But "an die Tür am Kopfende seines Bettes" (Die Verwandlung) is the head end.
+      if (/^ende[nrsm]?$/i.test(w.slice(cut)) && (d.byKey.has(w.slice(0, cut).toLowerCase() + 'en') || d.byKey.has(w.slice(0, cut).toLowerCase() + 'n'))) continue;
       const tail = upperFirst(w.slice(cut).toLowerCase());
       const out: Cand[] = [];
       d.match(tail, out, 0);
@@ -1189,7 +1243,8 @@ export class SpacedEngine implements LangEngine {
         // Later pieces are looked up as nouns first: Fensterblech is Fenster + Blech (sheet metal), not blechen (to pay up),
         // and Kinderstimmen is Kinder + Stimmen (voices), not stimmen (to be right). The first piece is a content word:
         // Samtkissen is Samt (velvet) + Kissen, not samt (together with).
-        return { cands: comp.head, key: this.fold(lemma), lemma, prefix: comp.prefix, parts: comp.pieces.map((p, i) => this.part(p, i > 0 ? 'noun' : 'content')) };
+        const parts = comp.pieces.map((p, i) => (i < comp.pieces.length - 1 ? this.modifier(p) : null) ?? this.part(p, i > 0 ? 'noun' : 'content'));
+        return { cands: comp.head, key: this.fold(lemma), lemma, prefix: comp.prefix, parts };
       }
     }
     // A name in mid-sentence only finds itself so with its accents (Italia, Pádua), not another name (Virgilia, Virgílio).
@@ -1213,6 +1268,46 @@ export class SpacedEngine implements LangEngine {
       out.push(this.part(text, this.lang.cliticPart?.(verbKey, cl) === 'adverb' ? 'adverb' : 'pronoun'));
     }
     return out;
+  }
+
+  /**
+   * A German compound's piece before its head, as the noun it is: spelled so as a headword (Eisentür is Eisen "iron" + Tür, not
+   * Eis "ice"), or with its linking letters off (Liebesabenteuer is Liebe "love", not lieb's liebes "dear"; Eichenholz Eiche
+   * "oak", not the diminutive Eichen "little egg"; Handelsstadt Handel). Undefined when neither is a noun.
+   */
+  private modifier(text: string): Part | undefined {
+    const d = this.data;
+    const noun = (s: string): number | undefined => d.byKey.get(upperFirst(s.toLowerCase()))?.find((e) => d.pos[e] === 'noun');
+    const tries = /(?:chen|lein)$/.test(text) ? [] : [text];
+    for (const l of ['s', 'es', 'n', 'en', 'e', 'er', 'ens']) if (text.length - l.length >= 3 && text.endsWith(l)) tries.push(text.slice(0, -l.length));
+    // The piece as spelled first, else the commonest noun with its linking letters off: Gottesmauer is Gott, not Gotte
+    // "godmother".
+    let best = tries[0] === text ? noun(text) : undefined;
+    for (const t of best === undefined ? tries : []) {
+      const e = noun(t);
+      if (e !== undefined && (best === undefined || this.rankOf(e) < this.rankOf(best))) best = e;
+    }
+    return best === undefined ? undefined : { text, key: d.key[best], gloss: d.hint[best] || undefined, pos: 'noun' };
+  }
+
+  /**
+   * A compound's piece whose hint can stand in the compound's: one section of its key (not See "lake" and "sea"; another
+   * section a trade's own does not count, as Tag's "tag" on the Internet), and its hint one meaning ("Mr, gentleman" is two).
+   * Before the head, a first sense that is not a trade's or an old one's: Ober is "queen" only at cards, Haupt "head" only in
+   * heraldry (Oberförster, Hauptsorge), Mohr dated and offensive.
+   */
+  private plainPiece(key: string | undefined, head = false): boolean {
+    const d = this.data;
+    const shifted = (e: number): boolean => {
+      const s = d.senses[e];
+      return s.startsWith('{') && SHIFTING_NOTE.test(s.slice(1, s.indexOf('}')));
+    };
+    const all = (key ? d.byKey.get(key) ?? [] : []).filter((e) => d.pos[e] !== 'proper noun');
+    const es = all.filter((e, i) => i === 0 || !shifted(e));
+    if (es.length !== 1 || !d.hint[es[0]] || /[;(]/.test(d.hint[es[0]])) return false;
+    // A head whose hint is one meaning: Rat's "advice, counsel" is not the councillor of Landgerichtsrat. A piece before it in
+    // its first sense.
+    return head ? !d.hint[es[0]].includes(',') : !shifted(es[0]);
   }
 
   /**
@@ -1292,8 +1387,15 @@ export class SpacedEngine implements LangEngine {
           // po' is a form of poco, not an entry of its own.
           const found: Cand[] = [];
           this.data.match(this.fold(withApo), found, 0);
-          // Or as the book's spelling reads it: Manzoni's que' is quei, pe' pei (ITALIAN.respell).
-          if (!found.length && this.lang.respell) for (const r of this.lang.respell(this.fold(withApo))) this.data.match(r, found, 0);
+          // Or as the book's spelling reads it: Manzoni's que' is quei, Dante's "che già li er' al petto" era, "perch' i' fu'
+          // ribellante" fui. Not a preposition, whose apostrophe stands for the article after it: "pur tra' monti" is tra i, not
+          // trarre's trae; "inver' la terra" inverso "toward", not invero. Nor a quote's closing mark: "ch'elli acceffa'." is
+          // acceffare's present, "‘mo’ e ‘issa’" the words quoted.
+          const bare = this.analyze(text.slice(i, j)).cands[0];
+          const closing = j + 1 >= n || !/\s/.test(text[j + 1]) || /[‘']/.test(text[i - 1] ?? '');
+          if (!found.length && this.lang.respell && !closing && !(bare && this.data.pos[bare.e] === 'preposition')) {
+            for (const r of this.lang.respell(this.fold(withApo))) this.data.match(r, found, 0);
+          }
           if (found.length) j++;
         }
         for (const piece of this.splitWord(text, i, j)) {
@@ -1367,22 +1469,29 @@ export class SpacedEngine implements LangEngine {
       let a = this.analyze(t.text, capMid);
       // German cuts a final e with an apostrophe: "Mancher gibt sich viele Müh'" (Max und Moritz) is Mühe, not mühen.
       const apo = tokens[at + 1];
-      if (this.lang.keepCase && apo && (apo.text === "'" || apo.text === '’') && a.cands.every((c) => c.desc >= 0 && d.pos[c.e] === 'verb')) {
+      // Not a quote's closing mark: "'Ich liebe diese Frau so sehr, daß ich ihr alles verzeihen kann', und" (Effi Briest).
+      const quoted = (): boolean => tokens.slice(0, at).some((x, j) => (x.text === "'" || x.text === '‘') && tokens[j + 1]?.kind === 'word'
+        && (j === 0 || tokens[j - 1].kind === 'space' || /[»„«“"(]/.test(tokens[j - 1].text)));
+      if (this.lang.keepCase && apo && (apo.text === "'" || apo.text === '’') && a.cands.every((c) => c.desc >= 0 && d.pos[c.e] === 'verb') && !quoted()) {
         const full = this.analyze(t.text + 'e', capMid);
         if (full.cands.some((c) => d.pos[c.e] !== 'verb')) a = full;
       }
       // A courtesy title in mid-sentence is the common word (Madame, Monsieur), and the word after one a name unless the
       // dictionary has it as a noun: "mit der Frau Pastor Trippel" (Effi Briest) is a name, not trippeln "to scurry"; "der
       // Herr Prokurist" the Prokurist.
+      if (this.lang.keepCase && this.names.has(t.text) && a.cands.length > 0 && a.cands.every((c) => c.penalty >= STRIPPED)) {
+        a = { cands: [], key: this.fold(t.text), lemma: t.text, name: true };
+      }
       const cap = this.titles.size > 0 && isUpper(t.text[0] ?? '');
       const courtesy = cap && this.titles.has(this.fold(t.text).toLowerCase());
-      const afterTitle = cap && !courtesy && title(k) && !a.cands.some((c) => ['noun', 'proper noun'].includes(d.pos[c.e]));
+      const afterTitle = cap && !courtesy && title(k) && !a.cands.some((c) => ['noun', 'proper noun'].includes(d.pos[c.e]) && c.penalty !== STRIPPED);
       t.key = a.key;
       t.lemma = a.lemma;
       t.inDict = a.cands.length > 0;
       // A capital in mid-sentence makes a name (Sancho Panza, la Mancha) even where a common word shares the spelling,
       // but not a function word capitalized for courtesy (Russian Вы in a letter, Italian Lei). German writes every noun
-      // so and is told by the dictionary alone.
+      // so and is told by the dictionary alone, and by the book: a name it has after a title reads only as its spelling
+      // with the umlaut off (Böck).
       if (afterTitle || a.name || (capMid && !courtesy && (!a.cands.length || (!this.lang.keepCase && t.text !== t.text.toUpperCase() && !this.functionWord(a.cands[0]))))) {
         t.name = true;
         if (a.cands.length && d.pos[a.cands[0].e] !== 'proper noun') t.lemma = t.text;
@@ -1445,7 +1554,8 @@ export class SpacedEngine implements LangEngine {
         if (!m) break;
         const head = m[0];
         const folded = this.fold(head);
-        if (this.elisions.has(folded) || this.elisions.has(folded.toLowerCase()) || (this.data.byKey.has(folded) && !/[-‐]/.test(head))) {
+        // A word of the dictionary, or a form of one: Pirandello's "pe’l collo" is pe' (pei, "for the") + l.
+        if (this.elisions.has(folded) || this.elisions.has(folded.toLowerCase()) || (this.wholeKnown(head) && !/[-‐]/.test(head))) {
           out.push(tok(s, s + head.length));
           s += head.length;
           if (this.wholeKnown(text.slice(s, b), true)) break;
@@ -1845,10 +1955,11 @@ export class SpacedEngine implements LangEngine {
         const st = this.stressOf(w.t.text, choice, w.a, ruled);
         if (st !== undefined) w.t.stress = st;
       }
-      const inverted = /[-‐]/.test(w.t.text) && (question(w.at) || !!prev);
-      const reflexive = !!choice && (said?.reflexive ?? this.isReflexive(choice, w.a, prevKey, () => inverted));
+      const inverted = this.inversion(w.t.text, () => question(w.at)
+        || (!!prevC && !this.lang.coordinators?.includes(prevKey) && d.pos[prevC.e] !== 'interjection'));
+      const reflexive = !!choice && (said?.reflexive ?? this.isReflexive(choice, w.a, prevKey, () => !!inverted));
       const chosen: Chosen = { a: w.a, c: choice, reflexive };
-      if (inverted) chosen.inverted = true;
+      if (inverted) chosen.inverted = inverted;
       // The rule's hint holds for the reading it preferred; a reading it did not prefer kept its own (too far below to win).
       if (said?.hint && choice) {
         const i = w.a.cands.indexOf(choice);
@@ -1862,6 +1973,20 @@ export class SpacedEngine implements LangEngine {
       const v = view.get(k);
       if (v && choice) v.chosen = v.readings[w.a.cands.indexOf(choice)];
     }
+  }
+
+  /**
+   * The subject pronoun hyphened after a verb in an inversion (SpacedLang.hyphenSubjects), or undefined: "te dis-je encore
+   * une fois" (Lettres de mon moulin) has je; "Mais que voulez-vous, c'est le maire" (Bovary) vous, after a word of the
+   * clause; "— Mais dépêchez-vous, mère Rolet!" none, after a conjunction, nor "apporte-moi une citrouille" (Perrault).
+   * `questionOrWord`: the sentence is a question, or a word of the clause comes right before that no order follows.
+   */
+  private inversion(text: string, questionOrWord: () => boolean): string | undefined {
+    const subjects = this.lang.hyphenSubjects;
+    if (!subjects || !/[-‐]/.test(text)) return undefined;
+    const subject = text.split(/[-‐]/).slice(1).map((p) => this.fold(p).toLowerCase()).find((p) => p in subjects);
+    if (!subject) return undefined;
+    return !this.lang.reflexive?.imperative?.[subject] || questionOrWord() ? subject : undefined;
   }
 
   /**
@@ -1955,16 +2080,13 @@ export class SpacedEngine implements LangEngine {
     for (let k = 1; k < words.length; k++) {
       const p = words[k];
       if (!this.separable.has(p.t.text) || p.start || !this.endsClause(words, tokens, k)) continue;
-      // A particle that opens its stretch, right after a comma, is no verb's: "kam die Bedienerin herein, um zu sagen" (Die
-      // Verwandlung) is um "in order to", not umkommen.
-      let comma = false;
-      for (let t = words[k - 1].at + 1; t < p.at; t++) if (tokens[t].text === ',') comma = true;
-      if (comma) continue;
-      // um, ohne, statt and wieder before zu + an infinitive open an infinitive clause: "ging zur Mutter, um zu tun", "die Dinge
-      // wieder zu holen" (wiederholen is not separable).
+      // um, ohne, statt and wieder before zu + an infinitive open an infinitive clause: "kam die Bedienerin herein, um zu sagen"
+      // (Die Verwandlung), "die Dinge wieder zu holen" (wiederholen is not separable).
       if (['um', 'ohne', 'statt', 'anstatt', 'wieder'].includes(p.t.text) && words[k + 1]?.t.text === 'zu') continue;
-      // von … aus is a frame: "Man sah vom Bett aus", "von der Tür aus zu kitzeln suchte".
-      if (p.t.text === 'aus' && words.slice(Math.max(0, k - 6), k).some((w) => w.t.text === 'von' || w.t.text === 'vom')) continue;
+      // von … aus is a frame: "Man sah vom Bett aus", "von der Tür aus zu kitzeln suchte". Only von and its noun right before
+      // aus, and no sich: "Frau von Briest drückte ihre Zustimmung aus" (Effi Briest) is ausdrücken, "und ruhte sich dort einen
+      // Augenblick lang von der Anstrengung aus" (Die Verwandlung) ausruhen, "Es ging von der Fähre … etwas aus" ausgehen.
+      if (p.t.text === 'aus' && this.vonFrame(words, tokens, k)) continue;
       // "Er ging auf und ab": a pair of particles is an adverb (up and down), not abgehen.
       if (k >= 2 && coordinators.has(words[k - 1].t.text) && this.separable.has(words[k - 2].t.text)) continue;
       const v = this.clauseVerb(words, tokens, k);
@@ -1978,13 +2100,31 @@ export class SpacedEngine implements LangEngine {
       const parts = [piece(v, vc.c), piece(p, pc.c)];
       vc.sep = { e, desc: vc.c.desc, parts };
       pc.sep = { e, desc: -1, parts, particle: true };
-      // And its reflexive sense: "Dann wandte sie sich eilig ab" (Immensee) is abwenden's "to turn away".
-      pc.reflexive = vc.reflexive = vc.reflexive || (!!d.rhint[e] && words.slice(Math.max(0, k - 6), k).some((w) => w.t.text === 'sich'));
+      // And its reflexive sense: "Dann wandte sie sich eilig ab" (Immensee) is abwenden's "to turn away". Not a sich a
+      // preposition takes: "streckte er die rechte Hand weit von sich zur Treppe hin" (Die Verwandlung) stretched it out.
+      const own = words.slice(Math.max(0, k - 6), k).some((w, j, ws) => w.t.text === 'sich'
+        && !(j > 0 && this.prepositions.has(ws[j - 1].t.text.toLowerCase())) && !['von', 'vor', 'an', 'auf', 'für', 'mit', 'zu', 'bei', 'hinter', 'über', 'unter', 'gegen'].includes(ws[j - 1]?.t.text ?? ''));
+      pc.reflexive = vc.reflexive = vc.reflexive || (!!d.rhint[e] && own);
       for (const t of [v.t, p.t]) {
         t.key = d.key[e];
         t.lemma = d.head[e];
       }
     }
+  }
+
+  /**
+   * The aus at word k closes a von … aus frame ("vom Bett aus"): von or vom and up to three words of its noun right before it,
+   * with no comma between, and no sich in the clause (a reflexive verb's von is its own: "ruhte sich … von der Anstrengung aus").
+   */
+  private vonFrame(words: Word[], tokens: Token[], k: number): boolean {
+    for (let j = k - 1; j >= Math.max(0, k - 4); j--) {
+      for (let t = words[j].at + 1; t < words[j + 1].at; t++) if (tokens[t].kind !== 'space') return false;
+      const x = words[j].t.text;
+      if (x === 'von' || x === 'vom') return !words.slice(Math.max(0, j - 6), j).some((w) => /^sich/.test(w.t.text));
+      const c = this.chosen.get(words[j].t)?.c;
+      if (c && this.data.pos[c.e] === 'verb' && !words[j].t.name) return false;
+    }
+    return false;
   }
 
   /**
@@ -2111,6 +2251,12 @@ export class SpacedEngine implements LangEngine {
     const off = (w: Word): boolean => !!w.t.name || !!this.chosen.get(w.t)?.noPhrase;
     const pronouns = new Set([...(this.lang.reflexive?.always ?? []), ...(this.lang.reflexive?.ifPronominal ?? [])]);
     const infinitive = this.lang.reflexive?.infinitive;
+    /** The reflexive pronoun before word k that is the verb's own (se daba, me doy), or ''. */
+    const ownReflexive = (k: number, c: Cand): string => {
+      if (k === 0 || !joined(words[k - 1], words[k]) || off(words[k - 1])) return '';
+      const p = low(words[k - 1]);
+      return pronouns.has(p) && this.ownPerson(p, c) ? p : '';
+    };
     /** A match: words [start, start + len), the phrase, and whether its last word is a contraction cut short (del as de). */
     const found: { start: number; len: number; phrase: Phrase; cut: boolean }[] = [];
     for (let k = 0; k < words.length - 1; k++) {
@@ -2126,9 +2272,15 @@ export class SpacedEngine implements LangEngine {
       // (Perrault) fell from his hands, not tomber des mains "to be very boring"; "Corrieron a echarse al agua".
       const n1 = k + 1 < words.length ? this.chosen.get(words[k + 1].t)?.c : undefined;
       const lemma = verb && !(n1 && d.pos[n1.e] === 'contraction') ? this.fold(d.key[c.e]).toLowerCase() : '';
-      const reflexive = !!infinitive && k > 0 && verb && pronouns.has(low(words[k - 1])) && joined(words[k - 1], words[k])
-        && !off(words[k - 1]) ? infinitive(lemma) : '';
-      const starts = [reflexive ? [reflexive] : [], first, lemma && !first.includes(lemma) ? [lemma] : []];
+      const own = verb ? ownReflexive(k, c) : '';
+      const reflexive = !!infinitive && !!own ? infinitive(lemma) : '';
+      // A verb that se and a person's pronoun stand before says what happens to that person, not the plain verb's phrase: "la
+      // boca se le hizo agua" (Cuentos de la selva) his mouth watered, not hacer agua "to let in water". (se alone keeps it:
+      // "se moría de sed", "se dieron vuelta" are morir de sed, dar vuelta.)
+      const pronominal = verb && k >= 2 && pronouns.has(low(words[k - 2])) && this.ownPerson(low(words[k - 2]), c)
+        && this.beforeVerb.has(low(words[k - 1])) && !pronouns.has(low(words[k - 1]))
+        && joined(words[k - 2], words[k - 1]) && joined(words[k - 1], words[k]);
+      const starts = [reflexive ? [reflexive] : [], first, lemma && !first.includes(lemma) && !pronominal ? [lemma] : []];
       for (const [r, fs] of starts.entries()) {
         const most = Math.max(0, ...fs.map((f) => d.phraseLen.get(f) ?? 0));
         if (!most) continue;
@@ -2147,7 +2299,8 @@ export class SpacedEngine implements LangEngine {
           for (let i = 0; i < out.length && !hit; i++) {
             for (const pre of keys) {
               const key = pre + ' ' + out[i];
-              if (d.phrases.has(key)) { hit = { key, cut: i >= own }; break; }
+              // A phrase books have as often word for word only as spelled: "Il se passa la main sur le visage".
+              if (d.phrases.has(key) && (r === 1 || !d.phrases.get(key)!.spelled)) { hit = { key, cut: i >= own }; break; }
             }
           }
         }
@@ -2162,9 +2315,12 @@ export class SpacedEngine implements LangEngine {
           if (p && d.pos[p.e] === 'preposition' && !(after && d.pos[after.e] === 'verb' && (after.desc < 0 || /\binfinitive\b/.test(d.descs[after.desc])))) continue;
         }
         const phrase = d.phrases.get(hit.key)!;
+        // A verb's phrase, wherever its verb stands: "avant de se mettre au lit" (Madame Bovary) is au lit "in bed", not se
+        // mettre à "to start".
+        const verbal = verb || words.slice(k, k + len).some((x) => { const xc = this.chosen.get(x.t)?.c; return !!xc && d.pos[xc.e] === 'verb'; });
         // The pronoun belongs to the phrase too.
-        if (r === 0) found.push({ start: k - 1, len: len + 1, phrase, cut: false });
-        else found.push({ start: k, len, phrase, cut: hit.cut && verb });
+        if (r === 0) found.push({ start: k - 1, len: len + 1, phrase, cut: hit.cut });
+        else found.push({ start: k, len, phrase, cut: hit.cut && verbal });
         break;
       }
     }
@@ -2179,6 +2335,24 @@ export class SpacedEngine implements LangEngine {
         if (ch) ch.phrase = m.phrase;
       }
     }
+  }
+
+  /**
+   * Whether a reflexive pronoun before a verb can be its own, by person (SpacedLang.reflexive.persons): me with a form that
+   * may be first-person singular ("me daba cuenta"), se with a third person, any with a form of no person (an infinitive, a
+   * gerund). "me dan a entender" (Marianela) is "they give me to understand", not darse a entender.
+   */
+  private ownPerson(pronoun: string, c: Cand): boolean {
+    const person = this.lang.reflexive?.persons?.[pronoun];
+    if (!person || c.desc < 0) return true;
+    const finite = this.data.descs[c.desc].split('; ').filter((p) => /-person\b/.test(p));
+    if (!finite.length) return true;
+    const [who, number] = person.split('-person');
+    return finite.some((p) => {
+      if (who === 'third' && /\bformal\b/.test(p)) return true;
+      const m = /((?:first|second|third)(?:\/(?:first|second|third))*)-person(?: (singular|plural))?/.exec(p);
+      return !!m && m[1].split('/').includes(who) && (!number.trim() || m[2] === number.trim());
+    });
   }
 
   /**
@@ -2279,13 +2453,14 @@ export class SpacedEngine implements LangEngine {
     const first = order[0];
     if (sep?.particle) out.form = 'part';
     else if (first && first.desc >= 0 && d.descs[first.desc]) out.form = d.descs[first.desc];
-    // An inverted question is no imperative, though the hyphened form is filed as one: "Que faites-vous là ?" (Perrault).
+    // German before 1996 wrote ß where dass, Fluss, gewiss have ss: the card says so ("old spelling of dass").
+    else if (first && this.lang.keepCase && surface.includes('ß') && d.head[first.e].includes('ss')) out.form = 'old spelling';
+    // An inversion is no imperative, though the hyphened form is filed as one: "Que faites-vous là ?" (Perrault) is the
+    // second-person plural, "Que vois-je là !" (Le Horla) the first-person singular, "te dis-je" its present or past.
     if (known?.inverted && out.form && /\bimperative\b/.test(out.form)) {
-      const person = /\b(?:first|second|third)-person (?:singular|plural)\b/.exec(out.form)?.[0];
-      if (person) {
-        out.form = `${person} present indicative, with the subject after it`;
-        if (entries[0]?.form) entries[0] = { ...entries[0], form: out.form };
-      }
+      const person = this.lang.hyphenSubjects![known.inverted];
+      out.form = `${person} ${tenseFor(out.form, person) ?? 'present indicative'}, with the subject after it`;
+      if (entries[0]?.form) entries[0] = { ...entries[0], form: out.form };
     }
     else if (first && d.pos[first.e] === 'contraction') {
       const con = /^contraction of (.+)$/.exec(this.notesOf(first.e)[0] ?? '');
@@ -2438,12 +2613,15 @@ export class SpacedEngine implements LangEngine {
     // A German compound's hint is its pieces' meanings when they are nouns, adjectives or numbers before the head (Gartenpforte
     // "garden gate", Seitenflügel "side wing", Spätherbstnachmittag "late autumn afternoon"), the head's alone when a piece is
     // a verb's stem or a preposition (Weckuhr "clock", not "to wake clock"); the card has its pieces.
-    if (a.prefix && a.parts && a.parts.length > 1 && d.hint[c.e] && d.pos[c.e] === 'noun') {
+    // Only pieces with one plain meaning each (plainPiece): "Haben Sie von Landpartien gehört?" (Effi Briest) is no "country
+    // match", Zimmerherr no "room Mr", Seestadt no "lake city"; those keep the head's hint.
+    if (a.prefix && a.parts && a.parts.length > 1 && d.hint[c.e] && d.pos[c.e] === 'noun' && this.plainPiece(d.key[c.e], true)) {
       const mods = a.parts.slice(0, -1);
       const first = (g?: string): string => (g ?? '').split(/[,;]/)[0].replace(/^to /, '').replace(/\s*\(.*?\)/g, '').trim();
       const head = first(d.hint[c.e]);
       // Not twice: Vogelbauer is a "birdcage" already.
-      if (mods.every((p) => p.gloss && ['noun', 'adjective', 'numeral'].includes(p.pos ?? '') && first(p.gloss) && !head.includes(first(p.gloss)))) {
+      if (mods.every((p) => p.gloss && ['noun', 'adjective', 'numeral'].includes(p.pos ?? '') && first(p.gloss) && !head.includes(first(p.gloss))
+        && this.plainPiece(p.key))) {
         return `${mods.map((p) => first(p.gloss)).join(' ')} ${head}`;
       }
     }
@@ -2496,6 +2674,20 @@ class CharClasses {
     if (this.cache.size < 4000) this.cache.set(code, c);
     return c;
   }
+}
+
+/**
+ * The tense a form description gives a person, its imperative left out: "first/second-person singular present indicative;
+ * first/second-person singular past historic; second-person singular imperative" (dis) is "present indicative" for
+ * "first-person singular"; undefined when no part has that person.
+ */
+function tenseFor(form: string, person: string): string | undefined {
+  const [who, number] = person.split('-person ');
+  for (const part of form.split('; ')) {
+    const m = /^((?:first|second|third)(?:\/(?:first|second|third))*)-person (singular|plural) (.+)$/.exec(part);
+    if (m && m[2] === number && m[1].split('/').includes(who) && !/\bimperative\b/.test(m[3])) return m[3];
+  }
+  return undefined;
 }
 
 /** A Roman numeral in capitals: I, VI, XIV, MDCCC. */

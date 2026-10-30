@@ -461,11 +461,6 @@
   "hint": "little paw",
   "gloss": "little paw, little leg"
  },
- "figliuoli|noun": {
-  "hint": "sons, children",
-  "gloss": "sons, children (plural of figliuolo)",
-  "gender": "m"
- },
  "quantunque|conjunction": "although",
  "monatto|noun": "plague corpse-carrier",
  "solenne|adjective": "solemn",
@@ -500,17 +495,9 @@
   "hint": "those",
   "gloss": "those (quei, before a noun: que' passi)"
  },
- "pe'|contraction": {
-  "hint": "for the",
-  "gloss": "for the (per i: pe' suoi commerci)"
- },
  "pel|contraction": {
   "hint": "for the",
   "gloss": "for the, by the (per il: pel capo)"
- },
- "sur|preposition": {
-  "hint": "on",
-  "gloss": "on (su before a vowel: sur un fondo)"
  },
  "par|verb": {
   "hint": "seems",
@@ -542,16 +529,22 @@
  "+per quanto": "however much",
  "+pur troppo": "unfortunately",
  "+pur di": "just to",
- "+alla fine": "in the end",
+ "+alla fine": {
+  "hint": "in the end",
+  "gloss": "in the end, finally"
+ },
  "+del resto": "besides",
  "+una volta": "once",
  "+in fondo": "at the bottom; after all",
- "+di nulla": "of nothing",
+ "+di nulla": null,
  "+di cuore": "heartily",
  "+altro mondo": "the next world",
  "+a proposito": "by the way",
- "+come si chiama": "what's it called",
- "+bel paese": "fine country",
+ "+come si chiama": {
+  "hint": "what's it called",
+  "gloss": "what's it called, what's its name"
+ },
+ "+bel paese": null,
  "+di punto in punto": "moment by moment",
  "+in maniche di camicia": "in shirtsleeves",
  "+figlio unico": "only child",
@@ -559,7 +552,7 @@
  "+più o meno": "more or less",
  "+bene o male": "somehow",
  "+al solito": "as usual",
- "+cinque minuti": "five minutes",
+ "+cinque minuti": null,
  "+mettere sul": "to put on",
  "+stare a": "to stay",
  "+in guardia": "on guard",
@@ -599,5 +592,42 @@
  "+se mai": "if ever",
  "+far sapere": "to let know",
  "+di proposito": "on purpose",
- "+s'intende": "of course"
+ "+s'intende": "of course",
+ "+in somma": "in short",
+ "// verified": "Phrases the native verifiers found misread where a verb's other forms find them (stage 3): a hint that says what the books mean, {\"spelled\": true} for one books have as often word for word, or a drop.",
+ "+fare onore": "to honor",
+ "+farsi sentire": "to make oneself heard",
+ "+mettere mano": "to reach for, set about",
+ "+mettere in campo": "to put forward",
+ "+dare luogo": "to make way; to give rise",
+ "+mettere le mani addosso": "to lay hands on",
+ "+fare cenno": "to beckon, signal",
+ "+venire meno": "to fail, give out",
+ "+girare la testa": {
+  "spelled": true
+ },
+ "+lasciare correre": {
+  "spelled": true
+ },
+ "+mettere in ginocchio": {
+  "spelled": true
+ },
+ "+fare quattro passi": {
+  "spelled": true
+ },
+ "+mettere le ali": {
+  "spelled": true
+ },
+ "+prendere il volo": "to take flight",
+ "+mostrare i denti": "to bare one's teeth",
+ "+buttare giù": "to throw down",
+ "+andare a genio": "to suit, to please",
+ "+darsi pace": "to resign oneself",
+ "+essere pazzo": "to be mad",
+ "-diavolo nero": null,
+ "+mettersi insieme": "to get together",
+ "+prendere di mira": "to aim at",
+ "+fare effetto": "to have an effect",
+ "+fare vedere": "to show",
+ "+fare male": "to hurt"
 }

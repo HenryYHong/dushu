@@ -13,6 +13,11 @@ export const FRENCH: SpacedLang = {
     'toi', 'en', 'y', 't', "t'en", "m'en", "t'y", "m'y", 'là', 'ci'],
   // "ce soir-là", "ce monde-là", "celui-ci": a noun before them, as well as a verb.
   hyphenParticles: ['là', 'ci'],
+  // "Que vois-je là !", "te dis-je", "Que faites-vous là ?": the subject after its verb, no imperative.
+  hyphenSubjects: { je: 'first-person singular', tu: 'second-person singular', il: 'third-person singular', elle: 'third-person singular',
+    on: 'third-person singular', ce: 'third-person singular', nous: 'first-person plural', vous: 'second-person plural',
+    ils: 'third-person plural', elles: 'third-person plural' },
+  coordinators: ['mais', 'et', 'ou', 'donc', 'or', 'ni', 'car', 'puis', 'alors'],
   beforeNoun: ['un', 'une', 'des', 'du', 'au', 'aux', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses', 'notre',
     'nos', 'votre', 'vos', 'leurs', 'ce', 'cet', 'cette', 'ces', 'quel', 'quelle', 'quels', 'quelles', 'chaque', 'plusieurs',
     'quelques', 'aucun', 'aucune', 'certains', 'certaines'],

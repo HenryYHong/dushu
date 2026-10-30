@@ -612,11 +612,11 @@
  "+ir a la par": "to go hand in hand",
  "+por cumplir": "out of duty",
  "+de vez en cuando": "from time to time",
- "+que sepa": "that one may know",
- "+y tanto": "and so much",
+ "+que sepa": null,
+ "+y tanto": null,
  "+se acabó": "it's over",
- "+a mandar": "to order",
- "+en el armario": "in the cupboard",
+ "+a mandar": null,
+ "+en el armario": null,
  "dellas|contraction": {
   "hint": "of them",
   "gloss": "of them, from them (de + ellas)",
@@ -638,5 +638,36 @@
    "obsolete"
   ]
  },
- "basta|interjection": "enough!"
+ "basta|interjection": "enough!",
+ "// verified": "Phrases the native verifiers found misread where a verb's other forms find them (stage 3): a hint that says what the books mean, {\"spelled\": true} for one books have as often word for word, or a drop.",
+ "+echar a andar": "to start walking",
+ "-saber hacer": null,
+ "+dar la vuelta a": "to go around",
+ "+hacerse cargo de que": "to realize",
+ "+dar una vuelta": {
+  "spelled": true
+ },
+ "+echar una mano": {
+  "spelled": true
+ },
+ "+meter la nariz": {
+  "spelled": true
+ },
+ "+echar flores": {
+  "spelled": true
+ },
+ "+dar largas": {
+  "spelled": true
+ },
+ "+hacer llegar": {
+  "spelled": true
+ },
+ "+bajar la cabeza": {
+  "hint": "to bow one's head",
+  "spelled": true
+ },
+ "+hacer sonar": "to make sound",
+ "-dar algo": null,
+ "+a sus anchas": "at ease",
+ "+poner en marcha": "to set in motion, start"
 }

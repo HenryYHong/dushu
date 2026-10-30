@@ -438,7 +438,14 @@
  "+большой палец": "thumb, big toe",
  "+вряд ли": "hardly",
  "+т. е.": "that is",
- "+т. е": "that is",
  "+под мышку": "under the arm",
- "+под мышкой": "under the arm"
+ "+под мышкой": "under the arm",
+ "// verified": "Phrases the native verifiers found misread where a verb's other forms find them (stage 3): a hint that says what the books mean, {\"spelled\": true} for one books have as often word for word, or a drop.",
+ "+дать знать": "to let know",
+ "+опустить руки": {
+  "spelled": true
+ },
+ "+протянуть ноги": {
+  "spelled": true
+ }
 }

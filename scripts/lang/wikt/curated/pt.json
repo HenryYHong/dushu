@@ -456,8 +456,8 @@
  "ir|verb": "to go|to go away",
  "cuidar|verb": "to take care; to think",
  "quiz|verb": {
-  "hint": "wanted",
-  "gloss": "wanted; would (pre-reform spelling of quis, from querer)"
+  "of": "quis",
+  "form": "obsolete spelling"
  },
  "menos|pronoun": "less, fewer",
  "agregado|noun": "household dependent",
@@ -606,5 +606,43 @@
  "pálio|noun": "canopy",
  "+via lactea": "Milky Way",
  "dona|noun": "lady, owner",
- "ama|noun": "mistress, nurse"
+ "ama|noun": "mistress, nurse",
+ "=quiz": "wanted",
+ "-que fosse": null,
+ "-que seja": null,
+ "-a saber": null,
+ "-do zero": null,
+ "-pois é": null,
+ "// verified": "Phrases the native verifiers found misread where a verb's other forms find them (stage 3): a hint that says what the books mean, {\"spelled\": true} for one books have as often word for word, or a drop.",
+ "+apertar as mãos": {
+  "spelled": true
+ },
+ "+encher a cara": {
+  "spelled": true
+ },
+ "+quebrar a cara": {
+  "spelled": true
+ },
+ "+quebrar a cabeça": {
+  "spelled": true
+ },
+ "+ganhar a vida": {
+  "spelled": true
+ },
+ "+sobrar para": {
+  "spelled": true
+ },
+ "+dar de si": {
+  "spelled": true
+ },
+ "+fazer voar": {
+  "spelled": true
+ },
+ "+chamar a atenção": "to draw attention",
+ "-ser vivo": null,
+ "+deixar passar": "to let pass",
+ "+lançar mão": "to lay hold of",
+ "+dar conta": "to notice; to manage",
+ "+ter a mania": "to have the habit",
+ "-fora que": null
 }
