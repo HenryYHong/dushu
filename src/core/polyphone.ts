@@ -66,6 +66,8 @@ export const WORD_READINGS: Readonly<Record<string, string>> = {
   大都: 'da4 dou1', // for the most part
   所长: 'suo3 zhang3', // head of an institute
   便宜: 'pian2 yi5', // cheap
+  骰子: 'shai3 zi5', // dice: how it is said (the dictionaries' reading is tóuzi; also written 色子), book-words.tsv
+  掷骰子: 'zhi4 shai3 zi5',
   媳妇: 'xi2 fu5',
   生意: 'sheng1 yi5',
   本事: 'ben3 shi5',
