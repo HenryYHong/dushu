@@ -1,9 +1,15 @@
 // The hint over a word is read at a glance, so the 400 commonest words of every spaced language must have one that is a
 // short plain English gloss: not a description of the word ("Generic demonstrative pronoun"), not its grammar
-// ("third-person singular", "form of"), not cut in the middle, not a capitalized sentence.
+// ("third-person singular", "form of"), not cut in the middle, not a capitalized sentence. Below that, the dictionary
+// builder's fixes (scripts/lang/wikt/build.py) on the sentences of the classics where readers met the defects.
+import { readFile } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Token } from '../../../src/types';
-import { loadLang, words } from './load';
+import { loadLang, lookupIn, tok, words } from './load';
+
+const DATA = process.env.DUSHU_LANG_DATA || join(__dirname, '..', '..', '..', 'public', 'data');
 
 const IDS = ['es', 'fr', 'de', 'it', 'pt', 'ru'] as const;
 
@@ -54,5 +60,180 @@ describe('hintProblem', () => {
     expect(hintProblem('Refers to a neuter')).toBe('description');
     expect(hintProblem('some”)')).toBe('unbalanced');
     expect(hintProblem(undefined)).toBe('no hint');
+  });
+});
+
+/** The hint over a word of a sentence, as the reader shows it. */
+async function hintIn(id: 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru', sentence: string, word: string): Promise<string | undefined> {
+  const eng = await loadLang(id);
+  return eng.hint(tok(eng, sentence, word));
+}
+
+/** The word with its stressed vowel marked, as the reader shows it. */
+const stressed = (text: string, at: number | undefined): string => (at === undefined ? text : text.slice(0, at + 1) + '\u0301' + text.slice(at + 1));
+
+describe('Spanish words the dictionary used to read as another', () => {
+  it('keeps a word with an entry of its own from an old spelling of another (Platero y yo: "¡Ay, qué relumbres")', async () => {
+    const es = await loadLang('es');
+    const ay = tok(es, '¡Ay, qué relumbres y olores! ¡Ay, cómo ríen los prados!', 'Ay');
+    expect(ay.lemma).toBe('ay');
+    // haberlo is haber + lo, not an archaic spelling of habérselas (Marianela).
+    const card = lookupIn(es, 'El discreto Golfín se sentó tranquilamente, como podría haberlo hecho en el banco de un paseo', 'haberlo');
+    expect(card.entries.map((e) => e.head)).not.toContain('habérselas');
+  });
+
+  it('never makes a verb of a noun\'s plural through a chain of pointers (Quiroga: "Esa luz que ves allá")', async () => {
+    const es = await loadLang('es');
+    const card = lookupIn(es, 'Esa luz que ves allá es Buenos Aires.', 'ves');
+    expect(card.entries[0].head).toBe('ver');
+    for (const e of card.entries) expect((e as { form?: string }).form ?? '').not.toMatch(/^(?:feminine|masculine)? ?plural$/);
+  });
+
+  it('gives an old spelling the form it spells, as old spelling (Quiroga: "se fué a vivir al monte")', async () => {
+    const es = await loadLang('es');
+    const card = lookupIn(es, 'El hombre enfermo aceptó, y se fué a vivir al monte, lejos, más lejos que Misiones todavía.', 'fué');
+    expect(card.form).toBe('third-person singular preterite indicative (old spelling)');
+  });
+
+  it('keeps a feminine noun its own meaning (Marianela: "¡Eh, muchacha, aguarda")', async () => {
+    expect(await hintIn('es', '¡Eh, muchacha, aguarda, detén el paso!', 'muchacha')).toBe('girl');
+    const es = await loadLang('es');
+    expect(tok(es, '¡Eh, muchacha, aguarda, detén el paso!', 'muchacha').lemma).toBe('muchacha');
+  });
+
+  it('attaches a neuter demonstrative to its own stem only, hinted as itself (Quiroga: "y eso le hacía bien")', async () => {
+    const es = await loadLang('es');
+    const s = 'Hacía allá mucho calor, y eso le hacía bien.';
+    expect(await hintIn('es', s, 'eso')).toBe('that');
+    expect(lookupIn(es, s, 'eso').entries.map((e) => e.head)).toEqual(['ése']);
+    // "Por eso" is the fixed phrase "that's why" (phrases.tsv.gz).
+    expect(await hintIn('es', 'Por eso quiero que se vaya a vivir al monte...', 'eso')).toBe("that's why");
+    expect(lookupIn(es, 'Al oir esto, la tortuga se sintió con una fuerza inmensa', 'esto').entries.map((e) => e.head)).toEqual(['éste']);
+  });
+
+  it('files no synonym of another word as a form (Marianela: "alfombra para un cuarto")', async () => {
+    const es = await loadLang('es');
+    const card = lookupIn(es, 'Después le sacó el cuero, tan grande que él solo podía servir de alfombra para un cuarto.', 'cuarto');
+    expect(card.entries.map((e) => e.head)).not.toContain('dinero');
+  });
+
+  it('reads a spelling as the word the subtitles mostly mean by it (sé, montes, rica)', async () => {
+    const es = await loadLang('es');
+    // The prior: sé is saber's "I know" far more often than ser's "be!" (Platero y yo).
+    expect(tok(es, 'Lo llamo dulcemente: "¿Platero?", y viene a mí con un trotecillo alegre que parece que se ríe en no sé qué cascabeleo ideal...', 'sé').lemma).toBe('saber');
+    expect(tok(es, 'La tortuga cargada así caminó, caminó y caminó de día y de noche. Atravesó montes, campos, cruzó a nado ríos', 'montes').lemma).toBe('monte');
+    // Costa Rica's Rica in the treebanks no longer makes rica "fenugreek" (La Rioja) of the adjective.
+    expect(tok(es, '—Ahora —se dijo el hombre,— voy a comer tortuga, que es una carne muy rica.', 'rica').lemma).toBe('rico');
+  });
+});
+
+describe('French, German and Italian words the dictionary used to read as another', () => {
+  it('takes no pronunciation line for a sense (Perrault: "dès qu\'on fut sorti de table")', async () => {
+    const fr = await loadLang('fr');
+    const s = 'alla, dès qu\'on fut sorti de table, se cacher derrière la tapisserie';
+    expect(await hintIn('fr', s, 'dès')).not.toMatch(/audio/i);
+    for (const e of lookupIn(fr, s, 'dès').entries) for (const x of e.senses) expect(x.glosses.join(' ')).not.toMatch(/\(file\)|^Audio/);
+  });
+
+  it('keeps a feminine noun of its own out of the masculine\'s forms (Perrault: "pour marraine")', async () => {
+    const fr = await loadLang('fr');
+    expect(tok(fr, 'on donna pour marraine à la petite princesse toutes les fées qu\'on put trouver dans le pays', 'marraine').lemma).toBe('marraine');
+  });
+
+  it('describes a form that fills several cells by its cells (Perrault: "garnis de diamants")', async () => {
+    const fr = await loadLang('fr');
+    const card = lookupIn(fr, 'une cuiller, une fourchette et un couteau de fin or, garnis de diamants et de rubis', 'garnis');
+    const garnir = card.entries.find((e) => e.head === 'garnir') as { form?: string } | undefined;
+    expect(garnir?.form).toMatch(/^masculine plural past participle; /);
+    expect(garnir?.form).not.toMatch(/inflected form/);
+  });
+
+  it('hints an oblique personal pronoun as one (Kafka: "Was ist mit mir geschehen?")', async () => {
+    expect(await hintIn('de', '»Was ist mit mir geschehen?« dachte er.', 'mir')).toBe('me');
+    expect(await hintIn('de', 'Die unverhofften Ferien kamen ihnen herrlich zustatten.', 'ihnen')).toBe('them');
+  });
+
+  it('keeps agent nouns and plurals their own (Max und Moritz: "Schneider Böck", "Alle Hühner waren fort")', async () => {
+    const de = await loadLang('de');
+    expect(tok(de, 'Wußte Schneider Böck zu machen.', 'Schneider').lemma).not.toBe('schneiden');
+    expect(tok(de, 'Doch der Bäcker, mit Bedacht, Hat das Backhaus zugemacht.', 'Bäcker').lemma).toBe('Bäcker');
+    expect(lookupIn(de, 'Alle Hühner waren fort,', 'Hühner').entries[0].head).toBe('Huhn');
+  });
+
+  it('agrees an Italian past participle (Pinocchio: "è stata una nottata d\'inferno")', async () => {
+    const it_ = await loadLang('it');
+    const card = lookupIn(it_, '— Non lo so, babbo, ma credetelo che è stata una nottata d\'inferno, e me ne ricorderò fin che campo.', 'stata');
+    expect(card.entries.map((e) => e.head)).toContain('essere');
+  });
+
+  it('reads a pre-reform spelling as the word it spells (Dom Casmurro: "aquella vida antiga")', async () => {
+    const pt = await loadLang('pt');
+    expect(tok(pt, 'A certos respeitos, aquella vida antiga apparece-me despida de muitos encantos', 'aquella').lemma).toMatch(/^aquel[ae]$/);
+    // tive is ter's "I had"; estar has it only by way of the clipped tar of Portugal.
+    expect(tok(pt, 'Nunca pude entender a conversação que tive com uma senhora, há muitos annos', 'tive').lemma).toBe('ter');
+  });
+});
+
+describe('Russian words the dictionary used to read as another', () => {
+  const NIGHTS = 'Мне вдруг показалось, что меня, одинокого, все покидают и что все от меня отступаются.';
+
+  it('hints a personal pronoun\'s oblique forms as themselves, under their own pronoun (Белые ночи)', async () => {
+    const ru = await loadLang('ru');
+    expect(await hintIn('ru', NIGHTS, 'Мне')).toBe('me');
+    expect(await hintIn('ru', NIGHTS, 'меня')).toBe('me');
+    expect(lookupIn(ru, 'Может быть, я вам завтра же скажу, а может быть, нет… Я еще с вами наперед поговорю', 'вами').key).toBe('вы');
+  });
+
+  it('marks the stress of the reading running text means (Толстой: "открыла глаза", "отерла слезы")', async () => {
+    const ru = await loadLang('ru');
+    const at = (s: string, w: string) => stressed(w, tok(ru, s, w).stress);
+    expect(at('Девочка открыла глаза, увидела медведей и бросилась к окну.', 'глаза')).toBe('глаза́');
+    expect(at('Наконец она перестала, отерла слезы, и мы снова пошли.', 'слезы')).toBe('сле́зы');
+    expect(at('да благо опомнились вовремя, опустили руки и с участием прошли друг подле друга.', 'руки')).toBe('ру́ки');
+    // й is one letter: пойду́ and прийти́ get their mark (Белые ночи).
+    const walk = 'Пойду ли на Невский, пойду ли в сад, брожу ли по набережной — ни одного лица из тех, кого привык встречать';
+    expect(stressed('Пойду', tok(ru, walk, 'Пойду').stress)).toBe('Пойду́');
+  });
+
+  it('hints an inchoative verb by its verb, not "to begin" (Толстой: "Девочка захотела сесть")', async () => {
+    expect(await hintIn('ru', 'Девочка захотела сесть и видит у стола три стула.', 'захотела')).toBe('to want');
+  });
+
+  it('reads жаль as "it\'s a pity" and небо as the sky (Белые ночи)', async () => {
+    const ru = await loadLang('ru');
+    expect(tok(ru, '— Вам жаль меня, Настенька; вам просто жаль меня, дружочек мой!', 'жаль').lemma).toBe('жаль');
+    expect(lookupIn(ru, 'Небо было такое звездное, такое светлое небо, что, взглянув на него', 'Небо').entries[0].senses[0].glosses[0]).toBe('sky');
+  });
+
+  it('records the aspect of a verb and its partner (forms.tsv.gz A lines)', async () => {
+    const entries = gunzipSync(await readFile(join(DATA, 'ru', 'entries.tsv.gz'))).toString('utf8').split('\n').filter((l) => l && !l.startsWith('#'));
+    const forms = gunzipSync(await readFile(join(DATA, 'ru', 'forms.tsv.gz'))).toString('utf8').split('\n');
+    const aspect = new Map(forms.filter((l) => l.startsWith('A\t')).map((l) => { const c = l.split('\t'); return [+c[1], [c[2], c[3]]]; }));
+    const verb = (key: string) => entries.findIndex((l) => l.startsWith(key + '\t') && l.split('\t')[3] === 'verb');
+    expect(aspect.get(verb('сказать'))).toEqual(['pf', 'говори́ть']);
+    expect(aspect.get(verb('брать'))).toEqual(['impf', 'взять']);
+  });
+});
+
+describe('hints in American English, with their verbs whole', () => {
+  it('spells the 1,000 commonest words\' hints the American way', async () => {
+    const british = /\b(?:colour|grey|neighbour|travell(?:er|ing)|kilometre|metre|centre|theatre|splendour|honour|favour|defence|programme|mum)\b|\w+ \/ \w+/i;
+    for (const id of ['es', 'fr', 'de', 'it', 'pt', 'ru'] as const) {
+      const eng = await loadLang(id);
+      const bad = eng.levelWords(2).slice(0, 1000).map((k) => [k, eng.hint({ text: k, start: 0, end: k.length, kind: 'word', inDict: true })] as const)
+        .filter(([, h]) => h && british.test(h));
+      expect(bad, id).toEqual([]);
+    }
+  }, 60000);
+
+  it('keeps a light verb\'s complement (Белые ночи: "что вы не влюбились в меня")', async () => {
+    expect(await hintIn('ru', '— Я оттого люблю вас, что вы не влюбились в меня.', 'влюбились')).toBe('to fall in love');
+  });
+});
+
+describe('fixed phrases', () => {
+  it('reads a fixed phrase as one (Quiroga: "Y sin embargo estaba ya en Buenos Aires"; Белые ночи: "потому что")', async () => {
+    expect(await hintIn('es', 'Y sin embargo, estaba ya en Buenos Aires, y ella no lo sabía.', 'embargo')).toBe('however');
+    expect(await hintIn('ru', 'потому что вот уже восемь лет, как я живу в Петербурге, и почти ни одного знакомства не умел завести.', 'потому')).toBe('because');
   });
 });

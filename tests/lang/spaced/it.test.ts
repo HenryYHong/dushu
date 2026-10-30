@@ -51,7 +51,7 @@ describe('Italian keys, levels and hints', () => {
     const it_ = await loadLang('it');
     for (const k of ['essere', 'avere', 'di', 'non']) expect(it_.level(k)).toBe(1);
     const hints = Object.fromEntries(words(it_, 'Il vecchio falegname aveva una casa e voleva fare un burattino.').map((t) => [t.text, it_.hint(t)]));
-    expect(hints).toMatchObject({ Il: 'the', aveva: 'to have', casa: 'house', e: 'and', voleva: 'to want', fare: 'to do' });
+    expect(hints).toMatchObject({ Il: 'the', aveva: 'to have', casa: 'house', e: 'and', voleva: 'to want', fare: 'to do, make' });
   });
 
   it('credit Wiktionary and the frequency list with their licences', async () => {

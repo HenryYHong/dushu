@@ -219,7 +219,7 @@ describe('words joined to a verb', () => {
     // Dom Casmurro.
     const look = lookupIn(eng, 'Vi-lhe fazer um gesto para tiral-os outra vez do bolso, mas não passou do gesto.', 'tiral-os');
     expect(look.key).toBe('tirar');
-    expect(look.parts?.map((p) => p.gloss)).toEqual(['to take', 'them']);
+    expect(look.parts?.map((p) => p.gloss)).toEqual(['to take out', 'them']);
     expect(tok(eng, 'um homem consola-se mais ou menos das pessoas que perde.', 'consola-se').key).toBe('consolar');
   });
 });

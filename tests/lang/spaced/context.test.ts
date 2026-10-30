@@ -61,14 +61,15 @@ describe('a language context rule', () => {
 
   it('can say "yes" for да before a comma, where the generic rules keep the conjunction', async () => {
     const plain = await loadLang('ru');
-    expect(plain.hint(tok(plain, '— Да, вы наймите у нас.', 'Да'))).toBe('but');
+    // The conjunction's hint (the native reviewers': conjunctive да is "and" at least as often as "but").
+    expect(plain.hint(tok(plain, '— Да, вы наймите у нас.', 'Да'))).toBe('and, but');
     const eng = await loadCustom({
       ...RUSSIAN,
       context: (q) => (q.word.low === 'да' && /^[,!]/.test(q.word.after) ? { prefer: (r) => r.hint === 'yes', margin: Infinity } : null),
     });
     expect(eng.hint(tok(eng, '— Да, вы наймите у нас.', 'Да'))).toBe('yes');
     // Tolstoy's "да не нашла" (Три медведя) is left alone: no comma after it.
-    expect(eng.hint(tok(eng, 'В лесу она заблудилась и стала искать дорогу домой, да не нашла, а пришла в лесу к домику.', 'да'))).toBe('but');
+    expect(eng.hint(tok(eng, 'В лесу она заблудилась и стала искать дорогу домой, да не нашла, а пришла в лесу к домику.', 'да'))).toBe('and, but');
   });
 
   it('decides whether a verb is reflexive: "Er erinnerte sich" remembered, not reminded', async () => {

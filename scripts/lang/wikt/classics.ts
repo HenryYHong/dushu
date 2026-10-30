@@ -15,7 +15,7 @@ for (const lang of langs.length ? langs : ['es', 'fr', 'de', 'it', 'pt', 'ru']) 
   const eng = await mod.loadEngine('/', { fetchBytes: (n: string) => readFile(join(process.env.DUSHU_LANG_DATA || join(ROOT, 'public/data'), lang, n)) });
   const dir = join(ROOT, 'public/samples', lang);
   const files = (await readdir(dir)).filter((f) => f.endsWith('.md')).sort();
-  const c = { words: 0, noHint: 0, junk: 0, rareLemma: 0, adverbOverContent: 0, cutWord: 0 };
+  const c = { words: 0, noHint: 0, junk: 0, rareLemma: 0, adverbOverContent: 0, cutWord: 0, phrases: 0 };
   const odd: string[] = [];
   for (const f of files) {
     const text = await readFile(join(dir, f), 'utf8');
@@ -35,7 +35,9 @@ for (const lang of langs.length ? langs : ['es', 'fr', 'de', 'it', 'pt', 'ru']) 
           if (/[a-z]{2,}$/.test(h) && h.length >= 40) { c.cutWord++; flags.push('cut?'); }
         }
         const others = look.entries.slice(1);
-        if (e0 && (e0.level ?? 7) >= 5 && others.some((o: any) => (o.level ?? 7) <= 2)) { c.rareLemma++; flags.push('rare-lemma'); }
+        // A fixed phrase (por eso, sin embargo) leads the card with no level of its own: not a rare lemma.
+        if (!look.phrase && e0 && (e0.level ?? 7) >= 5 && others.some((o: any) => (o.level ?? 7) <= 2)) { c.rareLemma++; flags.push('rare-lemma'); }
+        if (look.phrase) { c.phrases++; flags.push('phrase'); }
         const posAll = look.entries.flatMap((e: any) => e.senses.map((s: any) => s.pos));
         if (pos0 === 'adverb' && e0.senses.slice(0, 2).every((s: any) => s.pos === 'adverb') && posAll.some((x: string) => x === 'adjective' || x === 'noun')
           && !['adverb'].includes(posAll[posAll.length - 1])) { c.adverbOverContent++; flags.push('adv'); }
