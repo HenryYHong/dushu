@@ -5,8 +5,8 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../../cloud/src/worker';
-import { requestCode, signIn, cloudSession } from '../../src/core/cloud';
-import { accountBooks, forgetBookInAccount, packBook, syncBooks, unpackBook } from '../../src/core/cloudBooks';
+import { cloudFetch, requestCode, signIn, cloudSession } from '../../src/core/cloud';
+import { accountBooks, accountFileOf, forgetBookInAccount, packBook, syncBooks, unpackBook } from '../../src/core/cloudBooks';
 import { bookKey } from '../../src/core/syncKeys';
 import { bytesOf, openStore } from '../../src/store';
 import type { ImportedBook } from '../../src/types';
@@ -92,6 +92,49 @@ describe('a book kept in the account', () => {
     expect(await accountBooks()).toEqual([]);
     expect(await syncBooks(a)).toEqual({ added: [], uploaded: 0 });
     expect(await a.books.list()).toEqual([]);
+  });
+
+  it('hands back the file of a Mac book the Mac put there, for a device that cannot reach the Mac to import it again', async () => {
+    await signedIn();
+    // As scripts/account-books.ts puts it: the file itself, under the key a device gives it, with the file's own digest.
+    const bytes = new TextEncoder().encode('学而时习之，不亦说乎？'.repeat(40));
+    const sha = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const key = `m${sha.slice(0, 32)}.2`;
+    const start = await (await cloudFetch('/books', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, title: '论语.txt', author: '', size: bytes.byteLength, sha }) }))!.json() as { upload?: string };
+    const u = start.upload ? `&u=${encodeURIComponent(start.upload)}` : '';
+    expect((await cloudFetch(`/books/chunk?key=${key}&i=0${u}`, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes }))!.ok).toBe(true);
+    const file = await accountFileOf({ note: `mac-book:${sha}` });
+    expect(file?.name).toBe('论语.txt');
+    const read = await new Promise<ArrayBuffer>((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result as ArrayBuffer); r.readAsArrayBuffer(file!); });
+    expect([...new Uint8Array(read)]).toEqual([...bytes]);
+    expect(await accountFileOf({ note: `mac-book:${'c'.repeat(64)}` })).toBeNull();
+    expect(await accountFileOf({ note: undefined })).toBeNull();
+    localStorage.removeItem('dushu.cloud.v1');
+    expect(await accountFileOf({ note: `mac-book:${sha}` })).toBeNull();
+  });
+
+  it('asks for the account\'s list only when a Mac book needs it, and does not download a file that came down damaged again for a day', async () => {
+    await signedIn();
+    const bytes = new TextEncoder().encode('有朋自远方来，不亦乐乎？'.repeat(40));
+    // Kept under a digest its bytes do not have: it never comes down whole.
+    const sha = 'e'.repeat(64);
+    const key = `m${sha.slice(0, 32)}.2`;
+    const start = await (await cloudFetch('/books', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, title: '论语.txt', author: '', size: bytes.byteLength, sha }) }))!.json() as { upload?: string };
+    await cloudFetch(`/books/chunk?key=${key}&i=0&u=${start.upload}`, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes });
+    const inner = globalThis.fetch;
+    let pieces = 0;
+    vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) => {
+      if (new Request(input, init).url.includes('/books/chunk?')) pieces++;
+      return inner(input, init);
+    });
+    let listed = 0;
+    const listing = () => { listed++; return accountBooks(); };
+    expect(await accountFileOf({ note: 'a note' }, listing)).toBeNull();
+    expect(listed).toBe(0);
+    await expect(accountFileOf({ note: `mac-book:${sha}` }, listing)).rejects.toThrow(/did not download whole/);
+    expect(pieces).toBe(1);
+    expect(await accountFileOf({ note: `mac-book:${sha}` }, listing)).toBeNull();
+    expect(pieces).toBe(1);
   });
 
   it('does not keep the classics, and does nothing signed out', async () => {

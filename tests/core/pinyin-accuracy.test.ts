@@ -139,8 +139,8 @@ describe('segmentation fixed after sampling the books', () => {
     ['闰土在海边', ['闰土', '在', '海边']],
     // a year in digits is one token, not the dictionary's 九一八 (the Mukden Incident)
     ['（一九一八年四月。）', ['（', '一九一八', '年', '四月', '。', '）']],
-    // 三十多年: the 多 goes with the number, not "many years" after it
-    ['已是三十多年', ['已', '是', '三十', '多', '年']],
+    // 三十多年: the 多 goes with the number (a spelled-out number is one word, as 五萬), not "many years" after it
+    ['已是三十多年', ['已', '是', '三十多', '年']],
     ['多年來', ['多年', '來']],
     ['子曰：學而時習之', ['子曰', '：', '學', '而', '時', '習', '之']],
     ['劉使君來了', ['劉', '使君', '來', '了']],
@@ -154,8 +154,8 @@ describe('segmentation fixed after sampling the books', () => {
     ['焦大罵人', ['焦大', '罵人']],
     ['他用船來載去', ['他', '用', '船', '來', '載', '去']],
     ['但聞人語響', ['但', '聞', '人', '語', '響']],
-    ['司馬師引兵五萬', ['司馬師', '引', '兵', '五', '萬']],
-    ['三十多年才能輪到一回', ['三十', '多', '年', '才', '能', '輪', '到', '一', '回']],
+    ['司馬師引兵五萬', ['司馬師', '引', '兵', '五萬']],
+    ['三十多年才能輪到一回', ['三十多', '年', '才', '能', '輪', '到', '一', '回']],
     ['他有才能', ['他', '有', '才能']],
     ['現在應天府案下審理', ['現在', '應天府', '案', '下', '審理']],
     // 了得 is one word where it ends the clause or follows a word of praise; elsewhere 了 + 得意 stays apart
@@ -213,7 +213,7 @@ describe('the lead sense is the one a reader needs', () => {
     expect(await lead('對', 'dui4', { prev: '你', next: '說' })).toMatch(/^to; towards/);
     expect(await lead('嘗', 'chang2', { prev: '', next: '聞' })).toMatch(/^once/);
     expect(await lead('尝', 'chang2', { prev: '', next: '一' })).toMatch(/^to taste/);
-    expect(await lead('賺', 'zhuan4', { prev: '', next: '開' })).toMatch(/^to trick/);
+    expect(await lead('賺', 'zuan4', { prev: '', next: '開' })).toMatch(/^to trick/);
     expect(await lead('赚', 'zhuan4', { prev: '', next: '钱' })).toMatch(/^to earn/);
     expect(await lead('槍', 'qiang1', { prev: '一', next: '刺' })).toMatch(/^spear/);
     expect(await lead('兩', 'liang3', { prev: '十', next: '銀子' })).toMatch(/^tael/);

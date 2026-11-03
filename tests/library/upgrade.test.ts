@@ -9,6 +9,8 @@ import { loadTestDictionary } from '../helpers/data';
 import { mount as mountLibrary } from '../../src/ui/library/library';
 import { MAC_NOTE } from '../../src/ui/library/macBooks';
 import { IMPORT_VERSION } from '../../src/import/version';
+import { importFile } from '../../src/import';
+import { upgradeBooks, type UpgradeDeps } from '../../src/ui/library/upgrade';
 
 // Public-domain stand-ins for the owner's books.
 const LINE = '学而时习之，不亦说乎？有朋自远方来，不亦乐乎？人不知而不愠，不亦君子乎？';
@@ -123,5 +125,51 @@ describe('books from an older importer', () => {
     await flush(300);
     expect(calls.filter((c) => c.endsWith('/api/local-books/one'))).toEqual([]);
     expect((await current(meta.id)).chapterCount).toBe(2);
+  });
+});
+
+describe('a device that cannot reach the Mac', () => {
+  const deps = (asked: string[]): UpgradeDeps => ({
+    books: () => store.books.list(), macItems: [], samples: [],
+    fetchMacFile: async () => { throw new Error('the Mac does not answer'); },
+    fetchAccountFile: async (b) => { asked.push(b.note ?? b.title); return new File([TEXT], '论语一.txt'); },
+    importFile: (file) => importFile(file),
+    importSample: async () => { throw new Error('not a classic'); },
+    replace: (id, book) => store.books.replace(id, book),
+    alive: () => true,
+  });
+
+  it('imports the Mac\'s book again from the file the Mac put in the sync account', async () => {
+    const meta = await store.books.add(oldMacBook);
+    await store.books.update(meta.id, { note: MAC_NOTE + SHA, title: '我的论语' });
+    await store.progress.set({ bookId: meta.id, chapter: 1, block: 2, percent: 0.6, updatedAt: 99 });
+    const asked: string[] = [];
+    expect(await upgradeBooks(deps(asked))).toBe(1);
+    expect(asked).toEqual([MAC_NOTE + SHA]);
+    expect(await current(meta.id)).toMatchObject({ title: '我的论语', note: MAC_NOTE + SHA, chapterCount: 1, importVersion: IMPORT_VERSION });
+    expect(await store.progress.get(meta.id)).toEqual({ bookId: meta.id, chapter: 0, block: 12, percent: 0.6, updatedAt: 99 });
+  });
+
+  it('does not download a file that would not import again for a day', async () => {
+    const meta = await store.books.add(oldMacBook);
+    await store.books.update(meta.id, { note: MAC_NOTE + SHA });
+    const asked: string[] = [];
+    const broken = { ...deps(asked), importFile: async () => { throw new Error('not a book'); } };
+    expect(await upgradeBooks(broken)).toBe(0);
+    expect(await upgradeBooks(broken)).toBe(0);
+    expect(asked).toHaveLength(1);
+    // A day later it is tried again.
+    const later = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 86_400_001);
+    expect(await upgradeBooks(deps(asked))).toBe(1);
+    later.mockRestore();
+    expect(asked).toHaveLength(2);
+  });
+
+  it('does not ask the account for a book added from a file', async () => {
+    const mine = await store.books.add({ ...oldMacBook, title: '自己', sourceName: 'mine.txt' });
+    const asked: string[] = [];
+    expect(await upgradeBooks(deps(asked))).toBe(0);
+    expect(asked).toEqual([]);
+    expect((await current(mine.id)).importVersion).toBeUndefined();
   });
 });

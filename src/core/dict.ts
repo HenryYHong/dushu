@@ -6,6 +6,7 @@ import { hanBlockName } from './blocks';
 import { baseOf, markedToNumbered, normalizePinyinField, numberedToMarked } from './pinyin';
 import { CHAR_DEFAULTS, WORD_READINGS, firstCodePointOf, lastCodePoint, polyphoneReading } from './polyphone';
 import { isHanCodePoint } from './text';
+import { compareReading } from './hskMatch';
 
 // ---------------------------------------------------------------- loading ---
 
@@ -180,6 +181,31 @@ const SEE_POINTER = /^see (?:also )?([\p{Script=Han}·|]+)\[([^\]]+)\]$/u;
 
 const toArray = (s: string | undefined): string[] => (s ? Array.from(s) : EMPTY);
 
+/** A row of hsk.tsv.gz (ARCHITECTURE.md §3). */
+interface HskRecord {
+  simp: string;
+  /** The word-level answer: hsk3 is the level of its easiest reading. */
+  info: HskInfo;
+  /** The list's own readings, lowest level first; undefined on a row of the old 5-column file, which grades no reading. */
+  own?: { pinyin: string[]; level: number }[];
+  /** Same-word readings: the listed word read another way (血 xuè beside the list's xiě). */
+  same?: { pinyin: string[]; level: number }[];
+}
+
+/** "xing2=1;hang2=3" -> readings, in file order (lowest level first). */
+function hskReadingsOf(field: string | undefined): { pinyin: string[]; level: number }[] {
+  const out: { pinyin: string[]; level: number }[] = [];
+  for (const part of (field ?? '').split(';')) {
+    const eq = part.lastIndexOf('=');
+    const level = Number(part.slice(eq + 1));
+    if (eq > 0 && level) out.push({ pinyin: part.slice(0, eq).split(' '), level });
+  }
+  return out;
+}
+
+/** Words ending in 儿 that are words of their own, not a spelling of the word without it (头儿 "boss" is not 头 "head"). */
+export const HSK_OWN_ER_WORDS: ReadonlySet<string> = new Set(['头儿', '哥儿', '人儿']);
+
 class DictImpl implements Dictionary {
   meta: DataMeta = { built: '', unicode: '', counts: {}, sources: [] };
 
@@ -202,7 +228,9 @@ class DictImpl implements Dictionary {
   private radicalByNum = new Map<string, { radicalChar: string; char: string }>();
   private radicalToChar = new Map<string, string>();
 
-  private hskMap = new Map<string, HskInfo>();
+  /** hsk.tsv.gz rows by simplified form, then by the trad column where that is free. */
+  private hskMap = new Map<string, HskRecord>();
+  /** The list's forms and their 儿-less spellings, for hskWords (sorted by level, then rank, in finish()). */
   private hskRows: { simp: string; level: number; rank: number }[] = [];
   private t2s = new ConvTable();
   private s2t = new ConvTable();
@@ -318,20 +346,29 @@ class DictImpl implements Dictionary {
     );
   }
 
+  /**
+   * hsk.tsv.gz. A row of the old 5-column file (a service worker can pair it with this code during an update) grades the
+   * word, not its readings, as before. Only the list's own forms join the segmentation vocabulary: a derived row (一下 for
+   * 一下儿, 好象 for 好像) must not change how a sentence is cut.
+   */
   private async parseHsk(text: string): Promise<void> {
     await eachLine(text, (line) => {
       const t = line.split('\t');
       const hsk3 = Number(t[2]) || undefined;
       const hsk2 = Number(t[3]) || undefined;
       const rank = Number(t[4]) || undefined;
+      const of = t[7] || undefined;
       const info: HskInfo = {};
       if (hsk3) info.hsk3 = hsk3;
       if (hsk2) info.hsk2 = hsk2;
       if (rank) info.rank = rank;
-      if (!this.hskMap.has(t[0])) this.hskMap.set(t[0], info);
-      if (t[1] && !this.hskMap.has(t[1])) this.hskMap.set(t[1], info);
-      if (hsk3) this.hskRows.push({ simp: t[0], level: hsk3, rank: rank ?? 1e9 });
-      for (const w of [t[0], t[1]]) if (w && !this.vocab.has(w)) this.vocab.set(w, 0);
+      if (of) info.of = of;
+      const rec: HskRecord = { simp: t[0], info };
+      if (t.length > 5) { rec.own = hskReadingsOf(t[5]); rec.same = hskReadingsOf(t[6]); }
+      if (!this.hskMap.has(t[0])) this.hskMap.set(t[0], rec);
+      if (t[1] && !this.hskMap.has(t[1])) this.hskMap.set(t[1], rec);
+      if (hsk3 && (!of || of.endsWith('儿'))) this.hskRows.push({ simp: t[0], level: hsk3, rank: rank ?? 1e9 });
+      if (!of) for (const w of [t[0], t[1]]) if (w && !this.vocab.has(w)) this.vocab.set(w, 0);
     });
   }
 
@@ -518,13 +555,80 @@ class DictImpl implements Dictionary {
     return this.vocab.get(this.normalizeWord(word)) ?? 0;
   }
 
-  hsk(word: string): HskInfo | null {
+  hsk(word: string, pinyin?: readonly string[]): HskInfo | null {
     const w = this.normalizeWord(word);
+    // A reading that is not one syllable per character says nothing: the word's level, as without one.
+    let shown = pinyin?.length && pinyin.every(Boolean) && pinyin.length === [...w].length ? pinyin : undefined;
     // The list's traditional column is often a rare variant for a single character (时 → 旹, 听 → 听), so a traditional
     // spelling it misses looks up its simplified form: 聽, 時, 這個.
-    let info = this.hskMap.get(w);
-    if (!info) { const simp = this.toSimplified(w); if (simp !== w) info = this.hskMap.get(simp); }
-    return info ? { ...info } : null;
+    let rec = this.hskMap.get(w);
+    // Only a word found under its own simplified form gets the other-reading hint: through the trad column or t2s, a
+    // character can land on another one (著 zhù → 着, 乾 qián → 干) whose readings say nothing of it.
+    let hint = rec?.simp === w;
+    if (!rec) { const simp = this.toSimplified(w); if (simp !== w) rec = this.hskMap.get(simp); }
+    // A book's 事儿 shìr is the listed 事 with 儿 added (not 头儿 "boss", which is not 头 "head").
+    if (!rec && shown && shown.length > 1 && /^r5$/i.test(shown[shown.length - 1])) {
+      const simp = this.toSimplified(w);
+      if (simp.endsWith('儿') && !HSK_OWN_ER_WORDS.has(simp)) { rec = this.hskMap.get(simp.slice(0, -1)); shown = shown.slice(0, -1); }
+    }
+    if (!rec) return null;
+    const info: HskInfo = { ...rec.info };
+    if (!shown || !rec.own) return info;
+    let same: number | undefined;
+    let neutral: number | undefined;
+    for (const r of [...rec.own, ...(rec.same ?? [])]) {
+      const kind = compareReading(r.pinyin, shown, rec.simp);
+      if (kind === 'same') { if (same === undefined || r.level < same) same = r.level; }
+      else if (kind === 'neutral' && (neutral === undefined || r.level < neutral) && !this.twoWords(rec.simp, r.pinyin, shown)) neutral = r.level;
+    }
+    delete info.hsk3;
+    const level = same ?? neutral;
+    if (level !== undefined) info.hsk3 = level;
+    else if (hint && rec.own.length) info.elsewhere = rec.own.map((r) => ({ pinyin: r.pinyin, hsk3: r.level }));
+    return info;
+  }
+
+  /**
+   * Readings that differ only in a neutral tone are one word (北边 běibiān, the list's běibian) unless CC-CEDICT spells both
+   * as words of their own: 东西 dōngxī "east and west" is not 东西 dōngxi "thing".
+   */
+  private twoWords(simp: string, list: readonly string[], shown: readonly string[]): boolean {
+    const readings = new Set(this.lookup(simp).filter((e) => !/^[A-Z]/.test(e.pinyin)).map((e) => e.pinyin.toLowerCase()));
+    return readings.has(list.join(' ').toLowerCase()) && readings.has(shown.join(' ').toLowerCase());
+  }
+
+  hskReadings(maxLevel: number): { word: string; pinyin: string[]; hsk3: number }[] {
+    const out: { word: string; pinyin: string[]; hsk3: number }[] = [];
+    for (const [key, rec] of this.hskMap) {
+      if (key !== rec.simp || rec.info.of) continue;
+      if (rec.own) {
+        // A same-word reading that differs from the list's only in a neutral tone teaches nothing more: 老婆 lǎopo (HSK 4) does
+        // not teach 婆 pó, though CC-CEDICT reads the word lǎopó.
+        const own = rec.own;
+        const same = (rec.same ?? []).filter((s) => !own.some((r) => compareReading(r.pinyin, s.pinyin, rec.simp)));
+        for (const r of [...own, ...same]) if (r.level <= maxLevel) out.push({ word: rec.simp, pinyin: r.pinyin, hsk3: r.level });
+      } else if (rec.info.hsk3 && rec.info.hsk3 <= maxLevel) {
+        for (const pinyin of this.oldHskReadings(rec.simp)) out.push({ word: rec.simp, pinyin, hsk3: rec.info.hsk3 });
+      }
+    }
+    return out;
+  }
+
+  /**
+   * The old 5-column file names a word, not a reading: guess the reading the list means from CC-CEDICT, the word's usual one
+   * (便宜 piányi, not biànyí), with a single character's neutral readings too (地 de). Proper-noun readings count only when
+   * the word has no other.
+   */
+  private oldHskReadings(word: string): string[][] {
+    const n = [...word].length;
+    const entries = this.lookup(word).filter((e) => e.simp === word && e.pinyin.split(' ').length === n);
+    const common = entries.filter((e) => !/^[A-Z]/.test(e.pinyin));
+    let readings = [...new Set((common.length ? common : entries).map((e) => e.pinyin.toLowerCase()))];
+    if (readings.length > 1) {
+      const usual = this.pinyinFor(word).join(' ');
+      if (readings.includes(usual)) readings = readings.filter((r) => r === usual || (n === 1 && r.endsWith('5')));
+    }
+    return readings.map((r) => r.split(' '));
   }
 
   hskWords(maxLevel: number): string[] {
@@ -796,21 +900,81 @@ class DictImpl implements Dictionary {
    * Returns lowercase numbered syllables, one per code point; "" for non-Han code points and for Han characters
    * that no source knows a reading for.
    */
-  pinyinFor(word: string, ctx?: { prev?: string; next?: string; after?: string }): string[] {
+  pinyinFor(word: string, ctx?: PinyinContext): string[] {
     const w = this.normalizeWord(word);
     const cps = Array.from(w);
     const n = cps.length;
     if (n === 0) return [];
-    const running = n >= 2 ? RUNNING_TEXT_READINGS[w] : undefined;
+    // The word as the book writes it (盡數 for 尽数, 為 for 为): it settles what the simplified form merges.
+    const origCps = ctx?.orig && ctx.orig !== word ? Array.from(this.normalizeWord(ctx.orig)) : undefined;
+    const orig = origCps && origCps.length === n ? origCps : undefined;
+    const running = n >= 2 ? RUNNING_TEXT_READINGS[w] ?? (orig ? RUNNING_TEXT_READINGS[orig.join('')] : undefined) : undefined;
     if (running) return running.split(' ');
+    const special = n >= 2 ? this.contextWordReading(w, ctx) : undefined;
+    if (special) return special;
     // 不了 straight after a verb is a potential complement (走不了, 吃不了): bu is neutral.
     if (w === '不了' && ctx?.prev && isHanCodePoint(lastCodePoint(ctx.prev).codePointAt(0) ?? 0) && !/[个個]$/.test(ctx.prev)) {
       return ['bu5', 'liao3'];
     }
     // 那裏肯聽, 那裏敢: "how could (he)" is nǎ li; 那裏 elsewhere is nà li "there".
-    if ((w === '那裏' || w === '那里' || w === '那裡') && ctx?.next && '肯敢能會会曉晓知曾容顧顾'.includes(firstCodePointOf(ctx.next))) return ['na3', 'li5'];
+    // 他调到那里当个小组长, 去那里当专员 (there) stay nàli after a word of place or motion. 那里有这样的事 (how could there be) is nǎli.
+    // 从好友那里得到 (from his place): a 从 在 向 … a few words back says the same.
+    // The look back stops at the clause's start (跪在地下，那里肯起来: the 在 is the other clause's), and a place word after the
+    // 在 is its object (你们在家里那里知道).
+    const isNali = w === '那裏' || w === '那里' || w === '那裡';
+    const back: string[] = [];
+    if (isNali && ctx?.line && ctx.at !== undefined) {
+      for (let k = 1; k <= 5; k++) {
+        const t = ctx.line[ctx.at - k] ?? '';
+        if (!isHanCodePoint(lastCodePoint(t).codePointAt(0) ?? 0)) break;
+        back.push(this.t2s.convert(t));
+      }
+    }
+    const governed = back.some((t, k) => k >= 1 && /^[从在向跟到]$/.test(t) && !back.slice(0, k).some((x) => /^.+[里裏上中下外内边處处]$/.test(x)));
+    // 不知那里去了, 不知道在那里了 (where): nǎ, even after 在; 不知那里的风俗 (there) stays.
+    const unknown = back.some((t, k) => /^(不知|不知道|不晓得|不知是)$/.test(t) || (t === '知' && back[k + 1] === '不'))
+      || /(不知|不知道|不晓得)$/.test(this.t2s.convert(ctx?.prev ?? ''));
+    // (不知那里如今怎样: there, when the clause asks how.)
+    const rest: string[] = [];
+    if (isNali && ctx?.line && ctx.at !== undefined) {
+      for (let k = ctx.at + 1; k < ctx.line.length && k <= ctx.at + 8; k++) {
+        if (!isHanCodePoint(ctx.line[k].codePointAt(0) ?? 0)) break;
+        rest.push(this.t2s.convert(ctx.line[k]));
+      }
+    }
+    if (isNali && unknown && ctx?.next && !/^(的|有|是)/.test(this.t2s.convert(ctx.next)) && !rest.some((t) => /怎|如何|什么|甚么/.test(t))) return ['na3', 'li5'];
+    // (就那里挦得干净: right there.)
+    const nali = isNali && !(ctx?.prev && /[在去到从從往来來住回于於向就]$/.test(ctx.prev)) && !governed;
+    if (nali && ctx?.next && '肯敢能會会曉晓知曾容顧顾管禁當当及捨舍得'.includes(firstCodePointOf(ctx.next))) return ['na3', 'li5'];
+    // In the old novels (written 那裏) a question with no other question word asks where or how: 长老那里来的？ 你往那里走了？
+    // 他们那里看得出来？ (那里有多少人马？, 你在那里做什么？, 在那里么？ stay "there").
+    if (isNali && ctx?.orig === '那裏' && ctx.line && ctx.at !== undefined) {
+      const clause: string[] = [];
+      let end = '';
+      for (let k = ctx.at + 1; k < ctx.line.length && k <= ctx.at + 12; k++) {
+        const t = ctx.line[k];
+        if (!isHanCodePoint(t.codePointAt(0) ?? 0)) { end = t; break; }
+        clause.push(this.t2s.convert(t));
+      }
+      const before = back.slice(0, back.length);
+      // (我那里, 他那里, 你们那里: someone's place.)
+      const asks = /^[？?]/.test(end) && clause.length > 0 && !/[我你他她们們家处處这這]$/.test(this.t2s.convert(ctx.prev ?? ''))
+        && ![...clause, ...before].some((t) => /什么|甚么|甚麼|谁|怎|几|多少|何|吗|么|否|没有|不曾|可曾/.test(t));
+      if (asks) return ['na3', 'li5'];
+    }
+    // 说那里话 (what nonsense), 那里睡得著 那里吃得下 (how could one), 你是那里来的 (where from): nǎli.
+    if (isNali && ctx?.next && (/^[話话]$/.test(ctx.next) || (nali && [...ctx.next].length === 1 && /^[得]([着著下动動进進了过過去来來住]|$)/.test(this.t2s.convert(ctx.after ?? '')))
+      || (nali && /^.得[着著下动動进進了过過去来來住]$/.test(this.t2s.convert(ctx.next)))
+      || (/^[來来]$/.test(ctx.next) && /^的$/.test(ctx.after ?? '') && /是$/.test(ctx.prev ?? '') && ctx.orig === '那裏'))) return ['na3', 'li5'];
+    if (nali && ctx?.next && /^[有]$/.test(ctx.next) && !(ctx.prev && /[我你他她们們]$/.test(ctx.prev)) && /^(这|這|此|那等|这等|這等|这样|這樣|这般|這般|这么|這麼)/.test(ctx.after ?? '')) return ['na3', 'li5'];
+    // 那里还敢, 那里还肯 (how could … still); 那里还是 (there was still) stays nàli.
+    if ((w === '那裏' || w === '那里' || w === '那裡') && ctx?.next && /^[還还]$/.test(ctx.next) && /^[敢肯管顧顾容]/.test(ctx.after ?? '')) return ['na3', 'li5'];
+    // 那里的话 (not at all), 那里走？ (where are you going?): nǎli.
+    if ((w === '那裏' || w === '那里' || w === '那裡') && ctx?.next && ((ctx.next === '的' && /^[話话]/.test(ctx.after ?? '')) || (/^(走|去|來|来)$/.test(ctx.next) && /^[？?]/.test(ctx.after ?? '')))) return ['na3', 'li5'];
     // 兄弟，我前日…: a man addressing his friend, or 我兄弟 "my younger brother", is xiōng di; 兄弟二人 (brothers) stays xiōngdì.
     if (w === '兄弟' && ctx && !/^[\p{Script=Han}]/u.test(ctx.next ?? '。') && (!ctx.prev || !isHanCodePoint(lastCodePoint(ctx.prev).codePointAt(0) ?? 0) || '我你他咱'.includes(lastCodePoint(ctx.prev)))) return ['xiong1', 'di5'];
+    // 宝兄弟, 琏兄弟, 环兄弟 (紅樓夢): a young man addressed by his name (xiōngdi), not "brothers".
+    if (w === '兄弟' && ctx?.prev && /^[宝寶琏璉环環蓉蔷薔芸]$/.test(ctx.prev)) return ['xiong1', 'di5'];
     // 十餘騎馬 (a dozen horsemen, jì) after a number: the word 騎馬 "to ride a horse" is not meant.
     if ((w === '騎馬' || w === '骑马') && ctx?.prev && '一二兩两三四五六七八九十數数餘余'.includes(lastCodePoint(ctx.prev)) && !(ctx.next && isHanCodePoint(firstCodePointOf(ctx.next).codePointAt(0) ?? 0) && '來来去上下'.includes(firstCodePointOf(ctx.next)))) return ['ji4', 'ma3'];
     // 勒住馬: rein in the horse (lè zhù), not the lēi zhù "to strangle, to tie tight" of 勒住.
@@ -820,9 +984,9 @@ class DictImpl implements Dictionary {
     // 重重圍住, 重重疊疊 (layer upon layer, chóng chóng); 重重賞 重重責罰 (heavily) stay zhòng zhòng.
     if ((w === '重重') && ctx?.next && '圍围疊叠複复層层山嶂障門门谷關关'.includes(firstCodePointOf(ctx.next))) return ['chong2', 'chong2'];
     // 士大夫 卿大夫 中大夫: an official of the old courts (dàfū), not the doctor 大夫 (dàifu).
-    if (w === '大夫' && ctx?.prev && '卿士中上下諫谏議议光祿禄太御諸诸'.includes(lastCodePoint(ctx.prev))) return ['da4', 'fu1'];
+    if (w === '大夫' && ctx?.prev && '卿士中上下諫谏議议光祿禄太御諸诸寺'.includes(lastCodePoint(ctx.prev))) return ['da4', 'fu1'];
     if (n >= 2) {
-      const hit = this.wordReading(w, cps);
+      const hit = (orig && this.narrows(orig.join(''), w) && this.wordReading(orig.join(''), orig)) || this.wordReading(w, cps);
       if (hit) {
         // Verb + 不 + complement (受不了, 说不定): CC-CEDICT often writes bu4, but the 不 is neutral.
         if (n === 3 && cps[1] === '不' && w !== '要不然') hit[1] = 'bu5';
@@ -837,6 +1001,12 @@ class DictImpl implements Dictionary {
       const sub = this.wordReading(cps.slice(a, b).join(''), cps.slice(a, b));
       if (sub) for (let k = a; k < b; k++) out[k] = sub[k - a];
     }
+    // A one-character token may look further along its paragraph (为 X 所, 以 X 为) when the caller gave the paragraph's tokens.
+    const line = ctx?.line;
+    const at = ctx?.at;
+    const tok = n === 1 && line && at !== undefined && line[at] === word
+      ? (k: number): string => { const t = line[at + k]; return t === undefined ? '' : this.t2s.convert(t); }
+      : undefined;
     for (let i = 0; i < n; i++) {
       if (out[i] || !isHanCodePoint(cps[i].codePointAt(0)!)) continue;
       // 儿 is the erhua suffix only at the end of a word; inside one (儿童, 少年儿童) it is ér.
@@ -851,21 +1021,185 @@ class DictImpl implements Dictionary {
       const key = cps[i] === '著' ? '着' : this.t2s.convert(cps[i]);
       const prevS = this.t2s.convert(prevTok);
       const nextS = this.t2s.convert(nextTok);
+      const afterS = i < n - 1 ? '' : this.t2s.convert(ctx?.after ?? '');
       const ruled = polyphoneReading({
         ch: key,
-        orig: cps[i],
+        orig: orig ? orig[i] : cps[i],
         prevTok: prevS,
         nextTok: nextS,
         prevChar: lastCodePoint(prevS),
         nextChar: firstCodePointOf(nextS),
-        afterChar: i < n - 1 ? '' : firstCodePointOf(this.t2s.convert(ctx?.after ?? '')),
+        afterChar: firstCodePointOf(afterS),
+        afterTok: afterS,
         nextKnown: i < n - 1 || ctx?.next !== undefined,
+        alone: n === 1,
+        tok,
       });
-      out[i] = ruled ?? this.defaultSyllable(cps[i]);
+      out[i] = ruled ?? this.defaultSyllable(orig && this.narrows(orig[i], cps[i]) ? orig[i] : cps[i]);
     }
     // A verb + 不 + complement that the dictionary lacks (走不动, 看不到): the 不 is neutral.
     if (n === 3 && (cps[1] === '不') && isHanCodePoint(cps[0].codePointAt(0)!)) out[1] = 'bu5';
     return out;
+  }
+
+  /**
+   * Whether the book's own spelling settles more than the spelling shown: it has fewer dictionary readings (髮 fà against 发 fā fà,
+   * 盡數 against 尽数). A spelling with as many (繃 and 绷, 這裏 and 这里) says nothing more, so the shown word keeps its reading.
+   */
+  private narrows(own: string, shown: string): boolean {
+    const count = (x: string) => new Set((this.entries.get(x) ?? []).filter((e) => e.simp === x || e.trad === x).map((e) => e.pinyin.toLowerCase())).size;
+    if (CHAR_DEFAULTS[own] && !CHAR_DEFAULTS[shown]) return false; // 箇 ge5 is how 这箇 is said, not a narrower 个
+    const a = count(own);
+    return a > 0 && a < count(shown);
+  }
+
+  /**
+   * Words whose reading the neighbors decide (both readings are CC-CEDICT's): 人家 after a measure word is a household (rénjiā),
+   * 大汗 is the Khan unless someone is sweating. Undefined keeps the usual choice.
+   */
+  private contextWordReading(w: string, ctx?: PinyinContext): string[] | undefined {
+    if (!ctx || !CONTEXT_WORDS.has(w)) return undefined;
+    const prev = ctx.prev ? this.t2s.convert(ctx.prev) : '';
+    const next = ctx.next ? this.t2s.convert(ctx.next) : '';
+    const after = ctx.after ? this.t2s.convert(ctx.after) : '';
+    const p = lastCodePoint(prev);
+    const nx = firstCodePointOf(next);
+    const clauseEnd = ctx.next !== undefined && !isHanCodePoint(nx.codePointAt(0) ?? 0);
+    // The conversion keeps a lone 著 (it may be zhù), so 引著 執著 合著 are folded to their 着 case here.
+    switch (this.t2s.convert(w).replace(/著/g, '着')) {
+      case '人家':
+        // 两户人家, 一簇人家, 小户人家, 有钱人家, 咱们这样人家: a household (rénjiā), not "other people" (rénjia).
+        // 寻个人家, 找个人家 (a household); 这个人家里 stays: 个 after 这 那 is the person's.
+        if (p === '个' && ctx.line && ctx.at !== undefined && !/[这這那哪]$/.test(this.t2s.convert(ctx.line[ctx.at - 2] ?? ''))) return ['ren2', 'jia1'];
+        // 一户姓李的人家, 街两边的人家, 卖酒的人家 (a household described by a 的 phrase).
+        return (HOUSEHOLD_BEFORE.test(prev) && !/(讨好|和好|友好|示好|叫好|讲好|说好|问好)$/.test(prev)) || (p !== '' && '户家簇百千几多'.includes(p))
+          || (p === '的' && ctx.line !== undefined && ctx.at !== undefined && !/^(我|你|他|她|我们|你们|他们|她们|咱们)$/.test(this.t2s.convert(ctx.line[ctx.at - 2] ?? ''))
+            && !/^(说|咒|骂|笑|讲|议论|知道|看|听|问)/.test(next)) ? ['ren2', 'jia1'] : undefined;
+      case '大汗':
+        // 满头大汗, 急出一身大汗, 大汗淋漓 are sweat; everywhere else (拜见大汗, 大汗的旨意) the Khan.
+        return (p !== '' && '身头脸满浑出冒阵'.includes(p)) || /^(淋|直流|如雨|如注|涔|浃|珠|滴|湿|流)/.test(next) ? ['da4', 'han4'] : ['da4', 'han2'];
+      case '教会':
+        // 你教会我, 教会了他: taught someone how to (jiāohuì); the church otherwise.
+        return nx !== '' && (PRONOUN_START.test(next) || nx === '了') ? ['jiao1', 'hui4'] : undefined;
+      case '舍下':
+        // 到舍下坐坐, 与我舍下相邻: my humble home (shèxià); 舍下他, 舍下了 (to abandon) stay shěxià.
+        return PRONOUN_START.test(next) || '了不么吗'.includes(nx) && nx !== '' || /[都全肯能不]$/.test(prev) ? undefined : ['she4', 'xia4'];
+      case '重重':
+        // 困难重重, 危机重重。: layer upon layer (chóngchóng); 重重地打 (heavily) stays zhòngzhòng.
+        return /(困难|危机|疑虑|心事|顾虑|矛盾|障碍|关卡|险阻|疑团|阻碍|艰难|疑云)$/.test(prev) || (clauseEnd && p !== '') ? ['chong2', 'chong2'] : undefined;
+      case '分子':
+        // 反动分子 捣乱分子 知识分子: a member (fènzǐ); 分子 alone is the molecule.
+        return /(反动|坏|捣乱|知识|积极|犯罪|恐怖|危险|顽固|右派|左派|落后|激进|不法|异己|投机|动摇)$/.test(prev) ? ['fen4', 'zi3'] : undefined;
+      case '一行':
+        // 一行字 一行楷书, 上一行: a line of writing (yì háng); 一行人 (a party) stays yìxíng.
+        // 芝麻一行，茄子一行 (a row of plants).
+        return /^(字|楷书|大字|小字|诗|文字|一句|泪|树|白|醒目|编号|数字|小楷|红字|黑字|蓝字|英文|代码|符号|公式|歪歪)/.test(next) || /[上下另]$/.test(prev)
+          || (clauseEnd && /(芝麻|茄子|豆|麦|玉米|菜|葱|蒜|瓜|庄稼|花|树|稻|谷|白杨|柳)$/.test(prev)) ? ['yi1', 'hang2'] : undefined;
+      case '打折':
+        // 打折了腿, 打折胳膊: to break by beating (dǎshé), not "to give a discount".
+        return /^(腿|胳膊|手|脚|骨|肋|脊|脖)/.test(next) || (nx === '了' && /^(腿|胳膊|手|脚|骨|肋|脊|脖|他|她|你|我)/.test(after)) ? ['da3', 'she2'] : undefined;
+      case '好吃': case '好喝':
+        // 好吃懒做 (fond of eating): hào.
+        return nx === '懒' ? ['hao4', w.endsWith('喝') ? 'he1' : 'chi1'] : undefined;
+      case '利害':
+        // 冷得利害, 疼的利害: 利害 for 厉害 (lìhai, terribly); 利害关系 (interests) stays lìhài.
+        return (/[得的]$/.test(prev) && !/(顾不得|不顾|权衡|计较|不知|晓得|懂得)$/.test(prev)) || /(太|很|好|真|这么|那么|怎的)$/.test(prev) ? ['li4', 'hai5'] : undefined;
+      case '格格':
+        // 格格地笑: the giggle (gēgē), not the Manchu princess.
+        return /^(地|的|笑|作响|直笑)/.test(next) ? ['ge1', 'ge1'] : undefined;
+      case '精神':
+        // 一点精神都没有, 来了精神, 打起精神: vigor (jīngshen).
+        // The noun follows (精神准备, 精神信念, 精神的富足): jīngshén.
+        // 有精神地 很精神的 打起精神来 鼓起精神往上爬 没精神再讲 没精神哩 (energetic) too; 连点精神上的享受 is the noun.
+        if (/^(文明|生活|世界|食粮|财富|病|分析|层面|上|领域|力量|支柱|状态|面貌|意义|价值|准备|信念|污染|境界|产品|贵族|导师|家园|寄托|需求|追求|内涵|实质|本质|分裂|失常|错乱|创伤|折磨|压力|负担)/.test(next)) return undefined;
+        // 得来精神 (got one's vigor back): jīngshen.
+        if (/(打起|提起|鼓起|抖擞起|振作|振作起|抖擞|打点|养养|养足|抖起|来了|得来)$/.test(prev) || prev === '起') return ['jing1', 'shen5'];
+        // 格外精神。 (lively): jīngshen after a word of degree too.
+        return /(有|没|点|起|足|好|很|挺|真|不|格外|特别|十分|非常|越发|分外)$/.test(prev) && (clauseEnd || /^(也|都|了|着|很|不|头|劲|起来|来|些|十足|抖擞|焕发|多了|得|一振|再|哩|呢|啊|吧|罢|呀|啦|地)/.test(next)
+          || ((/(很|挺|真|特|满|多|好)有?$/.test(prev) || (prev === '有' && /^(很|挺|真|特|满|多|好|十分|特别)$/.test(this.t2s.convert(ctx.line?.[(ctx.at ?? 0) - 2] ?? '')))) && /^的/.test(next))) ? ['jing1', 'shen5'] : undefined;
+      case '正当':
+        // 正当自卫, 正当理由: legitimate (zhèngdàng); 正当…之时 (just when) stays zhèngdāng.
+        return /^(自卫|防卫|理由|权益|手段|职业|要求|利益|关系|的|性|行为)/.test(next) ? ['zheng4', 'dang4'] : undefined;
+      case '得出': case '得到': case '得来': case '得起': case '得住':
+        // 猜得出 料得到 想得到 办得到 (can guess, can do): the particle de after a verb; 他得到了 stays dé, and so does 想得到一点安慰
+        // (wants to get: what is got follows).
+        // (哪想得到, 谁想得到: who would have thought.)
+        if (/想$/.test(prev) && this.t2s.convert(w).endsWith('到') && nx !== '' && !clauseEnd && !'吗嗎呢的了吧么麼啊呀'.includes(nx)
+          && !/[哪谁誰那怎岂豈没沒不料]想$/.test(prev) && !(ctx.line && ctx.at !== undefined && [2, 3].some((k) => /^[哪谁誰那怎岂豈没沒不料]|[哪谁誰怎岂豈没沒不料]$/.test(ctx.line![ctx.at! - k] ?? '')))) return undefined;
+        return VERB_BEFORE_DE.test(prev) ? ['de5', this.t2s.convert(w).endsWith('出') ? 'chu1' : this.t2s.convert(w).endsWith('到') ? 'dao4' : this.t2s.convert(w).endsWith('来') ? 'lai2' : this.t2s.convert(w).endsWith('起') ? 'qi3' : 'zhu4'] : undefined;
+      case '引着':
+        // 引着十数个打鱼的, 引着唐僧 (leading): yǐn zhe; 引着了 (caught fire) stays yǐnzháo.
+        return nx !== '' && nx !== '了' && nx !== '火' && !clauseEnd ? ['yin3', 'zhe5'] : undefined;
+      case '执着':
+        // 手执着铁棒 (holding): zhí zhe; 执着于, 很执着, 对梦想的执着 (persistent, persistence) stay zhízhuó.
+        return nx !== '' && !clauseEnd && !'于的地追精'.includes(nx) && !/(很|太|非常|更|过于|那么|这么|十分|的)$/.test(prev) ? ['zhi2', 'zhe5'] : undefined;
+      case '合着':
+        // 双手合着, 合着眼 (closed): hé zhe; 合著一书 (co-wrote) is hézhù.
+        return /^(书|一书|本|作品|的书|《)/.test(next) ? ['he2', 'zhu4'] : ['he2', 'zhe5'];
+      case '点着':
+        // 点着头 点着对手 (pointing, nodding): diǎn zhe; 点着了 点着烟 (lit) stay diǎnzháo.
+        return /^(头|对手|他|她|你|我|它|手|脚|下巴|对|自己|地图|鼻子)/.test(next) ? ['dian3', 'zhe5'] : undefined;
+      case '东西':
+        // 东西两角门, 南北东西, 布东西冲杀: east and west (dōngxī).
+        // 屋里的东西向四处飞, 各样东西两大箱, 要的东西五花八门, 带的东西对半分 are things: a thing is what 的 什么 各样 … point at.
+        // 只有东西两角门 (the east and west side gates): a pair of sides wins over 有 before it.
+        if (/^[两兩二]$/.test(next) && /^(角|边|邊|厢|廂|面|侧|側|头|頭|门|門|府|院|街|岸|座|旁|廊)/.test(after)) return ['dong1', 'xi1'];
+        if (/(的|什么|甚么|样|些|个|種|种|点|點|件|多|好|新|旧|舊|买|買|吃|拿|偷|送|卖|賣|有|这|這|那|此|么|麼)$/.test(prev)) return undefined;
+        return /^(两|二|各|相|南北|走向|方向|向|冲|角|厢|长|宽|横|对|分|半|夹|二十|三十|几十|数十|百|千|万|一百|长约)/.test(next) || /(南北|贯穿|横贯|分列)$/.test(prev) ? ['dong1', 'xi1'] : undefined;
+      case '妻子':
+        // 保妻子, 各顾妻子, 携妻子 (wife and children): qīzǐ.
+        return /[保弃抛携及]$/.test(prev) || (/顾$/.test(prev) && clauseEnd) ? ['qi1', 'zi3'] : undefined;
+      case '便宜':
+        // 岂不便宜, 甚是便宜 (convenient): biànyí.
+        return /(岂不|甚是|甚|极|最是|十分)$/.test(prev) || ['行事', '从事'].includes(next) ? ['bian4', 'yi2'] : undefined;
+      case '结果':
+        // 仙桃常结果, 开花结果 (to bear fruit): jiēguǒ.
+        return /(常|会|开花|能|已|才|未|不会|不能|开始)$/.test(prev) && (clauseEnd || nx === '实') ? ['jie1', 'guo3'] : undefined;
+      case '所长':
+        // 各有所长, 取其所长, 发挥所长 (one's strong point): suǒcháng.
+        return /[各其之尽展有挥取用]$/.test(prev) ? ['suo3', 'chang2'] : undefined;
+      case '生意':
+        // 毫无生意, 生意盎然 (vitality): shēngyì.
+        return /(毫无|了无|一片|充满)$/.test(prev) || /^(盎然|勃勃|葱茏)/.test(next) ? ['sheng1', 'yi4'] : undefined;
+      case '片子':
+        // 石片子 肉片子: a flake, a slice (piànzi); a film is piānzi (WORD_READINGS).
+        return /[石肉铁瓦木碎纸刀薄冰骨竹玻璃碗瓷镜锅铜锡金银屎脚腳尿布草菜叶葉]$/.test(prev) ? ['pian4', 'zi5'] : undefined;
+      case '历数':
+        // 歷數昭明, 历数无疆 (the destiny of a dynasty, lìshù), whichever way it is written; 历数其罪 (to enumerate) is lìshǔ.
+        if (nx === '') return undefined;
+        return /^[其他她罪诸諸各每着著了一]/.test(next) ? ['li4', 'shu3'] : ['li4', 'shu4'];
+      case '卷子':
+        // 一卷子材料 (a roll of), 一个卷子 吃卷子 蒸卷子 (a steamed roll): juǎnzi; the exam paper (juànzi) otherwise.
+        return /([一个個吃蒸拣揀糊烧燒馒饅花肉菜油]|^一)$/.test(prev) ? ['juan3', 'zi5'] : undefined;
+      case '好事':
+        // 生性好事的掌柜, 好事之徒 (meddlesome): hàoshì; a good deed is hǎoshì.
+        return /(而|又|最|太|很|生性|素来|多|爱)$/.test(prev) && /^(的|之|者)/.test(next) ? ['hao4', 'shi4'] : undefined;
+      case '大意':
+        // 太大意了, 一时大意, 千万别大意 (careless): dàyi; the gist (dàyì) otherwise.
+        return /(太|很|不可|别|粗心|麻痹|一时|有点|过于|真|可不能|千万|不要|一点|稍|稍一|大大意)$/.test(prev) || nx === '了' ? ['da4', 'yi5'] : undefined;
+      case '丁丁':
+        // 伐木丁丁 (the sound of chopping): zhēngzhēng.
+        return /(伐木|木|斧|斤|棋|漏|声)$/.test(prev) ? ['zheng1', 'zheng1'] : undefined;
+      case '多少':
+        // 花落知多少。 (how much): duōshǎo, a full tone at the end of a line of verse.
+        return prev === '知' && clauseEnd && !/[不谁誰]$/.test(this.t2s.convert(ctx.line?.[(ctx.at ?? 0) - 2] ?? '')) ? ['duo1', 'shao3'] : undefined;
+      case '巷道':
+        // In a paragraph about a mine (井 煤 矿 掘进), 巷道 is the tunnel (hàngdào); elsewhere a lane (xiàngdào).
+        return ctx.line?.some((t) => /[井煤矿礦掘坑岩]|工作面|采煤|採煤/.test(t)) ? ['hang4', 'dao4'] : undefined;
+      case '长毛':
+        // 长毛了 (grew mold) is zhǎng máo; the Taiping 长毛 and long hair are cháng máo.
+        return nx === '了' ? ['zhang3', 'mao2'] : ['chang2', 'mao2'];
+      case '地道':
+        // 玩得很地道, 他的口音真地道 (authentic, the real thing): dìdao; the tunnel is dìdào.
+        return /(很|挺|真|得|不|特别|相当|非常|十分|够|最|多么|那么|这么|太)$/.test(prev) ? ['di4', 'dao5'] : undefined;
+      case '一晃':
+        // 身体 一晃 就跌倒, 他一晃 (the body swayed): yī huàng; 一晃就是十年 (in a flash) and 身子一晃，已 + a leap (flashed across:
+        // a leap or a dodge follows) stay yī huǎng.
+        if (!/(身体|身子|身|人|头|脑袋|他|她|我|你)$/.test(prev) || /^(就是|便是|又是|过了|过去|多年|几年|十年|半年|一年)/.test(next)) return undefined;
+        if (ctx.line && ctx.at !== undefined && ctx.line.slice(ctx.at + 1, ctx.at + 5).some((t) => /^(已|又已|便已|早已|跃|闪|窜|飘|掠|欺|抢|纵)/.test(this.t2s.convert(t)))) return undefined;
+        return ['yi1', 'huang4'];
+    }
+    return undefined;
   }
 
   /**
@@ -897,6 +1231,33 @@ class DictImpl implements Dictionary {
   }
 }
 
+/** What pinyinFor may know about the text around a word (see Dictionary.pinyinFor). */
+export interface PinyinContext {
+  prev?: string;
+  next?: string;
+  /** The token after `next`. */
+  after?: string;
+  /** The word as the book writes it (為, 盡數 for 为, 尽数), same number of code points; it settles what the simplified form merges. */
+  orig?: string;
+  /** The paragraph's tokens and the index of this word among them, for rules that look further than prev/next (为 X 所, 以 X 为). */
+  line?: readonly string[];
+  at?: number;
+}
+
+/** The words contextWordReading decides, in both scripts (looked up before any conversion, so other words cost nothing). */
+const CONTEXT_WORDS: ReadonlySet<string> = new Set([
+  '人家', '大汗', '教会', '教會', '舍下', '捨下', '重重', '分子', '一行', '打折', '好吃', '好喝', '利害', '格格', '精神', '正当', '正當',
+  '得出', '得到', '得来', '得來', '得起', '得住', '引着', '引著', '执着', '執著', '执著', '合着', '合著', '点着', '點著', '东西', '東西', '妻子',
+  '便宜', '结果', '結果', '所长', '所長', '生意', '历数', '歷數', '曆數', '片子', '巷道', '长毛', '長毛', '卷子', '捲子', '好事', '大意',
+  '丁丁', '多少', '地道', '一晃',
+]);
+
+/** Words before 人家 that make it a household: 小户人家, 有钱人家, 这样人家, 寻常人家, 庄上人家. */
+const HOUSEHOLD_BEFORE = /(穷|富|富庶|寻常|平常|普通|有钱|百姓|小康|官宦|读书|贫寒|贫贱|本分|规矩|体面|中等|殷实|豪富|大户|小户|猎户|庄户|这样|那样|这种|那种|这等|那等|一般|好|不少|其他|许多|村里|庄上|城里|山里|那家|一家|有些|所有|有没有|几户|每户|哪家|这些|那些)$/;
+const PRONOUN_START = /^(我|你|您|他|她|它|咱|人家|大家)/;
+/** Verbs before 得出 得到 …: the particle de, not dé (猜得出, 料得到, 想得到, 办得到, 买得起, 靠得住). */
+const VERB_BEFORE_DE = /(猜|料|想|看|听|办|做|找|买|吃|拿|说|写|认|学|记|赶|追|跑|走|飞|跳|闻|摸|觉|感|受|靠|守|顶|撑|站|坐|靠|挡|管|对|瞧|估|算)$/;
+
 /**
  * Words whose everyday reading in running text is not the one CC-CEDICT lists: 穿着 is almost always the verb
  * 穿 + 着 (chuān zhe); CEDICT has only the noun "attire" (chuānzhuó).
@@ -915,13 +1276,19 @@ const RUNNING_TEXT_READINGS: Readonly<Record<string, string>> = {
   南無: 'na1 mo2', 南无: 'na1 mo2',
   // 恁 is nèn "such" in the novels (CEDICT lists the thinking rèn first): 恁般 恁地 恁的.
   恁般: 'nen4 ban1', 恁地: 'nen4 di4', 恁的: 'nen4 de5',
-  拚命: 'pin1 ming4', 拼命: 'pin1 ming4', 拚死: 'pin1 si3', 拼死: 'pin1 si3',
+  拚命: 'pin1 ming4', 拼命: 'pin1 ming4', 拚死: 'pin1 si3', 拼死: 'pin1 si3', 比拚: 'bi3 pin1',
+  // 引得众人 (caused): a verb and 得, not the loanword "index"; 不自禁 (cannot help it) is jīn.
+  引得: 'yin3 de5', 不自禁: 'bu4 zi4 jin1',
   // 累卵 is lěi luǎn (eggs piled up), not the léi of 累赘.
   累卵: 'lei3 luan3',
+  // 唯唯 (yes, yes): wěiwěi. 惠子 (the philosopher, the Japanese name Keiko) is Huìzǐ.
+  唯唯: 'wei3 wei3', 惠子: 'hui4 zi3',
   // Chagatai: Cháhétái (CEDICT writes the Taiwan reading with gě).
   察合台: 'cha2 he2 tai2', 察合臺: 'cha2 he2 tai2',
   // Layer upon layer, built by the reduplication rule from 重叠 (no dictionary row of its own).
   重重叠叠: 'chong2 chong2 die2 die2', 重重疊疊: 'chong2 chong2 die2 die2',
+  // A basket carried on the back (bēi, as the dictionaries of the language have it; CEDICT writes bèidōu).
+  背篼: 'bei1 dou1',
 };
 
 const SYLLABLE_TOKEN = /^[a-zü]+[1-5]$/;

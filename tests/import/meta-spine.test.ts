@@ -50,7 +50,7 @@ describe('author names', () => {
     expect(authorFromLine('作　者：金庸')).toBe('金庸');
     expect(authorFromLine('原著：金庸')).toBe('金庸');
     expect(authorFromLine('著：[明]施耐庵')).toBe('施耐庵');
-    expect(parseFilename('射雕英雄传 作者：金庸.txt')).toEqual({ title: '射雕英雄传', author: '金庸' });
+    expect(parseFilename('天龙八部 作者：金庸.txt')).toEqual({ title: '天龙八部', author: '金庸' });
   });
 });
 
@@ -95,9 +95,9 @@ describe('EPUB title page and heading spelling', () => {
   it('dropTitlePage only touches a short first chapter made of the title and author', () => {
     const ch = (title: string, texts: string[]) => ({ title, blocks: texts.map((text) => ({ t: 'p' as const, text })) });
     const rest = ch('一', [prose(100)]);
-    expect(dropTitlePage([ch('射雕英雄传', ['射雕英雄传', '金庸']), rest], '射雕英雄传', '金庸')).toEqual([rest]);
+    expect(dropTitlePage([ch('天龙八部', ['天龙八部', '金庸']), rest], '天龙八部', '金庸')).toEqual([rest]);
     expect(dropTitlePage([ch('道', ['道']), rest], '道德经', '老子')).toHaveLength(2); // one character is too little to match
-    expect(dropTitlePage([ch('序', [prose(100)]), rest], '射雕英雄传', '金庸')).toHaveLength(2);
-    expect(dropTitlePage([ch('射雕英雄传', ['射雕英雄传'])], '射雕英雄传', '金庸')).toHaveLength(1); // never the only chapter
+    expect(dropTitlePage([ch('序', [prose(100)]), rest], '天龙八部', '金庸')).toHaveLength(2);
+    expect(dropTitlePage([ch('天龙八部', ['天龙八部'])], '天龙八部', '金庸')).toHaveLength(1); // never the only chapter
   });
 });

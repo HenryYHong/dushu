@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildLexicon, detectTerms, detectTermsAsync, EMPTY_LEXICON, mergeLexicon, pinyinOf } from '../../src/core/lexicon';
+import { buildLexicon, detectTerms, detectTermsAsync, EMPTY_LEXICON, judgeCandidate, mergeLexicon, pinyinOf } from '../../src/core/lexicon';
+import type { TermCandidate } from '../../src/core/lexicon';
 import { segment } from '../../src/core/segment';
 import type { LexiconEntry } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
@@ -14,11 +15,11 @@ const entry = (word: string, over: Partial<LexiconEntry> = {}): LexiconEntry => 
 
 describe('buildLexicon', () => {
   it('holds enabled entries only and reports the longest', () => {
-    const lex = buildLexicon([entry('郭靖'), entry('降龙十八掌', { kind: 'term' }), entry('黄蓉', { enabled: false })]);
+    const lex = buildLexicon([entry('郭靖'), entry('伏虎十八拳', { kind: 'term' }), entry('黄蓉', { enabled: false })]);
     expect(lex.has('郭靖')).toBe(true);
     expect(lex.has('黄蓉')).toBe(false);
     expect(lex.get('郭靖')?.word).toBe('郭靖');
-    expect(lex.entries().map((e) => e.word).sort()).toEqual(['郭靖', '降龙十八掌']);
+    expect(lex.entries().map((e) => e.word).sort()).toEqual(['伏虎十八拳', '郭靖']);
     expect(lex.maxLen).toBe(5);
     expect(EMPTY_LEXICON.maxLen).toBe(0);
   });
@@ -63,8 +64,29 @@ describe('detectTerms', () => {
     expect(pinyinOf('尉迟恭', 'name', dict)).toBe('yu4 chi2 gong1');
     // Not a name: 单 stays dān.
     expect(pinyinOf('单据箱', 'term', dict).split(' ')[0]).toBe('dan1');
-    // A doubled last character is neutral.
+    // A doubled kinship word is neutral; a doubled given name keeps its tone.
     expect(pinyinOf('靖哥哥', 'name', dict)).toBe('jing4 ge1 ge5');
+    expect(pinyinOf('小姑姑', 'name', dict)).toBe('xiao3 gu1 gu5');
+    expect(pinyinOf('李师师', 'name', dict)).toBe('li3 shi1 shi1');
+  });
+
+  it('reads a name the way names are read: the surname alone, and 发 兴 冠 都 乾 术 長 觀 as in names', async () => {
+    const dict = await dictP;
+    // 梁子 is "a grudge" (liángzi): the surname never makes a word with the given name.
+    expect(pinyinOf('梁子安', 'name', dict)).toBe('liang2 zi3 an1');
+    expect(pinyinOf('王金发', 'name', dict)).toBe('wang2 jin1 fa1');
+    expect(pinyinOf('张振兴', 'name', dict).split(' ')[2]).toBe('xing1');
+    expect(pinyinOf('乔冠华', 'name', dict).split(' ')[1]).toBe('guan4');
+    expect(pinyinOf('张都监', 'name', dict).split(' ')[1]).toBe('du1');
+    expect(pinyinOf('孫乾', 'name', dict)).toBe('sun1 qian2');
+    // 术 is zhú in a transliterated name, shù after a Chinese surname.
+    expect(pinyinOf('哈术', 'name', dict)).toBe('ha1 zhu2');
+    expect(pinyinOf('袁术', 'name', dict)).toBe('yuan2 shu4');
+    // An office in 长 is zhǎng; 关云长 keeps cháng. A temple in 观 is guàn.
+    expect(pinyinOf('事务长', 'term', dict).split(' ')[2]).toBe('zhang3');
+    expect(pinyinOf('关云长', 'name', dict)).toBe('guan1 yun2 chang2');
+    expect(pinyinOf('黄花观', 'place', dict)).toBe('huang2 hua1 guan4');
+    expect(pinyinOf('宁采臣', 'name', dict).split(' ')[0]).toBe('ning4');
   });
 
   it('is deterministic, finds the same with the async driver, and returns nothing for short or non-Chinese text', async () => {
@@ -102,6 +124,177 @@ describe('detectTerms', () => {
     expect(by.get('关云长')).toMatchObject({ kind: 'name', pinyin: 'guan1 yun2 chang2', count: 15 });
     const lex = buildLexicon([...by.values()]);
     expect(segment('关云长道', dict, lex)[0].text).toBe('关云长');
+  });
+
+  // A novel's people among varied neighbors: each name opens a line after one of many openers and before one of many endings.
+  const people = (names: Record<string, number>, extra: (pick: <T>(a: readonly T[]) => T) => string[] = () => []): string => {
+    let x = 11;
+    const pick = <T,>(a: readonly T[]): T => { // mulberry32
+      x = (x + 0x6d2b79f5) >>> 0;
+      let t = x;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return a[((t ^ (t >>> 14)) >>> 0) % a.length];
+    };
+    const openers = ['', '这时', '后来', '那天', '于是', '晚上', '我知道', '他看见', '大家都说', '只有', '原来', '可是', '正好', '今年', '其实'];
+    const endings = ['说：“今天天气很好。”', '笑了笑。', '走了过来。', '看了看窗外。', '点了点头。', '的母亲在门口等着。', '跟他一起去吃饭。', '没有说话。', '也来了。', '一个人坐着。'];
+    const lines: string[] = [];
+    for (const [name, k] of Object.entries(names)) for (let i = 0; i < k; i++) lines.push(`${pick(openers)}${name}${pick(endings)}`);
+    lines.push(...extra(pick));
+    for (let i = lines.length - 1; i > 0; i--) { const j = pick([...Array(i + 1).keys()]); [lines[i], lines[j]] = [lines[j], lines[i]]; }
+    return `${novel(9, 1200)}\n${lines.join('\n')}`;
+  };
+
+  it('adds the family of a found name: its given name alone, and a brother who shares the generation character', async () => {
+    const dict = await dictP;
+    const text = people({ 王建国: 30, 建国: 40, 赵立平: 60, 立平: 12, 张志刚: 40, 张志强: 12, 志强: 30, 张书记: 10, 王书记: 10 },
+      (pick) => Array.from({ length: 8 }, () => `${pick(['', '那天', '后来'])}单家的院子里很安静。`));
+    const by = new Map(detectTerms([text], dict).map((e) => [e.word, e]));
+    for (const w of ['王建国', '赵立平', '张志刚', '张志强']) expect(by.get(w)?.kind, w).toBe('name');
+    // 立平 stands mostly after 赵: found only as the given name of 赵立平.
+    expect(by.get('立平')).toMatchObject({ kind: 'name', pinyin: 'li4 ping2', gloss: 'name (person), short for 赵立平' });
+    // 建国 is a dictionary word: the book uses it far more often than other text, so it is the name here, and its card
+    // keeps the word's meaning.
+    expect(by.get('建国')?.kind).toBe('name');
+    expect(by.get('建国')?.gloss).toMatch(/^name \(person\), short for 王建国; as a word: /);
+    // 书记 follows two surnames: a title, never a given name.
+    expect(by.has('书记')).toBe(false);
+    // The book has 单雨晴, so 单家 is the Shàn family's household, not dān.
+    expect(by.get('单家')).toMatchObject({ kind: 'place', pinyin: 'shan4 jia1' });
+  });
+
+  it('finds a nickname in a numeral, a surname with a kinship title, and a pair that is spoken to; not a description', async () => {
+    const dict = await dictP;
+    const text = people({ 老木匠: 40, 赵大奶奶: 40, 赵五: 30, 春桃: 50 }, (pick) => [
+      ...Array.from({ length: 12 }, () => `${pick(['', '那天', '后来'])}叫赵五过来。`),
+      ...Array.from({ length: 10 }, () => `${pick(['', '那天', '后来'])}对春桃说了一句。`),
+    ]);
+    const by = new Map(detectTerms([text], dict).map((e) => [e.word, e]));
+    expect(by.get('赵五')?.kind).toBe('name');
+    expect(by.get('赵大奶奶')).toMatchObject({ kind: 'name', pinyin: 'zhao4 da4 nai3 nai5' });
+    expect(by.get('春桃')?.kind).toBe('name');
+    // 老木匠 is "the old carpenter": the dictionary has 木匠, and the card would hide it.
+    expect(by.has('老木匠')).toBe(false);
+  });
+
+  it('finds a name called out at the start of what is said, a nickname in 麻子 or 脖子, and a foreign word that opens with a surname', async () => {
+    const dict = await dictP;
+    const text = people({ 苇官: 30, 牛麻子: 25, 灰脖子: 25 }, (pick) => [
+      ...Array.from({ length: 25 }, () => `“苇官，${pick(['快回家', '别跑了', '吃饭了', '过来', '你听着'])}！”`),
+      ...Array.from({ length: 10 }, () => `${pick(['', '那天', '后来'])}叫牛麻子过来。`),
+      ...Array.from({ length: 30 }, () => `${pick(['', '那天', '后来', '原来', '我看见', '只有'])}沙达拉威${pick(['人住在山里', '的骆驼', '部落来了', '女人不说话', '孩子跑了', '，大家都知道', '族很穷'])}。`),
+    ]);
+    const by = new Map(detectTerms([text], dict).map((e) => [e.word, e]));
+    expect(by.get('苇官')).toMatchObject({ kind: 'name', pinyin: 'wei3 guan1' });
+    expect(by.get('牛麻子')).toMatchObject({ kind: 'name', pinyin: 'niu2 ma2 zi5' });
+    expect(by.get('灰脖子')?.kind).toBe('name');
+    // (Seen after 看见 and 只有 here, so the judge takes it for a people's or a person's name; either way it is found.)
+    expect(by.get('沙达拉威')?.pinyin).toBe('sha1 da2 la1 wei1');
+  });
+
+  it('finds a name that ends in 才 when the rest of it never stands alone, and the household of a surname the dictionary calls a town', async () => {
+    const dict = await dictP;
+    const text = people({ 邹永才: 30, 段秋生: 40, 墨青禾: 40 }, (pick) => [
+      ...Array.from({ length: 10 }, () => `${pick(['', '那天', '后来'])}段家门口摆着三只陶缸。`),
+      ...Array.from({ length: 10 }, () => `${pick(['', '那天', '后来'])}墨家的道理很深。`),
+    ]);
+    const by = new Map(detectTerms([text], dict).map((e) => [e.word, e]));
+    expect(by.get('邹永才')).toMatchObject({ kind: 'name', pinyin: 'zou1 yong3 cai2' });
+    // The dictionary has 段家 only as a town: here it is the household of 段秋生. 墨家 is the Mohist school, not a town.
+    expect(by.get('段家')).toMatchObject({ kind: 'place', pinyin: 'duan4 jia1', gloss: 'the 段 family (a household in this book)' });
+    expect(by.has('墨家')).toBe(false);
+  });
+
+  it('finds a person named a dozen times, never apart and always opening a clause, but not a pair always after one character', async () => {
+    const dict = await dictP;
+    const tails = ['独自出门', '写下三行小字', '走到河边', '想起旧事', '又来到这里', '坐在树下', '看见一扇门', '听到敲门声', '叹了口气', '描完一张草图', '记住了那个人', '回到城里'];
+    const intro = (before: string) => tails.map((t, i) => `${['那年', '后来', '据说', '有一天'][i % 4]}${before}祁翊${t}。`).join('\n');
+    const found = (before: string) => new Map(detectTerms([`${novel(9, 2500)}\n${intro(before)}`], dict).map((e) => [e.word, e]));
+    expect(found('，').get('祁翊')?.kind).toBe('name');
+    expect(found('的').has('祁翊')).toBe(false);
+  });
+
+  it('finds a second name that ends like a main character’s, where the main name holds most of that character', async () => {
+    const dict = await dictP;
+    expect(dict.freq('长穗')).toBe(0);
+    expect(dict.hasWord('长穗')).toBe(false);
+    const text = (grain: number) => people({ 秋穗: 200, 长穗: 30 }, (pick) => [
+      ...Array.from({ length: 180 }, () => `${pick(['这条路很长', '他长高了', '河水很长很长', '尾巴长得出奇', '长大以后再说'])}。`),
+      ...Array.from({ length: grain }, () => `${pick(['', '那天', '后来'])}地里的麦穗黄了。`),
+    ]);
+    expect(new Map(detectTerms([text(5)], dict).map((e) => [e.word, e])).get('长穗')?.kind).toBe('name');
+    // When the character is common outside the main name (麦穗 everywhere), the pair is not singled out.
+    expect(new Map(detectTerms([text(100)], dict).map((e) => [e.word, e])).has('长穗')).toBe(false);
+  });
+
+  it('adds a full name seen a few times when no other surname ever stands before the given name, but not a nickname’s last character', async () => {
+    const dict = await dictP;
+    const lines = (pre: string) => ['那天', '后来', '其实', '我知道'].map((o) => `${o}${pre}春妮走了过来。`);
+    const with4 = new Map(detectTerms([people({ 春妮: 150 }, () => lines('纪'))], dict).map((e) => [e.word, e]));
+    expect(with4.get('春妮')?.kind).toBe('name');
+    expect(with4.get('纪春妮')).toMatchObject({ kind: 'name', count: 4 });
+    // 雷 here is the end of a nickname (赛天雷), not a surname: it always follows the same character.
+    const nick = new Map(detectTerms([people({ 春妮: 150 }, () => lines('赛天雷'))], dict).map((e) => [e.word, e]));
+    expect(nick.has('雷春妮')).toBe(false);
+  });
+
+  it('reads a princess by her own name: 华 is huá when the book calls her …公主', async () => {
+    const dict = await dictP;
+    const plain = new Map(detectTerms([people({ 华蓁: 60 })], dict).map((e) => [e.word, e]));
+    expect(plain.get('华蓁')?.pinyin).toBe('hua4 zhen1');
+    const princess = people({ 华蓁: 60 }, (pick) => Array.from({ length: 8 }, () => `${pick(['', '那天', '后来'])}华蓁公主来了。`));
+    expect(new Map(detectTerms([princess], dict).map((e) => [e.word, e])).get('华蓁')?.pinyin).toBe('hua2 zhen1');
+  });
+
+  it('judges terms, towns and people by the counts that tell them apart', async () => {
+    const dict = await dictP;
+    const cand = (word: string, over: Partial<TermCandidate>): TermCandidate => ({
+      word, count: 100, bind: 0.7, pmi: 7.5, left: 3, right: 3, speech: 0, prep: 0, known: 'none', kind: 'term', surnameLed: false, rate: 0.5, ...over,
+    });
+    // A role the book names again and again (摆渡者, 守塔人), and a pair as bound as a name that never speaks (青崖).
+    expect(judgeCandidate(cand('守塔人', {}), dict)?.kind).toBe('term');
+    expect(judgeCandidate(cand('青崖', {}), dict)?.kind).toBe('term');
+    // A town in two characters (砚城) is a place.
+    expect(judgeCandidate(cand('砚城', {}), dict)?.kind).toBe('place');
+    // A pair that is spoken to and speaks is a person; spoken to but silent (a dog, a hill) it is not.
+    expect(judgeCandidate(cand('春桃', { bind: 0.5, pmi: 6, prep: 0.15, speech: 0.03 }), dict)?.kind).toBe('name');
+    expect(judgeCandidate(cand('春桃', { bind: 0.5, pmi: 6, prep: 0.15, speech: 0 }), dict)).toBeNull();
+    // A word the dictionary lists but the corpus never saw becomes the book's term only when the book uses it once in a
+    // thousand characters or more (钉钯 is commoner than that in 西遊記, and stays the dictionary's word).
+    const unseen = cand('钉钯', { known: 'entry', count: 300, bind: 0.45, pmi: 5, prep: 0.02 });
+    expect(dict.freq('钉钯')).toBe(0);
+    expect(judgeCandidate({ ...unseen, rate: 1.5 }, dict)?.kind).toBe('term');
+    expect(judgeCandidate({ ...unseen, rate: 0.3 }, dict)).toBeNull();
+    // A common word ("mother and father") that a book uses hundreds of times more often than other text, speaking, is a
+    // person there; a proper noun the dictionary already explains (宋江) is left to the dictionary.
+    const common = cand('二老', { known: 'entry', count: 150, bind: 0.8, pmi: 4.4, speech: 0.09, prep: 0.1, key: 1500 });
+    expect(judgeCandidate(common, dict)?.kind).toBe('name');
+    expect(judgeCandidate({ ...common, key: 40 }, dict)).toBeNull();
+    expect(judgeCandidate({ ...common, word: '宋江' }, dict)).toBeNull();
+    // A pair called out at the start of what someone says a third of the time (“四毛，…”) is a person, though it opens with
+    // a numeral; an interjection said the same way (哎哟-like) and a looser pair are not.
+    const called = cand('四毛', { count: 62, bind: 0.67, pmi: 5.7, left: 1.9, right: 2.3, speech: 0.02, voc: 0.39 });
+    expect(judgeCandidate(called, dict)?.kind).toBe('name');
+    expect(judgeCandidate({ ...called, voc: 0.1 }, dict)).toBeNull();
+    expect(judgeCandidate({ ...called, word: '嗳呦' }, dict)).toBeNull();
+    expect(judgeCandidate({ ...called, bind: 0.42 }, dict)).toBeNull();
+    // A nickname's tail after a trait, its first two characters never apart, spoken to: a person; a description is not.
+    const nick = cand('灰脖子', { count: 74, bind: 0.44, pmi: 4.3, left: 2.6, right: 3.4, speech: 0.16, prep: 0.05, head: 74 });
+    expect(judgeCandidate(nick, dict)?.kind).toBe('name');
+    expect(judgeCandidate({ ...nick, head: 300 }, dict)).toBeNull();
+    expect(judgeCandidate({ ...nick, word: '跛女子' }, dict)).toBeNull();
+    // A foreign word that opens with a surname character is not a surname and a given name, unless it opens a dictionary word.
+    expect(judgeCandidate(cand('沙达拉威', { count: 68, bind: 1, pmi: 5.3, left: 2.7, right: 1.7, prep: 0.07, head: 69 }), dict)?.kind).toBe('term');
+    expect(judgeCandidate(cand('柴油机厂', { count: 19, bind: 0.95, pmi: 5, left: 2.7, right: 2, head: 19 }), dict)).toBeNull();
+  });
+
+  it('reads a short text with a lower count but keeps only places and spoken-to names whose characters are never apart', async () => {
+    const dict = await dictP;
+    const text = `${['我们到了白鹭湖。', '白鹭湖边有一座小屋，我们都知道这件事。', '他说那里的人都很友好。', '后来又去白鹭湖看了看。', '外面下着大雨，大家一起去吃饭。'].join('\n')}\n${novel(3, 150)}`;
+    const by = new Map(detectTerms([text], dict).map((e) => [e.word, e]));
+    expect(by.get('白鹭湖')?.kind).toBe('place');
+    // Nothing else seen three times becomes an entry: no fragment of the sentences.
+    for (const e of by.values()) expect(['白鹭湖', '莫远峰', '单雨晴', '欧阳无忌', '紫霞岛', '落星庄', '玄冥神掌', '青云剑法'], e.word).toContain(e.word);
   });
 
   it('works on traditional text', async () => {

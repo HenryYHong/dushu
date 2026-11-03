@@ -40,9 +40,9 @@ describe('book era', () => {
   });
 
   it('calls everything else modern, including novels with 第N回 chapters', () => {
-    expect(bookEra({ title: '活着', author: '余华' })).toBe('modern');
-    expect(bookEra({ title: '射雕英雄传', author: '金庸' })).toBe('modern');
-    expect(bookEra({ title: '第一回 风雪惊变', author: '金庸' })).toBe('modern');
+    expect(bookEra({ title: '围城', author: '钱钟书' })).toBe('modern');
+    expect(bookEra({ title: '天龙八部', author: '金庸' })).toBe('modern');
+    expect(bookEra({ title: '第一回 山门夜雨', author: '金庸' })).toBe('modern');
     for (const a of ['', '鲁迅', '(美) 海明威', '[英] 狄更斯', '【金庸】', '李白云', 'Anonymous']) expect(isClassicalAuthor(a), a).toBe(false);
   });
 });
@@ -61,6 +61,23 @@ describe('the cover menu pick', () => {
     const elsewhere: typeof book = { ...book, id: 'other' };
     expect(coverChoice(picked, elsewhere)).toBe('classic');
   });
+  it('stays the book\'s pick when a newer importer reads the book again (its key changes), on every device', () => {
+    const picked = withCoverChoice('k1:modern', book, 'classic');
+    const upgraded: typeof book = { ...book, importVersion: 3 };
+    expect(coverChoice(picked, upgraded)).toBe('classic');
+    expect(coverStyleFor(picked, upgraded)).toBe('classic');
+    // Changed on the upgraded device: still held under the key a device that has not imported it again yet reads.
+    const changed = withCoverChoice(picked, upgraded, 'modern');
+    expect(changed).toBe(`k1:modern,m${'ab'.repeat(16)}.2:modern`);
+    expect(coverChoice(changed, book)).toBe('modern');
+    // Automatic forgets it under every key; a new pick then goes under the book's own key.
+    expect(withCoverChoice(changed, upgraded, 'auto')).toBe('k1:modern');
+    expect(withCoverChoice('k1:modern', upgraded, 'classic')).toBe(`k1:modern,m${'ab'.repeat(16)}.3:classic`);
+    // A book from a file has no older key: nothing else is touched.
+    const file = { id: 'f', title: '书', author: '', chapterCount: 2, charCount: 40, chapterTitles: ['一', '二'] };
+    expect(coverChoice(withCoverChoice('', file, 'classic'), file)).toBe('classic');
+  });
+
   it('ignores damaged entries, keeps the latest pick per book, and stays small', () => {
     expect(cleanCovers('x:glossy,,bad entry,k1:modern,k1:classic')).toBe('k1:classic');
     expect(cleanCovers(3)).toBeUndefined();
@@ -96,8 +113,8 @@ describe('cover layouts', () => {
   });
 
   it('shrinks a horizontal title with its length, down to a floor that still fits the cover', () => {
-    expect(modernSize('活着')).toBeGreaterThan(modernSize('射雕英雄传'));
-    expect(modernSize('射雕英雄传')).toBeGreaterThan(modernSize('A Very Long Title About Many Things In The World'));
+    expect(modernSize('围城')).toBeGreaterThan(modernSize('天龙八部'));
+    expect(modernSize('天龙八部')).toBeGreaterThan(modernSize('A Very Long Title About Many Things In The World'));
     expect(modernSize('x'.repeat(400))).toBeGreaterThanOrEqual(5);
     expect(titleUnits('ab')).toBeLessThan(titleUnits('活着'));
   });

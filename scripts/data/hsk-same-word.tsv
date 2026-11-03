@@ -1,0 +1,18 @@
+# Readings in books that are an HSK word read another way, for public/data/hsk.tsv.gz (scripts/build_data.py builds it in).
+# Written for Dushu (CC0 1.0). The build stops if the word or its list reading is not on the HSK list.
+# The reading on screen gets the level of the list reading. Words the list and CC-CEDICT spell the same way need no row here.
+# word	reading in books	list reading	why
+唉	ai1	ai4	the same interjection; the list writes ài
+剥	bo1	bao1	the same verb, in its literary reading
+哦	o2	o4	the same interjection; the list writes ò
+削	xue1	xiao1	the same verb, in its literary reading
+当天	dang1 tian1	dang4 tian1	the same word; the list writes dàngtiān
+当晚	dang1 wan3	dang4 wan3	the same word; the list writes dàngwǎn
+大都	da4 dou1	da4 du1	the same adverb "mostly"; the list writes dàdū
+尽可能	jin3 ke3 neng2	jin4 ke3 neng2	the same word; CC-CEDICT reads 尽 jǐn here
+不一会儿	bu4 yi1 hui3 r5	bu4 yi1 hui4 r5	the same word, with the spoken huǐr
+那	na3	na4	the old spelling of 哪 "which", HSK 1 like 那
+那里	na3 li5	na4 li3	the old spelling of 哪里 "where", HSK 1 like 那里
+得罪	de2 zui5	de2 zui4	the same word; CC-CEDICT gives a neutral tone the list does not
+说法	shuo1 fa5	shuo1 fa3	the same word; CC-CEDICT gives a neutral tone the list does not
+口音	kou3 yin5	kou3 yin1	the same word; CC-CEDICT gives a neutral tone the list does not

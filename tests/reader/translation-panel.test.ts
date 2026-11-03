@@ -73,7 +73,7 @@ describe('translation controls', () => {
   });
   it('uses real word boundaries, not accidental dictionary substrings across words', async () => {
     const dict = await loadTestDictionary();
-    const terms = translationTerms('两株大松树下围着一堆村民，男男女女，聚精会神。说话的人五十来岁，敲着小羯鼓。', undefined, dict);
+    const terms = translationTerms('院中槐树下围坐着几个老人，男男女女，聚精会神。敲鼓的老汉六十来岁，手边放着一面羯鼓。', undefined, dict);
     expect(terms.some(term => term.word === '羯鼓')).toBe(true);
     expect(terms.some(term => ['树下', '下围', '男男', '来岁'].includes(term.word))).toBe(false);
   });

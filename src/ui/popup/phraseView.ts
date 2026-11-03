@@ -34,6 +34,9 @@ export function mountPhraseView(
   const { ctx } = o;
   const settings = ctx.settings.get();
   const lines = o.text.split('\n').filter((l) => l.trim());
+  // The book's spelling, line for line (conversion leaves the line breaks and spaces where they are).
+  const origLines = o.orig?.split('\n').filter((l) => l.trim());
+  const origOf = (k: number) => (origLines?.length === lines.length ? origLines[k] : undefined);
   let speaking = false;
   const engine = activeEngine();
   const L = lang();
@@ -41,8 +44,8 @@ export function mountPhraseView(
   // Pinyin text, one paragraph per line (another language: its words, with furigana for Japanese).
   const textBox = h(engine ? 'div.pp-phrase-text' : 'div.pp-phrase-text.zh', engine ? { lang: L.tag } : null);
   const rows: Row[] = [];
-  for (const line of lines) {
-    const p = renderParagraph(line, dict, { tag: 'p', className: 'pp-line', style: settings.pinyinStyle, toneColors: settings.toneColors, sandhi: settings.sandhi, lexicon: o.lexicon });
+  lines.forEach((line, k) => {
+    const p = renderParagraph(line, dict, { tag: 'p', className: 'pp-line', style: settings.pinyinStyle, toneColors: settings.toneColors, sandhi: settings.sandhi, lexicon: o.lexicon, orig: origOf(k) });
     textBox.appendChild(p.el);
     const shown = displayTokens(p.tokens, settings.sandhi);
     shown.forEach((t: Token, i) => {
@@ -54,7 +57,7 @@ export function mountPhraseView(
       rows.push({ word: t.text, syllables: t.pinyin ?? [], reading: p.tokens[i]?.pinyin,
         prev: shown[i - 1]?.text, next: shown[i + 1]?.text });
     });
-  }
+  });
 
   const copy = async (btn: HTMLElement) => {
     let ok = false;

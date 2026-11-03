@@ -99,11 +99,23 @@ interface Meta { epoch?: string; cursor: number; asked?: { epoch: string; versio
 // ------------------------------------------------------------------ keys ---
 
 const sigOf = (data: unknown) => (data === null ? '-' : hash(canonical(data)));
+/** A saved or looked-up word as it travels: its book, if any, is in its context. */
+type BookNamed = { context?: { bookId?: string } };
 /**
- * A saved word's signature without its book. Deleting the book here, or importing it again under a new key, changes only
- * the book a word names, which is not a change to the word: compared with the row's `bare`, it is never sent stamped now.
+ * A saved or looked-up word's signature without its book. Deleting the book here, or importing it again under a new key (a
+ * newer importer, IMPORT_VERSION), changes only the book the word names, which is not a change to the word: compared with
+ * the row's `bare`, it is never sent stamped now (stamped now, it would undo a deletion made meanwhile on another device).
  */
-const bareOf = (wire: VocabItem) => sigOf(wire.context?.bookId === undefined ? wire : { ...wire, context: { ...wire.context, bookId: undefined } });
+const bareOf = (wire: BookNamed) => sigOf(wire.context?.bookId === undefined ? wire : { ...wire, context: { ...wire.context, bookId: undefined } });
+/**
+ * The signatures the word had while its book went by an older importer's key (olderKeys): a row written before it kept
+ * `bare` (a looked-up word synced by an earlier version) still recognizes an upgrade of the book as no change to the word.
+ */
+function olderSigsOf(wire: BookNamed): string[] | undefined {
+  const key = wire.context?.bookId;
+  const older = key ? olderKeys(key) : [];
+  return older.length ? older.map((k) => sigOf({ ...wire, context: { ...wire.context, bookId: k } })) : undefined;
+}
 
 // ------------------------------------------------------------- records ---
 
@@ -151,18 +163,20 @@ function bookmarkLocal(id: string, data: unknown, books: Books): Bookmark | null
 }
 
 /** Everything this device would send, by record key, with the time each record says it last changed. */
-type Snapshot = Map<string, { data: unknown; sig: string; at: number; bare?: string }>;
+type Snapshot = Map<string, { data: unknown; sig: string; at: number; bare?: string; older?: string[] }>;
 async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, settings: SettingsStore | undefined, lang: LangId): Promise<Snapshot> {
   const out: Snapshot = new Map();
-  const put = (key: string, data: unknown, at: number, bare?: string) => {
-    if (key.length <= MAX_KEY) out.set(key, { data, sig: sigOf(data), at, ...(bare ? { bare } : {}) });
+  const put = (key: string, data: unknown, at: number, bare?: string, older?: string[]) => {
+    if (key.length <= MAX_KEY) out.set(key, { data, sig: sigOf(data), at, ...(bare ? { bare } : {}), ...(older ? { older } : {}) });
   };
+  /** A saved or looked-up word, with its signature without the book (bareOf, olderSigsOf). */
+  const putNamed = (key: string, wire: BookNamed, at: number) => put(key, wire, at, bareOf(wire), olderSigsOf(wire));
   for (const item of await store.vocab.list()) {
     const wire = vocabWire(item, books);
-    put(`v:${item.id}`, wire, Math.max(item.srs?.last ?? 0, item.addedAt ?? 0), bareOf(wire));
+    putNamed(`v:${item.id}`, wire, Math.max(item.srs?.last ?? 0, item.addedAt ?? 0));
   }
   for (const word of store.known.all()) put(`k:${word}`, store.known.isAuto(word) ? { a: 1 } : {}, 0);
-  for (const r of await store.lookups.list()) put(lookupKey(r.day, r.id), lookupWire(r, books), r.last);
+  for (const r of await store.lookups.list()) putNamed(lookupKey(r.day, r.id), lookupWire(r, books), r.last);
   for (const b of await store.bookmarks.list()) put(`b:${b.id}`, bookmarkWire(b, books), b.createdAt);
   for (const [id, key] of books.keyOf) {
     const p = await store.progress.get(id);
@@ -433,14 +447,15 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     for (const [key, cur] of current) {
       const base = rows.get(key);
       if (base && base.sig === cur.sig) {
-        // A row written before words kept `bare` gets it now, so a later change of only the book is recognized.
+        // A row written before saved (or looked-up) words kept `bare` gets it now, so a later change of only the book is recognized.
         if (cur.bare && base.bare !== cur.bare) changed.push({ ...base, bare: cur.bare });
         continue;
       }
-      if (base && cur.bare && base.bare === cur.bare) {
-        // Only the book the word names changed (deleted here, or imported again under a new key): nothing to send. The Mac
-        // keeps the book's key, and a newer copy of the word elsewhere is not overwritten by this one stamped now.
-        changed.push({ ...base, sig: cur.sig });
+      if (base && cur.bare && (base.bare === cur.bare || (base.bare === undefined && base.sig !== '-' && cur.older?.includes(base.sig)))) {
+        // Only the book the word names changed (deleted here, or imported again under a new key, also before the row kept
+        // `bare`): nothing to send. The Mac keeps the book's key, and a newer copy of the word elsewhere, or its deletion
+        // there, is not overwritten by this one stamped now.
+        changed.push({ ...base, sig: cur.sig, bare: cur.bare });
         continue;
       }
       if (!base && key.startsWith('v:')) {
@@ -664,7 +679,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         const mine = current.get(r.key)?.data as Omit<LookupRow, 'day' | 'id'> | undefined;
         if (mine && sigOf(mergeLookups(mine, wire)) !== sig) resend = true;
         if (base?.sig !== sig) lookupsPut.push(item);
-        next.push({ key: r.key, at: r.at, sig });
+        next.push({ key: r.key, at: r.at, sig, bare: bareOf(wire) });
         continue;
       }
       if (base?.dirty && sent.has(r.key) && r.at < base.at && sigHere(kind, id, r.data ?? null) === base.sig) {

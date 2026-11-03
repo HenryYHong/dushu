@@ -279,3 +279,27 @@ describe('marks', () => {
     expect(view.el.firstElementChild?.classList.contains('rd-bands')).toBe(true);
   });
 });
+
+describe('script conversion and the book\'s own characters', () => {
+  it('shows a traditional book in simplified and reads it from the characters it was written in', async () => {
+    const { view } = await setup({ script: 'simplified' }, { title: '杯子', blocks: [{ t: 'p', text: '杯子乾了。' }, { t: 'p', text: '杯子幹了。' }] });
+    view.renderTo(5);
+    const [dry, done] = [view.blocks[1], view.blocks[2]];
+    expect([blockText(dry.el), blockText(done.el)]).toEqual(['杯子干了。', '杯子干了。']);
+    // 乾 is gān (dry), 幹 is gàn (to do): the page shows 干 for both.
+    const gan = (b: typeof dry) => b.rendered!.tokens.find((t) => t.text === '干')?.pinyin;
+    expect([gan(dry), gan(done)]).toEqual([['gan1'], ['gan4']]);
+  });
+
+  it('keeps a simplified book\'s own 乾 (qián) when the page shows simplified', async () => {
+    const { ctx, dict } = await makeCtx({ pinyin: 'all', script: 'simplified' });
+    const ch: Chapter = { title: '乾', blocks: [{ t: 'p', text: '乾为天。' }] };
+    const own = createChapterView({ ctx, dict, bookId: 'b', chapter: ch, chapterIndex: 0, script: 'simplified' });
+    own.renderTo(5);
+    expect(blockText(own.blocks[1].el)).toBe('乾为天。');
+    // Without the book's script the table's first choice stands.
+    const plain = createChapterView({ ctx, dict, bookId: 'b', chapter: ch, chapterIndex: 0 });
+    plain.renderTo(5);
+    expect(blockText(plain.blocks[1].el)).toBe('干为天。');
+  });
+});

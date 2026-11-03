@@ -1,7 +1,8 @@
 // The word popup's content: readings and definitions, character breakdown, single-character facts,
 // stroke order, links, and the Save / Known / speak controls.
-import type { AppContext, CharInfo, Dictionary, DictEntry } from '../../types';
+import type { AppContext, CharInfo, Dictionary, DictEntry, HskInfo } from '../../types';
 import { formatSyllable, markedToNumbered, toneOf } from '../../core/pinyin';
+import { isSaidDao } from '../../core/hskMatch';
 import { speak, stopSpeaking, canSpeak } from '../../speech/tts';
 import { qualityLocalAvailable, suggestMeaning } from '../../translate/localMeaning';
 import { hasMacBridge } from '../../core/macBridge';
@@ -113,6 +114,27 @@ export function mountWordView(
       h('span.zh', null, simp), ' ', h('span.pp-xref-py', null, pinyinText(pinyin)));
 
   const pinyinText = (numbered: string) => splitSyllables(numbered).map((s) => formatSyllable(s.toLowerCase(), ctx.settings.get().pinyinStyle)).join(' ');
+
+  /**
+   * The HSK chip: the level the list gives the word in the reading on screen. None on a name or place of this book (a person
+   * called 高明 is not the HSK word 高明), or on 道 "said" (the list's 道 is the measure word of 一道题). When the list has the
+   * word only in other readings, a muted hint says which (教 jiào: "HSK 1 as jiāo"), the reading a learner knows it by.
+   */
+  function hskChipFor(hsk: HskInfo | null, simp: string, syllables: string[], v: View, kind?: string): HTMLElement | null {
+    if (!hsk || kind === 'name' || kind === 'place' || isSaidDao(simp, syllables, v.prev, v.next)) return null;
+    const band = (n: number) => (n >= 7 ? '7-9' : String(n));
+    if (hsk.hsk3) {
+      const easiest = dict.hsk(simp)?.hsk3;
+      const notes = [hsk.of ? `On the HSK list as ${hsk.of}` : '', easiest && easiest < hsk.hsk3 ? `Also HSK ${band(easiest)} in another reading` : ''];
+      return h('span.chip', { title: notes.filter(Boolean).join('. ') || null }, `HSK ${band(hsk.hsk3)}`);
+    }
+    const other = hsk.elsewhere?.[0];
+    if (!other) return null;
+    const style = ctx.settings.get().pinyinStyle;
+    const said = other.pinyin.map((s) => formatSyllable(s.toLowerCase(), style)).join(style === 'zhuyin' ? ' ' : '');
+    return h('span.chip.pp-hsk-other', { title: `The HSK list has ${simp} as ${said} (level ${band(other.hsk3)}), not in this reading` },
+      `HSK ${band(other.hsk3)} as ${said}`);
+  }
 
   function renderDef(def: string): HTMLElement {
     const li = h('li');
@@ -261,7 +283,8 @@ export function mountWordView(
     const info = single ? dict.char(v.word) : null;
     const syllables = contextSyllables(v);
     const { simp, trad, others, matched } = headwords(v, entries, syllables);
-    const hsk = dict.hsk(simp);
+    // The level of this reading on the HSK list (行 háng is 3, not 行 xíng's 1).
+    const hsk = dict.hsk(simp, syllables.length === [...simp].length ? syllables : undefined);
     const root = h('div.pp-word-view');
 
     // Header
@@ -313,7 +336,8 @@ export function mountWordView(
     // A proper noun of the dictionary (曹操, 王维, 北京) is written the same way: Cáo Cāo, Wáng Wéi, Běijīng.
     const proper = ownKind ? null : properGroups(entries, syllables);
     if (syllables.length) pyLine.appendChild(pinyinSpans(ctx, syllables, ownKind ? { kind: ownKind.kind, word: v.word } : proper ? { kind: 'name', word: v.word, groups: proper } : undefined));
-    if (hsk?.hsk3) pyLine.appendChild(h('span.chip', null, hsk.hsk3 >= 7 ? 'HSK 7-9' : `HSK ${hsk.hsk3}`));
+    const hskChip = hskChipFor(hsk, simp, syllables, v, ownKind?.kind);
+    if (hskChip) pyLine.appendChild(hskChip);
     if (single) {
       // Only the spellings that belong to the reading on screen: 了 (le) has none, 了 (liǎo) is also 瞭. A character that no
       // row of the dictionary has (a rare one) keeps what the character table says.

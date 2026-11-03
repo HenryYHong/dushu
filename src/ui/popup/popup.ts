@@ -54,6 +54,8 @@ export interface WordPopupOptions {
 export interface PhrasePopupOptions {
   ctx: AppContext;
   text: string;
+  /** `text` as the book spells it, when the page shows it in the other script: the readings follow the book (ui/reader/shown.ts). */
+  orig?: string;
   anchor: DOMRect;
   /** Paragraph the selection came from. */
   context?: string;

@@ -48,8 +48,8 @@ const word = (simp: string, over: Partial<VocabItem> = {}): VocabItem => ({
   id: simp, simp, trad: simp, pinyin: 'yin2 hang2', gloss: 'bank', addedAt: 1000, srs: newSrs(1000), ...over,
 });
 const book = (): ImportedBook => ({
-  title: '活着', author: '余华', format: 'txt', script: 'simplified', assets: new Map(), sourceName: 'huozhe.txt',
-  chapters: [{ title: '一', blocks: [{ t: 'p', text: '我比现在年轻十岁的时候' }] }, { title: '二', blocks: [{ t: 'p', text: '获得了一个游手好闲的职业' }] }],
+  title: '河边的小屋', author: '林远', format: 'txt', script: 'simplified', assets: new Map(), sourceName: 'hebian.txt',
+  chapters: [{ title: '一', blocks: [{ t: 'p', text: '那年夏天我刚满二十岁' }] }, { title: '二', blocks: [{ t: 'p', text: '在镇上的小学里教书' }] }],
 });
 
 // Ten Han characters each. Version 2 is the newer importer's cut: one chapter.
@@ -70,7 +70,7 @@ describe('sync between two devices', () => {
     const sb = device(b, m);
     await Promise.all([sa.run(), sb.run()]);
 
-    await a.vocab.put(word('银行', { context: { sentence: '去银行', bookTitle: '活着' } }));
+    await a.vocab.put(word('银行', { context: { sentence: '去银行', bookTitle: '河边的小屋' } }));
     await sa.run();
     await sb.run();
     expect((await b.vocab.get('银行'))?.context?.sentence).toBe('去银行');
@@ -274,7 +274,7 @@ describe('sync between two devices', () => {
     const [a, b] = [await open(), await open()];
     const [ca, cb] = [{ t: 1_000_000 }, { t: 1_000_000 }];
     const ba = await a.books.add(book());
-    await a.vocab.put(word('银行', { context: { sentence: '去银行', bookTitle: '活着', bookId: ba.id } }));
+    await a.vocab.put(word('银行', { context: { sentence: '去银行', bookTitle: '河边的小屋', bookId: ba.id } }));
     const sa = device(a, m, ca);
     const sb = device(b, m, cb);
     await sa.run(); await sb.run();
@@ -481,6 +481,69 @@ describe('looked-up words and bookmarks', () => {
     for (const s of [a, b]) expect((await s.lookups.list())[0]).toMatchObject({ count: 3, first: 2_000_000, last: 4_000_000 });
   });
 
+  /**
+   * Two devices with the same classic and a word looked up in it. a deletes the lookup; b, before it hears of that, imports
+   * the book again with a newer importer (a new book key). `rowsFromBefore` makes b's rows those of a version that kept no
+   * `bare` for lookups.
+   */
+  async function deletedThenUpgraded(rowsFromBefore: boolean) {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const [ca, cb] = [{ t: 1_000_000 }, { t: 1_000_000 }];
+    const [ba, bb] = [await a.books.add(lunyu()), await b.books.add(lunyu())];
+    const sa = device(a, m, ca);
+    const sb = device(b, m, cb);
+    await a.lookups.log({ day: DAY, id: '朋', word: '朋', pinyin: 'peng2', gloss: 'friend', context: { sentence: '有朋自远方来', bookTitle: '论语', bookId: ba.id } }, 2_000_000);
+    await sa.run(); await sb.run();
+    expect((await b.lookups.list())[0]?.context?.bookId).toBe(bb.id);
+    if (rowsFromBefore) {
+      const rows = await b.sync.rows();
+      await b.sync.write(rows.filter((r) => r.key.startsWith('l:')).map(({ bare: _b, ...r }) => r));
+      expect((await b.sync.rows()).filter((r) => r.key.startsWith('l:') && r.bare !== undefined)).toEqual([]);
+    }
+    ca.t = 3_000_000;
+    await a.lookups.remove(DAY, '朋');
+    await sa.run();
+    cb.t = 4_000_000;
+    await b.books.replace(bb.id, lunyu(2));
+    const sent = m.sent.length;
+    await sb.run(); await sa.run(); await sb.run();
+    return { a, b, m, sent };
+  }
+
+  it('does not send a lookup again when only its book was imported again, so a deletion elsewhere stands', async () => {
+    const { a, b, m, sent } = await deletedThenUpgraded(false);
+    expect(m.sent.slice(sent).flat().map((c) => (c as { key: string }).key)).not.toContain(`l:${DAY}:朋`);
+    expect(await b.lookups.list()).toEqual([]);
+    expect(await a.lookups.list()).toEqual([]);
+    expect(m.server.status().counts.lookups).toBe(0);
+  });
+
+  it('knows the upgrade from a lookup synced by a version that kept no signature without the book', async () => {
+    const { a, b, m, sent } = await deletedThenUpgraded(true);
+    expect(m.sent.slice(sent).flat().map((c) => (c as { key: string }).key)).not.toContain(`l:${DAY}:朋`);
+    expect(await b.lookups.list()).toEqual([]);
+    expect(await a.lookups.list()).toEqual([]);
+  });
+
+  it('still sends a lookup made again in the upgraded book', async () => {
+    const m = mac();
+    const [a, b] = [await open(), await open()];
+    const [ca, cb] = [{ t: 1_000_000 }, { t: 1_000_000 }];
+    const [ba, bb] = [await a.books.add(lunyu()), await b.books.add(lunyu())];
+    const sa = device(a, m, ca);
+    const sb = device(b, m, cb);
+    const look = (s: Store, bookId: string, at: number) =>
+      s.lookups.log({ day: DAY, id: '朋', word: '朋', pinyin: 'peng2', gloss: 'friend', context: { sentence: '有朋自远方来', bookTitle: '论语', bookId } }, at);
+    await look(a, ba.id, 2_000_000);
+    await sa.run(); await sb.run();
+    await b.books.replace(bb.id, lunyu(2));
+    cb.t = 3_000_000;
+    await look(b, bb.id, 3_000_000);
+    await sb.run(); await sa.run();
+    expect((await a.lookups.list())[0]).toMatchObject({ count: 2, last: 3_000_000 });
+  });
+
   it('puts a bookmark in the same book on the other device, and removes it there', async () => {
     const m = mac();
     const [a, b] = [await open(), await open()];
@@ -508,7 +571,7 @@ describe('looked-up words and bookmarks', () => {
     const sa = device(a, m);
     const sb = device(b, m);
     // Made before bookmarks carried their book's key: it gets it from the book here.
-    await a.bookmarks.put({ id: 'm1', bookId: ba.id, chapter: 0, block: 0, offset: 0, label: '我比现在', createdAt: 2_000_000 });
+    await a.bookmarks.put({ id: 'm1', bookId: ba.id, chapter: 0, block: 0, offset: 0, label: '那年夏天', createdAt: 2_000_000 });
     await sa.run(); await sb.run();
     expect(await b.bookmarks.list()).toHaveLength(1);
     const bb = await b.books.add(book());

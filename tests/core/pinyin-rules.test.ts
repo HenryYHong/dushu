@@ -1,4 +1,4 @@
-// Pinyin rules found wrong on real books (西遊記, 紅樓夢, 活着, 射雕英雄传): the 倒 adverb, final particles, 一個 in
+// Pinyin rules found wrong on real books (西遊記, 紅樓夢 and the owner's modern novels): the 倒 adverb, final particles, 一個 in
 // traditional text, measure-word reduplication and a list of smaller polyphone errors. Each case is a sentence run
 // through segment() and the sandhi pass, exactly what the reader shows.
 import { describe, expect, it } from 'vitest';

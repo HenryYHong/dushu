@@ -55,7 +55,9 @@ describe('hskLevels', () => {
 
   it('counts a character only in the readings the list teaches', () => {
     expect(level('石', ['dan4'])).toBeUndefined();
-    expect(level('石头', ['dan4', 'tou5'])).toBe(dict.hsk('石头')?.hsk3); // listed: the list's level stands
+    // The list's 石头 is shítou: read dàn it is no word the list teaches, so no level (it was the list's, reading-blind).
+    expect(dict.hsk('石头', ['dan4', 'tou5'])?.hsk3).toBeUndefined();
+    expect(level('石头', ['dan4', 'tou5'])).toBeUndefined();
     expect(level('石匠', ['dan4', 'jiang4'])).toBeUndefined();
   });
 
@@ -82,7 +84,9 @@ describe('hskLevels', () => {
     expect(dict.hsk('喝道')).toBeNull();
     expect(level('喝道', ['he4', 'dao4'])).toBe(dict.hsk('喝彩')?.hsk3);
     expect(level('喝道', ['he4', 'dao4'])).toBeGreaterThan(dict.hsk('喝')!.hsk3!);
-    expect(level('喝', ['he4'])).toBe(dict.hsk('喝')?.hsk3); // alone it keeps the list's level
+    // Alone too: the list's 喝 is hē (1), so hè is 喝彩's 7-9 (it was 1, the list's level for any reading).
+    expect(dict.hsk('喝', ['he4'])?.hsk3).toBeUndefined();
+    expect(level('喝', ['he4'])).toBe(dict.hsk('喝彩')?.hsk3);
     // 地 is dì by default; the particle de is what the list grades with it.
     expect(dict.pinyinFor('地')).toEqual(['di4']);
     expect(dict.hsk('慢慢地')).toBeNull();
@@ -149,6 +153,36 @@ describe('hskLevels', () => {
     expect(level('一个', ['yi1'])).toBeUndefined();
     expect(level('一个', ['yi1', ''])).toBeUndefined();
     expect(level('安心', ['an1'])).toBe(7);
+  });
+
+  it('starts from the list\'s level for the reading here, not the word\'s easiest one', () => {
+    // A reading the list grades higher, or only through other words (the official per-reading list).
+    expect(level('只', ['zhi1'])).toBe(3);
+    expect(level('得', ['dei3'])).toBe(4);
+    expect(level('着', ['zhao2'])).toBe(4);
+    expect(level('了', ['liao3'])).toBe(3);
+    expect(level('将', ['jiang4'])).toBe(7);
+    expect(level('差', ['chai1'])).toBe(5);
+    expect(level('降', ['xiang2'])).toBe(7);
+    expect(level('更', ['geng1'])).toBe(5);
+    expect(level('都', ['du1'])).toBe(3);
+    expect(level('中', ['zhong4'])).toBe(4);
+    expect(level('难', ['nan4'])).toBe(5);
+    // 子 zǐ is not the neutral suffix of HSK 1 (桌子): it comes with 子女.
+    expect(level('子', ['zi5'])).toBe(1);
+    expect(level('弟子', ['di4', 'zi3'])).toBeGreaterThan(1);
+    // Verb + 着 grouped: read from 穿 and 着 zhe, not the list's 穿着 chuānzhuó "attire" (7-9).
+    expect(level('穿着', ['chuan1', 'zhe5'])).toBe(1);
+    expect(level('森林', ['sen1', 'lin2'])).toBe(4);
+  });
+
+  it('reads a 儿 a book adds to a listed word from its characters', () => {
+    // 样儿 is no word of the list; 样 is, and 儿 read r is not a neutral tone the word decides.
+    expect(dict.hsk('样儿')).toBeNull();
+    expect(dict.hsk('样儿', ['yang4', 'r5'])?.hsk3).toBeDefined();
+    expect(level('样儿', ['yang4', 'r5'])).toBe(Math.max(level('样', ['yang4'])!, level('儿', ['r5'])!));
+    // A listed 儿 word keeps its own level, as any listed word read with a neutral tone.
+    expect(level('一会儿', ['yi1', 'hui4', 'r5'])).toBe(dict.hsk('一会儿')?.hsk3);
   });
 
   it('is one function per dictionary, and answers the same twice', () => {

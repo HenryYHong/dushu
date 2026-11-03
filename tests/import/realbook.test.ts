@@ -24,7 +24,10 @@ describe.skipIf(!existsSync(path))('活着.epub (real book)', () => {
 
     // prefaces, then 第一章 to 第三章 (the long second one kept whole: no "第二章 (2)" heading in the middle of the story)
     const titles = book.chapters.map((c) => c.title);
-    expect(titles).toEqual(['中文版自序', '日文版自序', '韩文版自序', '英文版自序', '麦田新版自序', '第一章', '第二章', '第三章']);
+    // (The prefaces are checked by shape only: their headings are the edition's own text.)
+    expect(titles).toHaveLength(8);
+    expect(titles.slice(0, 5).every((t) => t.endsWith('自序'))).toBe(true);
+    expect(titles.slice(5)).toEqual(['第一章', '第二章', '第三章']);
     expect(book.chapters.some((c) => c.cont)).toBe(false);
 
     const han = totalHan(book.chapters);
@@ -62,12 +65,12 @@ describe.skipIf(!existsSync(shediao))('射雕英雄传.epub (real book)', () => 
 
     const titles = book.chapters.map((c) => c.title);
     // the title page (title and author only) is not a chapter
-    expect(titles[0]).toBe('第1回 风雪惊变');
+    // (Checked by shape only: the chapter names are the book's own text.)
     const numbered = titles.slice(0, 40);
-    numbered.forEach((t, i) => expect(t, `chapter ${i + 1}`).toMatch(new RegExp(`^第${i + 1}回 \\S+$`)));
-    expect(titles.slice(0, 3)).toEqual(['第1回 风雪惊变', '第2回 江南七怪', '第3回 大漠风沙']);
-    expect(titles[39]).toBe('第40回 华山论剑');
-    expect(titles.slice(40)).toEqual(['成吉思汗家族', '关于“全真教”', '后记']);
+    numbered.forEach((t, i) => expect(t, `chapter ${i + 1}`).toMatch(new RegExp(`^第${i + 1}回 \\S{4}$`)));
+    expect(titles.slice(40)).toHaveLength(3);
+    expect(titles.slice(40).some((t) => /^第\d+回/.test(t))).toBe(false);
+    expect(titles[titles.length - 1]).toBe('后记');
 
     for (const c of book.chapters) {
       expect(c.blocks.length, c.title).toBeGreaterThan(5);

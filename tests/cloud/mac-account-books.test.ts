@@ -165,6 +165,75 @@ describe('the owner\'s Mac and the account', () => {
     expect(older.map((e) => e.key[0])).toEqual(['m']);
   });
 
+  it('keeps a book\'s picture under the key the account has it by when the importer changes, and every device keeps showing it', async () => {
+    const owner = await signedIn(c, OWNER);
+    const folder = join(mkdtempSync(join(dir, 'home-')), 'Dushu Books');
+    mkdirSync(folder);
+    const bookPath = join(folder, '小猫.txt');
+    writeFileSync(bookPath, text);
+    const png = (shade: number) => Buffer.from(`iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk${shade}PwfwAD/gH+eDiTDAAAAABJRU5ErkJggg==`, 'base64');
+    const shaOf = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+    writeFileSync(join(folder, '小猫.png'), png(1));
+    // What the Mac put there under the importer before this one: the file and its picture, keyed '.2'.
+    const put = async (key: string, title: string, bytes: Buffer) => {
+      const auth = { Authorization: `Bearer ${owner}` };
+      const start = await (await c.call('/books', { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ key, title, author: '', size: bytes.byteLength, sha: shaOf(bytes) }) })).json() as { upload: string };
+      await c.call(`/books/chunk?key=${encodeURIComponent(key)}&i=0&u=${start.upload}`, { method: 'PUT', headers: { ...auth, 'Content-Type': 'application/octet-stream' }, body: new Uint8Array(bytes) });
+    };
+    const before = `m${sha.slice(0, 32)}.2`;
+    expect(macBookKey(sha)).not.toBe(before);
+    await put(before, '小猫.txt', Buffer.from(text));
+    await put(`c${before}`, '小猫.png', png(1));
+    const state = mkdtempSync(join(dir, 'state-'));
+    const send = () => sendMacBooks({ stateDir: state, books: () => [{ id: 'f-1', name: '小猫.txt', path: bookPath }], macKey: () => KEY, base: 'https://sync.test', fetchFn: toWorker });
+    const keys = async () => (await (await c.call('/books?covers', { headers: { Authorization: `Bearer ${owner}` } })).json() as { key: string }[]).map((e) => e.key).sort();
+    // Neither the book nor its picture goes up again under the new key.
+    expect(await send()).toEqual([]);
+    expect(await keys()).toEqual([`c${before}`, before]);
+    // A new picture replaces the one there, under the same key.
+    writeFileSync(join(folder, '小猫.png'), png(2));
+    expect(await send()).toEqual(['小猫.png']);
+    expect(await keys()).toEqual([`c${before}`, before]);
+
+    // A device that had the book under the older importer, with the first picture, imports it again: the picture it was
+    // given stays, and the new one still comes down once.
+    let chunks = 0;
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const req = new Request(input, init);
+      if (req.url.includes('/books/chunk') && req.method === 'GET') chunks++;
+      const body = req.method === 'GET' || req.method === 'DELETE' ? undefined : await req.arrayBuffer();
+      return worker.fetch(new Request(req.url, { method: req.method, headers: req.headers, body }), c.env);
+    });
+    localStorage.setItem('dushu.cloud.url.v1', 'https://sync.test');
+    localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: owner, email: OWNER }));
+    const store = await openStore(`u-${Math.random()}`);
+    const old = await store.books.add({ ...await importFile(new File([text], '小猫.txt')), note: `mac-book:${sha}`, importVersion: 2 });
+    expect(bookKey(old)).toBe(before);
+    await store.books.setCover(old.id, new Blob([png(1)]), shaOf(png(1)));
+    await store.books.replace(old.id, await importFile(new File([text], '小猫.txt')));
+    let meta = (await store.books.get(old.id))!;
+    expect(bookKey(meta)).toBe(macBookKey(sha));
+    expect(meta.coverFrom).toBe(shaOf(png(1)));
+    expect((await store.books.asset(meta.id, meta.cover!))?.type).toBe('image/png');
+    await syncBooks(store);
+    meta = (await store.books.get(old.id))!;
+    expect(meta.coverFrom).toBe(shaOf(png(2)));
+    expect(chunks).toBe(1);
+    expect((await store.books.list()).length).toBe(1);
+    chunks = 0;
+    await syncBooks(store);
+    expect(chunks).toBe(0);
+    // An account that holds the book's picture under both keys (put there by a Mac from before this one): the picture put
+    // there last is shown, and neither is downloaded again on the next run.
+    await put(`c${macBookKey(sha)}`, '小猫.png', png(3));
+    await syncBooks(store);
+    expect((await store.books.get(old.id))!.coverFrom).toBe(shaOf(png(3)));
+    chunks = 0;
+    await syncBooks(store);
+    expect(chunks).toBe(0);
+    expect((await store.books.get(old.id))!.coverFrom).toBe(shaOf(png(3)));
+  });
+
   it('keeps one copy of a Mac book that is here twice: the one read in most recently', () => {
     const copy = (id: string, extra: Partial<BookMeta> = {}): BookMeta => ({
       id, title: '小猫', author: '', format: 'txt', script: 'simplified', sourceName: '小猫.txt', addedAt: 1, chapterCount: 1, charCount: 10,

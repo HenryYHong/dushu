@@ -216,6 +216,45 @@ describe('block extraction', () => {
     expect(texts(book)[0][0]).toBe(lines.join(''));
   });
 
+  it('joins a book set out one printed line per <p>, hard-wrapped, back into its paragraphs', async () => {
+    // As a book typed in from print: every line its own <p>, cut at 30 characters (a word may be cut in two), a blank <p>
+    // between paragraphs. Then a list whose lines are longer than the width, one <p> each, no blank between them.
+    const paras = Array.from({ length: 8 }, (_, i) => prose(100, i));
+    const cut = (s: string) => { const c = [...s]; const out: string[] = []; for (let i = 0; i < c.length; i += 30) out.push(c.slice(i, i + 30).join('')); return out; };
+    const list = Array.from({ length: 3 }, (_, i) => `⊙${prose(40, i)}`);
+    const body = paras.map((t) => cut(t).map((l) => `<p>${l}</p>`).join('')).join('<p></p>') + '<p></p>' + list.map((l) => `<p>${l}</p>`).join('');
+    const book = await load(base(body));
+    expect(texts(book)[0]).toEqual([...paras, ...list]);
+  });
+
+  it('keeps a scene break and a new speaker apart from a full line before them, even with no blank <p> between', async () => {
+    // Paragraphs of exactly three full lines (30 characters each), so the last line before what follows fills the width.
+    const full = (i: number, end = '。') => [...prose(200, i)].slice(0, 89).join('') + end;
+    const cut = (s: string) => { const c = [...s]; const out: string[] = []; for (let i = 0; i < c.length; i += 30) out.push(c.slice(i, i + 30).join('')); return out; };
+    const ps = (s: string) => cut(s).map((l) => `<p>${l}</p>`).join('');
+    const paras = Array.from({ length: 8 }, (_, i) => full(i));
+    // The book's scene break, set out on its own between blanks three times, and once with the blank before it left out.
+    const body = paras.slice(0, 3).map((t) => `${ps(t)}<p></p><p>BBB</p><p></p>`).join('')
+      + `${ps(paras[3])}<p>BBB</p><p></p>`
+      // A sentence ending the line, then a quotation: someone else speaking. After a comma, the quotation runs on.
+      + `${ps(paras[4])}<p>“${prose(12, 1)}”</p><p></p>`
+      + `${ps(full(5, '，'))}<p>“${prose(12, 2)}”</p><p></p>`
+      + paras.slice(6).map(ps).join('<p></p>');
+    const book = await load(base(body));
+    expect(texts(book)[0]).toEqual([
+      paras[0], 'BBB', paras[1], 'BBB', paras[2], 'BBB', paras[3], 'BBB', paras[4], `“${prose(12, 1)}”`, `${full(5, '，')}“${prose(12, 2)}”`,
+      ...paras.slice(6),
+    ]);
+  });
+
+  it('leaves verse set one line per <p> as it is, however alike its lines', async () => {
+    const line = (i: number) => [...'我在这条长长的小路上慢慢走着看见天边的云彩飘过山岗'].slice(i % 5, (i % 5) + 15).join('');
+    const stanzas = Array.from({ length: 6 }, (_, s) => Array.from({ length: 4 }, (_, k) => line(s + k)));
+    const body = stanzas.map((st) => st.map((l) => `<p>${l}</p>`).join('')).join('<p></p>');
+    const book = await load(base(body));
+    expect(texts(book)[0]).toEqual(stanzas.flat());
+  });
+
   it('turns blockquote, hr and headings into blocks and ignores vertical-writing CSS', async () => {
     const book = await load(
       base(
@@ -254,7 +293,7 @@ describe('block extraction', () => {
   });
 
   it('drops site boilerplate', async () => {
-    const book = await load(base(`<div>本书由“<a href="http://epubw.com">ePUBw.COM</a>”整理，提供最新最全的优质电子书下载！！！</div><p>${prose(30)}</p>`));
+    const book = await load(base(`<div>本书由“<a href="http://epubw.com">ePUBw.COM</a>”整理，欢迎来本站下载更多好书！！！</div><p>${prose(30)}</p>`));
     expect(book.chapters[0].blocks).toHaveLength(1);
   });
 

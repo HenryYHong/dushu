@@ -244,7 +244,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     const already = words.length - fresh.length;
     const ok = await confirmDialog({
       title: `Mark ${label} as known?`,
-      body: `${plural(fresh.length, 'word')} will be added to your known words${already ? ` (${already.toLocaleString('en-US')} already known)` : ''}. Known words get no ${aidWord()} in the Unknown and ${modesName()}. Your saved flashcards are not changed.`,
+      // Chinese: known words are kept by word, not by reading, so a word goes in at its easiest reading and is known in all.
+      body: `${plural(fresh.length, 'word')} will be added to your known words${already ? ` (${already.toLocaleString('en-US')} already known)` : ''}. Known words get no ${aidWord()} in the Unknown and ${modesName()}.${engine ? '' : ' A word read more than one way counts at its easiest reading, and is known in all of them (行 xíng is HSK 1, so 行 háng goes too).'} Your saved flashcards are not changed.`,
       confirmLabel: `Add ${fresh.length.toLocaleString('en-US')}`,
     });
     if (!ok || !alive) return;

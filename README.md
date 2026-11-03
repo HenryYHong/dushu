@@ -92,7 +92,7 @@ Not supported: scanned PDFs (they have no text to read) and DRM-protected books,
 
 ## Names and terms
 
-Novels are full of names the dictionary does not have. The first time you open a book, Dushu scans it in the background and learns its people, places and martial-arts terms (郭靖, 桃花岛, 降龙十八掌), so each reads as one word with a name's pinyin. Tap one to see an "In this book" card. You can edit its pinyin and meaning, say it is not a word, or select any phrase and choose "Add as a word". The list is under the contents button, on the Names & terms tab. Everything stays on your device.
+Novels are full of names the dictionary does not have. The first time you open a book, Dushu scans it in the background and learns its people, places and martial-arts terms (王熙凤, 林冲, 大观园), so each reads as one word with a name's pinyin. Tap one to see an "In this book" card. You can edit its pinyin and meaning, say it is not a word, or select any phrase and choose "Add as a word". The list is under the contents button, on the Names & terms tab. Everything stays on your device.
 
 ## Read aloud
 
@@ -115,7 +115,7 @@ Press `P` in the reader, or use the eye button in the top bar.
 - **Off**: no pinyin.
 - **All**: pinyin over everything.
 - **Unknown**: pinyin only over words you have not marked as known. Turn on **Learn known words as I read** (in the pinyin menu or Settings) and a word you read past on 10 pages over 2 days without looking it up is marked known for you. Looking it up takes it back off.
-- **HSK**: pinyin only over words you can't read yet at the HSK level you choose (the stepper in the pinyin menu, or the slider in Settings). A word loses its pinyin once you've met each of its characters, read the way it's read there, in an HSK word at or below your level. So 说道 goes at HSK 1, though the list puts it at 7-9, and so do names and words the list leaves out, like 一个. A word with a toneless syllable, like 本事 (běnshi), waits for its own HSK level, since its characters don't tell you which syllable goes toneless. Traditional characters count as their simplified forms. The menu shows how much of the chapter still has pinyin.
+- **HSK**: pinyin only over words you can't read yet at the HSK level you choose (the stepper in the pinyin menu, or the slider in Settings). A word loses its pinyin once you've met each of its characters, read the way it's read there, in an HSK word at or below your level. So 说道 goes at HSK 1, though the list puts it at 7-9, and so do names and words the list leaves out, like 一个. A word with a toneless syllable, like 本事 (běnshi), waits for its own HSK level, since its characters don't tell you which syllable goes toneless. Traditional characters count as their simplified forms. Levels come from the official 2021 list, reading by reading: 行 is HSK 1 as xíng and HSK 3 as háng, and the word card, the Words tab and this mode all use the level of the reading on the page. The menu shows how much of the chapter still has pinyin.
 
 To make the text bigger or smaller, use the **Aa** button in the reader's top bar, the `[` and `]` keys, or Text size in Settings. Pages and Scroll each remember their own size.
 
@@ -180,7 +180,8 @@ On the hosted site, everything is local to your browser. Books, saved words, pro
 | Unihan (Unicode) | Readings, definitions, radicals, strokes for 101,997 ideographs | Unicode License v3 |
 | Wiktionary via kaikki.org | Readings and definitions for rare characters and extra words | CC BY-SA 4.0 |
 | jieba | Word frequencies for splitting sentences | MIT |
-| complete-hsk-vocabulary | HSK levels | MIT |
+| hsk30 (Ivan Krasilnikov), from the official HSK 3.0 list (GF0025-2021) | HSK levels for each reading of a word | MIT |
+| complete-hsk-vocabulary | HSK 2.0 levels and HSK words CC-CEDICT lacks | MIT |
 | OpenCC | Simplified and traditional conversion | Apache-2.0 |
 | Jigmo fonts | Glyphs for rare characters, so nothing shows as an empty box | CC0 |
 | Noto Serif SC and TC (@fontsource) | The book typeface where there is no system Song font | SIL OFL 1.1 |
@@ -224,7 +225,7 @@ python3 -I scripts/fetch_samples.py .        # the short sample texts
 python3 -I scripts/fetch_classics.py .       # the four classical novels
 ```
 
-Raw downloads are cached in `.cache/raw/`, so reruns are mostly offline. The file formats are described in `ARCHITECTURE.md`.
+Raw downloads are cached in `.cache/raw/`, so reruns are mostly offline. The file formats are described in `ARCHITECTURE.md`. `python3 scripts/build_data.py --hsk` rebuilds only the HSK levels, from the pinned HSK list and `scripts/data/hsk-same-word.tsv`.
 
 ## Develop
 

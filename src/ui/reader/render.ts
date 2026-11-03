@@ -3,6 +3,7 @@
 // them never re-segments. rt is never selectable and is skipped by every offset calculation (see selection.ts).
 import { applySandhi, formatSyllable, toneOf } from '../../core/pinyin';
 import { segment } from '../../core/segment';
+import { segmentShown } from './shown';
 import type { Dictionary, Lexicon, PinyinMode, PinyinStyle, Token } from '../../types';
 import { widthOfPinyin } from './grid';
 import { isWord } from '../../lang/token';
@@ -338,13 +339,16 @@ export function buildPinyin(p: RenderedParagraph, opts: RenderOptions): void {
   }
 }
 
-/** Segment a paragraph and render it into `tag` (p, h2, blockquote, span …). */
+/**
+ * Segment a paragraph and render it into `tag` (p, h2, blockquote, span …). `orig`: the paragraph as the book spells it when
+ * `text` is shown in the other script, so the readings follow the book as on the page (shown.ts).
+ */
 export function renderParagraph(
   text: string,
   dict: Dictionary,
-  opts: RenderOptions & { tag?: string; className?: string; lexicon?: Lexicon },
+  opts: RenderOptions & { tag?: string; className?: string; lexicon?: Lexicon; orig?: string },
 ): RenderedParagraph {
-  const tokens = segment(text, dict, opts.lexicon);
+  const tokens = opts.orig === undefined ? segment(text, dict, opts.lexicon) : segmentShown(text, opts.orig, dict, opts.lexicon);
   const shown = displayTokens(tokens, opts.sandhi);
   const { nodes, views } = renderTokens(tokens, shown, opts);
   const el = createEl(opts.tag ?? 'p', opts.className ?? '');

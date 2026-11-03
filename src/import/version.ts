@@ -5,6 +5,8 @@
  * punctuation set full-width, short numbered sections kept in one chapter. Later importer fixes (a paragraph that starts
  * with a closing mark joins the one before, a one-chapter text is titled by its own first heading, classical section titles
  * and poem titles over verse are headings) apply to new imports only: they are cosmetic, and raising the version would
- * re-import the owner's Mac books and move every reading place to new sync keys.
+ * re-import the owner's Mac books and move every reading place to new sync keys. 3: a book set out one printed line per <p>
+ * (blank <p>s between its paragraphs) and hard-wrapped has its lines joined back into paragraphs (blocks.ts), which changes the
+ * paragraphs of such a book.
  */
-export const IMPORT_VERSION = 2;
+export const IMPORT_VERSION = 3;

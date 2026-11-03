@@ -180,7 +180,7 @@ describe('library screen', () => {
   it('draws a classic\'s painting as the board of its cover, title and all, and an imported book\'s picture as it is', async () => {
     const png = () => new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
     const classic = await store.books.add({ ...book('故乡', '鲁迅'), sourceName: 'sample:guxiang', cover: 'sample-cover.jpg', assets: new Map([['sample-cover.jpg', png()]]) });
-    const own = await store.books.add({ ...book('撒哈拉的故事', '三毛'), cover: 'cover.png', assets: new Map([['cover.png', png()]]) });
+    const own = await store.books.add({ ...book('雨季不再来', '三毛'), cover: 'cover.png', assets: new Map([['cover.png', png()]]) });
     const asked = vi.spyOn(store.books, 'assetUrl').mockImplementation(async (id) => `blob:${id}`);
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => !!root.querySelector(`.lib-card[data-id="${classic.id}"] .lib-cover-art-img`));
@@ -193,7 +193,7 @@ describe('library screen', () => {
   });
 
   it('shows a book\'s own picture until a drawn cover is picked for it in the card menu', async () => {
-    const pictured = await store.books.add({ ...book('撒哈拉的故事', '三毛'), cover: 'cover.png', assets: new Map([['cover.png', new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' })]]) });
+    const pictured = await store.books.add({ ...book('雨季不再来', '三毛'), cover: 'cover.png', assets: new Map([['cover.png', new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' })]]) });
     const asked = vi.spyOn(store.books, 'assetUrl');
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => root.querySelectorAll('.lib-card').length === 1);
@@ -259,14 +259,14 @@ describe('library screen', () => {
 
   it('filters by author or title and clears an empty search without changing the library', async () => {
     await store.books.add(book('活着', '余华'));
-    await store.books.add(book('射雕英雄传', '金庸'));
+    await store.books.add(book('天龙八部', '金庸'));
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => root.querySelectorAll('.lib-card').length === 2);
     const search = root.querySelector<HTMLInputElement>('input[type="search"]')!;
     search.value = '金庸';
     search.dispatchEvent(new Event('input'));
     expect(root.querySelectorAll('.lib-card')).toHaveLength(1);
-    expect(root.querySelector('.lib-card-title')?.textContent).toBe('射雕英雄传');
+    expect(root.querySelector('.lib-card-title')?.textContent).toBe('天龙八部');
     search.value = 'no match';
     search.dispatchEvent(new Event('input'));
     expect(root.querySelectorAll('.lib-card')).toHaveLength(0);

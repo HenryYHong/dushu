@@ -14,6 +14,7 @@ import { icon } from '../icons';
 import { closePopup, openWordPopup } from '../popup/popup';
 import { fullscreenSupported, isFullscreen, isStandalone, onFullscreenChange, setFullscreen } from '../fullscreen';
 import { createChapterView, type BlockState, type ChapterView } from './chapter';
+import { inScript } from './shown';
 import { applyGridVars, effectiveLineHeight, readingSize } from './grid';
 import { createLearning } from './learning';
 import { createLookup } from './lookup';
@@ -154,12 +155,7 @@ export const mount: MountFn = async (root, params, ctx) => {
 
   // ------------------------------------------------------------------ chrome
   // Every string from the book that the bar, the running heads and the lists show follows the script setting, like the text.
-  const text = (s: string): string => {
-    const mode = ctx.settings.get().script;
-    if (mode === 'simplified') return dict.toSimplified(s);
-    if (mode === 'traditional') return dict.toTraditional(s);
-    return s;
-  };
+  const text = (s: string): string => inScript(s, ctx.settings.get().script, dict, book!.script);
   const titleBook = h('div.rd-book-title', null, text(book.title));
   const titleChapter = h('div.rd-chapter-title');
   const pct = h('span.rd-pct');
@@ -749,7 +745,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (!chapter) return null;
     beginBook(chapter);
     const v = createChapterView({
-      ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, lazyPinyin: true,
+      ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, script: book!.script, lazyPinyin: true,
       onResize: () => { if (paged) pager?.relayout(); },
     });
     v.el.lang = langOf(ctx.settings.get());
@@ -858,7 +854,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (!chapter) throw new Error('The chapter is not in the library.');
     beginBook(chapter);
     const old = scrollView;
-    const v = createChapterView({ ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon });
+    const v = createChapterView({ ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, script: book!.script });
     v.el.lang = langOf(ctx.settings.get());
     v.el.tabIndex = 0;
     v.el.setAttribute('aria-label', 'Book text. Press Enter to choose words with the arrow keys.');

@@ -19,6 +19,7 @@ export const SURNAME_READINGS: Readonly<Record<string, string>> = {
   员: 'yun2', 那: 'na1', 谌: 'chen2', 黑: 'he4', 过: 'guo1', 褚: 'chu3', 殷: 'yin1', 宓: 'fu2',
   牟: 'mou4', 洗: 'xian3', 蕃: 'pi2', 郇: 'huan2', 郏: 'jia2', 句: 'gou1', 能: 'nai4', 乜: 'nie4', 阚: 'kan4',
   燕: 'yan1', // 燕青 燕顺: the surname is Yān (the swallow is yàn)
+  宁: 'ning4', // 宁采臣: the surname is Nìng
 };
 
 export const COMPOUND_SURNAME_READINGS: Readonly<Record<string, string>> = {
@@ -37,12 +38,26 @@ export const NAME_CHAR_READINGS: Readonly<Record<string, string>> = {
   乐: 'le4',
   曾: 'zeng1',
   裳: 'chang2', // 黄裳
+  发: 'fa1', // 王金发: "prosper", not 金发 "blond hair"
+  兴: 'xing1', // 程日兴, 张振兴
+  冠: 'guan4', // 乔冠华, 吴冠中: "foremost"
+  都: 'du1', // 张都监, 老都管: never the adverb dōu inside a name
+  乾: 'qian2', // 孫乾: looked up by the character as written (it folds to 干, which is gàn in 蒋干)
 };
+
+/** In a name with no Chinese surname (a transliterated Mongol or Jurchen name), 术 is zhú; after a surname (袁术) it stays shù. */
+export const TRANSLITERATION_READINGS: Readonly<Record<string, string>> = { 术: 'zhu2' };
+
+/** A doubled kinship word at the end of a name is neutral (靖哥哥, 小姑姑); a doubled given name is not (李师师). */
+export const KIN_CHARS: ReadonlySet<string> = new Set([...'哥姐妹弟爷奶姑叔伯舅婶娘爹妈婆公嫂姨姥嬷兄侄姊']);
+
+/** Offices that end in 长 are zhǎng (连长, 支队长 after a surname); 云长 and 天长 keep cháng. */
+export const HEAD_BEFORE_ZHANG: ReadonlySet<string> = new Set([...'队务连排班营团旅师军部局科处站所社院校县市省乡村厂组舰船']);
 
 // ------------------------------------------------------------- display ---
 
 /** Endings that make a place name two words: 桃花岛 is Táohuā Dǎo, 归云庄 is Guīyún Zhuāng, 净衣派 is Jìngyī Pài. */
-const PLACE_GENERIC = new Set([...'岛山庄寺城府村镇峰谷关江河湖海岭洞殿堡宫楼阁庙塔桥坡寨营州县国派帮教门会宗亭郡院庵观觀']);
+const PLACE_GENERIC = new Set([...'岛山庄寺城府村镇峰谷关江河湖海岭洞殿堡宫楼阁庙塔桥坡寨营州县国派帮教门会宗亭郡院庵观觀湾沟屯坪']);
 
 /**
  * How the syllables of a name or place are grouped when written with capitals: Guō Jìng, Hán Xiǎoyíng, Ōuyáng Wújì,

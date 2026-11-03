@@ -135,7 +135,7 @@ async function runSync(items: MacBook[], deps: SyncDeps): Promise<SyncResult> {
   return result;
 }
 
-/** "Added 活着 and 射雕英雄传 from your Mac." */
+/** "Added 围城 and 天龙八部 from your Mac." */
 export function addedMessage(added: BookMeta[], shown: (title: string) => string = (t) => t): string {
   if (added.length === 1) return `Added “${shown(added[0].title)}” from your Mac.`;
   if (added.length === 2) return `Added “${shown(added[0].title)}” and “${shown(added[1].title)}” from your Mac.`;

@@ -216,6 +216,29 @@ async function downloadBytes(book: AccountBook): Promise<Uint8Array> {
 /** A cover the owner's Mac put in the account for one of its books: key c + the book's key (scripts/account-books.ts). */
 const COVER = /^c([A-Za-z0-9._-]+)$/;
 
+/**
+ * The file of one of the owner's Mac books as the Mac put it in the account (scripts/account-books.ts: the file itself, so its
+ * digest is the one in the book's mark), or null when this device is not signed in, the account does not have it, or it did
+ * not come down whole in the last day (like any book in the account, it is not downloaded again before then). A device that
+ * cannot reach the Mac imports the book again from it when the importer changes (ui/library/upgrade.ts). `listing` gives the
+ * account's list, asked once by the caller for all its books, and only when one needs it.
+ */
+export async function accountFileOf(meta: Pick<BookMeta, 'note'>, listing: () => Promise<AccountBook[]> = accountBooks): Promise<File | null> {
+  const sha = /^mac-book:([a-f0-9]{64})$/.exec(meta.note ?? '')?.[1];
+  if (!sha || !accountBooksHere() || !cloudBase()) return null;
+  const entry = (await listing()).find((b) => b.sha === sha && !COVER.test(b.key));
+  if (!entry) return null;
+  const id = `${entry.key}|${entry.sha}`;
+  const now = Date.now();
+  if (now - (badBooks()[id] ?? 0) < BAD_RETRY_MS) return null;
+  try {
+    return new File([await downloadBytes(entry) as Uint8Array<ArrayBuffer>], entry.title);
+  } catch (e) {
+    setBad(id, now);
+    throw e;
+  }
+}
+
 /** The app's own package of a book (packBook) holds book.json. Anything else is a file the owner's Mac put there itself. */
 function isPackage(bytes: Uint8Array): boolean {
   try { return new Archive(bytes).names().includes('book.json'); } catch { return false; }
@@ -323,11 +346,18 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
         localKeys.push(bookKey(meta));
         added.push(meta);
       }
-      // Covers the owner's Mac picked for its books: shown on the book here, each picture once.
+      // Covers the owner's Mac picked for its books: shown on the book here, each picture once. A book's cover may be kept
+      // under its key from an older importer and under its own: the one put there last is the one picked.
       const here = await store.books.list();
+      const picked = new Map<string, AccountBook>();
       for (const cover of inAccount) {
         const m = COVER.exec(cover.key);
         const book = m && here.find((b) => sameBook(bookKey(b), m[1]));
+        const before = book && picked.get(book.id);
+        if (book && (!before || cover.addedAt > before.addedAt)) picked.set(book.id, cover);
+      }
+      for (const [bookId, cover] of picked) {
+        const book = here.find((b) => b.id === bookId);
         if (!book || book.coverFrom === cover.sha) continue;
         const id = `${cover.key}|${cover.sha}`;
         if (now - (bad[id] ?? 0) < BAD_RETRY_MS) continue;

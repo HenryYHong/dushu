@@ -79,10 +79,11 @@ in Node tests. Real files are present; tests should use them (they load in ~0.3 
 | `chars.tsv.gz` | char, readings, definition, strokes, rs, simp, trad, variants, compatOf | 102,999 |
 | `chars-extra.tsv.gz` | char, readings, definition (Wiktionary supplement; may be absent) | 5,132 |
 | `cedict-extra.tsv.gz` | same columns as `cedict` (Wiktionary words CC-CEDICT lacks; optional) | see file |
-| `book-words.tsv.gz` | trad, simp, pinyin, defs, optional segmentation count (curated senses for the words the books use most; optional) | ~365 |
+| `book-words.tsv.gz` | trad, simp, pinyin, defs, optional segmentation count (curated senses for the words the books use most; optional) | ~430 |
 | `words.tsv.gz` | word, count | 287,084 |
-| `hsk.tsv.gz` | simp, trad, hsk3, hsk2, rank | 11,470 |
-| `t2s.tsv.gz` / `s2t.tsv.gz` | from, to (OpenCC phrases + chars, first candidate) | 3.5k / 42k |
+| `hsk.tsv.gz` | simp, trad, hsk3 (easiest reading), hsk2, rank, readings, same-word readings, of | 11,694 |
+| `hsk-LICENSES.txt` | the MIT notices of the two HSK sources (plain text, shipped with the data) | |
+| `t2s.tsv.gz` / `s2t.tsv.gz` | from, to (OpenCC phrases + chars, first candidate; t2s starts with the hand-written rows of `scripts/data/t2s-extra.tsv`, rebuilt with `--t2s-extra`) | 3.6k / 42k |
 | `radicals.tsv.gz` | num, radicalChar, unifiedChar | 246 |
 | `meta.json` | build date, Unicode version, counts, sources + licenses | |
 
@@ -91,11 +92,23 @@ Details:
   proper nouns capitalized ("Bei3 jing1"); non-syllable tokens (digits, Latin letters, `·`, `,`)
   appear as-is. Syllable count usually equals the code-point count; when it does not, fall back
   to per-character readings for alignment. Multiple rows can share a headword (one per reading).
-  The `hsk` trad column is often a rare variant for a single character (时 → 旹, 听 → 听), so `dict.hsk()` falls back to the simplified
-  form of a traditional spelling it misses.
   The final 30 rows are HSK words missing from CC-CEDICT. Those rows are NOT in the numbered format
   (they hold tone marks and run-together syllables such as `chènzhe`, `bu4 lìyú`); the loader repairs them with
   `normalizePinyinField`. A cleaner fix is for `build_data.py` to emit numbered pinyin for them.
+- `hsk` (built by `python3 scripts/build_data.py --hsk`): HSK 3.0 levels for each reading of a word, from the official 2021 list
+  (GF0025-2021) as transcribed with its pinyin by ivankra/hsk30 (MIT, pinned commit, sha256 checked); HSK 2.0 level, rank and trad from
+  complete-hsk-vocabulary (MIT). Column 6 lists the list's readings as numbered syllables `=level`, joined by `;`, lowest first
+  (行: `xing2=1;hang2=3`); "7-9" is 7. Column 3 is the lowest of them, so old code (which reads columns 1 to 5) sees the levels it saw
+  before. Column 7 holds same-word readings, the listed word read another way, at its level: the CC-CEDICT readings the transcriber
+  matched an entry to where they differ from the list's pinyin (血 `xue4=3` beside the list's xiě), and the hand table
+  `scripts/data/hsk-same-word.tsv` (word, reading in books, list reading, why; CC0; the build stops if a row names a word or reading the
+  list lacks). Column 8 is set on a derived row, which stands for a listed form the books spell otherwise: a listed X儿 read with a
+  final r gives X (一下 for 一下儿), and a CC-CEDICT word whose definitions are only a "variant of T[py]" pointer, T listed in that
+  reading, gives that spelling (好象 for 好像; not "old variant of": 马头 is "horse's head"). Derived rows never enter the segmentation
+  vocabulary, and variant spellings stay out of `hskWords`. Affix rows give the affix and its example (第 and 第二), optional parts both
+  forms (有些, 有一些). A row with only 5 columns (a cached old file) grades the word, not its readings.
+  The trad column is often a rare variant for a single character (时 → 旹, 听 → 听), so `dict.hsk()` falls back to the simplified
+  form of a traditional spelling it misses.
 - `cedict-extra` is repaired by `python3 scripts/build_data.py --repair-extra` (re-cuts mis-split readings, drops dialect-only rows and rows no character can read). The loader resolves "variant of X" and "see X" pointer rows to the target's meaning, and `entriesForReading(entries, syllables, shown, around)` can reorder senses by the neighbors (里 after a number is a distance).
 - `book-words` (source `scripts/data/book-words.tsv`, built by `python3 scripts/build_data.py --book-words`, original wording, CC0): CC-CEDICT
   lists the rarer sense of many common words first (行者 "pedestrian", 只見 "to see over and over", 姨娘 "maternal aunt", 罷 "to stop", 后 "empress").
@@ -148,7 +161,9 @@ Details:
   readings (tone-insensitive compare on the base), else the first CEDICT entry, else Unihan.
   `pinyinFor` returns lowercase numbered syllables ('' for non-Han and for characters with no reading from Unihan,
   the supplement or a simplified/traditional counterpart); `ctx.prev/next` are neighboring token texts of any kind.
-  `ctx.after` is the token after `next` (倒了茶 pours, 墙倒了 falls). Context rules added from reading the four books (tests/core/pinyin-rules.test.ts):
+  `ctx.after` is the token after `next` (倒了茶 pours, 墙倒了 falls). `ctx.line`/`ctx.at` (the paragraph's tokens and this word's index) let
+  a one-character token look further along its clause, and `ctx.orig` (the word as the book spells it, same length) lets the rules see 為 著 盡
+  where the page shows 为 着 尽; all three are optional and segment.ts passes them (§4.2). Context rules added from reading the four books (tests/core/pinyin-rules.test.ts):
   倒 is dào (adverb, pouring, reversing) except after a verb of falling or before 下在地霉 or at the end of a clause (dǎo); 啊 啦 呀 哇 吧 哩 and
   clause-final 罷/罢 are neutral after a word; 猛地 忽地 蓦地 倏地 are dì; 儿 after 斡 篾 撒 帖 蒲 is ér. `RUNNING_TEXT_READINGS` holds the readings that
   differ from CEDICT in running text (穿着, 猛地, 钉钯 pá, 倒把).
@@ -161,11 +176,83 @@ Details:
   ending its clause after a word (借了不还); 中了 → zhòng (中了计, 中了举人) unless a particle follows (山寨中了么); 行 → háng
   before 字; 数钱 → shǔ; 背着 → bēi (`WORD_READINGS`; segment.ts cuts the bèi cases: 背着脸, 背着人, 偷背着, 倒背着); 都 → dōu;
   行/长/重/为/得/觉/分/便/传/少/好/种/中/看/相/应/空 → standalone defaults from Unihan order.
+  A second native review of every book (tests/core/review-fixes.test.ts) narrowed the rules that reached too far: 为 + a number
+  is wéi only when the clause ends on the number or a measured quantity comes before it (价格为每斤三块钱), not before what is done
+  for someone (为两位客人买酒); the 所 of a 为 inside the clause is that 为's; 為 in a paragraph of the old vernacular (two kinds
+  of 的 著 呢 么 们 这 那 …) is "for, because" before a longer clause; 子 after a verb of giving, keeping or losing a son, the hour
+  and Daoist or Japanese names stays zǐ; 必得 + what is won is dé, + a longer clause děi; 干 is gān for dried, drained, sworn kin
+  and 不干…事; 一将 is jiāng only when a verb of handling follows (一将信交出去); 那里 after 在 去 从 … is "there"; 罢 after a
+  request (快说罢, 你们吃罢) stays the particle; 教 before 把, 人 + verb and in courtesies (闻教, 聆教) is jiào.
+  A third review (tests/core/review3-fixes.test.ts) added: 教 is jiāo before the one taught + a skill or a subject (教他一套剑法,
+  教她轻功, 教孩子们唱, 教你三天), in 教我的 (what someone taught), 教来教去, 怎么教都教不会, 教两遍, 教好书, at the end of a question after
+  a modal (去教呢, 让我教吧) and in 不教徒弟。, but not when the skill is then lost (教我功夫尽废) or the deed is done (教石勇骑了马);
+  当 is dàng in 把X当Y (unless a verb or 在 至 与 comes between: 把武松押至当厅), 当一回事, 当…用/看待/崇拜, 当了 + money (pawned),
+  上了他的当 and 拿来当果子, and stays dāng for "when" (…时), "should" (亦当恩养) and 当著; 应 is yìng at the end of a clause (叫他不应,
+  首尾皆应, 外应矣), before 之 弦 诏 口 准 劫 差 候 佛 武举, in 正应其谶 果应其言 上应天星 应在今夜, and before the one answered at the end of
+  a clause (你敢应我么); 将 is jiàng at the end of a clause (斩关杀将，, 双枪将」, 智勇之将也; not 共相将 or 再将！ or before 《),
+  in 将星 将佐 将吏 将卒 and after 番 川 蛮 羌 辽 心腹 为主.
+  A fourth review (tests/core/review4-fixes.test.ts) narrowed what the second pass widened and added the commonest misses. 為 in the old
+  books is wèi when what is done for the person follows them (吾为君赦之, 为大夫远涉路途, 力为大圣冒罪奏闻, `FOR_PERSON`; not 为君难, 为天下笑,
+  为大王有), after a 是 inside the clause (又是为宝玉了; 是为灵帝 opening a clause stays wéi) and in 却为谁; wéi before an office that closes the
+  clause (为军前参谋, `OFFICE_LAST`), after 权 出 送 现 旧 原, in 为先 为头领, 为人心/为人生, 为…何官 and the passive 为四个人扛着. 著 written so is
+  zháo after 撞 遇 碰 (ran into) and, with 着 too, after 烧 碰 摸 at a clause end behind 把 被 让 能 (把衣角烧着; 炉火烧着， stays zhe); 尽著 is
+  jìn before a clause end or troops (车仗尽著，). 那里 is nǎli across a clause boundary (the look back for 在 从 到 stops at punctuation and
+  skips a 在 with its own place word: 在家里那里知道), in 那里话, before a potential complement (那里睡得著), after 不知 (not 不知那里的,
+  not when the clause asks 怎样), and, where the book writes 那裏, in 是那里来的 and in a question with no other question word
+  (长老那里来的？; not after 我 你 他 们 家 这: 我那里还有…？). 降 is xiáng after 便 遂 即 收 自然 岂可 … and before 之 矣 也 即 人 or 了 with the one subdued, jiàng before 阶 心 圣 御 一道 and after
+  神人. 难 after 有 at a clause end is nàn; 哄 is hǒng before 那 这 将 出 过 and after 把 (hōng after 都 一齐 众); 术赤 zhú; 系 is jì before
+  住 上 着 在 一条 (not after 皆 各 从小); 人家 after a 的 phrase is a household; 种的 is zhòng (planted) unless a kind or seed is meant
+  (Ｕ种的, 买种的, 种的退化); 长 after 华里 公里 or a number + 里 is cháng; 精神 after 有 很 起 鼓起 抖擞起 is jīngshen unless a noun follows
+  (精神上的, 有精神的 without 很 挺 before it); 地铺 草铺 下铺 上下铺 are pù; 斗 after a number is dǒu except 和他一斗, 斗它一斗; and one-offs (一将守关, 羞恶, 恶之,
+  东西两角门, 无相, 宝相送, 教祖, 赚漏, 挨到五更, 必得是, 得了手, 二斗, 放大率, 干喝, 比…差, 明公差矣, 阙, 日识, 不著月日, 间亦, 吓，, 折本,
+  着了慌, 很高兴地，, 先生传, 当…看待, 道千乘之国).
+  A fifth pass (tests/core/review5-fixes.test.ts) put back what an independent review found worse than before the earlier passes and
+  fixed the readings a full read of a modern novel found wrong. 為 (and 爲) in the old books is wèi again before what is done for someone
+  named after it (为母报雠, 为刘备画策, 为曹氏作说客, 为二姐担心: `FOR_DEED`, a deed the cut left in two characters counting as one; not
+  after 之, not 此为上计 or 金作马), for a cause (`CAUSE_NEXT`: 为见, 为有, 为事 + more, 为 + V + 了; 盖为 正为 今为 非为 + a clause that
+  does not end on a role, 原为 + a deed), in requests (烦为转奏, 乞为明示), 各为其主, 为…之故, 为底, 为人为彻, the reasons
+  counted (一为…，二为…) and the beneficiary that ends a clause (为宝玉, 为朝廷); it stays wéi for 疑为, 有为, 以备为无义人 and 为…之事
+  outside the vernacular. 干 is gān for 不干 + someone + (之)事/之故, 干连, 干与国政, and an edition's 一幹人 幹紅; gàn for work (干不动,
+  干惯, 直干到, 有活干, 多干), gān for what is not dry yet (…没干。) and 干坐着. 削 is xuē in 削铁如泥, 削腮, 尖削, 削削, 削峰, 如削。, 日削 and
+  削了…官职 further on; 尽 is jǐn in 尽让 尽够 尽可 先尽 (even written 盡) and 别尽著; 差 is chāi when someone named in quotes is sent
+  (先差『…』) and after 吏 点 蒙 委 科, chā in 无差; 将 is jiàng in 勇将 神将 猛将 and 第二路上将; 紮 is zhā before 驻 立 两 + 营寨 and
+  in 收紮 紮脚; 赚 is zhuàn before 不 and money past quotes; 子 is zǐ in a surname + 子 + a courtesy name and 风流子; 相 is xiāng in 拜相送
+  and 内相 + a verb; 垛 is duǒ in 箭垛 垛楼 垛叠; 背 is bèi in 背了兄长, 莫背了, 背在身后 (the hands), bēi in 背回家 and 我来背，; 也得 还得 就得 +
+  what is attained (`ATTAINED`: 相逢 成佛 耳根清净) is dé, 又得 is děi before a deed and dé before what is got; 乾 is qián in 乾宫 乾上兑下
+  and 王道乾; 应名 is yīng (CEDICT's yīngmíng); 就那里 is nà. From the modern novel: 一通 tòng after V了, 转 (了) 一 圈 zhuàn, 着 zháo
+  after 伤 吓 累 碰 踩 找 … behind a 别 没 怕 不能, 倒 dǎo in 倒大霉 and after 按 踢 砍 …, dào when poured (把…倒在, 给她倒，), 地 de after
+  哄 汗 and a phrase cut into single characters before 说 走 …, dì after 挨着, 场 cháng before rain, an illness, a dream after any number
+  or 这 那, 长 cháng with adverbs between it and a time (日子 还 长着呢) and zhǎng in 长不好 长多少肉, 猫腰 máo, 待这么久 待得太久 再待一天
+  dāi, 挑 tiāo after 担子 and tiǎo after a pole, 人家 rénjiā after 有些 所有 有没有 这些, 精神 jīngshen after 格外 十分 and 得来, 地道
+  dìdao after 很 真 得, 一晃 yī huàng after a body unless a leap follows, 背篼 bēidōu (`RUNNING_TEXT_READINGS`), and one-offs (酸曲, 扇火,
+  撒些盐, 划燃, 还回过头, 缝缝, 散了, 闷得慌, 褪到, 露着 lòu, 剥下 bāo, 冲着…喊).
+  A sixth pass (tests/core/review6-fixes.test.ts) put back what a review of the fifth found worse and fixed the commonest misses of a
+  second full read. 为今之计 and 宁为 are wéi, and so are 为人 (conduct, also after 但), 为恶 为善 and 为 after 显示 描述 定义; the 号 of a
+  ship's name in quotes is not "styled as". In the old books 为 is wèi before the one spoken to or planned for (为将军言, 为孤图之), for
+  a feeling or a gain (之忿 之利 之仇), in 正为…之事也 and before a clause that says what someone is (为甄宝玉又是晚一辈). 子 is zǐ for the
+  classical son after 兄 如 诤 假 厥 哺 麟 俊, a lone 为 我 立 and a verb in 见 (父见子), and in 子书 子贵. 教 is jiào for a teaching after 其
+  吾 at a clause end; 背 bèi after 依次 逐字 一字一句 …; 得 dé after 许 准 容 (not) + the one who gets to, děi in 又得 + people who wait
+  on it; 仆 pū after 跌 颠 前 僵; 强 qiáng after a lone surname (a given name the lexicon missed); 什 shí between transliteration
+  characters; 着 zhe in 还睡着 正睡着; 种 zhòng before so many 亩 垧 棵; 了 liǎo in 就算了事 就算了大事. `WORD_READINGS` adds 麦场 màicháng,
+  长脸 chángliǎn (a book-words row) and 当天 dàngtiān.
   For multi-reading multi-char words (e.g. 银行 has one reading, 长大 one; 好好 several) prefer
   the entry whose defs are not "variant of"/"old variant"/surname-only, then the most common.
 - `wordsAt(text, i)`: all headwords starting at i (max headword length from the data), longest
   first; always includes the single code point if Han (surrogate pairs = one char).
-- `toSimplified`/`toTraditional`: OpenCC longest-match over phrases then chars.
+- `toSimplified`/`toTraditional`: OpenCC longest-match over phrases then chars. The first row for a key wins, so the rows of
+  `scripts/data/t2s-extra.tsv` come first: 乾 phrases that are qián (乾坤 乾元 乾象 孫乾 …, which OpenCC's first candidate made 干坤 孙干)
+  and old glyph forms OpenCC leaves alone (偸 緖 躱 値 簷 愼 吿 鬬).
+- `hsk(word, pinyin?)`: `HskInfo` (`hsk3`, `hsk2`, `rank`, `of`, `elsewhere`) or null. Found under the word, the trad column, then its
+  `toSimplified` form; a book's 事儿 read with a final r is the listed 事 (not 头儿 哥儿 人儿, words of their own: `HSK_OWN_ER_WORDS`).
+  Without a reading (or one that is not one syllable per character, or with an old 5-column row) `hsk3` is the word's easiest
+  reading, as before. With one, `hsk3` is the lowest level among the list's and same-word readings that `compareReading` (`core/hskMatch.ts`)
+  finds the same (one tone each; 一 and 不 in any tone), else among those that differ only in a neutral tone, unless CC-CEDICT spells both
+  readings as words of their own (东西 dōngxī "east and west" is not the list's dōngxi; 说道 shuōdào, 人家 rénjiā likewise). When none
+  matches, `hsk3` is missing and, for a word found under its own simplified form, `elsewhere` lists the list's readings (教 jiào:
+  jiāo 1). Through the trad column or t2s there is no hint (著 zhù, 乾 qián). `hskReadings(n)`: every reading of the list's own forms up
+  to level n, and their same-word readings that are another reading rather than another neutral tone (血 xuè, not 老婆 lǎopó): the
+  pinyin mode's per-character table (§5.3). `hskWords(n)`: the list's forms and their 儿-less spellings at their easiest reading, by
+  level then rank ("Mark HSK 1…n as known"; known words are kept by word, so a known 行 is known as háng too).
 
 ### 4.2 `core/segment.ts` — `segment(text, dict) → Token[]`
 - Tokens cover the paragraph exactly (concatenated `text` === input; `start`/`end` are UTF-16
@@ -177,9 +264,60 @@ Details:
   fewer tokens. Each han token gets `pinyin` from `dict.pinyinFor(word, {prev, next})`.
 - Reduplication: AABB and ABAB built from a dictionary word AB (吆吆喝喝, 研究研究) are one token; 一一 stays together (一一应); a 只 after a numeral is
   a measure word, so 只用 after 一 is cut 只|用. 了得 (liǎode) is one token at the end of a clause or after 十分 好生 端的 還 英雄 武藝
-  (那還了得, 十分了得) and stays 了|得 elsewhere (聽了得意); 一行 before 字 is cut (一|行|字, a line of writing). Not handled: 着落/上爬 after a
+  (那還了得, 十分了得) and stays 了|得 elsewhere (聽了得意); 一行 before 字 is cut (一|行|字, a line of writing). Not handled: 着落 after a
   verb (the dictionary word wins).
+- Context rules from a native reading of every Chinese book (`contextScore` in segment.ts, one test each in `tests/core/segment.test.ts`;
+  a rule takes 12 nats from a word where its neighbors show the text means its parts): a measure word goes with the numeral or
+  demonstrative before it (两个|人, 三年|前, 几口|水, 那头|羊; `AFTER_NUMERAL_CUT`); 的话 is 的 + 话 "words" unless it closes a conditional
+  clause (如果…的话，, 不去的话，); 才能 before a verb is 才 + 能; 马上 after 在/于/骑 is "on horseback"; 赶将来 is 赶 + 将 + 来; 着 after a verb is
+  the particle (挥着手, 闭着眼); 回过头 is not 过头 "overdo"; a speaker before 道： keeps 道 "said" (众僧|道：, 低声|道：); 把 + 手/头/门/酒 is 把 marking
+  the object; 地上/地点/地面 after a reduplication or idiom is the particle 地; a table of words that the old novels never mean in context
+  (`CUT_IN_CONTEXT`, `UNLIKELY_WORDS`: 去取, 先令, 回见, 他杀了, 二人大惊, the jieba fragments 是从 我会 般地). A number in characters is one token
+  (三十六, 一百零八, 二十多; not the tael in 五十两 nor 千 of 千米). Unseen dictionary nouns in 子 that the corpus barely saw (簪子, 会子) and a
+  few unseen words that read wrongly as their characters (二爸, 除过, 巷道, 怎的; at a clause's start also 是以, 在下, 好在, 要不) beat the
+  split into their characters.
+- Numbers in characters: two digits in a row only as an estimate (三四十, 三五千, 五七百, 三二十) or the multiplication rhyme
+  (七七四十九); a number never starts with 零, and the 一 after a round number goes with the measure word after it (三五千|一行).
+  The second review added cuts for words whose halves belong to their neighbors (村口|才, 心头|发闷, 即使|用, 点火|烧, 作|保山,
+  大|官人, 天台|上, 口水|滴), 人大 is cut only before 大X words (二人大惊) and kept as the congress, 个人 stays "personal" after
+  是/有 before 的 or a noun it qualifies, and a lexicon name that both neighbors claim (青|海民|歌) is not boosted.
+  The fourth review: 是以 + 他 她 这 opening a clause stays "therefore" unless the clause says "by" (为, 方式, 形式); 人大 after 的 is cut;
+  长枪|声 (not 枪声 after 长); 的话 needs a comma to be "if" after 有 没有 是 …, and 要说…的话， is "if"; 对于…来说 keeps 来说; 要不来晚了
+  keeps 要不 "otherwise"; 才能 + 不 + a verb is 才 + 能; 使 + 将来的 is the future; a multiplication rhyme (三六十八, 二五一十) is one
+  number; and `CUT_IN_CONTEXT` cuts modern words the older books never mean (纵马来迎, 回头见他, 关上门, 往火里加, 由内向外, 和田家, 几口才,
+  能耐饥, 问及时, 大海里, 不大会, 自称心, 些微云, 人生活, 扭转头来往, 四大步, 三十分开, 物外长年, 下首相陪, 节用而爱人, 不好犯上, 以礼节之).
+  `book-words.tsv` gives counts to old words the corpus never saw (刺配, 军州, 押司, 柳枝, 杨柳枝, 科斗, 发见, 道台, 彷佛) and to a few names
+  (张翼德, 鲁镇, 咸亨, 张果老), and 明公 is in `UNSEEN_BUT_MEANT`.
+  马上 is 马 + 上 "on horseback" (`onHorseback`) after a horse (一匹马上, 青騣马上), before what only a rider does in the old novels
+  (欠身 施礼 撚弓 心惊 惯使 坐著 …) or a rider (马上两人, 马上一员骁将, 马上骑着两个人), after a column place (当先 为首 上首 …), and when a
+  clause ends on it after a word (两匹马上，, 绑在了马上。); 她马上就到, 马上！ and 我马上。 stay "at once".
+- The native read of a modern novel (tests in `tests/core/segment-read.test.ts`, invented sentences): the emphatic 可 inside a
+  clause is cut from 可不 / 可不是 / 可好 (老猫可不爱吃, 这花猫可不是我养的, 这回可好了), while a reply or exclamation opening the
+  sentence and a rhetorical question keep 可不 / 可不是; 来说 来看 来时 来往 after a directional verb (踱过来说, 侧过身来看, 跑出来时)
+  are cut; X来X去 is one token only when a dictionary lists it, else nothing crosses it; 走时 过时 after a verb are V + 时; 还不快,
+  就算了 / 就算是 "that counts as", 往后 "backwards" before a movement or a place, 两头 before an animal, 七个多月, 头羊 after a verb
+  or 多, 那张嘴, 点着头 吸着烟 还睡着, 手提着, 月光照, 一心想, 等于是, 睁眼看, 人种 人命 after 一个, the comparative 大 (大多了,
+  大四五岁), 能干 + the work, 哈|哈腰 (AAB of a verb-object word), and a table of one-off pairs. A jieba fragment in 里/上 (房里, 背上)
+  or 心里 gives up the character before when that character makes a common word with its first one (产房|里, 手心|里), unless the
+  character already ends a word or a lexicon name. A foreign name written with a middle dot joins the transliteration characters on
+  each side (杰西卡·莫兰). 分上 is joined after 看/瞧/于 ("for the sake of"). `book-words.tsv` gives the literal sense first to 不想
+  要说 来看 来说 好些 要死 说好 穿过 一来 and counts to dictionary words the corpus never saw (村口 做声 麦田 窝棚 晒场 这一来 …).
+- The sixth pass (tests/core/review6-fixes.test.ts): a numeral and its measure word that the dictionary lists only as another word
+  are cut where the measure is meant: 一口 before a pot, a well, a coffin, a blade or a pig (`KOU_THINGS`; 一口答应 stays), 一手 before
+  what one hand does (`ONE_HAND_DOES`; 一手造成 stays), 一家 before a shop or a firm (`JIA_FIRMS`), 一面 before a mirror, a flag or a gong,
+  一轮 before a sun or a moon, 几点 before drops and dots or after 零星 (几点回来？ stays), and 两头 before an animal up to three characters
+  on (`ANIMAL_SOON`). 就让 is always 就 + 让; 眼泪汪汪 is 眼泪 + 汪汪 (not after 两眼); 怕人 before a verb is 怕 + 人; 也好 before 叫 让 使 教 is
+  也 + 好; 来时 after a directional verb and its object is cut (掏出钱来时); 老是 "always" and 年月 "these times" (not before 日) are
+  joined though the corpus never counted them, 老是 not after a surname or 大 黑 (高老是); 方桌 and 供桌 are words; 当天 after a sun or a
+  moon is 当 + 天. Narrowed: 月白 is the colour only before a cloth, a garment, 色 素 的 or after 件 穿 着 上 (天清月白 is 月 + 白); 过时 after 而
+  is cut only after a motion; 吊死 after 上 is kept when 在 于 从 到 came before (在房梁上吊死); 可不枉 in a question is 可 + 不 + 枉; 人才
+  stays before 出众 荟萃 虽 齐 and after 识 得 般; 怪道 before a colon is 怪 + 道; 云游僧道： keeps 僧道; 他娘的 after 是 at a clause end is
+  his mother's; 就算了事 is 就 + 算 + 了事.
 - Traditional text segments exactly as well as simplified (both scripts are in `words`).
+- `segment(text, dict, lexicon?, ruby?, orig?)`: `orig` is the paragraph as the book spells it when `text` is its conversion to the
+  other script character for character (same UTF-16 offsets; `ui/reader/shown.ts` `originalBeside` checks). Words are cut in `text`;
+  `pinyinFor` gets `{prev, next, after, line, at, orig}` (`line`/`at`: the paragraph's token texts and this token's index), so the
+  reading rules see 為 乾 盡 髮 where a simplified page shows 为 干 尽 发.
 - Performance: 10,000 Han chars in < 60 ms on this Mac (test it).
 - Tests on real sentences, e.g. 我们在银行门口见面。 → 我们|在|银行|门口|见面|。;
   他慢慢地走了过来。 (地 → de, 了 → le); 長江是中國最長的河流。 (traditional);
@@ -254,9 +392,22 @@ settings.sandhi is on (the caller decides).
   average under 1,500 Han characters stay in one chapter with the numerals as headings (狂人日记). A text kept as one chapter is titled by
   its own first heading when it opens with one (西遊記 第一回 shows its 回目 once). Two or more "title　poet" lines each over a line of
   verse (靜夜思　李白) become level-3 headings inside the chapter, marked after chapters are cut so an anthology stays one chapter.
-- Raising `IMPORT_VERSION` re-imports the books the library can fetch again (`ui/library/upgrade.ts`): the Mac's books from the Mac and
-  the classics from the site, one at a time once the library has the Mac's list. `store.books.replace` keeps the id, name, notes and
-  history and moves the reading place to the same Han character (`core/place.ts`). Sync names an upgraded book with its version
+- EPUB/HTML set out one printed line per `<p>` (blank `<p>`s between paragraphs, a book typed in from print): when at least 20 lines
+  fill one width and most of them are prose (a mark inside the line), a line that fills the width runs on into the next `<p>`
+  (`detectLineWrapWidth`, `wrapsOn` in chapters.ts; IMPORT_VERSION 3). A line longer than the width, an indented line, a heading, a
+  rule, site junk or a blank `<p>` ends the paragraph, and so does a sentence end at the end of the line followed by an opening
+  quotation mark (a new speaker, where the typist left out the blank) and a short line without a mark that the document sets out
+  three times or more (its scene break); verse set one line per `<p>` stays as it is. Decided per document, so a short last file of such
+  a book stays as it is, and a paragraph a file boundary cuts stays cut.
+- Raising `IMPORT_VERSION` re-imports the books the library can fetch again (`ui/library/upgrade.ts`): the Mac's books from the Mac (a
+  device that cannot reach the Mac takes the file the Mac put in the sync account, `accountFileOf` in core/cloudBooks.ts) and
+  the classics from the site, one at a time once the library has the Mac's list (a file from the account that does not import is not
+  downloaded again for a day). `store.books.replace` keeps the id, name, notes, history and a cover given by `setCover` (the Mac's
+  picture, a classic's painting). When the new chapters are the same as the stored ones it leaves the place and the bookmarks as they
+  are; otherwise it moves them to the same Han character (`core/place.ts`), and a bookmark that moved takes the book's new key (one
+  still at the same block and offset keeps its key, so a device with the old chapters still shows it). Cover picks
+  (`ui/library/coverStyle.ts`) and the Mac's pictures in the account (`scripts/account-books.ts`) stay under the key they were made
+  under (`olderKeys`); a device shows the picture put in the account last. Sync names an upgraded book with its version
   (`bookKey`: `m<digest>.2`), so a place read in the old chapters never lands in the new ones as it is; each device moves its own place.
   A place known only under an older key (`olderKeys`) is moved by its percent (`moveByPercent`, about a page) and stamped 1 ms older, so
   the same place moved by the text wins over it.
@@ -461,8 +612,8 @@ Offline speech discards cached Mac voices and chooses an available device voice;
 and temporary failures are not permanently cached. Mid-render connection errors explain recovery, rather than exposing a raw fetch error.
 
 ### 4.9 `core/lexicon.ts` — book names and terms (`detectTerms`, `buildLexicon`, `loadLexicon`)
-Real novels are full of words no dictionary has: character names (郭靖, 黄蓉, 洪七公, 王熙凤, 福贵, 家珍),
-places (桃花岛), martial-arts and period terms (降龙十八掌, 九阴真经). Without help they split into single
+Real novels are full of words no dictionary has: character names (王熙凤, 林冲),
+places, martial-arts and period terms. Without help they split into single
 characters, each with a misleading gloss. The lexicon fixes that per book. What the code does today:
 - `detectTerms(chapterTexts, dict)` (also `detectGen` / `detectTermsAsync`, which yield to the event loop): new-word discovery over the whole
   book. Han n-grams of 2–6 code points that never cross punctuation and occur at least max(6, chars/150k) times; counts level by level (a
@@ -479,7 +630,7 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   bind ≥ 0.45 or a speaker; 2-character ones must be seen speaking or be tightly bound), a compound surname plus 1–2, a surname-led string
   with a title (程大小姐, 柯大侠), a title (…大师/上人/长老/庄主/岛主/帮主…), a nickname (老/小 + 2 characters), or a name without a Chinese surname
   (哲别, 瑛姑, 札木合) that speaks. Names must not contain 给带向让从跟对把被为以于得地. Fragments are dropped when a longer accepted string
-  explains them (洪七 inside 洪七公). On 射雕英雄传 this gives 139 entries: 89 names, 29 terms and 21 places (郭靖 4,999, 黄蓉 3,641 …); on 活着 13 (家珍, 凤霞, 有庆, 福贵 …); on the
+  explains them (洪七 inside 洪七公). On the owner's long wuxia novel this gives 139 entries: 89 names, 29 terms and 21 places; on his short modern novel 13; on the
   traditional 红楼梦 sample 106 (賈母, 黛玉, 王夫人 …). Known misses: names that CEDICT also lists (铁木真, 成吉思汗, 老顽童 are already words,
   so they need nothing), and nicknames such as 靖哥哥.
 - Detection v5 (`DETECTOR_VERSION` 5) adds three passes after the n-gram statistics. **Speakers**: a 2–5 character string that opens a clause and is
@@ -491,13 +642,45 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   also accept a tightly bound free-standing string with no surname (秋桐), a numeral given name when bound (龙二), and tell a transliterated
   person (赤老温, 合撒儿) from a technique by how often it is addressed or ordered (对 向 问 命 …). A dictionary proper noun keeps its own first sense as
   the gloss. Offices (郡侯, 功曹) are not persons, 亭 and 郡 end a place. Detection yields every 8 ms of work (`detectGen`); `loadLexicon` waits for
-  an idle moment and works in 10 ms slices, so no task is longer than a frame. Known misses: 小紅, 长根 (too rare or too common a first character).
+  an idle moment and works in 10 ms slices, so no task is longer than a frame. Known misses: 小紅 (too rare).
 - Detection v6 (`DETECTOR_VERSION` 6): a speaker string that makes a word with the verb after it (操大+笑, 替天行+道) does not count, except that
   道 alone does not disqualify a last character (王夫人道). Strings that open with 谓/此/转 or a doubled character are phrases. A final pass
   (`boundaries()`) checks each entry against its neighbors: a name whose usual next character makes a more frequent word with it (大兒|子), or an
   entry whose usual previous character does (拍|馬舞刀), is dropped, as is one that often cuts a dictionary person name (曹|操大, 吳主孫|權) or wraps
   one in a title (先鋒使宋江). A dictionary proper noun that holds a found name (關雲長 around 雲長, 孫悟空 around 悟空) is added with its dictionary
   reading. On the four classics: 11 false entries dropped, 10 real names added, none lost.
+- Detection v7 (`DETECTOR_VERSION` 7). The judge: a modifier before a word for a kind of person (老木匠, 小舅妈, 外祖母) is a description; a
+  word the book uses on its own far more often plus one character (白玉珪) is not a surname and a given name; a pair that is spoken to and
+  speaks now and then (春桃), a surname and a numeral that speaks or is sent (张三), a surname with a kinship title (赵大奶奶) and a final 和 held by
+  the character before it are names; a three-character role in 者/人 (守塔人), a bound pair that never speaks (青崖) and a CEDICT word the corpus
+  never saw that the book uses once in a thousand characters are terms; a two-character town in 城村镇岛寨 and X湾/沟/屯/坪 are places; a 道 that
+  starts 道士/道人 is not speech; a corpus-known name whose dictionary reading is wrong is added for its reading. `family()` (after `boundaries()`,
+  whose checks then run on what it adds): the full name of a found name when one surname stands before it often (婆惜 → 閻婆惜); a found two-character
+  "name" that follows two or more surnames is a title and becomes a term (提轄 after 魯 and 孫), the officers stay names; brothers that share a
+  surname and middle character; the given name of a full name used alone (林如海 → 如海, glossed "short for 林如海"), unless it cuts words at its
+  edges, follows other surnames, ends in a title or kinship character or is half of a foreign name; a given name that is a dictionary word also
+  needs a non-person sense, a full name that speaks or is spoken to, the surname before it in a quarter of its uses and six times the corpus
+  rate (its card keeps the word's meaning); and the household 单家/曾家 of a surname with its own reading. An entry that is usually the tail of a
+  longer dictionary word (大|鬧天宮) is dropped. A text under 20,000 Han characters is also read at three sightings, keeping only strings whose
+  characters are never apart that end like a place (白马湖, 百草园, 邓脱路) or are a surname and a name that is spoken to (仲密).
+  The judge also drops noble titles in 侯 (关内侯), strings of 5+ characters that open with a verb (刺配远恶军州) and a surname-led
+  triple whose first two characters are a common word and that never speaks (杨柳枝).
+  The third review added a statistic, `voc`: the share of a string's uses that open what someone says and are followed by a comma or
+  an exclamation (“苇官，…”). A bound pair called out a third of the time is a person even when it ends like an office or opens with a
+  numeral (苇官, 四毛; interjections such as 嗳哟 are not); a surname, a numeral or a trait before a nickname's tail (麻子 脖子 乱子 瘸子 …)
+  whose first two characters are never apart and that is spoken to is a person (灰脖子, 牛麻子, 七乱子); a bound string of four or more
+  characters that opens with a surname character but not with a dictionary word is a foreign word, not a surname and a given name
+  (沙达拉威, but not 柴油机厂); and a name the book follows with 公主 in 3% of its uses reads without the surname table (华蓁公主: Huá).
+  Detection v8 (`DETECTOR_VERSION` 8) finds rarer people. A full name is also added at three sightings when no other surname ever stands before the
+  given name, the given name is a plain two-character one and the characters before the full name vary (金桂 → 夏金桂, 代儒 → 賈代儒;
+  not the end of a nickname, 九紋龍 + 史進, nor a heading after a numeral). The last character of a main character's name, where no
+  name found holds it, that stands mostly in one other pair free on both sides makes that pair a name (马岱 → 刘岱, 解珍 → 费珍).
+  A surname and two characters whose first two never stand alone may end in 才 (邹永才, with 才 an `EDGE_STOP` character, `headBound`).
+  A surname and one character never apart, both rare (pmi ≥ 8), seen ten times and free on the right is a person even when it never
+  speaks, and its left side may be all marks (`open` ≥ 0.8: it opens a clause each time). The household rule also covers X家 that the
+  dictionary knows only as a town or a village (段家, glossed "the 段 family"), not 墨家 or 苗家. On the 24 books: 15 entries added, none wrong.
+  `pinyinOf` reads the surname alone (梁子安 is not 梁子 + 安), 发 fā, 兴 xīng, 冠 guàn, 都 dū, 乾 qián in a name, 术 zhú in a name with no
+  Chinese surname, an office in 长 zhǎng (支队长) and a temple in 观 guàn; only a doubled kinship character is neutral (李师师 keeps shī).
 - `capitalizePinyin(syllables, kind, word, fold?)` and `pinyinGroups` (exported from `names.ts` and `lexicon.ts`): a name is written Guō Jìng,
   Hán Xiǎoyíng, Ōuyáng Wújì, Lǎo Wántóng; a place Táohuā Dǎo, Guīyún Zhuāng; a term, a user word and zhuyin stay as they are. The word popup and the
   "In this book" card use it (`ui/popup/pinyinText.ts`); ruby over the text stays lowercase.
@@ -509,7 +692,9 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   book's row win over the user's `'*'` row; `parseEntryPinyin(input, word)` reads "guo1 jing4", "guō jìng" or "guōjìng" back to numbered pinyin
   with exactly one syllable per character (null otherwise).
 - `segment(text, dict, lexicon?)`: enabled lexicon words are extra candidates in the DAG at every position (2…`maxLen` code points), scored as
-  a very frequent word (`LEXICON_WEIGHT` 14 nats, or the dictionary's own score if higher), so a name beats the split into 郭|靖. A token that
+  a very frequent word (`LEXICON_WEIGHT` 14 nats, or the dictionary's own score if higher), so a name beats the split into 郭|靖. A lexicon
+  word that the dictionary lists as an ordinary word with a corpus count of 100 or more (中学, 大海) keeps its corpus score instead (城中|学校
+  stays), and a dictionary phrase of 4+ characters that holds a lexicon word (大闹天宫 around 闹天宫) scores at least 14. A token that
   is a lexicon word gets the entry's pinyin when it has one syllable per character; `inDict` stays false. With no lexicon or an empty one the
   result is identical to before.
 - `loadLexicon(ctx, bookId, onUpdate)`: returns `'*'` rows + the book's rows at once. If the scope was never scanned (or by an older
@@ -519,7 +704,7 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   runs the reader holds back laying out the neighbor chapters (`pager.holdNeighbors`, `isDetecting`): doing both made the scan take 15 s in WebKit,
   and the neighbors would have been thrown away when the names arrived.
 - Reader: `createChapterView({lexicon})` and `setLexicon(lex)`; when the reader's script setting converts the text, the lexicon's words are
-  converted too (`shownLexicon()` in chapter.ts). The reader re-segments and keeps the position when the lexicon changes (background
+  converted too (`lexiconInScript` in ui/reader/shown.ts, memoized by `shownLexicon()` in chapter.ts). The reader re-segments and keeps the position when the lexicon changes (background
   detection, an edit, "Not a word"). The contents drawer has a "Names & terms" tab (press N) with a switch per row.
 - Popups: a word that is a lexicon entry (looked up in either script) gets an "In this book" card first in the word popup (`ui/popup/bookCard.ts`):
   kind chip (Person, Place, Term, Your word), count, the entry's pinyin and meaning, **Edit** (pinyin with tone numbers or marks, meaning; saved
@@ -691,7 +876,10 @@ books go through the account. Review logs and names are not synced. Each languag
   studied more (`srs.last`), or itself when it was saved after the Mac's deletion, and is sent again stamped to win.
 - **Book keys** (`bookKey`): `m<file digest>` for the Mac's books, `s<id>` for the classics, else `b<hash of chapter count, Han count and
   chapter titles>` (the same import of the same file matches; a rename does not change it). Saved words and looked-up words travel with
-  `context.bookId` as the book key and are mapped back to the local id. A bookmark keeps its book's key (`Bookmark.bookKey`, set when it is
+  `context.bookId` as the book key and are mapped back to the local id. A change of that key alone (the book deleted here, or imported
+  again by a newer importer, `IMPORT_VERSION`) is no change to the word: the row keeps the word's signature without its book (`bare`,
+  also recognized through `olderKeys` for a row synced before it kept one), so the word is not sent again stamped now, which would undo
+  a deletion of it made meanwhile on another device. A bookmark keeps its book's key (`Bookmark.bookKey`, set when it is
   made, or by the first sync for older ones), travels as `book`, and is moved onto the local book whenever that book is here (it arrived, or
   was deleted and added again); deleting a book keeps its bookmarks and sends nothing. A device always takes the Mac's copy of a looked-up word
   (the store merges it with its own row in `store.sync.apply`) and sends again what only it had.
@@ -733,7 +921,10 @@ outside click, route change. Keyboard: ←/→ = `onStep`, Shift+←/→ = `onRe
 K = known, P = play audio.
 - **Word popup**: headword large (simplified; traditional alongside if different), pinyin in
   the user's style + tone colors, speak button, HSK chip, Save (star) and Known (check)
-  toggles, then every reading's definitions (classifiers "CL:個|个[ge4]" rendered as a
+  toggles (the HSK chip is the level of the reading on screen, `dict.hsk(simp, syllables)`: 行 háng is HSK 3; none on a name or place
+  of the book's lexicon, or on 道 "said", `isSaidDao` in `core/hskMatch.ts`: after 笑 说 问 答 叫 骂 喝 回 便 又, or before a colon or
+  opening quote, or before a comma unless a numeral or demonstrative comes first, since the list's 道 is the measure word; when the list
+  has the word only in another reading, a muted `span.chip.pp-hsk-other` "HSK 1 as jiāo" in the reader's pinyin style instead), then every reading's definitions (classifiers "CL:個|个[ge4]" rendered as a
   "measure word: 个 gè" line; cross-references like 瞭|了[liao3] rendered as clickable links that
   re-open the popup on that word), then a character breakdown for multi-char words (each char:
   big glyph, pinyin, first gloss, radical + strokes; click to drill in; a Back button returns),
@@ -800,11 +991,14 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
 - HSK mode (`pinyinVisible` in `render.ts`, levels from `core/hskLevel.ts`) hides a word's pinyin when the reader can say it at the
   chosen level. Pinyin is for saying a word, so a word takes its hardest character's level, with the token's reading in context
   (说道 is 7 on the list but 1 this way; names and words the list leaves out, like 一个, 放在, are graded the same way). A character's
-  level is the lowest level of the listed words it is read the same way in: same syllable and tone, or a neutral tone in the text (a
+  level is the lowest level at which the list reads it the same way, in any word (`dict.hskReadings(7)`, the list's own readings
+  with their same-word readings): same syllable and tone, or a neutral tone in the text (a
   character learned only in a neutral tone, like 楚 in 清楚, does not teach its full tone), so a reading only one word has comes at
   that word's level (银行 háng). A listed word read with a neutral tone keeps its list level, since which syllable goes neutral is the
-  word's (本事 běnshi), and a listed word falls back on its list level whenever a character has none. A listed word teaches only its usual reading
-  (`dict.pinyinFor`; 便宜 piányi says nothing of 宜 yí), and a bare character its neutral readings as well (地 de). A glyph variant
+  word's (本事 běnshi; a 儿 a book adds to a listed word, 样儿, is not such a tone), and a listed word falls back on its list level whenever a
+  character has none. The list level is the one for the token's reading (`dict.hsk(word, pinyin)`: 喝 hè is 7-9, not 喝 hē's 1, and a
+  reading the list does not have, 石头 dàntou, has none). A listed word teaches only the readings the list gives it (便宜 piányi says
+  nothing of 宜 yí; 子 is the neutral suffix at HSK 1, so 子 zǐ comes with 子女 at 3). A glyph variant
   with no reading of its own and a Unihan simplified form t2s leaves alone (偸 → 偷, 著 → 着) read as the character they write; a
   t2s fold into a character that never has the token's reading (乾 qián → 干) lends no level. It never shows more pinyin than the list
   alone. The index is built once per dictionary (about 30 ms) and levels are memoized per word and reading. The pinyin menu shows the
@@ -842,7 +1036,7 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   after two, opening the book shows the error and the chapter list instead of trying that chapter again.
 - Words tab (`ui/reader/wordsTab.ts`, counting in `core/chapterWords.ts`): the chapter drawer's middle tab (press W) lists the words of the
   current chapter, segmented like the reader (same dictionary and lexicon; the book's names and terms are left out, they have their own tab),
-  one row per simplified form with its count, its most common reading in the chapter, a short gloss, its HSK band, and the sentence it first
+  one row per simplified form with its count, its most common reading in the chapter, a short gloss, its HSK band (of that reading: none when the list has the word only in another), and the sentence it first
   comes up in. A summary gives the share of word occurrences known and the number of new words (and of those that come up 3+ times). New/All
   and Most often/In order chips, a filter (word, pinyin with or without tones, gloss), and arrows to look at another chapter's words without
   turning the page. A row opens the word card with that sentence as context; its star saves the word (`popup/saveWord.ts`, the same card the
@@ -871,7 +1065,10 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   (`currentPlace`) and saves it before `applyLayout` gives the text the other layout's size.
 - Script and fonts: the article's `lang` is `zh-Hant` or `zh-Hans` from the script setting (original = the book's script; the default is
   simplified since 2026-10-24, and a device that kept the old default "As written" moves once, `dushu.settings.simplified.v1`). Library
-  titles and authors follow the setting too. `--rd-font` is set
+  titles and authors follow the setting too. The text goes through `ui/reader/shown.ts` (`inScript`, `segmentShown`): converted, then cut in
+  the script shown and read from the book's own characters (§4.2 `orig`; the phrase popup gets the selection's `orig` too). A book already in
+  the script shown (`createChapterView({script})`, BookMeta.script) keeps a character that is standard there in itself and not called a
+  variant of what OpenCC makes of it: a simplified book keeps 乾坤 and 一坏 (OpenCC: 干坤, 一坯), a traditional one 干 (OpenCC: 幹). `--rd-font` is set
   to the matching stack (`--font-serif`, `--font-sans`, `--font-kai`, and the `-hant` variants for traditional) because a `var()` set on the
   container resolves there, so the `:lang(zh-Hant)` override in tokens.css never reaches the text by itself. Line height is raised to at
   least 1.9 whenever pinyin can show.
@@ -1016,7 +1213,7 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   `scripts/qa-reader.mjs` and the scratch scripts of the 2026-10-13 pass, Chrome headless on this Mac, production build, a 34,000-character
   chapter: first spread 70 to 170 ms warm (360 ms with the dictionary cold), 300 to 700 ms at 4x CPU throttle, 15,700 DOM nodes instead of 112,000
   (about 90 MB of JS heap); a font step shows the repaginated page again in about 320 ms (1.2 s at 4x); the longest frame during a flip is 33 to
-  50 ms (130 to 220 ms at 4x; it was 100 to 450 ms and 0.9 to 1.8 s). A 20,000-character chapter of 射雕英雄传 opens in about 220 ms. In headless
+  50 ms (130 to 220 ms at 4x; it was 100 to 450 ms and 0.9 to 1.8 s). A 20,000-character chapter of the owner's long wuxia novel opens in about 220 ms. In headless
   WebKit at iPad Pro size (software compositing, a desktop CPU): first spread about 560 ms warm, a font step about 530 ms, flip frames about 20 ms
   with the leaf on screen within 50 to 75 ms. In the 1.4 s after a tap the longest frame is 93 to 120 ms landscape, 92 to 142 ms portrait and 64 to 101 ms on an iPhone
   profile (2 to 7 frames over 50 ms; it was 96 to 136, 115 to 208 and 76 to 105 ms with 4 to 8 such frames: the old 200 ms stall was the turn pictures being copied and laid
@@ -1110,7 +1307,8 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
 
 ## 8. Licenses
 CC-CEDICT (CC BY-SA 4.0, attribution required in About), Unihan (Unicode License v3), jieba
-(MIT), complete-hsk-vocabulary (MIT), OpenCC (Apache-2.0), Jigmo (CC0), Wiktionary via kaikki
+(MIT), hsk30 by Ivan Krasilnikov (MIT; HSK 3.0 levels by reading, a transcription of GF0025-2021) and complete-hsk-vocabulary
+(MIT), both notices in `public/data/hsk-LICENSES.txt`, OpenCC (Apache-2.0), Jigmo (CC0), Wiktionary via kaikki
 (CC BY-SA), hanzi-writer (MIT) + hanzi-writer-data (Arphic Public License, fetched at runtime),
 Newsreader (SIL OFL 1.1, no Reserved Font Name; `public/fonts/Newsreader-OFL.txt`).
 

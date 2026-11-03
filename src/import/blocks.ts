@@ -2,7 +2,9 @@
 import type { Block } from '../types';
 import { attr, localName } from './markup';
 import { spaceBetweenIsNoise } from './han';
-import { detectWrapWidth, isRuleLine, isSiteJunk, linesToParagraphs, splitLongParagraph, trimLine } from './chapters';
+import {
+  detectLineWrapWidth, detectWrapWidth, isRuleLine, isSiteJunk, joinWrapped, linesToParagraphs, splitLongParagraph, trimLine, wrapsOn,
+} from './chapters';
 
 export interface ExtractOptions {
   /** Turn an image src/href into an asset name (and store the bytes), or undefined to drop the image. */
@@ -22,7 +24,9 @@ type Item =
   | { t: 'p' | 'quote'; raw: string }
   | { t: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; raw: string }
   | { t: 'img'; asset: string; alt?: string }
-  | { t: 'hr' };
+  | { t: 'hr' }
+  /** A blank <p>: no block, but it ends a paragraph of a book set out one printed line per <p>. */
+  | { t: 'gap' };
 
 const SKIP = new Set([
   'script', 'style', 'rt', 'rp', 'rtc', 'head', 'nav', 'noscript', 'template', 'title', 'link', 'meta', 'audio', 'video',
@@ -243,10 +247,12 @@ export function extractBlocks(doc: Document, opts: ExtractOptions = {}): Extract
       const isPre = name === 'pre';
       if (isQuote) quote++;
       if (isPre) pre++;
+      const before = items.length;
       el.childNodes.forEach(walk);
       flush();
       if (isQuote) quote--;
       if (isPre) pre--;
+      if (name === 'p' && items.length === before) items.push({ t: 'gap' });
       return;
     }
     mark(el);
@@ -269,9 +275,14 @@ export function extractBlocks(doc: Document, opts: ExtractOptions = {}): Extract
   return { blocks, anchors: mapped, linkShare: total ? linked / total : 0, linkCount };
 }
 
+/** Leading full-width space or two no-break spaces: the line starts a paragraph. */
+const INDENT = /^[ \t\r\n\f\ue000]*(?:\u3000|\u00a0{2})/;
+
 /**
  * Items to blocks. `<br>` inside a paragraph is a paragraph break, unless the lines across the
  * whole document look hard-wrapped (same width, no sentence ends), in which case it is a soft wrap.
+ * A document set out one printed line per `<p>` (a book typed in from print, blank `<p>`s between its paragraphs) is joined
+ * back the same way when its lines look hard-wrapped: a line that fills the width runs on into the next `<p>`.
  * Returns, for each item, the index of its first block (plus a final entry for the end).
  */
 function expand(items: Item[]): { blocks: Block[]; starts: number[] } {
@@ -285,13 +296,32 @@ function expand(items: Item[]): { blocks: Block[]; starts: number[] } {
     }
   }
   const width = detectWrapWidth(multi);
+  // The text of each one-line <p> (no <br> inside), for the wrap test.
+  const line = items.map((it) => (it.t === 'p' && !it.raw.includes('\n') ? normalizeInline(it.raw) : ''));
+  const lineWidth = width ? 0 : detectLineWrapWidth(line.filter(Boolean));
+  // A short line without a mark that the document sets out again and again (a scene break, such as a row of letters) starts a
+  // paragraph of its own, even where the blank before it was left out.
+  const times = new Map<string, number>();
+  if (lineWidth) for (const l of line) if (l) times.set(l, (times.get(l) ?? 0) + 1);
+  const isBreak = (l: string) => (times.get(l) ?? 0) >= 3 && [...l].length <= lineWidth / 2 && !/\p{P}/u.test(l);
+  const startsParagraph = (k: number) => INDENT.test((items[k] as { raw: string }).raw) || isBreak(line[k]);
 
   const blocks: Block[] = [];
   const starts: number[] = [];
-  for (const it of items) {
+  for (let k = 0; k < items.length; k++) {
+    const it = items[k];
     starts.push(blocks.length);
     if (it.t === 'p' || it.t === 'quote') {
-      const lines = it.raw.split('\n').map(normalizeInline).filter(Boolean);
+      let lines = it.raw.split('\n').map(normalizeInline).filter(Boolean);
+      if (lineWidth && line[k]) {
+        let text = line[k];
+        while (k + 1 < items.length && line[k + 1] && wrapsOn(line[k], line[k + 1], lineWidth, startsParagraph(k + 1))) {
+          k++;
+          starts.push(starts[starts.length - 1]);
+          text = joinWrapped(text, line[k]);
+        }
+        lines = [text];
+      }
       const paras = width && lines.length > 1 ? linesToParagraphs(lines, width) : lines;
       for (const text of paras) {
         if (isSiteJunk(text)) continue;

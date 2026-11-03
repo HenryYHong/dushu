@@ -3,8 +3,8 @@
 // (~/.config/dushu/mac-key, the same as the sync server's MAC_KEY secret) and keeps that session next to the sync folder.
 // Each book goes up as the file itself, under the key a device gives the same file from the Mac (core/syncKeys bookKey), and
 // a device reads it as an import when it comes down (core/cloudBooks). Each book is sent once per account: one deleted from
-// the account on purpose is not sent again. A picture beside a book in the folder, named like it (平凡的世界.jpg beside
-// 平凡的世界.epub), goes up as that book's cover (key c + the book's key), and again whenever the picture changes.
+// the account on purpose is not sent again. A picture beside a book in the folder, named like it (书名.jpg beside
+// 书名.epub), goes up as that book's cover (key c + the book's key), and again whenever the picture changes.
 import { chmodSync, existsSync, mkdirSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, extname, join } from 'node:path';
@@ -109,8 +109,11 @@ export async function sendMacBooks(opts: AccountBooksOptions): Promise<string[]>
     const cover = coverBeside(book.path);
     if (cover) {
       const c = await fileDigest(cover);
-      if (!entries.some((e) => e.key === `c${bookKeyed}` && e.sha === c.sha256)) {
-        await put(`c${bookKeyed}`, basename(cover), cover, c.size, c.sha256);
+      // The account may hold the book's picture under an older importer's key for the book: a change of importer does not put
+      // the same picture there again, and a new picture replaces the one there (a device shows the one put there last).
+      const held = entries.filter((e) => e.key.startsWith('c') && sameBook(e.key.slice(1), bookKeyed));
+      if (!held.some((e) => e.sha === c.sha256)) {
+        await put((held.find((e) => e.key === `c${bookKeyed}`) ?? held[0])?.key ?? `c${bookKeyed}`, basename(cover), cover, c.size, c.sha256);
         names.push(basename(cover));
       }
     }

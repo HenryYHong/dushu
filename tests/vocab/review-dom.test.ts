@@ -8,6 +8,7 @@ import { mount as mountReview } from '../../src/ui/review/review';
 import { mount as mountVocab } from '../../src/ui/vocab/vocab';
 import type { AppContext } from '../../src/types';
 import { item } from './helpers';
+import { miniDict } from '../helpers/mini';
 
 vi.mock('../../src/ui/popup/popup', () => ({ openWordPopup: vi.fn() }));
 
@@ -165,6 +166,29 @@ describe('vocab screen', () => {
     expect(store.known.has('山')).toBe(false);
     await until(() => root.querySelector<HTMLElement>('.voc-known-learned')!.hidden);
     expect(await store.seen.get(['火'])).toEqual([]);
+  });
+
+  it('marks the HSK words up to a level as known: each at its easiest reading, the list\'s 儿 words without 儿 too', async () => {
+    const proto = HTMLDialogElement.prototype as unknown as { showModal?: () => void; close?: () => void };
+    proto.showModal ??= function (this: HTMLDialogElement) { this.setAttribute('open', ''); };
+    proto.close ??= function (this: HTMLDialogElement) { this.removeAttribute('open'); this.dispatchEvent(new Event('close')); };
+    const { ctx, root, store } = await setup([item('爱', 'ai4', 'to love')]);
+    const dict = await miniDict({ hsk: [
+      ['行', '行', '1', '4', '272', 'xing2=1;hang2=3', '', ''],
+      ['一下', '一下', '1', '', '', 'yi1 xia4=1', '', '一下儿'],
+      ['好象', '', '2', '', '', 'hao3 xiang4=2', '', '好像'],
+      ['好像', '', '2', '', '', 'hao3 xiang4=2', '', ''],
+    ] });
+    ctx.dict = () => Promise.resolve(dict);
+    await mountVocab(root, {}, ctx);
+    await until(() => !!root.querySelector('.voc-row'));
+    root.querySelector<HTMLSelectElement>('.voc-level')!.value = '2';
+    [...root.querySelectorAll<HTMLButtonElement>('.voc-known-actions button')].find((b) => b.textContent === 'Mark as known')!.click();
+    await until(() => !!document.querySelector('dialog.voc-dialog'));
+    expect(document.querySelector('.voc-dialog-text')!.textContent).toContain('counts at its easiest reading');
+    [...document.querySelectorAll<HTMLButtonElement>('dialog.voc-dialog button')].find((b) => b.textContent === 'Add 3')!.click();
+    await until(() => store.known.has('一下'));
+    expect(store.known.all().sort()).toEqual(['一下', '好像', '行']);
   });
 
   it('the session summary line is short', async () => {

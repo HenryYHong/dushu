@@ -98,7 +98,7 @@ export function chaptersFromSpine(docs: SpineDoc[], toc: TocRef[]): Chapter[] {
 }
 
 /**
- * A first page that only repeats the book's title and author ("射雕英雄传" over "原著：金庸") is not a
+ * A first page that only repeats the book's title and author ("天龙八部" over "原著：金庸") is not a
  * chapter. It is dropped when other chapters follow.
  */
 export function dropTitlePage(chapters: Chapter[], title: string, author: string): Chapter[] {

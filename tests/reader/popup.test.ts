@@ -199,6 +199,61 @@ describe('word popup', () => {
   });
 });
 
+describe('word popup HSK chip', () => {
+  const levelChip = () => q('.pp-pyline .chip:not(.pp-hsk-other)');
+
+  it('shows the level of the reading on screen', async () => {
+    const { ctx } = await makeCtx();
+    openWordPopup({ ctx, word: '行', reading: ['hang2'], anchor: anchorRect() });
+    expect(levelChip()?.textContent).toBe('HSK 3');
+    expect(levelChip()?.title).toBe('Also HSK 1 in another reading');
+    closePopup();
+    openWordPopup({ ctx, word: '好', reading: ['hao4'], anchor: anchorRect() });
+    expect(levelChip()?.textContent).toBe('HSK 4');
+    closePopup();
+    openWordPopup({ ctx, word: '好', reading: ['hao3'], anchor: anchorRect() });
+    expect(levelChip()?.textContent).toBe('HSK 1');
+    expect(q('.pp-hsk-other')).toBeNull();
+  });
+
+  it('says which reading the list has when it has the word only in another', async () => {
+    const { ctx } = await makeCtx();
+    // 这件事教人担心: 教 jiào "make", where the list's HSK 1 教 is jiāo "teach".
+    openWordPopup({ ctx, word: '教', reading: ['jiao4'], prev: '事', next: '人', anchor: anchorRect() });
+    expect(levelChip()).toBeNull();
+    expect(text('.pp-hsk-other')).toBe('HSK 1 as jiāo');
+    expect(q('.pp-hsk-other')?.title).toContain('not in this reading');
+  });
+
+  it('shows no chip on 道 "said", the list\'s 道 being the measure word', async () => {
+    const { ctx } = await makeCtx();
+    // 老人笑道：“好。”
+    openWordPopup({ ctx, word: '道', reading: ['dao4'], prev: '笑', next: '：', anchor: anchorRect() });
+    expect(q('.pp-pyline .chip')).toBeNull();
+    closePopup();
+    // 黑板上有一道题。
+    openWordPopup({ ctx, word: '道', reading: ['dao4'], prev: '一', next: '题', anchor: anchorRect() });
+    expect(levelChip()?.textContent).toBe('HSK 2');
+  });
+
+  it('shows no chip on a name or place of the book, which is not the HSK word', async () => {
+    const { ctx } = await makeCtx();
+    const lexicon = buildLexicon([{ word: '高明', pinyin: 'gao1 ming2', gloss: 'name (person)', kind: 'name', count: 300, enabled: true, origin: 'auto' }]);
+    openWordPopup({ ctx, word: '高明', anchor: anchorRect(), lexicon, bookId: 'b1' });
+    expect(q('.pp-pyline .chip')).toBeNull();
+    closePopup();
+    openWordPopup({ ctx, word: '高明', anchor: anchorRect() });
+    expect(levelChip()?.textContent).toBe('HSK 7-9');
+  });
+
+  it('says when the list writes the word another way', async () => {
+    const { ctx } = await makeCtx();
+    openWordPopup({ ctx, word: '一下', reading: ['yi2', 'xia4'], anchor: anchorRect() });
+    expect(levelChip()?.textContent).toBe('HSK 1');
+    expect(levelChip()?.title).toBe('On the HSK list as 一下儿');
+  });
+});
+
 describe('phrase popup', () => {
   it('uses the book glossary instead of unrelated dictionary senses in phrase rows', async () => {
     const { ctx } = await makeCtx();
@@ -207,6 +262,18 @@ describe('phrase popup', () => {
     const row = [...document.querySelectorAll('.pp-wbw')].find(e => e.querySelector('.pp-wbw-word')?.textContent === '银行');
     expect(row?.textContent).toContain('The bank in this story');
   });
+  it('reads a phrase shown converted from the book\'s own characters, as the page does', async () => {
+    const { ctx } = await makeCtx({ pinyinStyle: 'numbers' });
+    // A traditional book shown in simplified: 一根髮 is a hair (fà), which the simplified 发 alone, with no neighbor to decide
+    // (披发 has its own rule now), reads fā.
+    const fa = () => [...document.querySelectorAll('.pp-phrase-text ruby')].filter((r) => r.firstChild?.textContent === '发').map((r) => r.querySelector('rt')?.textContent);
+    const shown = { ctx, text: '一根发也不少，\n走了。', anchor: anchorRect() };
+    openPhrasePopup(shown);
+    expect(fa()).toEqual(['fa1']);
+    openPhrasePopup({ ...shown, orig: '一根髮也不少，\n走了。' });
+    expect(fa()).toEqual(['fa4']);
+  });
+
   it('shows the text with pinyin, a translation, and word-by-word rows', async () => {
     const { ctx } = await makeCtx();
     openPhrasePopup({ ctx, text: '我们在银行门口见面。', anchor: anchorRect(), context: '我们在银行门口见面。' });

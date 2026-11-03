@@ -27,7 +27,8 @@
 裡	里	li3	in; inside; within/interior; inner/lining
 裏	里	li3	in; inside; within/interior; inner/lining
 後	后	hou4	after; afterwards; later/behind; back; rear/descendants
-甚	甚	shen4	very; extremely; much/(older writing) what? (as in 甚麼)/excessive; to exceed
+甚	甚	shen2	(older writing) what? (as in 甚麼, 甚事, 甚人)
+甚	甚	shen4	very; extremely; much/excessive; to exceed
 叫	叫	jiao4	to call; to be called/to order; to have (sb do sth); to let/to shout; to cry out; to crow
 若	若	ruo4	if; supposing/like; as; to seem/you (literary)
 時	时	shi2	time; period/when; at the time of/hour; o'clock/season
@@ -223,7 +224,8 @@
 槍	枪	qiang1	gun; firearm; rifle/spear; lance/classifier for shots and thrusts
 陽	阳	yang2	sun; sunlight/yang (the male, positive principle)/south side of a hill; north side of a river/positive (electric)
 兩	两	liang3	two; both; a few/tael (a unit of weight, 1/16 of a catty, in older China)
-賺	赚	zhuan4	to earn; to make a profit/to trick; to cheat (in older writing)
+賺	赚	zuan4	to trick; to cheat; to lure (in older writing, as in 賺開城門, 賺我)
+賺	赚	zhuan4	to earn; to make a profit
 分付	分付	fen1 fu4	to instruct; to tell (the same word as 吩咐)/to distribute and pay
 縫	缝	feng2	to sew; to stitch; to mend
 氣	气	qi4	breath; air; vital energy (qi)/anger; temper; to make angry; to get angry/smell; gas; weather
@@ -233,7 +235,8 @@
 司馬昭	司马昭	Si1 ma3 Zhao1	Sima Zhao (211-265), brother of Sima Shi, whose son founded the Jin dynasty	400
 何進	何进	He2 Jin4	He Jin (-189), general-in-chief of the late Han dynasty	150
 
-教	教	jiao4	to let; to make; to order; to have (sb do sth), as in 教人, 教他去/to teach; to instruct (as in 教書)/religion; teaching (as in 宗教)
+教	教	jiao1	to teach; to instruct (as in 教書, 教你一招, 教他寫字)
+教	教	jiao4	to let; to make; to order; to have (sb do sth), as in 教人, 教他去/religion; teaching; a sect (as in 宗教, 全真教)/teachings; instruction (as in 師教, 之教)
 番	番	fan1	classifier for occurrences and spells (as in 幾番, 三番五次, 一番話)/foreign; barbarian/turn; time
 勒	勒	le4	to rein in; to tie tight; to force (as in 勒馬, 勒令, 勒索)/bridle; halter
 許攸	许攸	Xu3 You1	Xu You (-204), adviser who left Yuan Shao for Cao Cao	200
@@ -347,7 +350,8 @@
 影	影	ying3	shadow; reflection (as in 樹影)/image; trace/picture; film
 一口	一口	yi1 kou3	a mouthful; one bite; one gulp/a person, a mouth in a household (as in 一口人)/in one breath; flatly (as in 一口答應)
 允	允	yun3	to allow; to permit; to promise/just; fair
-應	应	ying1	should; ought to; must/to answer; to respond/to agree to
+應	应	ying4	to answer; to respond (as in 應道, 應了一聲)/to answer to; to meet; to deal with (as in 應付, 應戰, 救應, 內應)/to bear out; to come true (as in 應了那句話)
+應	应	ying1	should; ought to; must/to agree to; to promise (as in 應允, 答應)
 員	员	yuan2	classifier for generals and officers (as in 大將一員)/member; staff (as in 官員, 人員)
 程	程	cheng2	journey; distance; stage (as in 路程)/rule; regulations; procedure/Cheng (surname)
 單福	单福	Shan4 Fu2	Shan Fu, the name Xu Shu used when he served Liu Bei	100
@@ -369,3 +373,115 @@
 骰子	骰子	tou2 zi5	dice (the dictionary reading; in speech usually shǎizi)
 骰子	骰子	shai3 zi5	dice (how 骰子 is usually said; also written 色子)
 擲骰子	掷骰子	zhi4 shai3 zi5	to throw dice (usually said zhì shǎizi)
+孫乾	孙乾	Sun1 Qian2	Sun Qian (died c. 215), adviser and envoy of Liu Bei in Romance of the Three Kingdoms	50
+張角	张角	Zhang1 Jue2	Zhang Jue (-184), leader of the Yellow Turban rebellion	200
+張寶	张宝	Zhang1 Bao3	Zhang Bao (-184), brother of Zhang Jue and a leader of the Yellow Turban rebellion	200
+華雄	华雄	Hua4 Xiong2	Hua Xiong (-191), general of Dong Zhuo, killed by Guan Yu in Romance of the Three Kingdoms	200
+蔣幹	蒋干	Jiang3 Gan4	Jiang Gan, adviser of Cao Cao sent to win over Zhou Yu, his old friend	200
+王允	王允	Wang2 Yun3	Wang Yun (137-192), Han minister who plotted the death of Dong Zhuo	200
+張松	张松	Zhang1 Song1	Zhang Song (-212), adviser of Liu Zhang who brought the map of Shu to Liu Bei	200
+張讓	张让	Zhang1 Rang4	Zhang Rang (-189), head of the Ten Eunuchs at the end of the Han	200
+子龍	子龙	Zi3 long2	Zilong, courtesy name of Zhao Yun 趙雲	200
+公瑾	公瑾	Gong1 jin3	Gongjin, courtesy name of Zhou Yu 周瑜	200
+子敬	子敬	Zi3 jing4	Zijing, courtesy name of Lu Su 魯肅	200
+翼德	翼德	Yi4 de2	Yide, courtesy name of Zhang Fei 張飛	200
+仲達	仲达	Zhong4 da2	Zhongda, courtesy name of Sima Yi 司馬懿	200
+孟德	孟德	Meng4 de2	Mengde, courtesy name of Cao Cao 曹操	200
+本初	本初	Ben3 chu1	Benchu, courtesy name of Yuan Shao 袁紹/(literary) original; beginning	200
+元直	元直	Yuan2 zhi2	Yuanzhi, courtesy name of Xu Shu 徐庶	200
+伯約	伯约	Bo2 yue1	Boyue, courtesy name of Jiang Wei 姜維	200
+會稽	会稽	Kuai4 ji1	Kuaiji, old commandery and mountain in today's Shaoxing, Zhejiang	200
+李應	李应	Li3 Ying4	Li Ying, the Heaven-Striking Eagle, one of the 108 heroes of the Water Margin	100
+老孫	老孙	lao3 Sun1	Old Sun (how Sun Wukong speaks of himself)/old Sun (a familiar way to call someone surnamed Sun)	300
+哪咤	哪咤	Ne2 zha1	Nezha, the boy god, third son of the Heavenly King Li (also written 哪吒)	200
+木叉	木叉	Mu4 cha1	Mucha (Moksha), disciple of Guanyin, also called Hui'an 惠岸	200
+惠岸	惠岸	Hui4 an4	Hui'an, Guanyin's disciple Mucha 木叉	200
+羅剎女	罗刹女	Luo2 cha4 nü3	Rakshasi, the demoness Princess Iron Fan 鐵扇公主/(Buddhism) a female demon	200
+東勝神洲	东胜神洲	Dong1 sheng4 shen2 zhou1	Purvavideha, the eastern continent of Buddhist cosmology, where the Flower and Fruit Mountain lies	100
+西牛賀洲	西牛贺洲	Xi1 niu2 he4 zhou1	Aparagodaniya, the western continent of Buddhist cosmology	100
+北俱蘆洲	北俱芦洲	Bei3 ju4 lu2 zhou1	Uttarakuru, the northern continent of Buddhist cosmology	100
+鎮元子	镇元子	Zhen4 yuan2 zi3	Zhenyuanzi, the immortal of the Wuzhuang Temple, master of the ginseng-fruit tree	200
+五莊觀	五庄观	Wu3 zhuang1 guan4	Wuzhuang Temple, Zhenyuanzi's temple on Mount Longevity	200
+靈吉	灵吉	Ling2 ji2	Lingji, a bodhisattva (靈吉菩薩) who helps Sun Wukong	200
+劉洪	刘洪	Liu2 Hong2	Liu Hong, the ferryman who murdered Chen Guangrui and took his post	100
+寧國府	宁国府	Ning2 guo2 fu3	the Ningguo mansion of the Jia family	200
+寧府	宁府	Ning2 fu3	the Ningguo mansion (short for 寧國府)	200
+榮府	荣府	Rong2 fu3	the Rongguo mansion (short for 榮國府)	200
+巧姐	巧姐	Qiao3 jie3	Qiaojie, daughter of Wang Xifeng and Jia Lian	200
+巧姐兒	巧姐儿	Qiao3 jie3 er2	Qiaojie, daughter of Wang Xifeng and Jia Lian	200
+元妃	元妃	Yuan2 fei1	the Imperial Consort Yuan (Jia Yuanchun)/(archaic) first wife of a ruler	200
+賈妃	贾妃	Jia3 fei1	the Imperial Consort Jia (Jia Yuanchun)	200
+倪二	倪二	Ni2 Er4	Ni Er, the Drunken Diamond, a moneylender and neighbor of Jia Yun	200
+金榮	金荣	Jin1 Rong2	Jin Rong, a pupil of the Jia family school	200
+外曾祖父	外曾祖父	wai4 zeng1 zu3 fu4	great-grandfather on the mother's side (mother's grandfather)	100
+高粱稭	高粱秸	gao1 liang2 jie1	sorghum stalk	100
+長年	长年	chang2 nian2	all the year round/(old, regional) a farmhand hired by the year; a long-term laborer (the same as 長工)
+保山	保山	bao3 shan1	(old) a guarantor; a go-between; a matchmaker (as in 做保山)
+大汗	大汗	da4 han2	the Great Khan (title of the supreme Mongol ruler, as of Genghis Khan)	300
+一行	一行	yi1 hang2	a line (of writing or print); a row (of trees, of tears)
+打折	打折	da3 she2	to break (a leg, an arm) by beating
+刺配	刺配	ci4 pei4	to tattoo the face of a convict and exile him to a distant garrison (punishment in the old novels)	300
+軍州	军州	jun1 zhou1	garrison prefecture (place of exile in the old novels, as in 遠惡軍州)	300
+柳枝	柳枝	liu3 zhi1	willow branch; willow twig	300
+楊柳枝	杨柳枝	yang2 liu3 zhi1	willow branch (as carried by Guanyin in Journey to the West)	300
+押司	押司	ya1 si1	clerk of a county office (Song dynasty), as Song Jiang in the Water Margin	300
+張翼德	张翼德	Zhang1 Yi4 de2	Zhang Yide, Zhang Fei 張飛 by his courtesy name	300
+科斗	科斗	ke1 dou3	tadpole (older form of 蝌蚪)	200
+發見	发见	fa1 xian4	to discover; to find (older form of 發現)	200
+魯鎮	鲁镇	Lu3 zhen4	Luzhen, the town of Lu Xun's stories	200
+咸亨	咸亨	Xian2 heng1	Xianheng, the wine shop in Lu Xun's Kong Yiji	200
+張果老	张果老	Zhang1 Guo3 lao3	Zhang Guolao, one of the Eight Immortals of Daoism	300
+道臺	道台	dao4 tai2	circuit intendant (official of the Ming and Qing dynasties)	200
+彷佛	彷佛	fang3 fu2	as if; seemingly (older form of 仿佛)	200
+不想	不想	bu4 xiang3	not to want to; would rather not/(also) unexpectedly; to one's surprise
+要說	要说	yao4 shuo1	to want to say; to be going to say/as for; when it comes to
+來看	来看	lai2 kan4	to come and see; to come to visit/to view it from the angle of ...; considering ...; in terms of
+來說	来说	lai2 shuo1	to come and say; to come to tell/(after 對於 or 就) as for; concerning; speaking of
+死不了	死不了	si3 bu4 liao3	cannot die; will not die/Portulaca (a garden plant, the moss rose)
+好些	好些	hao3 xie1	a little better; somewhat better (as in 好些了)/a good deal of; quite a lot
+要死	要死	yao4 si3	to be about to die; to be dying/extremely; awfully (as in 累得要死)
+說好	说好	shuo1 hao3	to say yes; to say it is good/to come to an agreement; to agree on (as in 說好了)
+穿過	穿过	chuan1 guo4	to pass through; to go across/(have) worn (as in 沒穿過)
+一來	一来	yi1 lai2	firstly, ... (as in 一來…二來…)/(after a person) as soon as (sb) comes; once (sb) has come
+這一來	这一来	zhe4 yi1 lai2	this way; as a result; thereupon	100
+這麼一來	这么一来	zhe4 me5 yi1 lai2	in this way; as a result; this being so	100
+村口	村口	cun1 kou3	village entrance	300
+街口	街口	jie1 kou3	street intersection; street entrance	300
+縣太爺	县太爷	xian4 tai4 ye2	(derogatory) (historical) head of a county; county magistrate	50
+做聲	做声	zuo4 sheng1	to make a sound; to say something (as in 不做聲, to keep silent)	100
+雇工	雇工	gu4 gong1	to hire labour/hired laborer	50
+破落	破落	po4 luo4	to decline (in wealth and position); to fall into reduced circumstances; to be reduced to poverty/in a state of disrepair; dilapidated; run-down	50
+說穿	说穿	shuo1 chuan1	to tell what something really is; to reveal; to disclose	100
+決然	决然	jue2 ran2	resolute; determined/definitely; surely	50
+垂暮	垂暮	chui2 mu4	evening/old age	30
+馬蜂窩	马蜂窝	ma3 feng1 wo1	nest of hornets or wasps/difficult or unpleasant person or situation; hornets' nest	30
+後福	后福	hou4 fu2	good fortune in the future or in one's old age	30
+人堆	人堆	ren2 dui1	crowd	30
+衞生院	卫生院	wei4 sheng1 yuan4	health centre	50
+不是滋味	不是滋味	bu4 shi4 zi1 wei4	to be upset/to feel disgusted	50
+黨國	党国	dang3 guo2	party and nation; the party and the state	30
+麥田	麦田	mai4 tian2	cornfield/wheat field; wheatland	100
+太師椅	太师椅	tai4 shi1 yi3	Grand Preceptor armchair (a traditional wooden armchair with a wide seat)	30
+他娘的	他娘的	ta1 niang2 de5	damn it! (a curse, like 他媽的)/(literally) his mother's	100
+長臉	长脸	chang2 lian3	a long face; a long, narrow face (as in 一張長臉)/(zhǎngliǎn) to do someone proud; to bring credit to
+月白	月白	yue4 bai2	(literary) the moon is bright and clear/(Wu) moon color (as white as the moon)/(Cantonese) lunula; pale area at the base of the nail	50
+分界	分界	fen1 jie4	dividing line; line of demarcation/to have as the boundary; to be demarcated by	50
+曬場	晒场	shai4 chang2	threshing floor; drying ground (where grain is spread out to dry)	100
+窩棚	窝棚	wo1 peng5	shed; shack; matshed	100
+麥場	麦场	mai4 chang2	thrashing floor for wheat	100
+羊棚	羊棚	yang2 peng2	sheep pen; sheep shed	50
+水紅	水红	shui3 hong2	pink; bright pink (a light red, as of a dress)	50
+撲哧	扑哧	pu1 chi1	(onom.) a stifled laugh, or the sound of something suddenly letting go (as in 撲哧一笑)	100
+咿呀	咿呀	yi1 ya1	(onom.) the creak of an oar or a door; a child's babble; the drone of reading aloud	50
+份上	份上	fen4 shang5	(in 看在…的份上) for the sake of; out of regard for/to such an extent; to this point	100
+分上	分上	fen4 shang5	(in 看在…的分上) for the sake of; out of regard for
+昨晚上	昨晚上	zuo2 wan3 shang5	last night; yesterday evening	50
+實心眼	实心眼	shi2 xin1 yan3	simple-hearted; honest and naive; without guile	20
+丈二和尚	丈二和尚	zhang4 er4 he2 shang5	completely baffled; at a loss (from a saying about a monk ten feet tall: one cannot reach his head)	20
+分幣	分币	fen1 bi4	one-fen coin; a coin of small value	20
+寡合	寡合	gua3 he2	unsociable; finding it hard to get along with others (as in 落落寡合)	20
+尖聲細氣	尖声细气	jian1 sheng1 xi4 qi4	in a shrill, thin voice	20
+左等右等	左等右等	zuo3 deng3 you4 deng3	to wait and wait; to wait a long time	20
+左看右看	左看右看	zuo3 kan4 you4 kan4	to look this way and that; to look it over again and again	20
+想來想去	想来想去	xiang3 lai2 xiang3 qu4	to think it over and over; after much thought	50
+看來看去	看来看去	kan4 lai2 kan4 qu4	to look this way and that; to look it over again and again	50

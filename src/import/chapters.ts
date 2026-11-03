@@ -223,6 +223,53 @@ function joinable(prev: string, width: number): boolean {
   return n >= width - 2 || (n >= width * 0.8 && !TERMINAL.test(prev));
 }
 
+/** A clause or sentence mark before the last character: the line is prose, not a line of verse. */
+const INNER_MARK = /[，、。；：？！,;:?!]./u;
+
+/**
+ * The width a document set out one printed line per paragraph element was hard-wrapped at (its real paragraphs then end at a
+ * blank element or a short line), or 0. Stricter than detectWrapWidth, because each element is normally a paragraph of its
+ * own: at least 20 lines fill the width, and most of those are prose (a mark inside the line), so verse set one line per
+ * element, whose lines are as alike, is left alone.
+ */
+export function detectLineWrapWidth(lines: string[]): number {
+  const width = detectWrapWidth(lines);
+  if (!width) return 0;
+  let full = 0;
+  let prose = 0;
+  for (const l of lines) {
+    const n = cpLen(l);
+    if (n < width - 2 || n > width) continue;
+    full++;
+    if (INNER_MARK.test(l)) prose++;
+  }
+  return full >= 20 && prose / full >= 0.6 ? width : 0;
+}
+
+/** A line that ends a sentence: a stop, or a closing quotation mark. */
+const ENDS_SENTENCE = /[。！？!?…”」』]$/u;
+/** A line that opens a quotation. */
+const OPENS_QUOTE = /^[“「『]/u;
+
+/**
+ * Whether `next` continues the paragraph of the line `prev` in a document hard-wrapped at `width` (detectLineWrapWidth): `prev`
+ * nearly fills the width, and `next` does not start a paragraph (`nextStarts`: indented, or a scene break the document sets
+ * out on its own elsewhere), and is not a heading, a rule or site junk. A sentence that ends at the end of the line followed by
+ * a quotation is a new speaker, a paragraph of its own in print: where the typist left out the blank between the two
+ * paragraphs, this is the one sign of it.
+ */
+export function wrapsOn(prev: string, next: string, width: number, nextStarts = false): boolean {
+  // A line longer than the width was not wrapped (a list of dates set out in full): it ends its paragraph.
+  if (nextStarts || cpLen(prev) > width || !joinable(prev, width)) return false;
+  if (ENDS_SENTENCE.test(prev) && OPENS_QUOTE.test(next)) return false;
+  return !detectHeadingLine(next) && !isRuleLine(next) && !isSiteJunk(next);
+}
+
+/** Two lines of a hard-wrapped paragraph as one (CJK lines meet without a space). */
+export function joinWrapped(a: string, b: string): string {
+  return joinPieces(a, b);
+}
+
 /**
  * Turn raw lines into paragraphs. Blank lines end a paragraph; with a wrap width, a line that
  * nearly fills it continues into the next one unless the next one is indented (a new paragraph).

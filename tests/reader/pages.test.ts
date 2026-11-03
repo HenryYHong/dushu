@@ -668,7 +668,7 @@ describe('book lexicon in the reader', () => {
 
 
 describe('long chapters are paginated a few spreads ahead, not all at once', () => {
-  const longChapters: Chapter[] = [{ title: '长章', blocks: Array.from({ length: 450 }, (_, i) => ({ t: 'p' as const, text: `第${i}段，我们在银行门口见面，他慢慢地走了过来，对我说了很多很多的话。` + '我们一起去银行门口见面，然后又回到了学校里面学习汉语。'.repeat(1) })) }];
+  const longChapters: Chapter[] = [{ title: '长章', blocks: Array.from({ length: 450 }, (_, i) => ({ t: 'p' as const, text: `第${i}段，我们在银行门口见面，他慢慢地走了过来，跟我聊了好半天的天。` + '我们约好在银行门口碰头，然后一起回学校上汉语课。'.repeat(1) })) }];
 
   async function openLong(settings = {}, params: Record<string, string> = {}) {
     const made = await makeCtx({ pinyin: 'all', layout: 'pages', pageTurn: 'none', spread: 'single', ...settings });

@@ -131,7 +131,8 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     const word = text(w.word);
     const known = isKnown(w);
     const saved = isSaved(w);
-    const level = engine ? engine.level(w.key) : ctx.dictSync()?.hsk(w.key)?.hsk3;
+    // Chinese: the level of the chapter's most common reading of the word (教 jiào has none: the list's 教 is jiāo).
+    const level = engine ? engine.level(w.key) : ctx.dictSync()?.hsk(w.key, w.pinyin)?.hsk3;
     const levelText = !level ? '' : engine ? levelLabel(level) : level === 7 ? 'HSK 7+' : `HSK ${level}`;
     const stop = pos === tab.rove ? '0' : '-1';
     const main = h('button.rd-name-main.rd-word-main', {

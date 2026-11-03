@@ -14,12 +14,12 @@ describe('isBoilerplateLine', () => {
     '更多精彩小说请访问 www.example.com',
     '更多精彩尽在 http://www.example.com/book/123.html',
     '更多精彩内容请关注',
-    '射雕英雄传txt下载',
-    '《射雕英雄传》TXT电子书下载',
+    '天龙八部txt下载',
+    '《天龙八部》TXT电子书下载',
     '手机阅读请访问 m.example.com',
     '手机用户请浏览 m.example.cn 阅读',
-    '射雕英雄传最新章节',
-    '射雕英雄传全文阅读',
+    '天龙八部最新章节',
+    '天龙八部全文阅读',
     '上一章 目录 下一章',
     '[上一页] [返回目录] [下一页]',
     '（未完待续）',
@@ -101,15 +101,15 @@ describe('stripBoilerplate', () => {
 });
 
 describe('text files from download sites', () => {
-  const junkHead = ['【www.example.com】射雕英雄传 txt下载', '本书由“某某论坛”整理制作', '更多精彩小说，尽在 www.example.com', ''];
-  const chapter = (heading: string, n: number) => [heading, '', ...Array.from({ length: 8 }, (_, k) => `　　${prose(120, n * 9 + k)}`), '', '（未完待续）', '手机阅读请访问 m.example.com', '射雕英雄传最新章节', ''];
+  const junkHead = ['【www.example.com】天龙八部 txt下载', '本书由“某某论坛”整理制作', '更多精彩小说，尽在 www.example.com', ''];
+  const chapter = (heading: string, n: number) => [heading, '', ...Array.from({ length: 8 }, (_, k) => `　　${prose(120, n * 9 + k)}`), '', '（未完待续）', '手机阅读请访问 m.example.com', '天龙八部最新章节', ''];
 
   it('strips the boilerplate and keeps the story', async () => {
-    const lines = [...junkHead, '射雕英雄传', '作者：金庸', '', ...chapter('第一回 风雪惊变', 1), ...chapter('第二回 江南七怪', 2), ...chapter('第三回 大漠风沙', 3)];
-    const book = await importFile(asFile(enc(lines.join('\r\n')), '射雕英雄传.txt'));
-    expect(book.title).toBe('射雕英雄传');
+    const lines = [...junkHead, '天龙八部', '作者：金庸', '', ...chapter('第一回 山门夜雨', 1), ...chapter('第二回 渡口相逢', 2), ...chapter('第三回 塞外风沙', 3)];
+    const book = await importFile(asFile(enc(lines.join('\r\n')), '天龙八部.txt'));
+    expect(book.title).toBe('天龙八部');
     expect(book.author).toBe('金庸');
-    expect(book.chapters.map((c) => c.title)).toEqual(['第一回 风雪惊变', '第二回 江南七怪', '第三回 大漠风沙']);
+    expect(book.chapters.map((c) => c.title)).toEqual(['第一回 山门夜雨', '第二回 渡口相逢', '第三回 塞外风沙']);
     const text = book.chapters.flatMap((c) => c.blocks.map((b) => (b.t === 'p' || b.t === 'h' ? b.text : ''))).join('\n');
     expect(text).not.toMatch(/example|整理制作|未完待续|手机阅读|最新章节|txt下载/i);
     expect(text).toContain(prose(120, 9));
@@ -117,7 +117,7 @@ describe('text files from download sites', () => {
   });
 
   it('drops a site name repeated on every page of a long file', async () => {
-    const lines: string[] = ['射雕英雄传'];
+    const lines: string[] = ['天龙八部'];
     for (let c = 1; c <= 12; c++) {
       lines.push(`第${c}回 标题${c}`, '');
       for (let k = 0; k < 20; k++) {

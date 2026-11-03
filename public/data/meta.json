@@ -31,6 +31,11 @@
       "url": "https://github.com/fxsjy/jieba"
     },
     {
+      "name": "hsk30 (Ivan Krasilnikov)",
+      "license": "MIT",
+      "url": "https://github.com/ivankra/hsk30"
+    },
+    {
       "name": "complete-hsk-vocabulary",
       "license": "MIT",
       "url": "https://github.com/drkameleon/complete-hsk-vocabulary"

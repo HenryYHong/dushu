@@ -49,12 +49,16 @@ export interface CharInfo {
 }
 
 export interface HskInfo {
-  /** HSK 3.0 (2021) band, 1–6, 7 means 7–9. */
+  /** HSK 3.0 (2021) band, 1–6, 7 means 7–9: of the reading asked for, or with no reading the word's easiest. */
   hsk3?: number;
-  /** Old HSK 2.0 level 1–6. */
+  /** Old HSK 2.0 level 1–6, per word (no source grades its readings). */
   hsk2?: number;
   /** Frequency rank from the HSK list (lower = more common). */
   rank?: number;
+  /** A reading was asked for and the list grades this word only in others: those, lowest level first (教 jiào: jiāo 1). */
+  elsewhere?: { pinyin: string[]; hsk3: number }[];
+  /** The list writes this word another way, and this spelling stands for it: 一下 for 一下儿, 好象 for 好像. */
+  of?: string;
 }
 
 export interface DataMeta {
@@ -72,16 +76,31 @@ export interface Dictionary {
   freq(word: string): number;
   /** Per-character info for ANY CJK ideograph (all Unicode blocks); null only for non-Han input. */
   char(ch: string): CharInfo | null;
-  hsk(word: string): HskInfo | null;
-  /** Simplified HSK 3.0 words at levels 1..maxLevel (7 = 7–9), for "mark as known" bulk actions. */
+  /**
+   * HSK levels of a word. With `pinyin` (numbered, one syllable per character: the reading on screen), hsk3 is the level of
+   * that reading on the official list, and is missing when the list grades the word only in other readings (教 jiào).
+   */
+  hsk(word: string, pinyin?: readonly string[]): HskInfo | null;
+  /** Simplified HSK 3.0 words at levels 1..maxLevel (7 = 7–9), each at its easiest reading, for "mark as known" bulk actions. */
   hskWords(maxLevel: number): string[];
+  /**
+   * Every reading the list gives its own forms at levels 1..maxLevel, with the same-word readings that are another reading,
+   * not just another neutral tone (血 xuè beside xiě, not 老婆 lǎopó beside lǎopo).
+   */
+  hskReadings(maxLevel: number): { word: string; pinyin: string[]; hsk3: number }[];
   /** Dictionary words starting at text[start] (code-unit index), longest first. Always includes the single char if it is Han. */
   wordsAt(text: string, start: number): string[];
   /**
    * Best numbered pinyin for `word` in context, one syllable per code point
    * (non-Han code points get "" ). Handles polyphones (了 le/liǎo, 的, 着, 得, 地 …).
    */
-  pinyinFor(word: string, ctx?: { prev?: string; next?: string; /** The token after `next` (for 倒了茶 vs 墙倒了). */ after?: string }): string[];
+  pinyinFor(word: string, ctx?: {
+    prev?: string; next?: string; /** The token after `next` (for 倒了茶 vs 墙倒了). */ after?: string;
+    /** `word` as the book spells it, when the reader shows it converted (为 shown, 為 written); same number of code points. */
+    orig?: string;
+    /** The texts of every token of the paragraph, and the index of this word among them (rules that look further than `next`). */
+    line?: readonly string[]; at?: number;
+  }): string[];
   toSimplified(text: string): string;
   toTraditional(text: string): string;
   meta: DataMeta;
@@ -307,7 +326,7 @@ export interface SyncRow {
   fresh?: 1;
   /** A reading place for a book this device does not have yet, applied when the book arrives. */
   held?: unknown;
-  /** A saved word's signature without the book it names (core/sync.ts bareOf). */
+  /** A saved or looked-up word's signature without the book it names (core/sync.ts bareOf). */
   bare?: string;
 }
 

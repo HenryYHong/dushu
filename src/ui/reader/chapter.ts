@@ -1,9 +1,8 @@
 // One chapter on screen: a shell element per block, rendered in batches, with live updates for pinyin,
 // saved/known words and highlights. Segmentation happens once per block; settings changes touch existing nodes.
-import { buildLexicon } from '../../core/lexicon';
 import { hskLevels } from '../../core/hskLevel';
-import type { AppContext, Block, Chapter, Dictionary, Lexicon, Settings, Token } from '../../types';
-import { segment } from '../../core/segment';
+import type { AppContext, Block, Chapter, Dictionary, Lexicon, Script, Settings, Token } from '../../types';
+import { inScript, lexiconInScript, segmentShown } from './shown';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { createTranslationPanel, type TranslationPanel } from '../popup/translation';
@@ -24,6 +23,8 @@ export interface BlockState {
   el: HTMLElement;
   /** Text as displayed (after script conversion). Empty for images and rules. */
   text: string;
+  /** The same text as the book spells it (before script conversion). */
+  source: string;
   /** Where this block's text starts inside the stored block it came from (a very long paragraph is cut into pieces). */
   pieceStart: number;
   rendered: RenderedParagraph | null;
@@ -39,6 +40,8 @@ export interface ChapterViewOptions {
   chapterIndex: number;
   /** Names and terms of the book; they join segmentation. Replace later with `setLexicon`. */
   lexicon?: Lexicon;
+  /** The script the book is written in (BookMeta.script): its own characters stay when the page shows that script. */
+  script?: Script;
   /** Called when something inside the chapter changed its height (a paragraph translation opened or grew, an image loaded). */
   onResize?: () => void;
   /**
@@ -215,18 +218,12 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     const mode = settings().script;
     if (!lexicon || mode === 'original') return lexicon;
     if (lexMemo && lexMemo.lex === lexicon && lexMemo.mode === mode) return lexMemo.out;
-    const conv = mode === 'simplified' ? dict.toSimplified : dict.toTraditional;
-    const out = buildLexicon(lexicon.entries().map((e) => ({ ...e, word: conv.call(dict, e.word) })).filter((e) => [...e.word].length === [...e.pinyin.split(' ')].length || !e.pinyin));
+    const out = lexiconInScript(lexicon, mode, dict, o.script);
     lexMemo = { lex: lexicon, mode, out };
     return out;
   }
 
-  const convert = (text: string): string => {
-    const mode = settings().script;
-    if (mode === 'simplified') return dict.toSimplified(text);
-    if (mode === 'traditional') return dict.toTraditional(text);
-    return text;
-  };
+  const convert = (text: string): string => inScript(text, settings().script, dict, o.script);
 
   // ---- shells
   const blocks: BlockState[] = sourceBlocks.map((block, index) => {
@@ -272,9 +269,9 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     if (kind === 'text' && isChinese() && !/[\p{Script=Han}]/u.test(text)) el.classList.add('rd-plain');
     else if (kind === 'text' && block.t === 'p' && text.length <= SHORT_PARAGRAPH) el.classList.add('rd-short');
     article.appendChild(el);
-    return { index, kind, block, el, text, pieceStart: piece.start, rendered: null, trans: null, transBtn: null };
+    return { index, kind, block, el, text, source: text, pieceStart: piece.start, rendered: null, trans: null, transBtn: null };
   });
-  const sourceText = blocks.map((b) => b.text);
+  const sourceText = blocks.map((b) => b.source);
   blocks.forEach((b) => { if (b.kind === 'text') b.text = convert(b.text); });
 
   // ---- rendering
@@ -283,7 +280,8 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
   function renderBlock(b: BlockState): void {
     if (b.rendered || b.kind !== 'text') return;
     try {
-      const tokens = segment(b.text, dict, shownLexicon(), 'ruby' in b.block ? b.block.ruby : undefined);
+      // Cut in the text shown, read from the book's own characters (为 shown, 為 written: wéi).
+      const tokens = segmentShown(b.text, sourceText[b.index], dict, shownLexicon(), 'ruby' in b.block ? b.block.ruby : undefined);
       const opts = renderOptions();
       const shown = displayTokens(tokens, opts.sandhi);
       const { nodes, views } = renderTokens(tokens, shown, { ...opts, deferPinyin: lazy });

@@ -75,6 +75,8 @@
 
 .pp-pyline { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; }
 .pp-py { font-family: var(--font-pinyin); font-size: 19px; letter-spacing: 0.02em; }
+/* The HSK list has the word only in another reading ("HSK 1 as jiāo"): an outline, quieter than a level. */
+.pp-hsk-other { background: none; box-shadow: inset 0 0 0 1px var(--hairline); color: var(--text-3); font-weight: 500; }
 .pp-trad-note { color: var(--text-3); font-size: 13px; }
 .pp-trad-note .zh { font-size: 16px; color: var(--text-2); }
 

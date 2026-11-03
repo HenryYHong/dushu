@@ -48,6 +48,16 @@ describe('西遊記', () => {
     const m = by(await found);
     expect(kinds(m, ['悟空', '唐王', '孤直公'])).toEqual(['悟空:name', '唐王:name', '孤直公:name']);
   });
+  it('calls 黃花觀 a temple (its 道士 do not make it speak), read guàn, and drops 鬧天宮, the tail of 大鬧天宮', async () => {
+    const m = by(await found);
+    expect(m.get('黃花觀')).toMatchObject({ kind: 'place', pinyin: 'huang2 hua1 guan4' });
+    expect(m.has('鬧天宮')).toBe(false);
+  });
+  it('adds 劉伯欽 around 伯欽, but not 蒙唐王 (蒙 "to receive" before a title)', async () => {
+    const m = by(await found);
+    expect(m.get('劉伯欽')).toMatchObject({ kind: 'name', pinyin: 'liu2 bo2 qin1' });
+    expect(m.has('蒙唐王')).toBe(false);
+  });
 });
 
 describe('三國演義', () => {
@@ -82,6 +92,11 @@ describe('三國演義', () => {
     expect(segment('關雲長曰', d, lex)[0].text).toBe('關雲長');
     for (const w of ['劉備', '關羽', '張飛', '諸葛亮']) expect(segment(`${w}曰`, d, lex)[0].text, w).toBe(w);
   });
+  it('finds 劉岱 beside 馬岱, who holds most of the 岱, and does not take 魏延解孟獲 (escorts) for a surname', async () => {
+    const m = by(await found);
+    expect(m.get('劉岱')).toMatchObject({ kind: 'name', pinyin: 'liu2 dai4' });
+    expect(m.has('解孟獲')).toBe(false);
+  });
 });
 
 describe('水滸傳', () => {
@@ -100,6 +115,21 @@ describe('水滸傳', () => {
     const names = ['燕順', '阮小二', '李小二', '宋太公', '蕭讓', '周通', '葉清', '張橫', '盧俊義', '梁山泊'];
     expect(kinds(m, names)).toEqual(names.map((w) => `${w}:name`));
     expect(kinds(m, ['沒羽箭', '沒遮攔'])).toEqual(['沒羽箭:term', '沒遮攔:term']);
+  });
+  it('makes a title that follows several surnames a term, and the officers names (魯提轄, 孫提轄, 陸虞候)', async () => {
+    const m = by(await found);
+    expect(kinds(m, ['提轄', '虞候', '節級', '樞密'])).toEqual(['提轄:term', '虞候:term', '節級:term', '樞密:term']);
+    expect(kinds(m, ['魯提轄', '孫提轄', '陸虞候', '李虞候'])).toEqual(['魯提轄:name', '孫提轄:name', '陸虞候:name', '李虞候:name']);
+    // A full name the given name stood for (婆惜 → 閻婆惜), and 小嘍囉, "the underlings", is not a person.
+    expect(m.get('閻婆惜')?.kind).toBe('name');
+    expect(m.has('小嘍囉')).toBe(false);
+    // 都 inside a title is dū.
+    expect(m.get('張都監')?.pinyin).toBe('zhang1 du1 jian1');
+  });
+  it('finds 費珍 beside 解珍, and never takes the end of a nickname for a surname (九紋龍史進, 轟天雷凌振)', async () => {
+    const m = by(await found);
+    expect(m.get('費珍')?.kind).toBe('name');
+    for (const w of ['龍史進', '雷凌振']) expect(m.has(w), w).toBe(false);
   });
 });
 
@@ -138,6 +168,33 @@ describe('紅樓夢', () => {
     const d = await dictP;
     const lex = buildLexicon(await found);
     for (const w of ['林黛玉', '賈寶玉', '王熙鳳']) expect(segment(`${w}道`, d, lex)[0].text, w).toBe(w);
+  });
+  it('adds the full name of a found given name (子興 → 冷子興) and the given name of a full one (林如海 → 如海)', async () => {
+    const m = by(await found);
+    expect(m.get('冷子興')?.kind).toBe('name');
+    expect(m.get('如海')).toMatchObject({ kind: 'name', gloss: 'name (person), short for 林如海' });
+    // 嬤嬤 follows 李, 趙, 賴 and 宋: a word for a nurse, not a person; 李嬤嬤 is one.
+    expect(m.get('嬤嬤')?.kind).not.toBe('name');
+    expect(m.get('李嬤嬤')).toMatchObject({ kind: 'name', pinyin: 'li3 mo2 mo5' });
+  });
+  it('adds a full name the book uses only a few times when no other surname stands before the given name (夏金桂, 賈代儒)', async () => {
+    const m = by(await found);
+    expect(m.get('夏金桂')).toMatchObject({ kind: 'name', pinyin: 'xia4 jin1 gui4' });
+    expect(m.get('賈代儒')).toMatchObject({ kind: 'name', pinyin: 'jia3 dai4 ru2' });
+  });
+});
+
+describe('short public-domain texts', () => {
+  const read = (id: string) => readFileSync(join(__dirname, '..', '..', 'public', 'samples', `${id}.txt`), 'utf8');
+  it('finds the places and the pen name a few-thousand-character essay names a handful of times, and nothing else', async () => {
+    const d = await dictP;
+    const words = (id: string) => detectTerms([read(id)], d).map((e) => `${e.word}:${e.kind}`);
+    expect(words('zhu-ziqing-sanwen')).toContain('白马湖:place');
+    expect(words('chunfeng-chenzui')).toContain('邓脱路:place');
+    expect(words('zhaohua-xishi')).toContain('百草园:place');
+    expect(words('dongwu-gushi')).toContain('仲密:name');
+    expect(words('kong-yiji')).toEqual([]);
+    expect(words('lunyu-xue-er')).toEqual([]);
   });
 });
 

@@ -469,18 +469,34 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       async replace(id, book) {
         const cur = await db.get<BookMeta>('books', id);
         if (!cur) throw new Error('That book is no longer in your library.');
-        // The reading place moves to the same character in the new chapters.
-        const place = await db.get<Progress>('progress', id);
-        let moved: Progress | undefined;
-        if (place && place.chapter >= 0 && place.chapter < cur.chapterCount) {
+        // The reading place and the bookmarks move to the same character in the new chapters.
+        const oldChapters = new Map<number, Chapter | undefined>();
+        const oldChapter = async (i: number) => {
+          if (!oldChapters.has(i)) oldChapters.set(i, (await db.get<{ chapter: Chapter }>('chapters', [id, i]))?.chapter);
+          return oldChapters.get(i);
+        };
+        const newPlace = async (chapter: number, block: number, offset: number) => {
           let pos = 0;
-          for (let i = 0; i < place.chapter; i++) {
-            const c = (await db.get<{ chapter: Chapter }>('chapters', [id, i]))?.chapter;
+          for (let i = 0; i < chapter; i++) {
+            const c = await oldChapter(i);
             if (c) pos += textHan(c);
           }
-          const here = (await db.get<{ chapter: Chapter }>('chapters', [id, place.chapter]))?.chapter;
-          if (here) pos += hanBefore(here, place.block, place.offset ?? 0);
-          const at = placeAt(book.chapters, pos);
+          const here = await oldChapter(chapter);
+          if (here) pos += hanBefore(here, block, offset);
+          return placeAt(book.chapters, pos);
+        };
+        // The same chapters as before (most books, when the importer changed only how some other book is cut): the place and the
+        // bookmarks stay exactly where they are. Moving them by their Han characters is not the same place to the unit (a page
+        // that starts on a quotation mark, a place on a picture), and a bookmark moved is a change every device hears of.
+        let same = cur.chapterCount === book.chapters.length;
+        for (let i = 0; same && i < cur.chapterCount; i++) {
+          const c = await oldChapter(i);
+          same = !!c && canonical(c) === canonical(book.chapters[i]);
+        }
+        const place = await db.get<Progress>('progress', id);
+        let moved: Progress | undefined;
+        if (!same && place && place.chapter >= 0 && place.chapter < cur.chapterCount) {
+          const at = await newPlace(place.chapter, place.block, place.offset ?? 0);
           moved = { ...place, chapter: at.chapter, block: at.block };
           if (place.offset !== undefined) moved.offset = at.offset;
         }
@@ -492,18 +508,37 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           ...cur, format: book.format, script: book.script, chapterCount: book.chapters.length, charCount: total,
           chapterOffsets: offsets, chapterTitles: book.chapters.map((c) => c.title),
         };
-        if (book.cover !== undefined) meta.cover = book.cover; else delete meta.cover;
+        // A cover given to the book since it was added (the picture the owner's Mac put beside it, a classic's painting:
+        // setCover) stays. The account and the site give it once, by coverFrom, and would not give it again.
+        const given = cur.coverFrom && cur.cover ? await db.get<object>('assets', [id, cur.cover]) : undefined;
+        if (given) meta.cover = cur.cover; else if (book.cover !== undefined) meta.cover = book.cover; else delete meta.cover;
         if (book.importVersion !== undefined) meta.importVersion = book.importVersion;
+        // A bookmark that moved names the book by its new key: a device that still has the old chapters does not show it at a
+        // place in them until it imports the book again too (core/sync.ts lands it then). One still at the same block and
+        // offset is right in both cuts, so it keeps the key it had (the old one, if it had none), and every device shows it.
+        const key = bookKey(meta);
+        const oldKey = bookKey(cur);
+        const marks: Bookmark[] = [];
+        for (const m of await db.getAll<Bookmark>('bookmarks')) {
+          if (m.bookId !== id || m.chapter < 0 || m.chapter >= cur.chapterCount) continue;
+          const at = same ? m : await newPlace(m.chapter, m.block, m.offset);
+          if (at.chapter === m.chapter && at.block === m.block && at.offset === m.offset) {
+            if (!m.bookKey) marks.push({ ...m, bookKey: oldKey });
+          } else marks.push({ ...m, chapter: at.chapter, block: at.block, offset: at.offset, bookKey: key });
+        }
         await write([
           { op: 'delBook', table: 'chapters', bookId: id },
           { op: 'delBook', table: 'assets', bookId: id },
           { op: 'put', table: 'books', value: meta },
           ...book.chapters.map((chapter, index) => ({ op: 'put' as const, table: 'chapters' as const, value: { bookId: id, index, chapter } })),
           ...await assetRowsOf(id, book),
+          ...(given ? [{ op: 'put' as const, table: 'assets' as const, value: given }] : []),
           ...(moved ? [{ op: 'put' as const, table: 'progress' as const, value: moved }] : []),
+          ...marks.map((m) => ({ op: 'put' as const, table: 'bookmarks' as const, value: m })),
         ]);
         dropUrls(id);
         emit('books', id);
+        if (marks.length) emit('bookmarks');
         return meta;
       },
       async update(id, patch) {

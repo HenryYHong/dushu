@@ -247,7 +247,7 @@ describe('names written as names', () => {
     expect(py('huang2 rong2', 'name', '黄蓉')).toBe('Huáng Róng');
     expect(py('tao2 hua1 dao3', 'place', '桃花岛')).toBe('Táohuā Dǎo');
     expect(py('jia1 xing1', 'place', '嘉兴')).toBe('Jiāxīng');
-    expect(py('xiang2 long2 shi2 ba1 zhang3', 'term', '降龙十八掌')).toBe('xiáng lóng shí bā zhǎng');
+    expect(py('fu2 hu3 shi2 ba1 quan2', 'term', '伏虎十八拳')).toBe('fú hǔ shí bā quán');
     expect(py('guo1 jing4', 'name', '郭靖', 'numbers')).toBe('Guo1 Jing4');
     expect(py('guo1 jing4', 'name', '郭靖', 'zhuyin')).not.toMatch(/[A-Z]/);
   });

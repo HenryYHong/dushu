@@ -1,0 +1,29 @@
+# Traditional to simplified rows written for Dushu (CC0 1.0), put ahead of OpenCC's in public/data/t2s.tsv.gz.
+# Rebuild with: python3 scripts/build_data.py --t2s-extra (no raw sources needed).
+# from	to
+#
+# 乾 is gān "dry" (simplified 干) and qián, the trigram "Heaven" and a name. OpenCC's first candidate is 干, and its phrase list
+# keeps only a few long phrases (扭轉乾坤), so 乾坤 and the 孫乾 of 三國演義 came out as 干坤 and 孙干. These keep 乾.
+乾坤	乾坤
+乾元	乾元
+乾象	乾象
+乾卦	乾卦
+乾宮	乾宫
+乾位	乾位
+乾道	乾道
+乾隆	乾隆
+乾嘉	乾嘉
+乾陵	乾陵
+孫乾	孙乾
+孙乾	孙乾
+乾曰	乾曰
+#
+# Old and Japanese glyph forms OpenCC leaves as they are: 偸空 and 躱躱閃閃 then miss their words (故乡, 孔乙己, 水滸傳, 論語).
+偸	偷
+緖	绪
+躱	躲
+値	值
+簷	檐
+愼	慎
+吿	告
+鬬	斗

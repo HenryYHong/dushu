@@ -12,6 +12,7 @@ export function noChineseDictionary(engine: LangEngine): Dictionary {
     char: () => null,
     hsk: () => null,
     hskWords: () => [],
+    hskReadings: () => [],
     wordsAt: () => [],
     pinyinFor: (word) => [...word].map(() => ''),
     toSimplified: (text) => text,

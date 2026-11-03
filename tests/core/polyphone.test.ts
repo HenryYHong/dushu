@@ -182,7 +182,7 @@ describe('行 in a line of writing, 数 counting money, 背 carrying', () => {
 });
 
 describe('explicit context rules (pinyinFor with prev/next)', () => {
-  type C = [string, { prev?: string; next?: string; after?: string }, string | undefined];
+  type C = [string, { prev?: string; next?: string; after?: string; orig?: string; line?: string[]; at?: number }, string | undefined];
   const rules: C[] = [
     // 了
     ['了', {}, 'le5'], ['了', { prev: '吃', next: '饭' }, 'le5'], ['了', { prev: '不' }, 'liao3'],
@@ -319,6 +319,104 @@ describe('explicit context rules (pinyinFor with prev/next)', () => {
     ['省', { prev: '三' }, 'xing3'], ['省', { prev: '各' }, 'sheng3'], ['喝', { prev: '大' }, 'he4'], ['喝', { next: '酒' }, 'he1'], ['喝', { next: '道' }, 'he4'],
     ['嗄', { prev: '灯', next: '。' }, 'a5'], ['嗄', { prev: '声' , next: '音' }, 'sha4'], ['曾', { next: '子' }, 'zeng1'], ['曾', { prev: '何' }, 'ceng2'],
     ['场', { prev: '一', next: '雨' }, 'chang2'], ['没', { prev: '淹' }, 'mo4'], ['谯', {}, 'qiao2'], ['扎', { next: '针' }, 'zha1'], ['克', { next: '制' }, 'ke4'], ['拼', { next: '命' }, 'pin1'],
+    // From the audit of every Chinese book (2026-10). 为: the passive 为…所, 是为 "for", an office or a number after it, the book's 為.
+    ['为', { prev: '小河', next: '月光', after: '所' }, 'wei2'], ['为', { prev: '是', next: '你' }, 'wei4'], ['为', { prev: '是', next: '孩子' }, 'wei4'],
+    ['为', { prev: '甘宁', next: '先锋' }, 'wei2'], ['为', { prev: '约', next: '二十', after: '公里' }, 'wei2'], ['为', { prev: '母亲', next: '二', after: '姐姐' }, 'wei4'],
+    ['为', { prev: '可以', next: '您' }, 'wei4'], ['为', { prev: '想', next: '我' }, 'wei4'], ['为', { prev: '分别', next: '十', after: '米' }, 'wei2'], ['为', { prev: '了解', next: '什么' }, 'wei4'],
+    ['为', { next: '头' }, 'wei2'], ['为', { prev: '和', next: '贵', orig: '為' }, 'wei2'], ['为', { prev: '和', next: '贵' }, 'wei4'],
+    ['为', { prev: '乳', next: '目', line: ['以', '乳', '为', '目'], at: 2 }, 'wei2'], ['为', { prev: '我', next: '王', line: ['拜', '我', '为', '王'], at: 2 }, 'wei2'],
+    ['为', { prev: '是', next: '自己', line: ['人', '是', '为', '自己', '而', '活'], at: 2 }, 'wei4'],
+    // 得: děi after an adverb, dé in the classics and before what is got.
+    ['得', { prev: '还', next: '上班' }, 'dei3'], ['得', { prev: '也', next: '讲理' }, 'dei3'], ['得', { prev: '须', next: '好好' }, 'dei3'], ['得', { prev: '也', next: '了' }, 'de2'],
+    ['得', { prev: '还', next: '不' }, 'de2'], ['得', { prev: '若', next: '绵竹' }, 'de2'], ['得', { prev: '幸', next: '燕青' }, 'de2'], ['得', { prev: '以', next: '之' }, 'de2'],
+    ['得', { prev: '老王', next: '了', after: '病' }, 'de2'], ['得', { prev: '忽然', next: '了', after: '急病' }, 'de2'], ['得', { prev: '学', next: '了', after: '很多' }, 'de5'],
+    ['得', { prev: '我们', next: '马上' }, 'dei3'], ['得', { prev: '他', next: '病' }, 'de2'],
+    // 地: after a doubled word or a quoted sound, and before a longer word that begins like a noun.
+    ['地', { prev: '“嘿嘿”', next: '笑' }, 'de5'], ['地', { prev: '」', next: '藏' }, 'di4'], ['地', { prev: '黑洞洞', next: '，' }, 'de5'], ['地', { prev: '一样', next: '，' }, 'de5'],
+    ['地', { prev: '不由自主', next: '，' }, 'de5'], ['地', { prev: '高粱', next: '，' }, 'di4'], ['地', { prev: '满意', next: '点点头' }, 'de5'], ['地', { prev: '放在', next: '边上' }, 'di4'],
+    ['地', { prev: '无可奈何', next: '说' }, 'de5'], ['地', { prev: '如何', next: '去' }, 'di4'], ['地', { prev: '当日', next: '陷' }, 'di4'], ['地', { prev: '般', next: '跟着' }, 'de5'],
+    ['地', { prev: '呼', next: '吹', line: ['风', '呼', '呼', '地', '吹'], at: 3 }, 'de5'],
+    ['地', { prev: '微笑', next: '点', after: '了' }, 'de5'], ['地', { prev: '哗啦哗啦', next: '下', after: '着' }, 'de5'], ['地', { prev: '玉米', next: '被' }, 'di4'],
+    // 还 都 长 将 应 罢 喝 曾 干 中 降 教
+    ['还', { prev: '往往', next: '没' }, 'hai2'], ['还', { prev: '不', next: '我' }, 'huan2'], ['还', { prev: '钱', next: '你' }, 'huan2'], ['还', { prev: '收兵', next: '吴' }, 'huan2'],
+    ['还', { prev: '再', next: '吧' }, 'huan2'], ['还', { prev: '他', next: '我们' }, 'hai2'],
+    ['都', { prev: '许' }, 'du1'], ['都', { prev: '尸首', next: '推' }, 'dou1'], ['都', { next: '头' }, 'du1'], ['都', { next: '亭侯' }, 'du1'], ['都', { prev: '东', next: '是' }, 'dou1'],
+    ['长', { prev: '树上', next: '到' }, 'zhang3'], ['长', { next: '出', after: '一口气' }, 'chang2'], ['长', { prev: '时间', next: '得' }, 'chang2'], ['长', { prev: '造成', next: '时间' }, 'chang2'],
+    ['长', { next: '史' }, 'zhang3'], ['长', { prev: '什' }, 'zhang3'], ['长', { next: '庄稼' }, 'zhang3'], ['长', { prev: '太', next: '了' }, 'chang2'], ['长', { prev: '里', next: '亭' }, 'chang2'],
+    ['将', { prev: '店主', next: '书' }, 'jiang1'], ['将', { prev: '天', next: '明' }, 'jiang1'], ['将', { prev: '随即', next: '他' }, 'jiang1'], ['将', { prev: '守' }, 'jiang4'],
+    ['将', { prev: '蜀' }, 'jiang4'], ['将', { prev: '兵' }, 'jiang4'], ['将', { prev: '七十二', next: '。' }, 'jiang4'], ['将', { prev: '众', next: '至' }, 'jiang4'], ['将', { prev: '春天', next: '继续' }, 'jiang1'],
+    ['应', { next: '道' }, 'ying4'], ['应', { next: '了', after: '一声' }, 'ying4'], ['应', { prev: '内' }, 'ying4'], ['应', { prev: '齐声', next: '曰' }, 'ying4'], ['应', { next: '该' }, 'ying1'],
+    ['罢', { prev: '说', next: '，' }, 'ba4'], ['罢', { prev: '去', next: '，' }, 'ba5'], ['罢', { prev: '才', next: '。' }, 'ba4'],
+    ['喝', { next: '一声' }, 'he4'], ['喝', { next: '叫' }, 'he4'], ['喝', { next: '一口' }, 'he1'],
+    ['曾', { next: '外祖母' }, 'zeng1'], ['曾', { next: '经' }, 'ceng2'],
+    ['干', { prev: '谁', next: '的' }, 'gan4'], ['干', { prev: '不', next: '了' }, 'gan4'], ['干', { prev: '你', next: '这个' }, 'gan4'], ['干', { prev: '头发', next: '了', after: '。' }, 'gan1'],
+    ['干', { prev: '一口', next: '了', after: '，' }, 'gan1'], ['干', { prev: '弄', next: '的' }, 'gan1'], ['干', { prev: '不', next: '我', after: '事' }, 'gan1'], ['乾', { next: '曰' }, 'qian2'],
+    ['中', { next: '箭' }, 'zhong4'], ['中', { prev: '攻击', next: '受伤' }, 'zhong1'], ['中', { prev: '寨', next: '埋伏' }, 'zhong1'],
+    ['降', { prev: '早', next: '！' }, 'xiang2'], ['降', { next: '曹' }, 'xiang2'], ['降', { prev: '不肯', next: '。' }, 'xiang2'], ['降', { next: '温' }, 'jiang4'],
+    ['教', { prev: '娘老子', next: '的' }, 'jiao1'], ['教', { next: '物理' }, 'jiao1'], ['教', { prev: '谁要你', next: '。' }, 'jiao1'], ['教', { prev: '菩萨', next: '：' }, 'jiao4'],
+    ['教', { prev: '有分', next: '，' }, 'jiao4'], ['教', { prev: '奉', next: '。' }, 'jiao4'], ['教', { prev: '全真', next: '的' }, 'jiao4'], ['教', { prev: '我', next: '你们', after: '一些' }, 'jiao1'], ['教', { next: '他', after: '学' }, 'jiao1'],
+    ['教', { prev: '来', next: '你', after: '赴' }, 'jiao4'], ['教', { prev: '开始', next: '邻居' }, 'jiao1'], ['教', { next: '他', after: '去' }, 'jiao4'],
+    // new rules: 子 尽 汗 背 待 那 甚 and the verb/noun pairs
+    ['子', { prev: '簪', next: '。' }, 'zi5'], ['子', { prev: '会', next: '有' }, 'zi5'], ['子', { prev: '其', next: '。' }, 'zi3'], ['子', { prev: '字', next: '龙' }, 'zi3'],
+    ['子', { prev: '曹', next: '丹' }, 'zi3'], ['子', { prev: '捡', next: '弹' }, 'zi3'], ['子', { prev: '，', next: '曰' }, 'zi3'], ['子', { prev: '穗' }, 'zi3'],
+    ['尽', { next: '皆' }, 'jin4'], ['尽', { prev: '散', next: '。' }, 'jin4'], ['尽', { next: '可' }, 'jin3'], ['尽', { next: '着' }, 'jin3'], ['尽', { orig: '儘', next: '是' }, 'jin3'], ['盡', {}, 'jin4'],
+    ['汗', { prev: '大', next: '来' }, 'han2'], ['汗', { prev: '大', next: '淋漓' }, 'han4'], ['汗', { next: '国' }, 'han2'], ['汗', { prev: '出' }, 'han4'],
+    ['背', { next: '起' }, 'bei1'], ['背', { next: '书包' }, 'bei1'], ['背', { next: '你' }, 'bei1'], ['背', { next: '书' }, 'bei4'], ['背', { next: '过去' }, 'bei4'], ['背', { next: '水' }, 'bei4'],
+    ['待', { next: '在' }, 'dai1'], ['待', { next: '了', after: '半年' }, 'dai1'], ['待', { next: '下去' }, 'dai1'], ['待', { next: '我' }, 'dai4'],
+    ['那', { next: '知' }, 'na3'], ['那', { next: '个' }, 'na4'], ['甚', { next: '事' }, 'shen2'], ['甚', { next: '是' }, 'shen4'],
+    ['撒', { next: '在' }, 'sa3'], ['撒', { next: '谎' }, 'sa1'], ['担', { prev: '一', next: '水' }, 'dan4'], ['担', { next: '儿' }, 'dan4'],
+    ['扇', { next: '了', after: '他' }, 'shan1'], ['扇', { prev: '一' }, 'shan4'], ['挨', { next: '了' }, 'ai2'], ['挨', { next: '着' }, 'ai1'],
+    ['晃', { next: '了' }, 'huang4'], ['晃', { prev: '一' }, 'huang3'], ['转', { next: '着' }, 'zhuan4'], ['转', { prev: '到处', next: '。' }, 'zhuan4'], ['转', { prev: '一', next: '过' }, 'zhuan3'],
+    ['冲', { next: '他' }, 'chong4'], ['冲', { prev: '门', next: '南' }, 'chong4'], ['冲', { prev: '东', next: '西' }, 'chong1'], ['冲', { next: '进' }, 'chong1'],
+    ['脏', { next: '衣服' }, 'zang1'], ['脏', { orig: '臟' }, 'zang4'], ['幢', { prev: '一' }, 'zhuang4'], ['钉', { next: '在' }, 'ding4'], ['钉', { prev: '铁' }, 'ding1'],
+    ['划', { next: '开' }, 'hua2'], ['划', { next: '火柴' }, 'hua2'], ['削', { next: '苹果' }, 'xiao1'], ['削', { next: '弱' }, 'xue1'],
+    ['扎', { next: '小辫' }, 'za1'], ['扎', { prev: '针头', next: '进' }, 'zha1'], ['涨', { next: '得', after: '通红' }, 'zhang4'], ['涨', { next: '得', after: '甚' }, 'zhang3'],
+    ['屏', { next: '住' }, 'bing3'], ['屏', { next: '风' }, 'ping2'], ['咳', { prev: '别', next: '！' }, 'ke2'], ['咳', { prev: '“', next: '，' }, 'hai1'],
+    ['撇', { next: '嘴' }, 'pie3'], ['撇', { next: '了', after: '撇' }, 'pie3'], ['撇', { next: '了', after: '钉钯' }, 'pie1'], ['垛', { prev: '草' }, 'duo4'], ['垛', { prev: '城' }, 'duo3'],
+    ['溜', { prev: '一', next: '。' }, 'liu4'], ['溜', { next: '走' }, 'liu1'], ['撮', { next: '黑毛' }, 'zuo3'], ['撮', { next: '合' }, 'cuo1'],
+    ['呢', { next: '礼帽' }, 'ni2'], ['呢', { prev: '你', next: '？' }, 'ne5'], ['圈', { prev: '驴' }, 'juan4'], ['圈', { prev: '一' }, 'quan1'],
+    ['泊', { next: '在' }, 'bo2'], ['泊', { prev: '梁山' }, 'po1'], ['绷', { next: '着', after: '脸' }, 'beng3'], ['绷', { next: '带' }, 'beng1'],
+    ['弄', { next: '里' }, 'long4'], ['弄', { next: '坏' }, 'nong4'], ['纤', { prev: '背' }, 'qian4'], ['纤', { next: '维' }, 'xian1'],
+    ['杆', { prev: '一' }, 'gan3'], ['杆', { prev: '旗' }, 'gan1'], ['笼', { next: '上' }, 'long3'], ['笼', { prev: '熏', next: '上' }, 'long2'],
+    ['鸟', { prev: '甚么' }, 'diao3'], ['鸟', { next: '男女' }, 'diao3'], ['鸟', { prev: '什么', next: '的' }, 'niao3'], ['喏', { prev: '个' }, 're3'], ['喏', { prev: '，' }, 'nuo4'],
+    ['赚', { next: '开' }, 'zuan4'], ['赚', { next: '我' }, 'zuan4'], ['赚', { next: '了' }, 'zhuan4'], ['賺', { next: '他' }, 'zuan4'], ['賺', { orig: '賺', next: '了' }, 'zhuan4'],
+    ['奔', { prev: '径' }, 'ben4'], ['奔', { prev: '飞' }, 'ben1'], ['给', { next: '散' }, 'ji3'], ['给', { next: '他' }, 'gei3'], ['勾', { prev: '能' }, 'gou4'], ['勾', { next: '住' }, 'gou1'],
+    ['参', { next: '商' }, 'shen1'], ['参', { next: '加' }, 'can1'], ['煞', { prev: '凶' }, 'sha4'], ['煞', { next: '住' }, 'sha1'], ['宁', { next: '死' }, 'ning4'], ['宁', { next: '静' }, 'ning2'],
+    // The second review (2026-10): 和 闷 吐 呛 呱 绰 荷 攒 否 远 景.
+    ['和', { next: '泥' }, 'huo2'], ['和', { prev: '我', next: '你' }, 'he2'], ['闷', { next: '头' }, 'men1'], ['闷', { next: '着', after: '头' }, 'men1'],
+    ['闷', { prev: '很', next: '。' }, 'men4'], ['吐', { prev: '想', next: '。' }, 'tu4'], ['吐', { next: '血' }, 'tu4'], ['吐', { next: '痰' }, 'tu3'],
+    ['呛', { next: '人' }, 'qiang4'], ['呛', { next: '了' }, 'qiang1'], ['呱', { next: '唧' }, 'gua1'], ['绰', { next: '起' }, 'chao1'], ['绰', { prev: '巡' }, 'chuo4'],
+    ['荷', { next: '锄' }, 'he4'], ['荷', { prev: '甚' }, 'he4'], ['荷', { next: '花' }, 'he2'], ['攒', { next: '心' }, 'cuan2'], ['攒', { next: '钱' }, 'zan3'],
+    ['否', { next: '矣' }, 'pi3'], ['否', { next: '则' }, 'fou3'], ['远', { next: '耻辱' }, 'yuan4'], ['远', { next: '方' }, 'yuan3'], ['景', { prev: '返' }, 'ying3'], ['景', { prev: '风' }, 'jing3'],
+    ['散', { prev: '血', next: '。' }, 'san3'], ['散', { next: '开' }, 'san4'], ['忒', { next: '也' }, 'tui1'], ['观', { next: '里' }, 'guan4'], ['观', { next: '看' }, 'guan1'],
+    ['监', { prev: '马', next: '，' }, 'jian4'], ['监', { next: '视' }, 'jian1'], ['号', { prev: '怒' }, 'hao2'], ['号', { prev: '一' }, 'hao4'], ['强', { next: '笑' }, 'qiang3'], ['强', { next: '大' }, 'qiang2'],
+    ['与', { prev: '之', next: '？' }, 'yu2'], ['与', { prev: '不', next: '？' }, 'yu3'], ['说', { prev: '亦', next: '乎' }, 'yue4'], ['说', { prev: '往', next: '之' }, 'shui4'], ['说', { prev: '他' }, 'shuo1'],
+    ['哪', { prev: '人', next: '！' }, 'na5'], ['哪', { prev: '在', next: '？' }, 'na3'],
+    // extended rules
+    ['了', { prev: '求', next: '断', after: '。' }, 'liao3'], ['了', { prev: '看见', next: '断', after: '桥' }, 'le5'], ['了', { prev: '认', next: '帐' }, 'le5'],
+    ['着', { prev: '睡不', next: '觉' }, 'zhao2'], ['着', { prev: '燃烧', next: '。' }, 'zhe5'], ['着', { prev: '一', next: '。' }, 'zhao1'],
+    ['觉', { prev: '着', line: ['睡', '不', '着', '觉'], at: 3 }, 'jiao4'], ['好', { next: '读书' }, 'hao4'], ['好', { next: '机会' }, 'hao3'], ['好', { prev: '专', next: '结交' }, 'hao4'],
+    ['少', { next: '帝' }, 'shao4'], ['盛', { next: '满' }, 'cheng2'], ['种', { next: '庄稼' }, 'zhong4'], ['种', { prev: '籽', next: '的' }, 'zhong3'], ['种', { prev: '籽', next: '下' }, 'zhong4'], ['子', { prev: '多', next: '、' }, 'zi3'],
+    ['相', { prev: '可怜', next: '，' }, 'xiang4'], ['相', { prev: '无', next: '攻击' }, 'xiang1'], ['相', { next: '府' }, 'xiang4'], ['乐', { prev: '止', next: '，' }, 'yue4'],
+    ['调', { next: '暗' }, 'tiao2'], ['处', { prev: '之', next: '在于' }, 'chu4'], ['处', { prev: '所', next: '的' }, 'chu3'], ['只', { prev: '像', next: '小猫' }, 'zhi1'], ['只', { prev: '像', next: '是' }, 'zhi3'],
+    ['发', { prev: '披', next: '，' }, 'fa4'], ['发', { prev: '乱', next: '脾气' }, 'fa1'], ['率', { prev: '督' }, 'shuai4'], ['量', { next: '血压' }, 'liang2'],
+    ['曲', { prev: '一', next: '，' }, 'qu3'], ['难', { prev: '八十一', next: '。' }, 'nan4'], ['省', { prev: '不', next: '的' }, 'xing3'], ['恶', { next: '之' }, 'wu4'],
+    ['供', { next: '茶' }, 'gong4'], ['弹', { next: '洞' }, 'dan4'], ['朝', { next: '游', line: ['朝', '游', '北海', '暮', '苍梧'], at: 0 }, 'zhao1'], ['载', { prev: '十' }, 'zai3'],
+    ['兴', { prev: '狂' }, 'xing4'], ['卷', { prev: '每', next: '都' }, 'juan4'], ['卷', { prev: '一', next: '录音带' }, 'juan3'], ['缝', { next: '一', after: '件' }, 'feng2'],
+    ['铺', { prev: '铁匠', next: '。' }, 'pu4'], ['铺', { orig: '舖', next: '著' }, 'pu1'], ['差', { prev: '条件', next: '。' }, 'cha4'], ['差', { prev: '有', next: '；' }, 'ci1'],
+    ['哄', { next: '了', after: '我' }, 'hong3'], ['斗', { prev: '一' }, 'dou3'], ['斗', { next: '然' }, 'dou3'], ['解', { next: '赴' }, 'jie4'], ['解', { next: '上', after: '东京' }, 'jie4'],
+    ['没', { next: '入', after: '黑暗' }, 'mo4'], ['没', { next: '入', after: '党' }, 'mei2'], ['分', { prev: '有', next: '教' }, 'fen4'], ['分', { prev: '的', next: '上' }, 'fen4'],
+    ['假', { prev: '了', line: ['请', '了', '假'], at: 2 }, 'jia4'], ['数', { prev: '要', next: '除夕' }, 'shu3'], ['数', { prev: '了', next: '秒钟' }, 'shu4'],
+    ['儿', { prev: '我', next: '，' }, 'er2'], ['儿', { prev: '的', line: ['我', '的', '儿'], at: 2 }, 'er2'], ['儿', { prev: '花' }, 'r5'],
+    ['术', { next: '赤' }, 'zhu2'], ['术', { next: '语' }, undefined], ['道', { next: '千乘' }, 'dao3'], ['道', { next: '理' }, undefined],
+    ['阙', { prev: '渐', next: '。' }, 'que1'], ['阙', { prev: '宫', next: '。' }, undefined], ['识', { prev: '二日', next: '。' }, 'zhi4'],
+    ['识', { prev: '认', next: '字' }, undefined], ['吓', { next: '，' }, 'he4'], ['吓', { prev: '惊', next: '了' }, undefined],
+    ['折', { next: '本' }, 'she2'], ['折', { next: '断' }, undefined], ['钉', { prev: '的', next: '鞋', after: '工具' }, 'ding4'], ['钉', { prev: '双', next: '鞋' }, 'ding1'],
+    ['通', { prev: '一', next: '，', line: ['骂', '了', '一', '通', '，'], at: 3 }, 'tong4'], ['通', { prev: '一', next: '电话', line: ['打', '了', '一', '通', '电话'], at: 3 }, 'tong1'],
+    ['猫', { next: '着', after: '腰' }, 'mao2'], ['猫', { prev: '小', next: '。' }, undefined],
+    ['褪', { prev: '裤子', next: '到' }, 'tun4'], ['褪', { prev: '颜色', next: '到' }, undefined],
+    ['露', { next: '着', after: '光头' }, 'lou4'], ['露', { next: '水' }, undefined], ['剥', { next: '下来' }, 'bao1'], ['剥', { next: '削' }, undefined],
+    ['仆', { prev: '跌', next: '，' }, 'pu1'], ['仆', { prev: '老', next: '人' }, undefined],
   ];
   for (const [ch, ctx, expected] of rules) {
     it(`${ch} ${JSON.stringify(ctx)} -> ${expected}`, async () => {
@@ -452,5 +550,43 @@ describe('骰子: shǎizi, as it is said', () => {
     expect(await inSentence('我扔了色子。', '色子')).toBe('shai3 zi5');
     const readings = (await dictP).lookup('骰子').map((e) => e.pinyin);
     expect(readings).toEqual(['shai3 zi5', 'tou2 zi5']);
+  });
+});
+
+describe('readings from the audit of every Chinese book, through the segmenter', () => {
+  const cases: [string, string, string][] = [
+    // 为: the passive and "take X as Y" a few words away, "for the sake of" before 而
+    ['小河为月光所照。', '为', 'wei2'], ['他为众人所知。', '为', 'wei2'], ['以乳为目，以脐为口。', '为', 'wei2'], ['何不拜我为王？', '为', 'wei2'],
+    ['人是为自己而活的。', '为', 'wei4'], ['我这是为你好。', '为', 'wei4'], ['他们以这块石头为中心。', '为', 'wei2'],
+    // 得 尽 子 地 教
+    ['我还得去上班。', '得', 'dei3'], ['他忽然得了急病。', '得', 'de2'], ['若得此城，大事可成。', '得', 'de2'], ['白日依山尽，黄河入海流。', '尽', 'jin4'],
+    ['他把钱都花尽了。', '尽', 'jin4'], ['你尽可放心。', '尽', 'jin3'], ['她头上插着一根簪子。', '子', 'zi5'], ['他慢慢地走了。', '地', 'de5'],
+    ['她在中学教化学。', '教', 'jiao1'], ['这首歌是谁教的？', '教', 'jiao1'], ['他教我去请大夫。', '教', 'jiao4'],
+    // 觉 a few words after 睡, 朝 answered by 暮, 假 after 请了
+    ['他一夜睡不着觉。', '觉', 'jiao4'], ['朝游北海暮苍梧。', '朝', 'zhao1'], ['我请了假。', '假', 'jia4'],
+    // words decided by their neighbors
+    ['山脚下住着两户人家。', '人家', 'ren2 jia1'], ['人家不愿意。', '人家', 'ren2 jia5'], ['他满头大汗。', '大汗', 'da4 han4'], ['使者拜见大汗。', '大汗', 'da4 han2'],
+    ['困难重重。', '重重', 'chong2 chong2'], ['他打折了腿。', '打折', 'da3 she2'], ['他们东西两边都有门。', '东西', 'dong1 xi1'], ['这东西很好。', '东西', 'dong1 xi5'],
+    ['你教会我这一招。', '教会', 'jiao1 hui4'], ['他猜得出来。', '得出', 'de5 chu1'], ['请到舍下坐坐。', '舍下', 'she4 xia4'],
+  ];
+  for (const [text, part, expected] of cases) {
+    it(`${text}: ${part} = ${expected}`, async () => {
+      expect(await inSentence(text, part)).toBe(expected);
+    });
+  }
+
+  it('reads the book\'s own character when the page shows it converted, but only when it says more', async () => {
+    const d = await dictP;
+    // 為 written: wéi by default (和為貴), 为 written: wèi.
+    expect(d.pinyinFor('为', { prev: '和', next: '贵', orig: '為' })).toEqual(['wei2']);
+    expect(d.pinyinFor('为', { prev: '和', next: '贵' })).toEqual(['wei4']);
+    // 盡數 settles what 尽数 merges; 這裏 and 這里 say nothing more than 这里, and 箇 keeps the reading of 个.
+    expect(d.pinyinFor('尽数', { orig: '盡數' })).toEqual(['jin4', 'shu4']);
+    expect(d.pinyinFor('发', { orig: '髮' })).toEqual(['fa4']);
+    expect(d.pinyinFor('这里', { orig: '這裏' })).toEqual(d.pinyinFor('这里'));
+    expect(d.pinyinFor('个', { orig: '箇', prev: '两', next: '公人' })).toEqual(d.pinyinFor('个', { prev: '两', next: '公人' }));
+    expect(d.pinyinFor('绷', { orig: '繃', next: '著' })).toEqual(['beng1']);
+    // An orig of another length is ignored.
+    expect(d.pinyinFor('为', { orig: '為了' })).toEqual(d.pinyinFor('为'));
   });
 });

@@ -27,6 +27,16 @@ describe('entriesForReading', () => {
     expect(entriesForReading(d.lookup('好'), ['hao4'])[0].pinyin).toBe('hao4');
   });
 
+  it('教 read jiào leads with "to let" and never lists "to teach", which sits under jiāo (the word card)', async () => {
+    const d = await loadTestDictionary();
+    const jiao4 = entriesForReading(d.lookup('教'), ['jiao4']);
+    expect(jiao4[0].pinyin).toBe('jiao4');
+    expect(jiao4.filter((e) => e.pinyin === 'jiao4').flatMap((e) => e.defs).join('/')).not.toMatch(/^to teach|\/to teach; to instruct \(as in 教書\)/);
+    expect(jiao4[0].defs[0]).toMatch(/^to let/);
+    expect(entriesForReading(d.lookup('教'), ['jiao1'])[0].defs[0]).toMatch(/^to teach/);
+    expect(entriesForReading(d.lookup('应'), ['ying4'])[0].defs[0]).toMatch(/^to answer/);
+  });
+
   it('matches a sandhi-changed syllable by its base, and keeps every entry', async () => {
     const d = await loadTestDictionary();
     const all = d.lookup('不');

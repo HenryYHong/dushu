@@ -109,12 +109,13 @@ const COUNTING = '零〇一二三四五六七八九十百千万萬几幾两兩�
  */
 /** Definition (by pattern) that leads when the word is written in the traditional form. */
 const OLD_NOVEL_LEAD: Readonly<Record<string, RegExp>> = {
-  嘗: /^once\b/i, 賺: /^to trick/i, 槍: /^spear/i, 鎗: /^spear/i, 復: /^again\b/i,
+  嘗: /^once\b/i, 槍: /^spear/i, 鎗: /^spear/i, 復: /^again\b/i,
 };
 
 function senseByContext(entries: DictEntry[], shown: string | undefined, around: { prev?: string; next?: string }): DictEntry[] {
   // The traditional spelling is the one the old novels use, and in them these words mean something other than the modern lead:
-  // 嘗聞 "once", 賺 "to trick", 槍 鎗 "spear", 復 "again". The simplified spelling keeps the modern lead (尝试 赚钱 枪 复杂).
+  // 嘗聞 "once", 槍 鎗 "spear", 復 "again". The simplified spelling keeps the modern lead (尝试 枪 复杂). (賺 "to trick" is its own
+  // reading, zuàn, with a row of its own in book-words.tsv.)
   const old = shown ? OLD_NOVEL_LEAD[shown] : undefined;
   if (old && entries.length) {
     const lead = entries[0];

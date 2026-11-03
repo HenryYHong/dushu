@@ -7,12 +7,14 @@ export type HskLevelOf = (word: string, pinyin?: string[]) => number | undefined
 const cache = new WeakMap<Dictionary, HskLevelOf>();
 
 /**
- * Pinyin is there to say a word, so a word takes the level of its hardest character, read the way it is read here (说道 7 on the
- * list, but 说 and 道 are both HSK 1 in these readings, so 1). A character's level is the lowest level of the listed words it is read
- * the same way in (石 shí from 石头 at 3, 时 shí from 时间 at 1), so a reading only one word has comes at that word's level (银行 háng).
- * A listed word read with a neutral tone keeps its list level: which syllable goes neutral is the word's, not its characters'
- * (本事 běnshi). When a character has no level, a listed word falls back on its list level, so nothing shows more pinyin than the
- * list alone, and a word the list leaves out keeps its pinyin (闰土: no listed word has 闰). A traditional spelling looks up its
+ * Pinyin is there to say a word, so a word takes the level of its hardest character, read the way it is read here (说道 is 7 on the
+ * list as shuōdao, but 说 and 道 are both HSK 1 in the reading shuōdào, so 1). A character's level is the lowest level at which the
+ * list reads it the same way, in any of its words (石 shí from 石头 at 3, 时 shí from 时间 at 1), so a reading only one word has comes
+ * at that word's level (银行 háng). The list gives each word its readings, so a reading it does not teach comes from no word: 子 zǐ
+ * is not HSK 1, where 子 is the neutral suffix of 桌子. A listed word starts from the list's level for the reading here (dict.hsk with
+ * the pinyin), and one read with a neutral tone keeps it: which syllable goes neutral is the word's, not its characters' (本事
+ * běnshi). When a character has no level, a listed word falls back on that level, so nothing shows more pinyin than the list
+ * alone, and a word the list leaves out keeps its pinyin (闰土: no listed word has 闰). A traditional spelling looks up its
  * simplified form; levels run 1-6, and 7 for 7-9.
  */
 export function hskLevels(dict: Dictionary): HskLevelOf {
@@ -27,35 +29,23 @@ function build(dict: Dictionary): HskLevelOf {
   const others = new Map<string, string[]>();
 
   /**
-   * Each listed word's characters, with the syllable each is read with there. The list names a word, not a reading, so where the
-   * dictionary spells two words with the same characters it means the usual one, the word's default reading: 便宜 piányi teaches
-   * nothing of 宜 yí (biànyí), 喝 hē nothing of 喝 hè. A bare character keeps its neutral readings too (地 de, 得 de): the particle is
-   * what the list grades; its other readings come with the words that use them (骑 jì, "(Tw)" in CEDICT, with none). Surname and
-   * place readings count only when a word has no other.
+   * Each character of the list's words, with the syllable the list reads it with there, at that reading's level: 便宜 piányi teaches
+   * nothing of 宜 yí (biànyí), 喝 hē nothing of 喝 hè (喝彩 does, at 7-9). Same-word readings count too (血 xuè beside the list's xiě).
    */
   const index = () => {
     if (chars) return chars;
     const map = new Map<string, { syl: string; level: number }[]>();
-    for (const word of dict.hskWords(7)) {
-      const level = dict.hsk(word)?.hsk3;
-      if (!level) continue;
+    for (const { word, pinyin, hsk3: level } of dict.hskReadings(7)) {
       const cps = [...word];
-      const entries = dict.lookup(word).filter((e) => e.simp === word && e.pinyin.split(' ').length === cps.length);
-      const common = entries.filter((e) => !/^[A-Z]/.test(e.pinyin));
-      let readings = [...new Set((common.length ? common : entries).map((e) => e.pinyin.toLowerCase()))];
-      if (readings.length > 1) {
-        const usual = dict.pinyinFor(word).join(' ');
-        if (readings.includes(usual)) readings = readings.filter((r) => r === usual || (cps.length === 1 && r.endsWith('5')));
-      }
-      for (const r of readings) {
-        r.split(' ').forEach((syl, k) => {
-          let list = map.get(cps[k]);
-          if (!list) map.set(cps[k], (list = []));
-          const seen = list.find((x) => x.syl === syl);
-          if (!seen) list.push({ syl, level });
-          else if (level < seen.level) seen.level = level;
-        });
-      }
+      if (pinyin.length !== cps.length) continue;
+      pinyin.forEach((s, k) => {
+        const syl = s.toLowerCase();
+        let list = map.get(cps[k]);
+        if (!list) map.set(cps[k], (list = []));
+        const seen = list.find((x) => x.syl === syl);
+        if (!seen) list.push({ syl, level });
+        else if (level < seen.level) seen.level = level;
+      });
     }
     return (chars = map);
   };
@@ -102,10 +92,13 @@ function build(dict: Dictionary): HskLevelOf {
   };
 
   const compute = (word: string, pinyin?: string[]): number | undefined => {
-    const listed = dict.hsk(word)?.hsk3;
+    // The list's level for this reading (喝 hè is 7-9, not 喝 hē's 1); none when the list teaches the word only in others.
+    const listed = dict.hsk(word, pinyin)?.hsk3;
     const simp = dict.toSimplified(word);
     const cps = [...simp];
-    if (listed && cps.length > 1 && (!pinyin || pinyin.some((p) => !/[1-4]$/.test(p)))) return listed;
+    // A 儿 the book adds to a listed word (样儿, from the listed 样) is no neutral tone of the word's: it reads from 样 and 儿.
+    const added = !!listed && !!pinyin && /^r5$/i.test(pinyin[pinyin.length - 1] ?? '') && !dict.hsk(word);
+    if (listed && cps.length > 1 && (!pinyin || pinyin.some((p, k) => !/[1-4]$/.test(p) && !(added && k === pinyin.length - 1)))) return listed;
     if (cps.length !== [...word].length || (pinyin && pinyin.length !== cps.length) || pinyin?.some((p) => !p)) return listed;
     let level = 0;
     for (let k = 0; k < cps.length; k++) {

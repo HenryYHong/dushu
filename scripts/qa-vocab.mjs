@@ -66,21 +66,21 @@ await page.evaluate(async () => {
   const D = 86400000;
   const srs = (due, interval, reps) => ({ due, interval, ease: 2.5, reps, lapses: 0, last: reps ? due - interval * D : undefined });
   const data = [
-    ['你好', '你好', 'ni3 hao3', 'hello; hi', '他笑着对我说：“你好，好久不见。”', '活着'],
-    ['学习', '學習', 'xue2 xi2', 'to learn; to study', '我每天都在学习汉语，希望有一天能读懂一整本小说。', '活着'],
-    ['绿色', '綠色', 'lü4 se4', 'green; environmentally friendly', '山坡上是一片绿色的茶园。', '边城'],
-    ['爱', '愛', 'ai4', 'to love; to be fond of', '她爱这座小城，也爱城里的每一个人。', '边城'],
-    ['朋友', '朋友', 'peng2 you5', 'friend', '朋友们都来送他。', '边城'],
-    ['因为', '因為', 'yin1 wei4', 'because; owing to', '因为下雨，我们没有出门。', '活着'],
-    ['生活', '生活', 'sheng1 huo2', 'life; to live', '福贵的生活越来越艰难，但他从不抱怨命运，只是默默地活下去，一天又一天，一年又一年，直到最后只剩下一头老牛陪着他。', '活着'],
-    ['不过', '不過', 'bu2 guo4', 'but; however; only', '不过这也没有什么办法。', '活着'],
-    ['月亮', '月亮', 'yue4 liang5', 'moon', '月亮升起来了。', '边城'],
+    ['你好', '你好', 'ni3 hao3', 'hello; hi', '他笑着对我说：“你好，好久不见。”', '故乡'],
+    ['学习', '學習', 'xue2 xi2', 'to learn; to study', '我每天都学一点汉语，盼着有朝一日能读完一本小说。', '故乡'],
+    ['绿色', '綠色', 'lü4 se4', 'green; environmentally friendly', '山坡上种着一大片绿色的茶树。', '孔乙己'],
+    ['爱', '愛', 'ai4', 'to love; to be fond of', '她爱这座小镇，也爱镇上的每户人家。', '孔乙己'],
+    ['朋友', '朋友', 'peng2 you5', 'friend', '朋友们都来送他。', '孔乙己'],
+    ['因为', '因為', 'yin1 wei4', 'because; owing to', '因为下雨，我们没有出门。', '故乡'],
+    ['生活', '生活', 'sheng1 huo2', 'life; to live', '老张的日子越来越难，可他从不抱怨，每天照样下地干活，最后只剩下一条老狗陪着他。', '故乡'],
+    ['不过', '不過', 'bu2 guo4', 'but; however; only', '不过这也是没法子的事。', '故乡'],
+    ['月亮', '月亮', 'yue4 liang5', 'moon', '月亮升起来了。', '孔乙己'],
     ['怎么', '怎麼', 'zen3 me5', 'how; why', '这个字怎么读？', ''],
     ['龘', '龘', 'da2', 'dragon flying (rare)', '龘字很少见。', ''],
     ['谢谢', '謝謝', 'xie4 xie5', 'to thank; thanks', '', ''],
     ['老师', '老師', 'lao3 shi1', 'teacher', '老师在黑板上写了一个字。', ''],
     ['天气', '天氣', 'tian1 qi4', 'weather', '今天天气很好。', ''],
-    ['明白', '明白', 'ming2 bai5', 'clear; to understand', '我明白你的意思了。', ''],
+    ['明白', '明白', 'ming2 bai5', 'clear; to understand', '我总算明白他的话了。', ''],
   ];
   data.forEach(([simp, trad, pinyin, gloss, sentence, book], i) => {
     const due = i < 8 ? now - (i + 1) * 3600000 : now + (i - 6) * D;

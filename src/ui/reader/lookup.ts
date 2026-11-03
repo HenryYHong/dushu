@@ -246,9 +246,12 @@ export function createLookup(host: LookupHost): Lookup {
     const seq = ++openSeq;
     if (clearNative) window.getSelection()?.removeAllRanges();
     const sentence = sentenceAround(first.text, spans[0].start).text;
+    // The book's own spelling of the phrase, so the popup reads it as the page does (shown.ts).
+    const orig = spansText(spans, (el) => v.blocks[Number(el.dataset.b)].source).trim();
     openPhrasePopup({
       ctx,
       text,
+      orig,
       anchor: union() ?? fallbackRect(),
       getAnchor: union,
       keepAnchorVisible: true,

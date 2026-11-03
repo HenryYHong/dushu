@@ -551,3 +551,63 @@ describe('pinyinFor basics', () => {
     expect(d.pinyinFor('衹')).toEqual(['zhi3']);
   });
 });
+
+describe('pinyinFor: words whose neighbors decide the reading (from the audit of every Chinese book)', () => {
+  type Ctx = { prev?: string; next?: string; after?: string; line?: string[] };
+  const cases: [string, Ctx, string][] = [
+    ['人家', { prev: '户', next: '住着' }, 'ren2 jia1'], ['人家', { prev: '小户', next: '，' }, 'ren2 jia1'], ['人家', { prev: '给', next: '做工' }, 'ren2 jia5'],
+    ['大汗', { prev: '满头', next: '。' }, 'da4 han4'], ['大汗', { prev: '一身', next: '。' }, 'da4 han4'], ['大汗', { prev: '拜见', next: '。' }, 'da4 han2'], ['大汗', { next: '淋漓' }, 'da4 han4'], ['大汗', { prev: '免得', next: '生气' }, 'da4 han2'], ['大汗', { prev: '无论', next: '如何' }, 'da4 han2'],
+    ['教会', { next: '我' }, 'jiao1 hui4'], ['教会', { prev: '去', next: '做礼拜' }, 'jiao4 hui4'],
+    ['舍下', { prev: '到', next: '坐坐' }, 'she4 xia4'], ['舍下', { next: '他' }, 'she3 xia4'], ['舍下', { prev: '全', next: '么' }, 'she3 xia4'],
+    ['重重', { prev: '困难', next: '，' }, 'chong2 chong2'], ['重重', { next: '地' }, 'zhong4 zhong4'],
+    ['分子', { prev: '捣乱', next: '被' }, 'fen4 zi3'], ['分子', { prev: '水', next: '的' }, 'fen1 zi3'],
+    ['一行', { next: '大字' }, 'yi1 hang2'], ['一行', { prev: '下', next: '中间' }, 'yi1 hang2'], ['一行', { next: '人' }, 'yi1 xing2'],
+    ['打折', { next: '了', after: '腿' }, 'da3 she2'], ['打折', { next: '出售' }, 'da3 zhe2'],
+    ['好吃', { next: '懒' }, 'hao4 chi1'], ['好吃', { next: '。' }, 'hao3 chi1'],
+    ['利害', { prev: '冷得', next: '；' }, 'li4 hai5'], ['利害', { prev: '顾不得', next: '。' }, 'li4 hai4'],
+    ['格格', { next: '地' }, 'ge1 ge1'], ['精神', { prev: '一点', next: '也' }, 'jing1 shen5'], ['精神', { prev: '有', next: '障碍' }, 'jing1 shen2'],
+    ['正当', { next: '自卫' }, 'zheng4 dang4'], ['得出', { prev: '猜', next: '来' }, 'de5 chu1'], ['得到', { prev: '他', next: '了' }, 'de2 dao4'],
+    ['引着', { next: '唐僧' }, 'yin3 zhe5'], ['执着', { prev: '手', next: '铁棒' }, 'zhi2 zhe5'], ['执着', { prev: '很', next: '。' }, 'zhi2 zhuo2'],
+    ['合着', { prev: '双手', next: '，' }, 'he2 zhe5'], ['点着', { next: '头' }, 'dian3 zhe5'], ['点着', { next: '了' }, 'dian3 zhao2'],
+    // The old novels write 著, which the simplified page keeps (it may be zhù): 引著王定六, 手執著鐵棒, 雙手合著.
+    ['引著', { next: '王定六' }, 'yin3 zhe5'], ['执著', { prev: '手', next: '铁棒' }, 'zhi2 zhe5'], ['执著', { prev: '很', next: '。' }, 'zhi2 zhuo2'], ['执著', { prev: '对理想的', next: '坚守' }, 'zhi2 zhuo2'],
+    ['合著', { prev: '双手', next: '，' }, 'he2 zhe5'], ['合著', { prev: '两人', next: '《' }, 'he2 zhu4'],
+    ['东西', { next: '两' }, 'dong1 xi1'], ['妻子', { prev: '保', next: '的' }, 'qi1 zi3'], ['便宜', { prev: '岂不', next: '？' }, 'bian4 yi2'],
+    ['结果', { prev: '常', next: '，' }, 'jie1 guo3'], ['结果', { prev: '就', next: '了', after: '他' }, 'jie2 guo3'], ['所长', { prev: '展', next: '。' }, 'suo3 chang2'],
+    ['生意', { prev: '毫无', next: '的' }, 'sheng1 yi4'], ['历数', { next: '昭明' }, 'li4 shu4'], ['历数', { next: '无疆' }, 'li4 shu4'], ['历数', { next: '其' }, 'li4 shu3'], ['妻子', { prev: '不顾', next: '异样' }, 'qi1 zi5'], ['片子', { prev: '碗', next: '呢' }, 'pian4 zi5'], ['片子', { prev: '石', next: '，' }, 'pian4 zi5'], ['片子', { prev: '好', next: '。' }, 'pian1 zi5'],
+    ['长毛', { next: '了' }, 'zhang3 mao2'], ['长毛', { next: '就' }, 'chang2 mao2'],
+    ['那里', { next: '去', after: '？' }, 'na3 li5'], ['那里', { next: '还', after: '敢' }, 'na3 li5'], ['那里', { next: '还', after: '是' }, 'na4 li5'], ['那里', { next: '的', after: '话' }, 'na3 li5'],
+    ['兄弟', { prev: '宝', next: '明白' }, 'xiong1 di5'], ['兄弟', { prev: '袁', next: '相争' }, 'xiong1 di4'], ['大夫', { prev: '寺' }, 'da4 fu1'],
+    ['巷道', { prev: '走出', next: '，', line: ['矿工', '在', '井下', '巷道', '，'] } as Ctx, 'hang4 dao4'], ['巷道', { prev: '窗棂', next: '，', line: ['窗棂', '巷道', '，'] } as Ctx, 'xiang4 dao4'],
+    ['尽数', {}, 'jin4 shu4'], ['卷子', {}, 'juan4 zi5'], ['憎恶', {}, 'zeng1 wu4'], ['引得', { next: '众人' }, 'yin3 de5'], ['不自禁', {}, 'bu4 zi4 jin1'],
+  ];
+  for (const [w, ctx, want] of cases) {
+    it(`${w} ${JSON.stringify(ctx)} -> ${want}`, async () => expect((await dictP).pinyinFor(w, ctx).join(' ')).toBe(want));
+  }
+});
+
+describe('curated rows keep each sense under its reading (book-words.tsv)', () => {
+  it('教: "to teach" is jiāo; jiào is "to let", the religion and teachings', async () => {
+    const d = await dictP;
+    const rows = d.lookup('教').filter((e) => e.curated);
+    expect(rows.find((e) => e.pinyin === 'jiao1')!.defs[0]).toMatch(/^to teach/);
+    expect(rows.find((e) => e.pinyin === 'jiao4')!.defs.join('/')).not.toMatch(/to teach/);
+  });
+  it('應 yìng answers, 賺 zuàn tricks, 甚 shén asks: each has a row of its own', async () => {
+    const d = await dictP;
+    const lead = (w: string, py: string) => d.lookup(w).find((e) => e.curated && e.pinyin === py)!.defs.join('/');
+    expect(lead('應', 'ying4')).toMatch(/^to answer/);
+    expect(lead('應', 'ying1')).not.toMatch(/answer/);
+    expect(lead('賺', 'zuan4')).toMatch(/^to trick/);
+    expect(lead('賺', 'zhuan4')).not.toMatch(/trick/);
+    expect(lead('甚', 'shen2')).toMatch(/what/);
+    expect(lead('甚', 'shen4')).not.toMatch(/what/);
+  });
+  it('old senses: 长年 a hired farmhand, 保山 a go-between; 大汗 the Khan is one word', async () => {
+    const d = await dictP;
+    expect(d.lookup('长年')[0].defs.join('/')).toMatch(/all the year round.*farmhand/);
+    expect(d.lookup('保山')[0].defs[0]).toMatch(/guarantor/);
+    expect(d.lookup('大汗')[0].defs[0]).toMatch(/Great Khan/);
+    expect(d.freq('大汗')).toBeGreaterThanOrEqual(300);
+  });
+});

@@ -22,7 +22,7 @@ import { scriptView } from '../vocab/render';
 import { CLOUD_EVENT, cloudBase, cloudSession } from '../../core/cloud';
 import { openSignIn } from '../signIn';
 import { isStandalone, onIPhoneOrIPad } from '../fullscreen';
-import { accountBooksHere, forgetBookInAccount, syncBooks } from '../../core/cloudBooks';
+import { accountBooks as accountBooksList, accountFileOf, accountBooksHere, forgetBookInAccount, syncBooks, type AccountBook } from '../../core/cloudBooks';
 import { isChinese, lang } from '../../lang/active';
 
 /**
@@ -565,11 +565,15 @@ export const mount: MountFn = (root, _params, ctx) => {
   /** Books made by an older importer are imported again, quietly, when they can be fetched (upgrade.ts). */
   async function upgradeOld(): Promise<void> {
     if (!alive) return;
+    // Asked once per pass, and only when a book needs it.
+    let listing: Promise<AccountBook[]> | undefined;
+    const accountList = () => (listing ??= accountBooksList());
     await upgradeBooks({
       books: () => store.books.list(),
       macItems: macState === 'ready' ? macItems : [],
       samples: await samplesReady,
       fetchMacFile: fetchMacBookFile,
+      fetchAccountFile: (b) => accountFileOf(b, accountList),
       importFile: async (file) => (await loadImporters()).importFile(file),
       importSample: async (s) => loadSampleBook(s, (await loadImporters()).importText),
       replace: (id, book) => store.books.replace(id, book),

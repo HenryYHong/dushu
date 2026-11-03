@@ -14,7 +14,7 @@ const CHAPTERS = [
   '月亮升起来了。街上的人都回家了。',
 ];
 
-async function setup() {
+async function setup(chapters = CHAPTERS) {
   const { ctx, dict } = await makeCtx();
   const book: BookMeta = {
     id: 'b1', title: '书', author: '', format: 'paste', script: 'simplified', addedAt: 0,
@@ -23,7 +23,7 @@ async function setup() {
   const opened: { word: string; sentence: string; chapter: number }[] = [];
   const toc = createToc(ctx, book, () => {}, undefined, {
     words: {
-      load: (i) => chapterWords([CHAPTERS[i]], dict as Dictionary, undefined, { pause: async () => {} }),
+      load: (i) => chapterWords([chapters[i]], dict as Dictionary, undefined, { pause: async () => {} }),
       onWord: (w, _a, chapter) => opened.push({ word: w.word, sentence: w.sentence, chapter }),
     },
   });
@@ -97,6 +97,18 @@ describe('Words tab', () => {
     await vi.waitFor(() => expect(rowOf('月亮')).toBeTruthy());
     expect(document.querySelector('.rd-words-chapter')!.textContent).toBe('第二章');
     expect(document.querySelector<HTMLButtonElement>('.rd-words-step[aria-label="Next chapter"]')!.disabled).toBe(true);
+    toc.dispose();
+  });
+
+  it('shows the HSK level of the chapter\'s most common reading of a word, and none for a reading the list does not have', async () => {
+    // 教 twice as jiào "make" and once as jiāo "teach", the list's HSK 1 word: the row reads jiào, with no level.
+    const { toc } = await setup(['这件事教人担心。那件事也教人难过。他教我写字。他在银行工作。', '月亮升起来了。']);
+    toc.open(0, 'words');
+    await vi.waitFor(() => expect(rowOf('银行')).toBeTruthy());
+    const level = (w: string) => rowOf(w).querySelector('.rd-word-hsk')?.textContent ?? null;
+    expect(rowOf('教').querySelector('.rd-name-py')!.textContent).toBe('jiào');
+    expect(level('教')).toBeNull();
+    expect(level('银行')).toBe('HSK 2');
     toc.dispose();
   });
 
