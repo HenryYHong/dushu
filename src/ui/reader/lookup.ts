@@ -8,6 +8,7 @@ import { logLookup } from '../popup/lookupLog';
 import type { BlockState, ChapterView } from './chapter';
 import { rangeToSpans, spansText, type BlockSpan } from './selection';
 import { hasWordText, isWord } from '../../lang/token';
+import type { Fixer, FixTarget } from '../popup/fixView';
 import { isChinese } from '../../lang/active';
 
 const MAX_PHRASE = 1500;
@@ -36,6 +37,8 @@ export interface LookupHost {
   onSheetTop?(top: number | null): void;
   /** Can the page move out of a sheet's way right now (Pages)? Popups on a touch tablet become sheets only then. */
   liftsPage?(): boolean;
+  /** The book's fixes (bookFixes.ts), and the place a card about the text from `s` to `e` of a block is about. */
+  fixes?: { fixer: Fixer; target(b: BlockState, s: number, e: number): FixTarget | undefined };
 }
 
 export interface Lookup {
@@ -100,6 +103,7 @@ export function createLookup(host: LookupHost): Lookup {
       restoreFocus: host.restoreFocus,
       onSheetTop: host.liftsPage?.() ? host.onSheetTop : undefined,
       ...lexiconProps(),
+      fix: host.fixes ? { fixer: host.fixes.fixer, target: host.fixes.target(b, s, e) } : undefined,
     });
     v.clearMarks();
     markWord();
@@ -262,9 +266,23 @@ export function createLookup(host: LookupHost): Lookup {
       restoreFocus: host.restoreFocus,
       onSheetTop: host.liftsPage?.() ? host.onSheetTop : undefined,
       ...lexiconProps(),
+      fix: phraseFix(spans.length === 1 ? spans[0] : null),
     });
     host.onPhraseShown?.(spans.map((sp) => ({ b: stateOf(sp), start: sp.start, end: sp.end })));
     return true;
+  }
+
+  /** A phrase in one paragraph can be fixed at its place; one across paragraphs only as words of the book. */
+  function phraseFix(sp: BlockSpan | null): { fixer: Fixer; target?: FixTarget } | undefined {
+    const v = host.view();
+    if (!v || !host.fixes) return undefined;
+    if (!sp) return { fixer: host.fixes.fixer };
+    const b = v.blocks[Number(sp.block.dataset.b)];
+    // The selection without the spaces around it.
+    const raw = b.text.slice(sp.start, sp.end);
+    const s = sp.start + (raw.length - raw.trimStart().length);
+    const e = sp.end - (raw.length - raw.trimEnd().length);
+    return { fixer: host.fixes.fixer, target: host.fixes.target(b, s, e) };
   }
 
   function openSentence(w: Element): void {

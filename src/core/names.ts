@@ -20,6 +20,7 @@ export const SURNAME_READINGS: Readonly<Record<string, string>> = {
   牟: 'mou4', 洗: 'xian3', 蕃: 'pi2', 郇: 'huan2', 郏: 'jia2', 句: 'gou1', 能: 'nai4', 乜: 'nie4', 阚: 'kan4',
   燕: 'yan1', // 燕青 燕顺: the surname is Yān (the swallow is yàn)
   宁: 'ning4', // 宁采臣: the surname is Nìng
+  沈: 'shen3', // 沈从文: the surname is Shěn (沈 chén is an old form of 沉)
 };
 
 export const COMPOUND_SURNAME_READINGS: Readonly<Record<string, string>> = {
@@ -43,7 +44,20 @@ export const NAME_CHAR_READINGS: Readonly<Record<string, string>> = {
   冠: 'guan4', // 乔冠华, 吴冠中: "foremost"
   都: 'du1', // 张都监, 老都管: never the adverb dōu inside a name
   乾: 'qian2', // 孫乾: looked up by the character as written (it folds to 干, which is gàn in 蒋干)
+  少: 'shao4', // 李少春, 少林寺: "young", not shǎo "few"
 };
+
+/**
+ * Characters of transliterated foreign names, both scripts (拉希姆, 贝莱赫斯特, 奎登·德拉尔, 施特茨纳). A string made only of these
+ * that is never seen apart is a foreign name rather than a phrase; core/segment.ts keeps a narrower list for its ·-join.
+ */
+export const TRANSLIT_CHARS: ReadonlySet<string> = new Set([...(
+  '阿埃艾爱愛安昂奥奧澳巴拜班邦保鲍鮑贝貝本比彼毕畢波伯博布查察楚达達戴黛丹德登迪蒂丁东東杜顿頓多厄鄂恩尔爾法菲费費芬丰豐弗伏夫福'
+  + '盖蓋冈岡高戈哥格葛根贡貢古圭哈海汉漢豪赫亨胡华華霍基吉加伽贾賈杰傑捷金喀卡凯凱坎考柯科可克肯寇库庫夸奎昆阔闊拉莱萊赖賴兰蘭朗劳勞'
+  + '勒雷蕾黎里理利莉丽麗廉列林琳留卢盧鲁魯伦倫罗羅洛玛瑪马馬迈邁麦麥曼梅门門蒙米密敏缪繆摩莫墨默姆穆纳納娜奈南内內尼妮涅宁寧纽紐努诺諾'
+  + '欧歐帕派潘佩彭皮珀普齐齊奇契恰乔喬琼瓊丘萨薩塞赛賽桑瑟森沙莎绍紹舍什史斯丝絲松苏蘇索塔泰坦汤湯唐特提廷汀图圖托瓦旺威韦韋维維'
+  + '温溫文沃乌烏西希锡錫夏谢謝辛休修雅亚亞扬揚耶伊依因英尤约約赞贊泽澤扎詹兹茲佐若撒勉采娃宾賓季诃訶瑞台勃热熱娅婭茨孜赫茹嘉包甘'
+)]);
 
 /** In a name with no Chinese surname (a transliterated Mongol or Jurchen name), 术 is zhú; after a surname (袁术) it stays shù. */
 export const TRANSLITERATION_READINGS: Readonly<Record<string, string>> = { 术: 'zhu2' };
@@ -53,6 +67,27 @@ export const KIN_CHARS: ReadonlySet<string> = new Set([...'哥姐妹弟爷奶姑
 
 /** Offices that end in 长 are zhǎng (连长, 支队长 after a surname); 云长 and 天长 keep cháng. */
 export const HEAD_BEFORE_ZHANG: ReadonlySet<string> = new Set([...'队务连排班营团旅师军部局科处站所社院校县市省乡村厂组舰船']);
+
+/**
+ * Chinese era names (年号) that the dictionary lacks, simplified as dict.toSimplified folds them (乾亨 is 干亨 here): 泰常, 太平真君,
+ * 天保. From Wikidata's items for era names (CC0), 2 and 4 characters; core/lexicon.ts reads one before a year (泰常八年).
+ */
+export const ERA_NAMES: ReadonlySet<string> = new Set((
+  '万利 万岁登封 万岁通天 上愿 上明 上治 久视 义兴 义宁 义熙 五凤 交泰 人庆 仪凤 保大 保天 保立 元丰 元亨 元光 元兴 元凤 元初 元嘉 元始 元寿 元封 元平 元康 元延 ' +
+  '元德 元徽 元朔 元熙 元狩 元玺 元祐 元符 元统 元象 元贞 元鼎 光兴 光初 光启 光天 光始 光宅 光定 光寿 光熙 光熹 全义 兴元 兴光 兴圣 兴定 兴武 凤历 初元 ' +
+  '初历 利贞 前元 化顺 升元 升明 同光 后元 启历 咸和 咸平 咸康 咸清 咸熙 咸通 咸雍 唐隆 嗣圣 嘉宁 嘉平 嘉泰 嘉熙 嘉祐 圣历 圣武 地节 垂拱 大中祥符 大历 大康 ' +
+  '天仪治平 天会 天保 天兴 天册 天册万岁 天凤 天历 天喜 天嘉 天圣 天复 天安礼定 天寿 天应 天康 天建 天开 天德 天授 天政 天显 天正 天泰 天玺 天盛 天眷 天祐 天祐垂圣 天祐民安 ' +
+  '天祚 天福 天禧 天纪 天纵 天绣 天赞 天辅 天造 天齐 太兴 太初元将 太始 太宁 太安 太平真君 太延 太建 太昌 太清 太熙 太缘 奲都 始光 始平 孝基 孝建 孝治 宁康 安和 ' +
+  '宝义 宝元 宝历 宝大 宝正 宝祐 宝胜 宝鼎 宣和 宣政 尊圣 居摄 崇宁 崇福 嵯耶 干亨 干兴 干化 干和 干宁 干定 干封 干德 干明 干祐 干符 干统 干贞 广政 广明 ' +
+  '广运 广顺 庆历 应历 应干 应道 应顺 延光 延兴 延初 延和 延嗣宁国 延康 延昌 延熙 延熹 延载 建世 建中 建中靖国 建义 建元 建光 建兴 建初 建和 建弘 建明 建昭 建极 ' +
+  '建武 建武中元 建熙 建福 建衡 建隆 开兴 开宝 开庆 开成 开泰 开禧 开耀 开运 弘始 弘昌 彝泰 征和 得圣 德胜 总章 承光 承和 承圣 承安 承明 承玄 拱化 收国 文兴 ' +
+  '文经 昌武 明启 明应 明政 明昌 明道 昭宁 昭武 显庆 显德 显道 晏平 晏朝 普泰 景云 景元 景初 景和 景定 景平 景明 景炎 景瑞 景祐 景福 景耀 景龙 更兴 曹睿 ' +
+  '正元 正光 正始 正平 正隆 武成 武泰 永元 永光 永凤 永初 永始 永建 永弘 永憙 永明 永汉 永淳 永熙 永贞 汉兴 汉复 汉安 汉昌 河平 河清 河瑞 泰始 泰定 泰常 ' +
+  '泰豫 洪化 洪德 淳熙 淳祐 添元 清宁 清泰 炎兴 熙宁 熙平 熹平 燕元 燕兴 燕平 玄始 玄静 玉恒 王霸 登国 白雀 白龙 皇兴 皇初 皇始 皇庆 皇建 皇武 皇泰 皇祐 ' +
+  '皇统 真兴 真王 神册 神凤 神历 神嘉 神爵 神玺 神瑞 神鼎 神龟 祥兴 祯明 福圣承道 秦兴 竟宁 章和 章武 端平 端拱 绍圣 绍定 绍汉 绍泰 绍熙 统和 续兴 缘禾 胜光 ' +
+  '至元 至和 至大 至宁 至治 至道 至顺 致和 见龙 证圣 调露 贞元 贞明 贞祐 赤符 载初 进通 通志 通文 通正 道隆 重兴 重和 重德 重熙 金统 长庆 阜昌 阳嘉 隆兴 ' +
+  '隆和 雍宁 雍熙 鸿嘉 麟嘉 麟德 黄初 黄武 龙兴 龙升 龙启 龙德 龙朔 龙纪 '
+).split(' ').filter(Boolean));
 
 // ------------------------------------------------------------- display ---
 

@@ -6,6 +6,7 @@ import type { Dictionary, Token, TokenKind, Lexicon, RubySpan } from '../types';
 import { isHanCodePoint } from './text';
 import { activeEngine } from '../lang/active';
 import { SURNAMES } from './names';
+import { UNSEEN_FLOOR } from './dict';
 
 /** Used when the dictionary does not report the corpus size (jieba dict.txt.big). */
 const DEFAULT_TOTAL = 83_170_339;
@@ -286,6 +287,10 @@ const CUT_IN_CONTEXT: ReadonlyMap<string, CutRule | CutRule[]> = new Map(Object.
   出走: { after: '往' },
   // 你这一来了 (now that you have come): 这 + 一来, not 这一来 "as a result".
   这一来: [{ before: '了' }, { after: '你我他她您' }], 這一來: [{ before: '了' }, { after: '你我他她您' }],
+  // 西起嘉峪关，东至鸭绿江, 吹东至东南风 (east to): 东 + 至; the county 东至 is written 东至县.
+  东至: { notBefore: '县縣' }, 東至: { notBefore: '县縣' },
+  // 东至上墱 (east to 上墱): 至 "to" after a compass point, not 至上 "supreme".
+  至上: { after: '东東西南北' },
 }));
 /** Words cut where the character before makes a dictionary word with their first one (天台|上, 口水|滴湿, 血水|流了). */
 const SECOND_HALF_CUT: ReadonlyMap<string, string> = new Map([['台上', ''], ['臺上', ''], ['水滴', '口'], ['水流', '血汗清顺順泪淚雨污']]);
@@ -301,6 +306,10 @@ const AFTER_NUMERAL_CUT: ReadonlySet<string> = new Set([
   '张贴', '張貼', '头羊', '頭羊', '床铺', '床鋪', '包换', '包換', '片时', '片時', '拳击', '拳擊', '股掌', '双儿', '雙兒', '日记',
   '日記', '声响', '聲響', '枪刺', '槍刺', '拳打', '脚踏', '腳踏', '天星', '张大', '張大', '回话', '回話', '张嘴', '張嘴',
 ]);
+/** A digit (ASCII or full-width) just before a run of Han characters: 1978年前, １０日前. */
+const DIGIT_BEFORE_RE = /[0-9０-９]/;
+/** Words in 年 or 日 that a number before them takes apart (2001年关校, 1月10日间): 年关 "the year's end", 日间 "daytime". */
+const DATE_CUT: ReadonlySet<string> = new Set(['年关', '年關', '日间', '日間']);
 /** The ones that a demonstrative cuts too (那头羊, 这粒子弹, 这次要是, 那张嘴). */
 const AFTER_DEMONSTRATIVE_CUT: ReadonlySet<string> = new Set(['头羊', '頭羊', '粒子', '次要', '床铺', '床鋪', '包换', '包換', '张嘴', '張嘴']);
 /** Time words that 十多年前, 二十来天后 cut after 多 and 来 as well (and 三十多头羊). */
@@ -385,6 +394,12 @@ function numberAt(text: string, pos: number, a: number, b: number): string {
   const afterDigit = pos > a && isNum(text[pos - 1]) && !'零〇'.includes(text[pos - 1])
     && !(DIGIT_VALUE[text[pos - 1]] !== undefined && DIGIT_VALUE[text[pos]] !== undefined && text[pos - 1] !== text[pos] && !approximate(text[pos - 1], text[pos]));
   if (!isNum(text[pos]) || '百千万萬亿億零〇'.includes(text[pos]) || afterDigit) return '';
+  // 两三月, 八九天, 三四个, 三两天 (a couple, a few): two neighboring digits before a measure word or a unit are one rough number,
+  // not 两 + 三月 "March" or 八 + 九天 "the ninth heaven". (No unit after them: 十有八九, 乱七八糟.)
+  const x0 = text[pos], y0 = text[pos + 1];
+  // (Not inside a longer string of digits, the project 五二三项目, nor after 不: 孙不二|三人.)
+  if (pos + 2 < b && DIGIT_VALUE[x0] !== undefined && DIGIT_VALUE[y0] !== undefined && (approximate(x0, y0) || (x0 === '三' && (y0 === '两' || y0 === '兩')))
+    && has(APPROX_UNITS, text[pos + 2]) && !(pos > a && (isNum(text[pos - 1]) || text[pos - 1] === '不'))) return text.slice(pos, pos + 2);
   // 三六十八, 四六二十四 (the multiplication rhyme: two digits and their product) are one number.
   const x = DIGIT_VALUE[text[pos]], y = DIGIT_VALUE[text[pos + 1]];
   if (x !== undefined && y !== undefined && x * y >= 10 && !approximate(text[pos], text[pos + 1])) {
@@ -410,6 +425,37 @@ function numberAt(text: string, pos: number, a: number, b: number): string {
   // 二十多, 三百余, 二十余万: "and more" after a round number belongs to it (not 来: 引兵十万来伐 is 来 "come").
   if (e < b && NUMBER_PLACES.includes(text[e - 1]) && has('多余餘', text[e])) e += has('万萬亿億', text[e + 1]) ? 2 : 1;
   return text.slice(pos, e);
+}
+
+/** What a fraction's denominator opens with (二十四分之一, 三分之二, 十分之一, 百分之五, 千分之三). */
+const FRACTION_FIRST = '一二三四五六七八九十百千万萬两兩';
+const FRACTION_DIGITS = '一二三四五六七八九十几幾';
+
+/**
+ * The fraction written in characters that starts at `pos` (二十四分之一, 九分之七, 百分之三点五), or ''. `number` is numberAt
+ * at `pos`. 十分之好 is no fraction: a number must follow 分之.
+ */
+function fractionAt(text: string, pos: number, a: number, b: number, number: string, dict: Dictionary): string {
+  // The denominator: a compound number, or one digit or place that no digit comes right before (五十|分 is not 十分之).
+  let e = pos + number.length;
+  if (!number) {
+    if (pos > a && (NUMBER_DIGITS.includes(text[pos - 1]) || NUMBER_PLACES.includes(text[pos - 1]))) return '';
+    e = pos + 1;
+  }
+  if (e + 2 >= b || text[e] !== '分' || text[e + 1] !== '之') return '';
+  let f = e + 2;
+  const top = numberAt(text, f, a, b);
+  // 千分之七十一样 (seventy per thousand the same): a last 一 that makes a word with what follows (一样, 一致) is that word's.
+  if (top) f += top.length - (top.length >= 3 && top.endsWith('一') && f + top.length < b && !has(FLOOR_MEASURES, text[f + top.length])
+    && dict.hasWord('一' + text[f + top.length]) ? 1 : 0);
+  else if (has(FRACTION_DIGITS, text[f])) f += f + 1 < b && DIGIT_VALUE[text[f + 1]] !== undefined && approximate(text[f], text[f + 1]) ? 2 : 1;
+  else return '';
+  // 百分之三点五: a decimal part.
+  if (f + 1 < b && (text[f] === '点' || text[f] === '點') && has(FRACTION_DIGITS, text[f + 1])) {
+    f++;
+    while (f < b && has(FRACTION_DIGITS, text[f])) f++;
+  }
+  return text.slice(pos, f);
 }
 
 /** Whether a conditional opener comes earlier in the same Han run (如果…的话). */
@@ -529,7 +575,7 @@ const DIAN_THINGS = /^(泪|淚|灯|燈|露|星|雀斑|雨|血|火|汗|墨|斑|�
 /** What follows 往后 "backwards" (往后一仰, 往后退, 往后便倒, 往后院): a movement, a look back or a place behind. */
 const BACKWARD_NEXT = /^(一?(仰|看|瞧|望|瞅|倒(?=[去下了在地]|$)|退|缩|縮|靠|躲|闪|閃|挪|拉|拽|扯|推|甩|梳|理|撤|逃|塌|摔|飞|飛|爬|挤|擠|歪|藏|跌|躺|跳|蹦|转|轉|扭|翻|移|让|讓|捋|拢|攏|滑|撩|走)|便(倒|跌|退|走)|[头頭园園门門台臺院角河炕梢墙牆厅廳堂楼樓屋宅殿边邊面山街巷])/;
 /** Characters before a noun + 里/上 that do not join the noun (在家里, 进屋里, 洗脸上, 人手上): prepositions, pronouns, verbs. */
-const BEFORE_PLACE_KEEP = '在到从從往向朝对對于於进進出入回去来來上下把被将將给給跟和与與同及的了着著过過是有说說看象像人我你他她它们們这這那哪'
+const BEFORE_PLACE_KEEP = '在到从從往向朝对對于於进進出入回去来來上下把被将將给給跟和与與同及的了着著过過是有说說看象像人我你他她它们們咱俺您这這那哪'
   + '一二三四五六七八九十两兩几幾个個只隻条條张張本每各又也都就便才再还還不没沒别別已正拿放挂掛贴貼摸打拍洗擦抹遮捂伸举舉抬搭靠躺坐站跪'
   + '爬跳走跑飞飛落掉倒拉推提扶握搓擦揉捏摇搖点點拿摊攤翻开開关關敲';
 
@@ -576,14 +622,28 @@ function contextScore(text: string, pos: number, end: number, a: number, b: numb
   if ((w === '人才' || w === '人材') && /^出[众眾]/.test(text.slice(end, end + 2))) return 0;
   // 这件衣裳是他娘的。 (his mother's): the possessive, not the curse, after 是 at the end of a clause.
   if (w === '他娘的' && prev === '是' && next === '$') return -CUT;
-  const rule = CUT_IN_CONTEXT.get(w);
-  if (rule && (Array.isArray(rule) ? rule.some((r) => ruleHolds(r, prev, next)) : ruleHolds(rule, prev, next))) return -CUT;
+  // 白杨镇上学得 (learned in the town): after one of the book's towns, villages, islands or hills, a 上 is the locative (镇上, 岛上),
+  // not the start of 上学. (涌金门上岸: a gate is no such place; 上下 stays a word.)
+  if (w[0] === '上' && w.length === 2 && w !== '上下' && pos - 2 >= a && has('镇鎮村庄莊岛島山堡寨屯街', text[pos - 1]) && dict.freq(text[pos - 1] + '上') >= 200
+    && placeEndsAt(text, pos, a, lexicon)) return -CUT;
+  // 所见底东西, 到底时候 in a book that writes 底 for 的 (core/bookStyle.ts): a verb and the particle before a noun, not 见底 到底.
+  if (lexicon?.spellings?.di && w.length === 2 && w[1] === '底' && isVerbChar(w[0], dict) && nounWordAt(text, end, b, dict)) return -CUT;
+  // (A word the page writes with 著, 随著 跟随著, has the rules of its 着 spelling.)
+  const rule = CUT_IN_CONTEXT.get(w) ?? (w.includes('著') ? CUT_IN_CONTEXT.get(w.replace(/著/g, '着')) : undefined);
+  // (A rule that cuts before a character, as 今天 before 子 for 今|天子, does not hold where that character opens one of the book's
+  // names: 今天|子君.)
+  const named = (r: CutRule) => !!r.before && !!lexicon && lexicon.maxLen >= 2
+    && Array.from({ length: Math.min(lexicon.maxLen, b - end) - 1 }, (_, k) => text.slice(end, end + k + 2)).some((x) => lexicon.has(x));
+  if (rule && (Array.isArray(rule) ? rule.some((r) => ruleHolds(r, prev, next) && !named(r)) : ruleHolds(rule, prev, next) && !named(rule))) return -CUT;
   // 想来想去, 看来看去 (back and forth): no word crosses the pattern unless it is the whole of it (走来走去).
   if ((w.includes('来') || w.includes('來') || w.includes('去')) && crossesBackAndForth(text, pos, end, a, b)) return -CUT;
   // 这块木板就算是个凳子, 点点头就算是见过了 (that counts as): 就 + 算是; 就算是下大雨，也… (even if) stays.
   if (w === '就算' && next === '是' && countsAs(text, end + 1)) return -CUT;
   // 连名字都记不得了, 顾不得了: the verb's 不得 + 了, not 不得了 "terrible".
   if ((w === '不得了' || w === '不得了') && pos > a && dict.hasWord(text[pos - 1] + '不得')) return -CUT;
+  if (placeTakesLocative(text, pos, a, w, prev, dict, lexicon)) return -CUT;
+  // …and the word in 人 itself is favored before 们 (能人|们, not 能|人|们, where 能 alone is far more common than 能人).
+  if (w.length <= 3 && (w.endsWith('人')) && (text[end] === '们' || text[end] === '們') && personNoun(text, pos, end, a, dict)) return PLURAL_BONUS;
   if (w.length !== 2) return 0;
   // The next few characters of the run (enough for the patterns below; a long run is not copied for every candidate).
   const after = text.slice(end, Math.min(b, end + 12));
@@ -617,9 +677,10 @@ function contextScore(text: string, pos: number, end: number, a: number, b: numb
     && ![2, 3].some((k) => pos - k >= a && (dict.hasWord(text.slice(pos - k, pos)) || !!lexicon?.has(text.slice(pos - k, pos))))) return -CUT;
   // 二人大惊, 众人大都, 一家人大笑: 人 + 大X. 人大 (the People's Congress, Renmin University) stays before 代 常 毕 会 主 副 政 委 and
   // after a place (省人大, 全国人大).
+  // (中国人大网: after a place name, 中国 here, 国人 does not claim the 人.)
   if (w === '人大' && (NUMERAL_BEFORE_MEASURE.includes(prev) || (prev === '的' && !has('代常毕畢会會主副政委', next)) || (!has('代常毕畢会會主副政委', next) && !has('省市县縣区區乡鄉镇鎮', prev) && text.slice(pos - 2, pos) !== '全国'
     && (next === '$' || dict.hasWord('大' + next) || has('吼骇駭叫怒惊驚惧懼笑哭喊喜悦悅嚷骂罵呼闹鬧吃饱飽为為都多半脱脫恩', next)
-      || (prev !== '$' && dict.hasWord(prev + '人')))))) return -CUT;
+      || (prev !== '$' && dict.hasWord(prev + '人') && !(pos - 2 >= a && dict.lookup(text.slice(pos - 2, pos)).some((e) => /^[A-Z]/.test(e.pinyin)))))))) return -CUT;
   // 柴大官人家, 大官人力举: 大 + 官人 + 家/力, not 人家 人力.
   if ((w === '人家' || w === '人力' || w === '人情') && prev === '官' && pos - 2 >= a && text[pos - 2] === '大') return -CUT;
   // 磕了个头 叩了个头: 个 + 头 (one kowtow), not 个头 "height".
@@ -631,13 +692,19 @@ function contextScore(text: string, pos: number, end: number, a: number, b: numb
   // 天台|上, 口水|滴湿, 血水|流了: the character before makes a word with the first one.
   const halfAfter = SECOND_HALF_CUT.get(w);
   if (halfAfter !== undefined && pos > a && (halfAfter === '' || halfAfter.includes(prev)) && dict.freq(prev + w[0]) >= 50 && dict.hasWord(prev + w[0])) return -CUT;
+  // A number written in digits just before the run counts too (1978|年|前, 12月10|日|前, 3|个|人).
+  const numberBefore = has(NUMERAL_BEFORE_MEASURE, prev) || (pos === a && a > 0 && DIGIT_BEFORE_RE.test(text[a - 1]));
+  // 2001年关校, 1月10日间, 2010年头10个月: 年 and 日 count the number before them, so 关 间 头 go with what follows (not 年关 "the
+  // year's end", 日间 "daytime", 年头 "the start of the year"). 年间 is cut after digits only (1950|年|间; 康熙二十年间 stays).
+  if (numberBefore && (DATE_CUT.has(w) || ((w === '年间' || w === '年間') && prev === '$')
+    || ((w === '年头' || w === '年頭') && /^[0-9０-９一二三四五六七八九十两兩几幾]/.test(text[end] ?? '')))) return -CUT;
   // 两个人, 三年前, 几口水, 那头羊: the measure word belongs to the numeral or demonstrative before it.
   if (AFTER_NUMERAL_CUT.has(w)) {
     // 一张嘴就笑 (as soon as he opens his mouth) is 一 + 张嘴; 多了一张嘴, 五六张嘴 are the measure word.
     if ((w === '张嘴' || w === '張嘴') && prev === '一' && !(pos - 2 >= a && has('了着著有长長多这這那每', text[pos - 2]))) return 0;
     // 去集上买头羊: a verb and a measure word without a numeral.
     if ((w === '头羊' || w === '頭羊') && has(VERBS_BEFORE_MEASURE, prev)) return -CUT;
-    if (NUMERAL_BEFORE_MEASURE.includes(prev) || (AFTER_DEMONSTRATIVE_CUT.has(w) && '这這那哪'.includes(prev))
+    if (numberBefore || (AFTER_DEMONSTRATIVE_CUT.has(w) && '这這那哪'.includes(prev))
       || (AFTER_ABOUT_CUT.has(w) && '多来來'.includes(prev) && pos - 2 >= a && NUMERAL_BEFORE_MEASURE.includes(text[pos - 2]))) return -CUT;
     if ((w === '个人' || w === '個人') && VERBS_BEFORE_GE.includes(prev) && !('是有'.includes(prev) && PERSONAL_AFTER.test(text.slice(end, b)))) return -CUT;
     return 0;
@@ -705,11 +772,53 @@ function contextScore(text: string, pos: number, end: number, a: number, b: numb
   if (LOCATIVE_LED.has(w) && pos > a && dict.freq(prev + c0) >= 200 && !('将將'.includes(c1) && '军軍'.includes(prev))) return -CUT;
   // 大人们: 大人 + 们 (adults), unless 大 ends a word (伟大, 强大).
   if ((w === '人们' || w === '人們') && prev === '大' && !(pos - 2 >= a && dict.freq(text.slice(pos - 2, pos)) > 0)) return -CUT;
+  // 女人们, 门人们, 诗人们, 老妇人们: 们 makes the plural of the word in 人 before it (女人 + 们), not 女 + 人们 "people". Not where
+  // those characters close a word that starts earlier (这时|人们, 许多|人们, 每个|人们) or 人 is the object of a verb (让人们, 使人们).
+  if ((w === '人们' || w === '人們') && [1, 2].some((k) => pos - k >= a && personNoun(text, pos - k, pos + 1, a, dict))) return -CUT;
   // 今天下大乱, 今天下英雄: 今 + 天下 (今天下大雨 stays "today").
   if (w === '今天' && next === '下' && (has('分之英皆已', text[end + 1]) || text.startsWith('大乱', end + 1) || text.startsWith('大亂', end + 1))) return -CUT;
   // 方今天下, 即今天气, 当今天子: 今 goes with the word before it.
   if (w === '今天' && has('方即当當至自', prev) && has('下子气氣', next)) return -CUT;
   return 0;
+}
+
+/** The first sense of a word in 里 or 外 that is a place inside or outside something (门外 "outside the door", 村里 "village"). */
+const PLACE_IN_OUT_DEF = /\b(outside|inside|village|hamlet|room|house|home|city|town)\b/i;
+
+/**
+ * 山村里, 大门外, 小屋里的: a dictionary word whose second character is 里 or 外 after a place (村里 "village", 门外, 屋里的) gives
+ * its first character to the character before when the two make a common word (山村, 大门, 小屋), as the jieba fragments in 里/上
+ * do in contextScore. Not after a preposition, a pronoun, a verb or a locative (城内|城外), nor where the character before already
+ * ends a word (每家 in 每家门外), nor 中外 内外 格外 心里 (which are not a place and its side).
+ */
+function placeTakesLocative(text: string, pos: number, a: number, w: string, prev: string, dict: Dictionary, lexicon?: Lexicon): boolean {
+  if (pos <= a || !'里裡裏外'.includes(w[1]) || has('中内內外上下前后後里裡裏心', w[0]) || has(BEFORE_PLACE_KEEP + '中内內外上下前后後里裡裏', prev)) return false;
+  // (Not where the locative would then make a word with what follows: 东门外送 stays 东|门外|送, not 东门|外送.)
+  if (w.length === 2 && dict.hasWord(w[1] + (text[pos + 2] ?? ''))) return false;
+  const lead = prev + w[0];
+  if (dict.freq(lead) < 100 || !dict.hasWord(lead) || !dict.hasWord(w)) return false;
+  const two = w.slice(0, 2);
+  if (!dict.lookup(two).some((e) => PLACE_IN_OUT_DEF.test(e.defs[0] ?? ''))) return false;
+  return ![2, 3].some((k) => pos - k >= a && (dict.hasWord(text.slice(pos - k, pos)) || !!lexicon?.has(text.slice(pos - k, pos))));
+}
+
+/** Nats a word for a kind of person gains before its plural 们 (女人|们). */
+const PLURAL_BONUS = 6;
+/** Verbs and prepositions whose object is 人们 (让人们知道, 使人们, 给人们, 为人们): the 人 is not the end of a word before them. */
+const BEFORE_PEOPLE_KEEP = '让讓使叫令给給教被为為对對向与與和跟同把将將比替由供请請帮幫劝勸逼'
+  // …and the end of a place or a time before them (家内|人们, 背景下|人们, 影像中|人们, 发生时|人们: not 内人 下人 中人 时人).
+  + '内內下中时時上前后後里裡裏外间間';
+
+/**
+ * Whether text[s, e), which ends in 人, is a dictionary word for a kind of person (女人, 门人, 老妇人, counted by the corpus and not a
+ * verb like 让人) whose characters before 人 no longer word claims (这时 in 这时人们; 老妇 is fine, 老妇人 starts with it).
+ */
+function personNoun(text: string, s: number, e: number, a: number, dict: Dictionary): boolean {
+  const x = text.slice(s, e);
+  if (has(BEFORE_PEOPLE_KEEP, text[e - 2]) || !dict.hasWord(x) || !(dict.freq(x) > 0) || dict.lookup(x).some((en) => en.defs.some((d) => VERB_DEF.test(d)))) return false;
+  // (何怪人们, 莫怪人们, 不怪人们: after a negation or 何 the first character is a verb, 怪 "to blame", not a word in 人.)
+  if (s - 1 >= a && has('何莫不休无無勿别別難难', text[s - 1])) return false;
+  return ![1, 2].some((j) => s - j >= a && dict.hasWord(text.slice(s - j, e - 1)));
 }
 
 /** AABB or ABAB at `pos` built from a two-character dictionary word AB, with the score it gets as one token. */
@@ -749,6 +858,10 @@ const FLOOR_MEASURES = '个個本出封张張条條件只隻头頭匹位口座�
   + '间間家所门門道层層级級段节節套份种種类類群批堆串排幅面项項则則笔筆尊盏盞扇幢栋棟丛叢束捆滴页頁章卷册冊届屆期年月日天岁歲'
   + '毛角元圆圓钱錢两兩斤路点點寸尺丈';
 const BEFORE_FLOOR_MEASURE = NUMERAL_BEFORE_MEASURE + '半这這那哪每某';
+/** Measures of a deed or a hand (一步走, 一掌相攻, 一拳打, 一手扶起): after a numeral a word that opens with one is cut too. */
+const VERBAL_MEASURES = '步掌拳脚腳刀剑劍枪槍箭棒鞭手';
+/** What a rough number of two digits counts (两三个, 八九天, 七八岁, 三五里, 七八分). */
+const APPROX_UNITS = FLOOR_MEASURES + '人里裡亩畝碗杯步趟拳掌脚腳刀枪槍箭户戶辈輩代斗石升担擔尾分秒';
 /** Locatives and particles: after an unseen word they make no word with its last character that would take it (十字街上). */
 const AFTER_FLOOR_FREE = '上下里裡裏中内內外前后後边邊头頭的了着著过過地得';
 /** What follows a number that an unseen word ending in a numeral would take from it (引|数十骑, 引|数骑, 天保|八年, 早|八点). */
@@ -772,11 +885,14 @@ const UTTERANCE_DEF = /[!?]\s*$|\binterjection\b/;
  */
 function unseenScore(text: string, pos: number, a: number, b: number, w: string, dict: Dictionary): number {
   const floor = dict.segmentFreq?.(w) ?? 0;
-  if (floor <= 0) return -UNSEEN_WORD_PENALTY;
+  if (floor <= 0) return listedPlace(text, pos, a, b, w, dict) ? Math.log(UNSEEN_FLOOR + 1) : -UNSEEN_WORD_PENALTY;
   const prev = pos > a ? text[pos - 1] : '';
   const n = w.length;
   const next = pos + n < b ? text[pos + n] : '';
   if (has(FLOOR_MEASURES, w[0]) && has(BEFORE_FLOOR_MEASURE, prev)) return -UNSEEN_WORD_PENALTY;
+  // (A measure of a deed only right after a digit and before a deed: 一|步走, 一|掌相攻, 一|手扶起; not 一千|步军, 两|步军头领,
+  // 五百|刀手, 二|掌柜的.)
+  if (n === 2 && has(VERBAL_MEASURES, w[0]) && has('一二三四五六七八九两兩几幾半这這那每', prev) && (isVerbChar(w[1], dict) || w[1] === '相')) return -UNSEEN_WORD_PENALTY;
   // (Before another numeral only a number word that takes one: 引|数十, not 忘八|一条.)
   if (has(NUMERAL_BEFORE_MEASURE, w[n - 1]) && !has(NUMERAL_BEFORE_MEASURE, w[0]) && has(AFTER_FLOOR_NUMERAL, next)
     && (!has(NUMERAL_BEFORE_MEASURE, next) || has('数數几幾十百千万萬', w[n - 1]))) return -UNSEEN_WORD_PENALTY;
@@ -817,8 +933,86 @@ function unseenScore(text: string, pos: number, a: number, b: number, w: string,
   // Three characters or more that are a word plus a last character that makes a common word with the one after it: 铁皮|屋顶,
   // not 铁皮屋|顶; and before 来 or 去, which take a verb at the end of any word (据|我|看来, not 据我看|来; but 喘不过|来 keeps its
   // complement). (A locative or a particle after it is no such word: 十字街|上.)
-  if (n >= 3 && next && !has(AFTER_FLOOR_FREE, next) && dict.freq(w[n - 1] + next) >= 100 && ((has('来來去', next) && w[1] !== '不') || dict.hasWord(w.slice(0, n - 1)))) return -UNSEEN_WORD_PENALTY;
+  // 呆|在|户外, 晚间|在|户外: a preposition of place before a word the corpus knows is two words (在户外 "outdoors" is 在 + 户外;
+  // not 对不对).
+  if (n >= 3 && has('在于於从從往', w[0]) && w[0] !== w[2] && dict.freq(w.slice(1)) >= 20) return -UNSEEN_WORD_PENALTY;
+  // A verb at the end takes a locative as its complement: 向前|看上 (took a fancy to), not 向前看|上.
+  if (n >= 3 && next && (!has(AFTER_FLOOR_FREE, next) || isVerbChar(w[n - 1], dict)) && dict.freq(w[n - 1] + next) >= 100
+    && ((has('来來去', next) && w[1] !== '不') || dict.hasWord(w.slice(0, n - 1)))) return -UNSEEN_WORD_PENALTY;
+  if (n === 2 && floorBelongsToNeighbors(text, pos, w, prev, next, dict)) return -UNSEEN_WORD_PENALTY;
+  // 朝|上|礼拜 (bowed toward the throne), 杆子上|绑着, 褥子下|露着, 板车上|绑, 大树上|绑着: 上 下 after a direction or a noun in 子
+  // 头, and 上 after a noun or a verb that makes a common word with it (车上, 树上, 走上), is that word's, not the start of 上礼拜
+  // "last week" or 上绑 "to truss up". (Not 下 after 时 手 以: 即时|下诏, 左手|下压, 可以|下床.)
+  if (has('上下', w[0]) && has('朝子头頭', prev)) return -UNSEEN_WORD_PENALTY;
+  if (w[0] === '上' && prev && !has('以之往', prev) && dict.freq(prev + w[0]) >= 100 && dict.hasWord(prev + w[0])) return -UNSEEN_WORD_PENALTY;
   return Math.log(floor + 1);
+}
+
+/**
+ * Whether `w` is a town, a township, a village or a district that is nothing else (草屯 "Caotun, an urban township in Nantou", 圆山)
+ * and fills an item of a list of names: it reaches a 、 on one side (新竹、台中、草屯、嘉义, 直抵圆山、大直与内湖). The dictionary
+ * gives such a pair no floor, since two plain characters side by side rarely mean a far-off town (三合, 庙前); in a list of
+ * places they do.
+ */
+function listedPlace(text: string, pos: number, a: number, b: number, w: string, dict: Dictionary): boolean {
+  const end = pos + w.length;
+  const before = pos === a && pos > 0 ? text[pos - 1] : '', after = end === b ? text[end] ?? '' : '';
+  if (before !== '、' && after !== '、') return false;
+  const list = dict.lookup(w);
+  return list.length > 0 && list.every((e) => /^[A-Z]/.test(e.pinyin) && e.defs.length > 0
+    && e.defs.every((d) => /\b(town|township|village|district|county)\b/i.test(d)));
+}
+
+/** Whether a single character's first sense in its usual reading is a verb (看 "to see", 扶, 铺 pū; not 街 "street", 炮 pào). */
+function isVerbChar(ch: string, dict: Dictionary): boolean {
+  const py = dict.pinyinFor(ch)[0] ?? '';
+  return dict.lookup(ch).some((e) => e.pinyin.toLowerCase() === py && VERB_DEF.test(e.defs[0] ?? ''));
+}
+
+/** Whether one of the book's places (kind place) ends at `pos`. */
+function placeEndsAt(text: string, pos: number, a: number, lexicon?: Lexicon): boolean {
+  if (!lexicon || lexicon.maxLen < 2) return false;
+  for (let k = 2; k <= lexicon.maxLen && pos - k >= a; k++) if (lexicon.get(text.slice(pos - k, pos))?.kind === 'place') return true;
+  return false;
+}
+
+/** Whether a common two-character dictionary noun starts at `end` (时候, 东西): not a verb, an adverb or a question word. */
+function nounWordAt(text: string, end: number, b: number, dict: Dictionary): boolean {
+  if (end + 2 > b) return false;
+  const x = text.slice(end, end + 2);
+  return dict.hasWord(x) && dict.freq(x) >= 100 && !/^(什么|甚么|怎么|怎样|为何|为什|哪里|哪个|是不|有没|还是|也是|就是|不是|要不|多少|几时)/.test(dict.toSimplified(x))
+    && !dict.lookup(x).some((e) => VERB_DEF.test(e.defs[0] ?? '') || /^(how|what|why|where|who|whether|also|still|just|only|not)\b/i.test(e.defs[0] ?? ''));
+}
+
+/** Verbs of motion that take a place: 到庭中 is 到 + 庭中 (went into the courtyard), not 到庭 "to appear in court" + 中. */
+const MOTION_VERBS = '到入进進出回上下过過';
+/** Verbs that 倒 turns upside down or backward (倒吊, 倒挂, 倒退): there 倒 is part of the verb, not the adverb. */
+const UPSIDE_DOWN = '吊垂竖豎挂掛悬懸插立栽退转轉贴貼放映流行';
+/** Locatives of inside after a place (庭中, 坑中, 园里); not 前 后 上 下, which follow a deed as well (入宫后, 回马下山). */
+const PLACE_SIDES = '中内內里裡裏';
+
+/**
+ * Where the neighbors of a two-character word the corpus never saw show that its characters belong to them (the floor's
+ * misses on the old novels and the corpus):
+ * - a verb and its object, a noun in 子 (割|稻子, 吃|鸡子; not 脑杓子, 南柯子, 匣枪子弹);
+ * - a verb of motion and a place before a locative of inside (奔到|庭中, 跌入|坑中; not 入寇|中原);
+ * - 过 after a verb and before a thing is its aspect particle (尿|过|床, 交|过|牌; not 休得过谦, 未免过劳, 有过犯);
+ * - 所 before a verb opens a 所 phrase (如公|所言, 何|所|遇);
+ * - 倒 before a verb and its complement is the adverb (倒|弄得, 倒|弄出事来; not 倒吊了);
+ * - 相 after a thing and before a verb is "each other" (一掌|相攻), and 亦即 before a verb is "also at once" (亦|即|披挂).
+ * (A character before or after that makes a word with one of its characters is not enough: 黄蜂|螫 and 西皮|腔 are right, but
+ * 新|课标, 大|方凳, 水|冷凝, 老旧|城区 and 湿冷|天气 have the same shape.)
+ */
+function floorBelongsToNeighbors(text: string, pos: number, w: string, prev: string, next: string, dict: Dictionary): boolean {
+  if (next === '子' && dict.hasWord(w[1] + next) && isVerbChar(w[0], dict)) return true;
+  if (has(MOTION_VERBS, w[0]) && has(PLACE_SIDES, next) && !has('上下', w[1]) && !dict.hasWord(next + (text[pos + 3] ?? ''))) return true;
+  if (prev && (w[0] === '过' || w[0] === '過') && isVerbChar(prev, dict) && !isVerbChar(w[1], dict) && !has('得有知免未太', prev)) return true;
+  if (w[1] === '所' && next && dict.lookup(next).some((e) => e.defs.some((d) => VERB_DEF.test(d)))) return true;
+  if (w[0] === '倒' && has('得了出个個着著', next) && isVerbChar(w[1], dict) && !has(UPSIDE_DOWN, w[1])) return true;
+  // 发掌相击, 一掌相攻 (struck each other): 相 "each other" before a verb after a thing, not the end of 掌相 "palmistry". (Not after
+  // a verb: 拜相 "made chancellor", 递相 "in turn".)
+  if (w[1] === '相' && !!next && isVerbChar(next, dict) && !isVerbChar(w[0], dict)) return true;
+  return w === '亦即' && !!next && isVerbChar(next, dict);
 }
 
 /** Whether text[pos-1] + text[pos] and text[end-1] + text[end] are both common dictionary words (青海 and 民歌 around 海民). */
@@ -874,6 +1068,9 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
     // A dictionary word that holds the whole number (二十一世纪, 三十六计) is left to compete as it is.
     const number = numberAt(text, pos, a, b);
     if (number && !(words[0] && words[0].length > number.length && words[0].startsWith(number))) words = [...words, NUM_PREFIX + number];
+    // A fraction (二十四分之一, 三分之二, 百分之三点五) is one number too, not 二十 + 四分之一.
+    const fraction = has(FRACTION_FIRST, text[pos]) ? fractionAt(text, pos, a, b, number, dict) : '';
+    if (fraction) words = [...words, NUM_PREFIX + fraction];
     for (const cand of words) {
       const fromLexicon = cand.startsWith(LEX_PREFIX);
       const fromNumber = cand.startsWith(NUM_PREFIX);
@@ -898,7 +1095,9 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
       // word (不肖子孙 is 不肖 + 子孙).
       else if (!fromLexicon && f < ZI_NOUN_RARE && w.length <= 3 && w.length >= 2 && w[w.length - 1] === '子' && !NOT_ZI_NOUN.includes(w[0])
         && !(end < b && dict.freq('子' + text[end]) >= 100)
-        && !(pos > a && (dict.hasWord(text[pos - 1] + w[0]) || [1, 2].some((k) => pos - k >= a && dict.hasWord(text.slice(pos - k, end)))))
+        // (吃|鸡子: a verb before it and a word the corpus never saw, 吃鸡 "PUBG", do not count.)
+        && !(pos > a && ((dict.hasWord(text[pos - 1] + w[0]) && (dict.freq(text[pos - 1] + w[0]) > 0 || !isVerbChar(text[pos - 1], dict)))
+          || [1, 2].some((k) => pos - k >= a && dict.hasWord(text.slice(pos - k, end)))))
         // 北工大|儿子: a longer word ends inside it.
         && !(pos - 2 >= a && dict.hasWord(text.slice(pos - 2, pos + 1)))) own = Math.max(own, ZI_NOUN_SCORE);
       if (redup && w === redup.word && !dict.hasWord(w)) own = redup.score;
@@ -933,8 +1132,12 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
       if (w.length >= 2 && w[0] === '著' && pos > a && !'要先才須须應应宜當当將将能可便正又再從从由已即'.includes(text[pos - 1]) && '手眼想力重'.includes(w[1])) own -= 12;
       if (w === '著作' && has('什甚啥', text[pos + 2])) own -= 12;
       if (w.length === 2 && UNLIKELY_WORDS.has(w)) own -= 8;
-      // 屋里面 家里头 心里边: the noun and 里面 (里头, 里边); the noun + 里 is not a word followed by a stray 面.
-      if (w.length === 2 && '里裡裏'.includes(w[1]) && has('面边邊头頭', text[end])) own -= 4;
+      // 屋里面 家里头 心里边: the noun and 里面 (里头, 里边); the noun + 里 is not a word followed by a stray 面. So for 上 and 外 (墙上头,
+      // 门外面), but not where 头 opens a word of its own (晚上|头一回, 顶上|头发, 顶上|头巾) nor where 边 is the side of a street or room
+      // after it (楼上|边街阁儿: upstairs, in the street-side room).
+      if (w.length === 2 && ('里裡裏'.includes(w[1]) || ('上外'.includes(w[1]) && !(end + 1 < b && dict.hasWord(text.slice(end, end + 2)))
+        && !has('街巷路房屋門门窗院厢廂', text[end + 1])))
+        && has('面边邊头頭', text[end])) own -= 4;
       // 三十多年才能輪到: 才能 after a time word is 才 + 能 (not the noun "talent").
       if (w === '才能' && pos > a && '年月日天時时次回歲岁'.includes(text[pos - 1])) own -= 12;
       // 有一行字: a line of writing (一 + 行 háng + 字), not the travelling party 一行 (yìxíng) of 一行人.
@@ -966,6 +1169,29 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
   return cuts;
 }
 
+/** Characters that make a name with one capital letter after them (阿Q, 小D): no book lists these, so they are joined by their look. */
+const BEFORE_LETTER_NAME = '阿小';
+
+/**
+ * A name that starts in the Han run text[i, j) and runs on into the Latin letters right after it: a word of the book's lexicon
+ * that covers the whole run of letters (阿Quei, never part of it: 阿Q does not join in 阿QQ), or 阿 小 and one capital letter
+ * that no other letter follows (阿Q, 小D). Returns the name's span, or null.
+ */
+function hanLatinName(text: string, i: number, j: number, lexicon?: Lexicon): { start: number; end: number } | null {
+  if (classify(text.codePointAt(j)!) !== 'latin') return null;
+  let k = j;
+  while (k < text.length && classify(text.codePointAt(k)!) === 'latin') k += text.codePointAt(k)! > 0xffff ? 2 : 1;
+  if (lexicon && lexicon.maxLen >= 2) {
+    // The longest Han part first.
+    for (let hs = Math.max(i, j - lexicon.maxLen); hs < j; hs++) {
+      if (text.charCodeAt(hs) >= 0xdc00 && text.charCodeAt(hs) <= 0xdfff) continue;
+      if (lexicon.has(text.slice(hs, k))) return { start: hs, end: k };
+    }
+  }
+  if (k - j === 1 && /[A-ZＡ-Ｚ]/.test(text[j]) && has(BEFORE_LETTER_NAME, text[j - 1])) return { start: j - 1, end: k };
+  return null;
+}
+
 /** Characters of transliterated foreign names, in both scripts (杰西卡, 莫兰, 阿尔多, 佩里尼, 娜塔莎, 伊万诺娃). */
 const TRANSLITERATED = new Set([...'阿埃艾爱愛安昂奥奧巴拜班邦保贝貝本比彼毕畢波伯博布查察达達戴丹德登迪蒂丁东東杜多厄恩尔爾法菲费費芬丰豐'
   + '弗夫福盖蓋冈岡高戈格葛贡貢古哈海汉漢豪赫亨胡华華霍基吉加贾賈杰傑金卡凯凱坎考柯科可克肯库庫拉莱萊兰蘭朗劳勞勒雷蕾里利莉丽麗历歷列'
@@ -978,19 +1204,21 @@ const NAME_DOTS = '·・•‧';
  * A foreign name written with a middle dot (杰西卡·莫兰, 阿尔多·佩里尼·罗萨蒂) appears once and no list has it: the tokens of
  * transliteration characters right beside the dot are joined into one name, so 莫|兰 does not show 莫 "do not" and 兰 "orchid".
  */
-function joinDottedNames(tokens: Token[], text: string): void {
+function joinDottedNames(tokens: Token[], text: string, lexicon?: Lexicon): void {
   const translit = (t: Token) => t.kind === 'han' && [...t.text].every((ch) => TRANSLITERATED.has(ch));
+  // A name of the book's lexicon ends the join on its side: 汤姆贾诺维奇|因 (因 is a transliteration character too) when 贾诺维奇 is one.
+  const named = (t: Token) => !!lexicon && [...t.text].length >= 2 && lexicon.has(t.text);
   for (let i = 0; i < tokens.length; i++) {
     if (tokens[i].kind !== 'punct' || !NAME_DOTS.includes(tokens[i].text)) continue;
     // The part after the dot, then the part before it (the merge shifts the indices of what follows, not of the dot).
     let e = i + 1;
-    while (e < tokens.length && translit(tokens[e])) e++;
+    while (e < tokens.length && translit(tokens[e])) if (named(tokens[e++])) break;
     if (e - (i + 1) >= 2) {
       const start = tokens[i + 1].start, end = tokens[e - 1].end;
       tokens.splice(i + 1, e - (i + 1), { text: text.slice(start, end), start, end, kind: 'han', inDict: false });
     }
     let s = i;
-    while (s > 0 && translit(tokens[s - 1])) s--;
+    while (s > 0 && translit(tokens[s - 1])) if (named(tokens[--s])) break;
     if (i - s >= 2) {
       const start = tokens[s].start, end = tokens[i - 1].end;
       tokens.splice(s, i - s, { text: text.slice(start, end), start, end, kind: 'han', inDict: false });
@@ -1028,12 +1256,18 @@ export function segment(text: string, dict: Dictionary, lexicon?: Lexicon, ruby?
         if (classify(nx.cp) !== 'han') break;
         j += nx.len;
       }
+      // 阿Q, 小D, 阿Quei: a name that runs on into Latin letters is one token, and the Han run is cut before it (我这|阿Q|正传).
+      const name = j < n ? hanLatinName(text, i, j, lexicon) : null;
+      const runEnd = name ? name.start : j;
       let from = i;
-      for (const end of cutRun(text, i, j, dict, logTotal, lexicon)) {
-        push(from, end, 'han');
-        from = end;
+      if (runEnd > i) {
+        for (const end of cutRun(text, i, runEnd, dict, logTotal, lexicon)) {
+          push(from, end, 'han');
+          from = end;
+        }
       }
-      i = j;
+      if (name) push(name.start, name.end, 'han');
+      i = name ? name.end : j;
       continue;
     }
     if (cls === 'punct') { push(i, i + len, 'punct'); i += len; continue; }
@@ -1052,7 +1286,7 @@ export function segment(text: string, dict: Dictionary, lexicon?: Lexicon, ruby?
     push(i, j, cls === 'mark' ? 'other' : KIND[cls]);
     i = j;
   }
-  joinDottedNames(tokens, text);
+  joinDottedNames(tokens, text, lexicon);
   const texts = tokens.map((x) => x.text);
   const own = orig !== undefined && orig.length === n && orig !== text ? orig : undefined;
   for (let t = 0; t < tokens.length; t++) {
@@ -1070,6 +1304,7 @@ export function segment(text: string, dict: Dictionary, lexicon?: Lexicon, ruby?
     tok.pinyin = dict.pinyinFor(tok.text, {
       prev: tokens[t - 1]?.text, next: tokens[t + 1]?.text ?? '', after: tokens[t + 2]?.text, line: texts, at: t,
       ...(own ? { orig: own.slice(tok.start, tok.end) } : {}),
+      ...(lexicon?.spellings ? { spellings: lexicon.spellings } : {}),
     });
   }
   return tokens;

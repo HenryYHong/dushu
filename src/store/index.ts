@@ -1,9 +1,10 @@
 // Persistence over IndexedDB (memory fallback). Contract: ARCHITECTURE.md §4.6.
 import type {
-  BackupReport, Bookmark, BookMeta, Chapter, Grade, ImportedBook, LookupRow, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, StoreChange, SyncRow, VocabItem, LexiconEntry,
+  BackupReport, Bookmark, BookMeta, Chapter, Fix, Grade, ImportedBook, LookupRow, Progress, ReviewLog, SeenRow, Settings, SrsState, Store, StoreChange, SyncRow, VocabItem, LexiconEntry,
 } from '../types';
 import { hanBefore, moveByPercent, placeAt, textHan } from '../core/place';
 import { bookKey, canonical, mergeLookups, olderKeys, progressWire } from '../core/syncKeys';
+import { cleanFix, fixId } from '../core/fixes';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
 import { countHan as countLetters } from '../import/han';
@@ -256,7 +257,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
   };
   const onRemote = async (m: ChangeMessage) => {
     if (!m || typeof m !== 'object' || m.db !== name || m.from === tabId) return;
-    if (!['vocab', 'known', 'books', 'lookups', 'bookmarks'].includes(m.what)) return;
+    if (!['vocab', 'known', 'books', 'lookups', 'bookmarks', 'fixes'].includes(m.what)) return;
     try {
       if (m.what === 'vocab') rebuildVocab(await db.getAll<VocabItem>('vocab'));
       else if (m.what === 'known') loadKnown(await db.getAll<KnownRow>('known')); else if (m.what === 'books' && typeof m.removed === 'string') dropUrls(m.removed);
@@ -684,6 +685,49 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       },
     },
 
+    fixes: {
+      list: () => db.getAll<Fix>('fixes'),
+      async put(fixes) {
+        const ops = fixes.map((f) => cleanFix(f)).filter((f): f is Fix => !!f).map((value) => ({ op: 'put' as const, table: 'fixes' as const, value }));
+        if (!ops.length) return;
+        await write(ops);
+        emit('fixes');
+      },
+      async remove(ids) {
+        if (!ids.length) return;
+        await write(ids.map((key) => ({ op: 'del' as const, table: 'fixes' as const, key })));
+        emit('fixes');
+      },
+      adopt(bookId, key) {
+        // The user's own rows of the book's names and terms (Edit, Not a word, Add as a word) and those for every book become fixes,
+        // so they sync and come back with the book. Stamped 0, like anything a device never synced: a deletion made since on
+        // another device wins over it.
+        return exclusive(async () => {
+          const rows = (await db.getAll<LexRow>('lexicon')).filter((r) => r.origin === 'user' && (r.scope === bookId || r.scope === '*'));
+          if (!rows.length) return 0;
+          const have = new Set((await db.getAll<Fix>('fixes')).map((f) => f.id));
+          const ops: Parameters<Backend['commit']>[0] = [];
+          for (const r of rows) {
+            const all = r.scope === '*';
+            const kind = r.enabled ? 'word' : 'unword';
+            if (all && kind === 'unword') continue;
+            const book = all ? '*' : key;
+            const fix = cleanFix({ id: fixId(book, kind, r.word), book, bookId: all ? '*' : bookId, kind, word: r.word, pinyin: r.pinyin, gloss: r.gloss, role: r.kind, on: true, t: 0, ...(r.count ? { n: r.count } : {}) });
+            if (!fix) continue;
+            if (!have.has(fix.id)) ops.push({ op: 'put', table: 'fixes', value: fix });
+            have.add(fix.id);
+            // A name turned off stays in the list as found (the fix keeps it off); a row the user wrote is the fix now.
+            if (kind === 'unword') ops.push({ op: 'put', table: 'lexicon', value: { ...r, enabled: true, origin: 'auto' } });
+            else ops.push({ op: 'del', table: 'lexicon', key: [r.scope, r.word] });
+          }
+          if (!ops.length) return 0;
+          await write(ops);
+          emit('fixes');
+          return ops.filter((o) => o.op === 'put' && o.table === 'fixes').length;
+        });
+      },
+    },
+
     known: {
       has: (word) => knownWords.has(word) || (normalizerSet && knownNorm.has(norm(word))),
       async add(words, opts = {}) {
@@ -767,6 +811,11 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
             if (clean) ops.push({ op: 'put', table: 'bookmarks', value: clean });
           }
           for (const id of change.bookmarksDel ?? []) ops.push({ op: 'del', table: 'bookmarks', key: id });
+          for (const f of change.fixesPut ?? []) {
+            const clean = cleanFix(f);
+            if (clean) ops.push({ op: 'put', table: 'fixes', value: clean });
+          }
+          for (const id of change.fixesDel ?? []) ops.push({ op: 'del', table: 'fixes', key: id });
           for (const row of await mergeHeld(change.rows ?? [], change.seen)) ops.push({ op: 'put', table: 'sync', value: row });
           // One transaction: the records and the rows that say they are in step can never disagree.
           await write(ops);
@@ -777,7 +826,8 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           // Heard here as remote (another device made the change) and told to the other tabs like any save.
           const lookups = !!(change.lookupsPut?.length || change.lookupsDel?.length);
           const bookmarks = !!(change.bookmarksPut?.length || change.bookmarksDel?.length);
-          for (const what of [vocab && 'vocab', known && 'known', lookups && 'lookups', bookmarks && 'bookmarks'] as const) {
+          const fixes = !!(change.fixesPut?.length || change.fixesDel?.length);
+          for (const what of [vocab && 'vocab', known && 'known', lookups && 'lookups', bookmarks && 'bookmarks', fixes && 'fixes'] as const) {
             if (!what) continue;
             notify(what, true);
             post({ db: name, from: tabId, what });
@@ -787,8 +837,9 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     },
 
     async exportBackup() {
-      const [vocab, progress, reviews, lexRows] = await Promise.all([
+      const [vocab, progress, reviews, lexRows, fixes] = await Promise.all([
         db.getAll<VocabItem>('vocab'), db.getAll<Progress>('progress'), db.getAll<ReviewLog>('reviews'), db.getAll<LexRow>('lexicon'),
+        db.getAll<Fix>('fixes'),
       ]);
       // Detected names are cheap to find again; the user's own words and the ones they rejected are not.
       const lexicon = lexRows.filter((r) => r.origin === 'user' || !r.enabled);
@@ -803,6 +854,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       return JSON.stringify({
         app: 'dushu', version: 1, exportedAt: new Date().toISOString(), ...(langId() !== 'zh' ? { lang: langId() } : {}),
         settings, vocab, known: [...knownWords], knownAuto: [...autoWords], progress, reviews, lexicon, bookIdentities,
+        ...(fixes.length ? { fixes } : {}),
       });
     },
 
@@ -895,6 +947,16 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           ops.push({ op: 'put', table: 'lexicon', value: inc });
         }
 
+        // The reader's corrections, under their book's key: one already here stays as it is (it may be newer).
+        const haveFix = new Set((await db.getAll<Fix>('fixes')).map((f) => f.id));
+        for (const raw of Array.isArray(data.fixes) ? data.fixes : []) {
+          const inc = cleanFix(raw);
+          if (!inc || haveFix.has(inc.id)) continue;
+          if (bookMap.has(inc.bookId)) inc.bookId = bookMap.get(inc.bookId)!;
+          haveFix.add(inc.id);
+          ops.push({ op: 'put', table: 'fixes', value: inc });
+        }
+
         if (isObj(data.settings)) {
           const rest = sanitizePatch(data.settings);
           // Claude and MyMemory send the selected text to a third party; that is a choice made on this device, never
@@ -913,6 +975,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         }
         rebuildVocab([...existing.values()]);
         if (report.vocab.added + report.vocab.updated + report.reviews.added) emit('vocab');
+        if (ops.some((o) => o.op === 'put' && o.table === 'fixes')) emit('fixes');
         if (report.known.added) emit('known');
         return report;
       });

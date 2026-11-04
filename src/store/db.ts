@@ -2,10 +2,10 @@
 // when IndexedDB is missing or refuses to open, e.g. some private-browsing modes).
 // All writes go through commit(), which is atomic.
 
-export type Table = 'books' | 'chapters' | 'assets' | 'progress' | 'vocab' | 'known' | 'reviews' | 'lexicon' | 'lexiconScopes' | 'sync' | 'seen' | 'lookups' | 'bookmarks';
+export type Table = 'books' | 'chapters' | 'assets' | 'progress' | 'vocab' | 'known' | 'reviews' | 'lexicon' | 'lexiconScopes' | 'sync' | 'seen' | 'lookups' | 'bookmarks' | 'fixes';
 
 /** Bump when a table is added or changed; openDb's upgrade step creates what is missing, so v1 data is kept. */
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 
 export const TABLES: Record<Table, { keyPath: string | string[]; autoIncrement?: boolean }> = {
   books: { keyPath: 'id' },
@@ -28,6 +28,8 @@ export const TABLES: Record<Table, { keyPath: string | string[]; autoIncrement?:
   lookups: { keyPath: ['day', 'id'] },
   /** Bookmarked places. */
   bookmarks: { keyPath: 'id' },
+  /** The reader's corrections (core/fixes.ts), by fix id; kept when their book is deleted. */
+  fixes: { keyPath: 'id' },
 };
 
 export type Op =

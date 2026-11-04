@@ -3,7 +3,7 @@ import { WORD_READINGS, POLYPHONE_CHARS } from '../../src/core/polyphone';
 import { formatPinyin } from '../../src/core/pinyin';
 import { segment } from '../../src/core/segment';
 import { isHanCodePoint } from '../../src/core/text';
-import type { Dictionary } from '../../src/types';
+import type { Dictionary, OldSpellings } from '../../src/types';
 import { loadTestDictionary, readRows } from '../helpers/data';
 
 const dictP = loadTestDictionary();
@@ -182,7 +182,7 @@ describe('行 in a line of writing, 数 counting money, 背 carrying', () => {
 });
 
 describe('explicit context rules (pinyinFor with prev/next)', () => {
-  type C = [string, { prev?: string; next?: string; after?: string; orig?: string; line?: string[]; at?: number }, string | undefined];
+  type C = [string, { prev?: string; next?: string; after?: string; orig?: string; line?: string[]; at?: number; spellings?: OldSpellings }, string | undefined];
   const rules: C[] = [
     // 了
     ['了', {}, 'le5'], ['了', { prev: '吃', next: '饭' }, 'le5'], ['了', { prev: '不' }, 'liao3'],
@@ -417,6 +417,9 @@ describe('explicit context rules (pinyinFor with prev/next)', () => {
     ['褪', { prev: '裤子', next: '到' }, 'tun4'], ['褪', { prev: '颜色', next: '到' }, undefined],
     ['露', { next: '着', after: '光头' }, 'lou4'], ['露', { next: '水' }, undefined], ['剥', { next: '下来' }, 'bao1'], ['剥', { next: '削' }, undefined],
     ['仆', { prev: '跌', next: '，' }, 'pu1'], ['仆', { prev: '老', next: '人' }, undefined],
+    // 底 for 的 and 蒙 the Mongols (tests/core/polyphone-oldspellings.test.ts, tests/core/polyphone-unseen.test.ts)
+    ['底', { prev: '我', next: '书', spellings: { di: true, na: false } }, 'de5'], ['底', { prev: '我', next: '书' }, undefined],
+    ['蒙', { next: '汉' }, 'meng3'], ['蒙', { next: '住' }, undefined],
   ];
   for (const [ch, ctx, expected] of rules) {
     it(`${ch} ${JSON.stringify(ctx)} -> ${expected}`, async () => {

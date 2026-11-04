@@ -15,6 +15,8 @@ import {
 } from './defs';
 import type { PopupHost } from './host';
 import { addWordControl, bookCard, type BookCardEnv } from './bookCard';
+import { mountFixView } from './fixView';
+import { fixedWord } from '../../core/fixes';
 import { createStrokeOrder } from './writer';
 import { pinyinSpans } from './pinyinText';
 import { properGroups } from '../../core/names';
@@ -68,10 +70,12 @@ export function mountWordView(
   const bookEntry = (word: string) => {
     const lex = o.bookId ? o.lexicon : undefined;
     // The book may be shown in the other script than the one the entry was saved in.
-    return lex && (lex.get(word) ?? lex.get(dict.toSimplified(word)) ?? lex.get(dict.toTraditional(word)));
+    // A word joined at one place only is not among them, but its card still shows what the reader said it is.
+    return lex && (lex.get(word) ?? lex.get(dict.toSimplified(word)) ?? lex.get(dict.toTraditional(word))
+      ?? fixedWord(lex, word) ?? fixedWord(lex, dict.toSimplified(word)) ?? fixedWord(lex, dict.toTraditional(word)));
   };
   const cardEnv = (): BookCardEnv | null => o.bookId
-    ? { ctx, bookId: o.bookId, lexicon: o.lexicon, onLexiconChange: o.onLexiconChange, close: () => host.close(), reposition: () => host.reposition() }
+    ? { ctx, bookId: o.bookId, lexicon: o.lexicon, onLexiconChange: o.onLexiconChange, close: () => host.close(), reposition: () => host.reposition(), fixer: o.fix?.fixer }
     : null;
 
   function contextSyllables(v: View): string[] {
@@ -312,6 +316,12 @@ export function mountWordView(
       ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement, v), title: 'Pronounce (P)', 'aria-label': 'Pronounce' }, icon('speaker'))
       : null;
     const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('close'));
+    // The pencil: fix how the page cuts or reads this word (the reader's word, at the root of the card).
+    const target = o.fix?.target;
+    const fixBtn = target && stack.length === 1 && /\p{Script=Han}/u.test(v.word)
+      ? h('button.icon-btn.pp-fix-btn', { type: 'button', title: 'Fix this word', 'aria-label': 'Fix this word',
+        onclick: () => mountFixView(host, ctx, dict, { fixer: o.fix!.fixer, target }, () => show()) }, icon('pen'))
+      : null;
     // Translate sits beside Pronounce, Save and Known so it is found on a page of dense text, in a sheet or a card.
     const translateBtn = o.context?.sentence && stack.length === 1
       ? h('button.icon-btn.pp-translate', { type: 'button', title: 'Translate sentence', 'aria-label': 'Translate sentence',
@@ -324,10 +334,10 @@ export function mountWordView(
     root.appendChild(h('header.pp-head', null,
       showBack ? h('button.icon-btn.pp-back', { onclick: back, title: 'Back', 'aria-label': 'Back' }, icon('arrowLeft')) : null,
       h('div.pp-title', null,
-        h('span.pp-word.zh', null, v.word),
+        h(`span.pp-word.zh${fixBtn && [...v.word].length === 3 ? '.pp-word-3' : fixBtn && [...v.word].length > 3 ? '.pp-word-4' : ''}`, null, v.word),
         otherForm ? h('span.pp-trad.zh', null, otherForm) : null,
       ),
-      h('div.pp-head-actions', null, speakBtn, translateBtn, saveBtn, knownBtn, closeBtn),
+      h('div.pp-head-actions', null, speakBtn, translateBtn, saveBtn, knownBtn, fixBtn, closeBtn),
     ));
 
     const pyLine = h('div.pp-pyline');

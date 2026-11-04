@@ -1,6 +1,7 @@
 // The dictionary: CC-CEDICT words, Unihan characters, segmentation vocabulary, HSK, script conversion.
 // Contract: ARCHITECTURE.md §3 and §4.1.
-import type { CharInfo, DataMeta, DictEntry, Dictionary, HskInfo, RadicalInfo } from '../types';
+import type { CharInfo, DataMeta, DictEntry, Dictionary, HskInfo, OldSpellings, RadicalInfo } from '../types';
+import { asksWithNa } from './bookStyle';
 import { ConvTable } from './convert';
 import { hanBlockName } from './blocks';
 import { baseOf, markedToNumbered, normalizePinyinField, numberedToMarked } from './pinyin';
@@ -294,6 +295,7 @@ class DictImpl implements Dictionary {
   private charCache = new Map<number, CharInfo>();
   private defaultCache = new Map<string, string>();
   private wordReadingCache = new Map<string, ReadingCandidate | null>();
+  private verbMemo = new Map<string, number>();
 
   // -------------------------------------------------------------- parsing ---
 
@@ -1045,6 +1047,31 @@ class DictImpl implements Dictionary {
   // -------------------------------------------------------------- pinyinFor ---
 
   /**
+   * How much of a verb a word is (the reading rules' CharContext.verb): 2 when every sense of its entries says "to …" (提供 to offer,
+   * 撰稿 to write articles), 1 when some do (建设 to build, construction), 0 when none do or the dictionary does not list it.
+   */
+  private verbStrength = (w: string): number => {
+    let v = this.verbMemo.get(w);
+    if (v !== undefined) return v;
+    const senses = (this.entries.get(w) ?? [])
+      .filter((e) => (e.simp === w || e.trad === w) && entryPenalty(e) < 1.5)
+      .flatMap((e) => e.defs)
+      .map((d) => d.replace(/^(\([^)]*\)\s*)+/, ''))
+      .filter((d) => d && !/^(CL:|abbr\.|surname |also written|see |used in )/i.test(d));
+    const verbs = senses.filter((d) => /^(not )?to /.test(d)).length;
+    v = verbs === 0 ? 0 : verbs === senses.length ? 2 : 1;
+    if (this.verbMemo.size > 50000) this.verbMemo.clear();
+    this.verbMemo.set(w, v);
+    return v;
+  };
+
+  private listed = (w: string): boolean => this.entries.has(w);
+
+  /** Whether the dictionary makes a word a noun: a classifier note (CL:) or a proper name (the reading's capital). */
+  private nounish = (w: string): boolean => (this.entries.get(w) ?? [])
+    .some((e) => (e.simp === w || e.trad === w) && (/^[A-Z]/.test(e.pinyin) || e.defs.some((d) => /^CL:/.test(d))));
+
+  /**
    * Default numbered reading of one character, "" if none is known. `visiting` holds the characters whose reading
    * is being worked out further up the call chain: simplified/traditional counterparts can point at each other
    * (𩣔 and 𬳹 each name the other and neither has a reading), so a revisit answers "" instead of recursing.
@@ -1165,6 +1192,22 @@ class DictImpl implements Dictionary {
     // 从好友那里得到 (from his place): a 从 在 向 … a few words back says the same.
     // The look back stops at the clause's start (跪在地下，那里肯起来: the 在 is the other clause's), and a place word after the
     // 在 is its object (你们在家里那里知道).
+    // A book that writes 那 for 哪 (core/bookStyle.ts): 那里 那个 那一 … that ask which or where are nǎ (你们往那里跑？, 那个便宜？).
+    // The reader said the book's 那 is written as meant: nà, whatever the rules for the old novels below would say.
+    if (ctx?.spellings?.naAsWritten && n >= 2 && NA_WORDS.has(w)) {
+      const r = this.pinyinFor(word, { ...ctx, spellings: undefined });
+      r[0] = 'na4';
+      return r;
+    }
+    if (ctx?.spellings?.na && n >= 2 && NA_WORDS.has(w) && ctx.line && ctx.at !== undefined && ctx.line[ctx.at] === word) {
+      const lo = Math.max(0, ctx.at - 14);
+      const win = ctx.line.slice(lo, ctx.at + 18).map((t) => this.t2s.convert(t));
+      if (asksWithNa(win, ctx.at - lo, (x) => this.verbStrength(x) >= 1)) {
+        const r = this.pinyinFor(word, { ...ctx, spellings: undefined });
+        r[0] = 'na3';
+        return r;
+      }
+    }
     const isNali = w === '那裏' || w === '那里' || w === '那裡';
     const back: string[] = [];
     if (isNali && ctx?.line && ctx.at !== undefined) {
@@ -1279,6 +1322,10 @@ class DictImpl implements Dictionary {
         nextKnown: i < n - 1 || ctx?.next !== undefined,
         alone: n === 1,
         tok,
+        verb: this.verbStrength,
+        word: this.listed,
+        noun: this.nounish,
+        ...(ctx?.spellings ? { spellings: ctx.spellings } : {}),
       });
       out[i] = ruled ?? this.defaultSyllable(orig && this.narrows(orig[i], cps[i]) ? orig[i] : cps[i]);
     }
@@ -1390,7 +1437,12 @@ class DictImpl implements Dictionary {
         // 只有东西两角门 (the east and west side gates): a pair of sides wins over 有 before it.
         if (/^[两兩二]$/.test(next) && /^(角|边|邊|厢|廂|面|侧|側|头|頭|门|門|府|院|街|岸|座|旁|廊)/.test(after)) return ['dong1', 'xi1'];
         if (/(的|什么|甚么|样|些|个|種|种|点|點|件|多|好|新|旧|舊|买|買|吃|拿|偷|送|卖|賣|有|这|這|那|此|么|麼)$/.test(prev)) return undefined;
-        return /^(两|二|各|相|南北|走向|方向|向|冲|角|厢|长|宽|横|对|分|半|夹|二十|三十|几十|数十|百|千|万|一百|长约)/.test(next) || /(南北|贯穿|横贯|分列)$/.test(prev) ? ['dong1', 'xi1'] : undefined;
+        // 东西与南北正交, 东西城墙, 东西两侧 (the east-west line, the walls on both sides).
+        return /^(两|二|各|相|南北|走向|方向|向|冲|角|厢|长|宽|横|对|分|半|夹|二十|三十|几十|数十|百|千|万|一百|长约|城墙|城门|大街|干道|轴线|距离|跨度|全长|直径|延伸|排列|长度|宽度|主轴|两侧|两端|两岸|两翼)/.test(next)
+          || (/^(与|和|及|跟|同)$/.test(next) && /^南北/.test(after)) || /(南北|贯穿|横贯|分列)$/.test(prev) ? ['dong1', 'xi1'] : undefined;
+      case '和好':
+        // 和好的面团, 把面和好 (kneaded): huó hǎo; 和好如初 (made peace) stays héhǎo.
+        return /^(的面|面|的面团|面团)/.test(next + after) || /面团?$/.test(prev) ? ['huo2', 'hao3'] : undefined;
       case '妻子':
         // 保妻子, 各顾妻子, 携妻子 (wife and children): qīzǐ.
         return /[保弃抛携及]$/.test(prev) || (/顾$/.test(prev) && clauseEnd) ? ['qi1', 'zi3'] : undefined;
@@ -1487,14 +1539,19 @@ export interface PinyinContext {
   /** The paragraph's tokens and the index of this word among them, for rules that look further than prev/next (为 X 所, 以 X 为). */
   line?: readonly string[];
   at?: number;
+  /** The book's old spellings the reader follows (底 for 的, 那 for 哪: core/bookStyle.ts). */
+  spellings?: OldSpellings;
 }
+
+/** Words in 那 that ask which or where in a book that writes 那 for 哪 (pinyinFor, core/bookStyle.ts). */
+const NA_WORDS: ReadonlySet<string> = new Set(['那里', '那裏', '那裡', '那儿', '那兒', '那个', '那個', '那些', '那位', '那种', '那種']);
 
 /** The words contextWordReading decides, in both scripts (looked up before any conversion, so other words cost nothing). */
 const CONTEXT_WORDS: ReadonlySet<string> = new Set([
   '人家', '大汗', '教会', '教會', '舍下', '捨下', '重重', '分子', '一行', '打折', '好吃', '好喝', '利害', '格格', '精神', '正当', '正當',
   '得出', '得到', '得来', '得來', '得起', '得住', '引着', '引著', '执着', '執著', '执著', '合着', '合著', '点着', '點著', '东西', '東西', '妻子',
   '便宜', '结果', '結果', '所长', '所長', '生意', '历数', '歷數', '曆數', '片子', '巷道', '长毛', '長毛', '卷子', '捲子', '好事', '大意',
-  '丁丁', '多少', '地道', '一晃',
+  '丁丁', '多少', '地道', '一晃', '和好',
 ]);
 
 /** Words before 人家 that make it a household: 小户人家, 有钱人家, 这样人家, 寻常人家, 庄上人家. */

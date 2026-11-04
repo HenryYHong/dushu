@@ -348,8 +348,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     const ok = await confirmDialog({
       title: 'Delete this book?',
       message: accountBooksHere()
-        ? `“${shown(b.title)}” will be removed from this device and from your account. Your place in it and your saved words stay: add it again and it opens where you left off.`
-        : `“${shown(b.title)}” will be removed from this device. Your place in it and your saved words stay: add it again and it opens where you left off.`,
+        ? `“${shown(b.title)}” will be removed from this device and from your account. Your place in it, your saved words and your corrections stay: add it again and it opens where you left off.`
+        : `“${shown(b.title)}” will be removed from this device. Your place in it, your saved words and your corrections stay: add it again and it opens where you left off.`,
       confirmLabel: 'Delete',
       danger: true,
     });

@@ -108,6 +108,16 @@ export function progressWire(p: Progress): Omit<Progress, 'bookId'> {
   return rest;
 }
 
+/**
+ * A reader's correction (core/fixes.ts) travels as 'l:fix:<id>'. Under 'l:' because every hub keeps any 'l:' key as a record of its
+ * own (last writer wins: a fix never has a lookup's numeric count, first and last, so it is never merged as one), the Mac and the
+ * Worker as they are need no change, and a device from before fixes reads an 'l:' key only when it names a day (parseLookupKey),
+ * so it passes these over and never sends one back. A hub counts them with the lookups, which no screen shows.
+ */
+export const FIX_KEY = 'l:fix:';
+export const fixKey = (id: string): string => FIX_KEY + id;
+export const isFixKey = (key: string): boolean => key.startsWith(FIX_KEY);
+
 /** A looked-up word's record key: 'l:<day>:<word>'. */
 export const lookupKey = (day: string, id: string): string => `l:${day}:${id}`;
 export function parseLookupKey(key: string): { day: string; id: string } | null {

@@ -3,6 +3,7 @@
 // slices with a pause between them, so a long chapter never holds up the page. ARCHITECTURE.md 5.3.
 import type { Dictionary, Lexicon } from '../types';
 import { segment } from './segment';
+import { applyFixes, type HereFix } from './fixes';
 import { isWord } from '../lang/token';
 
 export interface ChapterWord {
@@ -66,6 +67,8 @@ export interface ChapterWordsOptions {
   cancelled?(): boolean;
   /** Pause between slices; the default gives the page a turn. */
   pause?(): Promise<void>;
+  /** The reader's "here only" fixes placed in the `i`-th text (core/fixes.ts); the lexicon carries the others. */
+  here?(i: number): readonly HereFix[] | undefined;
 }
 
 const pauseForPage = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
@@ -77,7 +80,8 @@ export async function chapterWords(texts: readonly string[], dict: Dictionary, l
   let total = 0;
   let names = 0;
   let sinceBreak = 0;
-  for (const text of texts) {
+  for (let i = 0; i < texts.length; i++) {
+    const text = texts[i];
     if (!text) continue;
     if (sinceBreak > SLICE_CHARS) {
       sinceBreak = 0;
@@ -86,7 +90,11 @@ export async function chapterWords(texts: readonly string[], dict: Dictionary, l
     }
     sinceBreak += text.length;
     let tokens;
-    try { tokens = segment(text, dict, lexicon); } catch { continue; }
+    try {
+      tokens = segment(text, dict, lexicon);
+      // As the page cuts and reads them once the reader has fixed them.
+      if (lexicon?.fixes || opts.here) tokens = applyFixes(tokens, text, dict, lexicon?.fixes, opts.here?.(i), lexicon);
+    } catch { continue; }
     for (let t = 0; t < tokens.length; t++) {
       const tok = tokens[t];
       if (!isWord(tok)) continue;

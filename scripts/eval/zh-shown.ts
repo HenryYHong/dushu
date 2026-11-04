@@ -8,6 +8,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
+import { chooseOldSpellings, detectOldSpellings, withOldSpellings } from '../../src/core/bookStyle';
 import { loadDictionary } from '../../src/core/dict';
 import { detectTerms, mergeLexicon } from '../../src/core/lexicon';
 import { importFile } from '../../src/import';
@@ -61,7 +62,9 @@ export function detectionTexts(chapters: Chapter[]): string[] {
 /** Detected names and terms of a book, converted for the page like the reader does. */
 export function bookLexicon(chapterTexts: string[], dict: Dictionary, mode: ScriptMode, script: Script): { found: LexiconEntry[]; lexicon: Lexicon | undefined } {
   const found = detectTerms(chapterTexts, dict);
-  return { found, lexicon: lexiconInScript(mergeLexicon([], found), mode, dict, script) };
+  // The book's old spellings (底 for 的, 那 for 哪) where detection is sure of them, as the reader applies them.
+  const lexicon = withOldSpellings(mergeLexicon([], found), chooseOldSpellings(detectOldSpellings(chapterTexts)));
+  return { found, lexicon: lexiconInScript(lexicon, mode, dict, script) };
 }
 
 /** Every text block of an imported book through the reader's path. */

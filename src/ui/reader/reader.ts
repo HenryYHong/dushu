@@ -25,6 +25,9 @@ import { createPager, type Pager } from './pager';
 import { wordNear } from './wordNear';
 import { pointToOffset, rangeToSpans, snapToCodePoint, spansText } from './selection';
 import { createToc } from './toc';
+import { correctionsTab, createBookFixes, fixTarget, toggleFound } from './bookFixes';
+import { askText, createBookSpellings } from './oldSpellings';
+import { fixesSig, hereIn, placeHere } from '../../core/fixes';
 import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang } from '../../lang/active';
 import { aidName, aidSeal, aidWord, levelLabel } from '../../lang/labels';
@@ -138,6 +141,19 @@ export const mount: MountFn = async (root, params, ctx) => {
   document.title = `${book.title} - Dushu`;
   void store.books.update(book.id, { lastOpenedAt: Date.now() }).catch(() => {});
 
+  // The reader's fixes of this book (bookFixes.ts): laid over the names and terms, so the page is cut and read as they say.
+  const fixes = isChinese() ? createBookFixes(ctx, book) : null;
+  try { await fixes?.load(); } catch (e) { console.error('fixes', e); }
+  // The book's old spellings (底 for 的, 那 for 哪): found once in the background, chosen by the reader (oldSpellings.ts).
+  const spellings = fixes ? createBookSpellings(ctx, book, fixes) : null;
+  /** The names and terms as detection and the store give them, before the fixes (kept to lay new fixes over). */
+  let found: Lexicon = EMPTY_LEXICON;
+  const dress = (lex: Lexicon): Lexicon => {
+    found = lex;
+    const spelled = spellings ? spellings.dress(lex) : lex;
+    return fixes ? fixes.dress(spelled) : spelled;
+  };
+
   // The book's names and terms. First open: what exists now; detection runs in the background and calls back.
   let lexicon: Lexicon = EMPTY_LEXICON;
   let lexiconReady = false;
@@ -145,10 +161,10 @@ export const mount: MountFn = async (root, params, ctx) => {
   let scanning = false;
   const scanDone = () => { scanning = false; pager?.holdNeighbors(false); };
   try {
-    lexicon = await loadLexicon(ctx, book.id, (lex) => {
-      if (lexiconReady) applyLexicon(lex, true); else lexicon = lex;
+    lexicon = dress(await loadLexicon(ctx, book.id, (lex) => {
+      if (lexiconReady) applyLexicon(dress(lex), true); else lexicon = dress(lex);
       scanDone();
-    });
+    }));
     scanning = isDetecting(book.id);
   } catch (e) { console.error('lexicon', e); }
   lexiconReady = true;
@@ -236,13 +252,15 @@ export const mount: MountFn = async (root, params, ctx) => {
     load: () => store.lexicon.get(book.id),
     onWord: (entry, anchor) => openWordPopup({
       ctx, word: entry.word, anchor, lexicon, bookId: book.id, onLexiconChange: () => void reloadLexicon(),
-      context: { sentence: '', bookId: book.id, bookTitle: book.title },
+      context: { sentence: '', bookId: book.id, bookTitle: book.title }, fix: fixes ? { fixer: fixes } : undefined,
     }),
     onToggle: async (entry: LexiconEntry) => {
-      // A choice the user made is never overwritten by a new scan.
+      // A choice the user made is never overwritten by a new scan: a fix of the book's (synced), or else a row of its own.
+      if (fixes) { await toggleFound(fixes, entry); return; }
       await store.lexicon.upsert(book.id, { ...entry, enabled: !entry.enabled, origin: 'user' });
       await reloadLexicon();
     },
+    fixes: fixes ? correctionsTab(ctx, fixes, book.title, spellings ? () => spellings.switches() : undefined) : undefined,
   }, {
     text,
     bookmarks: {
@@ -257,8 +275,11 @@ export const mount: MountFn = async (root, params, ctx) => {
           const lex = lexicon;
           got = store.books.chapter(book.id, i).then((c) => {
             if (!c) throw new Error('This chapter is missing.');
-            const texts = c.blocks.flatMap((b) => (b.t === 'p' || b.t === 'h' || b.t === 'quote' ? [b.text] : []));
-            return chapterWords(texts, dict, lex, { cancelled: () => disposed });
+            const at: number[] = [];
+            const texts = c.blocks.flatMap((b, k) => (b.t === 'p' || b.t === 'h' || b.t === 'quote' ? (at.push(k), [b.text]) : []));
+            // The reader's "here only" fixes of this chapter, as the page applies them.
+            const placed = lex.fixes?.some((f) => f.at) ? placeHere(lex.fixes, i, c.blocks.map((b) => ('text' in b ? b.text : undefined))) : undefined;
+            return chapterWords(texts, dict, lex, { cancelled: () => disposed, here: placed && ((j) => hereIn(placed, at[j], 0, texts[j].length)) });
           });
           got.catch(() => chapterWordCache.delete(i));
           chapterWordCache.set(i, got);
@@ -267,7 +288,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       },
       onWord: (w, anchor, chapter) => openWordPopup({
         ctx, word: w.word, reading: w.pinyin, anchor, prev: w.prev, next: w.next,
-        lexicon, bookId: book.id, onLexiconChange: () => void reloadLexicon(),
+        lexicon, bookId: book.id, onLexiconChange: () => void reloadLexicon(), fix: fixes ? { fixer: fixes } : undefined,
         context: { sentence: w.sentence, bookId: book.id, bookTitle: book.title, chapter },
       }),
     },
@@ -456,6 +477,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     chapterIndex: () => chapterIndex,
     lexicon: () => lexicon,
     onLexiconChange: () => void reloadLexicon(),
+    fixes: fixes ? { fixer: fixes, target: (b, s, e) => { const v = view(); return v ? fixTarget(v, b, s, e, chapterIndex) : undefined; } } : undefined,
     reveal: (b, s) => {
       if (paged) pager?.reveal(b.index, s);
       else ensureInView(b, s);
@@ -468,7 +490,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     // With the keyboard cursor on, the cursor follows the popup's word, and focus returns to it when the popup closes.
     onWordShown: (b, s, e) => { learning.lookedUp(b.text.slice(s, e), !hoverOpening); if (cursor) setCursor(b, s, e, false); },
     onPhraseShown: (spans) => learning.helped(spans),
-    restoreFocus: () => (cursorEl?.isConnected ? cursorEl : null),
+    restoreFocus: () => { reattachCursor(false); return cursorEl?.isConnected ? cursorEl : null; },
     onSheetTop: (top) => liftPage(top),
     liftsPage: () => paged,
   });
@@ -596,6 +618,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       if (paged) pager?.invalidate();
     }
     if (what === 'bookmarks') void loadBookmarks();
+    if (what === 'fixes') refreshFixes();
   });
 
   // --------------------------------------------------------------- bookmarks
@@ -650,7 +673,7 @@ export const mount: MountFn = async (root, params, ctx) => {
 
   // ----------------------------------------------------------- lexicon
   /** Re-segment the chapter with a new lexicon and keep the reading position. */
-  const lexKey = (lex: Lexicon) => lex.entries().map((e) => `${e.word}|${e.pinyin}`).join(',');
+  const lexKey = (lex: Lexicon) => `${lex.entries().map((e) => `${e.word}|${e.pinyin}`).join(',')}#${fixesSig(lex)}#${lex.spellings?.di ? 'd' : ''}${lex.spellings?.na ? 'n' : ''}${lex.spellings?.naAsWritten ? 'w' : ''}`;
   let pendingLex: Lexicon | null = null;
   let pendingLexTimer = 0;
   /**
@@ -695,11 +718,25 @@ export const mount: MountFn = async (root, params, ctx) => {
     } else {
       keepPlace(() => v.setLexicon(lex));
       void v.renderRest();
+      // The keyboard cursor stays on its word, drawn anew (a fix made from the keys keeps the reader's place and focus).
+      reattachCursor(true);
     }
   }
 
   async function reloadLexicon(): Promise<void> {
-    try { applyLexicon(await loadLexicon(ctx, book!.id, (lex) => applyLexicon(lex, true))); } catch (e) { console.error('lexicon', e); }
+    try { applyLexicon(dress(await loadLexicon(ctx, book!.id, (lex) => applyLexicon(dress(lex), true)))); } catch (e) { console.error('lexicon', e); }
+  }
+
+  /** The fixes changed (here, in another tab, or from another device): the page is cut and read again. */
+  let fixesRun: Promise<void> = Promise.resolve();
+  function refreshFixes(): void {
+    if (!fixes) return;
+    fixesRun = fixesRun.then(async () => {
+      try { await fixes.load(); } catch (e) { console.error('fixes', e); return; }
+      if (disposed) return;
+      applyLexicon(dress(found));
+      toc.refreshNames();
+    });
   }
 
   // --------------------------------------------------------------- menus
@@ -1265,6 +1302,19 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (focus) el.focus({ preventScroll: true });
   }
 
+  /**
+   * After the page is drawn again (a fix, names found), the cursor's word is a new element: the cursor moves onto it, and takes the
+   * focus back when `focusLost` and the focus went with the old element. With no word there any more, the cursor is put away.
+   */
+  function reattachCursor(focusLost: boolean): void {
+    if (!cursor || cursorEl?.isConnected) return;
+    const b = view()?.blocks[cursor.bi];
+    const el = b?.el.querySelector<HTMLElement>(`.rd-w[data-s="${cursor.s}"]`);
+    if (!b || !el) { cursor = null; cursorEl = null; return; }
+    const lost = focusLost && (!document.activeElement || document.activeElement === document.body);
+    setCursor(b, cursor.s, Number(el.dataset.e ?? cursor.e), lost);
+  }
+
   function startCursor(): boolean {
     const v = view();
     if (!v) return false;
@@ -1371,6 +1421,9 @@ export const mount: MountFn = async (root, params, ctx) => {
         case 'ArrowDown': e.preventDefault(); moveCursor(1, true); return;
         case 'ArrowUp': e.preventDefault(); moveCursor(-1, true); return;
         case 'Enter': case ' ':
+          // (On a button, the toast's Undo or a menu, the key is that control's.)
+          if (onControl) return;
+          reattachCursor(false);
           if (cursorEl) { e.preventDefault(); lookup.openToken(cursorEl); }
           return;
         case 'Escape': e.preventDefault(); clearCursor(); return;
@@ -1493,6 +1546,44 @@ export const mount: MountFn = async (root, params, ctx) => {
   }
   if (!disposed && failing === null) showReaderHint();
   void loadBookmarks();
+  void findSpellings();
+
+  /** What the book does with 底 and 那, found once when the browser is idle; the page follows, and the reader is asked once. */
+  async function findSpellings(): Promise<void> {
+    if (!spellings) return;
+    await new Promise((r) => window.setTimeout(r, 1200));
+    if (disposed) return;
+    try { if (await spellings.detect()) applyLexicon(dress(found), true); } catch (e) { console.error('old spellings', e); return; }
+    if (disposed) return;
+    toc.refreshNames();
+    askSpellings();
+  }
+
+  /** A one-time question at the bottom of the page when the book writes 底 for 的 or 那 for 哪: Yes keeps it so, No reads them as written. */
+  function askSpellings(): void {
+    const ids = spellings?.ask() ?? [];
+    if (disposed || !ids.length || rd.querySelector('.rd-spell-ask')) return;
+    // After the first-visit hint, which sits in the same place.
+    if (rd.querySelector('.rd-coach')) { window.setTimeout(askSpellings, 2000); return; }
+    const box = h('div.rd-coach.rd-spell-ask', { role: 'note', 'data-rd-ui': '' },
+      h('div', null, h('p', null, askText(ids)), h('p', null, 'You can change it later under Corrections in the chapter list.')),
+      h('div.rd-spell-btns', null,
+        h('button.btn.btn-sm.btn-primary', { type: 'button', onclick: () => { box.remove(); void spellings!.choose(ids, true); } }, 'Yes'),
+        h('button.btn.btn-sm', { type: 'button', onclick: () => { box.remove(); void spellings!.choose(ids, false); } }, 'No')));
+    rd.appendChild(box);
+    liftToasts(box);
+  }
+
+  /** While a card is up at the bottom of the page (the old spellings question), toasts show above it, not over its buttons. */
+  function liftToasts(box: HTMLElement): void {
+    const set = () => {
+      if (!box.isConnected || disposed) { document.body.style.removeProperty('--rd-coach-h'); window.removeEventListener('resize', set); return; }
+      document.body.style.setProperty('--rd-coach-h', `${Math.ceil(box.getBoundingClientRect().height)}px`);
+    };
+    requestAnimationFrame(set);
+    window.addEventListener('resize', set);
+    box.addEventListener('click', () => requestAnimationFrame(set));
+  }
 
   /** The first time a book is opened on this device: how to look things up, once. */
   function showReaderHint(): void {

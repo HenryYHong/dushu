@@ -235,6 +235,43 @@ Details:
   on it; 仆 pū after 跌 颠 前 僵; 强 qiáng after a lone surname (a given name the lexicon missed); 什 shí between transliteration
   characters; 着 zhe in 还睡着 正睡着; 种 zhòng before so many 亩 垧 棵; 了 liǎo in 就算了事 就算了大事. `WORD_READINGS` adds 麦场 màicháng,
   长脸 chángliǎn (a book-words row) and 当天 dàngtiān.
+  Rules for text Dushu was never tuned on (plan item 4, tests/core/polyphone-unseen.test.ts, invented sentences; each passed the corpus
+  and tuned-book diffs and the CPP check). The rules may ask the dictionary through the context: `verb(w)` (2 when every sense of the
+  word says "to …", 1 when some do; a verb + complement CEDICT lacks, 划出, counts as one), `word(w)` and `noun(w)` (a classifier
+  note or a proper name). 为 written 为 (modern books): wèi when a verb follows what it is done for (为大熊猫提供, 为维基新闻撰稿, a
+  verb before 的 too: 为客人准备的点心) or 而 or 的事 ends the clause; wéi when a noun phrase with no verb ends the clause (it ends on
+  a 的 phrase's head, a quotation, a title, a number's unit or a noun) and a verb of naming or judging (宣布为, 诊断为) or a noun
+  subject comes right before (原型为一座石桥, 中秋节（秋夕）为法定假期; not a pronoun, an adverb of "for" or a name the dictionary
+  lacks), and before ： (评语为：). 以 改 称 列 较 … 为 look back past a quotation, a number, a Latin name or a 、 list (以“…”为题,
+  以3310型手机为原型, 较去年的1200吨为多); digits after 为 are what something is unless what is done for it follows (而是为250公里/小时
+  的列车提供服务); more verbs of becoming (定性 归纳 变更 改制 形容 成长 化身 …) and quantities (时速 体长 可能性, words in 费 额 价 值 率).
+  得 dé after an adverb of the old books (遂得 始得 何得 暂得 皆得, not 皆得在/归), after a verb of getting before an amount (筹得30万美元,
+  录得超过200毫米), in 得了 + a count after 一共 只 各 …, after a word of ought or never before what is got (该得什么罪, 何曾得一个闲,
+  想得一点好兆头), before an illness that ends the clause after someone (露沙得极重的热病), in 并得依法 (may) and 得蒙; děi after
+  到底 and opening a clause of the vernacular before 有 (得有人去看着). 地 de before a comma after a word of manner (分明地，坚决地，;
+  `MANNER`) and in 出奇地; dì after a verb that makes a place (移居地 登陆地, `PLACE_OF`). 卷 juàn next to its number (卷四 as a heading,
+  《因话录》卷4说, 第三卷, 10卷) and after a numeral in characters only before a written work (三卷天书, 几卷…的经; 一卷银子 juǎn). 场
+  chǎng after 一 when what it counts is a game, a show, a meeting or a campaign (`EVENT`), unless weather or trouble comes first. 长
+  zhǎng in 越长越大 (not after a time: 日子越长越难熬), in "older by" (比我长一辈, 长三岁) and before 回 著 男. 东西 dōngxī before 城墙
+  轴线 两侧 … and before 与 南北. 中 zhòng before 举人 进士 状元 秀才 …, in 中过学, 得中, N投N中 and a clause-opening 中了. 还 huán before
+  a person + 个 (还你个公道) and before 礼 (还过了礼). 甚 shén after 因 为 and ending a clause after 做 作 干 说 等 … (做甚？). 和 huó before
+  好 匀 成 + dough or mud (和好的面团, also the word 和好). 儿 ér after two or more transliteration characters, one of them rare in
+  Chinese words and none doubled (珀拉儿, 诺孜贝儿; 布里儿, 巴巴儿 stay erhua). 蒙 Měng beside 汉 藏 元 回 满 and in 中蒙边境; 藏 zàng
+  after 蒙 汉 满 回.
+  Old spellings (core/bookStyle.ts): `detectOldSpellings(chapterTexts)` reports, per book, 底 written for 的 (sure when 我底 你底 他们底 +
+  a word, not 底下 底细 …, come at least 5 times and at least a fifth as often as 我的 …) and 那 written for 哪 (sure when at least 5
+  questions ask with a 那 word and nothing else, and the book writes 哪里 哪个 … at most a third as often); `chooseOldSpellings(report,
+  choice)` lets the reader's choice win; `withOldSpellings(lexicon, s)` spreads the lexicon with `spellings`, which segment() passes to
+  `pinyinFor` as `ctx.spellings`. With `di`, a lone 底 between a word and what it has, or ending a clause after a phrase, is de (她底眼睛,
+  躺着底，); the noun stays before 下 里 的 …, in a word, after a run of transliteration characters (婆多瓦底) and in a bottom that does
+  something (滩底呜咽). With `na`, `asksWithNa` makes 那 那里 那个 那些 那位 那种 nǎ in a question with no other word that asks
+  (你家在那里？, 你是那寺里和尚？, 差那两个去？) and opening a rhetorical one (那里还会有…。, 那有这样的道理！, 那一个不…？, 那得齐全。);
+  they stay nà after someone (我那里, 在三姑娘那里), in a yes-no question (also 那里不有人来了？, and after 莫不 敢是 莫非 难道), after a verb
+  that takes them (把那个碗, 将那匹大马…吃了？), when another 那 word asks (那秃驴在那里？), as 那么 那时 那是, before a title (那管营,
+  那知府), in "this one … that one" (这个…，那个…), after 兀那 or 不看见, in 是那 + a deed + 的 (你是那闹天宫的孙悟空？) and in 那得 + a
+  verb of depending (那得让他, nà děi; 得 is děi there in any book, 那得多少钱). When the reader turns 那 for 哪 off (`naAsWritten`), 那
+  is nà everywhere, also where the rules for the old novels read 那里 nǎ (我们打那里走？). The eval path (scripts/eval/zh-shown.ts) applies
+  what detection is sure of; the reader stores the report and the choice (core/fixes.ts, ui/reader/oldSpellings.ts).
   For multi-reading multi-char words (e.g. 银行 has one reading, 长大 one; 好好 several) prefer
   the entry whose defs are not "variant of"/"old variant"/surname-only, then the most common.
 - `wordsAt(text, i)`: all headwords starting at i (max headword length from the data), longest
@@ -313,6 +350,22 @@ Details:
   is cut only after a motion; 吊死 after 上 is kept when 在 于 从 到 came before (在房梁上吊死); 可不枉 in a question is 可 + 不 + 枉; 人才
   stays before 出众 荟萃 虽 齐 and after 识 得 般; 怪道 before a colon is 怪 + 道; 云游僧道： keeps 僧道; 他娘的 after 是 at a clause end is
   his mother's; 就算了事 is 就 + 算 + 了事.
+- Cutting rules for unseen text (plan item 6, tests in `tests/core/segment-cuts.test.ts`, invented sentences): a number in digits
+  before the run counts like a numeral, so 1978|年|前, 10|日|间, 2001|年|关校 and 3|个|人 (年头 only before a number, 年间 only after
+  digits); two neighboring digits before a measure word are one rough number (两三|月, 八九|天, 三两|天; not 十有八九, nor inside
+  五二三项目); a fraction is one number (二十四分之一, 百分之三点五, 十分之八九; 十分之好 and 千分之七十|一样 stay); 东至 is 东 + 至
+  except before 县; a word for a kind of person in 人 takes 们 (女人|们, 老妇人|们; not 这时|人们, 让人们, 背景下|人们); a place
+  word in 里/外 gives its first character to a common word before it (山村|里, 大门|外, 小屋|里; not 中外 格外 心里, 城内|城外);
+  人大 after a place name stays (中國|人大|網); a word the page writes with 著 has its 着 spelling's rules (跟随|著). A word the
+  corpus never saw loses its floor where its neighbors take it (`floorBelongsToNeighbors` and `unseenScore`): a verb and its object
+  in 子 (割|稻子), a verb of motion before 中 里 (到|庭中), 过 after a verb before a thing (尿|过|床), 所 before a verb (如公|所言),
+  the adverb 倒 (倒|弄得), 相 before a verb (一掌|相攻), 亦即 before a verb, a deed's measure after a digit (一|步走, 一|手扶起), 上
+  下 after 朝 or a noun that takes them (朝|上|礼拜, 车上|绑), a preposition before a counted word (在|户外). A town that is only a
+  town gets the floor where it fills an item of a 、 list (新竹、草屯、嘉义). 阿 or 小 + one capital letter, and a lexicon word that
+  runs on into Latin letters, are one token (阿Q, 小D, 阿Quei), and a ·-name stops at a lexicon word on its side. 们 does not make a
+  plural after 何 莫 不 + 怪 (何怪|人们); 上边 is not taken from 楼上 before 街 屋 房 … (楼上|边街); a rule that cuts before a character
+  does not hold where that character opens a lexicon word (今天|子君); after a town, a village, an island or a hill of the lexicon, 上
+  is its side (白杨镇|上|学得), and in a book that writes 底 for 的 a verb + 底 is cut before a noun (所见|底|山水).
 - Traditional text segments exactly as well as simplified (both scripts are in `words`).
 - `segment(text, dict, lexicon?, ruby?, orig?)`: `orig` is the paragraph as the book spells it when `text` is its conversion to the
   other script character for character (same UTF-16 offsets; `ui/reader/shown.ts` `originalBeside` checks). Words are cut in `text`;
@@ -716,6 +769,42 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   dictionary knows only as a town or a village (段家, glossed "the 段 family"), not 墨家 or 苗家. On the 24 books: 15 entries added, none wrong.
   `pinyinOf` reads the surname alone (梁子安 is not 梁子 + 安), 发 fā, 兴 xīng, 冠 guàn, 都 dū, 乾 qián in a name, 术 zhú in a name with no
   Chinese surname, an office in 长 zhǎng (支队长) and a temple in 观 guàn; only a doubled kinship character is neutral (李师师 keeps shī).
+- Detection v10 (`DETECTOR_VERSION` 10, plan item 3 "names v9", tests in `tests/core/names-v9.test.ts`) is for books it was never tuned on.
+  - **Names that repeat a lot** (`judgeRepeat`, asked after the other judges turn a string down). A short text cannot give a frequent name
+    the pmi a long book gives it, so candidates also carry `npmi` (pmi over its ceiling ln(chars / count): near 1 when the parts are never
+    apart). Accepted: a pair never apart seen 8 times in a short text or 12 in a long one, free on both sides (敏明; 子君 though 君 ends an
+    office; a surname-led pair is a person only with a person's signs, so 石凳-like things stay terms, and an office in a long book
+    stays a term: 郡侯); a surname and one character that is a person in a long book (李静: spoken to and speaking, bind ≥ 0.45, free on
+    both sides); 阿 + a name (阿随, not 阿母); a pet name in 儿 that is called out, speaks or is spoken to and is free on the left (孝儿;
+    jieba may know it whole and read r; not 打|盹儿, 金|钏儿); a nickname in 子 never apart and treated as a person (祥子, 小福子, read with a
+    neutral 子; not 小牢子: 牢子 is a word); a given name and a kinship word (附姐); a foreign name made only of `TRANSLIT_CHARS`
+    (`names.ts`: 拉希姆, 贝莱赫斯特); in a short text a surname and two characters seen three times that open clauses (张雪峰, so a news
+    story of 100 Han characters or more is read too); and a dictionary word the book uses hundreds of times more often than other
+    text, never apart, ordered about or addressed a quarter of the time (沙龙 the sorcerer; its card keeps "salon").
+  - **One sighting with a cue** (`cued`, after `family()`, so a name seen once never seeds a family): a title before a surname-led name
+    (部长盛光祖表示: two characters when a word that follows names comes right after, else three; not 总理李克|强 when the three are a
+    dictionary name, nor a known person and the next character, 凤姐忙); a verb of reporting after a name that opens a clause (夏志清认为);
+    先生 女士 小姐 after a full name; 名叫 绰号 花名 … (`NAMED`, `NICKNAMED`) and 叫做 唤做 取名 … (`CALLED`: in the old novels these name
+    anything, so a surname-led string after them is a person only unquoted, a quoted one is a term, 这一招叫做“…”); the Han text before a
+    gloss in Latin letters or a language (睿铁（RAIL.ONE）, 嘉俳日（韩语：…）; not two dictionary words, 波兰饺子); an actor's credit
+    （周一围饰）; a storm (飓风文斯, glossed "name of a storm"); a 、 list after 有： whose items are all surname-led names or dictionary
+    persons (not 石碗、石盆、石床); an era name before its year from `ERA_NAMES` (Wikidata, CC0: 泰常八年); in a text under 100,000 Han
+    characters a street, bridge, lake, hill or building after a word of going or before a locative (过了德胜桥, 白云楼上; not where the ending
+    makes a word with the character before, 大楼 西湖, nor a quantity, a verb or a dictionary word seen once, 许多路 遥望山 对面大街); two
+    one-character city names before a railway (武广客运专线; 沈 shěn); both halves of a foreign name around · • ‧ ・ (奎登·德拉尔, so 德拉尔
+    alone joins; the given name that opens a clause, 旺加里; never the next word, 贾诺维奇|因); and 阿 小 老 + a capital letter seen three times
+    (阿Q, 小D, 阿Quei: segment.ts keeps them one token; `lexiconInScript` keeps them though their pinyin has a syllable for the Han
+    character only). An era name is added only where the book writes it before a year at least as often as elsewhere (天会二年 once,
+    明天会下雨 everywhere else: no entry); a nickname (绰号 外号 诨名 花名) reads its first character as written, not as a surname (外号“盖九
+    州”: gài), and is none when it opens with an adverb (绰号尚悬空).
+  - **Anthologies** (`perChapter`): when fewer than half of the chapters hold any person the whole book found and most chapters are short,
+    each chapter of 150 to 20,000 Han characters is also read alone with the short-text rules (a name seen four times in one story).
+  - Everything a cue or a chapter adds is checked against the whole book by `boundaries()`, which also drops a place or a term that runs
+    on, nine times in ten or more, into a dictionary word made with its last character (京津城 before 际 and 铁: 京津|城际, 京津|城铁). A
+    transliteration in 儿 whose first characters are never seen without the 儿 is bound enough at a lower npmi (珀拉儿). `pinyinOf` reads 少 shào in a name or a place
+    (赵少华, 少华山) and 沈 Shěn as a surname; a transliteration ends in 儿 ér. On the held-out corpus the silver checks went from 125 to 261
+    right (no check broken); on the 25 tuned books about 320 entries were added, each read in context, and none removed. Detection is about
+    10% slower on a 900,000-character novel (the cues scan the text once each).
 - `capitalizePinyin(syllables, kind, word, fold?)` and `pinyinGroups` (exported from `names.ts` and `lexicon.ts`): a name is written Guō Jìng,
   Hán Xiǎoyíng, Ōuyáng Wújì, Lǎo Wántóng; a place Táohuā Dǎo, Guīyún Zhuāng; a term, a user word and zhuyin stay as they are. The word popup and the
   "In this book" card use it (`ui/popup/pinyinText.ts`); ruby over the text stays lowercase.
@@ -740,14 +829,15 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
   and the neighbors would have been thrown away when the names arrived.
 - Reader: `createChapterView({lexicon})` and `setLexicon(lex)`; when the reader's script setting converts the text, the lexicon's words are
   converted too (`lexiconInScript` in ui/reader/shown.ts, memoized by `shownLexicon()` in chapter.ts). The reader re-segments and keeps the position when the lexicon changes (background
-  detection, an edit, "Not a word"). The contents drawer has a "Names & terms" tab (press N) with a switch per row.
+  detection, an edit, "Not a word"). The contents drawer's **Corrections** tab (press N; §4.12) lists the names and terms with a switch per row.
 - Popups: a word that is a lexicon entry (looked up in either script) gets an "In this book" card first in the word popup (`ui/popup/bookCard.ts`):
-  kind chip (Person, Place, Term, Your word), count, the entry's pinyin and meaning, **Edit** (pinyin with tone numbers or marks, meaning; saved
-  as a user row in the book's scope) and **Not a word** (a disabled user row in the book's scope, popup closes, toast with Undo). The header
-  reading comes from the entry. The phrase popup offers **Add as a word…** for a 2–8 character Han-only selection that is not already an entry
-  (also offered in the word popup under "not in the dictionary as a word"): pinyin prefilled from what is shown, optional meaning, "This book"
-  or "All books" (`'*'`). The phrase popup segments with the lexicon, so a name is one row in the word-by-word list. Edits call
-  `onLexiconChange` and the reader reloads the lexicon.
+  kind chip (Person, Place, Term, Your word), count, the entry's pinyin and meaning, **Edit** (pinyin with tone numbers or marks, meaning) and
+  **Not a word** (popup closes, toast with Undo); in the reader both are saved as fixes of the book (§4.12: a word fix, an "unword" fix), which
+  sync, and elsewhere as user rows in the book's scope as before. The header reading comes from the entry. The phrase popup in the reader
+  offers **Join as one word…** and **Mark as a name…** (§4.12); outside it, **Add as a word…** for a 2–8 character Han-only selection that is
+  not already an entry (also offered in the word popup under "not in the dictionary as a word"): pinyin prefilled from what is shown, optional
+  meaning, "This book" or "All books" (`'*'`). The phrase popup segments with the lexicon, so a name is one row in the word-by-word list. Edits
+  call `onLexiconChange` and the reader reloads the lexicon.
 
 ### 4.10 `core/autoKnown.ts` — known words learned from reading (`settings.autoKnown`, off by default)
 - The rule: a word that goes by on 10 pages (`AUTO_KNOWN_PAGES`) over at least 2 different local days (`AUTO_KNOWN_DAYS`) without being looked
@@ -773,13 +863,14 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
 ### 4.11 Sync through the Mac or a sync account (`core/sync.ts`, `core/syncExchange.ts`, `scripts/sync-bridge.ts`, `cloud/`)
 Saved words (with their SRS state), known words (with the learned-from-reading mark), the reading place in each book, looked-up words,
 bookmarks and the reading settings (`SYNCED_SETTINGS`) are the same on every device connected to the Mac or signed in to the account, and
-books go through the account. Review logs and names are not synced. Each language's library syncs on its own, apart (**Languages** below).
+books go through the account, and so do the reader's corrections (§4.12: names marked, words joined or split, readings, old spellings, kept as
+`l:fix:<id>` records). Review logs and the names Dushu found are not synced. Each language's library syncs on its own, apart (**Languages** below).
 - **The Mac** (`scripts/sync-bridge.ts`, route `POST /api/sync`, owner-only through `bridgeRequest`, CORS like the other bridge routes)
   keeps one file, `state.json` in the folder `DUSHU_SYNC_DIR` names (an absolute path; the owner's is `.dushu-local/sync`):
   `{ epoch, version, records: { key: { at, data, rev } } }`. There is no default folder: only `scripts/start-local.mjs` (Dushu.command,
   `npm start`, the login item) sets it, and a server started any other way (`npm run dev`, `npm run preview`, a QA script) answers 503
   `{ off: true }`. A save by another process on the same folder (a new inode) is read before the next merge, never overwritten.
-  Keys: `v:<word id>`, `k:<word>`, `p:<book key>`, `l:<day>:<word id>` (a looked-up word), `b:<bookmark id>`, `o:<setting>`, with
+  Keys: `v:<word id>`, `k:<word>`, `p:<book key>`, `l:<day>:<word id>` (a looked-up word), `l:fix:<fix id>` (a correction, §4.12), `b:<bookmark id>`, `o:<setting>`, with
   `@<language>:` in front for a language other than Chinese; `data: null` is a deletion. A request sends `{ epoch, since, changes: [{ key, at, data }] }`
   (and `lang` for a language other than Chinese);
   each change wins when its `at` is later (a tie goes to the larger JSON, so every copy agrees; an `at` more than 10 minutes ahead of the
@@ -936,6 +1027,80 @@ books go through the account. Review logs and names are not synced. Each languag
   the site. Any order loses nothing (a library whose hub is older waits, `outdated`), but this order never shows the message. After
   that, roll the Worker forward rather than back: a rollback loses nothing either, but the Chinese room counts every language while
   it runs (Rolling back, above).
+
+### 4.12 Corrections (`core/fixes.ts`, `ui/reader/bookFixes.ts`, `ui/popup/fixView.ts`, the Corrections tab in `ui/reader/toc.ts`)
+No reader cuts and reads every word right. A **fix** (`Fix` in types.ts) is what the reader says about one word of one book, and it acts
+after the cut: `segment.ts` never changes for it.
+- **Kinds.** `word`: the characters are one word (a person, a place, another name, or the reader's own word; `role`), with its pinyin and an
+  optional meaning. `unword`: a name or term Dushu found (or a word made for every book) is not a word in this book. `cut`: a token that is
+  `word` is cut at `cuts` (code points). `reading`: a token that is `word` reads `pinyin`. `spelling`: the reader's choice for an old
+  spelling of the book (底 for 的, 那 for 哪; `on`), which `core/bookStyle.ts` reads. A fix holds **everywhere in the book**, or **here only**:
+  `at` = `{chapter, block, offset, before, after}`, the stored block and UTF-16 offset with up to 8 characters on each side as the book spells
+  them. `book` is the book's sync key (`'*'` for every book), `bookId` its id on this device; `t` when it changed; `n` the places counted when
+  it was made. Words are kept as the book spells them, whatever script the page shows.
+- **Ids.** `fixId(book, kind, word, at)`: a word's joins, cuts and "not a word" share an id (the latest says what the word is), a reading has
+  its own, each place of a "here only" fix its own. The same fix made on two devices is one record.
+- **On the page.** `withFixes(lexicon, fixes)` lays them over the book's names and terms: a word for every book counts least, then what was
+  found, then the book's own names, places and other names; "not a word" takes the word out. A word the reader joined as an ordinary word
+  (`role: 'user'`) stays out of the cut's candidates (as a candidate, 有的 took 有的是 and 所有 apart on the corpus); `applyFixes` joins it
+  where the page cuts it into whole tokens. The fixes that act after the cut ride on `Lexicon.fixes` (`lexiconInScript` keeps every extra
+  field). `segmentShown(…, here)` calls `applyFixes(tokens, bookText, dict, fixes, here)`: joins everywhere (aligned tokens only), cuts
+  everywhere, then the "here only" joins (the edges cut first when the page now cuts across them; the piece left over stays a word of its
+  own: joining it back to its other neighbor when the dictionary has the pair was as often wrong as right on the audits), "here only"
+  cuts; then the tokens a fix made and their neighbors are read again as segment.ts reads every token (prev, next, after, the
+  paragraph's tokens, the book's characters, the old spellings; a name's or a given reading stays), so the 地 left after a joined 分外
+  reads de; then readings everywhere, then readings here. `placeHere(fixes, chapter,
+  blockTexts)` finds each "here only" fix: where its anchor says while the word and one side of its context are there; else where the word
+  and both sides are, nearest the old block (a book imported again); else the one place with the word and one side; else nowhere.
+  `hereIn` hands each piece of a long paragraph its own. With no fixes the tokens are the same array: the dumps of the corpus and the 25
+  tuned books are byte for byte those of stage 1. The chapter view, the Words tab (`chapterWords(…, { here })`), the word card, the HSK chip
+  and read-aloud all use the fixed tokens.
+- **Store.** Table `fixes` (keyPath `id`, `DB_VERSION` 5), `store.fixes.list/put/remove/adopt`. Fixes are kept when their book is deleted
+  (they come back with it, by key) and travel in backups (`fixes`). `adopt(bookId, key)` moves the user's own rows of a book's lexicon and of
+  `'*'` into fixes once, stamped 0 (a deletion made since on another device wins over them); a "Not a word" row stays in the lexicon as found.
+- **Sync.** Each fix is the record `l:fix:<id>` (`fixKey`), its data the fix without `bookId`. Under `l:` because every hub keeps any `l:`
+  key as a record of its own, last writer wins (a fix never has a lookup's numeric count, first and last, so it is never merged as one): the
+  Mac's server and the Worker need no change, and a device from before fixes reads an `l:` key only when it names a day, so it passes these
+  over and never sends one back (`tests/core/sync-fixes.test.ts` runs the released app and hub, tests/fixtures/released). The hubs count them
+  with the lookups, which no screen shows. A fix of a book that is not on the device is kept under the key and moved onto the book when it
+  arrives (like bookmarks); a deletion is a tombstone like any other.
+- **The word card** (reader only): the pencil in the header opens the Fix sheet: **Split** (the characters large with a 44 px gap to tap
+  between each two, a live preview of the pieces with pinyin and first meaning), **Join with previous / next** (the joined word, its
+  dictionary meaning or an optional one, Word / Person / Place / Other name), **Reading** (each character's readings as chips, the one
+  shown pressed; the dictionary's, Unihan's and the neutral tone), **It's a name** (two characters or more: Person / Place / Other name, the
+  pinyin prefilled with the surname's reading and capitals, `pinyinOf`). Each ends with **Here only** and **Everywhere in this book (N
+  places)**, said "up to N places" for a split, a reading or a join (N counts the word in the text; the fix acts where the page shows it
+  whole, not 掌柜 inside 掌柜的) (names: **Mark in this book (N places)**); saving closes the card, the page is cut again and a toast says
+  what changed, with Undo. A fix the store would not keep (`cleanFix`) is refused with a message, never toasted as done. Fixes already made
+  for the word are listed at the top as "Your corrections" with Remove. The pinyin field takes tone numbers, tone marks, runs and the
+  form's own name style (`parseEntryPinyin`: guo1 jing4, guōjìng, Dīng Jǔrén, Xīyóushì'èchuán) and asks for the tones when none are given
+  (lu zhen). The phrase card (one paragraph, 2 to 8 Han characters, not already a name) has **Join as one word…** (here, in the book, or in
+  all books) and **Mark as a name…**; it starts from one syllable a character, also where the selection starts or ends inside a word of the
+  page (店里 in 酒店|里: `fixTarget` reads each character from the token that holds it), scrolls the form's buttons into view and focuses its
+  first field. Joined for the book or all books where the page cuts across the selection, the place is joined "here only" too (one Undo
+  takes both), so the page changes where the reader asked. With the keyboard cursor on, the cursor stays on its word when the page is
+  drawn again and keeps the focus; Enter on a button (the toast's Undo) is the button's.
+- **The Corrections tab** (the contents drawer's former Names & terms tab, press N): Names, Words and Readings, each with its count; it
+  opens on the first part that has rows until the reader picks one. A row shows the word, its pinyin (a split shows its pieces, in the
+  script the page shows), kind (Person, Place, Other name, Term, Joined, Split, Reading, Not a word: a person, a place or an other name the
+  reader marked is under Names, its pinyin with capitals), places, scope (Found, Everywhere, Here and the chapter, All books), a switch and,
+  for the reader's own fixes, Delete (toast with Undo). A switched row keeps its place until the list is opened, filtered or switched to
+  another part; the filter matches pinyin typed without tones (xian finds Xiánhēng). A found name switched off is an `unword` fix. **Export
+  corrections** writes `<title> corrections.json` (`exportFixes`: the book's fixes with their context, no device ids, and the words joined
+  for all books, marked `all`); **Import corrections** reads one into the open book (`importFixes`, ids remade for this book; one already
+  here stays when it is newer), after asking when the file names another book.
+- **Measured** (stage 1 + this alone, scripts/eval): the corpus and the 25 tuned books dump identically (0 changed regions; silver 125/1129
+  before and after). With the fix a reader would make for each audited error of the corpus (789 fixes; here only for polyphones, everywhere
+  when the same error repeats), 859/1129 checks are right and none that was right turns wrong; the 3 most frequent errors of each text
+  (155 fixes) take it to 345, the most frequent alone (57) to 238. Every change the fixes made away from an audited place (324 tokens,
+  38 distinct) was read: the same names and words elsewhere, all right but 今|天|子君 (better than 天子, still cut).
+- **Old spellings** (`ui/reader/oldSpellings.ts` over `core/bookStyle.ts`): once per book and detector version, 1.2 s after the book opens,
+  `detectOldSpellings` reads the chapters and the report is kept on the book (`BookMeta.oldSpellings`). The switches that apply are the
+  reader's choice (a `spelling` fix of the book, synced) or else what the book was found sure of; the reader's lexicon carries them
+  (`withOldSpellings`, then `withFixes`). A book found sure of one, with no choice yet, asks once at the bottom of the page ("This book
+  writes 底 for 的, as many older books do. Read it that way?" Yes / No, after the first-visit hint; toasts show above it while it is up).
+  No to 那 for 哪 reads 那 as written everywhere (`naAsWritten`). The Corrections tab shows a switch
+  under **Old spellings** for each spelling the book shows or the reader chose.
 
 ## 5. UI
 
@@ -1331,7 +1496,7 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   ~/Downloads/活着.epub; Scroll), vocab, rare, themes (includes WCAG contrast), mobile (390 px), **pages** (two-page spread at 1440x900, turning by key and
   tap, chapter flow, position kept over a reload, a portrait window), **lexicon** (QA_SHEDIAO, default ~/Downloads/射雕英雄传.epub, skipped if
   missing: import through the file input, wait for detection, 郭靖 and 黄蓉 render as single words with name pinyin, the In this book card, Not a
-  word and Undo, Edit, the Names & terms tab, persistence over a reload, Pages), **mobi** (the Gutenberg fixtures in tests/fixtures/import), offline
+  word and Undo, Edit, the Corrections tab, persistence over a reload, Pages), **mobi** (the Gutenberg fixtures in tests/fixtures/import), offline
   (production only). `read` and `epub` seed `layout: 'scroll'` because they assert scroll offsets and the Next chapter button.
 - `scripts/qa-reader.mjs` (Scroll and Pages, popups, grid measurements, big chapters; `QA_BASE=…` uses a running server) and `scripts/qa-ipad.mjs`
   (WebKit at iPad Pro 11 landscape/portrait, iPad Mini, iPhone 13: layout, taps, swipes, selection, rotation, flip, and the names card) run against the

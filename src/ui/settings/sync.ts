@@ -64,8 +64,8 @@ export function syncRow(): { el: HTMLElement; dispose(): void } {
   const what = isChinese() ? 'Words' : `${lang().name} words`;
   const el = row('Sync',
     cloudBase()
-      ? `${what}, lookups, bookmarks and your place in each book. Changes made offline sync when you are back online.`
-      : `${what}, lookups, bookmarks and your place in each book, on every device connected to this Mac.`,
+      ? `${what}, lookups, bookmarks${isChinese() ? ', your corrections' : ''} and your place in each book. Changes made offline sync when you are back online.`
+      : `${what}, lookups, bookmarks${isChinese() ? ', your corrections' : ''} and your place in each book, on every device connected to this Mac.`,
     h('div.set-sync', null, h('div.set-sync-top', null, toggle, now), status));
   return { el, dispose() { window.removeEventListener(SYNC_EVENT, show); window.removeEventListener(CLOUD_EVENT, show); window.clearInterval(tick); } };
 }

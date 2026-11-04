@@ -162,11 +162,17 @@ def main(argv):
     print(f'{len(rows)} distinct changes, {sum(r[0] for r in rows)} places: ' + ', '.join(f'{k} {v}' for k, v in kinds.items()))
     if opts['--genres']:
         genre = {}
+        col = 1  # "id<TAB>genre", or the column a "# id ... genre" header names (texts.tsv: id, folder, genre, ...)
         for line in open(opts['--genres'], encoding='utf8'):
-            if line.startswith('#') or '\t' not in line:
+            if line.startswith('#'):
+                head = [h.strip() for h in line[1:].rstrip('\n').split('\t')]
+                if 'genre' in head:
+                    col = head.index('genre')
+                continue
+            if '\t' not in line:
                 continue
             c = line.rstrip('\n').split('\t')
-            genre[c[0]] = c[1]
+            genre[c[0]] = c[col] if col < len(c) else '?'
         per_genre = defaultdict(lambda: defaultdict(int))
         for (kind, _b, _a), per in agg.items():
             for b, cs in per.items():

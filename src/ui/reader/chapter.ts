@@ -3,6 +3,7 @@
 import { hskLevels } from '../../core/hskLevel';
 import type { AppContext, Block, Chapter, Dictionary, Lexicon, Script, Settings, Token } from '../../types';
 import { inScript, lexiconInScript, segmentShown } from './shown';
+import { hereIn, placeHere, type HereFix } from '../../core/fixes';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { createTranslationPanel, type TranslationPanel } from '../popup/translation';
@@ -225,6 +226,16 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
 
   const convert = (text: string): string => inScript(text, settings().script, dict, o.script);
 
+  // The reader's "here only" fixes of this chapter, found in its stored blocks once per set of fixes (core/fixes.ts placeHere).
+  let placed: { fixes: Lexicon['fixes']; map: Map<number, HereFix[]> } | null = null;
+  function hereFor(b: BlockState): HereFix[] | undefined {
+    const fixes = lexicon?.fixes;
+    if (!fixes?.some((f) => f.at)) return undefined;
+    if (placed?.fixes !== fixes) placed = { fixes, map: placeHere(fixes, o.chapterIndex, chapter.blocks.map((x) => ('text' in x ? x.text : undefined))) };
+    const src = pieces[b.index]?.src ?? -1;
+    return src < 0 ? undefined : hereIn(placed.map, src, b.pieceStart, sourceText[b.index].length);
+  }
+
   // ---- shells
   const blocks: BlockState[] = sourceBlocks.map((block, index) => {
     const piece = pieces[index];
@@ -281,7 +292,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     if (b.rendered || b.kind !== 'text') return;
     try {
       // Cut in the text shown, read from the book's own characters (为 shown, 為 written: wéi).
-      const tokens = segmentShown(b.text, sourceText[b.index], dict, shownLexicon(), 'ruby' in b.block ? b.block.ruby : undefined);
+      const tokens = segmentShown(b.text, sourceText[b.index], dict, shownLexicon(), 'ruby' in b.block ? b.block.ruby : undefined, hereFor(b));
       const opts = renderOptions();
       const shown = displayTokens(tokens, opts.sandhi);
       const { nodes, views } = renderTokens(tokens, shown, { ...opts, deferPinyin: lazy });

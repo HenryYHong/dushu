@@ -10,6 +10,7 @@ import { plainDefinition, splitClassifiers } from './defs';
 import type { PopupHost } from './host';
 import type { PhrasePopupOptions } from './popup';
 import { addWordControl } from './bookCard';
+import { phraseFixControls } from './fixView';
 import { pinyinSpans } from './pinyinText';
 import { createTranslationPanel } from './translation';
 import { entriesForReading } from '../../core/reading';
@@ -136,14 +137,23 @@ export function mountPhraseView(
   };
   renderRows(MAX_ROWS);
 
-  // A short selection that is not a word yet can become one (a name the detector missed).
+  // A short selection that is not a word yet can become one (a name the detector missed): in the reader, joined as one word or marked
+  // as a name (here only or everywhere, fixView.ts); elsewhere, added as a word of the book.
   const hanOnly = o.text.replace(/\s/g, '');
-  const addWord = o.bookId && /^\p{Script=Han}{2,8}$/u.test(hanOnly)
-    ? addWordControl(
-      { ctx, bookId: o.bookId, lexicon: o.lexicon, onLexiconChange: o.onLexiconChange, close: () => host.close(), reposition: () => host.reposition() },
-      { word: hanOnly, pinyin: rows.flatMap((r) => r.syllables).filter(Boolean).join(' ') },
-    )
-    : null;
+  const target = o.fix?.target;
+  const isEntry = !!o.lexicon && [hanOnly, dict.toSimplified(hanOnly), dict.toTraditional(hanOnly)].some((w) => o.lexicon!.has(w));
+  // The pinyin to start from: one syllable for each character (the page's readings, else the rows', else the dictionary's).
+  const fits = (py: readonly string[]) => !!target && py.length === [...target.word].length && py.every(Boolean);
+  const rowPinyin = rows.flatMap((r) => r.syllables);
+  const startPinyin = target ? (fits(target.pinyin) ? target.pinyin : fits(rowPinyin) ? rowPinyin : dict.pinyinFor(target.shown, {})) : [];
+  const addWord = target && !isEntry
+    ? phraseFixControls(ctx, dict, host, { fixer: o.fix!.fixer, target: { ...target, pinyin: startPinyin } })
+    : o.bookId && /^\p{Script=Han}{2,8}$/u.test(hanOnly)
+      ? addWordControl(
+        { ctx, bookId: o.bookId, lexicon: o.lexicon, onLexiconChange: o.onLexiconChange, close: () => host.close(), reposition: () => host.reposition(), fixer: o.fix?.fixer },
+        { word: hanOnly, pinyin: rows.flatMap((r) => r.syllables).filter(Boolean).join(' ') },
+      )
+      : null;
 
   host.content.append(
     head,

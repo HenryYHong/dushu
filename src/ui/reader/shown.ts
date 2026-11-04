@@ -4,6 +4,7 @@
 // The reader (chapter.ts) and the audit dumps both go through here, so what is measured is what is shown.
 import { buildLexicon } from '../../core/lexicon';
 import { segment } from '../../core/segment';
+import { applyFixes, type HereFix } from '../../core/fixes';
 import type { Dictionary, Lexicon, RubySpan, Script, Settings, Token } from '../../types';
 
 export type ScriptMode = Settings['script'];
@@ -80,19 +81,27 @@ export function originalBeside(shown: string, source: string): string | undefine
  */
 export function lexiconInScript(lexicon: Lexicon | undefined, mode: ScriptMode, dict: Dictionary, script?: Script): Lexicon | undefined {
   if (!lexicon || mode === 'original') return lexicon;
-  return buildLexicon(lexicon.entries().map((e) => ({ ...e, word: converted(e.word, mode, dict, script) }))
-    .filter((e) => [...e.word].length === [...e.pinyin.split(' ')].length || !e.pinyin));
+  // What else the lexicon carries (the reader's fixes, which name words as the book spells them) goes along as it is.
+  const { has: _h, get: _g, entries: _e, maxLen: _m, ...extra } = lexicon;
+  void _h; void _g; void _e; void _m;
+  // (A name that runs on into Latin letters, 阿Quei or 老Q, has a syllable for each Han character only.)
+  const han = (w: string) => [...w].filter((ch) => /\p{Script=Han}/u.test(ch)).length;
+  return { ...extra, ...buildLexicon(lexicon.entries().map((e) => ({ ...e, word: converted(e.word, mode, dict, script) }))
+    .filter((e) => !e.pinyin || [[...e.word].length, han(e.word)].includes(e.pinyin.split(' ').length))) };
 }
 
 /**
  * Tokens of a paragraph as shown (`shown` = inScript(source)), read from the book's own characters. Where the page writes 着 for the
  * book's 著 (zheAsWritten), the cut is made on the 著, so it is the cut the book's own spelling gets, and the tokens show the 着.
+ * Then the reader's fixes the lexicon carries (core/fixes.ts) cut, join and read the tokens; `here` are the "here only" ones placed
+ * in this paragraph.
  */
-export function segmentShown(shown: string, source: string, dict: Dictionary, lexicon?: Lexicon, ruby?: readonly RubySpan[]): Token[] {
+export function segmentShown(shown: string, source: string, dict: Dictionary, lexicon?: Lexicon, ruby?: readonly RubySpan[], here?: readonly HereFix[]): Token[] {
   const orig = originalBeside(shown, source);
   const cut = orig && shown.includes('着') ? withBookZhe(shown, orig) : shown;
   const tokens = segment(cut, dict, lexicon, ruby, orig);
-  return cut === shown ? tokens : tokens.map((t) => ({ ...t, text: shown.slice(t.start, t.end) }));
+  const out = cut === shown ? tokens : tokens.map((t) => ({ ...t, text: shown.slice(t.start, t.end) }));
+  return lexicon?.fixes || here ? applyFixes(out, orig ?? shown, dict, lexicon?.fixes, here, lexicon) : out;
 }
 
 /** `shown` with the book's 著 back where the page writes 着 for it. */

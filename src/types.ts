@@ -208,6 +208,8 @@ export interface BookMeta {
   /** IMPORT_VERSION of the importer that made the stored chapters; missing = 1. A book from the Mac or a classic made by an
    * older importer is imported again (ui/library/upgrade.ts). */
   importVersion?: number;
+  /** What core/bookStyle.ts detectOldSpellings found in the book, by the detector version `v` (ui/reader/oldSpellings.ts). */
+  oldSpellings?: { v: number; di: { hits: number; of: number; sure: boolean }; na: { hits: number; of: number; sure: boolean } };
 }
 
 /** What an importer returns; the store assigns id/addedAt and saves assets. */
@@ -306,7 +308,50 @@ export interface Bookmark {
 }
 
 /** What a store change was about (Store.onChange). */
-export type StoreChange = 'vocab' | 'known' | 'books' | 'lookups' | 'bookmarks';
+export type StoreChange = 'vocab' | 'known' | 'books' | 'lookups' | 'bookmarks' | 'fixes';
+
+/**
+ * Where a "here only" fix is: a place in the stored book (chapter, block and UTF-16 offset in the block's text, as stored), with up to
+ * 8 characters on each side as the book spells them, so the place is found again when the book is imported again (core/fixes.ts).
+ */
+export interface FixAnchor { chapter: number; block: number; offset: number; before: string; after: string }
+
+/**
+ * A reader's correction in one book (core/fixes.ts, ARCHITECTURE.md §4.12). Kept under the book's key, so it comes back when the
+ * book is deleted and added again, and synced like bookmarks.
+ */
+export interface Fix {
+  /** The book, what is fixed and where (fixId): the same fix made on two devices is one record. */
+  id: string;
+  /** The book's sync key (core/syncKeys bookKey); '*' for every book. */
+  book: string;
+  /** The book's id on this device; the key itself while the book is not here. */
+  bookId: string;
+  /**
+   * word: `word` is one word (a name, a place, a term or the reader's own), everywhere or only `at`; unword: `word` is not one word
+   * (a found name, or a word of every book, turned off in this book); cut: tokens that are `word` are cut at `cuts`; reading:
+   * tokens that are `word` read `pinyin`; spelling: the book's old spelling `word` (底 for 的, 那 for 哪) is read so (`on`) or not.
+   */
+  kind: 'word' | 'unword' | 'cut' | 'reading' | 'spelling';
+  /** As the book spells it. */
+  word: string;
+  /** cut: where, in code points from the start of `word` (1 … length - 1), ascending. */
+  cuts?: number[];
+  /** word, reading: numbered pinyin, one syllable per code point. */
+  pinyin?: string;
+  /** word: the meaning the reader gave, or the dictionary's for a join. */
+  gloss?: string;
+  /** word: what kind of word. */
+  role?: LexiconEntry['kind'];
+  /** Only at this place; absent: everywhere in the book. */
+  at?: FixAnchor;
+  /** In use (the Corrections list's switch). For spelling: the reader's choice. */
+  on: boolean;
+  /** When it was made or last changed (ms epoch). */
+  t: number;
+  /** Places in the book when it was made. */
+  n?: number;
+}
 
 /** One word's sightings on pages read without looking it up (settings.autoKnown). */
 export interface SeenRow {
@@ -350,6 +395,8 @@ export interface SyncApply {
   lookupsDel?: { day: string; id: string }[];
   bookmarksPut?: Bookmark[];
   bookmarksDel?: string[];
+  fixesPut?: Fix[];
+  fixesDel?: string[];
   rows?: SyncRow[];
   /** The rows as the syncer last read or wrote them, so a held place changed since is kept (see Store['sync'].write). */
   seen?: ReadonlyMap<string, SyncRow>;
@@ -458,6 +505,24 @@ export interface Lexicon {
   entries(): LexiconEntry[];
   /** Longest enabled entry, in code points (0 when empty). */
   maxLen: number;
+  /**
+   * The reader's fixes of the book that act after the cut (cuts, readings, joined words, the places of "here only" ones), in
+   * use: core/fixes.ts applies them (withFixes puts them here; lexiconInScript keeps them).
+   */
+  fixes?: readonly Fix[];
+  /** The book's old spellings the readings follow (core/bookStyle.ts withOldSpellings); none when absent. */
+  spellings?: OldSpellings;
+}
+
+/**
+ * Spellings of the 1920s that a book may use throughout (core/bookStyle.ts): `di`, 底 written for the particle 的 (我底书);
+ * `na`, 那 written for 哪 in questions (那里去呢？).
+ */
+export interface OldSpellings {
+  di: boolean;
+  na: boolean;
+  /** The reader said this book's 那 is written as meant (the switch turned off): 那 is never read nǎ, not even by the rules for the old novels. */
+  naAsWritten?: boolean;
 }
 
 // ----------------------------------------------------------------- store ---
@@ -535,6 +600,16 @@ export interface Store {
     list(bookId?: string): Promise<Bookmark[]>;
     put(b: Bookmark): Promise<void>;
     remove(id: string): Promise<void>;
+  };
+  /**
+   * The reader's corrections (core/fixes.ts). Kept when their book is deleted (they come back with it) and synced like bookmarks.
+   * `adopt` moves the user's own rows of the book's lexicon (and of '*') into fixes, once, in one transaction.
+   */
+  fixes: {
+    list(): Promise<Fix[]>;
+    put(fixes: Fix[]): Promise<void>;
+    remove(ids: string[]): Promise<void>;
+    adopt(bookId: string, bookKey: string): Promise<number>;
   };
   /** Sightings per word for settings.autoKnown. Disposable: a wipe clears it, nothing syncs it. */
   seen: {

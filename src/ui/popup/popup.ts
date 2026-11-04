@@ -7,6 +7,7 @@ import { h } from '../dom';
 import { closeActivePopup, createHost } from './host';
 import { mountPhraseView } from './phraseView';
 import { mountWordView } from './wordView';
+import type { FixEnv, Fixer, FixTarget } from './fixView';
 
 export interface WordContext { sentence: string; paragraph?: string; bookId?: string; bookTitle?: string; chapter?: number }
 
@@ -49,6 +50,8 @@ export interface WordPopupOptions {
   bookId?: string;
   /** Called after the user adds, edits or disables a lexicon entry, so the reader can re-segment. */
   onLexiconChange?: () => void;
+  /** The reader's way to fix this word (the Fix sheet behind the pencil, ui/popup/fixView.ts); `target` is the word on the page. */
+  fix?: { fixer: Fixer; target?: FixTarget };
 }
 
 export interface PhrasePopupOptions {
@@ -77,7 +80,11 @@ export interface PhrasePopupOptions {
   lexicon?: Lexicon;
   bookId?: string;
   onLexiconChange?: () => void;
+  /** The reader's way to fix the selection ("Join as one word…", "Mark as a name…"); `target` when it is one place of one paragraph. */
+  fix?: { fixer: Fixer; target?: FixTarget };
 }
+
+export type { FixEnv };
 
 export interface PopupHandle { el: HTMLElement; close(): void }
 
@@ -104,7 +111,7 @@ export function openWordPopup(o: WordPopupOptions): PopupHandle {
     const wasContext = o.context;
     openPhrasePopup({
       ctx: o.ctx, text, anchor, context, wordContext: wasContext,
-      lexicon: o.lexicon, bookId: o.bookId, onLexiconChange: o.onLexiconChange,
+      lexicon: o.lexicon, bookId: o.bookId, onLexiconChange: o.onLexiconChange, fix: o.fix ? { fixer: o.fix.fixer } : undefined,
       onSheetTop: o.onSheetTop, restoreFocus: o.restoreFocus,
       onBack: () => { openWordPopup({ ...o, anchor: o.getAnchor?.() ?? o.anchor }); },
     });
@@ -148,7 +155,7 @@ export function openPhrasePopup(o: PhrasePopupOptions): PopupHandle {
   const openWord = (r: { word: string; syllables: string[]; reading?: string[]; prev?: string; next?: string; token?: Token }, anchor: DOMRect) => {
     openWordPopup({
       ctx: o.ctx, word: r.word, anchor, prev: r.prev, next: r.next, reading: r.reading, token: r.token,
-      lexicon: o.lexicon, bookId: o.bookId, onLexiconChange: o.onLexiconChange,
+      lexicon: o.lexicon, bookId: o.bookId, onLexiconChange: o.onLexiconChange, fix: o.fix ? { fixer: o.fix.fixer } : undefined,
       context: o.wordContext ?? (o.context ? { sentence: o.context } : undefined),
       onSheetTop: o.onSheetTop, restoreFocus: o.restoreFocus,
       onBack: () => { openPhrasePopup({ ...o, anchor: o.getAnchor?.() ?? o.anchor }); },

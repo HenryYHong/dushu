@@ -1,6 +1,8 @@
 // "In this book" card and the "Add as a word" form: names and terms the dictionary lacks. Contract: ARCHITECTURE.md §4.9.
-import type { AppContext, Lexicon, LexiconEntry } from '../../types';
-import { parseEntryPinyin, USER_SCOPE } from '../../core/lexicon';
+import type { AppContext, Fix, Lexicon, LexiconEntry } from '../../types';
+import { entryPinyinProblem, parseEntryPinyin, USER_SCOPE } from '../../core/lexicon';
+import { makeFix } from '../../core/fixes';
+import type { Fixer } from './fixView';
 import { pinyinSpans } from './pinyinText';
 import { h } from '../dom';
 import { icon } from '../icons';
@@ -15,6 +17,14 @@ export interface BookCardEnv {
   close(): void;
   /** The content got taller or shorter. */
   reposition(): void;
+  /** The reader's fixes (core/fixes.ts): with it, an edit, a "Not a word" and a word added are saved as fixes, which sync. */
+  fixer?: Fixer;
+}
+
+/** A word fix for this book (or for every book) that says what `entry` is. */
+function wordFix(fixer: Fixer, entry: LexiconEntry, all = false) {
+  return makeFix({ book: all ? '*' : fixer.book.key, bookId: all ? '*' : fixer.book.id, kind: entry.enabled ? 'word' : 'unword', word: entry.word,
+    ...(entry.enabled ? { pinyin: entry.pinyin, role: entry.kind, ...(entry.gloss ? { gloss: entry.gloss } : {}), ...(entry.count ? { n: entry.count } : {}) } : {}) });
 }
 
 const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: 'Person', place: 'Place', term: 'Term', user: 'Your word' };
@@ -38,7 +48,7 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
       h('div.pp-book-head', null,
         h('span.pp-section', null, 'In this book'),
         h('span.chip.chip-accent', null, KIND_LABEL[current.kind]),
-        current.count ? h('span.pp-muted', null, `${current.count.toLocaleString('en-US')} times`) : null,
+        current.count ? h('span.pp-muted', null, `${current.count.toLocaleString('en-US')} time${current.count === 1 ? '' : 's'}`) : null,
       ),
       h('div.pp-book-main', null,
         current.pinyin ? pinyinLine(ctx, current) : null,
@@ -59,13 +69,14 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
     const save = async () => {
       const parsed = parseEntryPinyin(py.value, current.word);
       if (!parsed) {
-        err.textContent = `Type one syllable for each of the ${[...current.word].length} characters, with tone numbers, like guo1 jing4.`;
+        err.textContent = entryPinyinProblem(py.value, current.word);
         env.reposition();
         return;
       }
       const next: LexiconEntry = { ...current, pinyin: parsed, gloss: gloss.value.trim(), origin: 'user' };
       try {
-        await ctx.store.lexicon.upsert(env.bookId, next);
+        if (env.fixer) await env.fixer.save(wordFix(env.fixer, next));
+        else await ctx.store.lexicon.upsert(env.bookId, next);
       } catch (e) {
         err.textContent = e instanceof Error ? e.message : 'Could not save that.';
         env.reposition();
@@ -92,7 +103,13 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
 
   const reject = async () => {
     const off: LexiconEntry = { ...current, enabled: false, origin: 'user' };
-    try { await ctx.store.lexicon.upsert(env.bookId, off); } catch (e) {
+    const fixer = env.fixer;
+    let was: Fix | undefined;
+    const fix = fixer && wordFix(fixer, off);
+    try {
+      if (fixer && fix) was = await fixer.save(fix);
+      else await ctx.store.lexicon.upsert(env.bookId, off);
+    } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not save that.');
       return;
     }
@@ -101,7 +118,10 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
     ctx.toast(`${current.word} is no longer treated as one word.`, {
       action: {
         label: 'Undo',
-        run: () => { void ctx.store.lexicon.upsert(env.bookId, { ...current, enabled: true }).then(() => env.onLexiconChange?.()); },
+        run: () => {
+          if (fixer && fix) void (was ? fixer.save(was) : fixer.remove(fix.id)).catch(() => {});
+          else void ctx.store.lexicon.upsert(env.bookId, { ...current, enabled: true }).then(() => env.onLexiconChange?.());
+        },
       },
       ms: 6000,
     });
@@ -138,15 +158,21 @@ export function addWordControl(env: BookCardEnv, o: AddWordOptions): HTMLElement
     const save = async () => {
       const parsed = parseEntryPinyin(py.value, o.word);
       if (!parsed) {
-        err.textContent = `Type one syllable for each of the ${n} characters, with tone numbers, like guo1 jing4.`;
+        err.textContent = entryPinyinProblem(py.value, o.word);
         env.reposition();
         return;
       }
       const entry: LexiconEntry = { word: o.word, pinyin: parsed, gloss: gloss.value.trim(), kind: 'user', enabled: true, origin: 'user' };
       try {
-        await env.ctx.store.lexicon.upsert(scope.value === 'all' ? USER_SCOPE : env.bookId, entry);
-        // A book-level row would hide an older rejection of the same word; make sure the new one wins.
-        if (scope.value === 'all') await env.ctx.store.lexicon.upsert(env.bookId, entry);
+        if (env.fixer) {
+          await env.fixer.save(wordFix(env.fixer, entry, scope.value === 'all'));
+          // A "Not a word" of this book would hide it here: the word for every book is a word here too.
+          if (scope.value === 'all' && env.fixer.fixes().some((f) => f.kind === 'unword' && f.word === o.word)) await env.fixer.save(wordFix(env.fixer, entry));
+        } else {
+          await env.ctx.store.lexicon.upsert(scope.value === 'all' ? USER_SCOPE : env.bookId, entry);
+          // A book-level row would hide an older rejection of the same word; make sure the new one wins.
+          if (scope.value === 'all') await env.ctx.store.lexicon.upsert(env.bookId, entry);
+        }
       } catch (e) {
         err.textContent = e instanceof Error ? e.message : 'Could not save that.';
         env.reposition();

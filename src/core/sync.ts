@@ -12,7 +12,7 @@
 // (its rows are in its own database). It sends nothing to a hub until the hub has named its language: a hub from before
 // languages drops those records and answers without naming it, and the library then keeps them unsent and says the hub needs
 // updating ('outdated').
-import type { Bookmark, BookMeta, LookupRow, Progress, Settings, SettingsStore, Store, SyncRow, VocabItem } from '../types';
+import type { Bookmark, BookMeta, Fix, LookupRow, Progress, Settings, SettingsStore, Store, SyncRow, VocabItem } from '../types';
 import type { LangId } from '../lang/types';
 import { langId } from '../lang/active';
 import { LANGS } from '../lang/registry';
@@ -21,7 +21,8 @@ import { defaultsFor, sanitizePatch } from '../store/settings';
 import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge';
 import { CLOUD_EVENT, accountInfo, accountMark, cloudFetch, cloudSession, forgetSession, isAccountOwner } from './cloud';
-import { SYNCED_SETTINGS, bookKey, canonical, hash, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
+import { FIX_KEY, SYNCED_SETTINGS, bookKey, canonical, fixKey, hash, isFixKey, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
+import { cleanFix, fixWire } from './fixes';
 
 export { bookKey, canonical, hash };
 
@@ -162,6 +163,13 @@ function bookmarkLocal(id: string, data: unknown, books: Books): Bookmark | null
   return cleanBookmark({ ...(data as object), id, bookKey: book, bookId: books.idOf.get(book) ?? books.newer.get(book) ?? book });
 }
 
+/** A fix from another device, on the book here that has its key (or held under the key until that book is here). */
+function fixLocal(id: string, data: unknown, books: Books): Fix | null {
+  const book = (data as { book?: unknown }).book;
+  if (typeof book !== 'string' || !book) return null;
+  return cleanFix({ ...(data as object), id, bookId: book === '*' ? '*' : books.idOf.get(book) ?? books.newer.get(book) ?? book });
+}
+
 /** Everything this device would send, by record key, with the time each record says it last changed. */
 type Snapshot = Map<string, { data: unknown; sig: string; at: number; bare?: string; older?: string[] }>;
 async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, settings: SettingsStore | undefined, lang: LangId): Promise<Snapshot> {
@@ -178,6 +186,7 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, 
   for (const word of store.known.all()) put(`k:${word}`, store.known.isAuto(word) ? { a: 1 } : {}, 0);
   for (const r of await store.lookups.list()) putNamed(lookupKey(r.day, r.id), lookupWire(r, books), r.last);
   for (const b of await store.bookmarks.list()) put(`b:${b.id}`, bookmarkWire(b, books), b.createdAt);
+  for (const f of await store.fixes.list()) put(fixKey(f.id), fixWire(f), f.t);
   for (const [id, key] of books.keyOf) {
     const p = await store.progress.get(id);
     if (p) put(`p:${key}`, progressWire(p), p.updatedAt);
@@ -411,6 +420,14 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       if (key !== b.bookKey || id !== b.bookId) remapped.push({ ...b, bookKey: key, bookId: id });
     }
     if (remapped.length) await store.sync.apply({ bookmarksPut: remapped });
+    // Fixes too: one held under its book's key lands on the book once it is here.
+    const refiled: Fix[] = [];
+    for (const f of await store.fixes.list()) {
+      if (f.book === '*') continue;
+      const id = books.idOf.get(f.book) ?? books.newer.get(f.book);
+      if (id && id !== f.bookId) refiled.push({ ...f, bookId: id });
+    }
+    if (refiled.length) await store.sync.apply({ fixesPut: refiled });
 
     // 1. Places held for books that have arrived since (store.books.add lands most of them as the book arrives).
     const arrived = new Map<string, Progress>();
@@ -635,6 +652,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const lookupsDel: { day: string; id: string }[] = [];
     const bookmarksPut: Bookmark[] = [];
     const bookmarksDel: string[] = [];
+    const fixesPut: Fix[] = [];
+    const fixesDel: string[] = [];
     const settingsPatch: Partial<Settings> = {};
     let resend = false;
     const moved = new Map<string, Progress>();
@@ -647,6 +666,10 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         return item && item.id === id ? sigOf(vocabWire(item, books)) : null;
       }
       if (kind === 'k') return sigOf((data as { a?: unknown }).a ? { a: 1 } : {});
+      if (kind === 'l' && isFixKey(`l:${id}`)) {
+        const f = fixLocal(id.slice(FIX_KEY.length - 2), data, books);
+        return f ? sigOf(fixWire(f)) : null;
+      }
       if (kind === 'l') {
         const r = lookupLocal(`l:${id}`, data, books);
         return r ? sigOf(lookupWire(r, books)) : null;
@@ -669,7 +692,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       if (r.key[1] !== ':' || !id || !'vkplbo'.includes(kind)) continue;
       if (kind === 'o' && !opts.settings) continue;
       const base = rows.get(r.key);
-      if (kind === 'l' && r.data !== null && r.data !== undefined) {
+      if (kind === 'l' && r.data !== null && r.data !== undefined && !isFixKey(r.key)) {
         // Lookups merge (mergeLookups), so the Mac's copy is always taken: the store merges it with the row here, and what
         // only this device had is sent next time (the row records the Mac's copy, which no longer matches the one here).
         const item = lookupLocal(r.key, r.data, books);
@@ -727,6 +750,18 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         const sig = sigOf(wire);
         if (base?.sig !== sig) knownPut.push(auto ? { word: id, auto: true } : { word: id });
         next.push({ key: r.key, at: r.at, sig });
+      } else if (kind === 'l' && isFixKey(r.key)) {
+        const fid = r.key.slice(FIX_KEY.length);
+        if (data === null) {
+          if (base?.sig !== '-') fixesDel.push(fid);
+          next.push({ key: r.key, at: r.at, sig: '-' });
+          continue;
+        }
+        const f = fixLocal(fid, data, books);
+        if (!f) continue;
+        const sig = sigOf(fixWire(f));
+        if (base?.sig !== sig) fixesPut.push(f);
+        next.push({ key: r.key, at: r.at, sig });
       } else if (kind === 'l') {
         // Deleted there (a copy that is not deleted was taken above).
         const at = parseLookupKey(r.key);
@@ -776,7 +811,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     }
     if (!next.length || stopped) return kept;
     for (const p of moved.values()) if (!progressPut.some((q) => q.bookId === p.bookId && q.updatedAt >= p.updatedAt)) progressPut.push(p);
-    await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, lookupsPut, lookupsDel, bookmarksPut, bookmarksDel, rows: next, seen: rows });
+    await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, lookupsPut, lookupsDel, bookmarksPut, bookmarksDel, fixesPut, fixesDel, rows: next, seen: rows });
     // Settings chosen on another device, after their rows: the sync this change asks for finds nothing new to send.
     if (Object.keys(settingsPatch).length) opts.settings?.set(settingsPatch);
     // A moved place is this device's to send, under the book's key here; so are lookups only this device had.

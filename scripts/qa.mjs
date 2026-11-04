@@ -845,11 +845,11 @@ scenarios.lexicon = async () => {
   check(await wordInfo('黄蓉') === 'huáng rōng', `an edited reading reaches the page (${await wordInfo('黄蓉')})`);
   await page.keyboard.press('Escape');
 
-  // Names & terms list in the contents drawer.
+  // Names and terms (the Corrections tab) in the contents drawer.
   await page.keyboard.press('c');
   await sleep(500);
-  const tab = await page.evaluate(() => { const t = [...document.querySelectorAll('.rd-toc-tab')].find((b) => /Names/i.test(b.textContent)); if (t) t.click(); return !!t; });
-  check(tab, 'the contents drawer has a Names & terms tab');
+  const tab = await page.evaluate(() => { const t = [...document.querySelectorAll('.rd-toc-tab')].find((b) => /Corrections|Names/i.test(b.textContent)); if (t) t.click(); return !!t; });
+  check(tab, 'the contents drawer has a Corrections tab');
   await sleep(500);
   // The list is windowed: only the rows near the viewport exist, so read the total from the sizer's height.
   const { drawn, rows } = await page.$eval('.rd-names', (list) => {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { buildLexicon, parseEntryPinyin, USER_SCOPE } from '../../src/core/lexicon';
+import { buildLexicon, entryPinyinProblem, parseEntryPinyin, USER_SCOPE } from '../../src/core/lexicon';
 import type { LexiconEntry } from '../../src/types';
 import { closePopup, openPhrasePopup, openWordPopup } from '../../src/ui/popup/popup';
 import { anchorRect, makeCtx, stubBrowser, tick } from './helpers';
@@ -26,6 +26,14 @@ describe('parseEntryPinyin', () => {
     expect(parseEntryPinyin('guo1 jing4 x', '郭靖')).toBeNull();
     expect(parseEntryPinyin('', '郭靖')).toBeNull();
     expect(parseEntryPinyin('1 2', '郭靖')).toBeNull();
+    // A name as the card writes it: a surname and a given name run together, an apostrophe, a neutral syllable.
+    expect(parseEntryPinyin('Wáng Dàrén', '王大人')).toBe('wang2 da4 ren2');
+    expect(parseEntryPinyin("Xīyóushì'èchuán", '西游释厄传')).toBe('xi1 you2 shi4 e4 chuan2');
+    expect(parseEntryPinyin('Xiángzi', '祥子')).toBe('xiang2 zi5');
+    // No tone at all is asked for, not read as neutral.
+    expect(parseEntryPinyin('wang da', '王大')).toBeNull();
+    expect(entryPinyinProblem('wang da', '王大')).toBe('Add the tones, as marks or numbers, like Guō Jìng or guo1 jing4.');
+    expect(entryPinyinProblem('wang', '王大')).toBe('Type one syllable for each of the 2 characters, like Guō Jìng or guo1 jing4.');
   });
 });
 
@@ -37,6 +45,12 @@ describe('In this book card', () => {
     expect(text('.pp-book .pp-section')).toBe('In this book');
     expect(text('.pp-book .chip')).toBe('Person');
     expect(text('.pp-book')).toContain('4,999 times');
+    closePopup();
+    openWordPopup({ ctx, word: '郭靖', anchor: anchorRect(), lexicon: buildLexicon([{ ...entry('郭靖'), count: 1 }]), bookId: 'b1' });
+    expect(text('.pp-book')).toContain('1 time');
+    expect(text('.pp-book')).not.toContain('1 times');
+    closePopup();
+    openWordPopup({ ctx, word: '郭靖', anchor: anchorRect(), lexicon, bookId: 'b1' });
     expect(text('.pp-book .pp-py')).toBe('Guō Jìng'); // a name is capitalized
     expect(text('.pp-book-gloss')).toBe('name (person)');
     expect(text('.pp-pyline .pp-py')).toBe('Guō Jìng'); // the header reading comes from the entry too

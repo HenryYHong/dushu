@@ -5,8 +5,8 @@
 // free neighbors on both sides), then sorts what it finds into name / place / term. Precision beats recall: a
 // wrong entry breaks the segmentation of ordinary text, a missed name only costs a split.
 import type { AppContext, Dictionary, Lexicon, LexiconEntry } from '../types';
-import { markedToNumbered, splitPinyinRun } from './pinyin';
-import { SURNAME_READINGS, COMPOUND_SURNAME_READINGS, NAME_CHAR_READINGS, TRANSLITERATION_READINGS, KIN_CHARS, HEAD_BEFORE_ZHANG } from './names';
+import { isSyllableBase, markedToNumbered, splitPinyinRun } from './pinyin';
+import { SURNAME_READINGS, COMPOUND_SURNAME_READINGS, NAME_CHAR_READINGS, TRANSLITERATION_READINGS, KIN_CHARS, HEAD_BEFORE_ZHANG, TRANSLIT_CHARS, ERA_NAMES } from './names';
 import { COMPOUND_SURNAMES, SURNAMES } from './names';
 import { isChinese } from '../lang/active';
 export { capitalizePinyin, pinyinGroups } from './names';
@@ -16,7 +16,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 9;
+export const DETECTOR_VERSION = 10;
 
 /** Lexicon over the given rows (disabled rows ignored). */
 export function buildLexicon(rows: LexiconEntry[]): Lexicon {
@@ -86,6 +86,8 @@ export interface TermCandidate {
   bind: number;
   /** Weakest-split pointwise mutual information (nats). */
   pmi: number;
+  /** `pmi` over its ceiling for a string this frequent, ln(chars / count): near 1 when the parts are almost never apart, however short the text. */
+  npmi?: number;
   /** Entropy of the characters before / after (nats); brackets count as free. */
   left: number;
   right: number;
@@ -111,7 +113,12 @@ export interface TermCandidate {
   known: 'entry' | 'jieba' | 'none';
   kind: LexiconEntry['kind'];
   surnameLed: boolean;
+  /** A name in the suffix 子 (祥子, 小福子): its 子 is neutral. */
+  neutralZi?: boolean;
 }
+
+/** What the judges decide about a candidate. */
+type Verdict = { kind: LexiconEntry['kind']; surnameLed: boolean; neutralZi?: boolean };
 
 interface Stat { left: Map<number, number>; right: Map<number, number>; daoNoun?: number; voc?: number; }
 
@@ -137,6 +144,8 @@ export interface DetectOptions {
   maxLen?: number;
   /** Return every candidate that survived the first filters (for tuning), not only the accepted entries. */
   debug?: (cands: TermCandidate[]) => void;
+  /** Set when one chapter of an anthology is read alone (perChapter): the whole-book passes are not run again. */
+  inner?: boolean;
 }
 
 /** True for a name like 郭靖: a surname followed by one or two given-name characters. */
@@ -180,7 +189,8 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   }
   const runEnd = new Int32Array(n + 1);
   for (let i = n - 1; i >= 0; i--) runEnd[i] = han[i] ? (i + 1 < n && han[i + 1] ? runEnd[i + 1] : i + 1) : i;
-  if (hanCount < 300) return [];
+  // (A news story of 250 characters still names its subject three or four times.)
+  if (hanCount < 100) return [];
   // A short text (an essay, a story of a few thousand characters) mentions its places and people a handful of times: it
   // is read with a lower count and a much stricter test (judgeShort).
   const short = hanCount < SHORT_TEXT;
@@ -252,7 +262,7 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
       const hasEntry = dict.hasWord(g) || dict.hasWord(dict.toSimplified(g));
       const known: TermCandidate['known'] = hasEntry ? 'entry' : dict.freq(g) > 0 ? 'jieba' : 'none';
       const f = known === 'none' ? 0 : dict.freq(g);
-      cands.push({ word: g, count: c, bind, pmi, left: 0, right: 0, speech: 0, prep: 0, known, kind: 'term', surnameLed: false, tailBound, headBound,
+      cands.push({ word: g, count: c, bind, pmi, npmi: NN > c ? pmi / Math.log(NN / c) : 0, left: 0, right: 0, speech: 0, prep: 0, known, kind: 'term', surnameLed: false, tailBound, headBound,
         rate: (1000 * c) / hanCount, head: len >= 3 ? countOf(g.slice(0, 2)) : undefined, key: f > 0 ? (c * wordTotal) / (f * (hanCount / 1.5)) : undefined });
       statsByWord.set(g, { left: new Map(), right: new Map() });
     }
@@ -311,10 +321,12 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   for (const c of cands) {
     if ((++judged & 0x3f) === 0 && due()) yield;
     // (A short text still gets what a long one would find at six sightings: 差不多先生.)
-    const verdict = short ? judgeShort(c, dict) ?? (c.count >= 6 ? judge(c, dict, 6) : null) : judge(c, dict, minCount);
+    const verdict: Verdict | null = (short ? judgeShort(c, dict) ?? (c.count >= 6 ? judge(c, dict, 6) : null) : judge(c, dict, minCount))
+      ?? judgeRepeat(c, dict, minCount, short);
     if (!verdict) continue;
     c.kind = verdict.kind;
     c.surnameLed = verdict.surnameLed;
+    if (verdict.neutralZi) c.neutralZi = true;
     accepted.push(c);
   }
   accepted.sort((a, b) => b.count - a.count || b.word.length - a.word.length);
@@ -347,9 +359,46 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   const kept = yield* boundaries(out, text, dict, statsByWord, bigram, due);
   // The family of each name kept, checked against its neighbors the same way.
   const fam = yield* family(kept, text, dict, passCount, hanCount, new Map(cands.map((c) => [c.word, c])), due);
-  const all = fam.length ? yield* boundaries([...kept, ...fam], text, dict, statsByWord, bigram, due, new Set(fam.map((e) => e.word))) : kept;
+  let all = fam.length ? yield* boundaries([...kept, ...fam], text, dict, statsByWord, bigram, due, new Set(fam.map((e) => e.word))) : kept;
+  if (!opts.inner) {
+    // Names seen once with a cue around them (部长盛光祖, 名叫瑞和, 飓风文斯, 奎登·德拉尔, 阿Q), then, in an anthology, each story
+    // alone. They come last, so a name seen once never seeds a family.
+    const more = [...(yield* cued(all, text, dict, hanCount, due)), ...(yield* perChapter(all, chapterTexts, hanCount, dict, opts))];
+    if (more.length) all = yield* boundaries([...all, ...more], text, dict, statsByWord, bigram, due, new Set(more.map((e) => e.word)));
+  }
   const named = princesses(all, text, dict);
-  return [...named, ...bookScoped(named, text, dict, (ch) => uni[ch.charCodeAt(0)] > 0)];
+  return opts.inner ? named : [...named, ...bookScoped(named, text, dict, (ch) => uni[ch.charCodeAt(0)] > 0)];
+}
+
+/**
+ * An anthology (stories, tales or articles that share no one) is also read one chapter at a time, the way a short text is read:
+ * a name that fills one story (拉希姆 twelve times in a few pages) is below what the whole book asks for. The chapters share no
+ * one when fewer than half of them hold any of the people found in the whole book; most chapters must be short (under
+ * SHORT_TEXT Han characters). What a chapter finds is checked against the whole book afterwards (boundaries()).
+ */
+function* perChapter(found: LexiconEntry[], chapters: string[], hanCount: number, dict: Dictionary, opts: DetectOptions): Generator<void, LexiconEntry[], void> {
+  if (chapters.length < 3 || hanCount < SHORT_TEXT) return [];
+  const sizes = chapters.map((t) => { let k = 0; for (let i = 0; i < t.length; i++) if (isHanUnit(t.charCodeAt(i))) k++; return k; });
+  if ([...sizes].sort((a, b) => a - b)[sizes.length >> 1] >= SHORT_TEXT) return [];
+  // (A novel's people are in nearly every chapter; a trilogy's change from book to book, but some are always there.)
+  const people = found.filter((e) => e.kind === 'name' && (e.count ?? 0) >= 5);
+  let peopled = 0;
+  for (const t of chapters) if (people.some((e) => t.includes(e.word))) peopled++;
+  if (peopled >= 0.5 * chapters.length) return [];
+  const have = new Set(found.map((e) => e.word));
+  const text = chapters.join('\n');
+  const out = new Map<string, LexiconEntry>();
+  for (let i = 0; i < chapters.length; i++) {
+    if (sizes[i] < 150 || sizes[i] >= SHORT_TEXT) continue;
+    const local = yield* detectGen([chapters[i]], dict, { maxLen: opts.maxLen, inner: true });
+    for (const e of local) if (!have.has(e.word) && !out.has(e.word)) out.set(e.word, { ...e });
+  }
+  for (const e of out.values()) {
+    let k = 0;
+    for (let i = text.indexOf(e.word); i >= 0; i = text.indexOf(e.word, i + e.word.length)) k++;
+    e.count = k;
+  }
+  return [...out.values()];
 }
 
 /** Uses in a book from which a curated word of one book (book-words scope "book") joins its lexicon. */
@@ -516,6 +565,15 @@ function* boundaries(found: LexiconEntry[], text: string, dict: Dictionary, stat
     // word of its own there (新安江|水电站, not 江水).
     if (e.kind !== 'name' && rn >= 0.6 * n && isHanUnit(r.charCodeAt(0)) && !SOFT_END.has(r) && !EDGE_STOP.has(r)
       && dict.freq(last + r) >= 100 && dict.hasWord(last + r) && !opensWord(text, w + r, dict)) continue;
+    // (So with words the corpus never counted when nearly every place runs on into one: 京津城 is always 京津|城际 or 京津|城铁.)
+    if (e.kind !== 'name' && n >= 3) {
+      const into = [...st.right].filter(([k]) => isHanUnit(k) && !SOFT_END.has(String.fromCharCode(k)) && !EDGE_STOP.has(String.fromCharCode(k))
+        && dict.hasWord(last + String.fromCharCode(k)));
+      let sum = into.reduce((t, [, v]) => t + v, 0);
+      // (Each text scan only when the words could be nine places in ten.)
+      for (const [k, v] of into) if (sum >= 0.9 * n && opensWord(text, w + String.fromCharCode(k), dict)) sum -= v;
+      if (sum >= 0.9 * n) continue;
+    }
     const [l, ln] = top(st.left);
     if (ln >= 0.6 * n && isHanUnit(l.charCodeAt(0)) && dict.hasWord(l + first) && bigram(l, first) > n) continue;
     // (疏|浚西湖: the same for a place or a term whose first character mostly closes a common word with the one before it.)
@@ -748,7 +806,7 @@ function* family(found: LexiconEntry[], text: string, dict: Dictionary, minCount
   // 张志刚 → 张志强, 张志勇.
   const prefixes = new Set<string>();
   for (const e of [...names, ...out]) {
-    if (e.kind !== 'name' || foreign(e.word)) continue;
+    if (e.kind !== 'name' || foreign(e.word) || CUED.has(e)) continue;
     const sur = e.word.length === 3 ? surnameSplit(e.word, dict) : null;
     const mid = fold(e.word[1]);
     if (!sur || sur.surname.length !== 1 || NUMERALS.has(mid) || '大小老阿'.includes(mid) || EDGE_STOP.has(mid) || NOT_IN_NAME.has(mid)) continue;
@@ -918,6 +976,415 @@ function nicknames(found: LexiconEntry[], text: string, dict: Dictionary, minCou
       out.push({ word: nick, pinyin: `${syl} er2`, gloss: `name (pet name for ${e.word})`, kind: 'name', count, enabled: true, origin: 'auto' });
     }
   }
+  return out;
+}
+
+// ------------------------------------------------------------------ cues ---
+
+/** Offices and titles before a name (simplified; the book's own script is matched too): 部长盛光祖, 市长陈博彰, 主任王国强. */
+const TITLES_BEFORE = ['部长', '市长', '省长', '县长', '区长', '镇长', '乡长', '村长', '州长', '主任', '主席', '总理', '总统', '首相', '书记', '局长', '厅长',
+  '处长', '科长', '校长', '院长', '所长', '社长', '行长', '会长', '董事长', '总裁', '总经理', '主编', '教练', '队长', '委员', '议员', '大使', '发言人', '教授',
+  '研究员', '记者', '外长', '司令', '军长', '师长', '团长', '法官', '律师', '导演', '编剧', '作家', '诗人', '画家', '歌手', '演员', '选手', '球员', '主持人',
+  '创始人', '负责人', '秘书长', '理事长', '总督', '国王', '皇帝'];
+/** Polite titles after a full name: 胡适之先生. (Not 君, which ends given names (卓文君), nor 夫人 and 公子 (邢王夫人, 吴太夫人).) */
+const TITLES_AFTER = ['先生', '女士', '小姐'];
+/** Never in a given name a cue finds (尹俊|等, 李明|们), nor at its end the head of an institution's name (总统|文物馆). */
+const NOT_GIVEN = new Set([...'等们的了着过和与及跟在于对把被将到去来往从给向让叫说道看就也都还又才再既已曾者之乎也矣焉哉']);
+const INSTITUTION_END = new Set([...'馆院所局部处厅店站场园厂校楼堂室会社团组队科司署府宫寺庙观城村镇县省市区路街桥集坳沟屯湾庄寨斋']);
+/** Verbs of speech that follow a person named once (夏志清认为, 王德威表示). */
+const SAYS = ['表示', '指出', '认为', '强调', '透露', '坦言', '回忆', '写道', '介绍', '宣布', '承认', '解释', '补充', '声称'];
+/** What can follow a person's name: a verb of speech or a function word (王军说, 王国强等, 盛光祖表示). Two characters are tried first. */
+const AFTER_NAME = new Set([...SAYS, '前往', '出席', '会见', '参加', '担任', '率领', '代表', '发表', '接受', '访问', '一行',
+  ...'称说道讲问答笑等和与及跟同在于对向把被将为是的了们也又都就便则曾已率带之还亦因所从到去来这那一不没要会能可应请让给有',
+  ...'写看听想做走跑拿叫喊哭坐站跪躺打骂送接找帮告知觉谈望盯瞧瞪']);
+/** Words that introduce a person's name: 名叫瑞和, 绰号“小北”, 原名惟柏. Of them, NICKNAMED name only a person (外号叫“赛半山”). */
+const NAMED = ['名叫', '名唤', '名字叫', '绰号', '花名', '外号', '诨名', '小名', '乳名', '笔名', '艺名', '化名', '原名', '本名'];
+const NICKNAMED = new Set(['绰号', '花名', '外号', '诨名', '小名', '乳名', '笔名', '艺名', '化名', '原名', '本名']);
+/** Of them, the ones that give a nickname, which is a phrase and not a surname and a given name (外号“盖九州”). */
+const NICKNAME_ONLY = new Set(['绰号', '花名', '外号', '诨名']);
+/** Words that introduce the name of anything (这叫做“整理国故”, 学名叫做“桡侧籽骨”, 取名油炸桧): a person only unquoted, after 一个 or 一位 or as a surname and a name. */
+const CALLED = ['叫做', '叫作', '名为', '唤作', '唤做', '取名', '起名'];
+/** Before a word that introduces a name, the place is named (这个地方叫作岔道口, 有个乡村，叫做薛家集). */
+const PLACE_NAMED_BEFORE = /(地方|地名|村|镇|乡|街|店|庄|城|山|寺|庙|集|铺|园|楼|桥|湖|河)[，,]?$/;
+/** A dictionary sense for a quantity, not a name: 许多路, 多少路. */
+const QUANTITY_DEF = /^(\([^)]*\) )?(many|much|several|a few|some|how much|how many|number|amount|each|every|all|this|that|these|those)\b/i;
+/** Storms are named after these: 飓风文斯, 气旋卡塔琳娜. */
+const STORMS = ['飓风', '台风', '热带风暴', '强热带风暴', '热带气旋', '气旋', '超强台风', '强台风'];
+/** Surname characters that are also a function word before a name position (市长于昨日, 部长向记者): never a surname for a cue. */
+const CUE_NOT_SURNAME = new Set([...'于向时方连那闻乃并全曾将从以当只正才又都也即便对同在应有可后常盖余']);
+/** Entries the cues found: seen once or twice, they are no seed for the family of a name (贾母听 → 贾母便, 贾母因 …). */
+const CUED = new WeakSet<LexiconEntry>();
+/** Characters of a verb of going or seeking before a road or a hill (寻归旧路, 遥望山): not part of its name. */
+const ROAD_VERBS = new Set([...'归寻望走行奔投取抄入出回往去来过请转']);
+/** Endings of a street, a bridge, a lake or a building named once beside a word of going or a locative (过了德胜桥, 白云楼上). */
+const PLACE_ENDS = ['胡同', '大街', '街', '路', '巷', '桥', '湖', '山', '堂', '楼', '堡'];
+/** Of PLACE_ENDS, the ones a common word may name (人民路, 中山街); a building or a lake after a common word is a description (宿舍楼). */
+const STREET_ENDS = new Set(['胡同', '大街', '街', '路', '巷', '桥']);
+const PLACE_BEFORE = new Set([...'在到过往去进出住经于从沿至近离抵赴回游登绕穿了']);
+/** After a name that a word introduces and 的, a word for a person (名叫索菲的女孩) or for something else (名叫“油屋”的澡堂). */
+const PERSON_AFTER_DE = new Set([...'人女男孩娃姑娘子儿生妇汉妹弟哥姐小老少']);
+const PLACE_AFTER = ['一带', '附近', '东口', '西口', '南口', '北口', ...'上下里边旁前后口内外畔的'];
+/** Verbs of going: 过了 到了 before a place. */
+const GOING = new Set([...'过到进出经至去来回走绕穿登游上下离抵赴']);
+/** One-character abbreviations of provinces and cities in the names of railways (武广客运专线, 郑西高铁, 京沪线). */
+const CITY_ABBR = new Set([...'京津沪渝冀晋辽苏浙皖闽赣鲁豫鄂湘粤桂琼川蜀黔滇陕陇宁港澳武广郑西杭合福厦深成昆长哈沈石太济徐兰汉珠汕湛柳衡襄宜荆温甬绍嘉锡扬盐淮蚌芜秦青贵包银呼南洛丹']);
+const RAIL_AFTER = ['客运专线', '高铁', '城际', '铁路', '动车', '线'];
+/** Characters that end the Han text a gloss in brackets belongs to (…的贝林妥欧单抗（Blinatumomab）). */
+const GLOSS_STOP = new Set([...'的了是在和与及或把被对向从为以于等将用由有叫称即也都就并而让给跟同名位个']);
+/** Trailing words after a foreign name and before its gloss (博南诺家族（Bonanno）). */
+const GLOSS_GENERIC = ['家族', '公司', '集团', '大学', '学院', '乐队', '品牌', '酒店', '公园', '王朝', '家'];
+const NAME_DOTS = /[·・•‧]/;
+
+const isHanAt = (text: string, i: number): boolean => i >= 0 && i < text.length && isHanUnit(text.charCodeAt(i));
+
+/**
+ * Names seen once or twice that a cue around them makes sure of (plan item 3, NAME-RULE): a title before (部长盛光祖), a verb of
+ * speech after (夏志清认为), a word that introduces a name (名叫瑞和, 花名“小北”), a gloss in Latin letters or another
+ * language (睿铁（RAIL.ONE）, 嘉俳日（韩语：가배）), an actor's credit (（周一围饰）), a storm (飓风文斯), a list of people after 有：
+ * (孟小冬、李少春、陈少霖等), an era name before its year (泰常八年), a street, a bridge or a building beside a word of going
+ * (过了德胜桥, 白云楼上), a railway named for two cities (武广客运专线), both halves of a foreign name around a dot (奎登·德拉尔,
+ * so 德拉尔 alone joins too) and a name in Latin letters (阿Q, 小D). Each takes the narrowest reading of where the name ends and
+ * must not be a dictionary word.
+ */
+function* cued(found: LexiconEntry[], text: string, dict: Dictionary, hanCount: number, due: () => boolean): Generator<void, LexiconEntry[], void> {
+  const have = new Set(found.map((e) => e.word));
+  // (Memoized: the cues fold the same few characters again and again.)
+  const folded = new Map<string, string>();
+  const fold = (s: string): string => { let v = folded.get(s); if (v === undefined) { v = dict.toSimplified(s); folded.set(s, v); } return v; };
+  const known = (w: string): boolean => dict.hasWord(w) || dict.hasWord(fold(w)) || dict.freq(w) > 0 || dict.freq(fold(w)) > 0;
+  const both = (words: readonly string[]): string[] => [...new Set(words.flatMap((w) => [w, dict.toTraditional(w)]))].sort((a, b) => b.length - a.length);
+  const alt = (words: readonly string[]): string => both(words).join('|');
+  const picked = new Map<string, { kind: LexiconEntry['kind']; gloss?: string; translit?: boolean; nick?: boolean }>();
+  const add = (w: string, kind: LexiconEntry['kind'], gloss?: string, translit = false, nick = false) => {
+    if (!have.has(w) && !picked.has(w) && !known(w)) picked.set(w, { kind, gloss, translit, ...(nick ? { nick } : {}) });
+  };
+  const counted = new Map<string, number>();
+  const occurrences = (w: string): number => {
+    let k = counted.get(w);
+    if (k === undefined) { k = 0; for (let i = text.indexOf(w); i >= 0; i = text.indexOf(w, i + w.length)) k++; counted.set(w, k); }
+    return k;
+  };
+  /** Whether a name may end before text[j]: the end of the Han text, or a word that follows a name. */
+  const endsAt = (j: number): boolean => {
+    if (!isHanAt(text, j)) return true;
+    const two = fold(text.slice(j, j + 2));
+    return AFTER_NAME.has(two) || AFTER_NAME.has(two[0]);
+  };
+  /** A surname, one or two given characters, a person (王国强, not 高兴 or 王某). */
+  const personOk = (w: string): boolean => {
+    const s = [...fold(w)];
+    const sur = surnameSplit(w, dict);
+    if (!sur || s.length < 2 || s.length > 4) return false;
+    const k = [...sur.surname].length;
+    if (k === 1 && CUE_NOT_SURNAME.has(s[0])) return false;
+    const given = s.slice(k);
+    if (!given.length || given.length > 2 || !given.every((g) => isHanUnit(g.charCodeAt(0)))) return false;
+    // (周一川 has a numeral; 王二 and 一行 are no names a cue can vouch for, nor 王老 or 李小.)
+    if (given.some((g) => EDGE_STOP.has(g) || NOT_IN_NAME.has(g) || NOT_GIVEN.has(g) || SPEECH_NEXT.has(g) || '某氏们'.includes(g))) return false;
+    if (given.every((g) => NUMERALS.has(g)) || MEASURE_AFTER.has(given[1] ?? '') || (given.length === 1 && '老小'.includes(given[0]))) return false;
+    if (INSTITUTION_END.has(given[given.length - 1]) || (given.length === 1 && '家府氏王山湖江河岭关'.includes(given[0]))) return false;
+    // (凤姐忙, 贾母听, 刘禅亡: a person the book or the dictionary knows and the next character.)
+    const head = s.slice(0, k + 1).join('');
+    // (周一川: 周一 is Monday, no person.)
+    const knownPerson = personName(head, dict) || (properNoun(head, dict) && PERSON_DEF.test(dict.lookup(head).flatMap((x) => x.defs).join('; ')));
+    if (given.length === 2 && (knownPerson || found.some((e) => e.kind === 'name' && fold(e.word) === head))) return false;
+    // (白玉珪: a word the book uses on its own far more often (白玉, jade), plus one character.)
+    if (given.length === 2 && dict.hasWord(head) && occurrences(w.slice(0, k + 1)) >= 3 * Math.max(1, occurrences(w))) return false;
+    if (known(w)) return false;
+    const g = given.join('');
+    return !(given.length === 2 && (dict.freq(g) >= 1000 || PERSON_DEF.test(dict.lookup(g).flatMap((x) => x.defs).join('; '))));
+  };
+  /** Only transliteration characters, not a word: 比卢普斯, 拜登. */
+  const foreignOk = (w: string): boolean => {
+    const s = [...fold(w)];
+    return s.length >= 2 && s.length <= 6 && s.every((ch, i) => TRANSLIT_CHARS.has(ch) || (i === s.length - 1 && ch === '儿'))
+      && !s.some((ch) => EDGE_STOP.has(ch)) && !known(w) && !commonInside(s, dict);
+  };
+  /** The surname-led name that starts at i: two characters when a word that follows a name comes right after, else three. */
+  const personAt = (i: number): string => {
+    if (!isHanAt(text, i) || !isHanAt(text, i + 1)) return '';
+    const k = COMPOUND_SURNAMES.has(fold(text.slice(i, i + 2))) ? 2 : 1;
+    const a = i + k;
+    if (!isHanAt(text, a) || endsAt(a)) return '';
+    if (endsAt(a + 1)) return text.slice(i, a + 1);
+    if (isHanAt(text, a + 1) && endsAt(a + 2)) return text.slice(i, a + 2);
+    return '';
+  };
+  /** Whether text[a, b) is an item of a 、 list whose item before or after it is a person (梅兰芳、杨月楼). */
+  const listOfPeople = (a: number, b: number): boolean => {
+    const item = (from: number, to: number): string => text.slice(from, to);
+    if (text[a - 1] === '、') {
+      let s0 = a - 1;
+      while (s0 > 0 && isHanAt(text, s0 - 1) && a - 1 - s0 < 4) s0--;
+      const w = item(s0, a - 1);
+      if (personOk(w) || personName(fold(w), dict)) return true;
+    }
+    if (text[b] === '、') {
+      let e = b + 1;
+      while (isHanAt(text, e) && e - b - 1 < 4) e++;
+      const w = item(b + 1, e);
+      if (personOk(w) || personName(fold(w), dict)) return true;
+    }
+    return false;
+  };
+  /** The run of transliteration characters that starts at i (at most 6), if it ends where a name may end. */
+  const foreignAt = (i: number): string => {
+    let j = i;
+    while (j < text.length && j - i < 6 && TRANSLIT_CHARS.has(fold(text[j]))) j++;
+    return j - i >= 2 && endsAt(j) ? text.slice(i, j) : '';
+  };
+  const each = (re: RegExp, fn: (m: RegExpExecArray) => void) => { for (let m = re.exec(text); m; m = re.exec(text)) fn(m); };
+
+  // 部长盛光祖表示, 主任王国强等, 主教练比卢普斯。
+  each(new RegExp(`(?:${alt(TITLES_BEFORE)})(?=[\\u3400-\\u9fff])`, 'g'), (m) => {
+    const i = m.index + m[0].length;
+    const p = personAt(i);
+    // (总理李克|强调研: not when the name and the next character are a name the dictionary has.)
+    if (p && personOk(p) && !(isHanAt(text, i + p.length) && dict.hasWord(fold(text.slice(i, i + p.length + 1))))) add(p, 'name');
+    else { const f = foreignAt(i); if (f && foreignOk(f)) add(f, 'name', undefined, true); }
+  });
+  if (due()) yield;
+  // 胡适之先生: a full name right after a mark and right before a polite title.
+  each(new RegExp(`(?:^|[^\\u3400-\\u9fff])([\\u3400-\\u9fff]{2,3})(?:${alt(TITLES_AFTER)})`, 'gm'), (m) => {
+    if (personOk(m[1])) add(m[1], 'name');
+  });
+  // 夏志清认为, 王德威表示: a name opening a clause before a verb of speech.
+  each(new RegExp(`(?:^|[^\\u3400-\\u9fff])([\\u3400-\\u9fff]{2,5}?)(?:${alt(SAYS)})`, 'gm'), (m) => {
+    if (personOk(m[1])) add(m[1], 'name');
+    else if (foreignOk(m[1])) add(m[1], 'name', undefined, true);
+  });
+  if (due()) yield;
+  // 名叫瑞和，, 花名“小北”, 名叫索菲 at the end of a line; 这个地方叫作岔道口 (a place); 叫做“整理国故” (a term, unless its words are common).
+  each(new RegExp(`(${alt([...NAMED, ...CALLED])})(?:是|为|為|叫|做|作|${alt(CALLED)})?([“「『"'‘]?)([\\u3400-\\u9fff]{2,4})(?=[”」』"'’，,。.！!？?；;、：:\\s）)]|$)`, 'gm'), (m) => {
+    const w = m[3];
+    const s = [...fold(w)];
+    // (名字叫李四吧？, 乳名或官名: a particle, a conjunction, or a name the book has already with more around it.)
+    if (s.some((ch) => EDGE_STOP.has(ch) || NOT_IN_NAME.has(ch) || INTERJECTIONS.has(ch)) || '什甚啥谁哪某或和与及而且并唤叫儿做作是为'.includes(s[0]) || s.every((ch) => NUMERALS.has(ch))) return;
+    // (绰号尚悬空: an adverb opening what follows says the nickname is not there yet.)
+    if (!m[2] && NICKNAME_ONLY.has(fold(m[1])) && '尚还已未仍又也都就才却便亦'.includes(s[0])) return;
+    if ('者之乎也矣焉哉'.includes(s[s.length - 1])) return; // 一个名唤瑞珠者
+    if ([...have].some((h) => h.length < w.length && w.includes(h) && h.length >= 2)) return;
+    // (花名册|子: the cue and the next character are a word; 指名|叫骂: the cue is two words, one with the character before it and
+    // one with the character after it.)
+    const cue = fold(m[1]);
+    if (!m[2] && (dict.hasWord(cue + s[0]) || (dict.hasWord(fold(text[m.index - 1] ?? '') + cue[0]) && dict.hasWord(cue.slice(1) + s[0])))) return;
+    // (A nickname, 外号“盖九州”, is a phrase: its first character keeps its own reading, not a surname's.)
+    if (NICKNAMED.has(fold(m[1]))) { if (!commonInside(s, dict) || m[2]) add(w, 'name', undefined, s.every((ch) => TRANSLIT_CHARS.has(ch)), NICKNAME_ONLY.has(fold(m[1]))); return; }
+    const before = fold(text.slice(Math.max(0, m.index - 4), m.index));
+    const foreign = s.every((ch) => TRANSLIT_CHARS.has(ch));
+    const last = s[s.length - 1];
+    // (名叫“油屋”的澡堂: the word after 的 says what is named.)
+    let k = m.index + m[0].length;
+    if (/[”」』"'’]/.test(text[k] ?? '')) k++;
+    // (叫作“荆川纸”的，: 的 closing the clause names a thing too.)
+    const thing = fold(text[k] ?? '') === '的' && !(isHanAt(text, k + 1) && PERSON_AFTER_DE.has(fold(text[k + 1])));
+    if (thing) {
+      if (!commonInside(s, dict) && !personOk(w)) add(w, PLACE_ENDS.some((e) => fold(text.slice(k + 1, k + 1 + e.length)) === e) ? 'place' : 'term');
+      return;
+    }
+    // A person after 一个 有个人 女儿 (一个叫作孤云), or a surname and a name or a foreign name unquoted (名叫瑞和, 唤做黄达, 名叫索菲);
+    // a place (唤做焦山); a term in quotes (这一招叫做“落雁腿”, 这个唤做『盆吊』: in the old novels 叫做 and 唤做 name anything, and a
+    // surname character opens many a thing's name) or after 名叫 (名叫冷香丸).
+    const fresh = !commonInside(s, dict) && !covered(s, dict);
+    const called = CALLED.includes(fold(m[1]));
+    // (第二个唤做曾密: 个 counts a person, unless 这个 那个 point at a thing.)
+    // (一种人叫做蛊师: a kind of person, not a person.)
+    const personCtx = !m[2] && !/[种種类類]人$/.test(before) && (/(位|人|儿子|女儿|女子|孩子|妻子|丫头|姑娘|兄弟|姐妹)$/.test(before) || (/[个個]$/.test(before) && !/[这那這]/.test(before.slice(-2, -1))));
+    const placeEnd = PLACE_SUFFIX.has(last) || SHORT_PLACE_SUFFIX.has(last) || '店口坳集铺'.includes(last);
+    // (唤做焦山, 毛颖山: a hill or a pass is a place before it is a person; 叫做陈观 is a man.)
+    const hill = '山岭关峰洞岛'.includes(last);
+    if (hill && fresh && !personCtx) {
+      add(w, 'place');
+    } else if ((personCtx && s.length <= 3 && fresh && !placeEnd && !(s.length === 3 && dict.hasWord(s[0] + s[1]) && occurrences(w.slice(0, 2)) >= 3 * occurrences(w)))
+      || ((!called || !m[2]) && (personOk(w) || foreignOk(w)))) { // (一个叫做白玉珪: 白玉, jade, stands alone thrice as often: a thing)
+      add(w, 'name', undefined, foreign);
+    } else if ((PLACE_NAMED_BEFORE.test(before) || (placeEnd && s.length >= 3)) && fresh) {
+      add(w, 'place');
+    } else if ((m[2] || !called) && fresh && !SOFT_START.has(s[0])) {
+      add(w, 'term');
+    }
+  });
+  if (due()) yield;
+  // 睿铁（RAIL.ONE）, 旭普林（Züblin）, 博南诺家族（Bonanno）, 嘉俳日（韩语：가배）: the Han text right before a bracket that opens a
+  // gloss in Latin letters or names a language. (Found from each bracket: a pattern over every Han run would backtrack.)
+  const GLOSS_AFTER = /^[（(]\s*(?:([A-Z][^）)]{0,60})|[\u3400-\u9fff]{1,5}[语語文][：:])/;
+  const glossed = (p: number): void => {
+    if (!isHanAt(text, p - 1) || !isHanAt(text, p - 2)) return;
+    const g = GLOSS_AFTER.exec(text.slice(p, p + 64));
+    if (!g) return;
+    let s0 = p - 1;
+    while (s0 > 0 && isHanAt(text, s0 - 1)) s0--;
+    let run = text.slice(s0, p);
+    for (let k = run.length - 1; k >= 0; k--) if (GLOSS_STOP.has(fold(run[k]))) { run = run.slice(k + 1); break; }
+    // (对流复合体: 对 there opens a word, so the run does not start after it.)
+    if (run.length < p - s0 && dict.hasWord(fold(text[p - run.length - 1] + run[0]))) return;
+    const generic = GLOSS_GENERIC.find((x) => fold(run).endsWith(x) && run.length > x.length + 1);
+    if (generic) run = run.slice(0, run.length - generic.length);
+    const s = [...fold(run)];
+    // The transliteration at the end of the run (像柏拉图, …组织博南诺家族), else a short run of its own (睿铁, 嘉俳日) that does
+    // not open with a common character (作玛志尼).
+    let a = s.length;
+    while (a > 0 && TRANSLIT_CHARS.has(s[a - 1])) a--;
+    let w = '';
+    if (a === 0 && s.length <= 6) w = run;
+    else if (!generic && s.length >= 2 && s.length <= 4 && !commonInside(s, dict) && dict.freq(s[0]) < 20000) w = run;
+    else if (s.length - a >= 2 && s.length - a <= 6) w = run.slice(a);
+    const ws = [...fold(w)];
+    if (ws.length < 2 || ws.some((ch) => EDGE_STOP.has(ch) || NOT_IN_NAME.has(ch) || NUMERALS.has(ch)) || MEASURE_START.has(ws[0])) return;
+    // A surname and a name (杨帝霖（Quentin Young）) or a foreign name glossed as a first and last name is a person; anything
+    // else is a term (旭普林（Züblin）, 倍根（Bacon）). Not two words of the dictionary (波兰饺子（波兰语：…）).
+    if (covered(ws, dict)) return;
+    const foreign = ws.every((ch) => TRANSLIT_CHARS.has(ch));
+    const fullName = !!g[1] && /^[A-Z][a-zà-ÿ]+(?:[ -][A-Z][a-zà-ÿ]+)+\s*$/.test(g[1]);
+    if (fullName && personOk(w)) add(w, 'name');
+    else add(w, foreign && fullName ? 'name' : 'term', undefined, foreign);
+  };
+  for (const open of ['（', '(']) for (let p = text.indexOf(open); p >= 0; p = text.indexOf(open, p + 1)) glossed(p);
+  if (due()) yield;
+  // （周一围饰）, 由王砚辉饰演: the actor of a part.
+  each(/[（(]([\u3400-\u9fff]{2,4})[饰飾](?:演)?[）)]|由([\u3400-\u9fff]{2,4})[饰飾]演/g, (m) => {
+    const w = m[1] ?? m[2];
+    if (personOk(w)) add(w, 'name');
+    else if (foreignOk(w)) add(w, 'name', undefined, true);
+  });
+  // 飓风文斯, 气旋卡塔琳娜.
+  each(new RegExp(`(?:${alt(STORMS)})(?=[\\u3400-\\u9fff])`, 'g'), (m) => {
+    const i = m.index + m[0].length;
+    let j = i;
+    while (j < text.length && j - i < 5 && TRANSLIT_CHARS.has(fold(text[j]))) j++;
+    const w = text.slice(i, j);
+    // (Five characters at most: a longer run is no storm's name.)
+    if (j - i >= 2 && (!isHanAt(text, j) || !TRANSLIT_CHARS.has(fold(text[j]))) && !commonInside([...fold(w)], dict)) add(w, 'name', 'name of a storm', true);
+  });
+  if (due()) yield;
+  // 主要传人有：孟小冬、李少春、陈少霖、杨宝森等。 Every item is a person: a surname and a name the dictionary lacks, or a person it has.
+  each(/(?:有|包括|包含|例如|如|计有|：|:)[：:]?((?:[\u3400-\u9fff]{2,4}、){2,}[\u3400-\u9fff]{2,4})(?=等|[。，,；;）)\s]|$)/gm, (m) => {
+    const items = m[1].split('、');
+    const tail = items[items.length - 1];
+    if (tail.length >= 3 && fold(tail).endsWith('等')) items[items.length - 1] = tail.slice(0, -1);
+    if (items.length >= 3 && items.every((w) => w[0] === items[0][0])) return; // 石碗、石盆、石床: things of stone, not people
+    const people = items.filter((w) => personOk(w));
+    if (people.length < 2 || !items.every((w) => people.includes(w) || personName(w, dict) || personName(fold(w), dict))) return;
+    for (const w of people) add(w, 'name');
+  });
+  // 泰常八年, 太平真君七年（公元446年）: an era name before a year. Not one the book writes more often elsewhere: 天会 is an era
+  // once (天会二年) and 明天会下雨, 春天会暖 everywhere else.
+  each(/[元正一二三四五六七八九十廿卅]{1,3}年/g, (m) => {
+    for (const k of [4, 2]) {
+      const a = m.index - k;
+      if (a < 0 || !isHanAt(text, a)) continue;
+      const w = text.slice(a, m.index);
+      if (!ERA_NAMES.has(fold(w))) continue;
+      const years = text.match(new RegExp(`${w}[元正一二三四五六七八九十廿卅]{1,3}年`, 'g'))?.length ?? 0;
+      if (2 * years >= occurrences(w)) add(w, 'term', 'era name (reign title)');
+      break;
+    }
+  });
+  if (due()) yield;
+  // 过了德胜桥, 白云楼上, 在清平堡发现: a place named once, two characters and an ending, with a word of going before it or a
+  // locative after it. Not where the ending makes a word with the character before (大楼, 西湖), nor where the name would start
+  // inside a word.
+  // (Not in a long novel: a place seen once there is little loss, old novels say 路 for a route, and the scan costs time.)
+  if (hanCount < 100000) each(new RegExp(`(?:${alt(PLACE_ENDS)})`, 'g'), (m) => {
+    const j = m.index;
+    const end = fold(m[0]);
+    const a = j - 2;
+    if (a < 0 || !isHanAt(text, a) || !isHanAt(text, a + 1)) return;
+    const prev = text[a - 1] ?? '';
+    // (过了德胜桥, but 吃了饭修桥: 了 counts after a verb of going only.)
+    const before = !!prev && PLACE_BEFORE.has(fold(prev)) && (fold(prev) !== '了' || GOING.has(fold(text[a - 2] ?? '')));
+    const tail = fold(text.slice(j + m[0].length, j + m[0].length + 2));
+    const after = !isHanAt(text, j + m[0].length) || PLACE_AFTER.some((p) => tail.startsWith(p));
+    if (!(before || (after && !isHanAt(text, a - 1)))) return;
+    if (prev === '《' || text[j + m[0].length] === '》') return; // 《玻丽路》: a title
+    const x = [...fold(text.slice(a, j))];
+    if (x.some((ch) => EDGE_STOP.has(ch) || NOT_IN_NAME.has(ch) || NOT_GIVEN.has(ch) || NUMERALS.has(ch) || MEASURE_START.has(ch) || SOFT_START.has(ch) || PLACE_BEFORE.has(ch) || ch === '号')) return;
+    if ('山湖路桥街'.includes(x[0]) || '山湖路桥街楼堂'.includes(x[1])) return; // 山僻路: a description of the way
+    if (x.some((ch) => ROAD_VERBS.has(ch) || '里内外上下中前后方边间'.includes(ch))) return; // 寻归旧路, 西方路, 庄内堂, 钻下湖
+    // (谭鑫培、杨月楼。: a list of people; 由金少山开创: a surname and two characters before 山 楼 堂 湖 is often a person.)
+    if (SURNAMES.has(x[0]) && '山楼堂湖'.includes(end) && !PLACE_AFTER.some((p) => p !== '的' && tail.startsWith(p))) return;
+    if (listOfPeople(a, j + m[0].length)) return;
+    if (dict.lookup(x.join('')).some((e) => /^(\([^)]*\) )?to /.test(e.defs[0] ?? ''))) return; // 遥望山: a verb
+    const w = text.slice(a, j + m[0].length);
+    // (对面大街, 躲开街: a dictionary word before the ending, seen once, is not a name; 银锭桥 twice is.)
+    if (dict.hasWord(x.join('')) && !properNoun(x.join(''), dict) && occurrences(w) === 1) return;
+    if (dict.hasWord(x[1] + end[0]) || dict.hasWord(x.join('') + end) || (isHanAt(text, a - 1) && !before && dict.freq(fold(prev) + x[0]) >= 100)) return;
+    if (!STREET_ENDS.has(end) && (dict.freq(x.join('')) >= 500 || properNoun(x.join(''), dict))) return;
+    // (许多路: a quantity; 西湖湖畔, 岷山山系: the ending opens the next word; 亚历山大: the place is the front of a longer word.)
+    if (dict.lookup(x.join('')).some((e) => QUANTITY_DEF.test(e.defs[0] ?? ''))) return;
+    // (田塍路, 石板路: a common word and 路, seen once, is a description; 开明街, 鼓楼大街 are streets.)
+    if (end === '路' && commonWord(x.join(''), dict) && occurrences(w) === 1) return;
+    const next = text[j + m[0].length] ?? '';
+    if (isHanAt(text, j + m[0].length) && !PLACE_AFTER.some((p) => tail.startsWith(p)) && (dict.hasWord(end.slice(-1) + fold(next)) || dict.hasWord(fold(w + next)))) return;
+    add(w, 'place');
+  });
+  if (due()) yield;
+  // 武广客运专线, 郑西高铁: two one-character city names before a railway.
+  each(new RegExp(`(?:${alt(RAIL_AFTER)})`, 'g'), (m) => {
+    const a = m.index - 2;
+    if (a < 0 || !isHanAt(text, a) || !isHanAt(text, a + 1)) return;
+    const x = fold(text.slice(a, m.index));
+    if (!CITY_ABBR.has(x[0]) || !CITY_ABBR.has(x[1]) || x[0] === x[1] || (isHanAt(text, a - 1) && dict.hasWord(fold(text[a - 1]) + x[0]))) return;
+    // (京港澳: where the book names three cities, the pair would cut the third off.)
+    const pair = text.slice(a, m.index);
+    for (let i = text.indexOf(pair); i >= 0; i = text.indexOf(pair, i + 2)) if (isHanAt(text, i + 2) && CITY_ABBR.has(fold(text[i + 2])) && dict.hasWord(x[1] + fold(text[i + 2]))) return;
+    add(text.slice(a, m.index), 'place', `${x[0]}–${x[1]} (two cities a railway joins)`);
+  });
+  if (due()) yield;
+  // 奎登·德拉尔, 旺加里·马塔伊, 汤姆贾诺维奇因身体原因: both halves of a foreign name around a dot.
+  const dots = new RegExp(NAME_DOTS.source, 'g');
+  for (let d = dots.exec(text); d; d = dots.exec(text)) {
+    const i = d.index;
+    for (const half of dottedHalves(text, i, fold, endsAt, dict)) {
+      const s = [...fold(half)];
+      // (All transliteration characters, or all but the first or last one the clause edge let in: 奎登, 旺加里.)
+      const near = s.filter((ch) => TRANSLIT_CHARS.has(ch)).length >= s.length - 1 && !s.some((ch) => EDGE_STOP.has(ch) || NOT_IN_NAME.has(ch)) && !commonInside(s, dict);
+      if (foreignOk(half) || (near && s.length >= 2 && !known(half))) add(half, 'name', undefined, true);
+    }
+  }
+  // 阿Q, 小D, 阿Quei: a name in Latin letters after 阿 小 老, seen three times.
+  const latin = new Map<string, number>();
+  each(/(?<![A-Za-z])([阿小老])([A-Z][a-z]{0,5})(?![A-Za-z])/g, (m) => { latin.set(m[0], (latin.get(m[0]) ?? 0) + 1); });
+  for (const [w, k] of latin) if (k >= 3 && !have.has(w)) picked.set(w, { kind: 'name' });
+
+  const out: LexiconEntry[] = [];
+  for (const [w, p] of picked) {
+    const count = occurrences(w);
+    if (!count) continue;
+    const latinName = /[A-Za-z]/.test(w);
+    let pinyin = latinName ? dict.pinyinFor(w.replace(/[A-Za-z]+/g, ''), {}).join(' ') : pinyinOf(w, p.kind, dict, !p.translit && !p.nick);
+    // 弥儿 (Mill), 青儿: 儿 ends a transliteration or a name as ér; 秦沈: 沈 for 沈阳 is shěn.
+    if (p.translit || [...w].length <= 3) pinyin = pinyin.replace(/\br5$/, 'er2');
+    if (p.gloss?.includes('two cities')) pinyin = [...fold(w)].map((ch, k) => (ch === '沈' ? 'shen3' : pinyin.split(' ')[k])).join(' ');
+    const e: LexiconEntry = { word: w, pinyin, gloss: p.gloss ?? GLOSS[p.kind], kind: p.kind, count, enabled: true, origin: 'auto' };
+    CUED.add(e);
+    out.push(e);
+  }
+  return out;
+}
+
+/**
+ * The halves of a foreign name before and after the dot at `i`: transliteration characters, plus one more character where the
+ * name opens or closes a clause (奎 after 的, 旺 after a colon). `endsAt(j)` says whether a name may end before text[j].
+ */
+function dottedHalves(text: string, i: number, fold: (s: string) => string, endsAt: (j: number) => boolean, dict: Dictionary): string[] {
+  const tr = (j: number): boolean => isHanAt(text, j) && TRANSLIT_CHARS.has(fold(text[j]));
+  const opens = (j: number): boolean => !isHanAt(text, j) || NAME_DOTS.test(text[j]) || '的了在和与及是为被将由把对向给叫名位'.includes(fold(text[j]));
+  // A name may also start right after a word (探险家|瓦尔特, 主教练|鲁迪).
+  const startsAt = (j: number): boolean => opens(j - 1) || (isHanAt(text, j - 2) && dict.hasWord(fold(text.slice(j - 2, j)))) || (isHanAt(text, j - 3) && dict.hasWord(fold(text.slice(j - 3, j))));
+  const out: string[] = [];
+  // Before the dot.
+  let a = i;
+  while (a > 0 && tr(a - 1) && i - a < 6) a--;
+  // (Not a common character, nor one that ends a word with the one before it: 竞争对|手沙奎尔.)
+  if (a > 0 && isHanAt(text, a - 1) && !opens(a - 1) && opens(a - 2) && i - a >= 1 && i - a < 5 && dict.freq(fold(text[a - 1])) < 20000
+    && !(isHanAt(text, a - 2) && dict.hasWord(fold(text.slice(a - 2, a))))) a--;
+  if (i - a >= 2 && startsAt(a)) out.push(text.slice(a, i));
+  // After the dot, never into the next word: 贾诺维奇|因身体原因 (a final 因 or 也 before more text is that word).
+  let b = i + 1;
+  while (b < text.length && tr(b) && b - i - 1 < 8) b++;
+  if (b - i - 1 >= 4 && '因也'.includes(fold(text[b - 1])) && isHanAt(text, b) && !endsAt(b)) b--;
+  if (b - i - 1 >= 2 && (endsAt(b) || NAME_DOTS.test(text[b] ?? '') || '因也'.includes(fold(text[b] ?? '')))) out.push(text.slice(i + 1, b));
   return out;
 }
 
@@ -1102,7 +1569,8 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
 
   // Places and groups: 桃花岛, 牛家村, 归云庄, 铁掌帮, 大金国, 祝家庄, 张家湾, 白水河.
   // (林如海 ends in 海 but speaks: a person.)
-  if (PLACE_SUFFIX.has(last) && !softEnd && !softStart && !measured && c.speech < 0.05 && c.bind >= 0.4 && len >= 3 && !(sur && len === 3 && (c.speech >= 0.03 || ('海河江湖'.includes(last) && simp[1] !== '家' && simp[1] !== '水')))) {
+  // (张雪峰 opens most of the clauses of a news story: a person whose name ends in 峰.)
+  if (PLACE_SUFFIX.has(last) && !softEnd && !softStart && !measured && c.speech < 0.05 && c.bind >= 0.4 && len >= 3 && !(sur && len === 3 && (c.speech >= 0.03 || ('海河江湖'.includes(last) && simp[1] !== '家' && simp[1] !== '水') || (last === '峰' && simp[1] !== '家' && (c.open ?? 0) >= 0.5)))) {
     return { kind: 'place', surnameLed: false };
   }
   // 砚城: a town named in two characters, never spoken to.
@@ -1203,12 +1671,116 @@ function judgeShort(c: TermCandidate, dict: Dictionary): { kind: LexiconEntry['k
   if (simp.some((ch) => NOT_IN_NAME.has(ch) || EDGE_STOP.has(ch))) return null;
   // (前往中国, 疏浚西湖: a verb and the place it goes to.)
   if (verbPhrase(simp, dict)) return null;
-  if (len >= 3 && (PLACE_SUFFIX.has(last) || SHORT_PLACE_SUFFIX.has(last)) && c.speech === 0) return { kind: 'place', surnameLed: false };
   const sur = surnameSplit(c.word, dict);
+  // (张雪峰, 林如海: a surname and a given name that ends like a place; 眼光观之, 宿舍楼: a common word and a place ending is a phrase.)
+  const personLike = !!sur && len === 3 && simp[1] !== '家' && last === '峰' && (c.open ?? 0) >= 0.5;
+  if (len >= 3 && (PLACE_SUFFIX.has(last) || SHORT_PLACE_SUFFIX.has(last)) && c.speech === 0 && !personLike && dict.freq(simp.slice(0, len - 1).join('')) < 1000) {
+    return { kind: 'place', surnameLed: false };
+  }
   // 仲密: seen five times and never apart, once after 对 or 叫.
   const spoken = c.speech + c.prep;
   if (sur && len <= 3 && (spoken >= 0.3 || (len === 2 && spoken >= 0.1 && c.count >= 5)) && c.left >= 0.5 && c.right >= 0.5) return { kind: 'name', surnameLed: true };
   return null;
+}
+
+/**
+ * Names that repeat a lot but that the tests above turn away (they ask for a surname and speech, or a high `pmi`, which a short
+ * text cannot give a frequent string): a heroine called 敏明 115 times in a story of 9,000 characters, 子君 46 times (君 ends an
+ * office elsewhere), 李静 64 times without saying much. Each shape asks for the parts to be almost never apart (`npmi`) or a
+ * person's signs (spoken to, speaking, called out, opening a clause):
+ * - 阿 and a name (阿随, 阿毛), a pet name in 儿 (孝儿), a nickname in 子 (祥子, 小福子; its 子 is neutral), a given name and a
+ *   kinship word (附姐, 银姊);
+ * - a pair never apart and seen at least 8 times in a short text or 12 in a long one (敏明, 子君, 宋志, 吴妈, 白妞);
+ * - a surname and one character that is a person in a long text (李静);
+ * - a foreign name made only of transliteration characters (拉希姆, 贝莱赫斯特, 索菲);
+ * - in a short text, a surname and two characters seen three times and never apart (张雪峰 in a 250-character news story).
+ */
+export function judgeRepeat(c: TermCandidate, dict: Dictionary, minCount: number, short: boolean): Verdict | null {
+  const simp0 = [...dict.toSimplified(c.word)];
+  // 沙龙 (a story's sorcerer, a "salon" elsewhere): a dictionary word the book uses hundreds of times more often than other text
+  // does, never apart and ordered about or addressed a quarter of the time, is a person here. Its card keeps the word's meaning.
+  if (c.known !== 'none' && (c.key ?? 0) >= 300 && (c.npmi ?? 0) >= 0.9 && c.prep >= 0.25 && c.count >= (short ? 8 : Math.max(12, 2 * minCount))
+    && [...c.word].length === 2 && c.right >= 1.5 && !PERSON_HEAD.has(dict.toSimplified(c.word.slice(-1)))
+    && !PERSON_DEF.test(dict.lookup(c.word).flatMap((e) => e.defs).join('; '))) return { kind: 'name', surnameLed: false };
+  // (A pet name in 儿 that jieba knows whole, 杏儿, still needs its entry: jieba reads the 儿 as r.)
+  if (c.known !== 'none' && !(c.known === 'jieba' && simp0.length === 2 && simp0[1] === '儿' && !dict.hasWord(c.word))) return null;
+  const simp = simp0;
+  const len = simp.length;
+  if (len < 2 || len > 6 || simp.length !== [...c.word].length) return null;
+  const first = simp[0];
+  const last = simp[len - 1];
+  if (EDGE_STOP.has(first) || PHRASE_START.has(first) || (len >= 3 && simp[0] === simp[1])) return null;
+  if (simp.some((ch, i) => NOT_IN_NAME.has(ch) || INTERJECTIONS.has(ch) || (i > 0 && EDGE_STOP.has(ch) && !(i === len - 1 && (c.tailBound || c.headBound) && NAME_TAIL.has(ch))))) return null;
+  if (verbPhrase(simp, dict)) return null;
+  const npmi = c.npmi ?? 0;
+  const person = c.speech + c.prep + (c.voc ?? 0);
+  const open = c.open ?? 0;
+  const freeLeft = c.left >= 1.5 || open >= 0.5;
+  const sur = surnameSplit(c.word, dict);
+  const name = (neutralZi = false): Verdict => ({ kind: 'name', surnameLed: !!sur, ...(neutralZi ? { neutralZi } : {}) });
+  // 阿随, 阿毛, 阿桂: 阿 before a name, never apart from it.
+  // (阿母, 阿爹, 阿哥: 阿 before a kinship word is that kin.)
+  if (first === '阿' && len <= 3 && c.count >= (short ? 3 : Math.max(4, minCount / 2)) && npmi >= 0.7 && c.right >= 1.2
+    && (c.left >= 0.9 || open >= 0.3) && !SOFT_END.has(last) && !KIN_CHARS.has(simp[1]) && !PERSON_HEAD.has(simp[1]) && !'母父公翁'.includes(simp[1])) return name();
+  // 孝儿, 静儿: a pet name in 儿 that is called out, speaks or is spoken to (not the erhua of a noun: 空儿, 味儿).
+  // (打|盹儿, 金|钏儿: one character before it most of the time makes it the end of something else. jieba may know the pet
+  // name whole, 杏儿, and read its 儿 as r.)
+  if (len === 2 && last === '儿' && first !== '儿' && (c.known === 'none' || (c.known === 'jieba' && !dict.hasWord(c.word))) && !NO_PET_NAME.has(first) && !MEASURE_START.has(first) && !NUMERALS.has(first) && !SOFT_START.has(first)
+    && c.count >= (short ? 4 : Math.max(5, minCount)) && c.bind >= 0.5 && person >= 0.1 && c.right >= 1 && (c.left >= 1.5 || open >= 0.5)) return name();
+  // 祥子, 小福子: a nickname in 子, frequent and never apart, or its head never seen without it, and treated as a person.
+  // (小牢子 is a little jailer: 牢子 is a word.)
+  if (last === '子' && (len === 2 || (len === 3 && (first === '小' || first === '老' || !!sur) && !dict.hasWord(simp.slice(1).join('')))) && !NUMERALS.has(first) && !MEASURE_START.has(first)
+    && c.right >= 1.5 && freeLeft && (len === 2
+      ? npmi >= 0.85 && c.count >= Math.max(10, 2 * minCount) && (person >= 0.05 || c.count >= 30)
+      : (c.head ?? Infinity) <= 1.1 * c.count && c.count >= Math.max(5, minCount) && person >= 0.1)) return name(true);
+  // 附姐, 银姊: a given name and a kinship word, never apart and spoken to.
+  if (len === 2 && KIN_CHARS.has(last) && !sur && !MEASURE_START.has(first) && !NUMERALS.has(first) && !SOFT_START.has(first) && !'老小大表堂'.includes(first)
+    && npmi >= 0.85 && c.count >= Math.max(5, minCount) && person >= 0.1) return name();
+  // 敏明, 子君, 宋志, 吴妈: a pair never apart, seen often, free on both sides.
+  if (len === 2 && npmi >= 0.85 && c.count >= (short ? 8 : Math.max(12, 2 * minCount)) && c.right >= 1.5 && freeLeft
+    && !SOFT_START.has(first) && !SOFT_END.has(last) && !MEASURE_START.has(first) && !NUMERALS.has(last) && !BARE_TITLE_END.has(last)
+    && (!!sur || !PERSON_HEAD.has(last))) { // (骡夫: a word for a kind of person)
+    // (石凳, 白马: a surname character before a noun; without a person's signs the pair is a word of the book.)
+    // (铁锅, 觔斗: frequent things; 郡侯: an office in a long book, though it speaks.)
+    return ((sur && (person >= 0.05 || open >= 0.5)) || person >= 0.08) && (short || !!sur || !ROLE_END.has(last)) ? name() : { kind: 'term', surnameLed: false };
+  }
+  // 李静: a surname and one character, a person in a long text (spoken to and speaking, free on both sides).
+  if (sur && len === 2 && [...sur.surname].length === 1 && c.count >= Math.max(20, 3 * minCount) && c.bind >= 0.45 && person >= 0.1 && c.pmi >= 4
+    && c.right >= 2.5 && (c.left >= 2 || open >= 0.5) && !SOFT_END.has(last) && !NUMERALS.has(last) && !KIN_CHARS.has(last) && !PERSON_HEAD.has(last)) return name();
+  // 拉希姆, 贝莱赫斯特, 索菲: a foreign name, only transliteration characters, never apart.
+  const translit = simp.every((ch, i) => TRANSLIT_CHARS.has(ch) || (i === len - 1 && i >= 2 && ch === '儿'));
+  if (translit && !simp.some((ch) => EDGE_STOP.has(ch)) && c.count >= (short ? (len >= 3 ? 3 : 4) : minCount)
+    // (珀拉儿: a final 儿 is common, so the pair before it, never seen without it, says how bound the name is.)
+    && (len >= 3 ? c.bind >= 0.9 && (npmi >= 0.7 || (last === '儿' && (c.head ?? Infinity) <= c.count && npmi >= 0.5)) : npmi >= 0.9) && c.right >= 0.5 && (c.left >= 0.5 || open >= 0.5)
+    && !commonInside(simp, dict)) return { kind: 'name', surnameLed: false };
+  // 婆多瓦底: four characters never apart, half of them a transliteration's, opening clause after clause: a foreign name too.
+  if (len === 4 && simp.filter((ch) => TRANSLIT_CHARS.has(ch)).length >= 2 && c.bind >= 0.95 && (c.head ?? Infinity) <= 1.1 * c.count
+    && c.count >= (short ? 5 : minCount) && open >= 0.5 && c.right >= 1 && !commonInside(simp, dict) && !covered(simp, dict)) return { kind: 'name', surnameLed: false };
+  // 张雪峰: in a short text, a surname and two characters seen three times and never apart, the first two not a word.
+  // (It opens a clause or is spoken to: 白血轮 after "…的" is a word of the book, not a person.)
+  if (short && sur && len === 3 && [...sur.surname].length === 1 && c.count >= 3 && c.bind >= 0.9 && npmi >= 0.8 && (open >= 0.5 || person >= 0.1) && c.right >= 0.5
+    && !dict.hasWord(simp.slice(0, 2).join('')) && dict.freq(simp.slice(1).join('')) < 500 && !KIN_CHARS.has(last) && !PERSON_HEAD.has(last)
+    && simp[1] !== '家' && !SHORT_PLACE_SUFFIX.has(last) && !'城村镇庄寨店府州县国岛寺庙宫殿关营'.includes(last)) return name();
+  return null;
+}
+
+/** Whether a string is made entirely of dictionary words of two characters or more (波兰|饺子, 智能|手机). */
+function covered(simp: string[], dict: Dictionary): boolean {
+  const ok = new Array<boolean>(simp.length + 1).fill(false);
+  ok[0] = true;
+  for (let a = 0; a < simp.length; a++) {
+    if (!ok[a]) continue;
+    for (let b = a + 2; b <= simp.length; b++) if (dict.hasWord(simp.slice(a, b).join(''))) ok[b] = true;
+  }
+  return ok[simp.length];
+}
+
+/** A common word (corpus count 1,000 or more) of two characters or more inside a string: 南西 is not, 计算 is. */
+function commonInside(simp: string[], dict: Dictionary): boolean {
+  for (let a = 0; a < simp.length; a++) {
+    for (let b = a + 2; b <= simp.length; b++) if (dict.freq(simp.slice(a, b).join('')) >= 1000) return true;
+  }
+  return false;
 }
 
 /**
@@ -1271,7 +1843,9 @@ function toEntry(c: TermCandidate, dict: Dictionary): LexiconEntry {
   let gloss = glossFor(c.word, c.kind, c.known, dict);
   // 二老: a common word used as a name keeps its meaning on the card.
   if (c.kind === 'name' && c.known !== 'none' && gloss === GLOSS.name && commonWord(c.word, dict)) gloss = `${GLOSS.name}; as a word: ${dict.lookup(c.word)[0].defs[0]}`;
-  return { word: c.word, pinyin: pinyinOf(c.word, c.kind, dict), gloss, kind: c.kind, count: c.count, enabled: true, origin: 'auto' };
+  let pinyin = pinyinOf(c.word, c.kind, dict);
+  if (c.neutralZi) pinyin = pinyin.replace(/zi3$/, 'zi5');
+  return { word: c.word, pinyin, gloss, kind: c.kind, count: c.count, enabled: true, origin: 'auto' };
 }
 
 /** A dictionary proper noun the segmenter never saw (悟空: "Sun Wukong, the Monkey King …") keeps its own first sense. */
@@ -1285,21 +1859,44 @@ function glossFor(word: string, kind: LexiconEntry['kind'], known: TermCandidate
 }
 
 /**
- * Read what a user typed for the pinyin of `word` ("guo1 jing4", "guō jìng", "guōjìng", "Guo Jing") as numbered
- * syllables, one per code point. Returns null when it does not fit the word.
+ * Read what a user typed for the pinyin of `word` ("guo1 jing4", "guō jìng", "guōjìng", "Guo Jing", and a name as the card writes
+ * it, "Dīng Jǔrén", "Xīyóushì'èchuán") as numbered syllables, one per code point. Returns null when it does not fit the word, or
+ * when no syllable has a tone ("lu zhen": the reader is asked for the tones rather than given neutral ones).
  */
 export function parseEntryPinyin(input: string, word: string): string | null {
+  const parts = entrySyllables(input, word);
+  return parts && !(parts.length > 1 && toneless(input)) ? parts.join(' ') : null;
+}
+
+/** The numbered syllables of what was typed, one per code point of `word`, tones or not; null when they do not fit. */
+function entrySyllables(input: string, word: string): string[] | null {
   const n = [...word].length;
   const text = input.trim().replace(/[，,;；]/g, ' ').replace(/\s+/g, ' ');
   if (!text) return null;
+  const syllable = (p: string) => /^[a-zü]+[1-5]$/.test(p) && isSyllableBase(p.slice(0, -1));
   let parts = text.split(' ').map((p) => markedToNumbered(p).toLowerCase());
-  if (parts.length === 1 && n > 1) {
-    const run = splitPinyinRun(text.replace(/ /g, ''));
-    if (run) parts = run.map((p) => p.toLowerCase());
+  if (parts.length !== n || !parts.every(syllable)) {
+    // Each part may be a run of syllables: a surname and a given name written together (Dīng Jǔrén), or the whole name.
+    const runs = text.split(' ').map((p) => {
+      const one = markedToNumbered(p).toLowerCase();
+      return syllable(one) && !/['’]/.test(p) ? [one] : splitPinyinRun(p)?.map((x) => x.toLowerCase()) ?? null;
+    });
+    if (runs.every((r) => r !== null)) {
+      const flat = runs.flat() as string[];
+      if (flat.length === n) parts = flat;
+    }
   }
-  if (parts.length !== n) return null;
-  if (!parts.every((p) => /^[a-zü]+[1-5]$/.test(p))) return null;
-  return parts.join(' ');
+  return parts.length === n && parts.every(syllable) ? parts : null;
+}
+
+/** No tone mark and no tone number anywhere: "lu zhen". */
+const toneless = (text: string): boolean => !/[\u0300\u0301\u0304\u030c1-5]/.test(text.normalize('NFD'));
+
+/** What to tell the reader when parseEntryPinyin refuses `input` for `word`. */
+export function entryPinyinProblem(input: string, word: string): string {
+  const n = [...word].length;
+  if (n > 1 && toneless(input) && entrySyllables(input, word)) return 'Add the tones, as marks or numbers, like Guō Jìng or guo1 jing4.';
+  return `Type one syllable for each of the ${n} characters, like Guō Jìng or guo1 jing4.`;
 }
 
 /** Lexicon rows for the user's own words in the scope of every book. */

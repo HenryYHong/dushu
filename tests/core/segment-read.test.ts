@@ -118,7 +118,7 @@ describe('segment: verb + 着 and the words around a verb', () => {
     expect(await cut('舅舅一个人种辣椒。')).toContain('|人|种|');
     expect(await cut('那个人命苦。')).toContain('|人|命苦|');
     expect(await cut('哥哥比我大多了。')).toContain('|大|多|了|');
-    expect(await cut('他比我大四五岁。')).toContain('|大|四|');
+    expect(await cut('他比我大四五岁。')).toContain('|大|四五|岁|');
     expect(await cut('舅舅能干重活。')).toContain('|能|干|重活|');
     expect(await cut('她很能干。')).toContain('|能干|');
   });

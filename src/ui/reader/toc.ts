@@ -2,7 +2,7 @@
 // (the book record only has counts) and cached. Both lists are windowed: only the rows near the visible part exist,
 // so a book with 2,000 chapters opens as fast as one with twenty.
 // The drawer is a modal dialog: focus moves into it on open, Tab stays inside it, and focus returns to its opener on close.
-import type { AppContext, Bookmark, BookMeta, LexiconEntry, PinyinStyle } from '../../types';
+import type { AppContext, Bookmark, BookMeta, Fix, LexiconEntry, PinyinStyle } from '../../types';
 import { isDetecting } from '../../core/lexicon';
 import { capitalizePinyin } from '../../core/names';
 import { formatSyllable } from '../../core/pinyin';
@@ -30,15 +30,36 @@ export interface TocDrawer {
   dispose(): void;
 }
 
-/** What the Names & terms tab needs from the reader. */
+/** What the Corrections tab (the book's names and terms, and the reader's fixes) needs from the reader. */
 export interface TocNames {
   /** Every row of the book's lexicon, including rejected ones. */
   load(): Promise<LexiconEntry[]>;
   /** Tap on a row: open the word popup, anchored at the row. */
   onWord(entry: LexiconEntry, anchor: DOMRect): void;
-  /** The switch: accept or reject an entry. Resolves once it is saved. */
+  /** The switch of a name or term the book was found to have: accept or reject it. Resolves once it is saved. */
   onToggle(entry: LexiconEntry): Promise<void>;
+  /** The reader's fixes of the book (bookFixes.ts). Without it the tab lists the names and terms only. */
+  fixes?: TocFixes;
 }
+
+/** The reader's fixes in the Corrections tab. */
+export interface TocFixes {
+  list(): readonly Fix[];
+  /** The switch: a fix in use or not. */
+  toggle(fix: Fix): Promise<void>;
+  /** Delete, with Undo. */
+  remove(fix: Fix): Promise<void>;
+  /** Places a word is in the book. */
+  places(word: string): Promise<number>;
+  /** Export corrections: a small JSON file. */
+  exportFile(): Promise<void>;
+  /** Import corrections from such a file. */
+  importFile(file: File): Promise<void>;
+  /** The book's old spellings (底 for 的, 那 for 哪): a switch each that the book needs, none when it needs neither. */
+  spellings?(): SpellingSwitch[];
+}
+
+export interface SpellingSwitch { id: string; label: string; hint: string; on: boolean; set(on: boolean): Promise<void> }
 
 export interface TocOptions {
   /** Book text as the reader shows it (the script setting also applies to the chapter list and the names). */
@@ -60,10 +81,47 @@ type MetaWithTitles = BookMeta & { chapterTitles?: string[] };
 
 const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: 'Person', place: 'Place', term: 'Term', user: 'Yours' };
 
+type FixSeg = 'names' | 'words' | 'readings';
+const SEG_LABEL: Record<FixSeg, string> = { names: 'Names', words: 'Words', readings: 'Readings' };
+const EMPTY_SEG: Record<FixSeg, string> = {
+  names: 'No names yet. Tap a name in the text, then the pencil, and choose It\'s a name.',
+  words: 'No words fixed yet. Tap a word in the text, then the pencil, to split it or join it with a word beside it. Or select a few characters and choose Join as one word.',
+  readings: 'No readings fixed yet. Tap a word in the text, then the pencil, and choose Reading.',
+};
+
+/** One row of the Corrections tab: a name or term found in the book, or one of the reader's fixes. */
+interface FixRow {
+  key: string;
+  word: string;
+  /** Numbered pinyin, or '' (a split shows its pieces in `note`). */
+  pinyin: string;
+  kind: LexiconEntry['kind'];
+  label: string;
+  note?: string;
+  seg: FixSeg;
+  count?: number;
+  scope: string;
+  on: boolean;
+  entry?: LexiconEntry;
+  fix?: Fix;
+  gloss: string;
+  /** How its pinyin takes capitals, when not as `kind` says (an other name the reader marked is written like a name). */
+  caps?: LexiconEntry['kind'];
+}
+
+const entryOf = (r: FixRow): LexiconEntry => ({ word: r.word, pinyin: r.pinyin, gloss: r.gloss, kind: r.kind, enabled: r.on, origin: 'user' });
+/** A split as its pieces, in the script the page shows (`shown` is the word as shown): 先生 cut after 先 is 先 | 生. */
+const cutPreview = (f: Fix, shown: string) => {
+  const chars = [...shown].length === [...f.word].length ? [...shown] : [...f.word];
+  return chars.map((c, i) => (i && f.cuts?.includes(i) ? ` | ${c}` : c)).join('');
+};
+/** Pinyin as typed in a filter: no tone marks, no tone numbers, no spaces (xian finds Xiánhēng). */
+const plainPinyin = (s: string) => s.normalize('NFD').replace(/[\u0300\u0301\u0304\u030c]/g, '').replace(/[\s'’1-5]/g, '').toLowerCase();
+
 export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: number) => void, names?: TocNames, opts: TocOptions = {}): TocDrawer {
   const text = (s: string): string => (opts.text ? opts.text(s) : s);
   /** A row's pinyin as the word card writes it (Xiàhóu Dūn, Táohuā Dǎo); a term stays lowercase. */
-  const namePinyin = (entry: LexiconEntry, style: PinyinStyle): string => capitalizePinyin(
+  const namePinyin = (entry: Pick<LexiconEntry, 'word' | 'pinyin' | 'kind'>, style: PinyinStyle): string => capitalizePinyin(
     entry.pinyin.split(/\s+/).filter(Boolean).map((s) => formatSyllable(s, style)), entry.kind, entry.word,
     (s) => ctx.dictSync()?.toSimplified(s) ?? s);
   const titles: (string | undefined)[] = [...((book as MetaWithTitles).chapterTitles ?? [])];
@@ -72,6 +130,18 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   let currentIndex = 0;
   let tab: TocTab = 'chapters';
   let rows: LexiconEntry[] = [];
+  /** The Corrections tab's rows: the names and terms found in the book, and the reader's fixes. */
+  let fixRows: FixRow[] = [];
+  let seg: FixSeg = 'names';
+  /** The reader chose the part this time the drawer is open (else it opens on the first part that has rows). */
+  let segPicked = false;
+  /**
+   * Where each row stood when the list was sorted: a switch turned on or off leaves its row where it is (under the finger) until the
+   * list is opened, filtered or switched again.
+   */
+  let order: Map<string, number> | null = null;
+  /** Places in the book of the words of fixes that do not say (counted once the tab shows them). */
+  const counted = new Map<string, number>();
   /** The rows have been read at least once since the tab opened (an empty list before that says nothing). */
   let namesLoaded = false;
   let namesSeq = 0;
@@ -80,7 +150,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   let shown: number[] = [];
   /** The row (position in `shown`) that Tab reaches; arrow keys move it. */
   let rove = 0;
-  let shownNames: LexiconEntry[] = [];
+  let shownNames: FixRow[] = [];
   let roveName = 0;
 
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -89,12 +159,28 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
 
   const list = h('div.rd-toc-list', { role: 'list', 'aria-label': 'Chapters' });
   const filter = h('input.input.rd-toc-filter', { type: 'search', placeholder: 'Filter chapters', 'aria-label': 'Filter chapters' }) as HTMLInputElement;
-  const nameFilter = h('input.input.rd-toc-filter', { type: 'search', placeholder: 'Filter names and terms', 'aria-label': 'Filter names and terms' }) as HTMLInputElement;
-  const nameList = h('div.rd-toc-list.rd-names', { role: 'list', 'aria-label': 'Names and terms' });
+  const fx = names?.fixes;
+  const nameFilter = h('input.input.rd-toc-filter', { type: 'search', placeholder: fx ? 'Filter corrections' : 'Filter names and terms', 'aria-label': fx ? 'Filter corrections' : 'Filter names and terms' }) as HTMLInputElement;
+  const nameList = h('div.rd-toc-list.rd-names', { role: 'list', 'aria-label': fx ? 'Corrections' : 'Names and terms' });
+  // Corrections: Names, Words and Readings; the old spellings above them; Export and Import below.
+  const segBtns = (['names', 'words', 'readings'] as FixSeg[]).map((k) => h('button.rd-fix-seg', { type: 'button', 'aria-pressed': 'false', 'data-seg': k,
+    onclick: () => { seg = k; segPicked = true; order = null; roveName = 0; paintNames(); } }, SEG_LABEL[k]) as HTMLButtonElement);
+  const segBar = fx ? h('div.rd-fix-segs', { role: 'group', 'aria-label': 'Kinds of corrections' }, ...segBtns) : null;
+  const spellBox = h('div.rd-fix-spell', { hidden: true });
+  const fileIn = h('input', { type: 'file', accept: '.json,application/json', hidden: true, 'aria-hidden': 'true', tabindex: '-1' }) as HTMLInputElement;
+  fileIn.addEventListener('change', () => {
+    const f = fileIn.files?.[0];
+    fileIn.value = '';
+    if (f && fx) void fx.importFile(f).then(() => loadNames());
+  });
+  const fixFoot = fx ? h('div.rd-fix-foot', null,
+    h('button.btn.btn-sm.rd-fix-file', { type: 'button', onclick: () => void fx.exportFile() }, icon('download'), 'Export corrections'),
+    h('button.btn.btn-sm.rd-fix-file', { type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Import corrections'),
+    fileIn) : null;
   const status = h('div.rd-toc-status', { role: 'status' });
   const tabChapters = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('chapters') }, 'Chapters') as HTMLButtonElement;
   const tabWords = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('words') }, 'Words') as HTMLButtonElement;
-  const tabNames = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('names') }, 'Names') as HTMLButtonElement;
+  const tabNames = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('names') }, fx ? 'Corrections' : 'Names') as HTMLButtonElement;
   const marks = opts.bookmarks;
   const tabMarks = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('bookmarks') }, 'Bookmarks') as HTMLButtonElement;
   const markList = h('div.rd-toc-list.rd-marks', { role: 'list', 'aria-label': 'Bookmarks' });
@@ -113,12 +199,15 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     tabs,
     book.chapterCount > 12 ? filter : null,
     names ? nameFilter : null,
+    fx ? spellBox : null,
+    segBar,
     words?.head ?? null,
     status,
     list,
     words?.list ?? null,
     marks ? markList : null,
-    names ? nameList : null);
+    names ? nameList : null,
+    fixFoot);
   const backdrop = h('div.rd-backdrop', { onclick: () => close() });
   const root = h('div.rd-toc-root', { hidden: true }, backdrop, panel);
   document.body.appendChild(root);
@@ -151,49 +240,132 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (!shown.length) list.appendChild(h('div.rd-toc-none', null, 'No chapters match.'));
   }
 
-  // ------------------------------------------------------------ names tab
+  // ------------------------------------------------------- corrections tab
+  // The names and terms found in the book and the reader's fixes, one list in three parts. A found name's switch says whether it is
+  // used ("Not a word" when off); a fix's switch turns it on or off, and Delete takes it away (with Undo).
   function nameRow(pos: number): HTMLElement {
-    const entry = shownNames[pos];
+    const r = shownNames[pos];
     const style = ctx.settings.get().pinyinStyle;
-    const word = text(entry.word);
-    const on = h('input.rd-sw-input', { type: 'checkbox', role: 'switch', 'aria-label': `Use ${word} as a word` }) as HTMLInputElement;
-    on.checked = entry.enabled;
+    const word = text(r.word);
+    const on = h('input.rd-sw-input', { type: 'checkbox', role: 'switch', 'aria-label': r.fix ? `Use your correction of ${word}` : `Use ${word} as a word` }) as HTMLInputElement;
+    on.checked = r.on;
     on.addEventListener('change', async () => {
       on.disabled = true;
-      try { await names!.onToggle(entry); } finally { on.disabled = false; }
+      try { if (r.fix && fx) await fx.toggle(r.fix); else if (r.entry) await names!.onToggle(r.entry); } finally { on.disabled = false; }
     });
+    const count = r.count ?? (r.fix && !r.fix.at ? counted.get(r.word) : undefined);
     const main = h('button.rd-name-main', {
       type: 'button',
       tabindex: pos === roveName ? '0' : '-1',
-      onclick: (e: Event) => names!.onWord(entry, (e.currentTarget as HTMLElement).getBoundingClientRect()),
+      onclick: (e: Event) => names!.onWord(r.entry ?? entryOf(r), (e.currentTarget as HTMLElement).getBoundingClientRect()),
     },
     h('span.rd-name-word.zh', { lang: lang().tag }, word),
-    h('span.rd-name-py', null, namePinyin(entry, style)),
+    h('span.rd-name-py', null, r.pinyin ? namePinyin({ word: r.word, pinyin: r.pinyin, kind: r.caps ?? r.kind }, style) : r.note ?? ''),
     h('span.rd-name-meta', null,
-      h('span.rd-name-kind', { 'data-kind': entry.kind }, KIND_LABEL[entry.kind]),
-      entry.count ? h('span.rd-name-count', null, `${entry.count}×`) : null));
-    return h('div.rd-toc-row.rd-name', { role: 'listitem', 'data-off': entry.enabled ? null : '' }, main,
-      h('label.rd-name-switch', { title: entry.enabled ? 'Treated as a word. Turn off if this is not one.' : 'Not treated as a word' }, on,
-        h('span.rd-sw-track', null, h('span.rd-sw-thumb'))));
+      h('span.rd-name-kind', { 'data-kind': r.kind }, r.label),
+      count ? h('span.rd-name-count', null, `${count}×`) : null,
+      fx ? h('span.rd-name-scope', null, r.scope) : null));
+    return h('div.rd-toc-row.rd-name', { role: 'listitem', 'data-off': r.on ? null : '' }, main,
+      h('label.rd-name-switch', { title: r.fix ? (r.on ? 'In use. Turn off to read the page without it.' : 'Not in use') : r.on ? 'Treated as a word. Turn off if this is not one.' : 'Not treated as a word' }, on,
+        h('span.rd-sw-track', null, h('span.rd-sw-thumb'))),
+      fx ? (r.fix
+        ? h('button.icon-btn.rd-fix-del', { type: 'button', 'aria-label': `Delete your correction of ${word}`, title: 'Delete', onclick: () => void fx.remove(r.fix!) }, icon('trash'))
+        : h('span.rd-fix-del-none', { 'aria-hidden': 'true' })) : null);
   }
   const nameWindow = windowed(nameList, nameRow, () => roveName);
+
+  /** The rows of the tab: what was found in the book (unless a fix of the reader's says what the word is), then the fixes. */
+  function buildRows(): void {
+    const fixes = fx?.list() ?? [];
+    const everywhere = (f: Fix) => !f.at && f.book !== '*';
+    const unword = new Set(fixes.filter((f) => f.kind === 'unword' && f.on && everywhere(f)).map((f) => f.word));
+    const told = new Set(fixes.filter((f) => f.kind === 'word' && everywhere(f)).map((f) => f.word));
+    const found = new Set(rows.map((e) => e.word));
+    const out: FixRow[] = [];
+    for (const e of rows) {
+      if (told.has(e.word)) continue;
+      out.push({ key: `e:${e.word}`, word: e.word, pinyin: e.pinyin, kind: e.kind, label: KIND_LABEL[e.kind], seg: e.kind === 'name' || e.kind === 'place' ? 'names' : 'words',
+        count: e.count, scope: e.origin === 'user' ? 'Yours' : 'Found', on: e.enabled && !unword.has(e.word), entry: e, gloss: e.gloss });
+    }
+    for (const f of fixes) {
+      if (f.kind === 'spelling' || (f.kind === 'unword' && found.has(f.word) && everywhere(f))) continue;
+      const role = f.role ?? 'user';
+      const kind: LexiconEntry['kind'] = f.kind === 'word' ? role : 'term';
+      const scope = f.book === '*' ? 'All books' : f.at ? `Here, chapter ${f.at.chapter + 1}` : 'Everywhere';
+      const label = f.kind === 'word' ? (role === 'user' ? 'Joined' : role === 'term' ? 'Other name' : KIND_LABEL[role]) : f.kind === 'cut' ? 'Split' : f.kind === 'reading' ? 'Reading' : 'Not a word';
+      const note = f.kind === 'cut' ? cutPreview(f, text(f.word)) : f.kind === 'unword' ? 'Not read as one word' : undefined;
+      // A person, a place or an other name the reader marked is under Names, its pinyin with capitals (Xīyóushì'èchuán).
+      const named = f.kind === 'word' && role !== 'user';
+      out.push({ key: `f:${f.id}`, word: f.word, pinyin: f.kind === 'word' || f.kind === 'reading' ? f.pinyin ?? '' : '', kind, label, note,
+        seg: f.kind === 'reading' ? 'readings' : named ? 'names' : 'words',
+        count: f.at ? 1 : f.n, scope, on: f.on, fix: f, gloss: f.gloss ?? '', ...(named && role === 'term' ? { caps: 'name' as const } : {}) });
+    }
+    fixRows = out;
+    // Opened on a part with nothing in it while another has rows: the first part with rows, until the reader picks one.
+    if (fx && !segPicked && out.length && !out.some((r) => r.seg === seg)) {
+      seg = (['names', 'words', 'readings'] as FixSeg[]).find((k) => out.some((r) => r.seg === k)) ?? seg;
+      order = null;
+    }
+  }
 
   function paintNames() {
     const q = nameFilter.value.trim().toLowerCase();
     const style = ctx.settings.get().pinyinStyle;
-    shownNames = rows
-      .filter((r) => !q || r.word.includes(q) || text(r.word).includes(q) || namePinyin(r, style).toLowerCase().includes(q) || r.gloss.toLowerCase().includes(q))
-      .sort((a, b) => Number(b.enabled) - Number(a.enabled) || (b.count ?? 0) - (a.count ?? 0) || a.word.localeCompare(b.word));
+    if (fx) {
+      const n = (k: FixSeg) => fixRows.filter((r) => r.seg === k).length;
+      segBtns.forEach((b) => {
+        const k = b.dataset.seg as FixSeg;
+        b.setAttribute('aria-pressed', String(k === seg));
+        b.textContent = `${SEG_LABEL[k]} ${n(k)}`;
+      });
+    }
+    const pq = plainPinyin(q);
+    const sortBy = (a: FixRow, b: FixRow) => Number(b.on) - Number(a.on) || Number(!!b.fix) - Number(!!a.fix) || (b.count ?? 0) - (a.count ?? 0) || a.word.localeCompare(b.word);
+    shownNames = fixRows
+      .filter((r) => !fx || r.seg === seg)
+      .filter((r) => !q || r.word.includes(q) || text(r.word).includes(q) || r.gloss.toLowerCase().includes(q)
+        || (!!r.pinyin && (namePinyin({ word: r.word, pinyin: r.pinyin, kind: r.caps ?? r.kind }, style).toLowerCase().includes(q)
+          || (!!pq && plainPinyin(namePinyin({ word: r.word, pinyin: r.pinyin, kind: r.kind }, 'marks')).includes(pq)))))
+      .sort((a, b) => (order ? (order.get(a.key) ?? Infinity) - (order.get(b.key) ?? Infinity) : 0) || sortBy(a, b));
+    order ??= new Map();
+    for (const r of shownNames) if (!order.has(r.key)) order.set(r.key, order.size);
     roveName = Math.max(0, Math.min(roveName, shownNames.length - 1));
     nameWindow.set(shownNames.length, nameRowH);
     nameList.querySelector('.rd-toc-none')?.remove();
     if (!shownNames.length) {
       nameList.appendChild(h('div.rd-toc-none', null,
-        rows.length ? 'Nothing matches.'
+        fixRows.length && !fx ? 'Nothing matches.'
           : !namesLoaded ? 'Loading names and terms…'
-            : isDetecting(book.id) ? 'No names or terms found yet. Names of people and places in this book appear here once the book has been scanned.'
-              : 'No names or terms were found in this book.'));
+            : fx && fixRows.length ? (q ? 'Nothing matches.' : EMPTY_SEG[seg])
+              : isDetecting(book.id) ? 'No names or terms found yet. Names of people and places in this book appear here once the book has been scanned.'
+                : fx ? EMPTY_SEG[seg] : 'No names or terms were found in this book.'));
     }
+    paintSpellings();
+    // The places of a fix's word, counted in the book's text once (they show as the rows come back).
+    if (fx) {
+      const need = [...new Set(shownNames.filter((r) => r.fix && !r.fix.at && r.count === undefined && !counted.has(r.word)).map((r) => r.word))].slice(0, 40);
+      if (need.length) {
+        void Promise.all(need.map(async (w) => { counted.set(w, await fx.places(w).catch(() => 0)); })).then(() => { if (tab === 'names' && !root.hidden) nameWindow.repaint(); });
+      }
+    }
+  }
+
+  /** The old spellings switches, when the book needs them (core/bookStyle.ts). */
+  function paintSpellings(): void {
+    const list = fx?.spellings?.() ?? [];
+    spellBox.hidden = !list.length;
+    if (!list.length) { spellBox.replaceChildren(); return; }
+    spellBox.replaceChildren(h('div.rd-fix-spell-title', null, 'Old spellings'), ...list.map((sw) => {
+      const input = h('input.rd-sw-input', { type: 'checkbox', role: 'switch', 'aria-label': sw.label }) as HTMLInputElement;
+      input.checked = sw.on;
+      input.addEventListener('change', async () => {
+        input.disabled = true;
+        try { await sw.set(input.checked); } finally { input.disabled = false; }
+      });
+      return h('label.rd-fix-spell-row', null,
+        h('span.rd-fix-spell-text', null, h('span.rd-fix-spell-label.zh', null, sw.label), h('span.rd-fix-spell-hint', null, sw.hint)),
+        h('span.rd-name-switch', null, input, h('span.rd-sw-track', null, h('span.rd-sw-thumb'))));
+    }));
   }
 
   async function loadNames() {
@@ -205,11 +377,13 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       rows = got;
     } catch { rows = []; }
     namesLoaded = true;
+    buildRows();
     if (tab === 'names' && !root.hidden) paintNames();
   }
 
   function setTab(next: TocTab) {
     tab = next === 'names' && names ? 'names' : next === 'words' && words ? 'words' : next === 'bookmarks' && marks ? 'bookmarks' : 'chapters';
+    order = null;
     const isNames = tab === 'names';
     const isWords = tab === 'words';
     const isMarks = tab === 'bookmarks';
@@ -224,8 +398,11 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     status.hidden = !isChapters;
     nameList.hidden = !isNames;
     nameFilter.hidden = !isNames;
+    if (segBar) segBar.hidden = !isNames;
+    if (fixFoot) fixFoot.hidden = !isNames;
+    if (!isNames) spellBox.hidden = true;
     if (words) { words.head.hidden = !isWords; words.list.hidden = !isWords; words.setVisible(isWords && !root.hidden); }
-    panel.setAttribute('aria-label', isNames ? 'Names and terms' : isWords ? 'Words in this chapter' : isMarks ? 'Bookmarks' : 'Chapters');
+    panel.setAttribute('aria-label', isNames ? (fx ? 'Corrections' : 'Names and terms') : isWords ? 'Words in this chapter' : isMarks ? 'Bookmarks' : 'Chapters');
     if (isMarks) void paintMarks();
     else if (isNames) { paintNames(); void loadNames(); }
     else if (isWords) words!.show(currentIndex);
@@ -331,6 +508,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     root.hidden = false;
     filter.value = '';
     nameFilter.value = '';
+    segPicked = false;
     rove = current;
     setTab(which);
     window.addEventListener('keydown', onKey, true);
@@ -354,7 +532,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   }
 
   filter.addEventListener('input', () => { paint(); });
-  nameFilter.addEventListener('input', paintNames);
+  nameFilter.addEventListener('input', () => { order = null; paintNames(); });
   setTab('chapters');
 
   return {
@@ -362,7 +540,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     close,
     isOpen: () => !root.hidden,
     setCurrent(i) { currentIndex = i; },
-    refreshNames() { if (!root.hidden && tab === 'names') void loadNames(); else { rows = []; namesLoaded = false; } },
+    refreshNames() { counted.clear(); if (!root.hidden && tab === 'names') void loadNames(); else { rows = []; fixRows = []; namesLoaded = false; } },
     refreshWords() { words?.reload(); },
     refreshBookmarks() { if (!root.hidden && tab === 'bookmarks') void paintMarks(); },
     refreshText() {

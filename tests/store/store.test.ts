@@ -390,7 +390,7 @@ describe('robustness', () => {
   it('a newer on-disk version is a clear error, not silent data loss', async () => {
     const nm = dbName();
     await new Promise<void>((res, rej) => {
-      const r = indexedDB.open(nm, 5);
+      const r = indexedDB.open(nm, DB_VERSION + 1);
       r.onsuccess = () => { r.result.close(); res(); };
       r.onerror = () => rej(r.error);
     });

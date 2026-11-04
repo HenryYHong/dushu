@@ -320,3 +320,67 @@
 .pp-pos { font-size: 12px; font-style: italic; color: var(--text-3); }
 .pp-sense-note { font-size: 12.5px; color: var(--text-3); }
 .pp-lang-part { font-size: 17px; font-family: var(--font-book, inherit); }
+
+/* ---------- the Fix sheet and the phrase card's fixes (fixView.ts) ---------- */
+.pp-fix-btn[aria-pressed='true'] { color: var(--text); }
+.pp-fix-word { font-size: 32px; }
+.pp-head .pp-kind { align-self: center; }
+.pp-fix { gap: 0; margin-top: 10px; }
+.pp-fix-list { display: flex; flex-direction: column; }
+.pp-fix-row {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 6px; margin: 0 -6px;
+  border: 0; border-top: 1px solid var(--hairline); border-radius: 0; background: transparent; color: var(--text);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.pp-fix-list > .pp-fix-row:first-child { border-top: 0; }
+@media (hover: hover) { .pp-fix-row:hover { background: var(--wash); } }
+.pp-fix-row-label { flex: none; font-size: 15px; font-weight: 600; }
+.pp-fix-row-preview { flex: 1 1 auto; min-width: 0; text-align: right; color: var(--text-3); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-fix-row-preview.zh { font-size: 18px; }
+.pp-fix-row .icon { flex: none; width: 16px; height: 16px; color: var(--text-3); transition: transform var(--dur-fast) var(--ease); }
+.pp-fix-row[aria-expanded='true'] .icon { transform: rotate(180deg); }
+.pp-fix-panel { padding: 2px 0 16px; }
+.pp-fix-body { display: flex; flex-direction: column; gap: 12px; }
+.pp-fix-help { margin: 0; font-size: 13px; color: var(--text-2); }
+/* Split: the characters large, with a gap to tap between each two. */
+.pp-fix-strip { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; padding: 4px 0; }
+.pp-fix-ch { font-size: 36px; line-height: 1.2; }
+.pp-fix-gap { position: relative; flex: none; width: 44px; height: 56px; padding: 0; border: 0; border-radius: var(--radius-s); background: transparent; cursor: pointer; }
+@media (hover: hover) { .pp-fix-gap:hover { background: var(--wash); } }
+.pp-fix-gap-line { position: absolute; left: 50%; top: 12px; bottom: 12px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--wash-3); }
+.pp-fix-gap[aria-pressed='true'] .pp-fix-gap-line { top: 4px; bottom: 4px; width: 3px; margin-left: -1.5px; background: var(--accent); }
+.pp-fix-pieces { display: flex; flex-direction: column; gap: 4px; }
+.pp-fix-piece { display: grid; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 4px 12px; padding: 7px 10px; border-radius: var(--radius-s); background: var(--wash); }
+.pp-fix-piece-word { font-size: 20px; }
+.pp-fix-piece .pp-py { font-size: 15px; }
+.pp-fix-piece-gloss { min-width: 0; font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Join: the joined word, its reading and meaning. */
+.pp-fix-joined { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.pp-fix-joined-py .pp-py { font-size: 17px; }
+.pp-fix-gloss { margin: 0; font: 400 15px/1.45 var(--font-book); color: var(--text-2); }
+/* Choices: what a word is, a character's reading. */
+.pp-fix-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pp-fix-chip {
+  min-width: 44px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: var(--wash);
+  color: var(--text); font: inherit; font-size: 14px; font-weight: 560; cursor: pointer;
+}
+@media (hover: hover) { .pp-fix-chip:hover { background: var(--wash-2); } }
+.pp-fix-chip[aria-checked='true'] { background: var(--text); color: var(--elev); }
+.pp-fix-chip-py { font-family: var(--font-pinyin); font-size: 16px; font-weight: 500; }
+.pp-fix-reads { display: flex; flex-direction: column; gap: 8px; }
+.pp-fix-read { display: flex; align-items: center; gap: 12px; }
+.pp-fix-read .pp-fix-ch { flex: none; width: 1.2em; font-size: 30px; text-align: center; }
+/* Here only, everywhere: big enough for a finger. */
+.pp-fix-scope { display: flex; flex-wrap: wrap; gap: 8px; }
+.pp-fix-go { flex: 1 1 auto; min-height: 44px; height: auto; padding: 8px 14px; white-space: normal; }
+.pp-fix-scope .pp-fix-go:last-of-type:not(.btn-ghost) { background: var(--accent-fill); color: var(--accent-fill-text); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-fill) 82%, #000); }
+.pp-fix-have { padding-bottom: 8px; }
+.pp-fix-have-row { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.pp-fix-have-row .zh { font-size: 18px; }
+.pp-fix-have-row .pp-muted { flex: 1; }
+.pp-fix-undo { min-height: 44px; }
+.pp-fix-phrase-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.pp-fix-open { min-height: 44px; }
+.pp-fix-phrase .pp-lex-form { padding: 10px 12px; border-radius: var(--radius-s); background: var(--wash); }
+/* With the pencil in the header a phone has room for two characters at full size: three are set a little smaller, not broken. */
+@media (max-width: 480px) { .pp-word.pp-word-3 { font-size: 32px; } .pp-word.pp-word-4 { font-size: 20px; letter-spacing: 0; } }

@@ -645,14 +645,18 @@ describe('book lexicon in the reader', () => {
     expect(rows[1]).toContain('Place');
     const toggle = document.querySelector<HTMLInputElement>('.rd-name .rd-sw-input')!;
     expect(toggle.checked).toBe(true);
+    segmentSpy.mockClear();
     toggle.checked = false;
     toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    // Switched off is a fix of the book's ("Not a word"), which syncs; what was found stays as found.
     await vi.waitFor(async () => {
-      const rows2 = await ctx.store.lexicon.get(meta.id);
-      expect(rows2.find((r) => r.word === '郭靖')).toMatchObject({ enabled: false, origin: 'user' });
+      expect(await ctx.store.fixes.list()).toEqual([expect.objectContaining({ kind: 'unword', word: '郭靖', bookId: meta.id })]);
     });
-    // The reader reloaded its lexicon without the rejected word.
-    await vi.waitFor(() => expect(loadSpy.mock.calls.length).toBeGreaterThan(1));
+    expect((await ctx.store.lexicon.get(meta.id)).find((r) => r.word === '郭靖')).toMatchObject({ enabled: true, origin: 'auto' });
+    // The page is cut again without the rejected word, and the row stays in the list, switched off.
+    await vi.waitFor(() => expect(segmentSpy.mock.calls.some((c) => (c[2] as Lexicon | undefined)?.has?.('郭靖') === false)).toBe(true));
+    const rowOf = (w: string) => [...document.querySelectorAll('.rd-name')].find((r) => r.querySelector('.rd-name-word')?.textContent === w);
+    await vi.waitFor(() => expect(rowOf('郭靖')?.querySelector<HTMLInputElement>('.rd-sw-input')?.checked).toBe(false));
   });
 
   it('opens the word popup from a row of the names tab', async () => {
