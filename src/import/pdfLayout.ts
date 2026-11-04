@@ -5,6 +5,7 @@
 // "along" the line of text and "cross" from one line to the next.
 import { cpLen, detectHeadingLine } from './chapters';
 import { isCjk } from './han';
+import { mapPlainRadicals } from './radicals';
 
 export interface PdfItem {
   str: string;
@@ -44,6 +45,45 @@ interface PageParagraphs {
 
 const TERMINAL = /[。！？!?…”’」』）)；;.]$/;
 const PAGE_NUMBER = /^[\s\-—–·.]*(?:第\s*)?\d{1,4}(?:\s*页)?[\s\-—–·.]*$/;
+
+/** Vertical presentation forms (︐ ︒ ﹃ …) as the marks they stand for: a PDF set vertically names its glyphs by them. */
+const VERTICAL_FORMS: Record<string, string> = {
+  '︐': '，', '︑': '、', '︒': '。', '︓': '：', '︔': '；', '︕': '！', '︖': '？', '︗': '〖', '︘': '〗', '︙': '…', '︰': '‥', '︱': '—',
+  '︲': '–', '︵': '（', '︶': '）', '︷': '｛', '︸': '｝', '︹': '〔', '︺': '〕', '︻': '【', '︼': '】', '︽': '《', '︾': '》', '︿': '〈',
+  '﹀': '〉', '﹁': '「', '﹂': '」', '﹃': '『', '﹄': '』', '﹇': '［', '﹈': '］',
+};
+const VERTICAL_FORM = /[\ufe10-\ufe19\ufe30-\ufe48]/g;
+
+/**
+ * The characters of a PDF text item as they are meant: vertical punctuation forms as the marks, and radicals that a Mac font
+ * gave to common characters (⼀ for 一) as those characters (the two-way ones are left to the importer's last pass).
+ */
+export function pdfCharacters(s: string): string {
+  return mapPlainRadicals(s.replace(VERTICAL_FORM, (c) => VERTICAL_FORMS[c] ?? c));
+}
+
+/**
+ * A justified line of Chinese: the PDF writer set the room it added between characters as spaces, far narrower than a real
+ * space. Such spaces inside an item of Chinese text are dropped; a real one (a heading's "第一章 序") is as wide as a character.
+ */
+function withoutJustifySpaces(str: string, width: number, size: number): string {
+  if (!str.includes(' ') || !size) return str;
+  let spaces = 0;
+  let cjk = 0;
+  // Ems the characters take: a Chinese character or mark (… — “ ”) one, a Latin letter or digit about half.
+  let ems = 0;
+  for (const ch of str) {
+    const cp = ch.codePointAt(0)!;
+    if (ch === ' ') spaces++;
+    else if (isCjk(cp)) {
+      cjk++;
+      ems++;
+    } else ems += cp === 0x2026 || cp === 0x2014 || cp === 0x2015 || (cp >= 0x2018 && cp <= 0x201d) ? 1 : 0.5;
+  }
+  if (!cjk || !spaces || (width - ems * size) / spaces >= size * 0.5) return str;
+  // Spaces between two Latin words stay ("Ah Q"); the rest were the justification.
+  return str.replace(/ +/g, (m, at: number) => (/[A-Za-z0-9]/.test(str[at - 1] ?? '') && /[A-Za-z0-9]/.test(str[at + m.length] ?? '') ? ' ' : ''));
+}
 
 const firstCp = (s: string): number => s.codePointAt(0)!;
 const lastCp = (s: string): number => Array.from(s).pop()!.codePointAt(0)!;
@@ -102,7 +142,7 @@ function buildLines(items: PdfItem[], vertical: boolean, page: { width: number; 
     .map((it) => {
       const along0 = vertical ? -it.y : it.x;
       return {
-        str: it.str,
+        str: withoutJustifySpaces(it.str, it.w, it.size),
         a0: along0,
         a1: along0 + (it.w || it.size * cpLen(it.str)),
         c: vertical ? -it.x : -it.y,
@@ -189,8 +229,17 @@ function layoutPage(page: PdfPageItems, headerFooter: Set<string>): PageParagrap
     return paragraphsFromLines(lines);
   });
   if (all.length === 1) return all[0];
+  // A paragraph that runs from the foot of one column to the head of the next is one paragraph, as across a page break.
+  const paras: string[] = [];
+  all.forEach((col, k) => {
+    col.paras.forEach((p, i) => {
+      const prev = all[k - 1];
+      if (i === 0 && prev && paras.length && !col.firstStartsNew && !prev.lastIsShort && !TERMINAL.test(paras[paras.length - 1])) paras[paras.length - 1] += p;
+      else paras.push(p);
+    });
+  });
   return {
-    paras: all.flatMap((a) => a.paras),
+    paras,
     firstStartsNew: all[0].firstStartsNew,
     lastIsShort: all[all.length - 1].lastIsShort,
   };

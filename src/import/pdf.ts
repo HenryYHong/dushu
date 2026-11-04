@@ -4,9 +4,10 @@ import { chaptersFromBlocks, paragraphsToBlocks } from './chapters';
 import { ImportError, pdfStartFailure } from './errors';
 import { countHan } from './han';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
-import { pagesToParagraphs, type PdfItem, type PdfPageItems } from './pdfLayout';
+import { pagesToParagraphs, pdfCharacters, type PdfItem, type PdfPageItems } from './pdfLayout';
 
 type PdfJs = typeof import('pdfjs-dist');
+type PDFDocumentProxy = import('pdfjs-dist').PDFDocumentProxy;
 
 /** What importPdf needs from pdf.js: the module, and optionally a reader for its predefined CMaps. */
 export interface PdfRuntime {
@@ -62,6 +63,28 @@ function usableMetadata(raw: unknown): string {
   return s;
 }
 
+/** Text items under this many characters leave a page "sparse": a picture with at most a caption or a stamp on it. */
+const SPARSE_PAGE = 50;
+
+/**
+ * Whether most of the sparse pages of a PDF are pictures: up to five of them, spread through the file, are checked for an
+ * image (reading a page's drawing operations costs more than its text, so not every page is checked).
+ */
+async function mostlyImages(pdf: PDFDocumentProxy, pageChars: number[], ops: PdfJs['OPS']): Promise<boolean> {
+  const sparse = pageChars.flatMap((n, i) => (n < SPARSE_PAGE ? [i + 1] : []));
+  if (sparse.length < pageChars.length / 2) return false;
+  const sample = Array.from(new Set(Array.from({ length: Math.min(5, sparse.length) }, (_, k) => sparse[Math.floor((k * sparse.length) / Math.min(5, sparse.length))])));
+  const image = new Set<number>([ops.paintImageXObject, ops.paintInlineImageXObject, ops.paintImageMaskXObject, ops.paintImageXObjectRepeat, ops.paintInlineImageXObjectGroup]);
+  let pictures = 0;
+  for (const n of sample) {
+    const page = await pdf.getPage(n);
+    const list = await page.getOperatorList();
+    if (list.fnArray.some((fn) => image.has(fn))) pictures++;
+    page.cleanup();
+  }
+  return pictures * 2 > sample.length;
+}
+
 export async function importPdf(
   data: Uint8Array,
   sourceName: string,
@@ -88,6 +111,7 @@ export async function importPdf(
 
   try {
     const pages: PdfPageItems[] = [];
+    const pageChars: number[] = [];
     let chars = 0;
     for (let n = 1; n <= pdf.numPages; n++) {
       const page = await pdf.getPage(n);
@@ -99,7 +123,7 @@ export async function importPdf(
         const t = raw.transform as number[];
         const vertical = !!content.styles[raw.fontName]?.vertical;
         items.push({
-          str: raw.str,
+          str: pdfCharacters(raw.str),
           x: t[4],
           y: t[5],
           w: vertical ? raw.height : raw.width,
@@ -109,6 +133,7 @@ export async function importPdf(
         chars += raw.str.replace(/\s/g, '').length;
       }
       pages.push({ width: x1 - x0, height: y1 - y0, items });
+      pageChars.push(items.reduce((k, it) => k + it.str.replace(/\s/g, '').length, 0));
       page.cleanup();
       if (n === 10 && chars === 0) throw new ImportError(SCANNED_MESSAGE);
       onProgress?.(0.9 * (n / pdf.numPages));
@@ -117,6 +142,9 @@ export async function importPdf(
     if (chars < 20) throw new ImportError(SCANNED_MESSAGE);
 
     const paragraphs = pagesToParagraphs(pages);
+    // Scanned pages with a line of real text on each (a library's watermark, a page number): once the lines repeated on every
+    // page are gone, next to nothing is left, and the pages are pictures.
+    if (countHan(paragraphs.join('')) < 10 * pdf.numPages && (await mostlyImages(pdf, pageChars, pdfjs.OPS))) throw new ImportError(SCANNED_MESSAGE);
     const meta = await pdf.getMetadata().catch(() => null);
     const info = (meta?.info ?? {}) as Record<string, unknown>;
     const fromFile = parseFilename(sourceName);

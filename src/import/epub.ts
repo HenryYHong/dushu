@@ -2,13 +2,13 @@
 import type { Block, Chapter, ImportedBook } from '../types';
 import { AssetStore, dropAssets } from './assets';
 import { extractBlocks } from './blocks';
-import { finalizeChapters, stripGutenberg } from './chapters';
-import { decodeText, sniffMarkupCharset } from './encoding';
+import { chaptersByTextHeadings, finalizeChapters, stripGutenberg } from './chapters';
+import { decodeText, sniffMarkupCharset, unreadableMessage, withHongKongCharacters } from './encoding';
 import { ImportError } from './errors';
 import { Archive, ZIP_LIMITS } from './zip';
 import { attr, byLocal, childrenByLocal, dirname, fragmentOf, localName, parseXhtml, parseXmlLoose, plainText, resolvePath } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
-import { chaptersFromSpine, dropTitlePage, type SpineDoc, type TocRef } from './spine';
+import { chaptersFromSpine, dropTitlePage, firstHeading, type SpineDoc, type TocRef } from './spine';
 
 interface ManifestItem {
   id: string;
@@ -47,6 +47,26 @@ function assertNotDrm(archive: Archive): void {
     const fontFile = /\.(?:otf|ttf|ttc|woff2?)$/i.test(uri);
     if (!FONT_ALGORITHMS.includes(algorithm) && !fontFile) throw new ImportError(DRM_MESSAGE);
   }
+}
+
+/**
+ * Whether a content file of the book is ciphertext, not markup: it does not open with "<" (after a byte-order mark and
+ * spaces), and its first bytes hold control characters that no text has (random bytes are about one in nine of them).
+ */
+export function looksEncrypted(bytes: Uint8Array): boolean {
+  if (bytes.length < 64) return false;
+  let i = 0;
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) i = 3;
+  else if ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff)) return false;
+  while (i < bytes.length && (bytes[i] === 0x20 || bytes[i] === 0x09 || bytes[i] === 0x0a || bytes[i] === 0x0d || bytes[i] === 0)) i++;
+  if (bytes[i] === 0x3c) return false;
+  const n = Math.min(bytes.length, 4096);
+  let control = 0;
+  for (let k = 0; k < n; k++) {
+    const b = bytes[k];
+    if (b < 0x20 && b !== 0x09 && b !== 0x0a && b !== 0x0d) control++;
+  }
+  return control > n * 0.03;
 }
 
 function findOpf(archive: Archive): string {
@@ -191,6 +211,9 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
 
   // ---- content
   const docs: SpineDoc[] = [];
+  const unreadable = { n: 0 };
+  let textDocs = 0;
+  let encrypted = 0;
   let lastYield = Date.now();
   for (let i = 0; i < spine.length; i++) {
     const item = spine[i];
@@ -206,7 +229,15 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
       if (asset) doc.blocks.push({ t: 'img', asset });
       continue;
     }
-    const markup = parseXhtml(decodeMarkup(bytes));
+    textDocs++;
+    if (looksEncrypted(bytes)) {
+      encrypted++;
+      doc.skipped = true;
+      continue;
+    }
+    const decoded = await withHongKongCharacters(decodeText(bytes, sniffMarkupCharset(bytes)));
+    unreadable.n += decoded.unreadable ?? 0;
+    const markup = parseXhtml(decoded.text);
     const extracted = extractBlocks(markup, {
       resolveImage: (src) => {
         if (/^data:/i.test(src)) return store.addDataUri(src);
@@ -227,6 +258,9 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
     }
   }
 
+  // A store's book with its encryption.xml stripped (a half-done DRM removal): the chapters are still ciphertext.
+  if (encrypted && encrypted * 2 >= textDocs) throw new ImportError(DRM_MESSAGE);
+
   // ---- chapters
   const indexByPath = new Map<string, number>();
   docs.forEach((d, i) => {
@@ -237,7 +271,14 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
     const doc = indexByPath.get(e.path);
     if (doc !== undefined) refs.push({ doc, frag: e.frag, title: e.title });
   }
-  const chapters = chaptersFromSpine(docs, refs);
+  let chapters = chaptersFromSpine(docs, refs);
+  // The whole book in one file under one contents entry (a converter's EPUB, the entry often "正文"): its chapters are found in
+  // its text, as in a TXT file.
+  const content = docs.filter((d) => !d.skipped && d.blocks.some((b) => b.t === 'p' || b.t === 'quote'));
+  if (content.length === 1 && refs.length <= 1) {
+    const byText = chaptersByTextHeadings(content[0].blocks, refs[0]?.title ?? '');
+    if (byText) chapters = docs.flatMap((d) => (d === content[0] ? byText : !d.skipped && d.blocks.length ? [{ title: firstHeading(d.blocks), blocks: d.blocks }] : []));
+  }
 
   // ---- metadata
   const dc = (name: string) => byLocal(opf, name).filter((el) => localName(el.parentElement ?? el) === 'metadata');
@@ -272,6 +313,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
     assets: store.assets,
     cover: kept.cover,
     sourceName,
+    ...(unreadable.n ? { warnings: [unreadableMessage(unreadable.n)] } : {}),
   };
 }
 

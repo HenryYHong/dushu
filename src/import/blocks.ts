@@ -3,7 +3,7 @@ import type { Block } from '../types';
 import { attr, localName } from './markup';
 import { spaceBetweenIsNoise } from './han';
 import {
-  detectLineWrapWidth, detectWrapWidth, isRuleLine, isSiteJunk, joinWrapped, linesToParagraphs, splitLongParagraph, trimLine, wrapsOn,
+  detectLineWrapWidth, detectWrapWidth, isRuleLine, isSiteJunk, joinWrapped, linesToParagraphs, splitLongParagraph, storyText, trimLine, wrapsOn,
 } from './chapters';
 
 export interface ExtractOptions {
@@ -322,9 +322,13 @@ function expand(items: Item[]): { blocks: Block[]; starts: number[] } {
         }
         lines = [text];
       }
-      const paras = width && lines.length > 1 ? linesToParagraphs(lines, width) : lines;
-      for (const text of paras) {
-        if (isSiteJunk(text)) continue;
+      // A wrapped line that starts with the full-width indent begins a paragraph: the indent is kept for linesToParagraphs.
+      const paras = width && lines.length > 1
+        ? linesToParagraphs(it.raw.split('\n').map((l) => (INDENT.test(l) ? '\u3000' : '') + normalizeInline(l)).filter((l) => trimLine(l)), width)
+        : lines;
+      for (const para of paras) {
+        const text = storyText(para);
+        if (text === null) continue;
         if (isRuleLine(text)) {
           if (blocks.length && blocks[blocks.length - 1].t !== 'hr') blocks.push({ t: 'hr' });
           continue;

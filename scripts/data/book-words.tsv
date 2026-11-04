@@ -1,4 +1,4 @@
-# trad	simp	pinyin	definitions (joined by /)	segmentation count (optional)
+# trad	simp	pinyin	definitions (joined by /)	segmentation count (optional)	scope (optional: book = counts only in a book that uses it, see src/core/lexicon.ts)
 行者	行者	xing2 zhe3	Pilgrim (title of Sun Wukong in Journey to the West)/itinerant monk; lay disciple living by Buddhist rules/walker; traveler
 八戒	八戒	Ba1 jie4	Zhu Bajie (Pigsy), the pig-spirit disciple in Journey to the West/the eight Buddhist precepts
 師父	师父	shi1 fu5	master; teacher (esp. a monk, Daoist or skilled craftsman)/respectful form of address for a monk
@@ -163,9 +163,9 @@
 南無	南无	na1 mo2	namo; I take refuge in (a Buddhist salutation, as in 南無阿彌陀佛)	500
 鹿柴	鹿柴	lu4 zhai4	Deer Enclosure (title of a poem by Wang Wei)/a fence of branches	300
 王之渙	王之涣	Wang2 Zhi1 huan4	Wang Zhihuan (688-742), poet of the Tang dynasty	300
-閏土	闰土	Run4 tu3	Runtu, the boyhood friend of the narrator in Lu Xun's story 故鄉	50
+閏土	闰土	Run4 tu3	Runtu, the boyhood friend of the narrator in Lu Xun's story 故鄉	50	book
 楊二嫂	杨二嫂	Yang2 Er4 sao3	Mrs. Yang, the "Tofu Beauty" of the village in Lu Xun's story 故鄉	50
-宏兒	宏儿	Hong2 er2	Hong'er, the narrator's nephew in Lu Xun's story 故鄉	40
+宏兒	宏儿	Hong2 er2	Hong'er, the narrator's nephew in Lu Xun's story 故鄉	40	book
 迅哥兒	迅哥儿	Xun4 ge1 er2	Xun'ger, the narrator as a boy in Lu Xun's story 故鄉	40
 趙貴翁	赵贵翁	Zhao4 Gui4 weng1	Old Zhao Gui, a neighbor in Lu Xun's story 狂人日記	40
 陳老五	陈老五	Chen2 Lao3 wu3	Chen Laowu, a villager in Lu Xun's story 狂人日記	40
@@ -175,7 +175,7 @@
 奉	奉	feng4	to receive (an order); to act on instructions; to serve/to offer; to present respectfully/to esteem; to revere/(honorific, as in 奉告, 奉陪)
 于	于	yu2	in; at; on; from; to; than (a classical preposition, like 於)/to go (old)
 伙	伙	huo3	group; gang; band (classifier for groups of people, as in 一伙人)/companion; partner/meals (as in 伙食)
-子曰	子曰	zi3 yue1	the Master said (the opening formula of the sayings of Confucius in the Analects)	600
+子曰	子曰	zi3 yue1	the Master said (the opening formula of the sayings of Confucius in the Analects)	600	book
 應天府	应天府	Ying4 tian1 fu3	Yingtian Prefecture (the Ming dynasty prefecture of Nanjing)	60
 刺	刺	ci4	to stab; to pierce; to prick/thorn; splinter; sting/to assassinate/to taunt
 更	更	geng1	watch of the night (one of five, as in 三更)/to change; to replace/to experience
@@ -233,115 +233,115 @@
 老娘	老娘	lao3 niang2	I (said by a woman of herself, bold or rude)/old woman; one's old mother
 司馬師	司马师	Si1 ma3 Shi1	Sima Shi (208-255), son of Sima Yi and regent of the state of Wei	400
 司馬昭	司马昭	Si1 ma3 Zhao1	Sima Zhao (211-265), brother of Sima Shi, whose son founded the Jin dynasty	400
-何進	何进	He2 Jin4	He Jin (-189), general-in-chief of the late Han dynasty	150
+何進	何进	He2 Jin4	He Jin (-189), general-in-chief of the late Han dynasty	150	book
 
 教	教	jiao1	to teach; to instruct (as in 教書, 教你一招, 教他寫字)
 教	教	jiao4	to let; to make; to order; to have (sb do sth), as in 教人, 教他去/religion; teaching; a sect (as in 宗教, 全真教)/teachings; instruction (as in 師教, 之教)
 番	番	fan1	classifier for occurrences and spells (as in 幾番, 三番五次, 一番話)/foreign; barbarian/turn; time
 勒	勒	le4	to rein in; to tie tight; to force (as in 勒馬, 勒令, 勒索)/bridle; halter
-許攸	许攸	Xu3 You1	Xu You (-204), adviser who left Yuan Shao for Cao Cao	200
-徐庶	徐庶	Xu2 Shu4	Xu Shu, adviser of Liu Bei who recommended Zhuge Liang	200
-黃權	黄权	Huang2 Quan2	Huang Quan (-240), officer of Shu who later served Wei	200
-關平	关平	Guan1 Ping2	Guan Ping (-220), adopted son of Guan Yu	200
-曹真	曹真	Cao2 Zhen1	Cao Zhen (-231), general of Wei	200
-郝昭	郝昭	Hao3 Zhao1	Hao Zhao, Wei commander who held Chencang against Zhuge Liang	200
-鄧芝	邓芝	Deng4 Zhi1	Deng Zhi (-251), envoy and general of Shu	200
+許攸	许攸	Xu3 You1	Xu You (-204), adviser who left Yuan Shao for Cao Cao	200	book
+徐庶	徐庶	Xu2 Shu4	Xu Shu, adviser of Liu Bei who recommended Zhuge Liang	200	book
+黃權	黄权	Huang2 Quan2	Huang Quan (-240), officer of Shu who later served Wei	200	book
+關平	关平	Guan1 Ping2	Guan Ping (-220), adopted son of Guan Yu	200	book
+曹真	曹真	Cao2 Zhen1	Cao Zhen (-231), general of Wei	200	book
+郝昭	郝昭	Hao3 Zhao1	Hao Zhao, Wei commander who held Chencang against Zhuge Liang	200	book
+鄧芝	邓芝	Deng4 Zhi1	Deng Zhi (-251), envoy and general of Shu	200	book
 諸葛瑾	诸葛瑾	Zhu1 ge3 Jin3	Zhuge Jin (174-241), official of Wu, elder brother of Zhuge Liang	200
-王朗	王朗	Wang2 Lang3	Wang Lang (-228), official of Wei	200
-樂進	乐进	Yue4 Jin4	Yue Jin (-218), general of Cao Cao	200
-于禁	于禁	Yu2 Jin4	Yu Jin (-221), general of Cao Cao	200
-袁尚	袁尚	Yuan2 Shang4	Yuan Shang (-207), youngest son of Yuan Shao	200
-袁譚	袁谭	Yuan2 Tan2	Yuan Tan (-205), eldest son of Yuan Shao	200
-韓當	韩当	Han2 Dang1	Han Dang (-226), general of Wu	200
-周泰	周泰	Zhou1 Tai4	Zhou Tai, general of Wu who served Sun Quan	200
-蔣欽	蒋钦	Jiang3 Qin1	Jiang Qin (-220), general of Wu	200
-陳武	陈武	Chen2 Wu3	Chen Wu (178-215), general of Wu	200
-潘璋	潘璋	Pan1 Zhang1	Pan Zhang (-234), general of Wu	200
-法正	法正	Fa3 Zheng4	Fa Zheng (176-220), adviser of Liu Bei	200
-孟達	孟达	Meng4 Da2	Meng Da (-228), general who changed sides between Shu and Wei	200
-李嚴	李严	Li3 Yan2	Li Yan (-234), a regent of Shu	200
-文醜	文丑	Wen2 Chou3	Wen Chou (-200), general of Yuan Shao	200
-顏良	颜良	Yan2 Liang2	Yan Liang (-200), general of Yuan Shao, killed by Guan Yu	200
-沮授	沮授	Ju3 Shou4	Ju Shou (-200), adviser of Yuan Shao	200
-田豐	田丰	Tian2 Feng1	Tian Feng (-200), adviser of Yuan Shao	200
-張任	张任	Zhang1 Ren4	Zhang Ren (-213), general of Liu Zhang	200
-吳蘭	吴兰	Wu2 Lan2	Wu Lan, general of Shu	200
-雷銅	雷铜	Lei2 Tong2	Lei Tong, general of Shu	200
-張嶷	张嶷	Zhang1 Ni2	Zhang Ni (-254), general of Shu who campaigned in the south	200
-呂凱	吕凯	Lü3 Kai3	Lü Kai, official of Yongchang who helped Zhuge Liang in the south	200
-孟優	孟优	Meng4 You1	Meng You, younger brother of Meng Huo	200
+王朗	王朗	Wang2 Lang3	Wang Lang (-228), official of Wei	200	book
+樂進	乐进	Yue4 Jin4	Yue Jin (-218), general of Cao Cao	200	book
+于禁	于禁	Yu2 Jin4	Yu Jin (-221), general of Cao Cao	200	book
+袁尚	袁尚	Yuan2 Shang4	Yuan Shang (-207), youngest son of Yuan Shao	200	book
+袁譚	袁谭	Yuan2 Tan2	Yuan Tan (-205), eldest son of Yuan Shao	200	book
+韓當	韩当	Han2 Dang1	Han Dang (-226), general of Wu	200	book
+周泰	周泰	Zhou1 Tai4	Zhou Tai, general of Wu who served Sun Quan	200	book
+蔣欽	蒋钦	Jiang3 Qin1	Jiang Qin (-220), general of Wu	200	book
+陳武	陈武	Chen2 Wu3	Chen Wu (178-215), general of Wu	200	book
+潘璋	潘璋	Pan1 Zhang1	Pan Zhang (-234), general of Wu	200	book
+法正	法正	Fa3 Zheng4	Fa Zheng (176-220), adviser of Liu Bei	200	book
+孟達	孟达	Meng4 Da2	Meng Da (-228), general who changed sides between Shu and Wei	200	book
+李嚴	李严	Li3 Yan2	Li Yan (-234), a regent of Shu	200	book
+文醜	文丑	Wen2 Chou3	Wen Chou (-200), general of Yuan Shao	200	book
+顏良	颜良	Yan2 Liang2	Yan Liang (-200), general of Yuan Shao, killed by Guan Yu	200	book
+沮授	沮授	Ju3 Shou4	Ju Shou (-200), adviser of Yuan Shao	200	book
+田豐	田丰	Tian2 Feng1	Tian Feng (-200), adviser of Yuan Shao	200	book
+張任	张任	Zhang1 Ren4	Zhang Ren (-213), general of Liu Zhang	200	book
+吳蘭	吴兰	Wu2 Lan2	Wu Lan, general of Shu	200	book
+雷銅	雷铜	Lei2 Tong2	Lei Tong, general of Shu	200	book
+張嶷	张嶷	Zhang1 Ni2	Zhang Ni (-254), general of Shu who campaigned in the south	200	book
+呂凱	吕凯	Lü3 Kai3	Lü Kai, official of Yongchang who helped Zhuge Liang in the south	200	book
+孟優	孟优	Meng4 You1	Meng You, younger brother of Meng Huo	200	book
 兀突骨	兀突骨	Wu4 tu1 gu3	Wutugu, king of the Wuge kingdom in the southern campaign	200
-顧雍	顾雍	Gu4 Yong1	Gu Yong (168-243), chancellor of Wu	200
-呂範	吕范	Lü3 Fan4	Lü Fan (-228), general of Wu	200
-朱桓	朱桓	Zhu1 Huan2	Zhu Huan (177-238), general of Wu	200
-朱然	朱然	Zhu1 Ran2	Zhu Ran (182-249), general of Wu	200
+顧雍	顾雍	Gu4 Yong1	Gu Yong (168-243), chancellor of Wu	200	book
+呂範	吕范	Lü3 Fan4	Lü Fan (-228), general of Wu	200	book
+朱桓	朱桓	Zhu1 Huan2	Zhu Huan (177-238), general of Wu	200	book
+朱然	朱然	Zhu1 Ran2	Zhu Ran (182-249), general of Wu	200	book
 諸葛恪	诸葛恪	Zhu1 ge3 Ke4	Zhuge Ke (203-253), regent of Wu, son of Zhuge Jin	200
-孫峻	孙峻	Sun1 Jun4	Sun Jun (219-256), regent of Wu	200
-孫綝	孙綝	Sun1 Chen1	Sun Chen (232-258), regent of Wu	200
-孫皓	孙皓	Sun1 Hao4	Sun Hao (242-284), last emperor of Wu	200
-曹爽	曹爽	Cao2 Shuang3	Cao Shuang (-249), regent of Wei	200
-何晏	何晏	He2 Yan4	He Yan (-249), official of Wei and ally of Cao Shuang	200
-桓範	桓范	Huan2 Fan4	Huan Fan (-249), adviser of Cao Shuang	200
-文欽	文钦	Wen2 Qin1	Wen Qin (-258), general of Wei	200
+孫峻	孙峻	Sun1 Jun4	Sun Jun (219-256), regent of Wu	200	book
+孫綝	孙綝	Sun1 Chen1	Sun Chen (232-258), regent of Wu	200	book
+孫皓	孙皓	Sun1 Hao4	Sun Hao (242-284), last emperor of Wu	200	book
+曹爽	曹爽	Cao2 Shuang3	Cao Shuang (-249), regent of Wei	200	book
+何晏	何晏	He2 Yan4	He Yan (-249), official of Wei and ally of Cao Shuang	200	book
+桓範	桓范	Huan2 Fan4	Huan Fan (-249), adviser of Cao Shuang	200	book
+文欽	文钦	Wen2 Qin1	Wen Qin (-258), general of Wei	200	book
 諸葛誕	诸葛诞	Zhu1 ge3 Dan4	Zhuge Dan (-258), general of Wei who rebelled	200
 諸葛瞻	诸葛瞻	Zhu1 ge3 Zhan1	Zhuge Zhan (227-263), son of Zhuge Liang	200
 公孫瓚	公孙瓒	Gong1 sun1 Zan4	Gongsun Zan (-199), warlord of the north	200
 公孫康	公孙康	Gong1 sun1 Kang1	Gongsun Kang (-221), warlord of Liaodong	200
-劉琮	刘琮	Liu2 Cong2	Liu Cong, younger son of Liu Biao who gave up Jingzhou	200
-黃蓋	黄盖	Huang2 Gai4	Huang Gai, veteran general of Wu who burned Cao Cao's fleet at Red Cliffs	200
-凌統	凌统	Ling2 Tong3	Ling Tong (189-237), general of Wu	200
-臧霸	臧霸	Zang1 Ba4	Zang Ba, general who served Lü Bu and later Cao Cao	200
-高順	高顺	Gao1 Shun4	Gao Shun (-198), general of Lü Bu	200
-典韋	典韦	Dian3 Wei2	Dian Wei (-197), bodyguard of Cao Cao	200
-滿寵	满宠	Man3 Chong3	Man Chong (-242), general of Wei	200
-華歆	华歆	Hua4 Xin1	Hua Xin (157-232), official of Wei	200
-曹休	曹休	Cao2 Xiu1	Cao Xiu (-228), general of Wei	200
-馬騰	马腾	Ma3 Teng2	Ma Teng (-212), warlord of the northwest, father of Ma Chao	200
-韓遂	韩遂	Han2 Sui4	Han Sui (-215), warlord of the northwest	200
-簡雍	简雍	Jian3 Yong1	Jian Yong, early follower and envoy of Liu Bei	200
-劉封	刘封	Liu2 Feng1	Liu Feng (-220), adopted son of Liu Bei	200
-鄧飛	邓飞	Deng4 Fei1	Deng Fei, one of the heroes of Liangshan Marsh	200
-孟康	孟康	Meng4 Kang1	Meng Kang, shipbuilder and one of the heroes of Liangshan Marsh	200
-杜遷	杜迁	Du4 Qian1	Du Qian, an early chief of Liangshan Marsh	200
-宋萬	宋万	Song4 Wan4	Song Wan, an early chief of Liangshan Marsh	200
-蔡慶	蔡庆	Cai4 Qing4	Cai Qing, executioner and one of the heroes of Liangshan Marsh	200
+劉琮	刘琮	Liu2 Cong2	Liu Cong, younger son of Liu Biao who gave up Jingzhou	200	book
+黃蓋	黄盖	Huang2 Gai4	Huang Gai, veteran general of Wu who burned Cao Cao's fleet at Red Cliffs	200	book
+凌統	凌统	Ling2 Tong3	Ling Tong (189-237), general of Wu	200	book
+臧霸	臧霸	Zang1 Ba4	Zang Ba, general who served Lü Bu and later Cao Cao	200	book
+高順	高顺	Gao1 Shun4	Gao Shun (-198), general of Lü Bu	200	book
+典韋	典韦	Dian3 Wei2	Dian Wei (-197), bodyguard of Cao Cao	200	book
+滿寵	满宠	Man3 Chong3	Man Chong (-242), general of Wei	200	book
+華歆	华歆	Hua4 Xin1	Hua Xin (157-232), official of Wei	200	book
+曹休	曹休	Cao2 Xiu1	Cao Xiu (-228), general of Wei	200	book
+馬騰	马腾	Ma3 Teng2	Ma Teng (-212), warlord of the northwest, father of Ma Chao	200	book
+韓遂	韩遂	Han2 Sui4	Han Sui (-215), warlord of the northwest	200	book
+簡雍	简雍	Jian3 Yong1	Jian Yong, early follower and envoy of Liu Bei	200	book
+劉封	刘封	Liu2 Feng1	Liu Feng (-220), adopted son of Liu Bei	200	book
+鄧飛	邓飞	Deng4 Fei1	Deng Fei, one of the heroes of Liangshan Marsh	200	book
+孟康	孟康	Meng4 Kang1	Meng Kang, shipbuilder and one of the heroes of Liangshan Marsh	200	book
+杜遷	杜迁	Du4 Qian1	Du Qian, an early chief of Liangshan Marsh	200	book
+宋萬	宋万	Song4 Wan4	Song Wan, an early chief of Liangshan Marsh	200	book
+蔡慶	蔡庆	Cai4 Qing4	Cai Qing, executioner and one of the heroes of Liangshan Marsh	200	book
 郁保四	郁保四	Yu4 Bao3 si4	Yu Baosi, flag bearer and one of the heroes of Liangshan Marsh	200
-項充	项充	Xiang4 Chong1	Xiang Chong, shield fighter and one of the heroes of Liangshan Marsh	200
-鄒潤	邹润	Zou1 Run4	Zou Run, one of the heroes of Liangshan Marsh	200
-穆春	穆春	Mu4 Chun1	Mu Chun, younger brother of Mu Hong	200
-曹正	曹正	Cao2 Zheng4	Cao Zheng, butcher and one of the heroes of Liangshan Marsh	200
-宋清	宋清	Song4 Qing1	Song Qing, younger brother of Song Jiang	200
-龔旺	龚旺	Gong1 Wang4	Gong Wang, one of the heroes of Liangshan Marsh	200
+項充	项充	Xiang4 Chong1	Xiang Chong, shield fighter and one of the heroes of Liangshan Marsh	200	book
+鄒潤	邹润	Zou1 Run4	Zou Run, one of the heroes of Liangshan Marsh	200	book
+穆春	穆春	Mu4 Chun1	Mu Chun, younger brother of Mu Hong	200	book
+曹正	曹正	Cao2 Zheng4	Cao Zheng, butcher and one of the heroes of Liangshan Marsh	200	book
+宋清	宋清	Song4 Qing1	Song Qing, younger brother of Song Jiang	200	book
+龔旺	龚旺	Gong1 Wang4	Gong Wang, one of the heroes of Liangshan Marsh	200	book
 丁得孫	丁得孙	Ding1 De2 sun1	Ding Desun, one of the heroes of Liangshan Marsh	200
-焦挺	焦挺	Jiao1 Ting3	Jiao Ting, wrestler and one of the heroes of Liangshan Marsh	200
+焦挺	焦挺	Jiao1 Ting3	Jiao Ting, wrestler and one of the heroes of Liangshan Marsh	200	book
 王定六	王定六	Wang2 Ding4 liu4	Wang Dingliu, one of the heroes of Liangshan Marsh	200
-李雲	李云	Li3 Yun2	Li Yun, constable and one of the heroes of Liangshan Marsh	200
-白勝	白胜	Bai2 Sheng4	Bai Sheng, one of the heroes of Liangshan Marsh	200
-呂方	吕方	Lü3 Fang1	Lü Fang, halberd fighter and one of the heroes of Liangshan Marsh	200
-郭盛	郭盛	Guo1 Sheng4	Guo Sheng, halberd fighter and one of the heroes of Liangshan Marsh	200
-蔣敬	蒋敬	Jiang3 Jing4	Jiang Jing, bookkeeper and one of the heroes of Liangshan Marsh	200
-馬麟	马麟	Ma3 Lin2	Ma Lin, flute player and one of the heroes of Liangshan Marsh	200
-宣贊	宣赞	Xuan1 Zan4	Xuan Zan, one of the heroes of Liangshan Marsh	200
-歐鵬	欧鹏	Ou1 Peng2	Ou Peng, one of the heroes of Liangshan Marsh	200
-楊林	杨林	Yang2 Lin2	Yang Lin, one of the heroes of Liangshan Marsh	200
-焦大	焦大	Jiao1 Da4	Jiao Da, an old servant of the Ning mansion	200
+李雲	李云	Li3 Yun2	Li Yun, constable and one of the heroes of Liangshan Marsh	200	book
+白勝	白胜	Bai2 Sheng4	Bai Sheng, one of the heroes of Liangshan Marsh	200	book
+呂方	吕方	Lü3 Fang1	Lü Fang, halberd fighter and one of the heroes of Liangshan Marsh	200	book
+郭盛	郭盛	Guo1 Sheng4	Guo Sheng, halberd fighter and one of the heroes of Liangshan Marsh	200	book
+蔣敬	蒋敬	Jiang3 Jing4	Jiang Jing, bookkeeper and one of the heroes of Liangshan Marsh	200	book
+馬麟	马麟	Ma3 Lin2	Ma Lin, flute player and one of the heroes of Liangshan Marsh	200	book
+宣贊	宣赞	Xuan1 Zan4	Xuan Zan, one of the heroes of Liangshan Marsh	200	book
+歐鵬	欧鹏	Ou1 Peng2	Ou Peng, one of the heroes of Liangshan Marsh	200	book
+楊林	杨林	Yang2 Lin2	Yang Lin, one of the heroes of Liangshan Marsh	200	book
+焦大	焦大	Jiao1 Da4	Jiao Da, an old servant of the Ning mansion	200	book
 柳湘蓮	柳湘莲	Liu3 Xiang1 lian2	Liu Xianglian, a young man who acts in operas	200
-入畫	入画	Ru4 Hua4	Ruhua, maid of Xichun	200
-春燕	春燕	Chun1 Yan4	Chunyan, a young maid in the Garden	200
-藕官	藕官	Ou3 Guan1	Ouguan, a young actress in the Jia household	200
-齡官	龄官	Ling2 Guan1	Lingguan, a young actress in the Jia household	200
-蕊官	蕊官	Rui3 Guan1	Ruiguan, a young actress in the Jia household	200
-旺兒	旺儿	Wang4 er2	Wang'er, a servant of Wang Xifeng	200
+入畫	入画	Ru4 Hua4	Ruhua, maid of Xichun	200	book
+春燕	春燕	Chun1 Yan4	Chunyan, a young maid in the Garden	200	book
+藕官	藕官	Ou3 Guan1	Ouguan, a young actress in the Jia household	200	book
+齡官	龄官	Ling2 Guan1	Lingguan, a young actress in the Jia household	200	book
+蕊官	蕊官	Rui3 Guan1	Ruiguan, a young actress in the Jia household	200	book
+旺兒	旺儿	Wang4 er2	Wang'er, a servant of Wang Xifeng	200	book
 賈雨村	贾雨村	Jia3 Yu3 cun1	Jia Yucun, an official in the novel	200
 甄士隱	甄士隐	Zhen1 Shi4 yin3	Zhen Shiyin, the gentleman of the first chapters	200
 甄寶玉	甄宝玉	Zhen1 Bao3 yu4	Zhen Baoyu, a youth who looks like Jia Baoyu	200
 王善保	王善保	Wang2 Shan4 bao3	Wang Shanbao, a servant whose wife serves Madam Xing	200
-小紅	小红	Xiao3 Hong2	Xiaohong, a maid in the Garden	200
-五兒	五儿	Wu3 er2	Wu'er, daughter of Liu in the Garden kitchen	200
-英蓮	英莲	Ying1 lian2	Yinglian, the girl who later became Xiangling	200
-賈敬	贾敬	Jia3 Jing4	Jia Jing, father of Jia Zhen	200
+小紅	小红	Xiao3 Hong2	Xiaohong, a maid in the Garden	200	book
+五兒	五儿	Wu3 er2	Wu'er, daughter of Liu in the Garden kitchen	200	book
+英蓮	英莲	Ying1 lian2	Yinglian, the girl who later became Xiangling	200	book
+賈敬	贾敬	Jia3 Jing4	Jia Jing, father of Jia Zhen	200	book
 邢岫煙	邢岫烟	Xing2 Xiu4 yan1	Xing Xiuyan, niece of Madam Xing	200
-李紋	李纹	Li3 Wen2	Li Wen, cousin of Li Wan	200
+李紋	李纹	Li3 Wen2	Li Wen, cousin of Li Wan	200	book
 太白金星	太白金星	Tai4 bai2 Jin1 xing1	Venus, the Great White Planet, a minister of the Jade Emperor	200
 紅孩兒	红孩儿	Hong2 hai2 er2	Red Boy, the demon son of the Bull Demon King	200
 鐵扇公主	铁扇公主	Tie3 shan4 Gong1 zhu3	Princess Iron Fan, wife of the Bull Demon King	200
@@ -354,7 +354,7 @@
 應	应	ying1	should; ought to; must/to agree to; to promise (as in 應允, 答應)
 員	员	yuan2	classifier for generals and officers (as in 大將一員)/member; staff (as in 官員, 人員)
 程	程	cheng2	journey; distance; stage (as in 路程)/rule; regulations; procedure/Cheng (surname)
-單福	单福	Shan4 Fu2	Shan Fu, the name Xu Shu used when he served Liu Bei	100
+單福	单福	Shan4 Fu2	Shan Fu, the name Xu Shu used when he served Liu Bei	100	book
 諕	諕	xia4	to frighten; to scare (the same word as 嚇)
 咧	咧	lie5	(sentence-final particle for emphasis or reassurance, like 呢 or 啦, as in 罷咧, 抱你咧)
 咧	咧	lie3	to grin; to draw back the corners of the mouth
@@ -373,46 +373,46 @@
 骰子	骰子	tou2 zi5	dice (the dictionary reading; in speech usually shǎizi)
 骰子	骰子	shai3 zi5	dice (how 骰子 is usually said; also written 色子)
 擲骰子	掷骰子	zhi4 shai3 zi5	to throw dice (usually said zhì shǎizi)
-孫乾	孙乾	Sun1 Qian2	Sun Qian (died c. 215), adviser and envoy of Liu Bei in Romance of the Three Kingdoms	50
-張角	张角	Zhang1 Jue2	Zhang Jue (-184), leader of the Yellow Turban rebellion	200
-張寶	张宝	Zhang1 Bao3	Zhang Bao (-184), brother of Zhang Jue and a leader of the Yellow Turban rebellion	200
-華雄	华雄	Hua4 Xiong2	Hua Xiong (-191), general of Dong Zhuo, killed by Guan Yu in Romance of the Three Kingdoms	200
-蔣幹	蒋干	Jiang3 Gan4	Jiang Gan, adviser of Cao Cao sent to win over Zhou Yu, his old friend	200
-王允	王允	Wang2 Yun3	Wang Yun (137-192), Han minister who plotted the death of Dong Zhuo	200
-張松	张松	Zhang1 Song1	Zhang Song (-212), adviser of Liu Zhang who brought the map of Shu to Liu Bei	200
-張讓	张让	Zhang1 Rang4	Zhang Rang (-189), head of the Ten Eunuchs at the end of the Han	200
-子龍	子龙	Zi3 long2	Zilong, courtesy name of Zhao Yun 趙雲	200
-公瑾	公瑾	Gong1 jin3	Gongjin, courtesy name of Zhou Yu 周瑜	200
-子敬	子敬	Zi3 jing4	Zijing, courtesy name of Lu Su 魯肅	200
-翼德	翼德	Yi4 de2	Yide, courtesy name of Zhang Fei 張飛	200
-仲達	仲达	Zhong4 da2	Zhongda, courtesy name of Sima Yi 司馬懿	200
+孫乾	孙乾	Sun1 Qian2	Sun Qian (died c. 215), adviser and envoy of Liu Bei in Romance of the Three Kingdoms	50	book
+張角	张角	Zhang1 Jue2	Zhang Jue (-184), leader of the Yellow Turban rebellion	200	book
+張寶	张宝	Zhang1 Bao3	Zhang Bao (-184), brother of Zhang Jue and a leader of the Yellow Turban rebellion	200	book
+華雄	华雄	Hua4 Xiong2	Hua Xiong (-191), general of Dong Zhuo, killed by Guan Yu in Romance of the Three Kingdoms	200	book
+蔣幹	蒋干	Jiang3 Gan4	Jiang Gan, adviser of Cao Cao sent to win over Zhou Yu, his old friend	200	book
+王允	王允	Wang2 Yun3	Wang Yun (137-192), Han minister who plotted the death of Dong Zhuo	200	book
+張松	张松	Zhang1 Song1	Zhang Song (-212), adviser of Liu Zhang who brought the map of Shu to Liu Bei	200	book
+張讓	张让	Zhang1 Rang4	Zhang Rang (-189), head of the Ten Eunuchs at the end of the Han	200	book
+子龍	子龙	Zi3 long2	Zilong, courtesy name of Zhao Yun 趙雲	200	book
+公瑾	公瑾	Gong1 jin3	Gongjin, courtesy name of Zhou Yu 周瑜	200	book
+子敬	子敬	Zi3 jing4	Zijing, courtesy name of Lu Su 魯肅	200	book
+翼德	翼德	Yi4 de2	Yide, courtesy name of Zhang Fei 張飛	200	book
+仲達	仲达	Zhong4 da2	Zhongda, courtesy name of Sima Yi 司馬懿	200	book
 孟德	孟德	Meng4 de2	Mengde, courtesy name of Cao Cao 曹操	200
-本初	本初	Ben3 chu1	Benchu, courtesy name of Yuan Shao 袁紹/(literary) original; beginning	200
-元直	元直	Yuan2 zhi2	Yuanzhi, courtesy name of Xu Shu 徐庶	200
-伯約	伯约	Bo2 yue1	Boyue, courtesy name of Jiang Wei 姜維	200
+本初	本初	Ben3 chu1	Benchu, courtesy name of Yuan Shao 袁紹/(literary) original; beginning	200	book
+元直	元直	Yuan2 zhi2	Yuanzhi, courtesy name of Xu Shu 徐庶	200	book
+伯約	伯约	Bo2 yue1	Boyue, courtesy name of Jiang Wei 姜維	200	book
 會稽	会稽	Kuai4 ji1	Kuaiji, old commandery and mountain in today's Shaoxing, Zhejiang	200
-李應	李应	Li3 Ying4	Li Ying, the Heaven-Striking Eagle, one of the 108 heroes of the Water Margin	100
+李應	李应	Li3 Ying4	Li Ying, the Heaven-Striking Eagle, one of the 108 heroes of the Water Margin	100	book
 老孫	老孙	lao3 Sun1	Old Sun (how Sun Wukong speaks of himself)/old Sun (a familiar way to call someone surnamed Sun)	300
-哪咤	哪咤	Ne2 zha1	Nezha, the boy god, third son of the Heavenly King Li (also written 哪吒)	200
-木叉	木叉	Mu4 cha1	Mucha (Moksha), disciple of Guanyin, also called Hui'an 惠岸	200
-惠岸	惠岸	Hui4 an4	Hui'an, Guanyin's disciple Mucha 木叉	200
+哪咤	哪咤	Ne2 zha1	Nezha, the boy god, third son of the Heavenly King Li (also written 哪吒)	200	book
+木叉	木叉	Mu4 cha1	Mucha (Moksha), disciple of Guanyin, also called Hui'an 惠岸	200	book
+惠岸	惠岸	Hui4 an4	Hui'an, Guanyin's disciple Mucha 木叉	200	book
 羅剎女	罗刹女	Luo2 cha4 nü3	Rakshasi, the demoness Princess Iron Fan 鐵扇公主/(Buddhism) a female demon	200
 東勝神洲	东胜神洲	Dong1 sheng4 shen2 zhou1	Purvavideha, the eastern continent of Buddhist cosmology, where the Flower and Fruit Mountain lies	100
 西牛賀洲	西牛贺洲	Xi1 niu2 he4 zhou1	Aparagodaniya, the western continent of Buddhist cosmology	100
 北俱蘆洲	北俱芦洲	Bei3 ju4 lu2 zhou1	Uttarakuru, the northern continent of Buddhist cosmology	100
 鎮元子	镇元子	Zhen4 yuan2 zi3	Zhenyuanzi, the immortal of the Wuzhuang Temple, master of the ginseng-fruit tree	200
 五莊觀	五庄观	Wu3 zhuang1 guan4	Wuzhuang Temple, Zhenyuanzi's temple on Mount Longevity	200
-靈吉	灵吉	Ling2 ji2	Lingji, a bodhisattva (靈吉菩薩) who helps Sun Wukong	200
-劉洪	刘洪	Liu2 Hong2	Liu Hong, the ferryman who murdered Chen Guangrui and took his post	100
+靈吉	灵吉	Ling2 ji2	Lingji, a bodhisattva (靈吉菩薩) who helps Sun Wukong	200	book
+劉洪	刘洪	Liu2 Hong2	Liu Hong, the ferryman who murdered Chen Guangrui and took his post	100	book
 寧國府	宁国府	Ning2 guo2 fu3	the Ningguo mansion of the Jia family	200
-寧府	宁府	Ning2 fu3	the Ningguo mansion (short for 寧國府)	200
-榮府	荣府	Rong2 fu3	the Rongguo mansion (short for 榮國府)	200
-巧姐	巧姐	Qiao3 jie3	Qiaojie, daughter of Wang Xifeng and Jia Lian	200
+寧府	宁府	Ning2 fu3	the Ningguo mansion (short for 寧國府)	200	book
+榮府	荣府	Rong2 fu3	the Rongguo mansion (short for 榮國府)	200	book
+巧姐	巧姐	Qiao3 jie3	Qiaojie, daughter of Wang Xifeng and Jia Lian	200	book
 巧姐兒	巧姐儿	Qiao3 jie3 er2	Qiaojie, daughter of Wang Xifeng and Jia Lian	200
-元妃	元妃	Yuan2 fei1	the Imperial Consort Yuan (Jia Yuanchun)/(archaic) first wife of a ruler	200
-賈妃	贾妃	Jia3 fei1	the Imperial Consort Jia (Jia Yuanchun)	200
-倪二	倪二	Ni2 Er4	Ni Er, the Drunken Diamond, a moneylender and neighbor of Jia Yun	200
-金榮	金荣	Jin1 Rong2	Jin Rong, a pupil of the Jia family school	200
+元妃	元妃	Yuan2 fei1	the Imperial Consort Yuan (Jia Yuanchun)/(archaic) first wife of a ruler	200	book
+賈妃	贾妃	Jia3 fei1	the Imperial Consort Jia (Jia Yuanchun)	200	book
+倪二	倪二	Ni2 Er4	Ni Er, the Drunken Diamond, a moneylender and neighbor of Jia Yun	200	book
+金榮	金荣	Jin1 Rong2	Jin Rong, a pupil of the Jia family school	200	book
 外曾祖父	外曾祖父	wai4 zeng1 zu3 fu4	great-grandfather on the mother's side (mother's grandfather)	100
 高粱稭	高粱秸	gao1 liang2 jie1	sorghum stalk	100
 長年	长年	chang2 nian2	all the year round/(old, regional) a farmhand hired by the year; a long-term laborer (the same as 長工)
@@ -429,7 +429,7 @@
 科斗	科斗	ke1 dou3	tadpole (older form of 蝌蚪)	200
 發見	发见	fa1 xian4	to discover; to find (older form of 發現)	200
 魯鎮	鲁镇	Lu3 zhen4	Luzhen, the town of Lu Xun's stories	200
-咸亨	咸亨	Xian2 heng1	Xianheng, the wine shop in Lu Xun's Kong Yiji	200
+咸亨	咸亨	Xian2 heng1	Xianheng, the wine shop in Lu Xun's Kong Yiji	200	book
 張果老	张果老	Zhang1 Guo3 lao3	Zhang Guolao, one of the Eight Immortals of Daoism	300
 道臺	道台	dao4 tai2	circuit intendant (official of the Ming and Qing dynasties)	200
 彷佛	彷佛	fang3 fu2	as if; seemingly (older form of 仿佛)	200

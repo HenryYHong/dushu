@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { applySandhi, numberedToMarked } from '../../src/core/pinyin';
 import { segment } from '../../src/core/segment';
+import { buildLexicon } from '../../src/core/lexicon';
 import { entriesForReading } from '../../src/core/reading';
 import { leadGloss } from '../../src/ui/popup/defs';
 import { loadTestDictionary } from '../helpers/data';
@@ -154,7 +155,8 @@ describe('segmentation fixed after sampling the books', () => {
     ['焦大罵人', ['焦大', '罵人']],
     ['他用船來載去', ['他', '用', '船', '來', '載', '去']],
     ['但聞人語響', ['但', '聞', '人', '語', '響']],
-    ['司馬師引兵五萬', ['司馬師', '引', '兵', '五萬']],
+    // (引兵 "to lead troops" is CC-CEDICT's word: the floor for words the corpus never saw joins it.)
+    ['司馬師引兵五萬', ['司馬師', '引兵', '五萬']],
     ['三十多年才能輪到一回', ['三十多', '年', '才', '能', '輪', '到', '一', '回']],
     ['他有才能', ['他', '有', '才能']],
     ['現在應天府案下審理', ['現在', '應天府', '案', '下', '審理']],
@@ -169,7 +171,13 @@ describe('segmentation fixed after sampling the books', () => {
   for (const [text, want] of cuts) {
     it(text, async () => {
       const d = await dictP;
-      expect(segment(text, d).map((t) => t.text)).toEqual(want);
+      // The curated names and phrases of one book (book-words scope "book": 黃蓋, 焦大, 子曰) count in a book that uses them,
+      // through its lexicon (core/lexicon.ts bookScoped): these sentences are read as such a book has them.
+      const lex = buildLexicon([...d.bookScoped!().keys()].flatMap((word) => {
+        const e = d.lookup(word).find((x) => x.curated);
+        return e ? [{ word, pinyin: e.pinyin.toLowerCase(), gloss: e.defs[0] ?? '', kind: 'name' as const, enabled: true, origin: 'auto' as const }] : [];
+      }));
+      expect(segment(text, d, lex).map((t) => t.text)).toEqual(want);
     });
   }
 });

@@ -74,6 +74,10 @@ export interface Dictionary {
   hasWord(word: string): boolean;
   /** jieba count for segmentation; 0 if unseen. */
   freq(word: string): number;
+  /** freq(), or a small floor for a dictionary word the corpus never saw (core/dict.ts UNSEEN_FLOOR); segmentation scores only. */
+  segmentFreq?(word: string): number;
+  /** Curated words (book-words, scope "book") that count only in a book that uses them: word -> count, both scripts. */
+  bookScoped?(): ReadonlyMap<string, number>;
   /** Per-character info for ANY CJK ideograph (all Unicode blocks); null only for non-Han input. */
   char(ch: string): CharInfo | null;
   /**
@@ -220,6 +224,11 @@ export interface ImportedBook {
   note?: string;
   /** IMPORT_VERSION of the importer that made it (src/import). */
   importVersion?: number;
+  /**
+   * What the reader should know about this import, worded for the user ("12 characters could not be read and show as �.").
+   * The library shows it once when the book is added; it is not stored.
+   */
+  warnings?: string[];
 }
 
 export interface Progress {

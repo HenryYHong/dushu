@@ -203,6 +203,17 @@ The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Rus
 | Aozora Bunko, Project Gutenberg, Wikisource | The bundled classics (public domain in the United States) | public domain |
 | Wikimedia Commons and museum open-access images | The classics' cover paintings (public domain) | public domain |
 
+The tests (not the app) also read freely licensed Chinese text, kept in `tests/corpus/` with its attribution:
+
+| Source | Used for | License |
+|---|---|---|
+| Wikisource (1920s fiction and essays, Qing novels, 聊齋誌異) | The held-out corpus that measures reading on unseen books (`tests/corpus/zh/public-domain`) | public domain in the United States |
+| Wikipedia contributors (zh.wikipedia.org, revisions in `tests/corpus/zh/INDEX.md`) | The held-out corpus (`tests/corpus/zh/cc-by-sa`) | CC BY-SA 4.0 |
+| Wikinews contributors (zh.wikinews.org, revisions in `tests/corpus/zh/INDEX.md`) | The held-out corpus (`tests/corpus/zh/cc-by`) | CC BY 4.0 |
+| Global Storybooks (African Storybook Initiative stories; per-story credits in `tests/corpus/zh/cc-by`) | The held-out corpus | CC BY 3.0 and 4.0 |
+| Tatoeba contributors (sentence ids in `tests/corpus/zh/cc-by`) | The held-out corpus | CC BY 2.0 FR |
+| UD Chinese GSDSimp and UD Chinese HK test sets, release 2.18 (word forms only) | The word-segmentation gate (`tests/corpus/ud`) | CC BY-SA 4.0 |
+
 The About page in the app lists every source with a link and its license, and the cover painting of each classic.
 
 ## Fonts and icons

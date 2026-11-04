@@ -32,8 +32,9 @@ describe('西遊記', () => {
   it('makes 悟空 one token once the lexicon has it', async () => {
     const d = await dictP;
     const lex = buildLexicon(await found);
+    // (Without the lexicon the dictionary's floor for words the corpus never saw joins it as well, as the proper noun it is.)
     const plain = segment('悟空道：「師父。」', d).map((t) => t.text);
-    expect(plain.slice(0, 2)).toEqual(['悟', '空']);
+    expect(plain[0]).toBe('悟空');
     expect(segment('悟空道：「師父。」', d, lex).map((t) => t.text).slice(0, 1)).toEqual(['悟空']);
   });
   it('adds the dictionary names that hold a found name, so 悟能 never cuts 豬悟能', async () => {
@@ -194,7 +195,8 @@ describe('short public-domain texts', () => {
     expect(words('zhaohua-xishi')).toContain('百草园:place');
     expect(words('dongwu-gushi')).toContain('仲密:name');
     expect(words('kong-yiji')).toEqual([]);
-    expect(words('lunyu-xue-er')).toEqual([]);
+    // 子曰 "the Master said", a curated phrase of the Analects (book-words scope "book"), joins the lexicon of the book that uses it.
+    expect(words('lunyu-xue-er')).toEqual(['子曰:term']);
   });
 });
 

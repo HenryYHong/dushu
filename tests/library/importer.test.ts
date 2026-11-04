@@ -82,3 +82,16 @@ describe('pasted text', () => {
     expect((await store.books.list())[0].title).toBe('Pasted text');
   });
 });
+
+describe('a file with bad bytes', () => {
+  it('is added, and the notice says how many characters could not be read', async () => {
+    const importer = createImporter(ctx, () => {});
+    const bytes = new TextEncoder().encode(NOVEL);
+    // Two bytes that are not UTF-8 in the middle of a UTF-8 file: the book is still UTF-8, with two characters missing.
+    const at = new TextEncoder().encode(NOVEL.slice(0, 40)).length;
+    const damaged = new Uint8Array([...bytes.subarray(0, at), 0xff, 0xfe, ...bytes.subarray(at)]);
+    const added = await importer.files([new File([damaged], '林冲.txt')]);
+    expect(added).toHaveLength(1);
+    expect(toasts.map((t) => t.message)).toEqual(['“林冲.txt”: 2 characters could not be read and show as \ufffd.', `Added “${added[0].title}”.`]);
+  });
+});

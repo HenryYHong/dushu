@@ -1,7 +1,7 @@
 // Plain text to blocks, hard-wrap joining, chapter heading detection and chapter assembly.
 // Shared by the TXT, PDF, HTML, Markdown and EPUB importers.
 import type { Block, Chapter } from '../types';
-import { isBoilerplateLine } from './boilerplate';
+import { cutAdTail, isBoilerplateLine } from './boilerplate';
 import { countHan, unitScale } from './han';
 import { lang } from '../lang/active';
 
@@ -111,6 +111,13 @@ export function isSiteJunk(t: string): boolean {
   return isBoilerplateLine(t);
 }
 
+/** A paragraph without its site junk: the paragraph, the paragraph with an ad cut off its end, or null when it is all junk. */
+export function storyText(t: string): string | null {
+  const cut = cutAdTail(t);
+  if (cut !== t && countHan(cut) >= 2 && !isSiteJunk(cut)) return cut;
+  return isSiteJunk(t) ? null : t;
+}
+
 const RULE_RE = /^[\s\u3000=\-_*~#＊※◇◆○●■□—─━＝]{3,}$/;
 export function isRuleLine(t: string): boolean {
   return RULE_RE.test(t);
@@ -142,13 +149,23 @@ const ORDINAL_WORD = String.raw`(?:\d+|[IVXLCDM]+\b\.?|primer[oa]?|segund[oa]|te
 const SPACED_VOLUME = new RegExp(String.raw`^(?:parte|libro|livre|partie|tome|teil|buch|band|livro|часть|книга|том)\s+${ORDINAL_WORD}`, 'iu');
 const SPACED_CHAPTER = new RegExp(String.raw`^(?:cap[ií]tulo|chapitre|kapitel|capitolo|cap\.|глава)\s+${ORDINAL_WORD}|^(?:erstes|zweites|drittes|viertes|fünftes|sechstes|siebentes|siebtes|achtes|neuntes|zehntes)\s+kapitel\b|^[IVXLC]{1,7}\.?$`, 'iu');
 
+/** "【第一章】序", "[第一章]": a chapter marker in brackets, as some sites set it. */
+const BRACKETED = new RegExp(`^[【\\[［〔〖]\\s*第\\s*${NUM}+\\s*([章回节節卷集部篇幕折场場话話])\\s*[】\\]］〕〗]`);
+/**
+ * What comes before the marker of a heading that is not part of it: a Markdown "## " in a text file, and the "正文" (body of
+ * the book) download sites put before every chapter ("正文 第一章 序").
+ */
+const HEAD_PREFIX = new RegExp(`^(?:#{1,6}[ \\t\\u3000]+|正文卷?[\\s\\u3000:：]*(?=第\\s*${NUM}|序|楔子|引子))`);
+
 /** Is this single line a chapter heading? Level 1 for volumes (卷, 部, 集), 2 otherwise. */
 export function detectHeadingLine(line: string): { level: 1 | 2 } | null {
-  const t = trimLine(line);
+  const t = trimLine(line).replace(HEAD_PREFIX, '');
   if (!t || cpLen(t) > 40) return null;
   if (/[。，；、]$/.test(t)) return null;
   if (VOLUME_WORD.test(t) || VOLUME_PREFIX.test(t)) return { level: 1 };
   if (NUMBERED.test(t) || WORD_RE.test(t) || LATIN_CHAPTER.test(t)) return { level: 2 };
+  const bracketed = BRACKETED.exec(t);
+  if (bracketed) return { level: /[卷集部篇]/.test(bracketed[1]) ? 1 : 2 };
   if (spacedLanguage()) {
     if (SPACED_VOLUME.test(t)) return { level: 1 };
     if (SPACED_CHAPTER.test(t)) return { level: 2 };
@@ -161,7 +178,8 @@ export function detectHeadingLine(line: string): { level: 1 | 2 } | null {
  * and the colon some sites put after the marker goes (第一章：风雪 to 第一章 风雪).
  */
 export function normalizeHeading(line: string): string {
-  const t = line
+  const t = trimLine(line)
+    .replace(HEAD_PREFIX, '')
     .replace(/[０-９]/g, (d) => String(d.charCodeAt(0) - 0xff10))
     .replace(/\s+/g, ' ')
     .trim();
@@ -271,11 +289,32 @@ export function joinWrapped(a: string, b: string): string {
 }
 
 /**
+ * Whether a text hard-wrapped at `width` was cut at exactly that many characters, as converters and old text sites do: nearly
+ * every line that comes close to the width is exactly as long (a paragraph's last line is the only one that falls short, so
+ * few are one or two characters shorter). Then a line one or two characters short ends its paragraph.
+ */
+export function wrapsExactly(lines: string[], width: number): boolean {
+  if (!width) return false;
+  let exact = 0;
+  let near = 0;
+  for (const l of lines) {
+    const n = cpLen(l);
+    if (n === width) exact++;
+    else if (n >= width - 2 && n < width) near++;
+  }
+  return exact >= 20 && near <= exact * 0.1;
+}
+
+const INDENTED = /^(?:\u3000|\t| {2,})/;
+
+/**
  * Turn raw lines into paragraphs. Blank lines end a paragraph; with a wrap width, a line that
  * nearly fills it continues into the next one unless the next one is indented (a new paragraph).
- * Heading and rule lines always stand alone.
+ * Heading and rule lines always stand alone. `exact`: the text was cut at exactly `width` (wrapsExactly), so only a line
+ * that long runs on. In a text that neither indents its paragraphs nor sets blank lines between them, a line that ends a
+ * sentence followed by a quotation is a new speaker, a new paragraph.
  */
-export function linesToParagraphs(rawLines: string[], width: number): string[] {
+export function linesToParagraphs(rawLines: string[], width: number, exact = false): string[] {
   const out: string[] = [];
   let cur = '';
   let prev = '';
@@ -283,6 +322,20 @@ export function linesToParagraphs(rawLines: string[], width: number): string[] {
     if (cur) out.push(cur);
     cur = '';
   };
+  let indented = 0;
+  let filled = 0;
+  let blank = 0;
+  if (width) {
+    for (const raw of rawLines) {
+      if (!trimLine(raw)) {
+        blank++;
+        continue;
+      }
+      filled++;
+      if (INDENTED.test(raw)) indented++;
+    }
+  }
+  const marked = indented >= Math.max(3, filled * 0.02) || blank >= Math.max(3, filled * 0.05);
   for (const raw of rawLines) {
     const t = trimLine(raw);
     if (!t) {
@@ -296,8 +349,10 @@ export function linesToParagraphs(rawLines: string[], width: number): string[] {
       prev = '';
       continue;
     }
-    const indent = /^(?:\u3000|\t| {2,})/.test(raw);
-    if (cur && width && !indent && prev && joinable(prev, width)) cur = joinPieces(cur, t);
+    const indent = INDENTED.test(raw);
+    const runsOn = exact ? cpLen(prev) >= width : joinable(prev, width);
+    const speaker = !marked && ENDS_SENTENCE.test(prev) && OPENS_QUOTE.test(t);
+    if (cur && width && !indent && prev && runsOn && !speaker) cur = joinPieces(cur, t);
     else {
       flush();
       cur = t;
@@ -377,7 +432,8 @@ export function splitLongParagraph(text: string, max = LONG_PARAGRAPH, chunk = 1
 export function textToBlocks(text: string): Block[] {
   const lines = normalizeNewlines(text).split('\n');
   const prose = lines.map(trimLine).filter((l) => l && !detectHeadingLine(l) && !isRuleLine(l));
-  return paragraphsToBlocks(linesToParagraphs(lines, detectWrapWidth(prose)));
+  const width = detectWrapWidth(prose);
+  return paragraphsToBlocks(linesToParagraphs(lines, width, wrapsExactly(prose, width)));
 }
 
 /** "學而第一", "勸學篇第一": a classical section title, a name and its place in the book. */
@@ -401,8 +457,9 @@ function markOrdinalTitles(blocks: Block[]): Block[] {
 
 export function paragraphsToBlocks(paras: string[]): Block[] {
   const blocks: Block[] = [];
-  for (const p of paras) {
-    if (isSiteJunk(p)) continue;
+  for (const raw of paras) {
+    const p = storyText(raw);
+    if (p === null) continue;
     if (isRuleLine(p)) {
       if (blocks.length && blocks[blocks.length - 1].t !== 'hr') blocks.push({ t: 'hr' });
       continue;
@@ -518,6 +575,16 @@ function boundaries(blocks: Block[]): number[] | null {
       expected++;
     }
   });
+  // Sections numbered and titled on their own line (一、序 / 1. 序 / （三）风波), counting up from one: chapters, or headings
+  // in one chapter when they are short, like bare numerals. Where a text has both, the longer run is its sections (a story
+  // inside it may number its own parts 一, 二, 三).
+  const titled = titledSections(blocks);
+  if (titled && titled.length >= numbered.length) {
+    const han = blocks.reduce((n, b) => n + blockHan(b), 0);
+    const level = han / titled.length < SECTION_HAN ? 3 : 2;
+    for (const i of titled) blocks[i] = { t: 'h', level, text: (blocks[i] as { text: string }).text.trim() };
+    return level === 3 ? [] : titled;
+  }
   if (numbered.length >= 3) {
     for (const i of numbered) {
       const b = blocks[i];
@@ -529,11 +596,59 @@ function boundaries(blocks: Block[]): number[] | null {
     if (han / numbered.length < SECTION_HAN) return [];
     return numbered;
   }
+
+  // Markdown headings in a text file ("## 风雪"), two or more.
+  const marked: number[] = [];
+  blocks.forEach((b, i) => {
+    if (b.t === 'p' && MARKDOWN_HEAD.test(b.text) && cpLen(b.text) <= 60) marked.push(i);
+  });
+  if (marked.length >= 2) {
+    for (const i of marked) {
+      const text = (blocks[i] as { text: string }).text.trim();
+      const hashes = /^#+/.exec(text)![0].length;
+      blocks[i] = { t: 'h', level: Math.min(hashes, 6) as 1 | 2 | 3 | 4 | 5 | 6, text: text.replace(/^#+[ \t\u3000]+/, '').replace(/[ \t]+#+$/, '') };
+    }
+    const top = Math.min(...marked.map((i) => (blocks[i] as { level: number }).level));
+    return marked.filter((i) => (blocks[i] as { level: number }).level === top);
+  }
   return null;
 }
 
 /** Sections marked by bare numerals that average fewer Han characters than this stay in one chapter. */
 const SECTION_HAN = 1500;
+
+const MARKDOWN_HEAD = /^#{1,6}[ \t\u3000]+\S/;
+/** "一、序", "1. 序", "（三）风波": a section number and a short title (not a digit: 1.5倍 is a number). */
+const SECTION_TITLE = /^[（(]?\s*([0-9]{1,3}|[零〇一二两兩三四五六七八九十]{1,3})\s*(?:[)）]|[、.．])[\s\u3000]*([^\d\s\u3000].*)$/u;
+
+/**
+ * Lines that number and title the sections of a text (一、序 二、优胜记略 …): at least three, counting up from one, each
+ * title short and not a sentence, and text between each two of them (a list of points inside a chapter has little). Their
+ * indices, or null.
+ */
+function titledSections(blocks: Block[]): number[] | null {
+  const at: number[] = [];
+  let expected = 1;
+  blocks.forEach((b, i) => {
+    if (b.t !== 'p') return;
+    const m = SECTION_TITLE.exec(b.text.trim());
+    if (!m || cpLen(m[2]) > 20 || /[。，；、：:！？!?…,.;]$/.test(m[2])) return;
+    if (numeralValue(m[1]) === expected) {
+      at.push(i);
+      expected++;
+    }
+  });
+  if (at.length < 3) return null;
+  let total = 0;
+  for (let k = 0; k < at.length; k++) {
+    const end = k + 1 < at.length ? at[k + 1] : blocks.length;
+    let n = 0;
+    for (let j = at[k] + 1; j < end; j++) n += blockHan(blocks[j]);
+    if (n < 20) return null;
+    total += n;
+  }
+  return total / at.length >= 200 ? at : null;
+}
 
 function headingText(b: Block): string {
   return isHead(b) ? b.text.replace(/\s+/g, ' ').trim() : '';
@@ -582,6 +697,17 @@ export function splitBySize(blocks: Block[], target = PART_HAN * unitScale()): B
 function wholeTitle(blocks: Block[], title: string): string {
   const first = blocks[0];
   return first && isHead(first) && first.level <= 2 ? headingText(first) || title : title;
+}
+
+/**
+ * The chapters one long document shows by the headings in its text, found as for a TXT file (第N章 lines set as plain
+ * paragraphs, numbered sections …), or null when it shows none. For a converter's EPUB that holds the whole book in one file
+ * under one contents entry.
+ */
+export function chaptersByTextHeadings(input: Block[], title: string): Chapter[] | null {
+  const blocks = demoteContentsRuns(input);
+  const cuts = boundaries(blocks);
+  return cuts && cuts.length >= 2 ? cutAt(blocks, cuts, title) : null;
 }
 
 /**

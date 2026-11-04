@@ -1,4 +1,4 @@
-// Text decoding for files with no reliable charset: BOMs, strict UTF-8, then scoring candidates.
+// Text decoding for files with no reliable charset: BOMs, strict UTF-8, UTF-8 with a few bad bytes, then scoring candidates.
 import { COMMON_CHARS } from './commonChars';
 import { isHan } from './han';
 import { langId } from '../lang/active';
@@ -7,6 +7,16 @@ import type { LangId } from '../lang/types';
 export interface Decoded {
   text: string;
   encoding: string;
+  /**
+   * Characters the bytes did not give: each bad byte sequence shows as U+FFFD (�) where it was, and a character cut off at the
+   * very end of the file is left out. Missing when there were none.
+   */
+  unreadable?: number;
+}
+
+/** What the import result says when some characters could not be decoded (`unreadable`). */
+export function unreadableMessage(n: number): string {
+  return n === 1 ? '1 character could not be read and shows as �.' : `${n.toLocaleString('en-US')} characters could not be read and show as �.`;
 }
 
 /** Map a declared charset label to one TextDecoder understands, or undefined. */
@@ -107,18 +117,87 @@ function decodeWith(bytes: Uint8Array, label: string): string {
 }
 
 /**
+ * A decode as `encoding` with its replacement characters counted: a U+FFFD at the very end is a character the file cut in
+ * half (a truncated download) and is left out; the others stay where the bad bytes were. U+FFFD written in the file itself
+ * (`literal`) is not counted.
+ */
+function counted(text: string, encoding: string, literal = 0): Decoded {
+  let bad = 0;
+  for (let i = text.indexOf('�'); i >= 0; i = text.indexOf('�', i + 1)) bad++;
+  bad -= literal;
+  if (bad <= 0) return { text, encoding };
+  if (text.endsWith('�')) text = text.slice(0, -1);
+  return { text, encoding, unreadable: bad };
+}
+
+/** How many times the file itself holds U+FFFD (EF BF BD), so a decode does not count those as bad bytes. */
+function literalReplacements(bytes: Uint8Array): number {
+  let n = 0;
+  for (let i = bytes.indexOf(0xef); i >= 0 && i + 2 < bytes.length; i = bytes.indexOf(0xef, i + 1)) {
+    if (bytes[i + 1] === 0xbf && bytes[i + 2] === 0xbd) n++;
+  }
+  return n;
+}
+
+/**
+ * UTF-8 with a few bad bytes (one damaged sector, a line pasted in from a GBK file, a download cut off mid-character): the
+ * rest of the file is still UTF-8, and reading it all as GB18030 would garble every character. Returns the decode when at
+ * least 99.9% of the non-ASCII characters come out whole (`sure`), or when at least 90% do (`maybe`, for the caller to weigh
+ * against the other encodings); null when much of the file is not UTF-8. A line whose bad bytes read cleanly as GB18030 (a
+ * line from another file) is read that way.
+ */
+function looseUtf8(bytes: Uint8Array): { decoded: Decoded; sure: boolean } | null {
+  const text = new TextDecoder('utf-8').decode(bytes);
+  let nonAscii = 0;
+  let bad = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    if (c < 0x80 || (c >= 0xdc00 && c <= 0xdfff)) continue;
+    nonAscii++;
+    if (c === 0xfffd) bad++;
+  }
+  bad -= literalReplacements(bytes);
+  if (bad <= 0 || bad > nonAscii * 0.1) return null;
+  const sure = bad <= nonAscii * 0.001;
+  // Lines (a newline byte is never part of a UTF-8 sequence, so text lines and byte lines match one to one).
+  const lines = text.split('\n');
+  let start = 0;
+  let mended = false;
+  for (let k = 0; k < lines.length; k++) {
+    const end = k + 1 < lines.length ? bytes.indexOf(0x0a, start) : bytes.length;
+    if (lines[k].includes('�')) {
+      const raw = bytes.subarray(start, end);
+      try {
+        const gb = new TextDecoder('gb18030', { fatal: true }).decode(raw);
+        // Bytes that are UTF-8 apart from one bad byte also decode as GB18030 (as nonsense): the line must read far better.
+        if (scoreDecoding(gb) >= 0.5 && scoreDecoding(gb) > scoreDecoding(lines[k]) + 0.2) {
+          lines[k] = gb;
+          mended = true;
+        }
+      } catch {
+        // not GB18030 either: the replacement characters stay
+      }
+    }
+    start = end + 1;
+  }
+  return { decoded: counted(mended ? lines.join('\n') : text, 'utf-8', literalReplacements(bytes)), sure };
+}
+
+/**
  * Decode bytes of unknown encoding. `hint` is a declared charset (XML prolog, meta tag); it only
  * wins when it decodes about as well as the alternatives, because declarations are often wrong.
  */
 export function decodeText(bytes: Uint8Array, hint?: string): Decoded {
   if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
-    return { text: decodeWith(bytes, 'utf-8'), encoding: 'utf-8' };
+    return counted(decodeWith(bytes, 'utf-8'), 'utf-8', literalReplacements(bytes));
   }
-  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) return { text: decodeWith(bytes, 'utf-16le'), encoding: 'utf-16le' };
-  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) return { text: decodeWith(bytes, 'utf-16be'), encoding: 'utf-16be' };
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) return counted(decodeWith(bytes, 'utf-16le'), 'utf-16le');
+  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) return counted(decodeWith(bytes, 'utf-16be'), 'utf-16be');
 
   const utf8 = tryUtf8(bytes);
   if (utf8 !== null) return { text: utf8, encoding: 'utf-8' };
+  const loose = looseUtf8(bytes);
+  if (loose?.sure) return loose.decoded;
 
   const sample = bytes.subarray(0, Math.min(bytes.length, 131072));
   const declared = normalizeCharset(hint);
@@ -134,7 +213,9 @@ export function decodeText(bytes: Uint8Array, hint?: string): Decoded {
     if (label === declared) score += 0.05;
     if (score > best.score) best = { label, score };
   }
-  return { text: decodeWith(bytes, best.label), encoding: best.label };
+  // Mostly UTF-8 with more bad bytes than a stray few: it wins when it reads better than every other encoding.
+  if (loose && scoreDecoding(loose.decoded.text.slice(0, 131072)) >= best.score) return loose.decoded;
+  return counted(decodeWith(bytes, best.label), best.label);
 }
 
 /** A book in another language: its legacy encodings (Shift_JIS, Windows-1251, Windows-1252 …) scored by how they read. */
@@ -152,6 +233,16 @@ function decodeOther(bytes: Uint8Array, sample: Uint8Array, declared: string | u
     if (score > best.score) best = { label, score };
   }
   return { text: decodeWith(bytes, best.label), encoding: best.label };
+}
+
+/**
+ * A Big5 text whose decoder gave Hong Kong's characters (Big5-HKSCS) as private-use code points, with the characters put
+ * back (import/hkscs.ts, about 20 KB, loaded only then).
+ */
+export async function withHongKongCharacters(decoded: Decoded): Promise<Decoded> {
+  if (decoded.encoding !== 'big5' || !/[\ue000-\uf8ff]/.test(decoded.text)) return decoded;
+  const { mapHkscsPrivateUse } = await import('./hkscs');
+  return { ...decoded, text: mapHkscsPrivateUse(decoded.text) };
 }
 
 /** CRLF/CR/U+2028/2029 to \n, drop NULs and byte-order marks left inside the text. */

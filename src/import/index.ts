@@ -5,7 +5,7 @@ import { detectScript } from '../core/text';
 import { isChinese, langId } from '../lang/active';
 import { wrongLanguage } from '../lang/detect';
 import { takeAozoraRuby } from './aozora';
-import { decodeText, stripBidi } from './encoding';
+import { decodeText, stripBidi, withHongKongCharacters } from './encoding';
 import { importEpub } from './epub';
 import { DAMAGED_MESSAGE } from './zip';
 import { importMobi, looksLikeMobi } from './mobi';
@@ -16,6 +16,7 @@ import { importHtml, importMarkdown, markdownToBlocks } from './html';
 import { capChars } from './meta';
 import { bookFromText, importTxt } from './txt';
 import { IMPORT_VERSION } from './version';
+import { radicalMender } from './radicals';
 
 export { ImportError } from './errors';
 export { countHan } from './han';
@@ -116,8 +117,26 @@ function tidyChapters(chapters: ImportedBook['chapters']): ImportedBook['chapter
   });
 }
 
+/** Radicals standing for characters (⼀ for 一, from a PDF made on a Mac) mapped back, in every title and block. */
+function mendRadicalsIn(book: ImportedBook): ImportedBook {
+  const texts = [book.title];
+  for (const c of book.chapters) {
+    texts.push(c.title);
+    for (const b of c.blocks) if ('text' in b) texts.push(b.text);
+  }
+  const mend = radicalMender(texts);
+  if (!mend) return book;
+  const chapters = book.chapters.map((c) => ({
+    ...c,
+    title: mend(c.title),
+    blocks: c.blocks.map((b) => ('text' in b ? { ...b, text: mend(b.text) } : b)),
+  }));
+  return { ...book, title: mend(book.title), chapters };
+}
+
 /** Last checks and the fields every importer leaves blank: reject non-Chinese files, detect the script. */
-function finish(book: ImportedBook): ImportedBook {
+function finish(input: ImportedBook): ImportedBook {
+  const book = mendRadicalsIn(input);
   let chapters = tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0)));
   // A Japanese text from Aozora Bunko (or written the same way) keeps its publisher's readings beside the text.
   if (langId() === 'ja') chapters = takeAozoraRuby(chapters);
@@ -173,7 +192,7 @@ export async function importFile(file: Blob & { name: string }, opts?: { onProgr
       book = importMarkdown(bytes, name);
       break;
     default:
-      book = importTxt(bytes, name);
+      book = importTxt(bytes, name, await withHongKongCharacters(decodeText(bytes)));
   }
   const done = finish(book);
   onProgress?.(1);

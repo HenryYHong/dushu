@@ -16,7 +16,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 8;
+export const DETECTOR_VERSION = 9;
 
 /** Lexicon over the given rows (disabled rows ignored). */
 export function buildLexicon(rows: LexiconEntry[]): Lexicon {
@@ -40,6 +40,8 @@ export const EMPTY_LEXICON: Lexicon = buildLexicon([]);
 const EDGE_STOP = new Set([...'的了着过是在和与就也都把被我你他她它们这那个不很又还而但却才并将已正之其所'.replace('之', '').replace('其', '')]);
 /** Of EDGE_STOP, the ones that can end a given name (周雍和, 邹永才) when the rest of the name holds them. */
 const NAME_TAIL = new Set([...'和才']);
+/** Before a title someone holds, not before a person's given name: 做典史, 一任典史, 这典史, 当知县, 一个典史 (but 名处机 names one). */
+const ROLE_BEFORE = new Set([...'做當当任作个個位这這该該']);
 /** Never start a name or term: they open a clause or a verb phrase (谓之, 此机会, 转过山), and none is a surname. */
 const PHRASE_START = new Set([...'谓此转']);
 /** Characters that rarely start a name or term but can (有庆, 向问天): accepted only when strongly bound. */
@@ -346,7 +348,70 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
   // The family of each name kept, checked against its neighbors the same way.
   const fam = yield* family(kept, text, dict, passCount, hanCount, new Map(cands.map((c) => [c.word, c])), due);
   const all = fam.length ? yield* boundaries([...kept, ...fam], text, dict, statsByWord, bigram, due, new Set(fam.map((e) => e.word))) : kept;
-  return princesses(all, text, dict);
+  const named = princesses(all, text, dict);
+  return [...named, ...bookScoped(named, text, dict, (ch) => uni[ch.charCodeAt(0)] > 0)];
+}
+
+/** Uses in a book from which a curated word of one book (book-words scope "book") joins its lexicon. */
+const SCOPED_MIN = 5;
+const SCOPED_PLACE = /\b(town|village|prefecture|commandery|county|mansion|city|province|continent|temple|monastery|mountain|shop|place)\b/i;
+
+/**
+ * Curated words of one book (book-words rows of scope "book": 小红 the maid of 紅樓夢, 子曰 "the Master said") count in a book that
+ * uses them at least SCOPED_MIN times, nearly always on their own: not where the character before makes a common word with the
+ * first one (童子|曰, 公子|曰 "the young master said") or the one after with the last (小|红花). Elsewhere they are only the
+ * dictionary's (老张's 小红 is 小 + 红).
+ */
+function bookScoped(found: LexiconEntry[], text: string, dict: Dictionary, inBook: (ch: string) => boolean): LexiconEntry[] {
+  const scoped = dict.bookScoped?.();
+  if (!scoped?.size) return [];
+  const have = new Map(found.map((e) => [e.word, e] as const));
+  const out: LexiconEntry[] = [];
+  const common = (s: string) => dict.freq(s) >= 100;
+  for (const word of scoped.keys()) {
+    if (![...word].every(inBook)) continue;
+    const senses = dict.lookup(word);
+    const e = senses.find((x) => x.curated) ?? senses[0];
+    if (!e || e.pinyin.split(' ').length !== [...word].length) continue;
+    // Found by detection already: it keeps the curated reading the book-words row gave it everywhere before.
+    const seen = have.get(word);
+    if (seen) { if (seen.kind === 'name') seen.pinyin = e.pinyin.toLowerCase(); continue; }
+    let n = 0;
+    let free = 0;
+    let top = 0;
+    const after = new Map<string, number>();
+    const longer = new Map<string, number>();
+    for (let i = text.indexOf(word); i >= 0; i = text.indexOf(word, i + word.length)) {
+      const p = text[i - 1];
+      const q = text[i + word.length];
+      // Inside a longer word the dictionary has (巧姐 in 巧姐兒, 翼德 in 張翼德), it is that word's: not counted.
+      const held = (p && dict.hasWord(p + word) ? p + word : '') || (q && dict.hasWord(word + q) ? word + q : '');
+      if (held) { longer.set(held, (longer.get(held) ?? 0) + 1); continue; }
+      n++;
+      const qHan = !!q && isHanUnit(q.charCodeAt(0));
+      if (!(p && isHanUnit(p.charCodeAt(0)) && common(p + word[0])) && !(qHan && common(word[word.length - 1] + q))) free++;
+      if (qHan) { const k = (after.get(q) ?? 0) + 1; after.set(q, k); if (k > top) top = k; }
+    }
+    // (射鵰's 小红马 and 三体's 小红卫兵: one character after it most of the time makes it part of something longer.)
+    if (n < SCOPED_MIN || free < 0.75 * n || top >= 0.5 * n) continue;
+    const def = e.defs[0] ?? '';
+    // A proper noun (its reading or its gloss is capitalized: 焦大, 春燕 "Chunyan, a young maid") is a person or a place.
+    const proper = /^[A-Z]/.test(e.pinyin) || /^[A-Z][a-z]/.test(def);
+    const kind: LexiconEntry['kind'] = !proper ? 'term' : PERSON_DEF.test(def) || !SCOPED_PLACE.test(def) ? 'name' : 'place';
+    const entry: LexiconEntry = { word, pinyin: e.pinyin.toLowerCase(), gloss: (def || GLOSS[kind]).slice(0, 100), kind, count: n, enabled: true, origin: 'auto' };
+    have.set(word, entry);
+    out.push(entry);
+    // The longer dictionary words around it join too, or the entry would cut them (張|翼德).
+    for (const [x, k] of longer) {
+      if (have.has(x)) continue;
+      const syl = dict.pinyinFor(x);
+      if (!syl.every(Boolean)) continue;
+      const more: LexiconEntry = { word: x, pinyin: syl.join(' '), gloss: glossFor(x, kind, 'entry', dict), kind, count: k, enabled: true, origin: 'auto' };
+      have.set(x, more);
+      out.push(more);
+    }
+  }
+  return out;
 }
 
 /**
@@ -376,6 +441,19 @@ function personName(w: string, dict: Dictionary): boolean {
   const k = [...sur.surname].length;
   const senses = dict.lookup(w);
   return senses.length > 0 && senses.every((e) => { const syl = e.pinyin.split(' '); return /^[A-Z]/.test(syl[0]) && /^[A-Z]/.test(syl[k] ?? ''); });
+}
+
+/** Whether the last character of `s` mostly opens a common word with the character after it in the text (新安江水|电站: 水电). */
+function opensWord(text: string, s: string, dict: Dictionary): boolean {
+  const r = s[s.length - 1];
+  let n = 0;
+  let opens = 0;
+  for (let i = text.indexOf(s); i >= 0; i = text.indexOf(s, i + s.length)) {
+    n++;
+    const q = text[i + s.length];
+    if (q && isHanUnit(q.charCodeAt(0)) && dict.freq(r + q) >= 100) opens++;
+  }
+  return opens >= 0.5 * n;
 }
 
 /** A dictionary word whose every sense is an ordinary word (lowercase pinyin): 二老 "parents", not 宋江. */
@@ -433,8 +511,15 @@ function* boundaries(found: LexiconEntry[], text: string, dict: Dictionary, stat
     // "More frequent than the entry": the neighbor word also lives outside it, so it is the real word there.
     const [r, rn] = top(st.right);
     if (e.kind === 'name' && rn >= 0.6 * n && isHanUnit(r.charCodeAt(0)) && dict.hasWord(last + r) && bigram(last, r) > n) continue;
+    // 京津城|际, 亲缘关|系: a place or a term whose last character mostly makes a common word with the one after it was cut out
+    // of a longer string (京津城际, 亲缘关系). A locative or a particle after it (桃花岛上) is no such word, nor one that opens a
+    // word of its own there (新安江|水电站, not 江水).
+    if (e.kind !== 'name' && rn >= 0.6 * n && isHanUnit(r.charCodeAt(0)) && !SOFT_END.has(r) && !EDGE_STOP.has(r)
+      && dict.freq(last + r) >= 100 && dict.hasWord(last + r) && !opensWord(text, w + r, dict)) continue;
     const [l, ln] = top(st.left);
     if (ln >= 0.6 * n && isHanUnit(l.charCodeAt(0)) && dict.hasWord(l + first) && bigram(l, first) > n) continue;
+    // (疏|浚西湖: the same for a place or a term whose first character mostly closes a common word with the one before it.)
+    if (e.kind !== 'name' && ln >= 0.6 * n && isHanUnit(l.charCodeAt(0)) && dict.freq(l + first) >= 100 && dict.hasWord(l + first)) continue;
     // 大|闹天宫, 南|赡部洲: the entry is most often the tail of a longer dictionary word.
     if (ln >= 0.3 * n && isHanUnit(l.charCodeAt(0)) && dict.hasWord(l + w)) continue;
     let cut = 0;
@@ -707,6 +792,7 @@ function* family(found: LexiconEntry[], text: string, dict: Dictionary, minCount
     let all = 0;
     let bare = 0;
     let cut = 0;
+    let role = 0;
     for (let i = text.indexOf(g); i >= 0; i = text.indexOf(g, i + g.length)) {
       all++;
       if (text.slice(i - sur.surname.length, i) === sur.surname) continue;
@@ -714,8 +800,19 @@ function* family(found: LexiconEntry[], text: string, dict: Dictionary, minCount
       const p = text[i - 1] ?? '';
       const q = text[i + g.length] ?? '';
       if ((p && isHanUnit(p.charCodeAt(0)) && dict.freq(p + g[0]) >= 100) || (q && isHanUnit(q.charCodeAt(0)) && dict.freq(g[g.length - 1] + q) >= 100)) cut++;
+      if (p && ROLE_BEFORE.has(p)) role++;
     }
     if (bare < minCount || cut > 0.15 * bare) continue;
+    // 钱典史 → 典史: a title, not a given name, when the bare word is often an office someone holds (做典史, 一任典史, 这典史). One no
+    // dictionary has is still a word of the book, bound as tightly: a term, so 一任典史 keeps it whole.
+    if (role >= 0.25 * bare) {
+      const gf = fold(g);
+      if (!dict.hasWord(g) && !dict.hasWord(gf) && dict.freq(g) === 0 && dict.freq(gf) === 0) {
+        have.add(g);
+        out.push({ word: g, pinyin: e.pinyin.split(' ').slice([...sur.surname].length).join(' '), kind: 'term', count: bare, enabled: true, origin: 'auto', gloss: GLOSS.term });
+      }
+      continue;
+    }
     const gf = fold(g);
     const f = Math.max(dict.freq(g), dict.freq(gf));
     const listed = dict.hasWord(g) || dict.hasWord(gf);
@@ -969,8 +1066,9 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
   const softEnd = SOFT_END.has(last) && !(len === 2 && c.bind >= 0.9 && c.prep >= 0.1 && c.count >= 3 * minCount) && !ordered;
   // 关内侯, 武乡侯, 汉寿亭侯: a noble title in 侯, not a person (夏侯 is a surname).
   if (last === '侯' && len >= 3 && first !== '夏') return null;
-  // 刺配远恶军州: a phrase that opens with a verb (刺配 "to be exiled") is not a place, however it ends.
-  if (len >= 5 && dict.lookup(simp.slice(0, 2).join('')).some((e) => /^(\([^)]*\) )?to /.test(e.defs[0] ?? ''))) return null;
+  // 刺配远恶军州: a phrase that opens with a verb (刺配 "to be exiled") is not a place, however it ends. Four characters are a verb
+  // and its object when the last two are a word too (前往中国, 疏浚西湖, 继续上路).
+  if (verbPhrase(simp, dict)) return null;
   // 杨柳枝 (willow branch): a common word for a plant (杨柳) and its 枝 叶 根 条, never speaking, is not a surname and a name.
   if (sur && len === 3 && c.speech === 0 && '枝叶葉根条條'.includes(last) && dict.hasWord(simp.slice(0, 2).join('')) && dict.freq(simp.slice(0, 2).join('')) >= 100) return null;
   // 老木匠, 小舅妈, 外祖母: a modifier before a word for a kind of person describes someone; the dictionary has both parts.
@@ -1103,12 +1201,24 @@ function judgeShort(c: TermCandidate, dict: Dictionary): { kind: LexiconEntry['k
   const last = simp[len - 1];
   if (len < 2 || len > 5 || EDGE_STOP.has(first) || SOFT_START.has(first) || MEASURE_START.has(first) || PHRASE_START.has(first) || SOFT_END.has(last)) return null;
   if (simp.some((ch) => NOT_IN_NAME.has(ch) || EDGE_STOP.has(ch))) return null;
+  // (前往中国, 疏浚西湖: a verb and the place it goes to.)
+  if (verbPhrase(simp, dict)) return null;
   if (len >= 3 && (PLACE_SUFFIX.has(last) || SHORT_PLACE_SUFFIX.has(last)) && c.speech === 0) return { kind: 'place', surnameLed: false };
   const sur = surnameSplit(c.word, dict);
   // 仲密: seen five times and never apart, once after 对 or 叫.
   const spoken = c.speech + c.prep;
   if (sur && len <= 3 && (spoken >= 0.3 || (len === 2 && spoken >= 0.1 && c.count >= 5)) && c.left >= 0.5 && c.right >= 0.5) return { kind: 'name', surnameLed: true };
   return null;
+}
+
+/**
+ * Whether a string (simplified, one code point each) opens with a verb, a dictionary word whose first sense is "to …", and is a
+ * phrase: five characters or more (刺配远恶军州), or four whose last two are a word too (前往中国, 疏浚西湖, 继续上路).
+ */
+function verbPhrase(simp: string[], dict: Dictionary): boolean {
+  const len = simp.length;
+  if (len < 4 || (len === 4 && !dict.hasWord(simp.slice(2).join('')))) return false;
+  return dict.lookup(simp.slice(0, 2).join('')).some((e) => /^(\([^)]*\) )?to /.test(e.defs[0] ?? ''));
 }
 
 function minCountForNames(c: TermCandidate): number {

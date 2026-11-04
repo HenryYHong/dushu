@@ -2,7 +2,7 @@
 import type { BookFormat, ImportedBook } from '../types';
 import { stripBoilerplate } from './boilerplate';
 import { chaptersFromBlocks, cpLen, stripGutenbergBlocks, detectHeadingLine, isRuleLine, textToBlocks, trimLine } from './chapters';
-import { NOT_TEXT_MESSAGE, decodeText, normalizeNewlines, plausibleText } from './encoding';
+import { NOT_TEXT_MESSAGE, decodeText, normalizeNewlines, plausibleText, unreadableMessage, type Decoded } from './encoding';
 import { ImportError } from './errors';
 import { authorFromLine, isGenericName, parseFilename } from './meta';
 import { countHan } from './han';
@@ -71,8 +71,9 @@ export function bookFromText(text: string, opts: TextBookOptions): ImportedBook 
   };
 }
 
-export function importTxt(bytes: Uint8Array, sourceName: string): ImportedBook {
-  const decoded = decodeText(bytes);
+/** A text file. `decoded`: the file already decoded (importFile mends a Big5-HKSCS file's private-use characters first). */
+export function importTxt(bytes: Uint8Array, sourceName: string, decoded: Decoded = decodeText(bytes)): ImportedBook {
   if (!plausibleText(bytes, decoded)) throw new ImportError(NOT_TEXT_MESSAGE);
-  return bookFromText(decoded.text, { format: 'txt', sourceName });
+  const book = bookFromText(decoded.text, { format: 'txt', sourceName });
+  return decoded.unreadable ? { ...book, warnings: [unreadableMessage(decoded.unreadable)] } : book;
 }

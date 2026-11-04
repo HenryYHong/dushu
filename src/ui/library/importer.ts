@@ -125,7 +125,10 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       job.author = book.author || job.author;
       onJobs();
       await nextFrame();
-      return await ctx.store.books.add(book);
+      const meta = await ctx.store.books.add(book);
+      // What went wrong in an import that still worked (bad bytes in the file) is said once, beside the "Added" notice.
+      for (const w of book.warnings ?? []) ctx.toast(`${label}: ${w}`, { ms: 9000 });
+      return meta;
     } catch (e) {
       ctx.toast(errorText(e, label, m?.ImportError), { ms: 9000 });
       return null;

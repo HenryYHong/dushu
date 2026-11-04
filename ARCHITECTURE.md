@@ -399,6 +399,41 @@ settings.sandhi is on (the caller decides).
   quotation mark (a new speaker, where the typist left out the blank) and a short line without a mark that the document sets out
   three times or more (its scene break); verse set one line per `<p>` stays as it is. Decided per document, so a short last file of such
   a book stays as it is, and a paragraph a file boundary cuts stays cut.
+- Damaged and odd files (plan item 1, new imports only: the owner's eight books and the 105 classics import the same with them, so
+  IMPORT_VERSION stayed 3):
+  - **UTF-8 with bad bytes** (`decodeText`): when at least 99.9% of the non-ASCII characters decode, or at least 90% and the result reads
+    better than every legacy candidate, the file is UTF-8 read non-fatally. A line whose bad bytes read cleanly as GB18030 (a line pasted
+    in from a GBK file) is read so; other bad bytes show as U+FFFD; a character cut off at the very end is left out. The count comes back
+    as `Decoded.unreadable`, and TXT, HTML, Markdown and EPUB put "N characters could not be read and show as �." in
+    `ImportedBook.warnings` (not stored), which the library shows as a notice beside "Added" (`ui/library/importer.ts`).
+  - **Radicals from Mac PDFs** (`import/radicals.ts`, data by `scripts/build_radicals.py`): a PDF printed on a Mac names many glyphs by
+    Kangxi or CJK radicals (⼀ for 一). PDF text items map the one-way radicals and the vertical punctuation forms (︐ ﹃ …) at once
+    (`pdfCharacters`), so lines and headings read right; `finish()` maps every radical in running text (beside a character, a mark or a
+    radical) one character at a time, never NFKC on strings. The two-way ones (⼜ is 口 in Songti SC, 又 elsewhere; ⼲ 广, ⾶ 飘, ⺴ 网 in
+    Heiti) follow what the book shows of its font (又 left alone means ⼜ is 口; 口 or ⼝ present means ⼜ is 又), else the dictionary
+    words they make with their neighbours. Narrow spaces inside a justified line (narrower than half an em) are dropped; a heading's
+    wide space stays. A paragraph running from one column into the next is joined, as across a page.
+  - **Headings**: 【第N章】 (and [ ] 〔 〕), a "正文 " or Markdown "## " before the marker (both dropped from the title), sections
+    numbered and titled on their own line (一、序, 1. 序, （三）风波: three or more counting up from one, a title of at most 20
+    characters that is not a sentence, at least 20 Han between two of them and 200 on average; the longer run wins over bare numerals),
+    and two or more "## " lines in a text file. An EPUB with one content file and at most one contents entry (a converter's book,
+    the entry often "正文") gets its chapters from its text the same way (`chaptersByTextHeadings`).
+  - **Ads**: `cutAdTail` cuts "（更多精彩请访问 www…）" and 求月票/求推荐/求收藏/求订阅/求打赏 off the end of a line of the story
+    instead of dropping the line (`storyPart` for TXT lines, `storyText` for paragraphs of every format); a line of such calls alone is
+    junk.
+  - **Hard wraps**: a TXT cut at exactly its width (`wrapsExactly`: nearly every long line is exactly that long) runs a line on only when it
+    is that long; in a text that does not indent its paragraphs, a line that ends a sentence followed by an opening quotation mark starts
+    a paragraph. An EPUB `<br>` line that starts with the full-width indent starts a paragraph.
+  - **Big5-HKSCS**: a decoder that keeps the old Big5 user-defined area (Node's, some others) gives Hong Kong's characters as private-use
+    code points; `withHongKongCharacters` maps them back for TXT, HTML and EPUB files decoded as Big5 (`import/hkscs.ts`, 5,054
+    characters, a lazy 18 KB chunk; made by `scripts/build-hkscs.mjs` from the WHATWG Encoding Standard's index-big5, CC BY 4.0).
+  - **Ciphertext EPUB without `encryption.xml`**: when at least half the content files do not open with "<" and hold control bytes
+    (`looksEncrypted`), the DRM message is thrown.
+  - **Scanned PDF with a line of text per page** (a library's stamp, a page number): when under 10 Han per page are left after the
+    repeated lines go, and most of up to five sparse pages (under 50 characters) paint an image, the scanned-PDF message is thrown.
+  - Tests: `tests/import/suite.test.ts` builds 80 kinds of file (encodings, heading styles, wraps, site junk, EPUB layouts, Kindle, Mac
+    PDFs, DRM) from public/samples in the test and checks the text each must give; kinds still short of it say what (`gap`).
+    `tests/import/plan-fixes.test.ts` checks each fix on its own.
 - Raising `IMPORT_VERSION` re-imports the books the library can fetch again (`ui/library/upgrade.ts`): the Mac's books from the Mac (a
   device that cannot reach the Mac takes the file the Mac put in the sync account, `accountFileOf` in core/cloudBooks.ts) and
   the classics from the site, one at a time once the library has the Mac's list (a file from the account that does not import is not
@@ -1305,12 +1340,54 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   data version and precache list (`serviceWorker()` plugin in vite.config.ts). index.html is network first,
   `assets/` cache first, `data/` `fonts/` `samples/` cache first in a cache that survives app updates.
 
+### 7.1 Measuring Chinese reading on unseen text
+
+Everything here reads text the way the page shows it: the app's import (`importFile`), name detection over the chapters'
+paragraphs and quotes (`detectTerms`, as `core/lexicon.ts` `bookTexts` feeds it), and `ui/reader/shown.ts` (`inScript`,
+`lexiconInScript`, `segmentShown`) with the display simplified. That path lives in `scripts/eval/zh-shown.ts`, which the tools and
+the tests share, so what is measured is what a reader sees.
+
+- **Dumps.** `node scripts/eval/zh-dump.mjs --out DIR [--books LIST] [--only a,b] [--script simplified|traditional|original]
+  [--compact FILE] [--no-names] PATH...` reads every book in the folders or files given (TXT, EPUB, MOBI/AZW3, PDF, HTML, Markdown;
+  `INDEX.md`-style uppercase files are skipped) and writes per book `seg.txt` (tokens joined by `|`, the reading in braces where a
+  character or word has more than one), `full.txt` (every Han token with its reading), `lexicon.tsv`, `tokens.tsv`,
+  `singles.tsv`, `pairs.tsv` (neighbors that together are a dictionary word) and `readings.tsv`, plus `index.json`. Lines are
+  `chapter.block<TAB>tokens`. It runs inside Vitest (`scripts/eval/zh.vitest.config.mts`, jsdom) so the TypeScript is used as it is;
+  a PDF that pdf.js cannot open there falls back to `pdftotext` and says so in `index.json`. `--books` takes `id<TAB>path` rows from
+  a list kept outside the repository, for the owner's books: their names stay out of the repo, and the tool refuses an output
+  folder inside it (except under `.cache/`). It prints ids and counts only.
+- **Diffs.** `python3 -I scripts/eval/zh-diff.py BEFORE AFTER OUT [book ...] [--sample N] [--seed S] [--genres tests/corpus/zh/texts.tsv]`
+  compares two dumps region by region (a region runs between two boundaries both dumps share): `seg` when the cut changed, `read`
+  when the same token got another reading, `text` when the text itself changed (aligned with difflib). It writes `summary.tsv` (most
+  frequent first, with per-book counts and contexts), one TSV per book, and with `--sample` a seeded random sample of changed places
+  to judge better / same / worse. Every change that touches `segment.ts`, `dict.ts`, the pinyin rules, the lexicon or the data ships
+  with these counts and a judged sample of 40; run it on the private books locally too and report counts only.
+- **Held-out corpus** (`tests/corpus/zh`, 55 texts, about 487,000 Han characters in 8 genres, each with source and license in
+  `INDEX.md`; one folder per license, `LICENSES.md`). Never tuned on, never copied into rules: a fix names its mechanism.
+- **Silver gold** (`tests/corpus/zh/silver.tsv`, 1,129 checks from the three blind audits; format in `tests/corpus/README.md`;
+  `scripts/eval/zh-silver.ts`). `tests/corpus/zh-corpus.test.ts` scores them on every `npm test` and fails only when fewer are right
+  than `tests/corpus/zh/baseline.json` records. Each stage that fixes some raises the baseline (`UPDATE_ZH_BASELINE=1`).
+- **Corpus diff in CI.** The same test compares the corpus's groupings and written readings with `tests/corpus/zh/shown-baseline.tsv`
+  (a compact form: token boundaries as bits, readings as exceptions to each token's most common one) and prints the changed regions
+  per genre, the most frequent changes and a seeded sample of 40 with context. It does not fail; `ZH_CORPUS_STRICT=1` makes it.
+- **UD gate** (`tests/corpus/ud.test.ts`, UD Chinese GSDSimp and HK test sets, CC BY-SA, word forms only). F1 and crossing rate per
+  set, with each line read alone (`dict`) and as one book with detected names (`book`). Fails when crossing rises more than 0.03
+  points or F1 falls more than 0.3 below `tests/corpus/ud/baseline.json`.
+- **Local benchmarks.** `ZH_BENCH_DATA=<folder of .gold files> [ZH_BENCH_CPP=<folder with test.sent, test.lb>] node
+  scripts/eval/zh-bench.mjs [--record FILE] [--baseline FILE]` scores SIGHAN 2005, ZX and the CPP polyphone set, which may not be
+  stored here (research-only or someone else's dataset). Same F1 and crossing, CPP accuracy strict and on one-character tokens.
+  `--baseline` fails past the plan's tolerances (crossing +0.03, F1 -0.3, CPP strict -0.2, CPP one-character -0).
+- **Sealed set.** About 160,000 Han characters from other works and articles of the same genres, kept outside the repository for the
+  final blind audit. Nobody reads it while fixing; after an audit round its texts may join the corpus and a new one is fetched.
+- Updating every baseline at once: `UPDATE_ZH_BASELINE=1 npx vitest run tests/corpus` (about 5 seconds).
+
 ## 8. Licenses
 CC-CEDICT (CC BY-SA 4.0, attribution required in About), Unihan (Unicode License v3), jieba
 (MIT), hsk30 by Ivan Krasilnikov (MIT; HSK 3.0 levels by reading, a transcription of GF0025-2021) and complete-hsk-vocabulary
 (MIT), both notices in `public/data/hsk-LICENSES.txt`, OpenCC (Apache-2.0), Jigmo (CC0), Wiktionary via kaikki
 (CC BY-SA), hanzi-writer (MIT) + hanzi-writer-data (Arphic Public License, fetched at runtime),
-Newsreader (SIL OFL 1.1, no Reserved Font Name; `public/fonts/Newsreader-OFL.txt`).
+Newsreader (SIL OFL 1.1, no Reserved Font Name; `public/fonts/Newsreader-OFL.txt`), Unicode's EquivalentUnifiedIdeograph.txt (Unicode
+License v3, `import/radicals.ts`), the WHATWG Encoding Standard's index-big5 (CC BY 4.0, credited in About and `import/hkscs.ts`).
 
 ## 9. Other languages (`src/lang/`)
 

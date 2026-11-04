@@ -218,7 +218,8 @@ describe('groupings', () => {
 
   it('keeps names, titles and old words whole', () =>
     checkCuts([
-      ['宋江做押司時。', '押司', true], ['張翼德大喝一聲。', '张翼德', true], ['張任教張翼守城。', '张任|教', true], ['明公差矣。', '明公|差', true],
+      // (張任 is a curated name of 三國 with scope "book": it joins in a book that uses it, tests/core/data-plumbing.test.ts.)
+      ['宋江做押司時。', '押司', true], ['張翼德大喝一聲。', '张翼德', true], ['明公差矣。', '明公|差', true],
       ['逃走在柴大官人家。', '官人|家', true], ['幾十個科斗子。', '科斗', true], ['楊二嫂發見了這件事。', '发见', true], ['在魯鎮的酒店裏。', '鲁镇', true],
     ]));
 });

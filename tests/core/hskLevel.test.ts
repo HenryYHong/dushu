@@ -132,7 +132,9 @@ describe('hskLevels', () => {
     expect(dict.char('呌')?.radical?.num).toBe(dict.char('叫')?.radical?.num);
     expect(Math.abs(dict.char('呌')!.radical!.residual - dict.char('叫')!.radical!.residual)).toBe(2);
     expect(level('叫', ['jiao4'])).toBe(1);
-    expect(level('呌', ['jiao4'])).toBeUndefined();
+    // (The simplified page shows 呌 as 叫, the 2013 standard form that CC-CEDICT points it at, so it has 叫's level: dict.ts
+    // foldVariants. 仝 above is a surname of its own and keeps no level.)
+    expect(level('呌', ['jiao4'])).toBe(1);
   });
 
   it('does not lend a character the level of the one t2s folds it into, in a reading that one never has', () => {

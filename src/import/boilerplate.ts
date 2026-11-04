@@ -16,7 +16,7 @@ const SENTENCE_END = /[。！？!?”’」』]$/;
 
 /** Lines that are junk only when they are short and stand alone. */
 const SHORT_PATTERNS: RegExp[] = [
-  /本[书書]由.{0,40}(?:整理|制作|製作|提供|收集|上传|上傳|分享|校对|校對|扫描|掃描|发布|發布|搜集|编辑|編輯)/,
+  /本[书書章]由.{0,40}(?:整理|制作|製作|提供|收集|上传|上傳|分享|校对|校對|扫描|掃描|发布|發布|搜集|编辑|編輯)/,
   /本[书書]来自|本[书書]转自|本[书書]轉自/,
   /更多(?:精彩|好看|好[书書]|小说|小說|txt|TXT|电子书|電子書|章节|章節|内容|內容|完本|资源|資源)/,
   /(?:txt|TXT|ＴＸＴ|epub|EPUB|mobi|MOBI)[\s　]*(?:电子书|電子書|小说|小說|全集|全本|下载|下載|格式|版)/,
@@ -38,6 +38,13 @@ const isNavBar = (t: string): boolean => NAV_ONE_STRONG.test(t) || (NAV_ANY.test
 /** Serial-novel end marks. "全文完" is left alone: it is a real sign-off. */
 const END_MARK = /^[\s　\p{P}\p{S}]*(?:未完待[续續]|本章未完|本章完|待[续續])[\s　\p{P}\p{S}]*$/u;
 
+/** A serial author's call for votes, bookmarks and tips: 求月票, 求推荐, 求收藏 … */
+const CALL = '求(?:月票|保底月票|推[荐薦]票?|收藏|[订訂][阅閱]|打[赏賞]|票票?)';
+/** A line made only of such calls ("求月票！求推荐！求收藏！"). */
+const CALLS_ONLY = new RegExp(`^[\\s\\u3000\\p{P}~～]*(?:${CALL}[\\s\\u3000\\p{P}~～]*)+$`, 'u');
+/** The same calls tacked onto the end of a line of the story. */
+const CALLS_TAIL = new RegExp(`[\\s\\u3000（(【\\[]*(?:${CALL}[\\s\\u3000\\p{P}~～]*)+$`, 'u');
+
 const SITE_WORD = /仅供|僅供|正版|24\s*小[时時]|二十四小[时時]|本站|网址|網址|域名|下[载載]|论坛|論壇|社区|社區|公众号|公眾號|QQ|微信|[网網]站|\.com|\.net|\.cn/i;
 const SHORT_MAX = 60;
 const URL_LINE_MAX = 120;
@@ -50,7 +57,7 @@ export function isBoilerplateLine(line: string): boolean {
   const n = cpLen(t);
   if (n > URL_LINE_MAX) return false;
 
-  if (isNavBar(t) || END_MARK.test(t)) return true;
+  if (isNavBar(t) || END_MARK.test(t) || CALLS_ONLY.test(t)) return true;
 
   const urls = t.match(URL_RE);
   let urlChars = 0;
@@ -77,6 +84,28 @@ export function stripUrlTail(line: string): string {
   return line.slice(0, m.index);
 }
 
+/** A line with the ads cut off its end: "…更多精彩请访问 www.xxx.com" and "求月票！求推荐！", in any order. */
+export function cutAdTail(line: string): string {
+  let t = line;
+  for (;;) {
+    const before = t;
+    if (/(?:https?:\/\/|www\.)/.test(t)) t = stripUrlTail(t);
+    const m = CALLS_TAIL.exec(t);
+    if (m) t = t.slice(0, m.index);
+    if (t === before) return t;
+  }
+}
+
+/**
+ * The part of a line to keep: the whole line, the line with an ad cut off its end (a line of the story the site wrote its
+ * banner after), or null when the line is all boilerplate.
+ */
+export function storyPart(line: string): string | null {
+  const cut = cutAdTail(line);
+  if (cut !== line && countHan(cut) >= 2 && !isBoilerplateLine(cut)) return cut;
+  return isBoilerplateLine(line) ? null : line;
+}
+
 export interface BoilerplateOptions {
   /** A line must show up more than this many times to count as stamped boilerplate. */
   repeatMin?: number;
@@ -98,8 +127,8 @@ export function stripBoilerplate(lines: string[], opts: BoilerplateOptions = {})
 
   const kept: string[] = [];
   for (const raw of lines) {
-    if (isBoilerplateLine(raw)) continue;
-    kept.push(/(?:https?:\/\/|www\.)/.test(raw) ? stripUrlTail(raw) : raw);
+    const story = storyPart(raw);
+    if (story !== null) kept.push(story);
   }
   if (kept.length < minLines) return kept;
 

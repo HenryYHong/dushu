@@ -40,3 +40,10 @@ Each output is graded by Claude Sonnet 5.5 against the answer key and recorded w
 negation-modality, omission, addition, idiom-literal, number-unit, register-fluency, each major or minor. A passage is
 **strict pass** with no error, **lenient pass** with no major error. The judge is a Claude model grading Claude and Qwen output;
 the held-out failures were also read by hand. See the limits at the top of `report.md`.
+
+# Chinese word groupings and readings
+
+The `zh-*` files measure how the reader cuts and reads Chinese it was never tuned on: `zh-dump.mjs` (dumps through the reader's
+path), `zh-diff.py` (every change between two dumps), `zh-bench.mjs` (SIGHAN, ZX and CPP, data kept off the repository),
+`zh-shown.ts`, `zh-silver.ts` and `zh-score.ts` (the shared code). The gates that run in CI are in `tests/corpus/`. See
+ARCHITECTURE.md §7.1 and `tests/corpus/README.md`.

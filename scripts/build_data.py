@@ -254,8 +254,10 @@ def build_book_words():
             if not line or line.startswith("#"):
                 continue
             cols = line.split("\t")
-            if not 4 <= len(cols) <= 5:
-                raise SystemExit(f"book-words.tsv line {n}: expected 4 or 5 tab-separated columns")
+            if not 4 <= len(cols) <= 6:
+                raise SystemExit(f"book-words.tsv line {n}: expected 4 to 6 tab-separated columns")
+            if len(cols) == 6 and cols[5] != "book":
+                raise SystemExit(f"book-words.tsv line {n}: the sixth column (scope) can only be 'book'")
             trad, simp, pinyin, defs = cols[:4]
             if not (all(is_han(c) for c in trad) and all(is_han(c) for c in simp)):
                 raise SystemExit(f"book-words.tsv line {n}: headword must be Han characters")
@@ -264,12 +266,14 @@ def build_book_words():
             if (trad, simp, pinyin) in seen:
                 raise SystemExit(f"book-words.tsv line {n}: duplicate row")
             seen.add((trad, simp, pinyin))
-            rows.append(cols[:4] + ([cols[4]] if len(cols) == 5 and cols[4].strip().isdigit() else []))
+            count = [cols[4]] if len(cols) >= 5 and cols[4].strip().isdigit() else []
+            # Scope "book": the word counts only in a book that uses it (its lexicon), not in every book (小红, 子曰).
+            rows.append(cols[:4] + ((count or [""]) + ["book"] if len(cols) == 6 else count))
     write_gz(
         "book-words.tsv.gz",
         [
             "Curated senses for words in classic and modern Chinese novels, written for Dushu (CC0 1.0). Source: scripts/data/book-words.tsv",
-            "trad<TAB>simp<TAB>pinyin (numbered, ü)<TAB>definitions joined by /<TAB>optional segmentation count",
+            "trad<TAB>simp<TAB>pinyin (numbered, ü)<TAB>definitions joined by /<TAB>optional segmentation count<TAB>optional scope (book)",
             "A row replaces the CC-CEDICT row with the same trad, simp and pinyin, or is added, and is listed first for its headword.",
         ],
         rows,

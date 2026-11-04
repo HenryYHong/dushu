@@ -3,13 +3,13 @@ import type { Block, ImportedBook } from '../types';
 import { AssetStore, dropAssets } from './assets';
 import { extractBlocks, normalizeInline } from './blocks';
 import { chaptersFromBlocks, detectWrapWidth, linesToParagraphs, paragraphsToBlocks, trimLine } from './chapters';
-import { decodeText, normalizeNewlines, sniffMarkupCharset } from './encoding';
+import { decodeText, normalizeNewlines, sniffMarkupCharset, unreadableMessage, withHongKongCharacters } from './encoding';
 import { parseXhtml } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
 
 export async function importHtml(bytes: Uint8Array, sourceName: string): Promise<ImportedBook> {
-  const text = decodeText(bytes, sniffMarkupCharset(bytes)).text;
-  const doc = parseXhtml(text);
+  const decoded = await withHongKongCharacters(decodeText(bytes, sniffMarkupCharset(bytes)));
+  const doc = parseXhtml(decoded.text);
   const store = new AssetStore();
   const { blocks } = extractBlocks(doc, { resolveImage: (src) => (/^data:/i.test(src) ? store.addDataUri(src) : undefined) });
 
@@ -34,6 +34,7 @@ export async function importHtml(bytes: Uint8Array, sourceName: string): Promise
     chapters: dropAssets(chaptersFromBlocks(blocks, { title }), undefined, dropped).chapters,
     assets: store.assets,
     sourceName,
+    ...(decoded.unreadable ? { warnings: [unreadableMessage(decoded.unreadable)] } : {}),
   };
 }
 
@@ -119,8 +120,8 @@ export function markdownToBlocks(source: string): Block[] {
 }
 
 export function importMarkdown(bytes: Uint8Array, sourceName: string): ImportedBook {
-  const text = decodeText(bytes).text;
-  const blocks = markdownToBlocks(text);
+  const decoded = decodeText(bytes);
+  const blocks = markdownToBlocks(decoded.text);
   const fromFile = parseFilename(sourceName);
   const h1 = blocks.find((b): b is Extract<Block, { t: 'h' }> => b.t === 'h' && b.level === 1);
   const title = cleanTitle(h1?.text ?? '') || fromFile.title || 'Untitled';
@@ -132,5 +133,6 @@ export function importMarkdown(bytes: Uint8Array, sourceName: string): ImportedB
     chapters: chaptersFromBlocks(blocks, { title }),
     assets: new Map(),
     sourceName,
+    ...(decoded.unreadable ? { warnings: [unreadableMessage(decoded.unreadable)] } : {}),
   };
 }

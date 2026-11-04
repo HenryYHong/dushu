@@ -744,6 +744,83 @@ function holdsLexiconWord(w: string, lexicon: Lexicon): boolean {
   return false;
 }
 
+/** Measure words and units a numeral or a demonstrative takes: after 一 or 这 a word that opens with one is cut (一|本书 is 一本 + 书). */
+const FLOOR_MEASURES = '个個本出封张張条條件只隻头頭匹位口座片块塊根枝支双雙对對句声聲眼次回遍下番场場阵陣把顶頂首篇部台臺辆輛架艘棵株朵粒颗顆'
+  + '间間家所门門道层層级級段节節套份种種类類群批堆串排幅面项項则則笔筆尊盏盞扇幢栋棟丛叢束捆滴页頁章卷册冊届屆期年月日天岁歲'
+  + '毛角元圆圓钱錢两兩斤路点點寸尺丈';
+const BEFORE_FLOOR_MEASURE = NUMERAL_BEFORE_MEASURE + '半这這那哪每某';
+/** Locatives and particles: after an unseen word they make no word with its last character that would take it (十字街上). */
+const AFTER_FLOOR_FREE = '上下里裡裏中内內外前后後边邊头頭的了着著过過地得';
+/** What follows a number that an unseen word ending in a numeral would take from it (引|数十骑, 引|数骑, 天保|八年, 早|八点). */
+const AFTER_FLOOR_NUMERAL = NUMERAL_BEFORE_MEASURE + '年月日天岁歲点點时時个個人骑騎';
+/**
+ * Digits: two different ones side by side are a year or a rough number (三九年 is 1939, 三四个), not a word (三九 "the coldest
+ * days"), unless two more follow (三九四九, the winter's nine-day spells).
+ */
+const FLOOR_DIGITS = '〇零一二三四五六七八九';
+/** A sense that is a verb ("to hold with one's hand", "(of a car) to stall"). */
+const VERB_DEF = /^(\([^)]*\) )*to /;
+/** A sense that is a whole exclamation or question ("Oh that's true!", "what is this?") or an interjection. */
+const UTTERANCE_DEF = /[!?]\s*$|\binterjection\b/;
+
+/**
+ * Score of a dictionary word the corpus never saw (文旅, 青蒿, 胶皮): the floor count of dict.segmentFreq, so it beats a split into
+ * rare characters but not one into common ones, or -UNSEEN_WORD_PENALTY as before where the neighbors show the text means its
+ * parts: a measure word after a numeral or a demonstrative (一|本书, 写一|封四|六信, 两|路杀至), a numeral before a numeral or a
+ * measure (引|数十骑, 三|九年), a particle after the word before it (吼|得人心), a final 只 (猫只), a pronoun opening it (给|我孙子),
+ * and the other cases below. `b` is the end of the run of Han characters.
+ */
+function unseenScore(text: string, pos: number, a: number, b: number, w: string, dict: Dictionary): number {
+  const floor = dict.segmentFreq?.(w) ?? 0;
+  if (floor <= 0) return -UNSEEN_WORD_PENALTY;
+  const prev = pos > a ? text[pos - 1] : '';
+  const n = w.length;
+  const next = pos + n < b ? text[pos + n] : '';
+  if (has(FLOOR_MEASURES, w[0]) && has(BEFORE_FLOOR_MEASURE, prev)) return -UNSEEN_WORD_PENALTY;
+  // (Before another numeral only a number word that takes one: 引|数十, not 忘八|一条.)
+  if (has(NUMERAL_BEFORE_MEASURE, w[n - 1]) && !has(NUMERAL_BEFORE_MEASURE, w[0]) && has(AFTER_FLOOR_NUMERAL, next)
+    && (!has(NUMERAL_BEFORE_MEASURE, next) || has('数數几幾十百千万萬', w[n - 1]))) return -UNSEEN_WORD_PENALTY;
+  if (n === 2 && w[0] !== w[1] && has(FLOOR_DIGITS, w[0]) && has(FLOOR_DIGITS, w[1]) && !has(FLOOR_DIGITS, next)) return -UNSEEN_WORD_PENALTY;
+  // 初七|方得: a numeral after 初 is the day of the month, not the start of 七方.
+  if (prev === '初' && has(FLOOR_DIGITS + '十', w[0])) return -UNSEEN_WORD_PENALTY;
+  // (Not 过: 过谦 过虑 过劳 过犯 are words, and 铺过床 is left for later. Nor after a negation: 不着边儿.)
+  if (prev && has('了着著得', w[0]) && !has('不没沒', prev)) return -UNSEEN_WORD_PENALTY;
+  if (has('只隻', w[n - 1])) return -UNSEEN_WORD_PENALTY;
+  // 给我孙子 (my grandson), not the Japanese town 我孙子: a pronoun opens the clause's own words (我|不|知道, 他们|俩).
+  if (has('我你他她它您咱', w[0])) return -UNSEEN_WORD_PENALTY;
+  // 下起雨来, 拿起笔来: 起 … 来 is the verb's complement around its object, not 起雨 or 起笔.
+  if (n === 2 && w[0] === '起' && pos + 2 < b && has('来來', text[pos + 2])) return -UNSEEN_WORD_PENALTY;
+  // 被|罩在铜缸里, 把|捉回来的人: 被 and 把 before a verb and its complement mark the passive and the object, not 被罩 or 把捉.
+  if (n === 2 && ((w[0] === '被' && has('在着著了住上下起回来來去到得出进進过過', next)) || (w[0] === '把' && has('回到', next)))) return -UNSEEN_WORD_PENALTY;
+  // 那知 哪知 谁知 岂知 (who would have thought): 知 is theirs, not the start of 知遇.
+  if (w[0] === '知' && has('那哪谁誰岂豈怎焉', prev)) return -UNSEEN_WORD_PENALTY;
+  // 便 opening a word the corpus never saw is the adverb "then" before a verb (便|闭了口, 便|乘间, 便|换了), not 便闭 "constipation".
+  if (w[0] === '便') return -UNSEEN_WORD_PENALTY;
+  // 曹公|知我, 董公|所赠: 公 after a surname is the honorific of the man named, not the start of 公知 or 公所. (Not a courtesy name,
+  // 徐公明, nor 公 "male", 一只公狗.)
+  if (n === 2 && w[0] === '公' && prev && SURNAMES.has(dict.toSimplified(prev)) && !(pos - 2 >= a && dict.hasWord(text.slice(pos - 2, pos)))
+    && !dict.lookup(w).some((e) => /^[A-Z]/.test(e.pinyin) || e.defs.some((d) => /\bsurname\b|^male\b/.test(d)))) return -UNSEEN_WORD_PENALTY;
+  // 老爷们 is 老爷 + 们: the plural of a word is that word and 们, whatever a dictionary lists (老爷们 "menfolk").
+  if (n >= 3 && has('们們', w[n - 1]) && dict.hasWord(w.slice(0, n - 1))) return -UNSEEN_WORD_PENALTY;
+  // 吹口仙气, 喘口气: 口 counts a breath or a mouthful after a verb, not the end of a word (吹口 "mouthpiece").
+  if (n === 2 && w[1] === '口' && (has('气氣', next) || (pos + 3 < b && has('气氣', text[pos + 3])))) return -UNSEEN_WORD_PENALTY;
+  // 土拍了拍, 看一看: the last character is the verb said twice (not 辱没了没脸, where the second 没 opens 没脸).
+  if (next && has('了一', next) && text[pos + n + 1] === w[n - 1] && !(pos + n + 2 < b && dict.hasWord(w[n - 1] + text[pos + n + 2]))) return -UNSEEN_WORD_PENALTY;
+  // The aspect particle 着 follows a verb: a word with no verb sense before it is two words cut wrong (正|犯着, 兵|端着, 风|吹着).
+  // (Not 过, also the verb "to pass": 此山径过有六百里; nor a 着 that opens a word, 这厮着实无礼, or is 着了 "caught", 火绒着了.)
+  if (has('着著', next) && !(pos + n + 1 < b && (text[pos + n + 1] === '了' || dict.hasWord(next + text[pos + n + 1])))
+    && !dict.lookup(w).some((e) => e.defs.some((d) => VERB_DEF.test(d)))) return -UNSEEN_WORD_PENALTY;
+  // An exclamation or a question that is a whole clause with its 是 (那倒是 "Oh that's true!", 这是甚么 "what is this?") is one word
+  // only where the clause ends with it: in 那倒是好事 and 这是甚么字 it is words of a longer one. 你有你的路，我有我的 is the
+  // plain possessive after the same pronoun (有你的 "You're really something!").
+  if (((next && w.includes('是')) || (w[0] === '有' && prev !== '' && prev === w[1])) && dict.lookup(w).every((e) => e.defs.length > 0 && e.defs.every((d) => UTTERANCE_DEF.test(d)))) return -UNSEEN_WORD_PENALTY;
+  // Three characters or more that are a word plus a last character that makes a common word with the one after it: 铁皮|屋顶,
+  // not 铁皮屋|顶; and before 来 or 去, which take a verb at the end of any word (据|我|看来, not 据我看|来; but 喘不过|来 keeps its
+  // complement). (A locative or a particle after it is no such word: 十字街|上.)
+  if (n >= 3 && next && !has(AFTER_FLOOR_FREE, next) && dict.freq(w[n - 1] + next) >= 100 && ((has('来來去', next) && w[1] !== '不') || dict.hasWord(w.slice(0, n - 1)))) return -UNSEEN_WORD_PENALTY;
+  return Math.log(floor + 1);
+}
+
 /** Whether text[pos-1] + text[pos] and text[end-1] + text[end] are both common dictionary words (青海 and 民歌 around 海民). */
 function bothSidesWords(text: string, pos: number, end: number, dict: Dictionary): boolean {
   const left = text.slice(pos - 1, pos + 1);
@@ -808,7 +885,7 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
       // dictionary joins it where it is a word already, and the entry brings its card and reading. Names the corpus knows (宋江,
       // 关云长, jieba's 丘处机) and words it never saw keep the boost.
       let own = fromLexicon ? (f >= COMMON_LEXICON_COUNT && isCommonWord(w, dict) ? Math.log(f + 1) : Math.max(LEXICON_WEIGHT, Math.log(f + 1)))
-        : f === 0 && !isSingleCodePoint(w) ? -UNSEEN_WORD_PENALTY : Math.log(f + 1);
+        : f === 0 && !isSingleCodePoint(w) ? unseenScore(text, pos, a, b, w, dict) : Math.log(f + 1);
       // A lexicon word whose first character makes a common word with the character before and whose last makes one with the
       // character after (青|海民|歌 inside 青海民歌) is not boosted: there the text is those two words.
       if (fromLexicon && pos > a && end < b && bothSidesWords(text, pos, end, dict)) own = Math.log(f + 1);

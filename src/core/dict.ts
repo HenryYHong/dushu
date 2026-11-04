@@ -155,8 +155,52 @@ export async function loadDictionary(baseUrl: string, opts?: LoadOptions): Promi
 
 // ------------------------------------------------------------ the dictionary ---
 
-const SPECIAL_RE = /[\u2E80-\u2FDF\uF900-\uFAFF\uD87E]/; // radicals, compatibility ideographs (and the supplement's high surrogate)
 const EMPTY: string[] = [];
+
+/**
+ * Segmentation count of a CC-CEDICT or Wiktionary word that the jieba corpus never saw (文旅, 青蒿, 胶皮): enough to beat a split
+ * into rare characters, never a split into common ones (有的 stays 有 + 的). Measured on the held-out corpus (scripts: diff of dumps).
+ */
+export const UNSEEN_FLOOR = 5;
+/** A row that only points at another spelling, or that the dictionary marks as old or regional, gets no floor. */
+const NO_FLOOR_DEF = /^((old|archaic|obsolete|ancient|erroneous|unofficial|Japanese) )*variant of|^\((archaic|obsolete|dialect|Cantonese|Hokkien|Wu|Min)\b/i;
+/**
+ * (Unless one of its tags is "(literary)": the old novels' own words, 厨下 "in the kitchen", 籴米 "to buy rice", 护驾 "to escort the
+ * emperor", are tagged archaic or regional and literary at once.)
+ */
+const LITERARY_TAG = /^(\([^)]*\) )*\(literary\)/i;
+/**
+ * A sense whose first tag is slang, Internet or video-game talk or a neologism (头铁, 老六 "noob", 不要太 "very", 吃鸡 "PUBG"): a
+ * row with no other sense gets no floor, since a book that has the two characters side by side nearly always means them, not the
+ * slang. (A colloquial or dialect word that is slang too, 二饼 "(colloquial) (dialect) (slang) eyeglasses", keeps it.)
+ */
+const SLANG_DEF = /^\([^)]*\b(slang|Internet|neologism|video games)\b/i;
+/** A sexual sense in slang (吃香蕉 "(slang) to give a blowjob") or of a prostitute (站街): never put on the page by a floor. */
+const SEXUAL_DEF = /^(\([^)]*\) )*\([^)]*\b(slang|vulgar)\b[^)]*\).*\b(blowjob|sex|sexual|penis|vagina|breasts?|orgasm|masturbat\w*|prostitut\w*|porn\w*)\b|^\(of a prostitute\)/i;
+const HAN_WORD = /^[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]{2,6}$/;
+/** A sense that opens with a species' Latin name ("Anthurium andraeanum", "Artemisia annua, …"). */
+const TAXON = /^[A-Z][a-z]+ [a-z]+(a|ae|um|us|is|es|i|ii|ensis|oides)(,|;| \(|$)/;
+/**
+ * A sense that only names a town, a village, a district, a city or a province ("Sanhe (a town in …)", "Zama (city in Kanagawa …)",
+ * "Linnei (a rural township in Yunlin County, Taiwan)", "an urban village in Nangang district, Taipei", "Đắk Lắk (a province of
+ * Vietnam)").
+ */
+const ADMIN_PLACE = /\((a |an )?((rural|urban) )?(town|township|village|subdistrict|county|district|city|county-level city|prefecture-level city)\b|\(city in |^(an? )?((rural|urban) )?(village|township|town)\b/i;
+/** (A province of a country today, 多乐 "Đắk Lắk (a province of Vietnam)", not of imperial China: 交州 is the novels' own.) */
+const PROVINCE_OF = /\(a province of [A-Z]/;
+/**
+ * Characters that CC-CEDICT gives only as "variant of" another but that the 2013 Table of General Standard Chinese Characters
+ * (通用规范汉字表, Unihan kTGH) lists as standard in their own right, mostly for names (斌, 珪, 甯, 焱) or a sense of their own (犟,
+ * 绔): foldVariants leaves them. 忕 and 濇 are left too: the character they point to (忲, 瀒) is not in the table. Derived from
+ * Unihan 18.0 (Unicode license) against this CC-CEDICT: every other character foldVariants picks is outside the table, its target
+ * inside it.
+ */
+const STANDARD_VARIANTS = '㬎倮偁刬勔坭崧憙摏攽斌椀毌澂焱牚犇犟珪甯绔鎏忕濇';
+/**
+ * Words in which a folded variant stands for another character than its usual one: 隄 is 堤 (a dike) on its own, but the novels'
+ * 隄防 and 隄備 are 提防 and 提备 ("to be on guard"), not 堤防 "a dike". Applied before the character fold, on the page and in lookups.
+ */
+const FOLD_WORDS: Readonly<Record<string, string>> = { 隄防: '提防', 隄備: '提備', 隄备: '提备' };
 
 interface ReadingCandidate { syllables: string[]; penalty: number; order: number }
 
@@ -221,6 +265,18 @@ class DictImpl implements Dictionary {
   private wordTotal = 1;
   private wordsExtraLoaded = 0;
   private bookWordsLoaded = 0;
+  /** Headwords of the Wiktionary supplement (cedict-extra), which has none of CC-CEDICT's. */
+  private extraWords = new Set<string>();
+  /** segmentFreq's floors, by word. */
+  private floorMemo = new Map<string, number>();
+  /** book-words rows of scope "book", in both scripts, with their count. */
+  private scoped = new Map<string, number>();
+  /** Single-character headwords (BMP), for foldVariants; emptied after. */
+  private singles = new Set<string>();
+  /** Variant character -> its standard form (靑 -> 青, 槪 -> 概), from CC-CEDICT's pointer rows (foldVariants()). */
+  private fold = new Map<string, string>();
+  /** The UTF-16 units of `fold`'s variant characters (all in the BMP): what normalizeWord and finish() look for (isSpecial). */
+  private foldBits: Uint8Array | null = null;
 
   private charLines = new Map<number, string>();
   private extraLines = new Map<number, string>();
@@ -266,7 +322,9 @@ class DictImpl implements Dictionary {
       // The HSK rows appended at the end are not in CEDICT's numbered format ("bu4 lìyú", "yǒujìnr5").
       if (/[^\x00-\x7f]|(^| )[a-zü]+( |$)/.test(pinyin)) pinyin = normalizePinyinField(pinyin);
       const entry: DictEntry = { trad: t[0], simp: t[1], pinyin, defs: t[3].split('/') };
-      if (supplement) this.wordsExtraLoaded++;
+      if (supplement) { this.wordsExtraLoaded++; this.extraWords.add(t[0]).add(t[1]); }
+      if (t[0].length === 1) this.singles.add(t[0]);
+      if (t[1].length === 1) this.singles.add(t[1]);
       this.addEntry(entry.simp, entry);
       if (entry.trad !== entry.simp) { this.addEntry(entry.trad, entry); this.twoScript.push(entry); }
       else if (entry.simp.length > 1) this.sameScript.push(entry.simp);
@@ -277,7 +335,8 @@ class DictImpl implements Dictionary {
    * Curated senses (public/data/book-words.tsv.gz, built from scripts/data/book-words.tsv). A row with the same trad,
    * simp and pinyin as a CEDICT row replaces that row's definitions; any other row is added. Either way it moves to
    * the front of the list for each of its headwords, so it leads the popup, the card and the saved gloss.
-   * The optional fifth column raises the segmentation count of a word that no list has (鴻濛).
+   * The optional fifth column raises the segmentation count of a word that no list has (鴻濛). With "book" in the sixth, the
+   * count is not global: the word joins the lexicon of a book that uses it (bookScoped, core/lexicon.ts).
    */
   private async parseBookWords(text: string): Promise<void> {
     await eachLine(text, (line) => {
@@ -305,7 +364,9 @@ class DictImpl implements Dictionary {
       if (!twin && entry.trad !== entry.simp) this.twoScript.push(entry);
       else if (!twin && entry.simp.length > 1) this.sameScript.push(entry.simp);
       const count = Number(t[4]);
-      if (count > 0) for (const key of keys) if ((this.vocab.get(key) ?? 0) < count) this.vocab.set(key, count);
+      // Scope "book": a name or a phrase of one book (小红, 子曰) counts only in a book that uses it (core/lexicon.ts).
+      if (t[5] === 'book') { for (const key of keys) this.scoped.set(key, count || 1); }
+      else if (count > 0) for (const key of keys) if ((this.vocab.get(key) ?? 0) < count) this.vocab.set(key, count);
       this.bookWordsLoaded++;
     });
   }
@@ -395,6 +456,7 @@ class DictImpl implements Dictionary {
 
   /** Build the derived indexes once every file is in. */
   async finish(): Promise<void> {
+    await this.foldVariants(); // before resolvePointers, which adds meanings to the pointer rows it reads
     await this.addTraditionalAliases();
     await this.protectSharedWords();
     await this.discountProperNouns();
@@ -405,14 +467,26 @@ class DictImpl implements Dictionary {
     this.meta.counts.wordsExtraLoaded = this.wordsExtraLoaded;
     this.meta.counts.bookWordsLoaded = this.bookWordsLoaded;
     let seen = 0;
+    const bits = this.foldBits;
     for (const word of this.vocab.keys()) {
       if (++seen % INDEX_CHUNK === 0) await yieldToEventLoop();
       let n = 0;
+      let variant = false;
       for (let i = 0; i < word.length; i++) {
         const c = word.charCodeAt(i);
         if (c < 0xdc00 || c > 0xdfff) n++;
+        if (bits && bits[c]) variant = true;
       }
       if (n < 2 || n > 30) continue;
+      // A word spelled with a variant (咭咭呱呱) is found under its standard spelling too, which the page shows (foldVariants):
+      // the corpus count and the dictionary's rows carry over. The loop reaches the new key later and indexes it.
+      if (variant) {
+        let folded = '';
+        for (const ch of word) folded += this.fold.get(ch) ?? ch;
+        if (!this.vocab.has(folded)) this.vocab.set(folded, this.vocab.get(word) ?? 0);
+        const list = this.entries.get(word);
+        if (list && !this.entries.has(folded)) this.entries.set(folded, list);
+      }
       const first = firstCodePointOf(word);
       this.lens.set(first, (this.lens.get(first) ?? 0) | (1 << n));
     }
@@ -428,10 +502,25 @@ class DictImpl implements Dictionary {
     let seen = 0;
     for (const e of this.twoScript) {
       if (++seen % INDEX_CHUNK === 0) await yieldToEventLoop();
+      const count = Math.max(this.vocab.get(e.simp) ?? 0, this.vocab.get(e.trad) ?? 0);
+      // 隨著 is shown 随著: OpenCC keeps 著 (it is also zhù, 著名), so the simplified page needs that spelling as well. The
+      // reader then writes 着 where the reading is zhe, zháo or zhuó (ui/reader/shown.ts). Not where 著 is zhāo (著數 "a move",
+      // CC-CEDICT's 怎麼著), nor in a pair where it is zháo (點著 "to light"): there the book as often means a word and the particle
+      // zhe (種著數本, 點著燈籠, 覺怎麼著).
+      if (e.trad.includes('著')) {
+        const shown = this.t2s.convert(e.trad);
+        const cps = [...e.trad];
+        const syl = e.pinyin.toLowerCase().split(' ');
+        const zhao = syl.length === cps.length && cps.some((c, i) => c === '著' && (syl[i] === 'zhao1' || (syl[i] === 'zhao2' && cps.length === 2)));
+        if (!zhao && shown !== e.simp && shown !== e.trad && !this.entries.has(shown)) {
+          this.entries.set(shown, [e]);
+          if ((this.vocab.get(shown) ?? 0) < count) this.vocab.set(shown, count);
+          added++;
+        }
+      }
       const alt = this.s2t.convert(e.simp);
       if (alt === e.trad || alt === e.simp || this.entries.has(alt)) continue;
       this.entries.set(alt, [e]);
-      const count = Math.max(this.vocab.get(e.simp) ?? 0, this.vocab.get(e.trad) ?? 0);
       if (!this.vocab.has(alt) || (this.vocab.get(alt) ?? 0) < count) this.vocab.set(alt, count);
       added++;
     }
@@ -468,6 +557,102 @@ class DictImpl implements Dictionary {
       const c = this.vocab.get(word);
       if (c) this.vocab.set(word, Math.floor(c / 4));
     }
+  }
+
+  /**
+   * Variant characters that only stand for a standard one: every CC-CEDICT row of 靑 槪 倣 讐 湼 is "variant of" a character whose
+   * own rows mean something (青 概 仿 仇 涅). The simplified page shows the standard form (the t2s table gains the pair; OpenCC
+   * leaves them), and a word spelled with the variant finds the standard word (靑春 → 青春, normalizeWord). A character with a
+   * meaning of its own (覆, 藉, 瞭, 雠) is left alone, so is one the 2013 standard table keeps (STANDARD_VARIANTS: 斌, 犟),
+   * and so is 著 (zhù), which the reader settles by its reading.
+   */
+  private async foldVariants(): Promise<void> {
+    let seen = 0;
+    const isPointer = (d: string) => VARIANT_POINTER.test(d) || SEE_POINTER.test(d);
+    for (const x of this.singles) {
+      if (++seen % INDEX_CHUNK === 0) await yieldToEventLoop();
+      const cp = x.charCodeAt(0);
+      if (cp < 0x3400 || cp > 0x9fff || x === '著' || STANDARD_VARIANTS.includes(x) || this.t2s.get(x) !== undefined) continue;
+      const own = (this.entries.get(x) ?? []).filter((e) => e.trad === x || e.simp === x);
+      if (!own.length || own.some((e) => !e.defs.length || !e.defs.every(isPointer))) continue;
+      // CC-CEDICT's own simplified column says where the variant goes (讐 仇); else the pointer does.
+      const targets = new Set(own.filter((e) => e.trad === x && e.simp !== x).map((e) => e.simp));
+      if (!targets.size) {
+        for (const e of own) for (const d of e.defs) {
+          const m = VARIANT_POINTER.exec(d);
+          const forms = m ? m[1].split('|') : [];
+          if (forms.length) targets.add(forms[forms.length - 1]);
+        }
+      }
+      if (targets.size !== 1) continue;
+      const y = [...targets][0];
+      const ycp = y.codePointAt(0)!;
+      // The standard form: one BMP character, simplified already, with a meaning of its own, and common.
+      if (y.length !== 1 || y === x || ycp < 0x3400 || ycp > 0x9fff || this.t2s.convert(y) !== y || (this.vocab.get(y) ?? 0) < 100) continue;
+      if (!(this.entries.get(y) ?? []).some((e) => e.simp === y && e.defs.some((d) => !isPointer(d)))) continue;
+      this.fold.set(x, y);
+    }
+    this.singles.clear();
+    for (const [x, y] of this.fold) this.t2s.add(x, y);
+    if (this.fold.has('隄')) for (const [x, y] of Object.entries(FOLD_WORDS)) this.t2s.add(x, this.t2s.convert(y));
+    this.meta.counts.variantsFolded = this.fold.size;
+    if (!this.fold.size) return;
+    this.foldBits = new Uint8Array(65536);
+    for (const x of this.fold.keys()) this.foldBits[x.charCodeAt(0)] = 1;
+  }
+
+  /**
+   * The segmentation count of a CC-CEDICT or Wiktionary headword of two to six characters that the corpus never saw: UNSEEN_FLOOR,
+   * or 0 for pointer, archaic, dialect, slang-only and sexual-slang rows (curated book-words rows carry their own count). A
+   * Wiktionary word gets it only when
+   * the reading it would show is the one its parts have anyway: that list also writes tone sandhi (五口 wu2 kou3), rare literary
+   * senses of common pairs (齐齐 zhāizhāi, 薄薄 bóbó) and a few wrong readings (率兵 lǜ), which a joined word would put on the page.
+   */
+  private floorOf(w: string): number {
+    if (!HAN_WORD.test(w)) return 0;
+    const list = (this.entries.get(w) ?? []).filter((e) => !e.curated && e.defs.length > 0 && !(NO_FLOOR_DEF.test(e.defs[0]) && !LITERARY_TAG.test(e.defs[0]))
+      && !e.defs.every((d) => SLANG_DEF.test(d)) && !e.defs.some((d) => SEXUAL_DEF.test(d)));
+    if (!list.length) return 0;
+    // 叭儿狗: a regional word that opens with 儿 (儿狗 "(Mandarin) (dialect) male dog") is the 儿 of the word before and a noun.
+    if (w[0] === '儿' && list.every((e) => e.defs.every((d) => /^(\([^)]*\) )*\(dialect\)/i.test(d)))) return 0;
+    // A doubled character that is only a name (滴滴 the ride-hailing app, 邦邦 the game) is a sound word in a book (滴滴叫了两声).
+    if (w.length === 2 && w[0] === w[1] && list.every((e) => /^[A-Z]/.test(e.pinyin))) return 0;
+    // Only the simplified spelling, which the page shows by default (with the 著 the page keeps, 忙著): the corpus counts
+    // traditional characters far lower than simplified ones (為 against 为), so a floor would join 為人 in a page shown as written
+    // where 为人 stays 为 + 人.
+    // (A row CC-CEDICT spells with a variant the page folds, 靑铜时代, is found under 青铜时代 and counts as that spelling.)
+    if (!list.some((e) => e.simp === w || e.simp === w.replace(/著/g, '着') || (this.hasVariant(e.simp) && this.folded(e.simp) === w))) return 0;
+    // A Wiktionary word only when the reading it would show is the one its parts have anyway.
+    if (this.extraWords.has(w)) {
+      const cps = Array.from(w);
+      const parts = this.partsReading(cps);
+      const shown = this.wordReading(w, cps);
+      if (!shown || !shown.every((s, i) => s === parts[i] || (s.endsWith('5') && baseOf(s) === baseOf(parts[i])))) return 0;
+    }
+    // A pair that is only the name of a town, a village, a district or a province (三合, 庙前, 座间 "Zama, a city in Japan", 联成 "an
+    // urban village in Taipei", 多乐 "a province of Vietnam"), or only a short form
+    // (郑大 "short for 鄭州大學", 克州), is a coincidence of two plain characters in a book.
+    if (w.length === 2 && list.every((e) => /^[A-Z]/.test(e.pinyin) && e.defs.every((d) => ADMIN_PLACE.test(d) || PROVINCE_OF.test(d) || /^(short for|abbr\. for) /.test(d)))) return 0;
+    // A pair that is only a species' Latin name (红掌 "Anthurium andraeanum") is seldom meant where its characters are common words
+    // (红掌拨清波, the goose's red feet): none then, and a fifth of the floor where they are rare (青蒿).
+    if (w.length === 2 && list.every((e) => TAXON.test(e.defs[0]))) {
+      const [c0, c1] = [...w];
+      return ((this.vocab.get(c0) ?? 0) * (this.vocab.get(c1) ?? 0)) / this.wordTotal > 0.5 ? 0 : 1;
+    }
+    return UNSEEN_FLOOR;
+  }
+
+  /** How `cps` reads cut into the dictionary words inside it and single characters, each read beside its neighbors (率 + 兵: shuài). */
+  private partsReading(cps: string[]): string[] {
+    const out = new Array<string>(cps.length).fill('');
+    for (const [a, b] of this.subWords(cps)) {
+      const sub = this.wordReading(cps.slice(a, b).join(''), cps.slice(a, b));
+      if (sub) for (let k = a; k < b; k++) out[k] = sub[k - a];
+    }
+    for (let i = 0; i < cps.length; i++) {
+      if (!out[i]) out[i] = this.pinyinFor(cps[i], { prev: cps[i - 1], next: cps[i + 1] })[0] ?? '';
+    }
+    return out;
   }
 
   /**
@@ -527,12 +712,48 @@ class DictImpl implements Dictionary {
     return ch;
   }
 
-  /** Per-character normalization of compatibility ideographs and radicals. Never NFKC on whole strings. */
+  /** `s` with the variant characters of `fold` in their standard form (靑铜 → 青铜). */
+  private folded(s: string): string {
+    let out = '';
+    for (const ch of s) out += this.fold.get(ch) ?? ch;
+    return out;
+  }
+
+  /** Whether `s` holds a variant character of `fold`. */
+  private hasVariant(s: string): boolean {
+    const bits = this.foldBits;
+    if (!bits) return false;
+    for (let i = 0; i < s.length; i++) if (bits[s.charCodeAt(i)] === 1) return true;
+    return false;
+  }
+
+  /**
+   * Whether `s` holds a radical (U+2E80–2FDF), a compatibility ideograph (U+F900–FAFF, or the supplement's high surrogate) or a
+   * variant character of `fold`.
+   */
+  private isSpecial(s: string): boolean {
+    const bits = this.foldBits;
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      if (c < 0x2e80) continue;
+      if (c <= 0x2fdf || (c >= 0xf900 && c <= 0xfaff) || c === 0xd87e || (bits !== null && bits[c] === 1)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Per-character normalization of compatibility ideographs and radicals. Never NFKC on whole strings. A word the dictionary
+   * does not know as written is then read with its variant characters folded (靑春 is 青春, see foldVariants).
+   */
   private normalizeWord(word: string): string {
-    if (!SPECIAL_RE.test(word)) return word;
+    if (!this.isSpecial(word)) return word;
     let out = '';
     for (const ch of word) out += this.normalizeCp(ch);
-    return out;
+    if (!this.fold.size || this.vocab.has(out)) return out;
+    for (const [x, y] of Object.entries(FOLD_WORDS)) if (out.includes(x)) out = out.split(x).join(y);
+    let folded = '';
+    for (const ch of out) folded += this.fold.get(ch) ?? ch;
+    return folded;
   }
 
   // -------------------------------------------------------------- lookups ---
@@ -555,6 +776,25 @@ class DictImpl implements Dictionary {
     return this.vocab.get(this.normalizeWord(word)) ?? 0;
   }
 
+  /** Curated words that count only in a book that uses them (book-words rows of scope "book"), in both scripts. */
+  bookScoped(): ReadonlyMap<string, number> {
+    return this.scoped;
+  }
+
+  /** freq(), or the floor of a dictionary word the corpus never saw (floorOf). For segmentation scores only. */
+  segmentFreq(word: string): number {
+    const w = this.normalizeWord(word);
+    const c = this.vocab.get(w) ?? 0;
+    if (c > 0) return c;
+    let f = this.floorMemo.get(w);
+    if (f === undefined) {
+      f = this.floorOf(w);
+      if (this.floorMemo.size > 50000) this.floorMemo.clear();
+      this.floorMemo.set(w, f);
+    }
+    return f;
+  }
+
   hsk(word: string, pinyin?: readonly string[]): HskInfo | null {
     const w = this.normalizeWord(word);
     // A reading that is not one syllable per character says nothing: the word's level, as without one.
@@ -565,7 +805,8 @@ class DictImpl implements Dictionary {
     // Only a word found under its own simplified form gets the other-reading hint: through the trad column or t2s, a
     // character can land on another one (著 zhù → 着, 乾 qián → 干) whose readings say nothing of it.
     let hint = rec?.simp === w;
-    if (!rec) { const simp = this.toSimplified(w); if (simp !== w) rec = this.hskMap.get(simp); }
+    // (Not through a variant the page folds, 呌 → 叫: a variant spelling is not the listed word. The page shows the standard form.)
+    if (!rec && !this.hasVariant(w)) { const simp = this.toSimplified(w); if (simp !== w) rec = this.hskMap.get(simp); }
     // A book's 事儿 shìr is the listed 事 with 儿 added (not 头儿 "boss", which is not 头 "head").
     if (!rec && shown && shown.length > 1 && /^r5$/i.test(shown[shown.length - 1])) {
       const simp = this.toSimplified(w);
@@ -653,9 +894,12 @@ class DictImpl implements Dictionary {
     const special = cp0 >= 0x2e80;
     const han = isHanCodePoint(cp0);
     const key = special ? this.normalizeCp(text.slice(start, start + firstLen)) : text.slice(start, start + firstLen);
-    const mask = this.lens.get(key) ?? 0;
+    // A word that opens with a variant character (靑春) is found under its standard form too.
+    const alt = this.fold.size ? this.fold.get(key) : undefined;
+    const mask = (this.lens.get(key) ?? 0) | (alt ? this.lens.get(alt) ?? 0 : 0);
     const found: string[] = [];
-    let needsNorm = special;
+    // (Only a radical, a compatibility ideograph or a variant needs normalizeWord; plain text skips it.)
+    let needsNorm = special && this.isSpecial(text.slice(start, start + firstLen));
     if (mask) {
       let end = start + firstLen;
       for (let len = 1; end < n && len < 30; ) {
@@ -663,7 +907,7 @@ class DictImpl implements Dictionary {
         const step = c >= 0xd800 && c <= 0xdbff && end + 1 < n ? 2 : 1;
         end += step;
         len++;
-        if (c >= 0x2e80 && !needsNorm && SPECIAL_RE.test(text.slice(end - step, end))) needsNorm = true;
+        if (c >= 0x2e80 && !needsNorm && this.isSpecial(text.slice(end - step, end))) needsNorm = true;
         if (!((mask >>> len) & 1)) { if (mask >>> (len + 1) === 0) break; continue; }
         const cand = text.slice(start, end);
         if (this.vocab.has(needsNorm ? this.normalizeWord(cand) : cand)) found.push(cand);
@@ -988,8 +1232,9 @@ class DictImpl implements Dictionary {
     if (n >= 2) {
       const hit = (orig && this.narrows(orig.join(''), w) && this.wordReading(orig.join(''), orig)) || this.wordReading(w, cps);
       if (hit) {
-        // Verb + 不 + complement (受不了, 说不定): CC-CEDICT often writes bu4, but the 不 is neutral.
-        if (n === 3 && cps[1] === '不' && w !== '要不然') hit[1] = 'bu5';
+        // Verb + 不 + complement (受不了, 说不定): CC-CEDICT often writes bu4, but the 不 is neutral. After an adverb it is the
+        // plain negation (岂不是, 还不如, 并不是).
+        if (n === 3 && cps[1] === '不' && w !== '要不然' && !'岂豈还還并並决決绝絕也都就又更可'.includes(cps[0])) hit[1] = 'bu5';
         return hit;
       }
     }
@@ -1274,8 +1519,8 @@ const RUNNING_TEXT_READINGS: Readonly<Record<string, string>> = {
   衣甲: 'yi1 jia3', 夫人: 'fu1 ren2',
   // Buddhist salutation: 南無阿彌陀佛 is nā mó, not 南 + 無.
   南無: 'na1 mo2', 南无: 'na1 mo2',
-  // 恁 is nèn "such" in the novels (CEDICT lists the thinking rèn first): 恁般 恁地 恁的.
-  恁般: 'nen4 ban1', 恁地: 'nen4 di4', 恁的: 'nen4 de5',
+  // 恁 is nèn "such" in the novels (CEDICT lists the thinking rèn first): 恁般 恁地 恁的 恁么.
+  恁般: 'nen4 ban1', 恁地: 'nen4 di4', 恁的: 'nen4 de5', 恁么: 'nen4 me5', 恁麼: 'nen4 me5',
   拚命: 'pin1 ming4', 拼命: 'pin1 ming4', 拚死: 'pin1 si3', 拼死: 'pin1 si3', 比拚: 'bi3 pin1',
   // 引得众人 (caused): a verb and 得, not the loanword "index"; 不自禁 (cannot help it) is jīn.
   引得: 'yin3 de5', 不自禁: 'bu4 zi4 jin1',
