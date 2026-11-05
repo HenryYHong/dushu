@@ -80,7 +80,7 @@ in Node tests. Real files are present; tests should use them (they load in ~0.3 
 | `chars-extra.tsv.gz` | char, readings, definition (Wiktionary supplement; may be absent) | 5,132 |
 | `cedict-extra.tsv.gz` | same columns as `cedict` (Wiktionary words CC-CEDICT lacks; optional) | see file |
 | `book-words.tsv.gz` | trad, simp, pinyin, defs, optional segmentation count (curated senses for the words the books use most; optional) | ~430 |
-| `reading-model.tsv.gz` | `!` settings rows (features version, threshold), then char, readings, biases, one `feature weights` column per feature (the reading model, §4.1; CC BY-SA, made by `scripts/train_reading_model.py`; optional, loaded after the dictionary) | 24 characters |
+| `reading-model.tsv.gz` | `!` settings rows (features version, default threshold, `threshold:<char>` for a character's own), then char, readings, biases, one `feature weights` column per feature (the reading model, §4.1; CC BY-SA, made by `scripts/train_reading_model.py`; optional, loaded after the dictionary) | 27 characters, 21 KB |
 | `words.tsv.gz` | word, count | 287,084 |
 | `hsk.tsv.gz` | simp, trad, hsk3 (easiest reading), hsk2, rank, readings, same-word readings, of | 11,694 |
 | `hsk-LICENSES.txt` | the MIT notices of the two HSK sources (plain text, shipped with the data) | |
@@ -292,25 +292,53 @@ Details:
   is nà everywhere, also where the rules for the old novels read 那里 nǎ (我们打那里走？). The eval path (scripts/eval/zh-shown.ts) applies
   what detection is sure of; the reader stores the report and the choice (core/fixes.ts, ui/reader/oldSpellings.ts).
   Reading model (core/readingModel.ts, plan item 7). `polyphoneRule(ctx)` tells a rule's case from the rule's own default: a rule
-  returns `usual(r)` where none of its cases matched (相 传 率 宿 so far), and a character with no rule, or a rule that says nothing,
-  counts the same. There, for a one-character token, pinyinFor asks the model it was handed (`setReadingModel`; main.ts loads
-  `data/reading-model.tsv.gz` after the dictionary, so a page drawn before it arrives has the rules' readings, and without the file
-  the rules alone read everything). It is a logistic regression per character over `siteFeatures`: the tokens and characters up
-  to three places on each side, the neighbors' length and verb and noun strength, how far the clause runs each way and its last
-  token. It changes a reading only to another of the character's own (its own CC-CEDICT rows and Unihan, as shown and as
-  written), only for the characters the file lists, never for particles and interjections (`NOT_FOR_MODEL`), and only at the
-  file's threshold. `scripts/train_reading_model.py` fetches CPP into `.cache/raw/cpp`, reads every sentence through the app
-  (`scripts/eval/zh-reading-sites.run.ts`, a stand-in model that records `siteFeatures`), and trains on the train and dev splits
-  (never test) with the rules' reading as class 0 plus 4 pseudo-examples of it. CPP is Wikipedia, whose favored reading is not
-  the books' for most characters (藏 zàng, 少 shào, 为 wéi, 钻 zuàn, 应 yìng where verse means yīng): over all its characters the
-  model's changes on books were right 46% of the time. So the characters (24: 传 杓 相 刹 艮 率 藉 圜 裨 脯 茆 什 奔 宿 隽 苕 茄 杈 颉 槛
-  镝 仔 姥 畜) and the threshold (0.7) were set on 734 places hand-labeled in the held-out corpus and public/samples
-  (`tests/corpus/zh/readings-calibration.tsv`) and a judged sample of the corpus and tuned-book diff. Where a review of every
-  change found the model wrong, a rule case now speaks first (出煤率最高: a rate that is high or low is lǜ; 刹裤子 shā;
-  东奔西突 bēn; 什头 shén; 谈吐隽雅 juàn; 胡茄 jiā; 木杈 chā). Bump
-  `READING_FEATURES_VERSION` with any change to the features (a file of another version is not used); retrain after a change to
-  the rules or the dictionary. tests/core/readingModel.test.ts checks the TypeScript's features and scores against the script's
-  (tests/core/fixtures/reading-model-check.tsv, from the invented sentences of scripts/data/reading-model-check.txt).
+  returns `usual(r)` where none of its cases matched (相 传 率 宿, and the last fallback of 为 得 着 长 应 将 中 还 种 便 处 差 少 当 降 难 好
+  数 量 调 重 行), and a character with no rule, or a rule that says nothing (藏), counts the same. There, for a one-character token,
+  pinyinFor asks the model it was handed (`setReadingModel`; main.ts loads `data/reading-model.tsv.gz` after the dictionary, so a
+  page drawn before it arrives has the rules' readings, and without the file the rules alone read everything). It is a logistic
+  regression per character over `siteFeatures` (version 2): the tokens and characters up to three places on each side, the
+  neighbors' length and verb and noun strength, how far the clause runs each way and its last token; every token to either end of
+  the clause, past quotes and numbers (`A:` `B:`, which reach 为 … 所 and 以 … 为); the rules' reading (`u:`); how many kinds of
+  vernacular (的 着 了 呢 …) and classical (之 乎 者 也 …) tokens lie within 30 tokens (`rv:` `rc:`); the paragraph's script as the
+  book writes it (`sc:`, which segment() works out once per paragraph when the model first asks); and the character's reading in
+  a dictionary word with its neighbor where the cut went elsewhere (`p-:` `p+:`). It changes a reading only to another of the
+  character's own (its own CC-CEDICT rows and Unihan, as shown and as written), only for the characters the file lists, never for
+  particles and interjections (`NOT_FOR_MODEL`), and only at the character's threshold (`threshold:数`, else the file's), which
+  may be higher for changing it to one of its readings (`threshold:为:wei2`).
+  `ReadingChooser.observe` shows the training tools every one-character place with the rules' reading and whether a case decided
+  it. `scripts/train_reading_model.py` reads every place of the trained characters through the app
+  (`scripts/eval/zh-reading-sites.run.ts`, a stand-in model that records `siteFeatures`) and trains on: CPP's train and dev splits
+  (`.cache/raw/cpp`; Wikipedia, the right readings; never test), weight 0.5; silver labels, what a rule's own case read (never its
+  default) in public/samples and in 22 public-domain books from Wikisource (1.07 million Han characters of 1920s fiction and essays
+  and Qing and Ming novels, `scripts/data/reading-model-books.tsv`, fetched at pinned revisions into `.cache/raw/reading-books` by
+  `scripts/fetch_reading_books.py`; none is in the corpus, the samples or the sealed set), weight 0.3; and the hand labels of
+  `tests/corpus/zh/readings-calibration.tsv` (2,203 places: the first model's 734 and 1,469 more, of the common characters across
+  genres and of the rare ones, in the held-out corpus, the samples and the Wikisource books), weight 10, less a third (by a hash
+  of the place) kept for evaluation only. The samples' defaults count for nothing although six reviews checked them: they hold
+  the very misreadings the hand labels fix (遇着 zhe, 当兵，为钱 wéi). A character's threshold is the lowest at which its
+  out-of-fold changes on the training hand labels are all right, and it is kept only where, on the held-out third, it changes at
+  least 3 readings, at least 90% of them rightly, and gets more right than the rules. Of the common characters 为 (threshold 0.8:
+  held-out 10 changes, all right; 23 of 33 places right against the rules' 13; with 0.9 to wéi since the review below, 6 changes and
+  19 of 33), 藏 (zàng in 一藏 大藏: 4 of 4) and 数 (shǔ: 3 of 3) passed; 得 (8 of 10 changes right), 着 (4 of 5), 长 (6 of 7), 种 (6 of 7), 好
+  (4 of 5), 难 (1 of 2), 量 (1 of 2) did not, and the rest changed too few (`ENABLED` in the script pins the outcome; `--decide`
+  decides again, `--report` prints the table). The first model's 24 rare characters (传 杓 相 刹 艮 率 藉 圜 裨 脯 茆 什 奔 宿 隽 苕 茄 杈 颉 槛 镝 仔 姥
+  畜) are trained as before, on CPP alone with the version 1 features and threshold 0.7, so what its review checked stays (with the
+  new features and the hand labels 奔 before any place became bèn, 奔回 and 奔进 too, and 十人传百 zhuàn); they passed together (31 of 31
+  held-out changes right). A native review of every change against f1ccebf (70 in the held-out corpus, 180 in the tuned books) found
+  10 wrong: 8 were 为 turned to wéi where it means "for" (为 + someone + what is felt or done for them in modern novels, which the
+  hand labels hold few of, and 2001年，为“构筑大都市…”的构想 in the corpus), 1 藏宝 read zàng and 1 rate read shuài; every change to wèi was
+  right. Rule cases now take three of these patterns from the model (为 + someone + 高兴 活着 自豪 牺牲 … is wèi, the feelings and lives of
+  `FOR_DEED`; 藏|宝塔 is cáng; a rate before an adverb, 返修率都在下降, is lǜ), and changing 为 to wéi takes 0.9 (`threshold:为:wei2`, the
+  lowest of the script's grid above every other wrong change, the highest at 0.888). Against f1ccebf the reader now changes 68
+  readings of the held-out corpus (66 by the model, all right in the review; 2 by the new 为 case, 为父母牺牲 wèi, right) and 123 of the
+  tuned books (all right in the review), CPP strict goes from 93.11 to 93.12 (one-character 84.40 to 84.43), dumping the tuned books
+  takes 2.2% longer (45.9 s against 44.9 s, two runs each), and the file is 21 KB gzipped (63 KB, 4,530 features). Where a review of
+  every change found the first model wrong, a rule case speaks first (出煤率最高: a rate that is high or low is lǜ; 刹裤子 shā; 东奔西突 bēn; 什头
+  shén; 谈吐隽雅 juàn; 胡茄 jiā; 木杈 chā). Bump `READING_FEATURES_VERSION` with any change to the features (a file of another version is
+  not used); retrain after a change to the rules or the dictionary. tests/core/readingModel.test.ts checks the TypeScript's features
+  and scores against the script's (tests/core/fixtures/reading-model-check.tsv, from the invented sentences of
+  scripts/data/reading-model-check.txt), the list of characters the file speaks for, the per-character and per-reading thresholds and that a missing
+  file leaves every reading to the rules.
   For multi-reading multi-char words (e.g. 银行 has one reading, 长大 one; 好好 several) prefer
   the entry whose defs are not "variant of"/"old variant"/surname-only, then the most common.
 - `wordsAt(text, i)`: all headwords starting at i (max headword length from the data), longest
@@ -1708,7 +1736,10 @@ Newsreader (SIL OFL 1.1, no Reserved Font Name; `public/fonts/Newsreader-OFL.txt
 License v3, `import/radicals.ts`), the WHATWG Encoding Standard's index-big5 (CC BY 4.0, credited in About and `import/hkscs.ts`),
 Wikidata (CC0 1.0: the name list `public/data/names.tsv.gz`, credited in About, the README and the file's header), and
 CPP (Kakao Brain's g2pM data: Apache-2.0 code, sentences from Chinese Wikipedia, CC BY-SA 4.0): the reading model trained on it
-(`public/data/reading-model.tsv.gz`) is treated as CC BY-SA 4.0 and credited in About and the README.
+(`public/data/reading-model.tsv.gz`) is treated as CC BY-SA 4.0 and credited in About and the README. The model also learns from
+public-domain Wikisource books (`scripts/data/reading-model-books.tsv`, first published in 1930 or earlier) and from hand labels
+on places in the held-out corpus, whose texts keep their own licenses and credits (`tests/corpus/zh/INDEX.md`); never from the
+owner's books, which only measure it (counts).
 
 ## 9. Other languages (`src/lang/`)
 

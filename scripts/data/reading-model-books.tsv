@@ -1,0 +1,333 @@
+# The public-domain books the reading model learns from (scripts/fetch_reading_books.py fetches them, scripts/train_reading_model.py
+# reads them): zh.wikisource pages at pinned revisions, all first published in 1930 or earlier (US public domain). None of them is
+# in tests/corpus/zh, public/samples or the sealed test set. Columns: book id, title, kind (novel: a heading per chapter), page
+# number, page, revision id.
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	1	斷鴻零雁記/01	815974
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	2	斷鴻零雁記/02	815975
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	3	斷鴻零雁記/03	815970
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	4	斷鴻零雁記/04	815946
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	5	斷鴻零雁記/05	815947
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	6	斷鴻零雁記/06	815948
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	7	斷鴻零雁記/07	815949
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	8	斷鴻零雁記/08	815950
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	9	斷鴻零雁記/09	815951
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	10	斷鴻零雁記/10	815952
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	11	斷鴻零雁記/11	815953
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	12	斷鴻零雁記/12	815954
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	13	斷鴻零雁記/13	815955
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	14	斷鴻零雁記/14	815956
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	15	斷鴻零雁記/15	815957
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	16	斷鴻零雁記/16	815958
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	17	斷鴻零雁記/17	815959
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	18	斷鴻零雁記/18	815960
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	19	斷鴻零雁記/19	815961
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	20	斷鴻零雁記/20	815962
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	21	斷鴻零雁記/21	815963
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	22	斷鴻零雁記/22	815964
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	23	斷鴻零雁記/23	815965
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	24	斷鴻零雁記/24	815966
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	25	斷鴻零雁記/25	815977
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	26	斷鴻零雁記/26	815976
+duanhong-lingyan	蘇曼殊 斷鴻零雁記	novel	27	斷鴻零雁記/27	815973
+essays-1920s	民初散文選	essays	1	過去 (郁達夫)	2588753
+essays-1920s	民初散文選	essays	2	槳聲燈影裏的秦淮河	2371866
+essays-1920s	民初散文選	essays	3	少年中國說	10294249
+essays-1920s	民初散文選	essays	4	敬業與樂業	2027137
+essays-1920s	民初散文選	essays	5	最苦與最樂	2624882
+essays-1920s	民初散文選	essays	6	青春 (李大釗)	2443947
+henhai	吳趼人 恨海	novel	1	恨海/01	852062
+henhai	吳趼人 恨海	novel	2	恨海/02	852051
+henhai	吳趼人 恨海	novel	3	恨海/03	852052
+henhai	吳趼人 恨海	novel	4	恨海/04	852053
+henhai	吳趼人 恨海	novel	5	恨海/05	852054
+henhai	吳趼人 恨海	novel	6	恨海/06	852055
+henhai	吳趼人 恨海	novel	7	恨海/07	852056
+henhai	吳趼人 恨海	novel	8	恨海/08	857448
+henhai	吳趼人 恨海	novel	9	恨海/09	852058
+henhai	吳趼人 恨海	novel	10	恨海/10	852067
+huayuehen	魏秀仁 花月痕 第一至十回	novel	1	花月痕/第一回	1565163
+huayuehen	魏秀仁 花月痕 第一至十回	novel	2	花月痕/第二回	1565164
+huayuehen	魏秀仁 花月痕 第一至十回	novel	3	花月痕/第三回	1565165
+huayuehen	魏秀仁 花月痕 第一至十回	novel	4	花月痕/第四回	1565166
+huayuehen	魏秀仁 花月痕 第一至十回	novel	5	花月痕/第五回	1565167
+huayuehen	魏秀仁 花月痕 第一至十回	novel	6	花月痕/第六回	1565168
+huayuehen	魏秀仁 花月痕 第一至十回	novel	7	花月痕/第七回	2288053
+huayuehen	魏秀仁 花月痕 第一至十回	novel	8	花月痕/第八回	1565171
+huayuehen	魏秀仁 花月痕 第一至十回	novel	9	花月痕/第九回	1565172
+huayuehen	魏秀仁 花月痕 第一至十回	novel	10	花月痕/第十回	1565173
+jigong	郭小亭 濟公全傳 第一至二十回	novel	1	濟公全傳/01	2647904
+jigong	郭小亭 濟公全傳 第一至二十回	novel	2	濟公全傳/02	864432
+jigong	郭小亭 濟公全傳 第一至二十回	novel	3	濟公全傳/03	2445418
+jigong	郭小亭 濟公全傳 第一至二十回	novel	4	濟公全傳/04	864434
+jigong	郭小亭 濟公全傳 第一至二十回	novel	5	濟公全傳/05	2634051
+jigong	郭小亭 濟公全傳 第一至二十回	novel	6	濟公全傳/06	864436
+jigong	郭小亭 濟公全傳 第一至二十回	novel	7	濟公全傳/07	864475
+jigong	郭小亭 濟公全傳 第一至二十回	novel	8	濟公全傳/08	864481
+jigong	郭小亭 濟公全傳 第一至二十回	novel	9	濟公全傳/09	864440
+jigong	郭小亭 濟公全傳 第一至二十回	novel	10	濟公全傳/10	864441
+jigong	郭小亭 濟公全傳 第一至二十回	novel	11	濟公全傳/11	864442
+jigong	郭小亭 濟公全傳 第一至二十回	novel	12	濟公全傳/12	2446654
+jigong	郭小亭 濟公全傳 第一至二十回	novel	13	濟公全傳/13	864444
+jigong	郭小亭 濟公全傳 第一至二十回	novel	14	濟公全傳/14	2446621
+jigong	郭小亭 濟公全傳 第一至二十回	novel	15	濟公全傳/15	2446622
+jigong	郭小亭 濟公全傳 第一至二十回	novel	16	濟公全傳/16	864447
+jigong	郭小亭 濟公全傳 第一至二十回	novel	17	濟公全傳/17	864448
+jigong	郭小亭 濟公全傳 第一至二十回	novel	18	濟公全傳/18	864450
+jigong	郭小亭 濟公全傳 第一至二十回	novel	19	濟公全傳/19	2595153
+jigong	郭小亭 濟公全傳 第一至二十回	novel	20	濟公全傳/20	2595155
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	1	九命奇冤/01	834856
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	2	九命奇冤/02	834858
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	3	九命奇冤/03	834859
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	4	九命奇冤/04	834860
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	5	九命奇冤/05	834861
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	6	九命奇冤/06	834862
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	7	九命奇冤/07	834863
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	8	九命奇冤/08	834864
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	9	九命奇冤/09	834865
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	10	九命奇冤/10	834866
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	11	九命奇冤/11	834867
+jiuming-qiyuan	吳趼人 九命奇冤 第一至十二回	novel	12	九命奇冤/12	834868
+laoshe-erma	老舍 二馬	novel	1	二馬/第一段	2575309
+laoshe-erma	老舍 二馬	novel	2	二馬/第二段	2575311
+laoshe-erma	老舍 二馬	novel	3	二馬/第三段	2575312
+laoshe-erma	老舍 二馬	novel	4	二馬/第四段	2575313
+laoshe-erma	老舍 二馬	novel	5	二馬/第五段	2575314
+laoshe-zhaoziyue	老舍 趙子曰	novel	1	趙子曰/第一	2194617
+laoshe-zhaoziyue	老舍 趙子曰	novel	2	趙子曰/第二	2194622
+laoshe-zhaoziyue	老舍 趙子曰	novel	3	趙子曰/第三	2194625
+laoshe-zhaoziyue	老舍 趙子曰	novel	4	趙子曰/第四	2194628
+laoshe-zhaoziyue	老舍 趙子曰	novel	5	趙子曰/第五	2194631
+laoshe-zhaoziyue	老舍 趙子曰	novel	6	趙子曰/第六	2194634
+laoshe-zhaoziyue	老舍 趙子曰	novel	7	趙子曰/第七	2194637
+laoshe-zhaoziyue	老舍 趙子曰	novel	8	趙子曰/第八	2194640
+laoshe-zhaoziyue	老舍 趙子曰	novel	9	趙子曰/第九	2194762
+laoshe-zhaoziyue	老舍 趙子曰	novel	10	趙子曰/第十	2194767
+laoshe-zhaoziyue	老舍 趙子曰	novel	11	趙子曰/第十一	2194884
+laoshe-zhaoziyue	老舍 趙子曰	novel	12	趙子曰/第十二	2194889
+laoshe-zhaoziyue	老舍 趙子曰	novel	13	趙子曰/第十三	2194910
+laoshe-zhaoziyue	老舍 趙子曰	novel	14	趙子曰/第十四	2194954
+laoshe-zhaoziyue	老舍 趙子曰	novel	15	趙子曰/第十五	2194957
+laoshe-zhaoziyue	老舍 趙子曰	novel	16	趙子曰/第十六	2195151
+laoshe-zhaoziyue	老舍 趙子曰	novel	17	趙子曰/第十七	2195270
+laoshe-zhaoziyue	老舍 趙子曰	novel	18	趙子曰/第十八	2195271
+laoshe-zhaoziyue	老舍 趙子曰	novel	19	趙子曰/第十九	2195272
+laoshe-zhaoziyue	老舍 趙子曰	novel	20	趙子曰/第二十	2195283
+laoshe-zhaoziyue	老舍 趙子曰	novel	21	趙子曰/第二十一	2195280
+laoshe-zhaoziyue	老舍 趙子曰	novel	22	趙子曰/第二十二	2195281
+laoshe-zhaoziyue	老舍 趙子曰	novel	23	趙子曰/第二十三	2195282
+luxun-fen-xuan	魯迅 墳選	essays	1	我之節烈觀	1492305
+luxun-fen-xuan	魯迅 墳選	essays	2	我們現在怎樣做父親	796655
+luxun-fen-xuan	魯迅 墳選	essays	3	娜拉走後怎樣	1953586
+luxun-fen-xuan	魯迅 墳選	essays	4	論雷峰塔的倒掉	2595484
+luxun-fen-xuan	魯迅 墳選	essays	5	再論雷峰塔的倒掉	406284
+luxun-fen-xuan	魯迅 墳選	essays	6	春末閒談	842685
+luxun-fen-xuan	魯迅 墳選	essays	7	燈下漫筆	2177967
+luxun-fen-xuan	魯迅 墳選	essays	8	雜憶	2075593
+luxun-fen-xuan	魯迅 墳選	essays	9	論睜了眼看	2189082
+luxun-fen-xuan	魯迅 墳選	essays	10	論照相之類	410135
+luxun-fen-xuan	魯迅 墳選	essays	11	未有天才之前	1567585
+luxun-fen-xuan	魯迅 墳選	essays	12	說鬍鬚	2595485
+luxun-fen-xuan	魯迅 墳選	essays	13	從胡鬚說到牙齒	424728
+luxun-fen-xuan	魯迅 墳選	essays	14	堅壁清野主義	447052
+luxun-fen-xuan	魯迅 墳選	essays	15	寡婦主義	2353555
+luxun-fen-xuan	魯迅 墳選	essays	16	論「費厄潑賴」應該緩行	424587
+luxun-fen-xuan	魯迅 墳選	essays	17	寫在《墳》後面	409929
+luxun-huagai-xuan	魯迅 華蓋集選	essays	1	「公理」的把戲	355850
+luxun-huagai-xuan	魯迅 華蓋集選	essays	2	「碰壁」之後	2015009
+luxun-huagai-xuan	魯迅 華蓋集選	essays	3	「碰壁」之餘	377507
+luxun-huagai-xuan	魯迅 華蓋集選	essays	4	並非閒話	355474
+luxun-huagai-xuan	魯迅 華蓋集選	essays	5	並非閒話 (三)	355847
+luxun-huagai-xuan	魯迅 華蓋集選	essays	6	並非閒話 (二)	355834
+luxun-huagai-xuan	魯迅 華蓋集選	essays	7	北京通信	1567992
+luxun-huagai-xuan	魯迅 華蓋集選	essays	8	十四年的「讀經」	355838
+luxun-huagai-xuan	魯迅 華蓋集選	essays	9	咬文嚼字 (一至二)	795121
+luxun-huagai-xuan	魯迅 華蓋集選	essays	10	咬文嚼字 (三)	355544
+luxun-huagai-xuan	魯迅 華蓋集選	essays	11	夏三蟲	355415
+luxun-huagai-xuan	魯迅 華蓋集選	essays	12	導師	355466
+luxun-huagai-xuan	魯迅 華蓋集選	essays	13	忽然想到 (一至四)	355416
+luxun-huagai-xuan	魯迅 華蓋集選	essays	14	忽然想到 (七至九)	355469
+luxun-huagai-xuan	魯迅 華蓋集選	essays	15	忽然想到 (五至六)	355417
+luxun-huagai-xuan	魯迅 華蓋集選	essays	16	忽然想到 (十至十一)	355553
+luxun-huagai-xuan	魯迅 華蓋集選	essays	17	我的「籍」和「系」	355540
+luxun-huagai-xuan	魯迅 華蓋集選	essays	18	我觀北大	355848
+luxun-huagai-xuan	魯迅 華蓋集選	essays	19	戰士和蒼蠅	355408
+luxun-huagai-xuan	魯迅 華蓋集選	essays	20	犧牲謨	842619
+luxun-huagai-xuan	魯迅 華蓋集選	essays	21	碎話	515467
+luxun-huagai-xuan	魯迅 華蓋集選	essays	22	答KS君	1568233
+luxun-huagai-xuan	魯迅 華蓋集選	essays	23	補白	355554
+luxun-huagai-xuan	魯迅 華蓋集選	essays	24	評心雕龍	355844
+luxun-huagai-xuan	魯迅 華蓋集選	essays	25	論辯的魂靈	7911641
+luxun-huagai-xuan	魯迅 華蓋集選	essays	26	這個與那個	355846
+luxun-huagai-xuan	魯迅 華蓋集選	essays	27	這回是「多數」的把戲	355853
+luxun-huagai-xuan	魯迅 華蓋集選	essays	28	通訊	355433
+luxun-huagai-xuan	魯迅 華蓋集選	essays	29	長城 (魯迅)	355467
+luxun-huagai-xuan	魯迅 華蓋集選	essays	30	雜感 (魯迅)	843185
+luxun-nahan-xuan	魯迅 吶喊選	essays	1	明天	2524371
+luxun-nahan-xuan	魯迅 吶喊選	essays	2	白光	2687312
+luxun-nahan-xuan	魯迅 吶喊選	essays	3	社戲	10605419
+luxun-nahan-xuan	魯迅 吶喊選	essays	4	端午節	2673910
+luxun-nahan-xuan	魯迅 吶喊選	essays	5	頭髮的故事	2525914
+luxun-panghuang-xuan	魯迅 彷徨選	essays	1	幸福的家庭	5977071
+luxun-panghuang-xuan	魯迅 彷徨選	essays	2	弟兄	1999326
+luxun-panghuang-xuan	魯迅 彷徨選	essays	3	示衆	842882
+luxun-panghuang-xuan	魯迅 彷徨選	essays	4	肥皂	2636152
+luxun-panghuang-xuan	魯迅 彷徨選	essays	5	長明燈	5977072
+luxun-refeng-xuan	魯迅 熱風選	essays	1	「一是之學說」	334807
+luxun-refeng-xuan	魯迅 熱風選	essays	2	「以震其艱深」	334791
+luxun-refeng-xuan	魯迅 熱風選	essays	3	不懂的音譯	2502300
+luxun-refeng-xuan	魯迅 熱風選	essays	4	估《學衡》	2635692
+luxun-refeng-xuan	魯迅 熱風選	essays	5	兒歌的「反動」	334801
+luxun-refeng-xuan	魯迅 熱風選	essays	6	即小見大	334813
+luxun-refeng-xuan	魯迅 熱風選	essays	7	反對「含淚」的批評家	1519197
+luxun-refeng-xuan	魯迅 熱風選	essays	8	對于批評家的希望	334809
+luxun-refeng-xuan	魯迅 熱風選	essays	9	所謂「國學」	334802
+luxun-refeng-xuan	魯迅 熱風選	essays	10	智識即罪惡	2601838
+luxun-refeng-xuan	魯迅 熱風選	essays	11	望勿「糾正」	1519200
+luxun-refeng-xuan	魯迅 熱風選	essays	12	為「俄國歌劇團」	2259613
+luxun-refeng-xuan	魯迅 熱風選	essays	13	無題 (《熱風》)	334793
+luxun-refeng-xuan	魯迅 熱風選	essays	14	熱風/隨感錄/三十七	1753956
+luxun-refeng-xuan	魯迅 熱風選	essays	15	熱風/隨感錄/三十三	1753951
+luxun-refeng-xuan	魯迅 熱風選	essays	16	熱風/隨感錄/三十九	333891
+luxun-refeng-xuan	魯迅 熱風選	essays	17	熱風/隨感錄/三十五	1753954
+luxun-refeng-xuan	魯迅 熱風選	essays	18	熱風/隨感錄/三十八	1614244
+luxun-refeng-xuan	魯迅 熱風選	essays	19	熱風/隨感錄/三十六	333894
+luxun-refeng-xuan	魯迅 熱風選	essays	20	熱風/隨感錄/五十七	333880
+luxun-refeng-xuan	魯迅 熱風選	essays	21	熱風/隨感錄/五十三	2163817
+luxun-refeng-xuan	魯迅 熱風選	essays	22	熱風/隨感錄/五十九	842682
+luxun-refeng-xuan	魯迅 熱風選	essays	23	熱風/隨感錄/五十八	1519201
+luxun-refeng-xuan	魯迅 熱風選	essays	24	熱風/隨感錄/五十六	842681
+luxun-refeng-xuan	魯迅 熱風選	essays	25	熱風/隨感錄/五十四	1753973
+luxun-refeng-xuan	魯迅 熱風選	essays	26	熱風/隨感錄/六十一	333906
+luxun-refeng-xuan	魯迅 熱風選	essays	27	熱風/隨感錄/六十三	333910
+luxun-refeng-xuan	魯迅 熱風選	essays	28	熱風/隨感錄/六十二	1519166
+luxun-refeng-xuan	魯迅 熱風選	essays	29	熱風/隨感錄/六十五	333916
+luxun-refeng-xuan	魯迅 熱風選	essays	30	熱風/隨感錄/六十六	333919
+luxun-refeng-xuan	魯迅 熱風選	essays	31	熱風/隨感錄/六十四	1519167
+luxun-refeng-xuan	魯迅 熱風選	essays	32	熱風/隨感錄/四十	1519209
+luxun-refeng-xuan	魯迅 熱風選	essays	33	熱風/隨感錄/四十一	2342362
+luxun-refeng-xuan	魯迅 熱風選	essays	34	熱風/隨感錄/四十七	1753968
+luxun-refeng-xuan	魯迅 熱風選	essays	35	熱風/隨感錄/四十三	1753967
+luxun-refeng-xuan	魯迅 熱風選	essays	36	熱風/隨感錄/四十九	842680
+luxun-refeng-xuan	魯迅 熱風選	essays	37	熱風/隨感錄/四十二	1519208
+luxun-refeng-xuan	魯迅 熱風選	essays	38	熱風/隨感錄/四十八	1519203
+luxun-refeng-xuan	魯迅 熱風選	essays	39	熱風/隨感錄/四十六	515250
+luxun-refeng-xuan	魯迅 熱風選	essays	40	熱風/題記	333853
+luxun-refeng-xuan	魯迅 熱風選	essays	41	隨感錄二十五	843107
+luxun-refeng-xuan	魯迅 熱風選	essays	42	事實勝於雄辯	401988
+luxun-zhaohua-xuan	魯迅 朝花夕拾選	essays	1	狗·猫·鼠	8657586
+luxun-zhaohua-xuan	魯迅 朝花夕拾選	essays	2	二十四孝圖	2563431
+luxun-zhaohua-xuan	魯迅 朝花夕拾選	essays	3	五猖會	2563954
+luxun-zhaohua-xuan	魯迅 朝花夕拾選	essays	4	无常	2637162
+luxun-zhaohua-xuan	魯迅 朝花夕拾選	essays	5	父亲的病	2563957
+luxun-zhaohua-xuan	魯迅 朝花夕拾選	essays	6	琐记	2563958
+luxun-zhaohua-xuan	魯迅 朝花夕拾選	essays	7	范愛農	2563960
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	1	綠野仙蹤/01	12655128
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	2	綠野仙蹤/02	850832
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	3	綠野仙蹤/03	850833
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	4	綠野仙蹤/04	12654187
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	5	綠野仙蹤/05	12654266
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	6	綠野仙蹤/06	850836
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	7	綠野仙蹤/07	850837
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	8	綠野仙蹤/08	850838
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	9	綠野仙蹤/09	850839
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	10	綠野仙蹤/10	850840
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	11	綠野仙蹤/11	850841
+lvye-xianzong	李百川 綠野仙蹤 第一至十二回	novel	12	綠野仙蹤/12	850842
+qiludeng	李綠園 歧路燈 第一至十五回	novel	1	歧路燈/001	2092320
+qiludeng	李綠園 歧路燈 第一至十五回	novel	2	歧路燈/002	2092323
+qiludeng	李綠園 歧路燈 第一至十五回	novel	3	歧路燈/003	2092328
+qiludeng	李綠園 歧路燈 第一至十五回	novel	4	歧路燈/004	2092329
+qiludeng	李綠園 歧路燈 第一至十五回	novel	5	歧路燈/005	2092330
+qiludeng	李綠園 歧路燈 第一至十五回	novel	6	歧路燈/006	2092331
+qiludeng	李綠園 歧路燈 第一至十五回	novel	7	歧路燈/007	2092332
+qiludeng	李綠園 歧路燈 第一至十五回	novel	8	歧路燈/008	2092360
+qiludeng	李綠園 歧路燈 第一至十五回	novel	9	歧路燈/009	2092361
+qiludeng	李綠園 歧路燈 第一至十五回	novel	10	歧路燈/010	2092363
+qiludeng	李綠園 歧路燈 第一至十五回	novel	11	歧路燈/011	2092365
+qiludeng	李綠園 歧路燈 第一至十五回	novel	12	歧路燈/012	2092367
+qiludeng	李綠園 歧路燈 第一至十五回	novel	13	歧路燈/013	2092370
+qiludeng	李綠園 歧路燈 第一至十五回	novel	14	歧路燈/014	2092377
+qiludeng	李綠園 歧路燈 第一至十五回	novel	15	歧路燈/015	2092942
+shigongan	施公案 第一至二十回	novel	1	施公案/第001回	834118
+shigongan	施公案 第一至二十回	novel	2	施公案/第002回	834085
+shigongan	施公案 第一至二十回	novel	3	施公案/第003回	834086
+shigongan	施公案 第一至二十回	novel	4	施公案/第004回	834087
+shigongan	施公案 第一至二十回	novel	5	施公案/第005回	834088
+shigongan	施公案 第一至二十回	novel	6	施公案/第006回	834089
+shigongan	施公案 第一至二十回	novel	7	施公案/第007回	834090
+shigongan	施公案 第一至二十回	novel	8	施公案/第008回	834091
+shigongan	施公案 第一至二十回	novel	9	施公案/第009回	834092
+shigongan	施公案 第一至二十回	novel	10	施公案/第010回	834093
+shigongan	施公案 第一至二十回	novel	11	施公案/第011回	1960913
+shigongan	施公案 第一至二十回	novel	12	施公案/第012回	834095
+shigongan	施公案 第一至二十回	novel	13	施公案/第013回	834096
+shigongan	施公案 第一至二十回	novel	14	施公案/第014回	834097
+shigongan	施公案 第一至二十回	novel	15	施公案/第015回	834098
+shigongan	施公案 第一至二十回	novel	16	施公案/第016回	834099
+shigongan	施公案 第一至二十回	novel	17	施公案/第017回	834100
+shigongan	施公案 第一至二十回	novel	18	施公案/第018回	834101
+shigongan	施公案 第一至二十回	novel	19	施公案/第019回	834102
+shigongan	施公案 第一至二十回	novel	20	施公案/第020回	834103
+shuotang	說唐 第一至十回	novel	1	說唐/第001回	823558
+shuotang	說唐 第一至十回	novel	2	說唐/第002回	823536
+shuotang	說唐 第一至十回	novel	3	說唐/第003回	823568
+shuotang	說唐 第一至十回	novel	4	說唐/第004回	823538
+shuotang	說唐 第一至十回	novel	5	說唐/第005回	823582
+shuotang	說唐 第一至十回	novel	6	說唐/第006回	823540
+shuotang	說唐 第一至十回	novel	7	說唐/第007回	823541
+shuotang	說唐 第一至十回	novel	8	說唐/第008回	823542
+shuotang	說唐 第一至十回	novel	9	說唐/第009回	823543
+shuotang	說唐 第一至十回	novel	10	說唐/第010回	823544
+shuoyue	錢彩 說岳全傳 第一至十回	novel	1	說岳全傳/第一回	2606241
+shuoyue	錢彩 說岳全傳 第一至十回	novel	2	說岳全傳/第二回	641796
+shuoyue	錢彩 說岳全傳 第一至十回	novel	3	說岳全傳/第三回	641797
+shuoyue	錢彩 說岳全傳 第一至十回	novel	4	說岳全傳/第四回	641798
+shuoyue	錢彩 說岳全傳 第一至十回	novel	5	說岳全傳/第五回	641799
+shuoyue	錢彩 說岳全傳 第一至十回	novel	6	說岳全傳/第六回	641800
+shuoyue	錢彩 說岳全傳 第一至十回	novel	7	說岳全傳/第七回	641802
+shuoyue	錢彩 說岳全傳 第一至十回	novel	8	說岳全傳/第八回	641803
+shuoyue	錢彩 說岳全傳 第一至十回	novel	9	說岳全傳/第九回	641804
+shuoyue	錢彩 說岳全傳 第一至十回	novel	10	說岳全傳/第十回	641805
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	1	文明小史/第01回	859519
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	2	文明小史/第02回	859501
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	3	文明小史/第03回	1554422
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	4	文明小史/第04回	859581
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	5	文明小史/第05回	859504
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	6	文明小史/第06回	859505
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	7	文明小史/第07回	2163484
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	8	文明小史/第08回	2163555
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	9	文明小史/第09回	859508
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	10	文明小史/第10回	2163557
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	11	文明小史/第11回	859512
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	12	文明小史/第12回	2163558
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	13	文明小史/第13回	859514
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	14	文明小史/第14回	859515
+wenming-xiaoshi	李伯元 文明小史 第一至十五回	novel	15	文明小史/第15回	2163727
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	1	醒世姻緣傳/001	823119
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	2	醒世姻緣傳/002	823120
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	3	醒世姻緣傳/003	823121
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	4	醒世姻緣傳/004	823122
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	5	醒世姻緣傳/005	823224
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	6	醒世姻緣傳/006	823225
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	7	醒世姻緣傳/007	823226
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	8	醒世姻緣傳/008	823126
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	9	醒世姻緣傳/009	823227
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	10	醒世姻緣傳/010	823228
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	11	醒世姻緣傳/011	823129
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	12	醒世姻緣傳/012	823130
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	13	醒世姻緣傳/013	823131
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	14	醒世姻緣傳/014	823132
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	15	醒世姻緣傳/015	823133
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	16	醒世姻緣傳/016	823134
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	17	醒世姻緣傳/017	2606017
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	18	醒世姻緣傳/018	823136
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	19	醒世姻緣傳/019	823137
+xingshi-yinyuan	醒世姻緣傳 第一至二十回	novel	20	醒世姻緣傳/020	823139
+yushi-mingyan	馮夢龍 喻世明言 第一至八卷	novel	1	喻世明言/第01卷	2044775
+yushi-mingyan	馮夢龍 喻世明言 第一至八卷	novel	2	喻世明言/第02卷	1566569
+yushi-mingyan	馮夢龍 喻世明言 第一至八卷	novel	3	喻世明言/第03卷	1566570
+yushi-mingyan	馮夢龍 喻世明言 第一至八卷	novel	4	喻世明言/第04卷	1566571
+yushi-mingyan	馮夢龍 喻世明言 第一至八卷	novel	5	喻世明言/第05卷	1566572
+yushi-mingyan	馮夢龍 喻世明言 第一至八卷	novel	6	喻世明言/第06卷	1566573
+yushi-mingyan	馮夢龍 喻世明言 第一至八卷	novel	7	喻世明言/第07卷	1566574
+yushi-mingyan	馮夢龍 喻世明言 第一至八卷	novel	8	喻世明言/第08卷	1566575

@@ -2,16 +2,18 @@
 // reads them. Run inside Vitest by that script (options arrive as JSON in ZH_EVAL_ARGS):
 //
 //   cpp: a folder with CPP's <split>.sent and <split>.lb; splits: which of them (each line is read alone, no names, as the
-//        CPP benchmark's "dict" mode reads it). One row per CPP item: where the item's character is a one-character token
-//        that no rule read, its features.
+//        CPP benchmark's "dict" mode reads it). One row per CPP item: where the item's character is a one-character token,
+//        whether a rule's case read it, and its features.
 //   texts: files read through the reader's path with the book's names (import, detection, ui/reader/shown.ts). One row per
 //        place, with the text around it.
 //   lines: a file of paragraphs, one per line, read alone with no names (the check sentences of the model's test). One row per
-//        place: line, offset, char, the rules' reading, the text around it, features.
+//        place: line, offset, char, the rules' reading, whether a rule's case decided it, the text around it, features.
+//   only: the characters to record (default: every character with two or more readings that is not in NOT_FOR_MODEL).
 //   out: the TSV to write. chars: also write each character's own readings (for the training script's classes).
 //
-// The features come from siteFeatures itself, through the dictionary's own call (a stand-in model that only records), so
-// what the model is trained on is what the app computes.
+// Every one-character place is recorded, also where a rule's own case decided the reading (decided = 1): those readings are the
+// training script's silver labels. The features come from siteFeatures itself, through the dictionary's own call (a stand-in
+// model that only records), so what the model is trained on is what the app computes.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { it } from 'vitest';
@@ -24,9 +26,9 @@ import type { Dictionary, Token } from '../../src/types';
 import { bookLexicon, detectionTexts, loadEvalDictionary } from './zh-shown';
 import { cppItems } from './zh-score';
 
-interface Args { cpp?: string; splits?: string[]; texts?: string[]; lines?: string; out: string; chars?: string }
+interface Args { cpp?: string; splits?: string[]; texts?: string[]; lines?: string; out: string; chars?: string; only?: string }
 
-interface Site { ch: string; fallback: string; features: string[]; offset: number }
+interface Site { ch: string; fallback: string; decided: boolean; features: string[]; offset: number }
 
 /** The readings a character has in the dictionary: its own CC-CEDICT rows and Unihan's. */
 function readingsOf(dict: Dictionary, ch: string): string[] {
@@ -35,26 +37,28 @@ function readingsOf(dict: Dictionary, ch: string): string[] {
   return [...set];
 }
 
-/** A stand-in model that records each site it is asked about (characters with two or more readings) and keeps the rules' reading. */
+/** A stand-in model that records each one-character site (characters with two or more readings) and keeps the rules' reading. */
 function recorder(dict: Dictionary, sink: Site[]): ReadingChooser {
   const poly = new Map<string, boolean>();
   return {
-    choose(site: ReadingSite, fallback: string) {
-      if (NOT_FOR_MODEL.has(site.ch)) return undefined;
+    choose: () => undefined,
+    observe(site: ReadingSite, fallback: string, decided: boolean) {
+      if (only ? !only.has(site.ch) : NOT_FOR_MODEL.has(site.ch)) return;
       let p = poly.get(site.ch);
       if (p === undefined) poly.set(site.ch, (p = readingsOf(dict, site.ch).length >= 2));
-      if (!p) return undefined;
+      if (!p) return;
       let offset = 0;
       for (let k = -1; ; k--) {
         const t = site.tok(k);
         if (!t) break;
         offset += t.length;
       }
-      sink.push({ ch: site.ch, fallback, features: siteFeatures(site), offset });
-      return undefined;
+      sink.push({ ch: site.ch, fallback, decided, features: siteFeatures(site, fallback), offset });
     },
   };
 }
+
+let only: Set<string> | undefined;
 
 /** The tokens of one paragraph and the sites recorded while it was cut. */
 function cutWithSites(dict: Dictionary, shown: string, source: string, lexicon?: Parameters<typeof segmentShown>[3]): { tokens: Token[]; sites: Site[] } {
@@ -71,12 +75,13 @@ const clean = (s: string) => s.replace(/[\t\n\r]/g, ' ');
 
 it('writes the reading model sites', async () => {
   const a = JSON.parse(process.env.ZH_EVAL_ARGS ?? '{}') as Args;
+  only = a.only ? new Set(Array.from(a.only)) : undefined;
   const dict = await loadEvalDictionary();
   dict.setReadingModel?.(null);
   const rows: string[] = [];
   const seen = new Set<string>();
   if (a.cpp) {
-    rows.push('# split\titem\tchar\tgold\ttoken\tone\tapp\teligible\tfallback\tfeatures');
+    rows.push('# split\titem\tchar\tgold\ttoken\tone\tapp\tsite\tdecided\tfallback\tfeatures');
     for (const split of a.splits ?? ['train', 'dev', 'test']) {
       const items = cppItems(readFileSync(`${a.cpp}/${split}.sent`, 'utf8'), readFileSync(`${a.cpp}/${split}.lb`, 'utf8'));
       // The script is told from the whole set, as scoreCpp does.
@@ -87,22 +92,22 @@ it('writes the reading model sites', async () => {
         const app = t?.pinyin?.[[...x.text.slice(t.start, x.at)].length] ?? '?';
         const site = sites.find((s) => s.offset === x.at);
         seen.add(x.text[x.at]);
-        rows.push([split, i, x.text[x.at], x.gold.replace(/v/g, 'ü'), t ? t.text : '', t && [...t.text].length === 1 ? 1 : 0, app, site ? 1 : 0, site?.fallback ?? ''].map(String).map(clean).concat(site ? site.features : []).join('\t'));
+        rows.push([split, i, x.text[x.at], x.gold.replace(/v/g, 'ü'), t ? t.text : '', t && [...t.text].length === 1 ? 1 : 0, app, site ? 1 : 0, site?.decided ? 1 : 0, site?.fallback ?? ''].map(String).map(clean).concat(site ? site.features : []).join('\t'));
       });
       console.log(split, items.length, 'items');
     }
   }
   if (a.lines) {
-    rows.push('# line\toffset\tchar\tfallback\tcontext\tfeatures');
+    rows.push('# line\toffset\tchar\tfallback\tdecided\tcontext\tfeatures');
     readFileSync(a.lines, 'utf8').split('\n').forEach((line, i) => {
       if (!line.trim() || line.startsWith('#')) return;
       const shown = inScript(line, 'simplified', dict, detectScript(line));
       for (const s of cutWithSites(dict, shown, line).sites) {
-        rows.push([i + 1, s.offset, s.ch, s.fallback, clean(shown), s.features.join('\t')].join('\t'));
+        rows.push([i + 1, s.offset, s.ch, s.fallback, s.decided ? 1 : 0, clean(shown), s.features.join('\t')].join('\t'));
       }
     });
   }
-  if (a.texts?.length && !rows.length) rows.push('# text\tblock\tstart\tchar\tfallback\tcontext\tfeatures');
+  if (a.texts?.length && !rows.length) rows.push('# text\tblock\tstart\tchar\tfallback\tdecided\tcontext\tfeatures');
   for (const path of a.texts ?? []) {
     const book = await importFile(new File([readFileSync(path) as BlobPart], basename(path)));
     const { lexicon } = bookLexicon(detectionTexts(book.chapters), dict, 'simplified', book.script);
@@ -113,7 +118,7 @@ it('writes the reading model sites', async () => {
       const { sites } = cutWithSites(dict, shown, b.text, lexicon);
       for (const s of sites) {
         const ctx = `${shown.slice(Math.max(0, s.offset - 20), s.offset)}【${shown.slice(s.offset, s.offset + 1)}】${shown.slice(s.offset + 1, s.offset + 21)}`;
-        rows.push([basename(path).replace(/\.[^.]+$/, ''), `${ci}.${bi}`, s.offset, s.ch, s.fallback, clean(ctx), s.features.join('\t')].join('\t'));
+        rows.push([basename(path).replace(/\.[^.]+$/, ''), `${ci}.${bi}`, s.offset, s.ch, s.fallback, s.decided ? 1 : 0, clean(ctx), s.features.join('\t')].join('\t'));
         seen.add(s.ch);
         n++;
       }

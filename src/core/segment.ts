@@ -3,7 +3,7 @@
 // Han runs are cut with the jieba method: build the DAG of dictionary words over the run and take the path with
 // the highest total log-probability. Everything else is split by character class.
 import type { Dictionary, Token, TokenKind, Lexicon, LexiconEntry, RubySpan } from '../types';
-import { isHanCodePoint } from './text';
+import { detectScript, isHanCodePoint } from './text';
 import { activeEngine } from '../lang/active';
 import { SURNAMES } from './names';
 import { UNSEEN_FLOOR } from './dict';
@@ -1306,6 +1306,9 @@ export function segment(text: string, dict: Dictionary, lexicon?: Lexicon, ruby?
     }
     return kinds.get(w);
   } : undefined;
+  // The paragraph's own script, for the reading model (core/readingModel.ts), on first use.
+  let scriptOf: string | undefined;
+  const script = (): string => (scriptOf ??= detectScript(own ?? text));
   for (let t = 0; t < tokens.length; t++) {
     const tok = tokens[t];
     if (tok.kind !== 'han') continue;
@@ -1323,6 +1326,7 @@ export function segment(text: string, dict: Dictionary, lexicon?: Lexicon, ruby?
       ...(own ? { orig: own.slice(tok.start, tok.end) } : {}),
       ...(lexicon?.spellings ? { spellings: lexicon.spellings } : {}),
       ...(named ? { named } : {}),
+      script,
     });
   }
   return tokens;

@@ -8,7 +8,7 @@ import { baseOf, markedToNumbered, normalizePinyinField, numberedToMarked } from
 import { CHAR_DEFAULTS, WORD_READINGS, firstCodePointOf, lastCodePoint, polyphoneRule } from './polyphone';
 import { isHanCodePoint } from './text';
 import { compareReading } from './hskMatch';
-import type { ReadingChooser } from './readingModel';
+import type { ReadingChooser, ReadingSite } from './readingModel';
 
 // ---------------------------------------------------------------- loading ---
 
@@ -1336,14 +1336,26 @@ class DictImpl implements Dictionary {
       const usual = rule.reading ?? this.defaultSyllable(orig && this.narrows(orig[i], cps[i]) ? orig[i] : cps[i]);
       // Where no rule's case matched a one-character token, the reading model may speak, among the character's own readings.
       const own = orig ? orig[i] : cps[i];
-      const learned = rule.usual && tok && this.readingModel && this.readingModel.knows?.(key) !== false
-        ? this.readingModel.choose({ ch: key, tok, verb: this.verbStrength, noun: this.nounish }, usual, (r) => this.readsAs(key, r) && this.readsAs(own, r))
-        : undefined;
+      const model = tok ? this.readingModel : null;
+      const ask = !!model && rule.usual && model.knows?.(key) !== false;
+      const site: ReadingSite | undefined = model && (ask || model.observe) ? {
+        ch: key, tok: tok!, verb: this.verbStrength, noun: this.nounish, script: ctx?.script,
+        pair: (k) => this.pairReading(key, k < 0 ? lastCodePoint(prevS) : firstCodePointOf(nextS), k),
+      } : undefined;
+      const learned = ask && site ? model!.choose(site, usual, (r) => this.readsAs(key, r) && this.readsAs(own, r)) : undefined;
+      if (site && model!.observe) model!.observe(site, usual, !rule.usual);
       out[i] = learned ?? usual;
     }
     // A verb + 不 + complement that the dictionary lacks (走不动, 看不到): the 不 is neutral.
     if (n === 3 && (cps[1] === '不') && isHanCodePoint(cps[0].codePointAt(0)!)) out[1] = 'bu5';
     return out;
+  }
+
+  /** The reading of `ch` in the dictionary word it makes with `other` before it (k < 0) or after it, "" when there is none. */
+  private pairReading(ch: string, other: string, k: number): string {
+    if (!other || !isHanCodePoint(other.codePointAt(0)!)) return '';
+    const cps = k < 0 ? [other, ch] : [ch, other];
+    return this.wordReading(cps.join(''), cps)?.[k < 0 ? 1 : 0] ?? '';
   }
 
   /** Hands pinyinFor the reading model (core/readingModel.ts), or takes it away with null. */
@@ -1571,6 +1583,8 @@ export interface PinyinContext {
   spellings?: OldSpellings;
   /** The kind of a token of `line` that the book's lexicon holds, asked in simplified (a place before 为 is a noun). */
   named?: (w: string) => LexiconEntry['kind'] | undefined;
+  /** The script the paragraph is written in, as the book writes it (core/text.ts detectScript), worked out when first asked. */
+  script?: () => string;
 }
 
 /** Words in 那 that ask which or where in a book that writes 那 for 哪 (pinyinFor, core/bookStyle.ts). */

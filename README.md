@@ -181,7 +181,7 @@ On the hosted site, everything is local to your browser. Books, saved words, pro
 | Wiktionary via kaikki.org | Readings and definitions for rare characters and extra words | CC BY-SA 4.0 |
 | jieba | Word frequencies for splitting sentences | MIT |
 | Wikidata | The name list (`public/data/names.tsv.gz`, made by `scripts/build-gazetteer.mjs`): people, places and organizations with a Chinese Wikipedia article | CC0 |
-| CPP (Chinese Polyphones with Pinyin, Kakao Brain; sentences from Chinese Wikipedia) | The reading model (`public/data/reading-model.tsv.gz`, made by `scripts/train_reading_model.py`): the reading of a few characters with two readings where the rules have no case | CC BY-SA 4.0 (the model; CPP's code is Apache-2.0) |
+| CPP (Chinese Polyphones with Pinyin, Kakao Brain; sentences from Chinese Wikipedia), public-domain books from Wikisource and readings hand-labeled in them and in the held-out corpus | The reading model (`public/data/reading-model.tsv.gz`, made by `scripts/train_reading_model.py`): the reading of 为 (wéi or wèi), 藏, 数 and a few rarer characters with two readings where the rules fall back to their default | CC BY-SA 4.0 (the model; CPP's code is Apache-2.0) |
 | hsk30 (Ivan Krasilnikov), from the official HSK 3.0 list (GF0025-2021) | HSK levels for each reading of a word | MIT |
 | complete-hsk-vocabulary | HSK 2.0 levels and HSK words CC-CEDICT lacks | MIT |
 | OpenCC | Simplified and traditional conversion | Apache-2.0 |
@@ -190,7 +190,7 @@ On the hosted site, everything is local to your browser. Books, saved words, pro
 | LXGW WenKai | The Kai reading typeface | SIL OFL 1.1 |
 | Newsreader (Production Type) | The serif of screen titles, folios and numbers (a Latin subset in `public/fonts/`) | SIL OFL 1.1 |
 | hanzi-writer, hanzi-writer-data | Stroke-order animation | MIT, Arphic Public License |
-| Wikisource | The bundled classics (all public domain) | public domain |
+| Wikisource | The bundled classics, and the books the reading model learns from (`scripts/data/reading-model-books.tsv`) | public domain |
 
 The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Russian) add:
 

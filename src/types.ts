@@ -106,6 +106,8 @@ export interface Dictionary {
     line?: readonly string[]; at?: number;
     /** The kind of a token of `line` that the book's lexicon holds, asked in simplified (a place before 为 is a noun). */
     named?: (w: string) => LexiconEntry['kind'] | undefined;
+    /** The paragraph's own script (core/text.ts detectScript), worked out when the reading model first asks. */
+    script?: () => string;
   }): string[];
   toSimplified(text: string): string;
   toTraditional(text: string): string;

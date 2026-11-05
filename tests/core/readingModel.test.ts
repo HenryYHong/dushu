@@ -15,6 +15,8 @@ import type { Dictionary } from '../../src/types';
 import { loadTestDictionary, readDataFile } from '../helpers/data';
 
 const ROOT = join(__dirname, '..', '..');
+/** The characters the model file speaks for (see the training script's report). */
+const ENABLED = '为什仔传刹圜奔姥宿数杈杓槛率畜相脯艮苕茄茆藉藏裨镝隽颉';
 let dict: Dictionary;
 let model: ReadingModel;
 
@@ -33,7 +35,7 @@ function sitesOf(line: string): Map<number, { ch: string; fallback: string; feat
     choose(site: ReadingSite, fallback: string) {
       let offset = 0;
       for (let k = -1; site.tok(k); k--) offset += site.tok(k).length;
-      out.set(offset, { ch: site.ch, fallback, features: siteFeatures(site) });
+      out.set(offset, { ch: site.ch, fallback, features: siteFeatures(site, fallback) });
       return undefined;
     },
   };
@@ -59,12 +61,43 @@ function readingAt(text: string, part: string, withModel: boolean): string {
 }
 
 describe('reading model file', () => {
-  it('is the features version the app computes, with a threshold above one half', () => {
+  it('is the features version the app computes, with thresholds above one half', () => {
     const text = readFileSync(join(ROOT, 'public', 'data', 'reading-model.tsv.gz'));
-    expect(text.length).toBeLessThan(300_000);
+    expect(text.length).toBeLessThan(1_000_000);
     expect(model.threshold).toBeGreaterThan(0.5);
     expect(model.threshold).toBeLessThanOrEqual(1);
+    for (const ch of model.chars.keys()) {
+      expect(model.thresholdOf(ch)).toBeGreaterThan(0.5);
+      expect(model.thresholdOf(ch)).toBeLessThanOrEqual(1);
+    }
     for (const ch of NOT_FOR_MODEL) expect(model.has(ch)).toBe(false);
+  });
+
+  it('speaks only for the characters the held-out hand labels enabled', () => {
+    // scripts/train_reading_model.py keeps a character only where its changes on the held-out hand labels were right at least
+    // 90% of the time; a retrain that changes this list should change it here on purpose.
+    expect([...model.chars.keys()].sort().join('')).toBe(ENABLED);
+    for (const ch of '的了是在有我他这中个们来上大') if (!ENABLED.includes(ch)) expect(model.knows(ch)).toBe(false);
+  });
+
+  it('reads a threshold of its own for a character', () => {
+    const m = parseReadingModel(`!\tv\t${READING_FEATURES_VERSION}\n!\tthreshold\t0.7\n!\tthreshold:传\t0.9\n!\tthreshold:杓\t7\n传\tchuan2 zhuan4\t0.5\tw+1:》 2\n杓\tbiao1 shao2\t0.5\n`)!;
+    expect(m.thresholdOf('传')).toBe(0.9);
+    expect(m.thresholdOf('杓')).toBe(0.7); // out of range: the default
+  });
+
+  it('reads a higher threshold for changing a character to one of its readings', () => {
+    const m = parseReadingModel(`!\tv\t${READING_FEATURES_VERSION}\n!\tthreshold\t0.7\n!\tthreshold:为\t0.8\n!\tthreshold:为:wei2\t0.9\n为\twei4 wei2\t1\n`)!;
+    expect(m.thresholdOf('为')).toBe(0.8);
+    expect(m.thresholdOf('为', 'wei4')).toBe(0.8);
+    expect(m.thresholdOf('为', 'wei2')).toBe(0.9);
+    // e^1 / (1 + e^1) = 0.73: under 0.9, so wéi does not replace the rules' wèi; with the bias at 2.5 (0.92) it does.
+    const site = (ch: string): ReadingSite => ({ ch, tok: () => '', verb: () => 0, noun: () => false });
+    expect(m.choose(site('为'), 'wei4', () => true)).toBeUndefined();
+    const sure = parseReadingModel(`!\tv\t${READING_FEATURES_VERSION}\n!\tthreshold\t0.7\n!\tthreshold:为:wei2\t0.9\n为\twei4 wei2\t2.5\n`)!;
+    expect(sure.choose(site('为'), 'wei4', () => true)).toBe('wei2');
+    // The real file: changing 为 to wéi asks more of the model than changing it to wèi.
+    expect(model.thresholdOf('为', 'wei2')).toBeGreaterThan(model.thresholdOf('为', 'wei4'));
   });
 
   it('is not used when it is of another version, broken or missing', async () => {
@@ -73,6 +106,16 @@ describe('reading model file', () => {
     expect(parseReadingModel(good.replace(`v\t${READING_FEATURES_VERSION}`, `v\t${READING_FEATURES_VERSION + 1}`))).toBeNull();
     expect(parseReadingModel('<!doctype html><html></html>')).toBeNull();
     expect(await loadReadingModel(() => Promise.reject(new Error('404')))).toBeNull();
+  });
+
+  it('leaves every reading to the rules when the file is missing', async () => {
+    const missing = await loadReadingModel(() => Promise.reject(new Error('404')));
+    const t = '他们在山里找到一座古刹，就在刹前歇了一会儿。我先读了《王冕传》。';
+    dict.setReadingModel?.(missing);
+    const a = segment(t, dict).map((x) => (x.pinyin ?? []).join(' '));
+    dict.setReadingModel?.(null);
+    const b = segment(t, dict).map((x) => (x.pinyin ?? []).join(' '));
+    expect(a).toEqual(b);
   });
 });
 
@@ -117,6 +160,18 @@ describe('where the dictionary asks the model', () => {
     expect(readingAt('老先生精通天文，能说出东方七宿的名字。', '宿', true)).toBe('xiu4');
   });
 
+  it('reads 为 as a copula and 藏 as a canon where the rules fall back to their default', () => {
+    const t = '历史考试模块为必修课程，地理考试模块为选修课程。';
+    const at = t.lastIndexOf('为选修');
+    const second = t.slice(at);
+    expect(readingAt(t, second, false)).toBe('wei4');
+    expect(readingAt(t, second, true)).toBe('wei2');
+    const u = '寺里藏着经一藏，从不给外人看。';
+    expect(readingAt(u, '藏，', false)).toBe('cang2');
+    expect(readingAt(u, '藏，', true)).toBe('zang4');
+    expect(readingAt(u, '藏着', true)).toBe('cang2');
+  });
+
   it('keeps the rules where one of their cases matched', () => {
     // 率 after 效 is a rate (the 率 rule's own case), 宿 after 一 is a night: the model is not asked.
     expect(readingAt('这台机器的效率很高。', '率', true)).toBe(readingAt('这台机器的效率很高。', '率', false));
@@ -135,6 +190,12 @@ describe('where the dictionary asks the model', () => {
     expect(readingAt('他谈吐隽雅，人人喜欢。', '隽', true)).toBe('juan4');
     expect(readingAt('她最爱听《胡茄十八拍》。', '茄', true)).toBe('jia1'); // 胡茄 for 胡笳
     expect(readingAt('院里放着木锨、木杈和扫帚。', '杈', true)).toBe('cha1'); // a pitchfork
+    // And where the book-trained model misread modern novels: 为 + someone + what is felt or lived for them, a treasure stored, a
+    // rate before an adverb.
+    expect(readingAt('她心里真为弟弟高兴。', '为弟弟', true)).toBe('wei4');
+    expect(readingAt('妈妈一辈子都在为孩子活着。', '为孩子', true)).toBe('wei4');
+    expect(readingAt('山洞里有一座藏宝塔，谁也没进去过。', '藏宝', true)).toBe('cang2');
+    expect(readingAt('这个月的返修率都在下降。', '率', true)).toBe('lü4');
     // What the model got right stays: a temple, a branch fork, a leader.
     expect(readingAt('他们在山里找到一座古刹，就在刹前歇了一会儿。', '刹前', true)).toBe('cha4');
     expect(readingAt('露水挂在叶杈间。', '杈', true)).toBe('cha4');

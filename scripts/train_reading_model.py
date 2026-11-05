@@ -3,24 +3,35 @@
 ARCHITECTURE.md §4.1 Reading model).
 
 Usage (python3 -I, from a venv with numpy, scipy and scikit-learn; Node 22 on PATH):
-  train_reading_model.py <repo-root> [--report] [--refetch] [--threshold P]
+  train_reading_model.py <repo-root> [--books DIR] [--report FILE] [--decide] [--refetch] [--candidates FILE]
 
 1. Fetches CPP (github.com/kakaobrain/g2pM, data/{train,dev,test}.{sent,lb}: Apache-2.0 code, sentences from Chinese
    Wikipedia, CC BY-SA) into <repo>/.cache/raw/cpp and checks each file's sha256.
-2. Reads every CPP sentence through the app (scripts/eval/zh-reading-sites.run.ts, run by node inside Vitest): for each item
-   whose character is a one-character token that no rule's case read, the features the app computes (siteFeatures) and the
-   reading the rules give it. The model is trained on exactly what the app will show it.
-3. Trains one logistic regression per character on the train and dev splits (never on test, which the CPP benchmark
-   scores). The rules' reading is class 0 and gets PRIOR pseudo-examples with no features, so the model has to see the
-   other reading often enough in CPP before it is sure of it. Characters the model would never change are left out.
-4. Writes the model (weights rounded to 2 decimals) and tests/core/fixtures/reading-model-check.tsv: the features and
-   scores of the invented sentences in scripts/data/reading-model-check.txt, which tests/core/readingModel.test.ts checks
-   against the TypeScript.
+2. Reads through the app (scripts/eval/zh-reading-sites.run.ts, run by node inside Vitest) every one-character place of the
+   characters below, with the features the app computes (siteFeatures), the rules' reading and whether one of the rules' own
+   cases decided it: CPP, the books in public/samples, the public-domain books in --books (default <repo>/.cache/raw/reading-books,
+   fetched by scripts/fetch_reading_books.py from scripts/data/reading-model-books.tsv) and the texts of the held-out corpus.
+3. Trains one logistic regression per character on
+   - CPP's train and dev splits (never test, which the CPP benchmark scores): the right readings, Wikipedia's;
+   - silver labels: what a rule's own case read in the books (not its default), and in public/samples, which review passes
+     checked reading by reading, also the defaults, weighted below;
+   - the hand-labeled places of tests/corpus/zh/readings-calibration.tsv outside the held-out third (`held_out`).
+   The rules' reading is class 0 and gets PRIOR pseudo-examples with no features, so the model has to see the other reading
+   often enough before it is sure of it.
+4. With --decide, sets each character's threshold on the training hand labels (out of fold) and keeps a character only where, on
+   the held-out third of the hand labels, it changes at least MIN_CHANGES readings, is right at least ENABLE_RIGHT of the time
+   when it does and gets more of them right than the rules. ENABLED holds the outcome, so a retrain gives the same characters.
+   A character's threshold may be higher for changing to one of its readings ({"": 0.8, "wei2": 0.9}: threshold:为:wei2 in the
+   file). --report FILE writes the per-character table.
+5. Writes the model (weights rounded to 2 decimals) and tests/core/fixtures/reading-model-check.tsv: the features and scores of
+   the invented sentences in scripts/data/reading-model-check.txt, which tests/core/readingModel.test.ts checks against the
+   TypeScript.
 
---report also trains on train alone and prints accuracy on dev and test at several thresholds. The trained model is
-CC BY-SA 4.0 (it is made from CPP's Wikipedia sentences): credited in About, README and ARCHITECTURE §8.
+--candidates FILE writes places to hand-label next (where the model would change the rules' reading, and a sample where it
+would not). The trained model is CC BY-SA 4.0 (it is made from CPP's Wikipedia sentences): credited in About, README and
+ARCHITECTURE §8.
 """
-import gzip, hashlib, json, math, os, shutil, subprocess, sys
+import gzip, hashlib, json, math, os, random, shutil, subprocess, sys
 from collections import Counter, defaultdict
 
 import numpy as np
@@ -38,21 +49,46 @@ CPP_SHA256 = {
     "test.lb": "1101ba8bb0842b4fe273690c4c1899cdaf656ee1d79ebba4fb8dc10fbcc598f8",
 }
 # Must match READING_FEATURES_VERSION in src/core/readingModel.ts.
-FEATURES_VERSION = 1
-# Inverse regularization, pseudo-examples of the rules' reading, features seen fewer times than this are dropped.
-C = 1.0
+FEATURES_VERSION = 2
+# The characters trained: the common ones whose rules leave a default (为 得 着 长 …) and the rare ones of the first model.
+COMMON = "为得着长应将中还种便处差少藏当降难好数量调重行"
+RARE = "传杓相刹艮率藉圜裨脯茆什奔宿隽苕茄杈颉槛镝仔姥畜"
+TRAINED = COMMON + RARE
+# Inverse regularization, pseudo-examples of the rules' reading, features seen fewer times than this are dropped, weights
+# smaller than PRUNE are left out of the file.
+C = 0.5
 PRIOR = 4
 MIN_COUNT = 2
 PRUNE = 0.05
-# Probability the model must reach to change a reading, and the characters it may change: both set on the hand-labeled
-# calibration set (tests/corpus/zh/readings-calibration.tsv, 734 places in the held-out corpus and public/samples). CPP's
-# sentences are Wikipedia's, and for most characters the reading they favor is not the one books mean (藏 zàng for Tibet,
-# 少 shào, 为 wéi as "to be", 钻 zuàn, 塞 sài, 舍 shè …): the model's changes there were right less than 60% of the time.
-# These are the characters whose changes were right at least 90% of the time and whose other reading books rarely mean.
+# How much each kind of example counts: a hand label, a CPP sentence, a rule's case in a book, a reviewed default. Set on the
+# training hand labels (out of fold): the reviewed defaults of public/samples teach the very misreadings the hand labels fix
+# (遇着 zhe, 当兵，为钱 wéi), so they count for nothing; the rules' own cases count less than CPP's right readings.
+W_HAND = 10.0
+W_CPP = 0.5
+W_SILVER = 0.3
+W_REVIEWED = 0.0
+# At most this many silver examples of one reading of one character (the classics have thousands of 着 zhe).
+SILVER_CAP = 6000
+# The default threshold, the ones a character may get, how often its changes must be right, and on how many held-out places
+# at least. The first model's rare characters have too few held-out places each: they are kept together when their held-out
+# changes are right ENABLE_RIGHT of the time, each one unless one of its own held-out changes was wrong.
 THRESHOLD = 0.7
-# A first judged sample of the corpus and tuned-book diff (69 of 100 right) took out 应 (yīng "should" in verse and the old
-# novels), 耙 (bà, the harrow of village novels), 臊 (sāo, a smell), 拗 (ǎo, to bend), 煞 (shā) and 鹄 (gǔ, a target).
-ALLOW = set("传杓相刹艮率藉圜裨脯茆什奔宿隽苕茄杈颉槛镝仔姥畜")
+GRID = (0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95)
+CALIBRATE_RIGHT = 1.0
+ENABLE_RIGHT = 0.9
+MIN_CHANGES = 3
+# The first model's features and threshold, which its rare characters keep.
+FIRST_FEATURES = {"w-1", "w+1", "w-2", "w+2", "c-1", "c-2", "c-3", "c+1", "c+2", "c+3", "cc-", "cc+", "c-+", "E", "S", "L-1", "V-1",
+                  "L+1", "V+1", "N+1", "ce", "Vce", "Nce", "Vmax"}
+FIRST_THRESHOLD = 0.7
+# Characters the held-out hand labels enabled, with their thresholds (--decide decides again and prints what to put here). Of the
+# common characters 为 藏 数 passed; 得 着 长 种 当 好 难 量 changed held-out readings wrongly, the others too seldom (report in
+# ARCHITECTURE §4.1). The first model's 24 rare characters passed together.
+# A review of every change in the held-out corpus and the tuned books found 为 wrong in modern novels, which the hand labels hold
+# few of, and only where it changed wèi to wéi. Rule cases now take 为 + someone + what is felt or lived for them (为朋友高兴,
+# 为孩子活着: wèi), 藏宝 (cáng) and a rate before an adverb (率 lǜ) from the model, and changing 为 to wéi takes 0.9, the lowest of
+# GRID above every other wrong change the review found (the highest at 0.888); changing it to wèi stays at 0.8 (all right).
+ENABLED = {"为": {"": 0.8, "wei2": 0.9}, "藏": 0.7, "数": 0.6, **{ch: FIRST_THRESHOLD for ch in RARE}}
 # Particles and interjections: the rules own them (NOT_FOR_MODEL in src/core/readingModel.ts).
 NOT_FOR_MODEL = set("了着著得地的儿兒么麼罢罷吧呢啊呀哇啦哪嘛哟喔哦噢呐咯哩唻嘞呗唄啰囉耶邪欤歟乎哉兮焉矣也夫唉嗯哼嘿哈喂呸噫嘻吁咦嗨呃嗳噯哎呦呵嚯个個们們子头頭一不")
 
@@ -86,7 +122,7 @@ def run_sites(repo, args):
     r = subprocess.run([node, vitest, "run", "--config", "scripts/eval/zh.vitest.config.mts"], cwd=repo, env=env,
                        stdout=subprocess.DEVNULL)
     if r.returncode:
-        sys.exit("reading the sentences through the app failed")
+        sys.exit("reading the texts through the app failed")
 
 
 def read_cpp_sites(path):
@@ -96,8 +132,22 @@ def read_cpp_sites(path):
             if line.startswith("#"):
                 continue
             r = line.rstrip("\n").split("\t")
-            rows.append({"split": r[0], "ch": r[2], "gold": r[3], "one": r[5] == "1", "app": r[6],
-                         "eligible": r[7] == "1", "fallback": r[8], "features": r[9:] if r[7] == "1" else []})
+            if r[7] != "1":
+                continue
+            rows.append({"src": "cpp", "split": r[0], "ch": r[2], "gold": r[3], "app": r[6], "decided": r[8] == "1",
+                         "fallback": r[9], "features": r[10:]})
+    return rows
+
+
+def read_book_sites(path, src):
+    rows = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            r = line.rstrip("\n").split("\t")
+            rows.append({"src": src, "text": r[0], "block": r[1], "offset": int(r[2]), "ch": r[3], "fallback": r[4],
+                         "decided": r[5] == "1", "context": r[6], "features": r[7:]})
     return rows
 
 
@@ -110,54 +160,60 @@ def read_chars(path):
     return own
 
 
-def train(rows, own, splits):
-    """One model per character: {ch: (readings, bias, {feature: weights})}, readings[0] the rules' usual reading."""
-    by_char = defaultdict(list)
-    for x in rows:
-        if x["eligible"] and x["split"] in splits and x["gold"] in own.get(x["ch"], ()):
-            by_char[x["ch"]].append(x)
-    models = {}
-    for ch in sorted(by_char):
-        if ch not in ALLOW or ch in NOT_FOR_MODEL:
-            continue
-        xs = by_char[ch]
-        usual = Counter(x["fallback"] for x in xs).most_common(1)[0][0]
-        golds = Counter(x["gold"] for x in xs)
-        if set(golds) <= {usual}:
-            continue
-        readings = [usual] + sorted(g for g in golds if g != usual)
-        counts = Counter(f for x in xs for f in x["features"])
-        vocab = sorted(f for f, k in counts.items() if k >= MIN_COUNT)
-        index = {f: i for i, f in enumerate(vocab)}
-        ri, ci, y = [], [], []
-        for i, x in enumerate(xs):
-            for f in x["features"]:
-                j = index.get(f)
-                if j is not None:
-                    ri.append(i)
-                    ci.append(j)
-            y.append(readings.index(x["gold"]))
-        # The rules' reading as pseudo-examples with no features: a prior toward what the rules say.
-        y += [0] * PRIOR
-        X = csr_matrix((np.ones(len(ri)), (ri, ci)), shape=(len(y), max(1, len(vocab))))
-        lr = LogisticRegression(C=C, max_iter=5000, tol=1e-8)
-        lr.fit(X, y)
-        coef = lr.coef_
-        icpt = lr.intercept_
-        if len(readings) == 2:
-            # sklearn keeps one row for two classes: the log-odds of class 1.
-            diff = coef[0:1]
-            bias = [float(icpt[0])]
-        else:
-            diff = coef[1:] - coef[0]
-            bias = [float(b - icpt[0]) for b in icpt[1:]]
-        weights = {}
-        for f, j in index.items():
-            w = [round(float(diff[k, j]), 2) for k in range(len(readings) - 1)]
-            if max(abs(v) for v in w) >= PRUNE:
-                weights[f] = w
-        models[ch] = (readings, [round(b, 2) for b in bias], weights)
-    return models
+def read_labels(path):
+    """Hand labels: {(text, block, offset): (char, reading, folder)}."""
+    out = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("#") or not line.strip():
+                continue
+            c = line.rstrip("\n").split("\t")
+            out[(c[1], c[2], int(c[3]))] = (c[4], c[5], c[0])
+    return out
+
+
+def held_out(key):
+    """The held-out third of the hand labels: chosen by a hash of the place, so it never changes as labels are added."""
+    text, block, offset = key
+    return int(hashlib.sha1(f"{text}/{block}/{offset}".encode()).hexdigest(), 16) % 3 == 0
+
+
+def train_char(ch, xs, own, ys, ws, usual, c=None):
+    """One character's model from examples xs (feature lists), labels ys, weights ws: (readings, bias, {feature: weights})."""
+    readings = [usual] + sorted(set(y for y in ys if y != usual))
+    if len(readings) < 2:
+        return None
+    counts = Counter(f for x in xs for f in set(x))
+    index = {f: i for i, f in enumerate(sorted(f for f, k in counts.items() if k >= MIN_COUNT))}
+    ri, ci, y, w = [], [], [], []
+    for i, (x, lab, wt) in enumerate(zip(xs, ys, ws)):
+        for f in set(x):
+            j = index.get(f)
+            if j is not None:
+                ri.append(i)
+                ci.append(j)
+        y.append(readings.index(lab))
+        w.append(wt)
+    # The rules' reading as pseudo-examples with no features: a prior toward what the rules say.
+    y += [0] * PRIOR
+    w += [1.0] * PRIOR
+    X = csr_matrix((np.ones(len(ri)), (ri, ci)), shape=(len(y), max(1, len(index))))
+    lr = LogisticRegression(C=c or C, max_iter=3000, tol=1e-6)
+    lr.fit(X, y, sample_weight=np.array(w))
+    coef, icpt = lr.coef_, lr.intercept_
+    if len(readings) == 2:
+        # sklearn keeps one row for two classes: the log-odds of class 1.
+        diff = coef[0:1]
+        bias = [float(icpt[0])]
+    else:
+        diff = coef[1:] - coef[0]
+        bias = [float(b - icpt[0]) for b in icpt[1:]]
+    weights = {}
+    for f, j in index.items():
+        wv = [round(float(diff[k, j]), 2) for k in range(len(readings) - 1)]
+        if max(abs(v) for v in wv) >= PRUNE:
+            weights[f] = wv
+    return readings, [round(b, 2) for b in bias], weights
 
 
 def scores(model, features):
@@ -174,62 +230,162 @@ def scores(model, features):
     return [(r, v / s) for r, v in zip(readings, e)]
 
 
-def choose(models, ch, fallback, features, threshold):
-    m = models.get(ch)
-    if not m or fallback not in m[0]:
-        return fallback, None
-    sc = scores(m, features)
+def bar(threshold, reading):
+    """How sure the model must be to change to `reading`: `threshold` is a number, or {"": default, reading: higher}."""
+    return threshold.get(reading, threshold[""]) if isinstance(threshold, dict) else threshold
+
+
+def choose(model, fallback, features, threshold, own):
+    """The reading the app would show: the model's best when it is at least `threshold` sure and one of the character's own."""
+    if not model or fallback not in model[0]:
+        return fallback, 0.0
+    sc = scores(model, features)
     best = max(sc, key=lambda x: x[1])
-    return (best[0] if best[1] >= threshold else fallback), best[1]
+    if best[0] == fallback or best[1] < bar(threshold, best[0]) or best[0] not in own:
+        return fallback, best[1]
+    return best[0], best[1]
 
 
-def prune_unused(models, rows, threshold):
-    """Drops characters whose model never changes a training site's reading even at half the threshold."""
-    by_char = defaultdict(list)
+class Data:
+    """Every example, by character."""
+
+    def __init__(self, cpp, books, labels, own):
+        self.own = own
+        self.by_char = defaultdict(list)
+        self.hand = defaultdict(list)
+        self.cpp_test = [x for x in cpp if x["split"] == "test"]
+        for x in cpp:
+            if x["split"] in ("train", "dev") and x["gold"] in own.get(x["ch"], ()):
+                self.by_char[x["ch"]].append((x["features"] + ["D:cpp"], x["gold"], W_CPP))
+        silver = defaultdict(list)
+        self.sites = {}
+        for x in books:
+            key = (x["text"], x["block"], x["offset"])
+            self.sites[key] = x
+            # The rare characters learn from CPP and the hand labels alone, as in the first model: their rules' cases are narrow
+            # (杀奔 径奔 bèn) and would teach the model to read every 奔 before a place as bèn.
+            if key in labels or x["src"] == "corpus" or x["ch"] in RARE:
+                continue
+            if x["decided"]:
+                silver[(x["ch"], x["fallback"])].append((x["features"], x["fallback"], W_SILVER))
+            elif x["src"] == "samples":
+                silver[(x["ch"], x["fallback"])].append((x["features"], x["fallback"], W_REVIEWED))
+        rnd = random.Random(1)
+        for (ch, _), xs in sorted(silver.items()):
+            if len(xs) > SILVER_CAP:
+                xs = rnd.sample(xs, SILVER_CAP)
+            self.by_char[ch].extend(xs)
+        self.missing = []
+        for key, (ch, gold, folder) in sorted(labels.items()):
+            x = self.sites.get(key)
+            if not x or x["ch"] != ch:
+                self.missing.append(key)
+                continue
+            self.hand[ch].append({"key": key, "x": x, "gold": gold, "held": held_out(key)})
+
+    def usual(self, ch):
+        eligible = [x["fallback"] for x in self.sites.values() if x["ch"] == ch and not x["decided"]]
+        if eligible:
+            return Counter(eligible).most_common(1)[0][0]
+        return Counter(y for _, y, _ in self.by_char[ch]).most_common(1)[0][0]
+
+    def fit(self, ch, hand_rows):
+        if ch in RARE:
+            # The first model's characters are trained as it was (CPP alone, its features and regularization), so what its
+            # review checked stays as it was: with the new features and the hand labels, 奔 before any place became bèn
+            # (奔回, 奔进 are bēn) and 十人传百, 门上传鼓 zhuàn.
+            xs = [[f for f in x if f.split(":", 1)[0] in FIRST_FEATURES] for x, _, _ in self.by_char[ch]]
+            ys = [y for _, y, _ in self.by_char[ch]]
+            return train_char(ch, xs, self.own.get(ch, set()), ys, [1.0] * len(ys), self.usual(ch), c=1.0) if xs else None
+        xs, ys, ws = [], [], []
+        for x, y, w in self.by_char[ch]:
+            xs.append(x), ys.append(y), ws.append(w)
+        for h in hand_rows:
+            xs.append(h["x"]["features"]), ys.append(h["gold"]), ws.append(W_HAND)
+        if not xs:
+            return None
+        return train_char(ch, xs, self.own.get(ch, set()), ys, ws, self.usual(ch))
+
+
+def tally(model, rows, threshold, own):
+    """On hand-labeled places (where the model may speak): n, rules right, model right, changed, changes right."""
+    n = rules = now = changed = right = 0
+    for h in rows:
+        x = h["x"]
+        if x["decided"]:
+            continue
+        n += 1
+        pick, _ = choose(model, x["fallback"], x["features"], threshold, own)
+        rules += x["fallback"] == h["gold"]
+        now += pick == h["gold"]
+        if pick != x["fallback"]:
+            changed += 1
+            right += pick == h["gold"]
+    return n, rules, now, changed, right
+
+
+def calibrate(data, ch, train_rows):
+    """The lowest threshold above which the out-of-fold changes on the training hand labels are right CALIBRATE_RIGHT of the time
+    (all of them: a wrong change at 0.78 puts the threshold above it)."""
+    folds = [[h for h in train_rows if int(hashlib.sha1(repr(h["key"]).encode()).hexdigest(), 16) % 3 == k] for k in range(3)]
+    oof = []
+    for k in range(3):
+        rest = [h for j in range(3) if j != k for h in folds[j]]
+        m = data.fit(ch, rest)
+        for h in folds[k]:
+            oof.append((h, m))
+    best = None
+    for t in GRID:
+        n = changed = right = 0
+        for h, m in oof:
+            x = h["x"]
+            if x["decided"]:
+                continue
+            pick, _ = choose(m, x["fallback"], x["features"], t, data.own.get(ch, set()))
+            if pick != x["fallback"]:
+                changed += 1
+                right += pick == h["gold"]
+        if changed and right / changed >= CALIBRATE_RIGHT:
+            return t, changed, right
+        if best is None and not changed:
+            best = (t, 0, 0)
+    return (GRID[-1], 0, 0) if best is None else best
+
+
+def cpp_eval(models, rows, thresholds):
+    n = app = now = changed = right = 0
     for x in rows:
-        if x["eligible"]:
-            by_char[x["ch"]].append(x)
-    keep = {}
-    for ch, m in models.items():
-        if any(choose(models, ch, x["fallback"], x["features"], min(threshold, 0.5))[0] != x["fallback"] for x in by_char[ch]):
-            keep[ch] = m
-    return keep
-
-
-def evaluate(models, rows, split, threshold):
-    xs = [x for x in rows if x["split"] == split]
-    n = len(xs)
-    app = sum(x["app"] == x["gold"] for x in xs)
-    now = 0
-    one = [x for x in xs if x["one"]]
-    app1 = sum(x["app"] == x["gold"] for x in one)
-    now1 = 0
-    changed = right = 0
-    for x in xs:
+        n += 1
+        app += x["app"] == x["gold"]
         got = x["app"]
-        if x["eligible"]:
-            pick, _ = choose(models, x["ch"], x["fallback"], x["features"], threshold)
+        if not x["decided"] and x["ch"] in models:
+            pick, _ = choose(models[x["ch"]], x["fallback"], x["features"], thresholds[x["ch"]], {x["gold"], x["fallback"]} | set(models[x["ch"]][0]))
             if pick != x["fallback"]:
                 got = pick
                 changed += 1
                 right += pick == x["gold"]
         now += got == x["gold"]
-        if x["one"]:
-            now1 += got == x["gold"]
-    return (f"{split} @{threshold}: strict {100 * app / n:.2f} -> {100 * now / n:.2f}, one-character {100 * app1 / len(one):.2f} -> "
-            f"{100 * now1 / len(one):.2f}; changed {changed}, right {right}")
+    return n, app, now, changed, right
 
 
-def write_model(models, path, threshold):
+def write_model(models, thresholds, path, default_threshold):
     lines = [
         "# Dushu reading model: one logistic regression per character, for one-character tokens the reading rules leave to",
         "# their default (src/core/readingModel.ts). Made by scripts/train_reading_model.py from CPP (Chinese Polyphones with",
-        "# Pinyin, github.com/kakaobrain/g2pM, Apache-2.0), whose sentences come from Chinese Wikipedia (CC BY-SA 4.0).",
+        "# Pinyin, github.com/kakaobrain/g2pM, Apache-2.0), whose sentences come from Chinese Wikipedia (CC BY-SA 4.0), from",
+        "# public-domain books (public/samples and Wikisource) and hand-labeled places in books and the held-out corpus.",
         "# License: CC BY-SA 4.0. Columns: char, readings (the first is the rules' default), biases of readings 2..K, then",
         "# one column per feature: the feature and its weights for readings 2..K.",
         f"!\tv\t{FEATURES_VERSION}",
-        f"!\tthreshold\t{threshold}",
+        f"!\tthreshold\t{default_threshold}",
     ]
+    for ch in sorted(models):
+        t = thresholds[ch]
+        if bar(t, "") != default_threshold:
+            lines.append(f"!\tthreshold:{ch}\t{bar(t, '')}")
+        for reading, v in sorted(t.items() if isinstance(t, dict) else []):
+            if reading:
+                lines.append(f"!\tthreshold:{ch}:{reading}\t{v}")
     for ch in sorted(models):
         readings, bias, weights = models[ch]
         cols = [ch, " ".join(readings), " ".join(f"{b:g}" for b in bias)]
@@ -246,6 +402,7 @@ def write_model(models, path, threshold):
 def load_model(path):
     models = {}
     threshold = 1.0
+    keyed = {}
     with gzip.open(path, "rt", encoding="utf-8") as f:
         for line in f:
             line = line.rstrip("\n")
@@ -255,29 +412,40 @@ def load_model(path):
             if cols[0] == "!":
                 if cols[1] == "threshold":
                     threshold = float(cols[2])
+                elif cols[1].startswith("threshold:"):
+                    keyed[cols[1][10:]] = float(cols[2])
                 continue
             weights = {}
             for c in cols[3:]:
                 parts = c.split(" ")
                 weights[parts[0]] = [float(v) for v in parts[1:]]
             models[cols[0]] = (cols[1].split(" "), [float(b) for b in cols[2].split(" ")], weights)
-    return models, threshold
+    # threshold:为 is the character's own, threshold:为:wei2 its threshold for changing to wéi.
+    thresholds = {}
+    for key, v in keyed.items():
+        ch, _, reading = key.partition(":")
+        if reading:
+            t = thresholds.get(ch, keyed.get(ch, threshold))
+            thresholds[ch] = {**(t if isinstance(t, dict) else {"": t}), reading: v}
+        elif ch not in thresholds:
+            thresholds[ch] = v
+    return models, threshold, thresholds
 
 
 def write_check(repo, work, model_path):
     """Scores of the invented check sentences under the written model, for tests/core/readingModel.test.ts."""
     src = os.path.join(repo, "scripts", "data", "reading-model-check.txt")
     out = os.path.join(work, "check-sites.tsv")
-    run_sites(repo, {"lines": src, "out": out})
-    models, threshold = load_model(model_path)
+    models, _, _ = load_model(model_path)
+    run_sites(repo, {"lines": src, "out": out, "only": "".join(sorted(models))})
     rows = ["# line\toffset\tchar\tfallback\tscores (reading:probability, 9 decimals)\tfeatures (made by scripts/train_reading_model.py)"]
     with open(out, encoding="utf-8") as f:
         for line in f:
             if line.startswith("#"):
                 continue
             r = line.rstrip("\n").split("\t")
-            ch, feats = r[2], r[5:]
-            if ch not in models:
+            ch, decided, feats = r[2], r[4] == "1", r[6:]
+            if ch not in models or decided:
                 continue
             sc = scores(models[ch], feats)
             rows.append("\t".join([r[0], r[1], ch, r[3], " ".join(f"{k}:{p:.9f}" for k, p in sc)] + feats))
@@ -288,37 +456,120 @@ def write_check(repo, work, model_path):
     return len(rows) - 1
 
 
+def texts_in(folder):
+    return sorted(os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".txt"))
+
+
 def main():
     argv = sys.argv[1:]
     if not argv:
         sys.exit(__doc__)
     repo = os.path.abspath(argv[0])
-    threshold = THRESHOLD
-    if "--threshold" in argv:
-        threshold = float(argv[argv.index("--threshold") + 1])
+    opt = lambda name, default=None: argv[argv.index(name) + 1] if name in argv else default
     raw = os.path.join(repo, ".cache", "raw", "cpp")
+    books_dir = os.path.abspath(opt("--books", os.path.join(repo, ".cache", "raw", "reading-books")))
     work = os.path.join(repo, ".cache", "raw", "reading-model")
     os.makedirs(work, exist_ok=True)
     fetch_cpp(raw, "--refetch" in argv)
-    sites = os.path.join(work, "sites-cpp.tsv")
-    chars = os.path.join(work, "chars-cpp.tsv")
     # The sites depend on the app's rules and dictionary, so they are read again on every run.
-    run_sites(repo, {"cpp": raw, "splits": ["train", "dev", "test"], "out": sites, "chars": chars})
-    rows = read_cpp_sites(sites)
+    sites_cpp, chars = os.path.join(work, "sites-cpp.tsv"), os.path.join(work, "chars-cpp.tsv")
+    run_sites(repo, {"cpp": raw, "splits": ["train", "dev", "test"], "out": sites_cpp, "chars": chars, "only": TRAINED})
+    groups = {"samples": texts_in(os.path.join(repo, "public", "samples")), "books": texts_in(books_dir) if os.path.isdir(books_dir) else [],
+              "corpus": [p for d in ("public-domain", "cc-by", "cc-by-sa") for p in texts_in(os.path.join(repo, "tests", "corpus", "zh", d))]}
+    if not groups["books"]:
+        print(f"no books in {books_dir}: run scripts/fetch_reading_books.py first for the full model", file=sys.stderr)
+    books = []
     own = read_chars(chars)
-    if "--report" in argv:
-        m = prune_unused(train(rows, own, {"train"}), [x for x in rows if x["split"] == "train"], threshold)
-        for t in (0.5, 0.7, 0.8, 0.9, 0.95):
-            print("trained on train:", evaluate(m, rows, "dev", t))
-    models = prune_unused(train(rows, own, {"train", "dev"}), [x for x in rows if x["split"] in ("train", "dev")], threshold)
-    if "--report" in argv:
-        for t in (0.5, 0.7, 0.8, 0.9, 0.95):
-            print("trained on train+dev:", evaluate(models, rows, "test", t))
+    for src, paths in groups.items():
+        for i in range(0, len(paths), 8):
+            out, out_chars = os.path.join(work, f"sites-{src}-{i // 8}.tsv"), os.path.join(work, f"chars-{src}-{i // 8}.tsv")
+            run_sites(repo, {"texts": paths[i:i + 8], "out": out, "chars": out_chars, "only": TRAINED})
+            books += read_book_sites(out, src)
+            for ch, rs in read_chars(out_chars).items():
+                own.setdefault(ch, set()).update(rs)
+    labels = read_labels(os.path.join(repo, "tests", "corpus", "zh", "readings-calibration.tsv"))
+    data = Data(read_cpp_sites(sites_cpp), books, labels, own)
+    lost = [k for k in data.missing if labels[k][0] in TRAINED]
+    if lost:
+        print(f"{len(lost)} hand-labeled places not found (texts or cuts changed): {lost[:5]}", file=sys.stderr)
+
+    report = ["char\tlabels (train/held-out)\tthreshold\theld-out: places\trules right\tmodel right\tchanged\tchanges right\tenabled"]
+    models, thresholds, results = {}, {}, {}
+    enabled = None if "--decide" in argv else ENABLED
+    for ch in TRAINED:
+        rows = data.hand[ch]
+        train_rows = [h for h in rows if not h["held"]]
+        test_rows = [h for h in rows if h["held"]]
+        m = data.fit(ch, train_rows)
+        if not m or (enabled is not None and ch not in enabled):
+            continue
+        if enabled is not None:
+            t = enabled[ch]
+        elif ch in RARE:
+            t = FIRST_THRESHOLD
+        else:
+            t = calibrate(data, ch, train_rows)[0] if train_rows else THRESHOLD
+        results[ch] = (len(train_rows), len(test_rows), t) + tally(m, test_rows, t, own.get(ch, set()))
+    rare = [results[ch] for ch in RARE if ch in results]
+    rare_ok = sum(r[7] for r in rare) >= ENABLE_RIGHT * sum(r[6] for r in rare) and sum(r[6] for r in rare) >= MIN_CHANGES
+    for ch, (n_train, n_test, t, n, rules, now, changed, right) in results.items():
+        if enabled is not None:
+            ok = True
+        elif ch in NOT_FOR_MODEL:
+            ok = False  # the app never asks the model about particles
+        elif ch in RARE:
+            ok = rare_ok and right == changed
+        else:
+            ok = changed >= MIN_CHANGES and right >= ENABLE_RIGHT * changed and now > rules
+        shown = " ".join(f"{r or '*'}:{v}" for r, v in t.items()) if isinstance(t, dict) else t
+        report.append(f"{ch}\t{n_train}/{n_test}\t{shown}\t{n}\t{rules}\t{now}\t{changed}\t{right}\t{'yes' if ok else 'no'}")
+        if ok:
+            # The file's model is trained on every hand label, the held-out third included.
+            models[ch] = data.fit(ch, data.hand[ch])
+            thresholds[ch] = t
+    for name, chars in (("common", COMMON), ("rare", RARE)):
+        r = [results[ch] for ch in chars if ch in results]
+        on = [results[ch] for ch in chars if ch in models]
+        report.append(f"# {name}, all trained: held-out places {sum(x[3] for x in r)}, rules right {sum(x[4] for x in r)}, model right "
+                      f"{sum(x[5] for x in r)}, changed {sum(x[6] for x in r)}, right {sum(x[7] for x in r)}; enabled only: places "
+                      f"{sum(x[3] for x in on)}, rules right {sum(x[4] for x in on)}, model right {sum(x[5] for x in on)}, changed "
+                      f"{sum(x[6] for x in on)}, right {sum(x[7] for x in on)}")
+    if enabled is None:
+        report.append("# ENABLED = " + repr(thresholds))
+    if "--candidates" in argv:
+        write_candidates(data, opt("--candidates"), own)
+    cpp = cpp_eval(models, data.cpp_test, thresholds)
+    report.append(f"# CPP test (one-character places of these characters): {cpp[0]} items, rules {cpp[1]}, with the model {cpp[2]}; changed {cpp[3]}, right {cpp[4]}")
+    print("\n".join(report))
+    if opt("--report"):
+        with open(opt("--report"), "w", encoding="utf-8") as f:
+            f.write("\n".join(report) + "\n")
     path = os.path.join(repo, "public", "data", "reading-model.tsv.gz")
-    size = write_model(models, path, threshold)
+    size = write_model(models, thresholds, path, THRESHOLD)
     n_feat = sum(len(m[2]) for m in models.values())
-    print(f"{len(models)} characters, {n_feat} features, {size} bytes, {os.path.getsize(path)} gzipped; threshold {threshold}")
+    print(f"{len(models)} characters ({''.join(sorted(models))}), {n_feat} features, {size} bytes, {os.path.getsize(path)} gzipped")
     print(f"check sites: {write_check(repo, work, path)}")
+
+
+def write_candidates(data, path, own):
+    """Places to hand-label: where a model trained without them would change the rules' reading, and a sample of the rest."""
+    rnd = random.Random(7)
+    lines = ["# folder\ttext\tblock\toffset\tchar\trules\tmodel\tp\tcontext"]
+    for ch in COMMON:
+        m = data.fit(ch, data.hand[ch])
+        if not m:
+            continue
+        labeled = {h["key"] for h in data.hand[ch]}
+        changed, kept = [], []
+        for key, x in data.sites.items():
+            if x["ch"] != ch or x["decided"] or key in labeled:
+                continue
+            pick, p = choose(m, x["fallback"], x["features"], 0.5, own.get(ch, set()))
+            (changed if pick != x["fallback"] else kept).append((x, pick, p))
+        for x, pick, p in rnd.sample(changed, min(len(changed), 40)) + rnd.sample(kept, min(len(kept), 15)):
+            lines.append("\t".join([x["src"], x["text"], x["block"], str(x["offset"]), ch, x["fallback"], pick, f"{p:.2f}", x["context"]]))
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 if __name__ == "__main__":

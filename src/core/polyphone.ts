@@ -384,7 +384,13 @@ export const CHAR_DEFAULTS: Readonly<Record<string, string>> = {
 class Usual {
   constructor(readonly reading: string) {}
 }
-const usual = (reading: string): Usual => new Usual(reading);
+const usuals = new Map<string, Usual>();
+/** One shared Usual per reading: the rules of 着 得 中 好 … end in one on most calls. */
+const usual = (reading: string): Usual => {
+  let u = usuals.get(reading);
+  if (!u) usuals.set(reading, (u = new Usual(reading)));
+  return u;
+};
 
 type Rule = (c: CharContext) => string | Usual | undefined;
 
@@ -426,8 +432,9 @@ const ROLE_LAST = /(王|主|官|帅|吏|使|令|丞|侯|公|卿|相|长|将|臣|
  * What is done for someone after 為 + the one it is done for (为母报雠, 为刘备画策, 为曹氏作说客, 为宝玉耽忧, 为姨母辩, 实非为夫人计):
  * wèi. Matched as a whole token one to three tokens after 为, never after a 之 or before one (为后日衣食之计, 为自谋之计 make a plan:
  * wéi); 计 only after the one it is for (为夫人计, not 此为上计), 作 做 only before what is written or acted (为本初作檄, not 金作马).
+ * What is felt or lived for someone counts too (为朋友高兴, 为孩子活着, 为家乡自豪, 为乡亲们奔波).
  */
-const FOR_DEED = /^(报雠|报仇|复仇|报怨|雪恨|雪耻|谋|画策|设谋|献策|献书|献密书|出力|效力|效死|尽忠|尽力|尽心|分忧|解忧|出气|求情|说情|求婚|作主|做主|担忧|担心|耽忧|伤心|伤感|感伤|流涕|落泪|下泪|垂泪|哭|哀泣|泪涟|叹息|游说|作说客|作保|作檄|招魂|设祭|辩|择配|充役|医|请|请来|死|计|作|做|操心|祝寿|拜寿|引见|通报|转奏|传奏|引奏|明示|助力|除害|带来|提供|创造|服务)$/;
+const FOR_DEED = /^(报雠|报仇|复仇|报怨|雪恨|雪耻|谋|画策|设谋|献策|献书|献密书|出力|效力|效死|尽忠|尽力|尽心|分忧|解忧|出气|求情|说情|求婚|作主|做主|担忧|担心|耽忧|伤心|伤感|感伤|流涕|落泪|下泪|垂泪|哭|哀泣|泪涟|叹息|游说|作说客|作保|作檄|招魂|设祭|辩|择配|充役|医|请|请来|死|计|作|做|操心|祝寿|拜寿|引见|通报|转奏|传奏|引奏|明示|助力|除害|带来|提供|创造|服务|高兴|欢喜|开心|难过|难受|悲伤|痛心|心疼|惋惜|着急|焦急|发愁|骄傲|自豪|感动|欣慰|庆幸|惭愧|活着|奋斗|拼命|卖命|牺牲|献身|操劳|奔波|祈祷|祷告|祝福|祝贺|庆祝|欢呼|喝彩|叫好|鼓掌|辩护|送行|饯行)$/;
 /** What one writes or acts as for someone after 为 X 作 (为本初作檄, 为曹氏作说客, 为曹植作答教, 为赌贼作榜样). */
 const DONE_AS = /^(说客|檄|檄文|保|主|媒|伐|答|序|传|记|书|诗|文|榜样|证|见证|东|东道|主张)/;
 /** What starts a cause after 為 in the old novels (为见他是个好汉, 为有服色, 为事逃在…, 为惜他一个人, 为与贼人结连): "because of", wèi. */
@@ -708,7 +715,7 @@ const RULES: Record<string, Rule> = {
       && (c.orig === '著' || behind(c, 6).slice(1).some((t) => /^(把|被|让|叫|能|不能|别|没|未)$/.test(t)))) return 'zhao2';
     // 车仗尽著， (all caught fire).
     if (prevIs(c, '尽') && end && c.orig === '著') return 'zhao2';
-    return 'zhe5';
+    return usual('zhe5');
   },
   // 得: děi after a pronoun or an adverb ("must": 我得去, 还得上班), de after a verb (跑得快). dé stays in words (得到, 取得).
   得: (c) => {
@@ -794,7 +801,7 @@ const RULES: Record<string, Rule> = {
     if (has(PRONOUNS, c.prevChar) && isHan(c.nextChar) && !has('很不太多更最', c.nextChar)) {
       return has('何罪病道手空闲奖胜意知的势宠逞益利钱见遇个便新脱命异', c.nextChar) || GOT_NOUN.test(c.nextTok) ? 'de2' : 'dei3';
     }
-    return 'de5';
+    return usual('de5');
   },
   // 地: de after an adverb (慢慢地, 高兴地: two or more characters), dì otherwise (土地 is a word; 在地上).
   地: (c) => {
@@ -888,11 +895,11 @@ const RULES: Record<string, Rule> = {
     if (/^(不上|不起|不清|得上|得起|得清|清)$/.test(c.nextTok) && !isHan(c.afterChar ?? '') && c.afterTok !== undefined) return 'huan2';
     // 还京 还乡 还寨 还营 还朝: going back to a place.
     if (nextIs(c, '京乡家寨营朝国郡城府宫山庄蜀吴魏')) return 'huan2';
-    return has('书钱给回债款账原本愿手价礼俗乡魂', c.nextChar) ? 'huan2' : 'hai2';
+    return has('书钱给回债款账原本愿手价礼俗乡魂', c.nextChar) ? 'huan2' : usual('hai2');
   },
   // 都 is dū "capital" in 首都 京都 古都 许都 东都 (the whole word before it: 尸首都推 is "all") and in the titles 都头 都监 都统 都尉.
   都: (c) => (prevIs(c, '首京古故旧陪帝许') || ['东', '西', '中'].includes(c.prevTok) && !isHan(c.nextChar) || nextIs(c, '头监统尉') || c.nextChar === '亭' ? 'du1' : 'dou1'),
-  行: (c) => (has('银同排各商内外米数两几', c.prevChar) || has('业列当家话情字', c.nextChar) ? 'hang2' : 'xing2'),
+  行: (c) => (has('银同排各商内外米数两几', c.prevChar) || has('业列当家话情字', c.nextChar) ? 'hang2' : usual('xing2')),
   长: (c) => {
     // 越长越大, 越长越像他 (grows): zhǎng; 日子越长越难熬 (the longer) stays cháng.
     if (prevIs(c, '越') && c.nextTok === '越' && /^(大|高|壮|胖|粗|多|快|漂亮|好看|像|象|美|俊|结实|茂盛|旺|肥|长|俊俏|水灵|标致)/.test(c.afterTok ?? '')
@@ -937,9 +944,9 @@ const RULES: Record<string, Rule> = {
     // 长在地上 长到一人高 长庄稼 长了 长这么大: growing (zhǎng), unless something is too long (太长了).
     if (has('太很最更真好多这那非够挺特么', c.prevChar)) return 'chang2';
     if (nextIs(c, '在到满了') || GROWN.test(c.nextTok)) return 'zhang3';
-    return 'chang2';
+    return usual('chang2');
   },
-  重: (c) => (has('新复建来逢叠返演组现播写读又睹扶整修游归温聚见回', c.nextChar) ? 'chong2' : 'zhong4'),
+  重: (c) => (has('新复建来逢叠返演组现播写读又睹扶整修游归温聚见回', c.nextChar) ? 'chong2' : usual('zhong4')),
   为: (c) => {
     // The old books' spelling (為, and the variant 爲 some editions use) tells their 为 from the modern one.
     const old = c.orig === '為' || c.orig === '爲';
@@ -1109,8 +1116,8 @@ const RULES: Record<string, Rule> = {
       const modern = modernWei(c);
       if (modern) return modern;
     }
-    if (c.orig === '为') return 'wei4';
-    return next.length >= 3 && next.some((t) => cpLen(t) >= 2) && vernacular() ? 'wei4' : 'wei2';
+    if (c.orig === '为') return usual('wei4');
+    return usual(next.length >= 3 && next.some((t) => cpLen(t) >= 2) && vernacular() ? 'wei4' : 'wei2');
   },
   // 觉 is jiào "a sleep" after 睡 午 懒 一, and after 睡 a few words back (睡不着觉, 睡了一觉); jué "to feel" otherwise.
   // 把觉睡足 (the sleep): jiào.
@@ -1119,10 +1126,10 @@ const RULES: Record<string, Rule> = {
   // 好机会 is a good chance (hǎo).
   好: (c) => (['学', '客', '动', '胜', '奇', '色', '斗', '战', '赌', '洁', '礼', '武', '善', '读书', '结交', '犯上', '作乱'].includes(c.nextTok)
     || has('谋犯勇乱争淫施贪', c.nextChar) || (c.nextChar === '机' && !/^机(会|遇)/.test(c.nextTok)) || (has('吃喝', c.nextChar) && c.afterChar === '懒')
-    || (isHan(c.nextChar) && (prevIs(c, '专素性') || ['不甚', '一心', '生平', '平生', '素来', '天性', '最'].includes(c.prevTok))) ? 'hao4' : 'hao3'),
+    || (isHan(c.nextChar) && (prevIs(c, '专素性') || ['不甚', '一心', '生平', '平生', '素来', '天性', '最'].includes(c.prevTok))) ? 'hao4' : usual('hao3')),
   少: (c) => {
     if (has('多至很太最较减缺稀不', c.prevChar)) return 'shao3';
-    return has('年女爷将校尉壮妇主儿先帅小', c.nextChar) || nextIs(c, '帝子') ? 'shao4' : 'shao3';
+    return has('年女爷将校尉壮妇主儿先帅小', c.nextChar) || nextIs(c, '帝子') ? 'shao4' : usual('shao3');
   },
   // 骑 is jì "a horseman" after a number or a kind of rider (一骑自北而来, 单骑, 铁骑, 轻骑); qí "to ride" before what is ridden.
   骑: (c) => (has('一二两三四五六七八九十数单铁轻骁越', c.prevChar) && !has('马乘着了过', c.nextChar) ? 'ji4' : undefined),
@@ -1141,7 +1148,7 @@ const RULES: Record<string, Rule> = {
     || (nextIs(c, '了完着过在毕') && !has(NUMERALS + '多籽良品物火谷', c.prevChar))
     // 我种的 组里种的 园子里种的 那年种的时候 (planted); Ｕ种的, 买种的, 种的退化, 千种的风情 (a kind, seed) stay zhǒng.
     || (nextIs(c, '的') && !has(NUMERALS + '多籽良品物买卖选留纯杂绝', c.prevChar) && !/^[A-Za-zＡ-Ｚａ-ｚ]$/.test(c.prevChar)
-      && !/^(退化|延续|繁衍|差异|区别|不同|起源|来源)/.test(c.afterTok ?? '')) ? 'zhong4' : 'zhong3'),
+      && !/^(退化|延续|繁衍|差异|区别|不同|起源|来源)/.test(c.afterTok ?? '')) ? 'zhong4' : usual('zhong3')),
   中: (c) => {
     // 小说中, 传说中, 据说中: "in", not "to hit".
     if (c.prevChar === '说' && /(小|传|听|据|所|常|众|话|评|解|言|书)说$/.test(c.prevTok)) return 'zhong1';
@@ -1160,7 +1167,7 @@ const RULES: Record<string, Rule> = {
       const after = c.afterChar ?? '';
       if (isHan(after) ? !has('么吗吧罢呢啊呀哩啦哪', after) : has(PRONOUNS, c.prevChar)) return 'zhong4';
     }
-    return 'zhong1';
+    return usual('zhong1');
   },
   看: (c) => (['守', '护', '管', '门', '家', '押', '犬'].includes(c.nextTok) ? 'kan1' : 'kan4'),
   // 相 is xiàng "minister, appearance" in 宰相 相府 相国 可怜相 狼狈相 无相, xiāng "each other" otherwise.
@@ -1170,7 +1177,7 @@ const RULES: Record<string, Rule> = {
   相: (c) => (((has('照首外宰真恩拜怜狈妙色宝傻丑凶馋', c.prevChar) || (/.苦$/.test(c.prevTok) && !isHan(c.nextChar) && c.nextKnown !== false)) && !(has('宝拜', c.prevChar) && has('送赠待报见助赐迎别辞谢', c.nextChar))) || (prevIs(c, '内师法') && !/^(掩|袭|应|接|策|攻|夹|呼)/.test(c.nextTok)) || (prevIs(c, '无') && (!isHan(c.nextChar) || nextIs(c, '门之'))) || ['貌', '片', '机', '声', '册', '位', '框', '纸', '府', '国', '者'].includes(c.nextTok) ? 'xiang4' : usual('xiang1')),
   // 应 is yìng "to answer, to respond" in 应道 应了一声 应曰 内应 救应 齐声应 (以应之 叫应), yīng "should" otherwise.
   应: (c) => (has('付用对酬变验急聘邀声战允召运', c.nextChar) || nextIs(c, '了道曰着著诺喏和募约命敌试') || has('以后叫', c.prevChar)
-    || prevIs(c, '内救接响答呼照策齐') || /(齐声|连声|一声|答|喏)$/.test(c.prevTok) || answered(c) ? 'ying4' : 'ying1'),
+    || prevIs(c, '内救接响答呼照策齐') || /(齐声|连声|一声|答|喏)$/.test(c.prevTok) || answered(c) ? 'ying4' : usual('ying1')),
   空: (c) => {
     // 个空 is a gap (砍了一个空, 留个空) at the end of a clause, a plain 空 when more follows (个空瓶, 个空衔).
     if (c.prevChar === '个') return !isHan(c.nextChar) ? 'kong4' : 'kong1';
@@ -1179,7 +1186,7 @@ const RULES: Record<string, Rule> = {
   },
   // 分 is fèn (= 份, one's share) in 成分 本分 名分 分内, 的分上 (for the sake of), 分例 and 有分教; fēn otherwise.
   分: (c) => (has('成养过充本名缘安辈', c.prevChar) || ['内', '外', '例'].includes(c.nextTok) || (c.nextTok === '上' && c.prevChar === '的') || (prevIs(c, '有') && c.nextChar === '教') ? 'fen4' : 'fen1'),
-  便: (c) => (c.nextChar === '宜' ? 'pian2' : 'bian4'),
+  便: (c) => (c.nextChar === '宜' ? 'pian2' : usual('bian4')),
   // 差不多先生传 (a biography after the one it is about, closing a title): zhuàn.
   传: (c) => (['记', '略'].includes(c.nextTok) || has('自小列评别立正', c.prevChar) || (/先生$/.test(c.prevTok) && c.nextKnown !== false && !isHan(c.nextChar)) ? 'zhuan4' : usual('chuan2')),
   数: (c) => {
@@ -1188,7 +1195,7 @@ const RULES: Record<string, Rule> = {
     if (c.nextChar === '道' && isHan(c.afterChar ?? '')) return 'shu4'; // 数道横肉 (several streaks)
     if (has('历', c.prevChar) && !isHan(c.nextChar)) return 'shu4'; // 历数 (the years), 气数
     if (has('一数不得遍着起清了去来钱道', c.nextChar) || has('一数胜了', c.prevChar) || prevIs(c, '要就该算不会')) return 'shu3'; // 数去更无君傲世, 数来数去, 数钱, 要数除夕
-    return 'shu4';
+    return usual('shu4');
   },
   乐: (c) => (has('器队曲团谱章坛府师手理', c.nextChar) || nextIs(c, '声') || has('音配器声国管弦民奏鼓细止圣', c.prevChar) ? 'yue4' : 'le4'),
   干: (c) => {
@@ -1276,7 +1283,7 @@ const RULES: Record<string, Rule> = {
     if (has('整节解皮味料剂和养理教停侃价情息治戏弄琴', c.nextChar) || has('协空失风均', c.prevChar)) return 'tiao2';
     // 调暗 调高 调成透明 (to adjust): tiáo.
     if (nextIs(c, '暗亮低高小大成匀准好慢快')) return 'tiao2';
-    return 'diao4';
+    return usual('diao4');
   },
   薄: (c) => {
     if (c.nextChar === '荷') return 'bo4';
@@ -1286,7 +1293,7 @@ const RULES: Record<string, Rule> = {
   角: (c) => (['色', '逐', '斗'].includes(c.nextTok) || has('主配丑旦名反', c.prevChar) ? 'jue2' : 'jiao3'),
   // 处 is chǔ "to deal with, to be in" (处理 处在 所处 相处), chù "a place" (之处 此处 到处 好处).
   处: (c) => (has('之此彼某各何到住去好长短益难妙用', c.prevChar) ? 'chu4'
-    : has('理罚分置决境事世方身于在', c.nextChar) || has('相共独身位地所', c.prevChar) ? 'chu3' : 'chu4'),
+    : has('理罚分置决境事世方身于在', c.nextChar) || has('相共独身位地所', c.prevChar) ? 'chu3' : usual('chu4')),
   // 只 is zhī the measure word after a number (and 像只猫 "like a cat"), zhǐ "only" otherwise.
   只: (c) => (c.orig === '隻' || has(NUMERALS, c.prevChar) || /[0-9]/.test(c.prevChar) || (prevIs(c, '像象') && c.alone !== false && cpLen(c.nextTok) >= 1 && !has('是有要能会好得管见顾怕', c.nextChar)) ? 'zhi1' : 'zhi3'),
   // 心头发闷, 念头发 …: the 头 of a word that is not the head (发 is the verb fā there).
@@ -1294,12 +1301,16 @@ const RULES: Record<string, Rule> = {
   // 自率大兵, 率本部, 率三万人马 (to lead): shuài.
   // 放大率 增长率 命中率 (a rate) stay lǜ before a number.
   // 出煤率最高, 出油率很低: what is high or low, or rises and falls, is a rate (lǜ).
+  // 治愈率也比往年好, 返修率都在下降: a rate before an adverb (率 "to lead" takes the troops right after it, 率都督; 大率 相率 are
+  // "on the whole", "one after another"): lǜ.
   率: (c) => (/(放大|增长|出生|死亡|命中|成功|折射|反射|发病|失业|利用|覆盖|转化|分辨|淘汰|通过|合格|及格|准确|错误|圆周|变化|压缩|识别|回报|收益|周转|使用|出勤|就业|升学|入学|普及|效|频|速|概|比|利|汇|税|功|费)$/.test(c.prevTok) ? 'lü4'
     : has('领先兵军众团队大本部精数诸各' + NUMERALS, c.nextChar) || has('草轻表统坦真直督自亲', c.prevChar) ? 'shuai4'
-      : /^(最|很|较|极|更|偏|太|也|还|都|比较|相当|非常)?(高|低)|^(提高|降低|下降|上升|达到|超过|不足)/.test(c.nextTok + (c.afterTok ?? '')) ? 'lü4' : usual('lü4')),
+      : /^(最|很|较|极|更|偏|太|也|还|都|比较|相当|非常)?(高|低)|^(提高|降低|下降|上升|达到|超过|不足)/.test(c.nextTok + (c.afterTok ?? ''))
+        || (isHan(c.prevChar) && !has('大相', c.prevChar) && has('也都还就却仍已均竟又更', c.nextChar) && !/^都(督|尉|护|统|头|司|监)/.test(c.nextTok)) ? 'lü4'
+        : usual('lü4')),
   // 量宋江有何德能 量此山僻之处: a clause that opens with 量 is the verb "to reckon" (liáng); 量词 量子 (liàng) are the exceptions.
   // 量你是个配军 (I reckon you are): liàng.
-  量: (c) => (!isHan(c.prevChar) && has(PRONOUNS + '汝尔', c.nextChar) ? 'liang4' : has('体力身尺长入一', c.nextChar) || nextIs(c, '了到过着几') || /^(血压|体温)/.test(c.nextTok) || has('测估思度', c.prevChar) || (!isHan(c.prevChar) && isHan(c.nextChar) && !has('词子', c.nextChar)) ? 'liang2' : 'liang4'),
+  量: (c) => (!isHan(c.prevChar) && has(PRONOUNS + '汝尔', c.nextChar) ? 'liang4' : has('体力身尺长入一', c.nextChar) || nextIs(c, '了到过着几') || /^(血压|体温)/.test(c.nextTok) || has('测估思度', c.prevChar) || (!isHan(c.prevChar) && isHan(c.nextChar) && !has('词子', c.nextChar)) ? 'liang2' : usual('liang4')),
   // 唱酸曲, 唱曲儿 (a song): qǔ.
   曲: (c) => (has('歌作乐名小序插戏哀悲词琴舞洲酸唱', c.prevChar) || (prevIs(c, '一此') && !has('一折', c.nextChar)) ? 'qu3' : 'qu1'),
   模: (c) => (has('样子具', c.nextChar) ? 'mu2' : 'mo2'),
@@ -1309,7 +1320,7 @@ const RULES: Record<string, Rule> = {
   // 师父有难, 那有难的人 (in danger): nàn; 有难处 有难度 are words.
   难: (c) => (has('民友胞', c.nextChar) || (has('灾苦患遇受罹空海责非刁急避赴遭落蒙殉国救犯逃此大', c.prevChar) && !/^(不大|很大|太大|多大|好大|最大|更大|并不大)$/.test(c.prevTok))
     || (prevIs(c, '有') && (!isHan(c.nextChar) || nextIs(c, '么吗了哩呢啊也矣时之')))
-    || (/^[一二三四五六七八九十百几]+$/.test(c.prevTok) && !isHan(c.nextChar) && !(c.tok && c.tok(-3) === '难' && has(PRONOUNS, c.tok(-2)))) ? 'nan4' : 'nan2'),
+    || (/^[一二三四五六七八九十百几]+$/.test(c.prevTok) && !isHan(c.nextChar) && !(c.tok && c.tok(-3) === '难' && has(PRONOUNS, c.tok(-2)))) ? 'nan4' : usual('nan2')),
   将: (c) => {
     if (c.nextChar === '军') return 'jiang1';
     // A 将 that ends its clause is a general (斩关杀将，, 无名下将。, 双枪将」, 智勇之将也); 共相将 (together) and the chess
@@ -1341,14 +1352,14 @@ const RULES: Record<string, Rule> = {
     // 众神将叹口气, 五军兵将大进, 分调兵将已了, 兵勇将猛, 被天兵将绑缚: the gods' generals, soldiers and generals, where the word
     // before is cut whole (众神, 军兵, 调兵, 兵勇). (民兵将两颗地雷埋好, 亲兵将那封信送来: one soldier, and 将 is 把.)
     if (/^(众神|诸神|天神|军兵|调兵|点兵|兵勇|天兵)$/.test(c.prevTok) && !has('到至来近要会在一两这那此其', c.nextChar)) return 'jiang4';
-    return 'jiang1';
+    return usual('jiang1');
   },
   // 省 is xǐng "to examine, to visit" in 三省吾身 省悟 省亲 省视 内省, shěng "province, to save" otherwise.
   省: (c) => (has('反内自三再', c.prevChar) || has('亲视墓悟察', c.nextChar) || (prevIs(c, '不须') && (nextIs(c, '的得') || !isHan(c.nextChar))) ? 'xing3' : undefined),
   // 间亦有 间或 (now and then, opening a clause): jiàn.
   间: (c) => (has('谍隔断接歇', c.nextChar) || has('离反挑', c.prevChar) || (!isHan(c.prevChar) && c.nextKnown !== false && nextIs(c, '亦或有')) ? 'jian4' : 'jian1'),
   当: (c) => (c.prevChar === '当' || c.nextChar === '当' ? 'dang1' // 当当作响: the sound, not 当作
-    : has('作真铺做成晚日', c.nextChar) || has('上适恰妥得稳', c.prevChar) || treatedAs(c) ? 'dang4' : 'dang1'),
+    : has('作真铺做成晚日', c.nextChar) || has('上适恰妥得稳', c.prevChar) || treatedAs(c) ? 'dang4' : usual('dang1')),
   几: (c) => (c.nextChar === '乎' ? 'ji1' : 'ji3'),
   // 众皆恶之, 恶了高太尉, 甚恶你等, 深恶痛疾: to loathe, to offend (wù); 风甚恶, 十恶, 狠恶之人, 猛恶之至, 行恶: fierce, evil (è).
   恶: (c) => {
@@ -1381,7 +1392,7 @@ const RULES: Record<string, Rule> = {
     // 岂可降之, 降即免死, 璋自然降矣, 既降人, 降了妖怪, 被我降了 (made to surrender, subdued): xiáng in the old books; 气温降了 stays jiàng.
     const fell = /(温|温度|气温|价|价格|水位|血压|成绩|工资|声音|速度|高度|体温|热度|雨|雪|霜|露|飞机|热|价钱|物价|指数|地位|级|职)$/.test(c.prevTok);
     if (!fell && !/^[一二两三四五六七八九十百几半0-9级职价温]/.test(c.afterTok ?? '') && (nextIs(c, '之矣也即则否人') || (nextIs(c, '了') && (behind(c, 4).some((t) => /^(被|我|你|他|俺|老孙|吾)$/.test(t)) || /^(妖|怪|魔|贼|那)/.test(c.afterTok ?? ''))))) return 'xiang2';
-    return 'jiang4';
+    return usual('jiang4');
   },
   // 切须 切莫 切勿 切忌 切不可 (be sure to / never): qiè; 切菜 切开 qiē.
   切: (c) => (has('一亲恳急迫确密贴深真关甚', c.prevChar) || has('实身须莫勿忌思念恨盼', c.nextChar) || ['不可', '不要', '不得', '不宜', '不能'].includes(c.nextTok) ? 'qie4' : 'qie1'),
@@ -1532,7 +1543,7 @@ const RULES: Record<string, Rule> = {
       if (has('小神学远应', c.prevChar) || (k >= 1 && back.slice(0, k).every((t) => /^(不了|了|过|不|得|个|一|次|趟|好)$/.test(t)))) return 'chai1';
     }
     if (c.nextKnown !== false && !isHan(c.nextChar) && isHan(c.prevChar) && !has('当公出听钦信官解', c.prevChar)) return 'cha4';
-    return 'chai1';
+    return usual('chai1');
   },
   // 一场 is cháng unless a show or a game follows; 几场雨, 那场病, 这场大雪 (rain, an illness, a dream after any number or 这 那): cháng too.
   // A game, a show, a meeting or a campaign after 一场 (一场足球比赛, 一场点球大战, 一场以…为题举办的会议, 一场政治运动): chǎng.
@@ -1556,7 +1567,8 @@ const RULES: Record<string, Rule> = {
   },
   征: (c) => (c.orig === '徵' ? (has('宫商角', c.prevChar) || c.nextChar === '羽' ? 'zhi3' : 'zheng1') : undefined), // 徵 is a note of the scale only there; 魏徵 is Zhēng
   累: (c) => (has('卵次月积世计及赘', c.nextChar) || has('连', c.prevChar) ? 'lei3' : undefined), // 累卵 累次 (lěi); 累了 stays lèi
-  藏: (c) => (has('地三西宝道', c.prevChar) || prevIs(c, '蒙汉满回') ? 'zang4' : undefined), // 地藏王, 三藏, 西藏, 宝藏, 道藏, 蒙藏关系
+  // 地藏王, 三藏, 西藏, 宝藏, 道藏, 蒙藏关系: zàng. 藏|宝塔, 藏|宝图 (a treasure stored, where the cut took 宝 into the next word): cáng.
+  藏: (c) => (has('地三西宝道', c.prevChar) || prevIs(c, '蒙汉满回') ? 'zang4' : c.nextChar === '宝' ? 'cang2' : undefined),
   // 斗 is dǒu "a peck, the Dipper" (北斗 一斗米 木斗 斗府 斗然 = 陡然), dòu "to fight" otherwise.
   // 斗一斗, 和他一斗 (to fight once) stay dòu.
   // 与他三斗米, 三斗高粱，二斗小米 (a measure after any number but a lone 一) stay dǒu.

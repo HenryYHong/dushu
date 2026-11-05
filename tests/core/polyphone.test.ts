@@ -426,7 +426,8 @@ describe('explicit context rules (pinyinFor with prev/next)', () => {
     ['茄', { prev: '胡', next: '十八' }, 'jia1'], ['茄', { prev: '炒', next: '。' }, undefined],
     ['杈', { prev: '木', next: '、' }, 'cha1'], ['杈', { prev: '叶', next: '间' }, undefined],
     ['奔', { prev: '东', next: '西' }, 'ben1'], ['什', { prev: '比', next: '头' }, 'shen2'], ['率', { prev: '煤', next: '最高' }, 'lü4'],
-    ['率', { prev: '油', next: '很', after: '低' }, 'lü4'],
+    ['率', { prev: '油', next: '很', after: '低' }, 'lü4'], ['率', { prev: '返修', next: '都在' }, 'lü4'],
+    ['藏', { prev: '座', next: '宝塔' }, 'cang2'],
   ];
   for (const [ch, ctx, expected] of rules) {
     it(`${ch} ${JSON.stringify(ctx)} -> ${expected}`, async () => {
