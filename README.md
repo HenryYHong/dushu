@@ -92,7 +92,7 @@ Not supported: scanned PDFs (they have no text to read) and DRM-protected books,
 
 ## Names and terms
 
-Novels are full of names the dictionary does not have. The first time you open a book, Dushu scans it in the background and learns its people, places and martial-arts terms (王熙凤, 林冲, 大观园), so each reads as one word with a name's pinyin. Tap one to see an "In this book" card. You can edit its pinyin and meaning, say it is not a word, or select any phrase and choose "Add as a word". The list is under the contents button, on the Names & terms tab. Everything stays on your device.
+Novels are full of names the dictionary does not have. The first time you open a book, Dushu scans it in the background and learns its people, places and martial-arts terms (王熙凤, 林冲, 大观园), so each reads as one word with a name's pinyin. It also checks a list of about 580,000 people, places and organizations from Wikidata (downloaded once, the first time a book is scanned), so a name the book mentions only once, like a painter or an old county, can be found too. Tap one to see an "In this book" card. You can edit its pinyin and meaning, say it is not a word, or select any phrase and choose "Add as a word". Once the scan is done, Dushu may ask once, "Names in this book?", about strings the book repeats that look like names but that it could not be sure of (七斤, 七大人, 老栓): tap the ones that are names (press and hold, or the arrow, to make one a place or another kind of name), tap × on the rest, then Done. Your answers are corrections, so they sync and can be undone, and **Check names** on the Corrections tab asks again. The list is under the contents button, on the Names & terms tab. Everything stays on your device.
 
 ## Read aloud
 
@@ -180,6 +180,8 @@ On the hosted site, everything is local to your browser. Books, saved words, pro
 | Unihan (Unicode) | Readings, definitions, radicals, strokes for 101,997 ideographs | Unicode License v3 |
 | Wiktionary via kaikki.org | Readings and definitions for rare characters and extra words | CC BY-SA 4.0 |
 | jieba | Word frequencies for splitting sentences | MIT |
+| Wikidata | The name list (`public/data/names.tsv.gz`, made by `scripts/build-gazetteer.mjs`): people, places and organizations with a Chinese Wikipedia article | CC0 |
+| CPP (Chinese Polyphones with Pinyin, Kakao Brain; sentences from Chinese Wikipedia) | The reading model (`public/data/reading-model.tsv.gz`, made by `scripts/train_reading_model.py`): the reading of a few characters with two readings where the rules have no case | CC BY-SA 4.0 (the model; CPP's code is Apache-2.0) |
 | hsk30 (Ivan Krasilnikov), from the official HSK 3.0 list (GF0025-2021) | HSK levels for each reading of a word | MIT |
 | complete-hsk-vocabulary | HSK 2.0 levels and HSK words CC-CEDICT lacks | MIT |
 | OpenCC | Simplified and traditional conversion | Apache-2.0 |
@@ -234,6 +236,7 @@ python3 -I scripts/build_rare_chars.py .     # rare-character supplement (stream
 python3 -I scripts/build_words_extra.py .    # extra words CC-CEDICT lacks
 python3 -I scripts/fetch_samples.py .        # the short sample texts
 python3 -I scripts/fetch_classics.py .       # the four classical novels
+node scripts/build-gazetteer.mjs --fetch      # the name list, from Wikidata (a few dozen SPARQL queries)
 ```
 
 Raw downloads are cached in `.cache/raw/`, so reruns are mostly offline. The file formats are described in `ARCHITECTURE.md`. `python3 scripts/build_data.py --hsk` rebuilds only the HSK levels, from the pinned HSK list and `scripts/data/hsk-same-word.tsv`.

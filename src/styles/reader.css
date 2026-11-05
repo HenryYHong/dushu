@@ -345,9 +345,13 @@
 .rd-fail-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: center; }
 .rd-fail .btn { height: 42px; padding: 0 16px; text-decoration: none; }
 
-/* The first-session hint. */
+/* The first-session hint (and the cards that sit where it does: the old spellings question, the name check). It stands above the
+   read-aloud bar while that is up (reader.ts sets --rd-audio-h) and above the Pages footer ("5 pages left in chapter"). */
+body[data-route='read'] { --rd-coach-b: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px)); }
+body[data-route='read']:has(.rd-root.rd-paged) { --rd-coach-b: calc(env(safe-area-inset-bottom, 0px) + 44px); }
+body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) { --rd-coach-b: calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--rd-audio-h, 56px) + 8px); }
 .rd-coach {
-  position: fixed; z-index: 40; left: 50%; bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px)); transform: translateX(-50%);
+  position: fixed; z-index: 40; left: 50%; bottom: var(--rd-coach-b, 24px); transform: translateX(-50%);
   width: min(460px, calc(100% - 24px)); padding: var(--space-3) var(--space-4); display: flex; align-items: flex-start; gap: var(--space-3);
   border: 0; border-radius: var(--radius-l); background: var(--elev); box-shadow: var(--shadow-pop);
   font: 14px/1.45 var(--font-ui); color: var(--text);
@@ -710,17 +714,19 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 @media (hover: hover) { .rd-name:hover { background: var(--wash); } }
 .rd-name[data-off] .rd-name-main { opacity: 0.5; }
 .rd-name-main {
-  flex: 1; min-width: 0; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: baseline;
-  padding: 8px 10px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; border-radius: var(--radius-s);
+  flex: 1; min-width: 0; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: baseline;
+  padding: 8px 4px 8px 10px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; border-radius: var(--radius-s);
 }
 .rd-name-word { grid-row: 1 / 3; font-size: 20px; line-height: 1.3; align-self: center; }
 .rd-name-py { font-family: var(--font-pinyin); font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rd-name-meta { display: flex; gap: 8px; align-items: baseline; font-size: 12px; color: var(--text-3); }
-.rd-name-kind { letter-spacing: 0; font-size: 12px; font-weight: 600; }
+.rd-name-meta { display: flex; gap: 4px; align-items: baseline; min-width: 0; font-size: 12px; color: var(--text-3); }
+.rd-name-kind { letter-spacing: 0; font-size: 12px; font-weight: 600; white-space: nowrap; flex: none; }
 .rd-name-kind[data-kind='name'] { color: var(--text-2); }
 .rd-name-kind[data-kind='place'] { color: var(--ink); }
-.rd-name-count { font-variant-numeric: tabular-nums; }
+.rd-name-count { font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
 .rd-name-switch { position: relative; flex: none; width: 40px; height: 24px; margin-right: 8px; cursor: pointer; }
+/* (In a Corrections row the kind, the places and the scope need the room: 孙八爷 · Other name · 11× · This book.) */
+.rd-name .rd-name-switch { margin-right: 4px; }
 .rd-sw-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .rd-sw-track { position: absolute; inset: 0; pointer-events: none; }
 .rd-sw-thumb { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; }
@@ -766,7 +772,7 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   .rd-pill { height: 40px; padding: 0 12px; }
   .rd-bar .icon-btn { width: 40px; height: 40px; }
   .rd-toc-item { padding: 0 12px; }
-  .rd-name-main { padding: 12px 10px; }
+  .rd-name-main { padding: 12px 4px 12px 10px; }
   .rd-word-act { width: 42px; height: 42px; }
   .rd-words-chip { height: 32px; }
   .rd-seg-btn { min-height: 40px; }
@@ -870,6 +876,7 @@ html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x
 .rd-name-scope { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rd-fix-del { flex: none; width: 44px; height: 44px; color: var(--text-3); }
 .rd-fix-del-none { flex: none; width: 44px; }
+.rd-name-switch-none { flex: none; width: 40px; margin-right: 4px; }
 .rd-fix-foot { display: flex; flex-wrap: wrap; gap: 6px; padding: var(--space-2) var(--space-4) var(--space-3); border-top: 1px solid var(--hairline); }
 .rd-fix-file { flex: 1 1 auto; min-height: 44px; }
 .rd-fix-spell { margin: 0 var(--space-4) var(--space-2); padding: 8px 10px; border-radius: var(--radius-s); background: var(--wash); }
@@ -892,4 +899,47 @@ html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x
 .rd-spell-ask .btn { min-width: 64px; }
 @media (pointer: coarse) { .rd-spell-ask .btn { height: 44px; } }
 /* While it is up, toasts (a fix just made) sit above it, not over its Yes and No (reader.ts liftToasts sets its height). */
-body[data-route='read']:has(.rd-spell-ask) .app-toasts { bottom: calc(max(24px, env(safe-area-inset-bottom, 0px) + 16px) + var(--rd-coach-h, 120px) + 8px); }
+body[data-route='read']:has(.rd-spell-ask) .app-toasts, body[data-route='read']:has(.rd-audio-on:not(.rd-paged)):has(.rd-spell-ask) .app-toasts {
+  bottom: calc(var(--rd-coach-b, 24px) + var(--rd-coach-h, 120px) + 8px);
+}
+
+/* The name check (nameCheck.ts): "Names in this book?" with a chip per candidate. Tap marks a name, × says it is not, the chevron
+   (or a long press) picks the kind. Every control is 44 px tall. */
+.rd-name-ask { flex-direction: column; align-items: stretch; gap: var(--space-2); width: min(560px, calc(100% - 24px)); max-height: min(70vh, 520px); overflow-y: auto; padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4); }
+.rd-nc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
+.rd-name-ask p.rd-nc-title { margin: 0 0 2px; font-weight: 600; color: var(--text); }
+.rd-name-ask p.rd-nc-help { margin: 0; color: var(--text-2); }
+.rd-nc-close { flex: none; width: 44px; height: 44px; margin: -6px -4px 0 0; }
+.rd-nc-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rd-nc-chip { position: relative; display: inline-flex; align-items: stretch; border: 1px solid var(--rule-strong); border-radius: 22px; background: var(--surface); }
+.rd-nc-chip button { border: 0; background: none; color: var(--text); cursor: pointer; min-height: 44px; font: inherit; }
+.rd-nc-word { display: inline-flex; align-items: center; gap: 6px; padding: 0 4px 0 14px; border-radius: 22px 0 0 22px; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.rd-nc-text { font: 400 18px/1 var(--font-serif); }
+.rd-nc-count { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.rd-nc-kind { font-size: 12px; color: var(--accent); }
+.rd-nc-kind:empty { display: none; }
+.rd-nc-check { display: none; }
+.rd-nc-check .icon { width: 14px; height: 14px; }
+.rd-nc-more, .rd-nc-no { display: inline-flex; align-items: center; justify-content: center; width: 44px; padding: 0; }
+.rd-nc-more[hidden] { display: none; }
+.rd-nc-no { border-radius: 0 22px 22px 0; color: var(--text-3) !important; }
+.rd-nc-more .icon, .rd-nc-no .icon { width: 16px; height: 16px; }
+@media (hover: hover) { .rd-nc-chip button:hover { background: var(--wash); } }
+.rd-nc-chip button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+/* Marked as a name: the vermilion wash, a check before it. */
+.rd-nc-chip[data-state='yes'] { border-color: var(--accent); background: var(--accent-soft); }
+.rd-nc-chip[data-state='yes'] .rd-nc-check { display: inline-flex; color: var(--accent); }
+/* Not a name: struck through and faded, its × pressed. */
+.rd-nc-chip[data-state='no'] { border-style: dashed; background: transparent; }
+.rd-nc-chip[data-state='no'] .rd-nc-text { text-decoration: line-through; color: var(--text-3); }
+.rd-nc-chip[data-state='no'] .rd-nc-no { color: var(--danger) !important; }
+.rd-nc-menu { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 4px; }
+.rd-nc-menu .rd-nc-menu-item { min-height: 44px; padding: 0 16px; border: 1px solid var(--rule-strong); border-radius: 22px; background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.rd-nc-menu .rd-nc-menu-item[aria-checked='true'] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+@media (hover: hover) { .rd-nc-menu .rd-nc-menu-item:hover { background: var(--wash); } }
+.rd-nc-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.rd-name-ask .rd-nc-note { font-size: 12px; color: var(--text-3); }
+.rd-name-ask .btn.rd-nc-done { height: 44px; min-width: 96px; }
+body[data-route='read']:has(.rd-name-ask) .app-toasts, body[data-route='read']:has(.rd-audio-on:not(.rd-paged)):has(.rd-name-ask) .app-toasts {
+  bottom: calc(var(--rd-coach-b, 24px) + var(--rd-coach-h, 160px) + 8px);
+}

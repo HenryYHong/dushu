@@ -2,7 +2,7 @@
 //
 // Han runs are cut with the jieba method: build the DAG of dictionary words over the run and take the path with
 // the highest total log-probability. Everything else is split by character class.
-import type { Dictionary, Token, TokenKind, Lexicon, RubySpan } from '../types';
+import type { Dictionary, Token, TokenKind, Lexicon, LexiconEntry, RubySpan } from '../types';
 import { isHanCodePoint } from './text';
 import { activeEngine } from '../lang/active';
 import { SURNAMES } from './names';
@@ -21,6 +21,8 @@ const UNSEEN_WORD_PENALTY = 4;
 const LEXICON_WEIGHT = 14;
 /** Corpus count from which a lexicon word that the dictionary lists as an ordinary word (中学, 大海) is scored as that word. */
 const COMMON_LEXICON_COUNT = 100;
+/** Titles after a surname (刘先主, 王先生, 张将军). */
+const SURNAME_TITLES = new Set(['先主', '先生', '先帝', '将军', '丞相', '太守', '公子', '小姐', '夫人', '大人', '老爷', '皇叔', '主公', '太太', '少爷']);
 /** Marks a candidate that came from the lexicon, so a word in both places is not scored twice. */
 const LEX_PREFIX = '\u0000';
 
@@ -1086,6 +1088,9 @@ function cutRun(text: string, a: number, b: number, dict: Dictionary, logTotal: 
       // A lexicon word whose first character makes a common word with the character before and whose last makes one with the
       // character after (青|海民|歌 inside 青海民歌) is not boosted: there the text is those two words.
       if (fromLexicon && pos > a && end < b && bothSidesWords(text, pos, end, dict)) own = Math.log(f + 1);
+      // A name of a surname and one character, where that character and the next make a title (刘先|主 against 刘|先主 "the late
+      // ruler Liu", in a heading the names were never found in): the surname and the title.
+      if (fromLexicon && w.length === 2 && end < b && SURNAMES.has(dict.toSimplified(w[0])) && SURNAME_TITLES.has(dict.toSimplified(w[1] + text[end]))) own = Math.log(f + 1);
       // A dictionary phrase of four or more characters that holds a lexicon word whole (大闹天宫 around 闹天宫) is not cut by the
       // entry inside it. Shorter words (中学生 around the name 中学) and jieba's phrases (a name + 笑) are left alone.
       if (lexMax && !fromLexicon && !fromNumber && w.length >= 4 && holdsLexiconWord(w, lexicon!) && dict.hasWord(w)) own = Math.max(own, LEXICON_WEIGHT);
@@ -1289,6 +1294,18 @@ export function segment(text: string, dict: Dictionary, lexicon?: Lexicon, ruby?
   joinDottedNames(tokens, text, lexicon);
   const texts = tokens.map((x) => x.text);
   const own = orig !== undefined && orig.length === n && orig !== text ? orig : undefined;
+  // The kinds of the paragraph's tokens that the lexicon holds, by their simplified form (the rules read simplified), on first use.
+  let kinds: Map<string, LexiconEntry['kind']> | undefined;
+  const named = lexicon ? (w: string): LexiconEntry['kind'] | undefined => {
+    if (!kinds) {
+      kinds = new Map();
+      for (const x of tokens) {
+        const e = x.kind === 'han' ? lexicon.get(x.text) : undefined;
+        if (e) kinds.set(dict.toSimplified(x.text), e.kind);
+      }
+    }
+    return kinds.get(w);
+  } : undefined;
   for (let t = 0; t < tokens.length; t++) {
     const tok = tokens[t];
     if (tok.kind !== 'han') continue;
@@ -1305,6 +1322,7 @@ export function segment(text: string, dict: Dictionary, lexicon?: Lexicon, ruby?
       prev: tokens[t - 1]?.text, next: tokens[t + 1]?.text ?? '', after: tokens[t + 2]?.text, line: texts, at: t,
       ...(own ? { orig: own.slice(tok.start, tok.end) } : {}),
       ...(lexicon?.spellings ? { spellings: lexicon.spellings } : {}),
+      ...(named ? { named } : {}),
     });
   }
   return tokens;

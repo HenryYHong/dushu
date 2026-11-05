@@ -7,7 +7,9 @@
 import type { AppContext, Dictionary, Lexicon, LexiconEntry } from '../types';
 import { isSyllableBase, markedToNumbered, splitPinyinRun } from './pinyin';
 import { SURNAME_READINGS, COMPOUND_SURNAME_READINGS, NAME_CHAR_READINGS, TRANSLITERATION_READINGS, KIN_CHARS, HEAD_BEFORE_ZHANG, TRANSLIT_CHARS, ERA_NAMES } from './names';
+import { HAIR_COLORS, LUMINARIES, MANSION_READINGS, NAME_PIECE_READINGS, PERSON_CHAR_READINGS } from './names';
 import { COMPOUND_SURNAMES, SURNAMES } from './names';
+import { loadGazetteer, type Gazetteer, type GazetteerKind } from './gazetteer';
 import { isChinese } from '../lang/active';
 export { capitalizePinyin, pinyinGroups } from './names';
 
@@ -16,7 +18,9 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 10;
+export const DETECTOR_VERSION = 11;
+/** Stored for a book read without the name list (core/gazetteer.ts could not fetch it): it is read again once the list is there. */
+export const WITHOUT_LIST = DETECTOR_VERSION - 0.5;
 
 /** Lexicon over the given rows (disabled rows ignored). */
 export function buildLexicon(rows: LexiconEntry[]): Lexicon {
@@ -50,8 +54,18 @@ const SOFT_START = new Set([...'有没要会能可以对给从向跟说道笑问
 const SOFT_END = new Set([...'道说笑问叫看听想去来到上下里中外内前后边面起出完得地等家其回过過报報处處']);
 /** Right after one of these, a string is acting as a person (the object of an address or an order). */
 const PERSON_PREP = new Set([...'对對向问問叫和与與让讓给給跟见見命令派请請使谢謝扶抱拉救杀殺打骂罵恨爱愛喊唤喚召找随隨同被']);
+/** Of PERSON_PREP, the ones that also take a group or a thing (对社群, 与社群, 被焚毁, 让社群): no sign of a person alone. */
+const GROUP_PREP = new Set([...'对對和与與让讓给給跟见見随隨同被向']);
+/** Before a measure word, with the numerals: 这张专辑, 每张, 哪条. */
+const COUNT_BEFORE = new Set([...'这這那哪每某第整满滿']);
+/** A sense for a kind of person that PERSON_DEF leaves out (堂倌 "(old) waiter/attendant"): a role, not a name. */
+const ROLE_DEF = /\b(waiter|waitress|attendant|porter|boatman|coachman|cook|chef|doctor|nurse|peddler|beggar|thief|robber|bandit|merchant|shopkeeper|innkeeper|butler|steward|eunuch|emperor|empress|prince|princess|queen|servant|slave|farmer|peasant|worker|employee|member|customer|guest|host|stranger|enemy|friend|child|children|baby|youth|old man|old woman)s?\b/i;
+/** A proper noun's sense for a place or an institution (清华 "abbr. for Tsinghua University"): not a person. */
+const PLACE_ORG_DEF = /\b(university|college|school|institute|academy|company|corporation|city|county|district|province|prefecture|town|village|river|mountain|lake|island|abbr)\b/i;
 /** Followed by one of these, a string is acting as a person (subject of speech). */
 const SPEECH_NEXT = new Set([...'说道笑叫问答喊哭骂叹怒喝嚷应曰']);
+/** The traditional forms of SPEECH_NEXT. */
+const SPEECH_TRAD = new Set([...'說問罵嘆應']);
 const DAO = '道'.charCodeAt(0);
 /** After 道 these make a noun (道士, 道人, 道童, 道观), not a verb of speech. */
 const DAO_NOUN = new Set([...'士人童观觀长長姑院']);
@@ -78,6 +92,9 @@ const CALL_AFTER = new Set([...'，,！!？?…—'].map((ch) => ch.charCodeAt(0
 const isHanUnit = (c: number): boolean =>
   (c >= 0x4e00 && c <= 0x9fff) || (c >= 0x3400 && c <= 0x4dbf) || (c >= 0xf900 && c <= 0xfaff);
 
+/** Shared with core/nameCandidates.ts (the reader's name check). */
+export { EDGE_STOP, NOT_IN_NAME, INTERJECTIONS, PERSON_DEF, PERSON_HEAD, NUMERALS, MEASURE_START, SOFT_END, SOFT_START, SPEECH_NEXT, PLACE_SUFFIX, isHanUnit, covered, commonInside, verbPhrase };
+
 /** Everything detection learned about one string. */
 export interface TermCandidate {
   word: string;
@@ -95,6 +112,12 @@ export interface TermCandidate {
   speech: number;
   /** Share of occurrences right after a verb or preposition that takes a person (对 向 问 叫 命 …): people are addressed and ordered. */
   prep: number;
+  /** Like `speech`, in either script (說 問 罵 …: `speech` counts the simplified verbs only). */
+  said?: number;
+  /** Of `prep`, the share after a verb that takes only a person (叫 问 命 骂 …, not 对 和 给 让 被, which also take a group or a thing). */
+  pprep?: number;
+  /** Share of occurrences right after a numeral or a demonstrative (一张专辑, 这张专辑): its first character is counting something. */
+  counted?: number;
   /** Share of occurrences that open a quotation and are followed by a comma or an exclamation (“苇官，回家！”): someone called by name. */
   voc?: number;
   /** The last character is held by the one before it (in 周雍和, 雍 is nearly always 雍和), so a final 和 is not the conjunction. */
@@ -146,6 +169,10 @@ export interface DetectOptions {
   debug?: (cands: TermCandidate[]) => void;
   /** Set when one chapter of an anthology is read alone (perChapter): the whole-book passes are not run again. */
   inner?: boolean;
+  /** Stop after the statistics (`debug` gets them) and return nothing: core/nameCandidates.ts reads them. */
+  statsOnly?: boolean;
+  /** The name list (core/gazetteer.ts): a listed name seen once may join when nothing around it says otherwise (listed()). */
+  gazetteer?: Gazetteer | null;
 }
 
 /** True for a name like 郭靖: a surname followed by one or two given-name characters. */
@@ -301,19 +328,32 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     c.left = sideScore(st.left, c.count);
     c.right = sideScore(st.right, c.count);
     let sp = -(st.daoNoun ?? 0);
-    for (const [k, v] of st.right) if (SPEECH_NEXT.has(String.fromCharCode(k))) sp += v;
+    let said = sp;
+    for (const [k, v] of st.right) {
+      const ch = String.fromCharCode(k);
+      if (SPEECH_NEXT.has(ch)) sp += v;
+      if (SPEECH_NEXT.has(ch) || SPEECH_TRAD.has(ch)) said += v;
+    }
     c.speech = sp / c.count;
+    c.said = said / c.count;
     let pp = 0;
+    let po = 0;
     let op = 0;
+    let nb = 0;
     for (const [k, v] of st.left) {
-      if (PERSON_PREP.has(String.fromCharCode(k))) pp += v;
+      const ch = String.fromCharCode(k);
+      if (PERSON_PREP.has(ch)) { pp += v; if (!GROUP_PREP.has(ch)) po += v; }
+      if (NUMERALS.has(ch) || COUNT_BEFORE.has(ch)) nb += v;
       if (!isHanUnit(k)) op += v;
     }
     c.prep = pp / c.count;
+    c.pprep = po / c.count;
+    c.counted = nb / c.count;
     c.open = op / c.count;
     c.voc = (st.voc ?? 0) / c.count;
   }
   opts.debug?.(cands);
+  if (opts.statsOnly) return [];
 
   // ---- accept, classify
   const accepted: TermCandidate[] = [];
@@ -324,6 +364,9 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     const verdict: Verdict | null = (short ? judgeShort(c, dict) ?? (c.count >= 6 ? judge(c, dict, 6) : null) : judge(c, dict, minCount))
       ?? judgeRepeat(c, dict, minCount, short);
     if (!verdict) continue;
+    // 一张专辑, 第二张专辑: a "surname" that is also a measure word and comes after a numeral or 这 half the time counts a thing.
+    // (这小猴子 is still the boy: 小 counts nothing.)
+    if (verdict.kind === 'name' && (c.counted ?? 0) >= 0.5 && MEASURE_AFTER.has(dict.toSimplified(c.word[0]))) continue;
     c.kind = verdict.kind;
     c.surnameLed = verdict.surnameLed;
     if (verdict.neutralZi) c.neutralZi = true;
@@ -366,8 +409,16 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     const more = [...(yield* cued(all, text, dict, hanCount, due)), ...(yield* perChapter(all, chapterTexts, hanCount, dict, opts))];
     if (more.length) all = yield* boundaries([...all, ...more], text, dict, statsByWord, bigram, due, new Set(more.map((e) => e.word)));
   }
-  const named = princesses(all, text, dict);
-  return opts.inner ? named : [...named, ...bookScoped(named, text, dict, (ch) => uni[ch.charCodeAt(0)] > 0)];
+  let named = princesses(all, text, dict);
+  if (opts.inner) return named;
+  // Then the names of the list (people, places and organizations with a Wikipedia article) that the book uses as names. listed()
+  // checks each sighting against its neighbors and the entries found, so boundaries() and princesses() need not read them again.
+  if (opts.gazetteer) {
+    const { add, drop } = yield* listed(named, text, han, dict, opts.gazetteer, due);
+    if (drop.size) named = named.filter((e) => !drop.has(e.word));
+    named.push(...add);
+  }
+  return [...named, ...bookScoped(named, text, dict, (ch) => uni[ch.charCodeAt(0)] > 0)];
 }
 
 /**
@@ -1388,6 +1439,402 @@ function dottedHalves(text: string, i: number, fold: (s: string) => string, ends
   return out;
 }
 
+// ------------------------------------------------------------ the name list ---
+
+/** Titles and roles before a listed person (画家戴嵩, 太守王朗), beside TITLES_BEFORE. */
+const LIST_TITLES = [...TITLES_BEFORE, '画家', '诗人', '词人', '学者', '书法家', '音乐家', '作曲家', '科学家', '哲学家', '政治家', '艺术家', '思想家',
+  '将军', '大将', '名将', '太守', '刺史', '丞相', '宰相', '知县', '知府', '县令', '都督', '太尉', '尚书', '侍郎', '学士', '大臣', '太后', '皇后',
+  '公主', '太子', '皇子', '法师', '禅师', '女王', '王子', '运动员', '主角', '前任', '继任', '主簿', '校尉', '中郎将', '侍中', '司徒', '司空',
+  '太傅', '御史', '参军', '长史', '从事', '别驾', '治中', '偏将', '牙将', '都尉', '谋士', '大夫', '先锋', '国公', '知州', '巡抚', '总兵'];
+/** After a listed person: a verb of speech, a courtesy name, a life (周昉曰, 王羲之字逸少, 戴嵩生于). */
+const LIST_PERSON_AFTER = [...SAYS, ...TITLES_AFTER, '曰', '字', '生于', '出生', '去世', '逝世', '卒于', '死于', '等人'];
+/** Before a listed place: a word of going or being somewhere (到毗陵, 位于阳羡). */
+const LIST_PLACE_BEFORE = ['位于', '来自', '前往', '途经', '地处', '迁往', '迁至', '移居', '定居', '出生于', '生于'];
+/** After a listed place: where (阳羡一带, 毗陵境内). */
+const LIST_PLACE_AFTER = ['一带', '附近', '境内', '地区', '城外', '城内', '郊外', '人氏', '省', '市', '县', '州', '郡'];
+/** Before a listed name: characters that end what comes before a name (在毗陵, 的阳羡, 和戴嵩, 、周昉). */
+const LIST_OPENERS = new Set([...'的了在和与及跟同是被把对向从给为由于自至到往去来入出经过让叫请见将以或乃即、，']);
+/** A locative at the end of a listed name: 湾子里, 车里 are "in the pond", "in the car" more often than places. */
+const LOCATIVE_END = new Set([...'里上下中内外边旁前后']);
+/** After a listed place: a locative or 人 (毗陵人, 阳羡城外 is LIST_PLACE_AFTER). */
+const LIST_PLACE_CLOSERS = new Set([...'上下里外内中前后边旁畔人']);
+/** Endings that say a listed name is a place or an institution (梅山乡, 青县, 东林寺, 北洋大学, 江南制造局). */
+const LIST_PLACE_END = new Set([...'省市县区乡镇村州郡府道山江河湖海岛峰岭寺庙宫殿楼阁塔桥港湾城关堡庄']);
+const LIST_ORG_END = ['公司', '集团', '大学', '学院', '学校', '中学', '小学', '银行', '医院', '报社', '出版社', '协会', '学会', '委员会', '政府', '党', '军', '局', '馆', '院', '所', '社', '会', '团', '队', '厂', '店'];
+/**
+ * A character as common as this (its count in the segmentation vocabulary) or rarer makes a two-character listed name unlikely to be
+ * two ordinary characters side by side: 毗陵, 阳羡, 周昉, not 由拳 or 翠云.
+ */
+const LIST_RARE_CHAR = 500;
+/** A character at least this common after a listed name of three characters or more is a word of its own (宫泽理惠|演过), not more name. */
+const LIST_COMMON_NEXT = 2000;
+/** What cueAt() says: a cue before the name, after it, or one that only agrees with the kind. */
+const CUE_LEFT = 1;
+const CUE_RIGHT = 2;
+const CUE_WEAK = 4;
+/** Before a listed name, these start a nickname that holds it (小骚达子), so they do not free its edge. */
+const NICK_HEAD = new Set([...'小老阿']);
+/** The five phases: 金克木, 水生木 are their rules, not names. */
+const FIVE_PHASES = new Set([...'金木水火土']);
+/** A listed person ending in one of these is a kind of being (赤发鬼, 白骨精), a name only with a cue. */
+const BEING_END = new Set([...'鬼怪精魔妖']);
+/** Pronouns: a listed person that holds one (任我行) is as often a phrase (万国九州任我行). */
+const PRONOUN_IN = new Set([...'我你他她吾汝']);
+/** The 28 lunar mansions, one character each (井鬼柳星张翼轸 lists seven of them). */
+const MANSIONS = new Set([...'角亢氐房心尾箕斗牛女虚危室壁奎娄胃昴毕觜参井鬼柳星张翼轸']);
+/**
+ * Beside LIST_PLACE_END and LIST_ORG_END, endings that say a listed name is a place, a work or an institution (忠孝西路, 景福门, 沪杭高铁,
+ * 国家科委, 杭州来福士中心), so its kind is confirmed for the card and a verb at its start is no sign of a phrase. They cue nothing.
+ */
+const KIND_END = new Set([...'路街巷线园门场苑堂窑碑台洞群委联监国洲溪峒谷墓陵亭渡站']);
+const KIND_END_WORDS = ['高铁', '中心', '科技', '药业', '家族', '商圈'];
+/** What may stand before or after a couplet of verse. */
+const VERSE_EDGE = /[。！？；!?;\s「」“”『』：:]/;
+
+/**
+ * Names from the list (core/gazetteer.ts) that the book uses as names (ARCHITECTURE.md §4.9, detection v11). The list holds no word
+ * the dictionary has (built so), so what is left to fear is a listed string that the book uses as ordinary words (国王平定 holds
+ * 王平; 翠云缭绕 is green clouds) or as part of a longer name (陈少霖 holds 陈少). For each listed string in the text:
+ * - a sighting is unclean when a dictionary word crosses one of its edges, another listed name overlaps it, a found entry holds it
+ *   or crosses its edge or fills it but one character (史进|道), or it ends in a verb of speech before what is said; a string the
+ *   book ever uses across a common word, or unclean in more than a fifth of its sightings, is never taken;
+ * - a clean sighting counts when it stands free at both edges (freeLeft, freeRight), or a cue on a side frees that side;
+ * - three characters or more: one such sighting does, unless the string looks like a phrase, which needs a cue that says the kind;
+ * - two characters: a cue that says the kind at half the sightings (and a surname for a person), or a surname and a rare given
+ *   name (戴嵩), or a place with a rare character and a word of going (到阳羡).
+ * Returns the entries to add and the words of found entries that a listed name replaces (戴嵩画 for 戴嵩).
+ */
+function* listed(found: LexiconEntry[], text: string, han: Uint8Array, dict: Dictionary, gaz: Gazetteer, due: () => boolean): Generator<void, { add: LexiconEntry[]; drop: Set<string> }, void> {
+  const n = text.length;
+  // The text folded to simplified one unit at a time, the way the list was built.
+  const foldTable = new Uint16Array(65536);
+  const codes = new Uint16Array(n);
+  for (let i = 0; i < n; i++) {
+    const c = text.charCodeAt(i);
+    if (!han[i]) { codes[i] = c; continue; }
+    let f = foldTable[c];
+    if (!f) { const s = dict.toSimplified(text[i]); f = s.length === 1 ? s.charCodeAt(0) : c; foldTable[c] = f; }
+    codes[i] = f;
+    if ((i & 0xffff) === 0xffff && due()) yield;
+  }
+  const fold = (a: number, b: number): string => String.fromCharCode(...codes.subarray(a, b));
+  const starts: number[] = [];
+  const lens: number[] = [];
+  const kinds: GazetteerKind[] = [];
+  gaz.scan(codes, han, (i, len, kind) => { starts.push(i); lens.push(len); kinds.push(kind); });
+  const drop = new Set<string>();
+  if (!starts.length) return { add: [], drop };
+  yield;
+  // Overlaps between listed names: a sighting inside a longer one is that one's; two that overlap cut each other.
+  // (scan reports the sightings in order of where they start, the shorter first.)
+  const inside = new Uint8Array(starts.length);
+  const crossed = new Uint8Array(starts.length);
+  for (let h = 0; h < starts.length; h++) {
+    const a = starts[h];
+    const b = a + lens[h];
+    for (let g = h + 1; g < starts.length && starts[g] < b; g++) {
+      const d = starts[g] + lens[g];
+      if (starts[g] === a) inside[h] = 1;
+      else if (d <= b) inside[g] = 1;
+      else { crossed[h] = 1; crossed[g] = 1; }
+    }
+  }
+  // A listed name that is a shorter listed name and one character more, where the shorter one is the name: the character is a verb
+  // of speech or a word that follows a name (李荣|道, 史进|道), or the shorter one stands alone more often in the book (李恢|先运粮草).
+  // (Counted where each stands alone: 博尔 inside 博尔术 says nothing about 博尔忽.)
+  const seenAs = new Map<string, number>();
+  for (let h = 0; h < starts.length; h++) if (!inside[h]) { const w = text.substr(starts[h], lens[h]); seenAs.set(w, (seenAs.get(w) ?? 0) + 1); }
+  for (let h = 0; h + 1 < starts.length; h++) {
+    const g = h + 1;
+    if (starts[g] !== starts[h] || lens[g] !== lens[h] + 1) continue;
+    const extra = fold(starts[g] + lens[h], starts[g] + lens[g]);
+    const short = text.substr(starts[h], lens[h]);
+    const long = text.substr(starts[g], lens[g]);
+    if (SPEECH_NEXT.has(extra) || SPEECH_TRAD.has(text[starts[g] + lens[h]]) || AFTER_NAME.has(extra) || (seenAs.get(short) ?? 0) > 2 * (seenAs.get(long) ?? 0)) {
+      inside[h] = 0;
+      crossed[g] = 1;
+    }
+  }
+  // A person a cue found once with a verb too many, where the list has the name without it (画家戴嵩画的牛: the title cue took
+  // 戴嵩画), gives way to the listed name. (宋玉珍 stays: 珍 is no verb, and the list's 宋玉 is someone else.)
+  for (const e of found) {
+    if (e.kind !== 'name' || !CUED.has(e) || [...e.word].length !== 3) continue;
+    const s = dict.toSimplified(e.word);
+    if (!gaz.kindOf(s) && gaz.kindOf(s.slice(0, -1)) === 'person' && dict.lookup(s.slice(-1)).some((x) => /^to /.test(x.defs[0] ?? ''))
+      && !dict.lookup(s.slice(-1)).some((x) => /^[A-Z]/.test(x.pinyin) || /^surname/.test(x.defs[0] ?? ''))) drop.add(e.word);
+  }
+  const have = new Set(found.filter((e) => !drop.has(e.word)).map((e) => e.word));
+  const longest = Math.max(2, ...found.map((e) => e.word.length));
+  const heads = new Set(found.map((e) => e.word.charCodeAt(0)));
+  /**
+   * Whether a found entry holds [i, j), runs across one of its edges there, or fills all of it but one character (史进|道 is a found
+   * person and 道 "said", though the list has a 史进道). A found entry deeper inside is no harm.
+   */
+  const foundOver = (i: number, j: number): boolean => {
+    for (let a = Math.max(0, i - longest + 1); a < j; a++) {
+      if (!heads.has(text.charCodeAt(a))) continue;
+      for (let L = 2; L <= longest && a + L <= n; L++) {
+        if (a + L <= i) continue;
+        if (a >= i && a + L <= j && L < j - i - 1) continue;
+        if (have.has(text.substr(a, L))) return true;
+      }
+    }
+    return false;
+  };
+  const wordMemo = new Map<string, number>();
+  /** 0: no word; 1: a dictionary word; 2: a common one (count 100 or more). */
+  const wordAt = (a: number, b: number): number => {
+    const w = fold(a, b);
+    let v = wordMemo.get(w);
+    if (v === undefined) { v = dict.freq(w) >= 100 ? 2 : dict.hasWord(w) ? 1 : 0; wordMemo.set(w, v); }
+    return v;
+  };
+  /** The strongest dictionary word across an edge of [i, j): one that starts before it and ends inside or at its end, or starts inside or at its start and ends after it. */
+  const crossing = (i: number, j: number): number => {
+    let worst = 0;
+    for (let a = i - 1; a >= Math.max(0, i - 3) && han[a]; a--) {
+      for (let b = i + 1; b <= j && b - a <= 4; b++) worst = Math.max(worst, wordAt(a, b));
+    }
+    for (let a = Math.max(i, j - 3); a < j; a++) {
+      for (let b = j + 1; b <= n && han[b - 1] && b - a <= 4; b++) worst = Math.max(worst, wordAt(a, b));
+    }
+    return worst;
+  };
+  /** The Han run (a clause) that holds position k: [start, end). */
+  const runAt = (k: number): [number, number] => {
+    let a = k;
+    let b = k;
+    while (a > 0 && han[a - 1]) a--;
+    while (b < n && han[b]) b++;
+    return [a, b];
+  };
+  /** A line of verse starts or ends at position k: a stop, a space, a quote mark or the end of the text is there. */
+  const lineEdge = (k: number): boolean => k < 0 || k >= n || VERSE_EDGE.test(text[k]);
+  const comma = (k: number): boolean => text[k] === '，' || text[k] === ',';
+  /**
+   * Whether [i, j) sits in a couplet of verse: two lines of five or seven characters, a comma between them, a stop or a break
+   * around them (香肌扑簌瑶台月，翠鬓笼松楚岫云。). Prose may run two such clauses together, rarely as a sentence of its own.
+   */
+  const inVerse = (i: number, j: number): boolean => {
+    const [a, b] = runAt(i);
+    const len = b - a;
+    if (j > b || (len !== 5 && len !== 7)) return false;
+    if (lineEdge(a - 1) && comma(b) && han[b + 1]) {
+      const [c, d] = runAt(b + 1);
+      if (d - c === len && lineEdge(d)) return true;
+    }
+    if (lineEdge(b) && a >= 2 && comma(a - 1) && han[a - 2]) {
+      const [c, d] = runAt(a - 2);
+      if (d - c === len && lineEdge(c - 1)) return true;
+    }
+    return false;
+  };
+  const tr = (k: number) => han[k] === 1 && TRANSLIT_CHARS.has(fold(k, k + 1));
+  const allTranslit = (i: number, j: number) => [...fold(i, j)].every((ch) => TRANSLIT_CHARS.has(ch));
+  /**
+   * Whether the sighting [i, j) stands free at its left (freeLeft) and its right edge (freeRight): a mark, a dictionary word
+   * (画家|戴嵩, 位于|阳羡; 戴嵩|画马), or a character that opens or closes a name (在 到 的 和 …; 说 等 也 …, and a locative or 人 after
+   * a place). Not 陈少|霖, 何|芬奇, 阿姆斯特|丹, 龙|首山: the characters around belong to a longer name.
+   */
+  const freeLeft = (i: number, j: number): boolean => {
+    const translit = allTranslit(i, j);
+    // (三|四里路: a numeral before one that opens the name is the same count. 达摩|克利斯: a transliteration runs into it.)
+    if (han[i - 1] && NUMERALS.has(fold(i - 1, i)) && NUMERALS.has(fold(i, i + 1))) return false;
+    if (translit && tr(i - 1)) return false;
+    // (斯堪的|纳维亚: a transliteration may hold a 的. 主簿|阎象: any dictionary word may end before a name.)
+    let left = i === 0 || !han[i - 1] || (LIST_OPENERS.has(fold(i - 1, i)) && !(i > 1 && tr(i - 2) && translit));
+    for (let a = i - 2; !left && a >= Math.max(0, i - 4) && han[a]; a--) left = wordAt(a, i) >= 1;
+    // (Three characters or more may follow any common character: 遗民|朱舜水. Not 小, 老 or 阿, which start a nickname (小骚达子),
+    // nor in a line of verse, where words run on without a break: 翠鬓笼松|楚岫云.)
+    return left || (j - i >= 3 && dict.freq(fold(i - 1, i)) >= LIST_COMMON_NEXT && !NICK_HEAD.has(fold(i - 1, i)) && !inVerse(i, j));
+  };
+  const freeRight = (i: number, j: number, kind: GazetteerKind): boolean => {
+    const translit = allTranslit(i, j);
+    if (j >= n || !han[j]) return true;
+    const two = fold(j, Math.min(n, j + 2));
+    if (AFTER_NAME.has(two) || AFTER_NAME.has(two[0]) || (kind !== 'person' && (LIST_PLACE_CLOSERS.has(two[0]) || LIST_PLACE_AFTER.some((t) => two.startsWith(t))))) return true;
+    for (let b = j + 2; b <= Math.min(n, j + 4) && han[b - 1]; b++) if (wordAt(j, b) === 2) return true;
+    // Three characters or more may stand before any common character (宫泽理惠|演过), unless a transliteration runs on (阿姆斯特|丹)
+    // or the name ends in 之, which may be the particle before a noun (权为贺敬之礼: "a gift of congratulation").
+    return j - i >= 3 && dict.freq(two[0]) >= LIST_COMMON_NEXT && !(translit && tr(j)) && fold(j - 1, j) !== '之' && !inVerse(i, j);
+  };
+  const personStarts = new Set<number>();
+  const personEnds = new Set<number>();
+  for (let h = 0; h < starts.length; h++) if (kinds[h] === 'person') { personStarts.add(starts[h]); personEnds.add(starts[h] + lens[h]); }
+  /**
+   * A cue at the sighting [i, j) for a name of this kind: CUE_LEFT or CUE_RIGHT when a word on that side says the kind by itself
+   * (and so where the name starts or ends), CUE_WEAK when it only agrees.
+   */
+  const cueAt = (i: number, j: number, kind: GazetteerKind, name: string): number => {
+    if (kind === 'person') {
+      const b4 = fold(Math.max(0, i - 4), i);
+      const af = fold(j, Math.min(n, j + 3));
+      let m = LIST_TITLES.some((t) => b4.endsWith(t)) ? CUE_LEFT : 0;
+      if (LIST_PERSON_AFTER.some((t) => af.startsWith(t)) || /^[（(]前?\d/.test(text.slice(j, j + 3))) m |= CUE_RIGHT; // (周昉（约730年－800年）: a life)
+      if (m) return m;
+      // 戴嵩、韩干、周昉: an item of a 、 list beside another listed person.
+      return (text[j] === '、' && personStarts.has(j + 1)) || (text[i - 1] === '、' && personEnds.has(i - 1)) ? CUE_WEAK : 0;
+    }
+    if (kind === 'place' || kind === 'org') {
+      const b3 = fold(Math.max(0, i - 3), i);
+      if (LIST_PLACE_BEFORE.some((t) => b3.endsWith(t))) return CUE_LEFT;
+      const p = b3[b3.length - 1] ?? '';
+      // (去了阳羡: 了 counts after a verb of going.)
+      if (PLACE_BEFORE.has(p) && (p !== '了' || GOING.has(b3[b3.length - 2] ?? ''))) return CUE_WEAK;
+      const af = fold(j, Math.min(n, j + 2));
+      if (LIST_PLACE_AFTER.some((t) => af.startsWith(t))) return CUE_WEAK;
+      // (An ending agrees with the kind but proves little: 近卫队 ends like a company of soldiers because it is one.)
+      if (LIST_PLACE_END.has(name[name.length - 1]) || LIST_ORG_END.some((t) => name.endsWith(t) && name.length > t.length)) return CUE_WEAK;
+    }
+    return 0;
+  };
+
+  // Every sighting of each listed string, as the book spells it.
+  const byWord = new Map<string, number[]>();
+  for (let h = 0; h < starts.length; h++) {
+    const w = text.substr(starts[h], lens[h]);
+    if (have.has(w)) continue;
+    let list = byWord.get(w);
+    if (!list) byWord.set(w, (list = []));
+    list.push(h);
+  }
+  const out: LexiconEntry[] = [];
+  // (三体 writes 艾伯特.林格 with a full stop.)
+  const dot = (k: number) => NAME_DOTS.test(text[k] ?? '') || (text[k] === '.' && han[k - 1] === 1 && han[k + 1] === 1);
+  /** The book's entries, so a listed name reads the found names inside it as they read (秦沈 of 秦沈客运专线: shěn). */
+  const lexicon = buildLexicon(found);
+  let checked = 0;
+  for (const [w, hits] of byWord) {
+    if ((++checked & 0x3f) === 0 && due()) yield;
+    const kind = kinds[hits[0]];
+    const simp = fold(starts[hits[0]], starts[hits[0]] + lens[hits[0]]);
+    const rareGiven = kind === 'person' && simp.length === 2 && SURNAMES.has(simp[0]) && !CUE_NOT_SURNAME.has(simp[0]) && dict.freq(simp[1]) <= LIST_RARE_CHAR;
+    let clean = 0;
+    let dirty = 0;
+    let seen = 0;
+    let cue = 0;
+    let strong = 0;
+    let common = false;
+    for (const h of hits) {
+      if (inside[h]) continue;
+      seen++;
+      const i = starts[h];
+      const j = i + lens[h];
+      const cut = crossing(i, j);
+      if (cut === 2) { common = true; break; }
+      // (众女官拥拜丹墀道：「…: a verb of speech before what is said ends no name, unless it makes a word with the character
+      // before it: 呼南通道：.)
+      const said = (SPEECH_NEXT.has(fold(j - 1, j)) || SPEECH_TRAD.has(text[j - 1])) && /[：:「“『]/.test(text[j] ?? '') && !wordAt(j - 2, j);
+      if (cut || crossed[h] || said || foundOver(i, j)) { dirty++; continue; }
+      // An edge is free where a cue stands that says the kind (遗民朱舜水先生: 先生), and beside a name dot (昌西·比卢普斯); the other
+      // edge must be free too (not 阿基姆·奥拉|朱万, 太尉陈宗|善). After a title, a surname and a rare given name may stand before
+      // any character (画家戴嵩画的牛).
+      const dl = dot(i - 1);
+      const dr = dot(j);
+      const m = cueAt(i, j, kind, simp);
+      const k = dl || dr || m & (CUE_LEFT | CUE_RIGHT) ? 2 : m ? 1 : 0;
+      const lf = dl || !!(m & CUE_LEFT) || freeLeft(i, j);
+      const rf = dr || !!(m & CUE_RIGHT) || freeRight(i, j, kind) || (!!(m & CUE_LEFT) && rareGiven);
+      if (!(lf && rf)) continue;
+      clean++;
+      cue = Math.max(cue, k);
+      if (k === 2) strong++;
+    }
+    if (common || !clean || dirty > 0.2 * (clean + dirty)) continue;
+    const s = [...simp];
+    // Shapes that are as often a phrase as a name need a cue that says the kind by itself: a locative at the end (湾子里 "in the
+    // pond"), a verb or a preposition at the start that no surname explains (跟谁学), a character used twice in a place or a thing
+    // (楼外楼, 命命鸟; 李师师 is a person).
+    // A person may double a character (李师师, 天武天皇) but not end two words in the same one (大爷二爷 is two people). 金克木, 水生木:
+    // a rule of the five phases. 威震天南: a verb at the start of a place or a thing. 赤发鬼, 黑脸鬼 (seen once): a kind of ghost or
+    // demon. 任我行: a pronoun. 井鬼柳星张翼轸: lunar mansions one after another.
+    const twiceApart = s.length >= 4 && s.indexOf(s[s.length - 1]) < s.length - 2;
+    const ending = LIST_PLACE_END.has(s[s.length - 1]) || KIND_END.has(s[s.length - 1])
+      || [...LIST_ORG_END, ...KIND_END_WORDS].some((t) => simp.endsWith(t) && simp.length > t.length);
+    const phrase = LOCATIVE_END.has(s[s.length - 1]) || (SOFT_START.has(s[0]) && !(kind === 'person' && SURNAMES.has(s[0])))
+      || (kind !== 'person' ? new Set(s).size < s.length : twiceApart)
+      || (s.length === 3 && FIVE_PHASES.has(s[0]) && FIVE_PHASES.has(s[2]) && (s[1] === '克' || s[1] === '生'))
+      || (kind !== 'person' && !ending && s.length >= 3 && dict.lookup(s[0] + s[1]).some((x) => /^to /.test(x.defs[0] ?? '')))
+      || (kind === 'person' && seen === 1 && BEING_END.has(s[s.length - 1]))
+      || (kind === 'person' && s.some((ch) => PRONOUN_IN.has(ch)))
+      || (s.every((ch) => MANSIONS.has(ch)) && hits.some((h) => MANSIONS.has(fold(starts[h] - 1, starts[h])) || MANSIONS.has(fold(starts[h] + lens[h], starts[h] + lens[h] + 1))));
+    if (phrase && cue < 2) continue;
+    if (s.length >= 3) {
+      // (近卫队, 伊朗馆, 李明天, 希望之火: a dictionary word and one character more is cut into words a reader can look up already,
+      // and is as often a description as a name: only a cue that says the kind by itself makes it a name.)
+      if (wordChars(s, dict) >= s.length - 1 && cue < 2) continue;
+    } else if (cue < 2 || (kind === 'person' && !(SURNAMES.has(s[0]) && !CUE_NOT_SURNAME.has(s[0]))) || strong < 0.5 * clean) {
+      // Two characters need a cue that says the kind at half their clean sightings, and a person a surname (丞相尚容一祢衡 once
+      // and 尚容商议 nine times is "please allow"; 太尉慈悯 is "have mercy"). Else a surname and a rare given name (戴嵩, 周昉), or a
+      // place with a rare character and a word of going or a place word beside it (到阳羡). Not two common characters (翠云, 车里,
+      // 南墙: as likely two words; 在车里 says nothing), not a rare word of the old books (簪缨, 圣裔), not 于 + a name (致书于绍).
+      const rare = s.some((ch) => dict.freq(ch) <= LIST_RARE_CHAR);
+      const person = kind === 'person' && SURNAMES.has(s[0]) && !CUE_NOT_SURNAME.has(s[0]) && dict.freq(s[1]) <= LIST_RARE_CHAR;
+      if (!(person || (kind === 'place' && rare && cue === 1))) continue;
+    }
+    // (昌西·比卢普斯, 亚历克西斯·勒布伦: beside a name dot, a listed place is half of someone's name.)
+    const dotted = hits.some((h) => dot(starts[h] - 1) || dot(starts[h] + lens[h]));
+    const entryKind: LexiconEntry['kind'] = kind === 'person' || dotted ? 'name' : kind === 'other' ? 'term' : 'place';
+    const translit = s.every((ch) => TRANSLIT_CHARS.has(ch));
+    let pinyin = entryKind === 'name' ? pinyinOf(w, entryKind, dict, kind === 'person' && !translit && !dotted) : wordsPinyin(w, entryKind, dict, lexicon);
+    if (translit) pinyin = pinyin.replace(/\br5$/, 'er2');
+    // (马塞洛 is a footballer that the list has as a place: a place or an organization nothing in the book confirms is glossed as a
+    // name only.)
+    const gloss = LIST_GLOSS[dotted ? 'person' : kind !== 'person' && !cue && !ending ? 'other' : kind];
+    const e: LexiconEntry = { word: w, pinyin, gloss, kind: entryKind, count: seen, enabled: true, origin: 'auto' };
+    CUED.add(e);
+    out.push(e);
+  }
+  return { add: out, drop };
+}
+
+/**
+ * The reading of a listed place, organization or thing, read as the words and the book's entries it is made of (秦沈|客运|专线: the
+ * 沈 of 沈阳 is shěn, not the chén a character alone gets), with a temple in 观 read guàn; pinyinOf when they do not give one
+ * syllable a character.
+ */
+function wordsPinyin(w: string, kind: LexiconEntry['kind'], dict: Dictionary, lexicon?: Lexicon): string {
+  // The longest entry or dictionary word at each place, left to right. (Not segment(): core/segment.ts imports the dictionary
+  // module, which the store reaches through this one, and a test that mocks the dictionary would wait on itself.)
+  const syl: string[] = [];
+  for (let i = 0; i < w.length;) {
+    let piece = '';
+    let read: string[] = [];
+    for (let L = Math.min(lexicon?.maxLen ?? 0, w.length - i); L >= 2 && !piece; L--) {
+      const e = lexicon?.get(w.substr(i, L));
+      const p = e?.pinyin.split(' ') ?? [];
+      if (e && p.length === [...e.word].length) { piece = e.word; read = p; }
+    }
+    if (!piece) {
+      const word = dict.wordsAt(w, i).find((x) => x.length >= 2) ?? String.fromCodePoint(w.codePointAt(i)!);
+      piece = word;
+      read = dict.pinyinFor(word, {});
+    }
+    syl.push(...read);
+    i += piece.length;
+  }
+  const n = [...w].length;
+  if (syl.length !== n || !syl.every(Boolean)) return pinyinOf(w, kind, dict, false);
+  if (kind === 'place' && n >= 3 && dict.toSimplified(w.slice(-1)) === '观') syl[n - 1] = 'guan4';
+  shapeReadings([...dict.toSimplified(w)], syl, kind, dict);
+  return syl.join(' ');
+}
+
+/** How many characters of a string (simplified, one code point each) dictionary words of two characters or more can cover. */
+function wordChars(s: string[], dict: Dictionary): number {
+  const best = new Array<number>(s.length + 1).fill(0);
+  for (let b = 1; b <= s.length; b++) {
+    // (之 between words joins them: 希望|之|火.)
+    best[b] = best[b - 1] + (s[b - 1] === '之' ? 1 : 0);
+    for (let a = Math.max(0, b - 6); a <= b - 2; a++) if (dict.hasWord(s.slice(a, b).join(''))) best[b] = Math.max(best[b], best[a] + b - a);
+  }
+  return best[s.length];
+}
+
+const LIST_GLOSS: Record<GazetteerKind, string> = {
+  person: 'name (person)', place: 'place name', org: 'name of an organization', other: 'name (Wikipedia)',
+};
+
 /** Pure, synchronous detection. */
 export function detectTerms(chapterTexts: string[], dict: Dictionary, opts?: DetectOptions): LexiconEntry[] {
   const it = detectGen(chapterTexts, dict, opts);
@@ -1671,6 +2118,8 @@ function judgeShort(c: TermCandidate, dict: Dictionary): { kind: LexiconEntry['k
   if (simp.some((ch) => NOT_IN_NAME.has(ch) || EDGE_STOP.has(ch))) return null;
   // (前往中国, 疏浚西湖: a verb and the place it goes to.)
   if (verbPhrase(simp, dict)) return null;
+  // (整条街, 满屋: "the whole", "full" and a measure word count what follows.)
+  if (COUNT_BEFORE.has(first) && MEASURE_AFTER.has(simp[1])) return null;
   const sur = surnameSplit(c.word, dict);
   // (张雪峰, 林如海: a surname and a given name that ends like a place; 眼光观之, 宿舍楼: a common word and a place ending is a phrase.)
   const personLike = !!sur && len === 3 && simp[1] !== '家' && last === '峰' && (c.open ?? 0) >= 0.5;
@@ -1699,8 +2148,13 @@ export function judgeRepeat(c: TermCandidate, dict: Dictionary, minCount: number
   const simp0 = [...dict.toSimplified(c.word)];
   // 沙龙 (a story's sorcerer, a "salon" elsewhere): a dictionary word the book uses hundreds of times more often than other text
   // does, never apart and ordered about or addressed a quarter of the time, is a person here. Its card keeps the word's meaning.
+  // (Not a common word that a story is about: 社群 "community" after 对 与 给, 焚毁 "to burn down" after 被, 堂倌 "waiter" called for,
+  // 清华 the university. The word must be a noun, not one for a kind of person nor the name of a place or an institution, and be
+  // treated as someone: it speaks, is called out, or comes after a verb that takes only a person.)
   if (c.known !== 'none' && (c.key ?? 0) >= 300 && (c.npmi ?? 0) >= 0.9 && c.prep >= 0.25 && c.count >= (short ? 8 : Math.max(12, 2 * minCount))
     && [...c.word].length === 2 && c.right >= 1.5 && !PERSON_HEAD.has(dict.toSimplified(c.word.slice(-1)))
+    && ((c.said ?? c.speech) >= 0.05 || (c.voc ?? 0) >= 0.05 || (c.pprep ?? 0) >= 0.1)
+    && !dict.lookup(c.word).some((e) => /^(\([^)]*\) )*to /.test(e.defs[0] ?? '') || ROLE_DEF.test(e.defs.join('; ')) || (/^[A-Z]/.test(e.pinyin) && PLACE_ORG_DEF.test(e.defs.join('; '))))
     && !PERSON_DEF.test(dict.lookup(c.word).flatMap((e) => e.defs).join('; '))) return { kind: 'name', surnameLed: false };
   // (A pet name in 儿 that jieba knows whole, 杏儿, still needs its entry: jieba reads the 儿 as r.)
   if (c.known !== 'none' && !(c.known === 'jieba' && simp0.length === 2 && simp0[1] === '儿' && !dict.hasWord(c.word))) return null;
@@ -1823,7 +2277,10 @@ export function pinyinOf(word: string, kind: LexiconEntry['kind'], dict: Diction
   const named = kind === 'name' || kind === 'place';
   for (let i = skip; i < cps.length; i++) {
     const s = simp[i];
-    const forced = (named ? NAME_CHAR_READINGS[cps[i]] ?? NAME_CHAR_READINGS[s] : undefined) ?? (kind === 'name' && !sur ? TRANSLITERATION_READINGS[s] : undefined);
+    let forced = named ? NAME_CHAR_READINGS[cps[i]] ?? NAME_CHAR_READINGS[s] : undefined;
+    // (赤髮鬼: a traditional form with a reading of its own keeps it; 髮 is only fà, never the fā of 发.)
+    if (forced && !NAME_CHAR_READINGS[cps[i]] && cps[i] !== s && !dict.lookup(cps[i]).some((e) => e.pinyin.toLowerCase() === forced)) forced = undefined;
+    forced ??= kind === 'name' ? PERSON_CHAR_READINGS[s] ?? (!sur ? TRANSLITERATION_READINGS[s] : undefined) : undefined;
     out.push(forced ?? rest[i - skip] ?? '');
   }
   const n = cps.length;
@@ -1832,7 +2289,41 @@ export function pinyinOf(word: string, kind: LexiconEntry['kind'], dict: Diction
   // 连长, 支队长: an office in 长 is zhǎng. 黄花观, 五庄观: a temple is guàn.
   if (n >= 3 && simp[n - 1] === '长' && HEAD_BEFORE_ZHANG.has(simp[n - 2])) out[n - 1] = 'zhang3';
   if (kind === 'place' && n >= 3 && simp[n - 1] === '观') out[n - 1] = 'guan4';
+  shapeReadings(simp, out, kind, dict);
   return out.join(' ');
+}
+
+/**
+ * Readings the shape of a name decides, over what its characters read (pinyinOf, wordsPinyin): `out` holds one numbered syllable
+ * per character of `simp` and is changed in place.
+ */
+function shapeReadings(simp: string[], out: string[], kind: LexiconEntry['kind'], dict: Dictionary): void {
+  const n = simp.length;
+  if (out.length !== n) return;
+  // 斗木獬, 参水猿: a lunar mansion, a luminary and an animal (斗 dǒu, 参 shēn).
+  if (n === 3 && LUMINARIES.has(simp[1]) && MANSION_READINGS[simp[0]]) out[0] = MANSION_READINGS[simp[0]];
+  if (kind !== 'name' && kind !== 'place') return;
+  // 速不台: 不 in a name is a syllable of its own (the neutral 不 of 走不动 belongs to a verb; 差不多先生 keeps the word's).
+  if (n === 3 && simp[1] === '不' && out[1] === 'bu5' && !dict.hasWord(simp.join(''))) out[1] = 'bu4';
+  if (kind === 'place') {
+    // 乌斯藏, 西藏: Tibet (zàng) at the end; 厦深铁路: Xiamen (xià) at the start; 苕溪 (tiáo); 薄姬墓: the surname Bó.
+    if (n >= 3 && simp[n - 1] === '藏') out[n - 1] = 'zang4';
+    if (n >= 2 && simp[0] === '厦' && out[0] === 'sha4') out[0] = 'xia4';
+    if (n >= 2 && simp[0] === '薄' && out[0] === 'bao2') out[0] = 'bo2';
+    for (let i = 0; i + 1 < n; i++) if (simp[i] === '苕' && simp[i + 1] === '溪') out[i] = 'tiao2';
+    return;
+  }
+  // 塔阳汗, 俺答汗, 林丹汗: a khan (hán) ends the name.
+  if (n >= 3 && simp[n - 1] === '汗') out[n - 1] = 'han2';
+  // 赤发鬼: hair (fà) after a color.
+  for (let i = 1; i < n; i++) if (simp[i] === '发' && HAIR_COLORS.has(simp[i - 1])) out[i] = 'fa4';
+  // 小安子, 老桂子: 小 or 老 and a nickname in 子, which is neutral (老夫子 holds a word: zǐ).
+  if (n === 3 && (simp[0] === '小' || simp[0] === '老') && simp[2] === '子' && !dict.hasWord(simp[1] + '子')) out[2] = 'zi5';
+  // 郦食其, 金日磾, 司马相如: a given name that reads as a whole.
+  for (let i = 1; i + 1 < n; i++) {
+    const read = NAME_PIECE_READINGS[simp[i] + simp[i + 1]];
+    if (read) out.splice(i, 2, ...read.split(' '));
+  }
 }
 
 const GLOSS: Record<LexiconEntry['kind'], string> = {
@@ -1958,12 +2449,15 @@ export async function loadLexicon(ctx: AppContext, bookId: string, onUpdate?: (l
   if (await store.lexicon.detected(bookId, DETECTOR_VERSION)) return lex;
   if (!running.has(bookId)) {
     const job = (async () => {
-      const [dict, texts] = await Promise.all([ctx.dict(), bookTexts(ctx, bookId)]);
+      // The name list is fetched here, not with the dictionary: only detection needs it. Without it, the rules alone.
+      const [dict, texts, gazetteer] = await Promise.all([ctx.dict(), bookTexts(ctx, bookId), loadGazetteer()]);
+      // (Read without the list before, and still no list: nothing new to find.)
+      if (!gazetteer && await store.lexicon.detected(bookId, WITHOUT_LIST)) return;
       // The first page is the reader's job: start when the browser is idle (or after a moment), then work in
       // slices of about 10 ms with the event loop getting a turn between them.
       await whenIdle(1500);
-      const found = await detectTermsAsync(texts, dict, undefined, 10);
-      await store.lexicon.putDetected(bookId, found, DETECTOR_VERSION);
+      const found = await detectTermsAsync(texts, dict, { gazetteer }, 10);
+      await store.lexicon.putDetected(bookId, found, gazetteer ? DETECTOR_VERSION : WITHOUT_LIST);
     })().finally(() => { running.delete(bookId); });
     running.set(bookId, job);
   }

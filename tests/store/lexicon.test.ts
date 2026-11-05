@@ -1,8 +1,9 @@
 import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
-import { DETECTOR_VERSION, loadLexicon, USER_SCOPE } from '../../src/core/lexicon';
+import { DETECTOR_VERSION, loadLexicon, USER_SCOPE, WITHOUT_LIST } from '../../src/core/lexicon';
+import { loadGazetteer } from '../../src/core/gazetteer';
 import { openStore } from '../../src/store';
-import type { AppContext, ImportedBook, LexiconEntry } from '../../src/types';
+import type { AppContext, ImportedBook, Lexicon, LexiconEntry } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
 import { novel } from '../helpers/novel';
 
@@ -135,12 +136,35 @@ describe('loadLexicon', () => {
     expect(first.has('莫远峰')).toBe(false);
     for (let i = 0; i < 100 && !updated; i++) await new Promise((r) => setTimeout(r, 50));
     expect(updated).not.toBeNull();
-    expect(await store.lexicon.detected(meta.id, DETECTOR_VERSION)).toBe(true);
-    const second = await loadLexicon(ctx, meta.id, () => { throw new Error('no second detection'); });
+    // (No name list can be fetched here: the book is read with the rules alone, and read again once the list is there.)
+    expect(await store.lexicon.detected(meta.id, WITHOUT_LIST)).toBe(true);
+    expect(await store.lexicon.detected(meta.id, DETECTOR_VERSION)).toBe(false);
+    // (A second open tries the list again; with none it does not read the book again, it only calls back.)
+    const rows = (await store.lexicon.get(meta.id)).length;
+    let again: Lexicon | null = null;
+    const second = await loadLexicon(ctx, meta.id, (lex) => { again = lex; });
+    for (let i = 0; i < 100 && !again; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(again!.entries().length).toBe(second.entries().length);
+    expect((await store.lexicon.get(meta.id)).length).toBe(rows);
     expect(second.has('莫远峰')).toBe(true);
     expect(second.has('单雨晴')).toBe(true);
     expect(second.has('单于')).toBe(true);
     expect((await store.lexicon.get(meta.id)).every((r) => r.origin === 'auto')).toBe(true);
+  });
+
+  it('reads a book again with the name list once the list can be had, and finds a listed name seen once', async () => {
+    const store = await openStore(dbName());
+    const dict = await loadTestDictionary();
+    const ctx = { store, dict: async () => dict, dictSync: () => dict } as unknown as AppContext;
+    const meta = await store.books.add(book(`${novel(4, 300)}\n后来他去了毗陵，在那里住了三年。`));
+    await store.lexicon.putDetected(meta.id, [], WITHOUT_LIST);
+    // (An invented list of one place; the real one is public/data/names.tsv.gz.)
+    expect(await loadGazetteer(async () => '# format 1\n毗陵\tl\n')).not.toBeNull();
+    let updated: { has(w: string): boolean } | null = null;
+    await loadLexicon(ctx, meta.id, (lex) => { updated = lex; });
+    for (let i = 0; i < 100 && !updated; i++) await new Promise((r) => setTimeout(r, 50));
+    expect(await store.lexicon.detected(meta.id, DETECTOR_VERSION)).toBe(true);
+    expect(updated!.has('毗陵')).toBe(true);
   });
 
   it('a book that is not there gives the user rows only', async () => {

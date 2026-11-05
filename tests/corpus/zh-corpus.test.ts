@@ -10,8 +10,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Dictionary } from '../../src/types';
-import { loadTestDictionary } from '../helpers/data';
-import { compactTokens, decodeCompact, diffTokens, encodeCompact, readingNote, sample, shownFile, textHash, type Region, type ShownBlock, type ShownBook } from '../../scripts/eval/zh-shown';
+import { loadTestDictionary, readDataFile } from '../helpers/data';
+import { compactTokens, decodeCompact, diffTokens, encodeCompact, loadEvalGazetteer, loadEvalReadingModel, readingNote, sample, shownFile, textHash, type Region, type ShownBlock, type ShownBook } from '../../scripts/eval/zh-shown';
 import { readSilver, scoreSilver } from '../../scripts/eval/zh-silver';
 
 const DIR = join(__dirname, 'zh');
@@ -39,6 +39,10 @@ const pending: Partial<Baseline> = {};
 
 beforeAll(async () => {
   dict = await loadTestDictionary();
+  // Names are detected with the name list (public/data/names.tsv.gz) and read with the reading model, as the reader does once
+  // both have loaded.
+  await loadEvalGazetteer();
+  await loadEvalReadingModel(dict, readDataFile);
   for (const t of texts) books.set(t.id, await shownFile(`${t.id}.txt`, readFileSync(join(DIR, t.folder, `${t.id}.txt`)), dict));
 }, 240_000);
 

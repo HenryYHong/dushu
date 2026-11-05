@@ -104,9 +104,13 @@ export interface Dictionary {
     orig?: string;
     /** The texts of every token of the paragraph, and the index of this word among them (rules that look further than `next`). */
     line?: readonly string[]; at?: number;
+    /** The kind of a token of `line` that the book's lexicon holds, asked in simplified (a place before 为 is a noun). */
+    named?: (w: string) => LexiconEntry['kind'] | undefined;
   }): string[];
   toSimplified(text: string): string;
   toTraditional(text: string): string;
+  /** Hands pinyinFor the reading model (core/readingModel.ts) once it has loaded; null takes it away. */
+  setReadingModel?(model: import('./core/readingModel').ReadingChooser | null): void;
   meta: DataMeta;
 }
 
@@ -210,6 +214,11 @@ export interface BookMeta {
   importVersion?: number;
   /** What core/bookStyle.ts detectOldSpellings found in the book, by the detector version `v` (ui/reader/oldSpellings.ts). */
   oldSpellings?: { v: number; di: { hits: number; of: number; sure: boolean }; na: { hits: number; of: number; sure: boolean } };
+  /**
+   * The name check (core/nameCandidates.ts, ui/reader/nameCheck.ts): by its version `v` and the detector version `dv`, whether the
+   * "Names in this book?" card was answered, the candidates found, and the dictionary words said not to be names.
+   */
+  nameCheck?: { v: number; dv: number; asked: boolean; words?: { word: string; count: number; kind: LexiconEntry['kind'] }[]; no?: string[] };
 }
 
 /** What an importer returns; the store assigns id/addedAt and saves assets. */

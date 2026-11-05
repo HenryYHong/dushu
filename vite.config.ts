@@ -48,6 +48,9 @@ export function contentVersion(dist: string, dirs: string[], skip: (path: string
 export const OTHER_LANGS = ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru'];
 const LANG_PATH = new RegExp(`^(?:data|samples)/(?:${OTHER_LANGS.join('|')})/`);
 
+/** Chinese data files that are not precached: each is stored the first time the app fetches it. */
+export const LAZY_DATA = new Set(['names.tsv.gz']);
+
 /** The largest classic downloaded ahead on a first visit, in bytes; longer ones are stored when first added. */
 export const SAMPLE_PRECACHE_MAX = 256 * 1024;
 
@@ -71,7 +74,8 @@ export function serviceWorker(): Plugin {
       const assets = readdirSync(join(dist, 'assets')).filter((f) => /\.(js|mjs|css|bcmap)$/.test(f));
       // Chinese data only: another language's folder is a directory here, and it is never downloaded ahead (it is stored the
       // first time that language is opened, in a cache of its own named by its own contents, so a Chinese update keeps it).
-      const data = readdirSync(join(dist, 'data')).filter((f) => statSync(join(dist, 'data', f)).isFile());
+      // (The name list, names.tsv.gz, is not fetched ahead either: only name detection needs it, and it is stored the first time.)
+      const data = readdirSync(join(dist, 'data')).filter((f) => statSync(join(dist, 'data', f)).isFile() && !LAZY_DATA.has(f));
       const build = createHash('sha1').update(assets.join('|')).digest('hex').slice(0, 10);
       const dataVersion = contentVersion(dist, ['data', 'samples', 'fonts'], (p) => LANG_PATH.test(p));
       const langVersions: Record<string, string> = {};

@@ -11,6 +11,8 @@ import { gunzipSync } from 'node:zlib';
 import { chooseOldSpellings, detectOldSpellings, withOldSpellings } from '../../src/core/bookStyle';
 import { loadDictionary } from '../../src/core/dict';
 import { detectTerms, mergeLexicon } from '../../src/core/lexicon';
+import { loadReadingModel } from '../../src/core/readingModel';
+import { parseGazetteer, type Gazetteer } from '../../src/core/gazetteer';
 import { importFile } from '../../src/import';
 import { inScript, lexiconInScript, segmentShown, type ScriptMode } from '../../src/ui/reader/shown';
 import type { Chapter, Dictionary, Lexicon, LexiconEntry, Script, Token } from '../../src/types';
@@ -19,15 +21,44 @@ export const REPO_ROOT = join(__dirname, '..', '..');
 export const DATA_DIR = join(REPO_ROOT, 'public', 'data');
 
 /** The real dictionary from public/data, read from disk (the app fetches the same files). */
-export function loadEvalDictionary(dataDir = DATA_DIR): Promise<Dictionary> {
-  return loadDictionary('/', {
-    fetchText: async (name: string) => {
-      const file = /\.(gz|json)$/.test(name) ? name : name.replace(/(\.tsv)?$/, '.tsv.gz');
-      const raw = await readFile(join(dataDir, file));
-      return file.endsWith('.gz') ? gunzipSync(raw).toString('utf8') : raw.toString('utf8');
-    },
-  });
+export async function loadEvalDictionary(dataDir = DATA_DIR): Promise<Dictionary> {
+  const fetchText = async (name: string) => {
+    const file = /\.(gz|json)$/.test(name) ? name : name.replace(/(\.tsv)?$/, '.tsv.gz');
+    const raw = await readFile(join(dataDir, file));
+    return file.endsWith('.gz') ? gunzipSync(raw).toString('utf8') : raw.toString('utf8');
+  };
+  const dict = await loadDictionary('/', { fetchText });
+  await loadEvalReadingModel(dict, fetchText);
+  await loadEvalGazetteer(dataDir);
+  return dict;
 }
+
+/**
+ * Hands `dict` the reading model, as the reader has it once loaded (loadEvalDictionary does this; the corpus tests, which load the
+ * dictionary themselves, call it). ZH_READING_MODEL=off reads with the rules alone (for diffs of the model's own changes); a path
+ * reads another model file.
+ */
+export async function loadEvalReadingModel(dict: Dictionary, fetchText: (name: string) => Promise<string>): Promise<void> {
+  const which = process.env.ZH_READING_MODEL;
+  if (which === 'off') return;
+  dict.setReadingModel?.(await loadReadingModel(which
+    ? async () => gunzipSync(await readFile(which)).toString('utf8')
+    : fetchText));
+}
+
+/**
+ * The name list, as detection has it once loaded, for bookLexicon (loadEvalDictionary reads it; the corpus tests, which load the
+ * dictionary themselves, call this). ZH_GAZETTEER=off detects names with the rules alone (for diffs of the list's own changes); a
+ * path reads another list file; a missing file is the same as off.
+ */
+export async function loadEvalGazetteer(dataDir = DATA_DIR): Promise<void> {
+  const list = process.env.ZH_GAZETTEER;
+  evalGazetteer = list === 'off' ? null : await readFile(list || join(dataDir, 'names.tsv.gz'))
+    .then((raw) => parseGazetteer(gunzipSync(raw).toString('utf8')), () => null);
+}
+
+/** The name list loadEvalGazetteer read (null: none), which bookLexicon hands to detection. */
+let evalGazetteer: Gazetteer | null = null;
 
 /** One paragraph, heading or quote as the reader shows it. `key` is "chapter.block" (block index within the chapter). */
 export interface ShownBlock {
@@ -61,7 +92,7 @@ export function detectionTexts(chapters: Chapter[]): string[] {
 
 /** Detected names and terms of a book, converted for the page like the reader does. */
 export function bookLexicon(chapterTexts: string[], dict: Dictionary, mode: ScriptMode, script: Script): { found: LexiconEntry[]; lexicon: Lexicon | undefined } {
-  const found = detectTerms(chapterTexts, dict);
+  const found = detectTerms(chapterTexts, dict, { gazetteer: evalGazetteer });
   // The book's old spellings (底 for 的, 那 for 哪) where detection is sure of them, as the reader applies them.
   const lexicon = withOldSpellings(mergeLexicon([], found), chooseOldSpellings(detectOldSpellings(chapterTexts)));
   return { found, lexicon: lexiconInScript(lexicon, mode, dict, script) };

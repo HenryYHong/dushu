@@ -17,6 +17,8 @@ export { SHORTCUTS };
 /** Attributions that meta.json does not list (fetched at runtime or added after the data build). */
 export const EXTRA_SOURCES: { name: string; license: string; url: string; use: string }[] = [
   { name: 'Wiktionary (via kaikki.org)', license: 'CC BY-SA 4.0', url: 'https://kaikki.org/', use: 'Readings and definitions for rare characters Unihan has none for.' },
+  { name: 'CPP (Chinese Polyphones with Pinyin, Kakao Brain), from Chinese Wikipedia', license: 'CC BY-SA 4.0', url: 'https://github.com/kakaobrain/g2pM', use: 'Sentences the reading model learned from: it picks the reading of a few characters with two readings (传 in a title, 相, 刹, 裨 …) where the rules have no case.' },
+  { name: 'Wikidata', license: 'CC0 1.0', url: 'https://www.wikidata.org/', use: 'The name list: people, places and organizations with a Chinese Wikipedia article, so a name seen once in a book reads as one word.' },
   { name: 'Noto Serif SC and Noto Serif TC', license: 'SIL Open Font License 1.1', url: 'https://fonts.google.com/noto/specimen/Noto+Serif+SC', use: 'The book typeface on devices without a system Song font (iPad, Windows, Android). Simplified and traditional shapes.' },
   { name: 'LXGW WenKai', license: 'SIL Open Font License 1.1', url: 'https://github.com/lxgw/LxgwWenKai', use: 'The Kai (brush) reading typeface.' },
   { name: 'Newsreader', license: 'SIL Open Font License 1.1', url: 'https://github.com/productiontype/Newsreader', use: 'The serif of the screen titles, folios and numbers (a Latin subset).' },

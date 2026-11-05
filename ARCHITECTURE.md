@@ -80,11 +80,13 @@ in Node tests. Real files are present; tests should use them (they load in ~0.3 
 | `chars-extra.tsv.gz` | char, readings, definition (Wiktionary supplement; may be absent) | 5,132 |
 | `cedict-extra.tsv.gz` | same columns as `cedict` (Wiktionary words CC-CEDICT lacks; optional) | see file |
 | `book-words.tsv.gz` | trad, simp, pinyin, defs, optional segmentation count (curated senses for the words the books use most; optional) | ~430 |
+| `reading-model.tsv.gz` | `!` settings rows (features version, threshold), then char, readings, biases, one `feature weights` column per feature (the reading model, §4.1; CC BY-SA, made by `scripts/train_reading_model.py`; optional, loaded after the dictionary) | 24 characters |
 | `words.tsv.gz` | word, count | 287,084 |
 | `hsk.tsv.gz` | simp, trad, hsk3 (easiest reading), hsk2, rank, readings, same-word readings, of | 11,694 |
 | `hsk-LICENSES.txt` | the MIT notices of the two HSK sources (plain text, shipped with the data) | |
 | `t2s.tsv.gz` / `s2t.tsv.gz` | from, to (OpenCC phrases + chars, first candidate; t2s starts with the hand-written rows of `scripts/data/t2s-extra.tsv`, rebuilt with `--t2s-extra`) | 3.6k / 42k |
 | `radicals.tsv.gz` | num, radicalChar, unifiedChar | 246 |
+| `names.tsv.gz` | name, kind (`p` person, `l` place, `o` organization, `t` other); the name list from Wikidata, fetched only for name detection (§4.9), not precached | 580,161 |
 | `meta.json` | build date, Unicode version, counts, sources + licenses | |
 
 Details:
@@ -130,6 +132,23 @@ Details:
   (很多, 山上) are absent; `cedict-extra` and the loader's alias tables cover part of that gap.
 - `cedict-extra`: appended after CEDICT, skipping repeated readings; its words enter the segmentation vocabulary
   with count 0.
+- `names` (built by `node scripts/build-gazetteer.mjs [--fetch]`; the build half is `scripts/gazetteer.run.ts`, run inside Vitest so
+  it uses the app's dictionary): labels and aliases in zh, zh-hans, zh-hant, zh-cn and zh-tw of the Wikidata items with a
+  zh.wikipedia article that are people (humans, fictional and legendary people, gods), places (anything under geographic
+  location, geographical feature, architectural structure, administrative or political entity, settlement, historical country),
+  organizations, or a dynasty, a people, a war, a battle or a period (`t`; stars and the Chinese constellations, 角木蛟, are `t`
+  too). `--fetch` asks a SPARQL endpoint (default QLever's copy of Wikidata; query.wikidata.org works with `--endpoint`) one query
+  per class and per language and band of sitelink counts, pausing between queries and honoring Retry-After, into
+  `$DUSHU_RAW/wikidata/` (raw ≈ 90 MB). Each name is folded to simplified one character at a time (`toSimplified` of the
+  character, the way detection folds a book) and gets the kind of its best-known item. Kept: 2 to 7 Han characters of the BMP
+  (8 would do, but an 8-character name can repeat a run of a private book, which `check-public --source` refuses). Left out: any
+  string the dictionary has (CC-CEDICT, cedict-extra, a jieba count), an item whose English label is lower case (a concept the
+  class tree files under organizations: animism, urban planning), an alias of a person with fewer than 3 sitelinks (courtesy names
+  of the hardly known: 冲霄, 悦之), two characters with fewer than 3 sitelinks, a person's two-character alias, a place's unless it
+  has 10, an edge in `EDGE_STOP` or 的了着过 inside, 字 or 号 first, a numeral and a measure word (一粒米, 上一站), one character three
+  times (哒哒哒), and four characters or more made of dictionary words end to end (北京市|第一|中学). No readings: Wikidata has
+  P1721 on 11 such items; detection reads a listed name with its own rules. The file starts with `# format 1` (core/gazetteer.ts
+  refuses another number), 8.7 MB, 2.76 MB gzipped. Sorted by kind, then name.
 - Characters with no reading anywhere: show radical, strokes, block, variants (and the
   variants' readings, `source: 'variant'`), plus external links. Never show an empty popup.
 
@@ -272,6 +291,26 @@ Details:
   verb of depending (那得让他, nà děi; 得 is děi there in any book, 那得多少钱). When the reader turns 那 for 哪 off (`naAsWritten`), 那
   is nà everywhere, also where the rules for the old novels read 那里 nǎ (我们打那里走？). The eval path (scripts/eval/zh-shown.ts) applies
   what detection is sure of; the reader stores the report and the choice (core/fixes.ts, ui/reader/oldSpellings.ts).
+  Reading model (core/readingModel.ts, plan item 7). `polyphoneRule(ctx)` tells a rule's case from the rule's own default: a rule
+  returns `usual(r)` where none of its cases matched (相 传 率 宿 so far), and a character with no rule, or a rule that says nothing,
+  counts the same. There, for a one-character token, pinyinFor asks the model it was handed (`setReadingModel`; main.ts loads
+  `data/reading-model.tsv.gz` after the dictionary, so a page drawn before it arrives has the rules' readings, and without the file
+  the rules alone read everything). It is a logistic regression per character over `siteFeatures`: the tokens and characters up
+  to three places on each side, the neighbors' length and verb and noun strength, how far the clause runs each way and its last
+  token. It changes a reading only to another of the character's own (its own CC-CEDICT rows and Unihan, as shown and as
+  written), only for the characters the file lists, never for particles and interjections (`NOT_FOR_MODEL`), and only at the
+  file's threshold. `scripts/train_reading_model.py` fetches CPP into `.cache/raw/cpp`, reads every sentence through the app
+  (`scripts/eval/zh-reading-sites.run.ts`, a stand-in model that records `siteFeatures`), and trains on the train and dev splits
+  (never test) with the rules' reading as class 0 plus 4 pseudo-examples of it. CPP is Wikipedia, whose favored reading is not
+  the books' for most characters (藏 zàng, 少 shào, 为 wéi, 钻 zuàn, 应 yìng where verse means yīng): over all its characters the
+  model's changes on books were right 46% of the time. So the characters (24: 传 杓 相 刹 艮 率 藉 圜 裨 脯 茆 什 奔 宿 隽 苕 茄 杈 颉 槛
+  镝 仔 姥 畜) and the threshold (0.7) were set on 734 places hand-labeled in the held-out corpus and public/samples
+  (`tests/corpus/zh/readings-calibration.tsv`) and a judged sample of the corpus and tuned-book diff. Where a review of every
+  change found the model wrong, a rule case now speaks first (出煤率最高: a rate that is high or low is lǜ; 刹裤子 shā;
+  东奔西突 bēn; 什头 shén; 谈吐隽雅 juàn; 胡茄 jiā; 木杈 chā). Bump
+  `READING_FEATURES_VERSION` with any change to the features (a file of another version is not used); retrain after a change to
+  the rules or the dictionary. tests/core/readingModel.test.ts checks the TypeScript's features and scores against the script's
+  (tests/core/fixtures/reading-model-check.tsv, from the invented sentences of scripts/data/reading-model-check.txt).
   For multi-reading multi-char words (e.g. 银行 has one reading, 长大 one; 好好 several) prefer
   the entry whose defs are not "variant of"/"old variant"/surname-only, then the most common.
 - `wordsAt(text, i)`: all headwords starting at i (max headword length from the data), longest
@@ -370,7 +409,10 @@ Details:
 - `segment(text, dict, lexicon?, ruby?, orig?)`: `orig` is the paragraph as the book spells it when `text` is its conversion to the
   other script character for character (same UTF-16 offsets; `ui/reader/shown.ts` `originalBeside` checks). Words are cut in `text`;
   `pinyinFor` gets `{prev, next, after, line, at, orig}` (`line`/`at`: the paragraph's token texts and this token's index), so the
-  reading rules see 為 乾 盡 髮 where a simplified page shows 为 干 尽 发.
+  reading rules see 為 乾 盡 髮 where a simplified page shows 为 干 尽 发. With a lexicon it also gets `named`, the kind of a token of
+  the paragraph that the lexicon holds (asked in simplified): a place or term of the book before 为 is a subject, and any of its
+  names ending the clause after 为 a noun, so 钱唐郡为杭州 and 队长为王磊） stay wéi when the name list joins the name (a person
+  before 为 still is not: 王小林为大家做饭).
 - Performance: 10,000 Han chars in < 60 ms on this Mac (test it).
 - Tests on real sentences, e.g. 我们在银行门口见面。 → 我们|在|银行|门口|见面|。;
   他慢慢地走了过来。 (地 → de, 了 → le); 長江是中國最長的河流。 (traditional);
@@ -805,6 +847,59 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
     (赵少华, 少华山) and 沈 Shěn as a surname; a transliteration ends in 儿 ér. On the held-out corpus the silver checks went from 125 to 261
     right (no check broken); on the 25 tuned books about 320 entries were added, each read in context, and none removed. Detection is about
     10% slower on a 900,000-character novel (the cues scan the text once each).
+- Detection v11 (`DETECTOR_VERSION` 11, plan item 8 "gazetteer", tests in `tests/core/gazetteer.test.ts`).
+  - **The name list** (`core/gazetteer.ts`, `public/data/names.tsv.gz`, §3: 580,161 people, places and organizations with a Chinese
+    Wikipedia article, from Wikidata, CC0). `parseGazetteer(text)` keeps it in typed arrays (one string of all names, offsets, an
+    open-addressing hash table, and the name lengths by the hash of their first two characters, so a scan of 920,000 characters takes
+    about 30 ms); `loadGazetteer()` fetches it once per session and gives null when it cannot (offline before it was ever stored, an
+    old deployment, a file whose `# format` is not 1). `loadLexicon` fetches it in the background job, never for the first page; the
+    service worker stores it the first time instead of precaching it (`LAZY_DATA` in vite.config.ts). A book read without the list
+    is stored at `WITHOUT_LIST` (10.5) and read again the first time the list can be had.
+  - **`listed()`** runs last in `detectGen` (after `princesses()`; whole books only, not one chapter of an anthology): every listed
+    string in the text, folded one character at a time as the list was built. A sighting is unclean when a dictionary word crosses an
+    edge (国王平定 holds 王平; a common word there, count 100 or more, rules the string out for the book), another listed name overlaps
+    it, a found entry holds it or runs across its edge or fills it but one character (史进|道), or it ends in a verb of speech before
+    what is said (丹墀道：「). More than a fifth unclean: not taken. A clean sighting must also stand free at both edges: a mark, a
+    dictionary word ending before it (主簿|阎象) or a common word after it, a character that opens or closes a name (在 的 和 …;
+    `AFTER_NAME`; a locative or 人 after a place), a name dot (昌西·比卢普斯, also 三体's full stop), or for three characters and more
+    any common character (遗民|朱舜水, 宫泽理惠|演过), but not after 小 老 阿 (小骚达子), not before a noun after a name in 之 (贺敬之礼),
+    nor inside a couplet of verse (two lines of five or seven characters, a comma between them and a stop around: 翠鬓笼松|楚岫云); not
+    where the characters around belong to a longer name (陈少|霖, 阿姆斯特|丹, 达摩|克利斯, 三|四里路). A cue that says the kind frees its own side: a title before a person (`LIST_TITLES`: 画家, 太守, 主簿 …), a
+    verb of speech, 先生, a life in brackets after one, a word of going before a place (位于, 前往). Then: three characters or more
+    are taken at one free sighting, unless they look like a phrase (a locative at the end, 湾子里; a verb at the start, 跟谁学; a
+    repeated character in a place, 楼外楼, or two words ending in the same one in a person, 大爷二爷; a dictionary word and one character
+    more, 近卫队, 希望之火; a rule of the five phases, 金克木; a dictionary verb at the start of a place with no place ending, 威震天南; a
+    pronoun in a person, 任我行; a kind of being seen once, 赤发鬼; lunar mansions beside more of them, 井鬼柳星张翼轸), which needs such a cue; two
+    characters need such a cue at half their sightings and, for a person, a surname, or else a surname and a rare given name (戴嵩,
+    周昉: count 500 or less) or a place with a rare character and a word of going (到阳羡). Of two listed names where one is the
+    other and one character more, the shorter wins when the character is a verb of speech or a word after a name, or the shorter
+    stands alone twice as often (李恢|先). A cue's three-character person whose last character is a verb gives way to a listed
+    two-character one (画家戴嵩画的牛: 戴嵩, not 戴嵩画). Kinds: a person is a name (pinyinOf with the surname tables), a place or an
+    organization is a place (read through its words and the book's entries, so 秦沈客运专线 keeps the shěn of 秦沈), anything else is a
+    term; beside a name dot, a person. Glosses: "name (person)", "place name", "name of an organization", "name (Wikipedia)"; a
+    place or an organization that no cue and no ending confirms (马塞洛, a footballer the list has as a place) gets "name (Wikipedia)".
+    listed() checks its own neighbors, so boundaries() and princesses() do not read its entries again.
+  - **Readings by shape** (`shapeReadings` after `pinyinOf` and a place's words, names.ts tables): a lunar mansion (斗木獬 dǒu, 参水猿
+    shēn); 不 in a three-character name the dictionary lacks is bù (速不台; the X不Y neutral 不 is a verb's); a khan at the end of a
+    name (塔阳汗 hán); hair after a color (赤发鬼 fà), and a traditional form keeps its own reading over `NAME_CHAR_READINGS` (髮 is only
+    fà); 小 or 老 + one character + 子 is a neutral nickname (小安子); given names that read as a whole (`NAME_PIECE_READINGS`: 郦食其
+    Yìjī, 金日磾 Mìdī, 金兀术 Wùzhú, 司马相如 Xiàngrú) and given-name characters (`PERSON_CHAR_READINGS`: 陈蕃 Fān, 孛 Bó); in a place, Tibet
+    at the end (乌斯藏 zàng), Xiamen at the start (厦深铁路 xià), 苕溪 tiáo, the surname 薄 Bó at the start. A two-character name whose
+    second character makes a title with the next (刘先|主 against 刘|先主, in a heading detection never read) is not boosted in
+    `segment.ts` (`SURNAME_TITLES`).
+  - Measured (scratch dumps, list on and off, reading model off): on the held-out corpus 419 entries more (545 sightings, 526 places
+    changed, 452 of them in Wikipedia; silver checks 406 → 434 right, the 2 newly wrong are 武广 and 郑西 now inside the whole railway
+    name); on the 25 tuned books 749 entries more (2,462 sightings, 2,483 places in 5.4 million Han characters); no entry removed.
+    Of the 1,168 new entries all were read in context: 17 are not names (金克木 in 金克木之义, 任我行, 楚岫云, 威震天南, 直快列车 …),
+    98.5%; a seeded sample of 100 had 99 real names. Seeded diff samples of 40: corpus 40 better, books 39 better and 1 worse. UD
+    "book" F1 +0.58 (GSDSimp) and +0.88 (HK), crossing within 0.002. Detection takes about 0.05 s longer on a 920,000-character
+    novel (8%); parsing the list takes 0.12 to 0.17 s once.
+  - **Junk names** (the blind audit's common words made names). The rule for a dictionary word that is a story's person (沙龙) now also
+    asks that it is treated as someone (spoken, in either script: `said`; called out; or after a verb that takes only a person:
+    `pprep`, not 对 和 给 让 被), that no sense is a verb (焚毁), a kind of person (`ROLE_DEF`: 堂倌 "waiter") or, for a proper noun, a
+    place or an institution (`PLACE_ORG_DEF`: 清华); so 社群 after 对 与 给 is no person. A name whose "surname" is a measure word and
+    follows a numeral or 这 half the time is a count (`counted`: 第二张专辑); and a short text's place may not open with 整 满 这 … and a
+    measure (整条街). On the held-out corpus and the 25 tuned books these change nothing; the tests reproduce each audit case.
 - `capitalizePinyin(syllables, kind, word, fold?)` and `pinyinGroups` (exported from `names.ts` and `lexicon.ts`): a name is written Guō Jìng,
   Hán Xiǎoyíng, Ōuyáng Wújì, Lǎo Wántóng; a place Táohuā Dǎo, Guīyún Zhuāng; a term, a user word and zhuyin stay as they are. The word popup and the
   "In this book" card use it (`ui/popup/pinyinText.ts`); ruby over the text stays lowercase.
@@ -1082,8 +1177,8 @@ after the cut: `segment.ts` never changes for it.
   drawn again and keeps the focus; Enter on a button (the toast's Undo) is the button's.
 - **The Corrections tab** (the contents drawer's former Names & terms tab, press N): Names, Words and Readings, each with its count; it
   opens on the first part that has rows until the reader picks one. A row shows the word, its pinyin (a split shows its pieces, in the
-  script the page shows), kind (Person, Place, Other name, Term, Joined, Split, Reading, Not a word: a person, a place or an other name the
-  reader marked is under Names, its pinyin with capitals), places, scope (Found, Everywhere, Here and the chapter, All books), a switch and,
+  script the page shows), kind (Person, Place, Other name, Term, Joined, Split, Reading, Not a word, Not a name: a person, a place or an other name the
+  reader marked is under Names, its pinyin with capitals), places, scope (Found, This book, Here and the chapter, All books), a switch and,
   for the reader's own fixes, Delete (toast with Undo). A switched row keeps its place until the list is opened, filtered or switched to
   another part; the filter matches pinyin typed without tones (xian finds Xiánhēng). A found name switched off is an `unword` fix. **Export
   corrections** writes `<title> corrections.json` (`exportFixes`: the book's fixes with their context, no device ids, and the words joined
@@ -1101,6 +1196,57 @@ after the cut: `segment.ts` never changes for it.
   writes 底 for 的, as many older books do. Read it that way?" Yes / No, after the first-visit hint; toasts show above it while it is up).
   No to 那 for 哪 reads 那 as written everywhere (`naAsWritten`). The Corrections tab shows a switch
   under **Old spellings** for each spelling the book shows or the reader chose.
+
+### 4.13 The name check (`core/nameCandidates.ts`, `ui/reader/nameCheck.ts`)
+Names a book repeats in shapes the detector turns down (七斤, 七大人, 老栓, 觉新/觉民/觉慧) are the largest family left on unseen fiction,
+and one tap clears every place of one. So once a book's names are found, the reader is asked once: **"Names in this book?"**
+- **Candidates** (`nameCandidatesGen(chapterTexts, dict, taken, found)`, also `findNameCandidates` in idle slices and `nameCandidates`
+  at once). It runs the detector's statistics alone (`detectGen(…, { statsOnly: true, debug })`, maxLen 5: counts, bind, npmi,
+  neighbor entropy, speech, address, `open`, `key`) and keeps the 2-4 character strings seen at least 5 times (8 in a long book,
+  more past 800,000 Han characters) that the book has not taken (`taken`: its names and terms and every word the reader fixed), in
+  one of these shapes:
+  - **numbered**: a numeral, or a surname and a numeral, before an honorific (七大人, 八爺, 四嬸, 九公, 鄒七嫂); a numeral and 斤 (七斤);
+    a surname and a numeral (黄三); 老 or 小 and a numeral (老五, 陈老五). Not 二公 or 三公 (the two lords).
+  - **nickname**: 老 小 阿 and one character that is not a kind of person, a kinship word or a thing (老栓, 小乙, 阿长; 老张 though jieba
+    has it).
+  - **siblings**: two to six pairs never apart sharing a first or a last character, which the book uses mostly in them (觉新 觉民 觉慧).
+  - **derived**: a character of a found name's given name with an honorific, or 老 小 阿 before it (础翁 beside 尔础), never apart.
+  - **word**: a two-character dictionary word whose senses are all ordinary nouns (no proper noun, verb, adverb, kind of person, animal
+    or saying), used hundreds of times more than in general text, that speaks or is called out (水生, a boy in 故乡).
+  - **repeat**: anything else never apart (npmi 0.75, bind 0.7), not made of dictionary words, with no common word inside, not a word
+    for a kind of person or thing at its end (村女, 老船夫), not a word written back to front (蹺蹊), acting as a person.
+  Then one pass over the text gives each how it stands: opening or closing a clause, followed by a verb a person does or a kinship
+  word, cutting a common word with a neighbor (dropped past 30%), inside a name found (its places are not its own), inside 《》〔〕
+  (a title or a note), the same character always before or after it (a piece of something longer: 小楼 of 段小楼), after 在 到 从
+  half the time (somewhere, not someone), and a longer candidate that holds it. The score is shape weight × log2(places) × (0.5 +
+  signs) × (1 − cuts); each shape needs a minimum of signs, and repeat and siblings must speak, be called out or open most clauses.
+  At most 8 (`MAX_NAME_CANDIDATES`), best first; none is no prompt. The kind suggested is a person, a place for a repeat that ends
+  like one.
+- **The card** (`createNameCheck`): after the first scan ends (and after the first-visit hint and the old spellings question, which use
+  the same place at the bottom), the candidates are found in idle slices and kept on the book (`BookMeta.nameCheck`: version, detector
+  version, `asked`, the words, and the dictionary words said not to be names). Each is a chip with its count: a tap marks a person
+  (a check and the kind), the chevron or a long press shows Person / Place / Other name as a row under it, × says it is not a name
+  (struck through). A right click opens the kind menu at once (only the click that ends a long press is swallowed); the menu's arrows
+  move between the kinds. **Done** (**Not now** while nothing is marked) and the card's Close save the answers as fixes of the book: a
+  `word` fix with the role and `pinyinOf`'s reading for a name, an `unword` fix for a string the dictionary lacks said not to be one (a
+  dictionary word is kept on the book instead, `nameCheck.no`, since "not one word" would not be true of it; Corrections lists it under
+  Words as "Not a name", and deleting the row lets Check names ask again). One toast says what changed, with Undo for all of them
+  (the kept dictionary words too); they sync and show under Corrections like any fix. The card is answered once per book; every
+  control is 44 px. It comes right after the top bar in the page's order (Tab reaches it before the text) and sits above the
+  read-aloud bar and the Pages footer (`--rd-coach-b` in reader.css; the first-visit hint and the spellings question do too).
+  A numbered title that follows the given names of two or more found people at least a tenth of the time (宝二爷, 琏二爷) is not
+  offered: each of them is called so.
+- **Check names** (Corrections tab footer): closes the drawer and finds the candidates again without the ones answered, so others can
+  come up; "No more names to check in this book." when there are none.
+- **Cost.** In Node the statistics and the pass take 0.3 to 0.6 s on a 900,000-character novel (the statistics are about 60%), in slices
+  of at most about 25 ms; in headless Chrome the card shows 4 to 5 s after such a book first opens (the detector's scan comes first).
+  The code is in the reader chunk; no data file.
+- **Measured** (2026-11, `offer.test.ts` in the owner's scratch tools; every offer read in context): the held-out corpus and the
+  samples offer 31 candidates in 16 of 72 texts, all names or numbered titles used as names (老張, 八爺, 四嬸, 慧生, 陈阵, 白臉兒狼, 二爺,
+  小螺, 糜芳, 小乙, 趙毅, 拂雲叟, 阿长 …; 胡庆余堂 is a shop, offered as a person); the 8 private tuned books 9, all names; chapters of five Qing
+  novels never read while tuning (Wikisource, 218,000 characters) 4, all names (林之洋 ×76, 廉錦楓, 五科, 二相公). Recall is low by
+  design: the rules give up 黑妞, 王生, 賈逵 and the like that do not stand like people often enough. Tests: `tests/core/nameCandidates.test.ts`
+  (an invented story, `tests/core/nameStory.ts`) and `tests/reader/name-check.test.ts`.
 
 ## 5. UI
 
@@ -1542,9 +1688,16 @@ the tests share, so what is measured is what a reader sees.
   scripts/eval/zh-bench.mjs [--record FILE] [--baseline FILE]` scores SIGHAN 2005, ZX and the CPP polyphone set, which may not be
   stored here (research-only or someone else's dataset). Same F1 and crossing, CPP accuracy strict and on one-character tokens.
   `--baseline` fails past the plan's tolerances (crossing +0.03, F1 -0.3, CPP strict -0.2, CPP one-character -0).
+- **The reading model in the tools.** The dumps and benchmarks read with the reading model when `public/data` has it, as the reader
+  does once it has loaded (`loadEvalDictionary`); `ZH_READING_MODEL=off` reads with the rules alone (diff the two dumps for the
+  model's own changes), a path reads another model file. The tests in `tests/` use the test dictionary, which has no model,
+  except the corpus gate (`zh-corpus.test.ts`), which hands it the model the same way (`loadEvalReadingModel`), so the silver
+  checks and `shown-baseline.tsv` score the readings the reader shows.
 - **Sealed set.** About 160,000 Han characters from other works and articles of the same genres, kept outside the repository for the
   final blind audit. Nobody reads it while fixing; after an audit round its texts may join the corpus and a new one is fetched.
 - Updating every baseline at once: `UPDATE_ZH_BASELINE=1 npx vitest run tests/corpus` (about 5 seconds).
+- The eval path reads names with the name list, as the reader does once it has loaded (`public/data/names.tsv.gz`).
+  `ZH_GAZETTEER=off` detects with the rules alone (for a diff of the list's own changes); a path reads another list file.
 
 ## 8. Licenses
 CC-CEDICT (CC BY-SA 4.0, attribution required in About), Unihan (Unicode License v3), jieba
@@ -1552,7 +1705,10 @@ CC-CEDICT (CC BY-SA 4.0, attribution required in About), Unihan (Unicode License
 (MIT), both notices in `public/data/hsk-LICENSES.txt`, OpenCC (Apache-2.0), Jigmo (CC0), Wiktionary via kaikki
 (CC BY-SA), hanzi-writer (MIT) + hanzi-writer-data (Arphic Public License, fetched at runtime),
 Newsreader (SIL OFL 1.1, no Reserved Font Name; `public/fonts/Newsreader-OFL.txt`), Unicode's EquivalentUnifiedIdeograph.txt (Unicode
-License v3, `import/radicals.ts`), the WHATWG Encoding Standard's index-big5 (CC BY 4.0, credited in About and `import/hkscs.ts`).
+License v3, `import/radicals.ts`), the WHATWG Encoding Standard's index-big5 (CC BY 4.0, credited in About and `import/hkscs.ts`),
+Wikidata (CC0 1.0: the name list `public/data/names.tsv.gz`, credited in About, the README and the file's header), and
+CPP (Kakao Brain's g2pM data: Apache-2.0 code, sentences from Chinese Wikipedia, CC BY-SA 4.0): the reading model trained on it
+(`public/data/reading-model.tsv.gz`) is treated as CC BY-SA 4.0 and credited in About and the README.
 
 ## 9. Other languages (`src/lang/`)
 

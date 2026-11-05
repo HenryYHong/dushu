@@ -155,6 +155,17 @@ describe('readings that follow a neighbor the new words changed', () => {
     expect(await reading('雨带会继续为广东沿岸带来大雨。', '为')).toBe('wei4');
   });
 
+  it('为 wéi after a place of the book and before a person that ends the clause; still wèi before a deed done for the person', async () => {
+    const d = await dictP;
+    const entry = (word: string, kind: 'name' | 'place') => ({ word, pinyin: d.pinyinFor(word, {}).join(' '), gloss: '', kind, count: 3, enabled: true, origin: 'auto' as const });
+    const lex = buildLexicon([entry('钱唐郡', 'place'), entry('王磊', 'name'), entry('王小林', 'name')]);
+    const wei = (text: string) => segment(text, d, lex).find((t) => t.text === '为')?.pinyin?.join(' ');
+    expect(wei('改该县所在的钱唐郡为杭州。')).toBe('wei2');
+    expect(wei('救援队（队长为王磊）征用了一艘船。')).toBe('wei2');
+    expect(wei('说服联合政府为王磊小队打开大门。')).toBe('wei4');
+    expect(wei('王小林为大家做饭。')).toBe('wei4');
+  });
+
   it('得 dé after 多幸 and 且休, and in 得再见天日; děi in 我得再去', async () => {
     expect(await reading('多幸得先生相助。', '得')).toBe('de2');
     expect(await reading('你且休得胡说。', '得')).toBe('de2');

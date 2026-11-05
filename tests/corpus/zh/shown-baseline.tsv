@@ -79,6 +79,7 @@
 #R	不配	bu4-pei4
 #R	与	yu3
 #R	丛中	cong2-zhong1
+#R	东苕溪	dong1-tiao2-xi1
 #R	东西	dong1-xi5
 #R	两万	liang3-wan4
 #R	两千万	liang3-qian1-wan4
@@ -94,6 +95,8 @@
 #R	中小学生	zhong1-xiao3-xue2-sheng5
 #R	中山堂	zhong1-shan1-tang2
 #R	中式	zhong4-shi4
+#R	中铁二院	zhong1-tie3-er4-yuan4
+#R	丹佛掘金	dan1-fo2-jue2-jin1
 #R	为	wei2
 #R	为名	wei2-ming2
 #R	为官	wei2-guan1
@@ -104,6 +107,7 @@
 #R	丽	li4
 #R	么	ma5
 #R	乌	wu1
+#R	乌力吉	wu1-li4-ji2
 #R	乐	le4
 #R	乖乖	guai1-guai1
 #R	乘马	cheng2-ma3
@@ -125,13 +129,17 @@
 #R	二十六万	er4-shi2-liu4-wan4
 #R	二十几	er4-shi2-ji3
 #R	二十四分之一	er4-shi2-si4-fen1-zhi1-yi1
+#R	于占元	yu2-zhan4-yuan2
+#R	于梦雨	yu2-meng4-yu3
 #R	互为	hu4-wei2
 #R	五万	wu3-wan4
 #R	五六	wu3-liu4
 #R	五六百	wu3-liu4-bai3
+#R	五南文化	wu3-nan2-wen2-hua4
 #R	五点	wu3-dian3
 #R	五百	wu3-bai3
 #R	五车	wu3-che1
+#R	亚奥理事会	ya4-ao4-li3-shi4-hui4
 #R	亚斯	ya4-si1
 #R	亚洲四小龙	ya4-zhou1-si4-xiao3-long2
 #R	亚洲运动会	ya4-zhou1-yun4-dong4-hui4
@@ -141,6 +149,8 @@
 #R	交通事故	jiao1-tong1-shi4-gu4
 #R	亦可	yi4-ke3
 #R	亨宁	heng1-ning2
+#R	京兰通道	jing1-lan2-tong1-dao4
+#R	京昆通道	jing1-kun1-tong1-dao4
 #R	亲	qin1
 #R	亲亲热热	qin1-qin1-re4-re4
 #R	亲兄弟	qin1-xiong1-di4
@@ -150,7 +160,8 @@
 #R	人家	ren2-jia5
 #R	人迹	ren2-ji4
 #R	仆	pu2
-#R	仔	zi3
+#R	今雨轩	jin1-yu3-xuan1
+#R	仔	zai3
 #R	仔仔细细	zi3-zi3-xi4-xi4
 #R	代表大会	dai4-biao3-da4-hui4
 #R	令	ling4
@@ -169,6 +180,7 @@
 #R	似	si4
 #R	体	ti3
 #R	何为	he2-wei4
+#R	何华武	he2-hua2-wu3
 #R	何种	he2-zhong3
 #R	余万	yu2-wan4
 #R	余种	yu2-zhong3
@@ -187,6 +199,7 @@
 #R	俟	si4
 #R	信息安全	xin4-xi1-an1-quan2
 #R	俩	lia3
+#R	俺答汗	an3-da2-han2
 #R	倒	dao4
 #R	倒好	dao4-hao3
 #R	倒数	dao4-shu4
@@ -199,6 +212,7 @@
 #R	倾倒	qing1-dao4
 #R	假	jia3
 #R	儿	r5
+#R	克里奥帕特拉	ke4-li3-ao4-pa4-te4-la1
 #R	入室	ru4-shi4
 #R	全校	quan2-xiao4
 #R	全过程	quan2-guo4-cheng2
@@ -209,8 +223,10 @@
 #R	六十九	liu4-shi2-jiu3
 #R	六十余	liu4-shi2-yu2
 #R	六十多	liu4-shi2-duo1
+#R	六和塔	liu4-he2-ta3
 #R	六百	liu4-bai3
 #R	六百六十六	liu4-bai3-liu4-shi2-liu4
+#R	关渡美术馆	guan1-du4-mei3-shu4-guan3
 #R	兴	xing1
 #R	兹	zi1
 #R	再创	zai4-chuang4
@@ -243,7 +259,9 @@
 #R	刑讯逼供	xing2-xun4-bi1-gong1
 #R	划	hua4
 #R	划出	hua4-chu1
+#R	刘南奎	liu2-nan2-kui2
 #R	刘培强	liu2-pei2-qiang2
+#R	刘铭传	liu2-ming2-chuan2
 #R	刘长瑜	liu2-chang2-yu2
 #R	创	chuang4
 #R	刨	pao2
@@ -251,7 +269,7 @@
 #R	利用率	li4-yong4-lü4
 #R	别	bie2
 #R	刷	shua1
-#R	刹	sha1
+#R	刹	cha4
 #R	刹那间	cha4-na4-jian1
 #R	刺	ci4
 #R	削	xiao1
@@ -278,12 +296,18 @@
 #R	华	hua2
 #R	华普	hua2-pu3
 #R	华茨华斯	hua2-ci2-hua2-si1
+#R	卓别灵	zhuo2-bie2-ling2
 #R	单	dan1
 #R	单板	dan1-ban3
+#R	单霁翔	shan4-ji4-xiang2
 #R	南	nan2
+#R	南亭亭长	nan2-ting2-ting2-chang2
+#R	南宋官窑	nan2-song4-guan1-yao2
 #R	南广	nan2-guang3
+#R	南广铁路	nan2-guang3-tie3-lu4
 #R	南无阿弥陀佛	na1-mo2-a1-mi2-tuo2-fo2
 #R	南移	nan2-yi2
+#R	南西商圈	nan2-xi1-shang1-quan1
 #R	南路	nan2-lu4
 #R	南飞生	nan2-fei1-sheng1
 #R	博南诺	bo2-nan2-nuo4
@@ -291,6 +315,7 @@
 #R	占	zhan4
 #R	卡	ka3
 #R	卡塔琳娜	ka3-ta3-lin2-na4
+#R	卡姆登	ka3-mu3-deng1
 #R	卡尔弗特	ka3-er3-fu2-te4
 #R	卡尔德拉诺	ka3-er3-de2-la1-nuo4
 #R	卡尔松	ka3-er3-song1
@@ -299,6 +324,8 @@
 #R	卡蒂诺	ka3-di4-nuo4
 #R	卡里尼科斯	ka3-li3-ni2-ke1-si1
 #R	卡里饺	ka3-li3-jiao3
+#R	卢廉若公园	lu2-lian2-ruo4-gong1-yuan2
+#R	卫计委	wei4-ji4-wei3
 #R	卷	juan3
 #R	卷子	juan4-zi5
 #R	厂	chang3
@@ -306,6 +333,7 @@
 #R	历数	li4-shu4
 #R	压	ya1
 #R	厦	sha4
+#R	厦渝通道	xia4-yu2-tong1-dao4
 #R	参	can1
 #R	叉	cha1
 #R	及期	ji2-qi1
@@ -334,13 +362,15 @@
 #R	台湾总督府	tai2-wan1-zong3-du1-fu3
 #R	史可法	shi3-ke3-fa3
 #R	叶	ye4
+#R	叶壹堂	ye4-yi1-tang2
+#R	叶少兰	ye4-shao4-lan2
 #R	叶莉	ye4-li4
 #R	号	hao4
 #R	吁	xu1
 #R	吃食	chi1-shi2
 #R	合	he2
-#R	合宁	he2-ning2
-#R	合武	he2-wu3
+#R	合宁铁路	he2-ning2-tie3-lu4
+#R	合武铁路	he2-wu3-tie3-lu4
 #R	吉兆胡同	ji2-zhao4-hu2-tong4
 #R	吉诺比利	ji2-nuo4-bi3-li4
 #R	同	tong2
@@ -361,7 +391,9 @@
 #R	呔	dai1
 #R	呜呜咽咽	wu1-wu1-ye4-ye4
 #R	呢	ne5
+#R	周少麟	zhou1-shao4-lin2
 #R	呷	xia1
+#R	呼南通道	hu1-nan2-tong1-dao4
 #R	和	he2
 #R	咧	lie5
 #R	咯	ge1
@@ -374,6 +406,8 @@
 #R	哈	ha1
 #R	哈克尼斯	ha1-ke4-ni2-si1
 #R	哈哈哈	ha1-ha1-ha1
+#R	哈大高铁	ha1-da4-gao1-tie3
+#R	哈牡客运专线	ha1-mu3-ke4-yun4-zhuan1-xian4
 #R	哈里伯顿	ha1-li3-bo2-dun4
 #R	哑	ya3
 #R	哑然	ya3-ran2
@@ -389,6 +423,7 @@
 #R	哼	heng1
 #R	哼哼	heng1-heng1
 #R	唉	ai1
+#R	唐从圣	tang2-cong2-sheng4
 #R	唯	wei2
 #R	唯唯	wei3-wei3
 #R	唷	yo1
@@ -407,6 +442,7 @@
 #R	嗳	ai3
 #R	嘀	di1
 #R	嘎	ga1
+#R	嘎玛泽登	ga1-ma3-ze2-deng1
 #R	嘛	ma5
 #R	嘲	chao2
 #R	嘴紧	zui3-jin3
@@ -423,6 +459,9 @@
 #R	四叔	si4-shu1
 #R	园中	yuan2-zhong1
 #R	国务院令	guo2-wu4-yuan4-ling4
+#R	国家教委	guo2-jia1-jiao4-wei3
+#R	国家科委	guo2-jia1-ke1-wei3
+#R	国泰置地广场	guo2-tai4-zhi4-di4-guang3-chang3
 #R	图书室	tu2-shu1-shi4
 #R	圆圆	yuan2-yuan2
 #R	圆熟	yuan2-shu2
@@ -461,21 +500,28 @@
 #R	大	da4
 #R	大中城市	da4-zhong1-cheng2-shi4
 #R	大乐	da4-le4
+#R	大佳腊	da4-jia1-la4
+#R	大加蚋堡	da4-jia1-rui4-bao3
 #R	大型企业	da4-xing2-qi3-ye4
 #R	大堆	da4-dui1
 #R	大夫	dai4-fu5
-#R	大岛	da4-dao3
+#R	大岛祐哉	da4-dao3-you4-zai1
+#R	大张客运专线	da4-zhang1-ke4-yun4-zhuan1-xian4
 #R	大意	da4-yi4
+#R	大散关	da4-san4-guan1
 #R	大方	da4-fang5
 #R	大爷	da4-ye5
 #R	大王	da4-wang2
+#R	大相岭	da4-xiang1-ling3
 #R	大石	da4-shi2
 #R	大碗	da4-wan3
 #R	大礼	da4-li3
+#R	大稻埕戏苑	da4-dao4-cheng2-xi4-yuan4
 #R	大船	da4-chuan2
 #R	大轴子	da4-zhou2-zi5
 #R	大都	da4-dou1
 #R	大门口	da4-men2-kou3
+#R	大龙峒	da4-long2-dong4
 #R	天台	tian1-tai2
 #R	太息	tai4-xi1
 #R	太重	tai4-zhong4
@@ -507,6 +553,7 @@
 #R	姆	mu3
 #R	始熊猫	shi3-xiong2-mao1
 #R	委	wei3
+#R	姚广孝	yao2-guang3-xiao4
 #R	威克列夫	wei1-ke4-lie4-fu1
 #R	娇娜	jiao1-na4
 #R	娜	na4
@@ -516,11 +563,14 @@
 #R	子	zi5
 #R	子君	zi3-jun1
 #R	字号	zi4-hao4
+#R	孙占元	sun1-zhan4-yuan2
 #R	孙子	sun1-zi5
 #R	孝儿	xiao4-er2
 #R	学务大人	xue2-wu4-da4-ren5
 #R	宁	ning2
-#R	宁杭	ning2-hang2
+#R	宁启铁路	ning2-qi3-tie3-lu4
+#R	宁杭高铁	ning2-hang2-gao1-tie3
+#R	宁波效实中学	ning2-bo1-xiao4-shi2-zhong1-xue2
 #R	安公子	an1-gong1-zi3
 #R	宋长荣	song4-chang2-rong2
 #R	宕	dang4
@@ -539,7 +589,9 @@
 #R	小吕宋	xiao2-lü3-song4
 #R	小品文	xiao3-pin3-wen2
 #R	小子	xiao3-zi5
+#R	小山智丽	xiao3-shan1-zhi4-li4
 #R	小手	xiao3-shou3
+#R	小王桂卿	xiao3-wang2-gui4-qing1
 #R	小福子	xiao3-fu2-zi5
 #R	小豆子	xiao3-dou4-zi5
 #R	少	shao3
@@ -556,11 +608,11 @@
 #R	屏	ping2
 #R	展演	zhan3-yan3
 #R	属	shu3
+#R	屠大山	tu2-da4-shan1
 #R	屯	tun2
 #R	山中	shan1-zhong1
 #R	岂可	qi3-ke3
 #R	岭	ling3
-#R	峒	dong4
 #R	峙	zhi4
 #R	嵌	qian4
 #R	工场	gong1-chang3
@@ -578,6 +630,8 @@
 #R	平正	ping2-zheng4
 #R	并	bing4
 #R	广	guang3
+#R	广州南站	guang3-zhou1-nan2-zhan4
+#R	广昆通道	guang3-kun1-tong1-dao4
 #R	庄上	zhuang1-shang4
 #R	庄子	zhuang1-zi5
 #R	床上	chuang2-shang4
@@ -593,6 +647,7 @@
 #R	弗兰齐斯卡	fu2-lan2-qi2-si1-ka3
 #R	弗林克令	fu2-lin2-ke4-ling4
 #R	张大	zhang1-da4
+#R	张火丁	zhang1-huo3-ding1
 #R	张长林	zhang1-chang2-lin2
 #R	张麻子	zhang1-ma2-zi5
 #R	弥儿	mi2-er2
@@ -600,6 +655,7 @@
 #R	弹子	dan4-zi5
 #R	强	qiang2
 #R	强制性	qiang2-zhi4-xing4
+#R	强脑科技	qiang2-nao3-ke1-ji4
 #R	当	dang1
 #R	当事	dang1-shi4
 #R	当天	dang4-tian1
@@ -621,6 +677,7 @@
 #R	微露	wei1-lu4
 #R	德拉尔	de2-la1-er3
 #R	心上	xin1-shang4
+#R	必比登	bi4-bi3-deng1
 #R	忒	tui1
 #R	怀中	huai2-zhong1
 #R	怎怎么么	zen3-zen3-me5-me5
@@ -639,6 +696,7 @@
 #R	惟柏	wei2-bai3
 #R	想想	xiang3-xiang3
 #R	憎恶	zeng1-wu4
+#R	成绵乐客运专线	cheng2-mian2-le4-ke4-yun4-zhuan1-xian4
 #R	成语成语	cheng2-yu3-cheng2-yu3
 #R	或者说	huo4-zhe3-shuo1
 #R	戴蒙	dai4-meng2
@@ -667,6 +725,7 @@
 #R	抡	lun1
 #R	抢	qiang3
 #R	披上	pi1-shang4
+#R	抱朴道院	bao4-pu3-dao4-yuan4
 #R	抵死	di3-si3
 #R	抹	mo3
 #R	担	dan1
@@ -707,6 +766,7 @@
 #R	支吾	zhi1-wu2
 #R	攻击性	gong1-ji1-xing4
 #R	故事	gu4-shi5
+#R	效实中学	xiao4-shi2-zhong1-xue2
 #R	教	jiao4
 #R	教会	jiao4-hui4
 #R	教委	jiao4-wei3
@@ -719,9 +779,12 @@
 #R	文综	wen2-zong1
 #R	斗	dou4
 #R	斯塔布菲尔德	si1-ta3-bu4-fei1-er3-de2
+#R	斯库拉	si1-ku4-la1
 #R	斯托贾科维奇	si1-tuo1-jia3-ke1-wei2-qi2
 #R	方可	fang1-ke3
 #R	於	yu2
+#R	施华洛世奇	shi1-hua2-luo4-shi4-qi2
+#R	施拉格	shi1-la1-ge2
 #R	旋	xuan2
 #R	旋子	xuan2-zi5
 #R	无	wu2
@@ -729,7 +792,11 @@
 #R	无忧	wu2-you1
 #R	无知无识	wu2-zhi1-wu2-shi2
 #R	无论是	wu2-lun4-shi4
+#R	日华恳	ri4-hua2-ken3
+#R	日比谷	ri4-bi3-gu3
 #R	早早	zao3-zao3
+#R	早田希娜	zao3-tian2-xi1-na4
+#R	昆明南站	kun1-ming2-nan2-zhan4
 #R	明朝	ming2-chao2
 #R	是因为	shi4-yin1-wei4
 #R	显浅	xian3-qian3
@@ -752,6 +819,7 @@
 #R	朗朗	lang3-lang3
 #R	望望	wang4-wang4
 #R	朝	chao2
+#R	朝邑县	chao2-yi4-xian4
 #R	朝阳	chao2-yang2
 #R	本主儿	ben3-zhu3-er5
 #R	本事	ben3-shi5
@@ -759,15 +827,29 @@
 #R	朴	pu3
 #R	机上	ji1-shang4
 #R	杆	gan1
-#R	杈	cha1
-#R	杓	biao1
+#R	杈	cha4
+#R	李万春	li3-wan4-chun1
+#R	李世济	li3-shi4-ji4
+#R	李和曾	li3-he2-zeng1
+#R	李少春	li3-shao4-chun1
+#R	李泌	li3-mi4
+#R	李相秀	li3-xiang1-xiu4
+#R	李蔷华	li3-qiang2-hua2
+#R	李麦子	li3-mai4-zi5
+#R	杓	shao2
 #R	杠	gang4
 #R	杨万楼	yang2-wan4-lou2
-#R	杭长	hang2-chang2
+#R	杨英风美术馆	yang2-ying1-feng1-mei3-shu4-guan3
+#R	杭州文广集团	hang2-zhou1-wen2-guang3-ji2-tuan2
+#R	杭州来福士中心	hang2-zhou1-lai2-fu2-shi4-zhong1-xin1
+#R	杭长客运专线	hang2-chang2-ke4-yun4-zhuan1-xian4
 #R	杯茗	bei1-ming2
+#R	松崎万长	song1-qi2-wan4-chang2
 #R	板	ban3
 #R	板起脸	ban3-qi3-lian3
 #R	林中	lin2-zhong1
+#R	林丹汗	lin2-dan1-han2
+#R	林森南路	lin2-sen1-nan2-lu4
 #R	林玪南	lin2-jian1-nan2
 #R	架上	jia4-shang4
 #R	柏	bai3
@@ -780,6 +862,8 @@
 #R	栗凿	li4-zao2
 #R	校	xiao4
 #R	校友居	xiao4-you3-ju1
+#R	株洲南车电机	zhu1-zhou1-nan2-che1-dian4-ji1
+#R	根与芽	gen1-yu3-ya2
 #R	格	ge2
 #R	格伦	ge2-lun2
 #R	格列卫	ge2-lie4-wei4
@@ -808,7 +892,8 @@
 #R	正说	zheng4-shuo1
 #R	此举	ci3-ju3
 #R	武场	wu3-chang3
-#R	武广	wu3-guang3
+#R	武广客运专线	wu3-guang3-ke4-yun4-zhuan1-xian4
+#R	武广高铁	wu3-guang3-gao1-tie3
 #R	武智冲	wu3-zhi4-chong1
 #R	歪	wai1
 #R	死火	si3-huo3
@@ -825,25 +910,30 @@
 #R	水洗	shui3-xi3
 #R	水火	shui3-huo3
 #R	汗	han4
+#R	江干区	jiang1-gan1-qu1
 #R	汤	tang1
 #R	汤姆贾诺维奇	tang1-mu3-jia3-nuo4-wei2-qi2
+#R	汪正华	wang1-zheng4-hua2
 #R	沙	sha1
 #R	沙奎尔	sha1-kui2-er3
 #R	没	mei2
 #R	没有没有	mei2-you3-mei2-you3
 #R	沤	ou4
+#R	沪昆通道	hu4-kun1-tong1-dao4
+#R	河坊街	he2-fang1-jie1
 #R	泊	po1
-#R	泌	mi4
 #R	泛绿阵营	fan4-lü4-zhen4-ying2
 #R	泡	pao4
 #R	泥	ni2
 #R	洗	xi3
 #R	洞	dong4
+#R	洪都百炼生	hong2-du1-bai3-lian4-sheng1
 #R	活路	huo2-lu4
 #R	派	pai4
 #R	浅	qian3
 #R	济	ji4
 #R	浑朴	hun2-pu3
+#R	浙江广厦	zhe4-jiang1-guang3-sha4
 #R	涌	yong3
 #R	涡	wo1
 #R	涨	zhang3
@@ -862,6 +952,7 @@
 #R	澄	cheng2
 #R	澄清	cheng2-qing1
 #R	灰褐色	hui1-he4-se4
+#R	灵隐寺	ling2-yin3-si4
 #R	炮	pao4
 #R	炸	zha4
 #R	点点头	dian3-dian3-tou2
@@ -872,33 +963,46 @@
 #R	煞	sha1
 #R	煞气	sha1-qi4
 #R	照应	zhao4-ying5
+#R	熊丙奇	xiong2-bing3-qi2
 #R	熟肉	shu2-rou4
 #R	熨	yun4
 #R	熬	ao2
 #R	燎	liao2
 #R	燕	yan4
+#R	燕昭王	yan1-zhao1-wang2
 #R	爪	zhao3
 #R	片	pian4
 #R	片子	pian1-zi5
 #R	牟	mou2
-#R	牯岭	gu2-ling3
+#R	牯岭街小剧场	gu2-ling3-jie1-xiao3-ju4-chang3
 #R	狮子	shi1-zi5
 #R	狱室	yu4-shi4
 #R	猫	mao1
+#R	猫空缆车	mao1-kong1-lan3-che1
+#R	猫途鹰	mao1-tu2-ying1
 #R	献给	xian4-gei3
 #R	率	lü4
 #R	王	wang2
 #R	王乡绅	wang2-xiang1-shen1
 #R	王传君	wang2-chuan2-jun1
 #R	王佳佳	wang2-jia1-jia1
+#R	王冕	wang2-mian3
 #R	王卫国	wang2-wei4-guo2
+#R	王吟秋	wang2-yin2-qiu1
 #R	王国强	wang2-guo2-qiang2
 #R	王孝廉	wang2-xiao4-lian2
 #R	王小玉	wang2-xiao3-yu4
+#R	王少楼	wang2-shao4-lou2
 #R	王德	wang2-de2
 #R	王德威	wang2-de2-wei1
+#R	王文义	wang2-wen2-yi4
 #R	王旭烽	wang2-xu4-feng1
+#R	王晋卿	wang2-jin4-qing1
+#R	王渔洋	wang2-yu2-yang2
+#R	王珮瑜	wang2-pei4-yu2
+#R	王瑶卿	wang2-yao2-qing1
 #R	王砚辉	wang2-yan4-hui1
+#R	王磊	wang2-lei3
 #R	王老先生	wang2-lao3-xian1-sheng1
 #R	王胡	wang2-hu2
 #R	王蓉蓉	wang2-rong2-rong2
@@ -907,11 +1011,12 @@
 #R	理想家	li3-xiang3-jia1
 #R	理综	li3-zong1
 #R	琢磨	zuo2-mo5
-#R	甘比诺	gan1-bi3-nuo4
+#R	甘比诺家族	gan1-bi3-nuo4-jia1-zu2
 #R	甚	shen4
 #R	生意	sheng1-yi5
 #R	生活质量	sheng1-huo2-zhi4-liang4
-#R	甬广	yong3-guang3
+#R	甬上屠氏	yong3-shang4-tu2-shi4
+#R	甬广高铁	yong3-guang3-gao1-tie3
 #R	田径场	tian2-jing4-chang3
 #R	町	ting3
 #R	畜	chu4
@@ -924,6 +1029,7 @@
 #R	的的确确	de5-de5-que4-que4
 #R	皮奇福德	pi2-qi2-fu2-de2
 #R	监	jian1
+#R	盒马鲜生	he2-ma3-xian1-sheng1
 #R	盘缠	pan2-chan5
 #R	盛	sheng4
 #R	盛光祖	sheng4-guang1-zu3
@@ -945,6 +1051,8 @@
 #R	短短	duan3-duan3
 #R	石	shi2
 #R	石太	shi2-tai4
+#R	石太客运专线	shi2-tai4-ke4-yun4-zhuan1-xian4
+#R	石川佳纯	shi2-chuan1-jia1-chun2
 #R	砌	qi4
 #R	研究会	yan2-jiu1-hui4
 #R	碌	lu4
@@ -961,6 +1069,7 @@
 #R	种	zhong3
 #R	科波菲尔	ke1-bo1-fei1-er3
 #R	秤	cheng4
+#R	秦昭王	qin2-zhao1-wang2
 #R	称	cheng1
 #R	稍	shao1
 #R	稳稳当当	wen3-wen3-dang1-dang1
@@ -1011,6 +1120,7 @@
 #R	累累	lei2-lei2
 #R	红	hong2
 #R	红楼	hong2-lou2
+#R	红楼剧场	hong2-lou2-ju4-chang3
 #R	红绸	hong2-chou2
 #R	纤	xian1
 #R	纤维板	xian1-wei2-ban3
@@ -1018,6 +1128,7 @@
 #R	约	yue1
 #R	约尔根	yue1-er3-gen1
 #R	纸笔	zhi3-bi3
+#R	纽约尼克斯队	niu3-yue1-ni2-ke4-si1-dui4
 #R	经济社会	jing1-ji4-she4-hui4
 #R	结	jie2
 #R	结为	jie2-wei2
@@ -1029,6 +1140,7 @@
 #R	络	luo4
 #R	绝户	jue2-hu4
 #R	绝无	jue2-wu2
+#R	绥满通道	sui2-man3-tong1-dao4
 #R	维克托罗维奇	wei2-ke4-tuo1-luo2-wei2-qi2
 #R	维塔勒	wei2-ta3-le4
 #R	绷	beng1
@@ -1061,6 +1173,9 @@
 #R	背上	bei4-shang4
 #R	背着	bei1-zhe5
 #R	胖	pang4
+#R	胡适之	hu2-shi4-zhi1
+#R	胶济客专线	jiao1-ji4-ke4-zhuan1-xian4
+#R	胶济客运专线	jiao1-ji4-ke4-yun4-zhuan1-xian4
 #R	脉	mai4
 #R	脊梁	ji3-liang2
 #R	脏	zang1
@@ -1079,15 +1194,16 @@
 #R	舍下	she4-xia4
 #R	舍我其谁	she3-wo3-qi2-shei2
 #R	般	ban1
-#R	艮	gen3
+#R	艮	gen4
 #R	色	se4
 #R	艺术类	yi4-shu4-lei4
 #R	节	jie2
+#R	节振国	jie2-zhen4-guo2
 #R	芭堤雅	ba1-di1-ya3
 #R	芯	xin1
 #R	花儿	hua1-r5
 #R	苔	tai2
-#R	苕	shao2
+#R	苕	tiao2
 #R	若	ruo4
 #R	茜	qian4
 #R	草底	cao3-di3
@@ -1100,6 +1216,7 @@
 #R	菲	fei1
 #R	营生	ying2-sheng5
 #R	萧士比亚	xiao1-shi4-bi3-ya4
+#R	萧长华	xiao1-chang2-hua2
 #R	萨可满	sa4-ke3-man3
 #R	萨姆	sa4-mu3
 #R	萨姆索诺夫	sa4-mu3-suo3-nuo4-fu1
@@ -1114,11 +1231,13 @@
 #R	蓬蓬	peng2-peng2
 #R	蔓	man4
 #R	薄	bao2
+#R	薄太后陵	bo2-tai4-hou4-ling2
 #R	薄皮舟	bao2-pi2-zhou1
-#R	藉	ji2
+#R	藉	jie4
 #R	藏	cang2
 #R	藏有	cang2-you3
 #R	藕粉	ou3-fen3
+#R	虎山长城	hu3-shan1-chang2-cheng2
 #R	虾	xia1
 #R	蛇	she2
 #R	蜇	zhe1
@@ -1132,6 +1251,7 @@
 #R	衣	yi1
 #R	表姊	biao3-zi3
 #R	表演艺术	biao3-yan3-yi4-shu4
+#R	裘盛戎	qiu2-sheng4-rong2
 #R	裳	chang2
 #R	褊窄	bian3-zhai3
 #R	褪	tui4
@@ -1147,6 +1267,7 @@
 #R	觉	jue2
 #R	角	jiao3
 #R	解	jie3
+#R	言少朋	yan2-shao4-peng2
 #R	言语	yan2-yu3
 #R	訾	zi3
 #R	计委	ji4-wei3
@@ -1155,6 +1276,7 @@
 #R	讲法	jiang3-fa3
 #R	讲稿	jiang3-gao3
 #R	论	lun4
+#R	诂经精舍	gu3-jing1-jing1-she4
 #R	识	shi2
 #R	试试	shi4-shi4
 #R	语	yu3
@@ -1164,6 +1286,7 @@
 #R	说道	shuo1-dao4
 #R	说错	shuo1-cuo4
 #R	请赏	qing3-shang3
+#R	诺华公司	nuo4-hua2-gong1-si1
 #R	诺孜贝儿	nuo4-zi1-bei4-er2
 #R	读	du2
 #R	调	diao4
@@ -1172,12 +1295,17 @@
 #R	豁	huo1
 #R	貉	he2
 #R	贝勒	bei4-le4
+#R	贝莱赫斯特中学	bei4-lai2-he4-si1-te4-zhong1-xue2
 #R	贵广	gui4-guang3
+#R	贵广客运专线	gui4-guang3-ke4-yun4-zhuan1-xian4
 #R	赌友	du3-you3
 #R	赏玩	shang3-wan2
 #R	赚	zhuan4
 #R	赫伊津哈	he4-yi1-jin1-ha1
+#R	赵宣子	zhao4-xuan1-zi3
+#R	赵武灵王	zhao4-wu3-ling2-wang2
 #R	赵燕侠	zhao4-yan4-xia2
+#R	赵肃侯	zhao4-su4-hou2
 #R	赶场	gan3-chang3
 #R	起来	qi3-lai5
 #R	趟	tang4
@@ -1227,6 +1355,8 @@
 #R	遂	sui4
 #R	道教协会	dao4-jiao4-xie2-hui4
 #R	避讳	bi4-hui4
+#R	郑万高速铁路	zheng4-wan4-gao1-su4-tie3-lu4
+#R	郭虞裳	guo1-yu2-chang2
 #R	都	dou1
 #R	都统	du1-tong3
 #R	酖	zhen4
@@ -1240,7 +1370,9 @@
 #R	量	liang4
 #R	金华街	jin1-hua2-jie1
 #R	金子	jin1-zi5
+#R	金少山	jin1-shao4-shan1
 #R	钉	ding1
+#R	钱玄同	qian2-xuan2-tong2
 #R	钻	zuan1
 #R	钻入	zuan1-ru4
 #R	钿	dian4
@@ -1254,8 +1386,10 @@
 #R	长堤	chang2-di1
 #R	长嫂	zhang3-sao3
 #R	长山岛	chang2-shan1-dao3
+#R	长株潭城市群	chang2-zhu1-tan2-cheng2-shi4-qun2
 #R	长毛	chang2-mao2
 #R	长牙	zhang3-ya2
+#R	长谷川信彦	chang2-gu3-chuan1-xin4-yan4
 #R	门上	men2-shang4
 #R	门边	men2-bian1
 #R	间	jian1
@@ -1270,12 +1404,18 @@
 #R	阿基姆	a1-ji1-mu3
 #R	阿妮塔	a1-ni1-ta3
 #R	阿尔文夫人	a1-er3-wen2-fu1-ren2
+#R	阿尔芒	a1-er3-mang2
+#R	阿斯塔那古墓群	a1-si1-ta3-na4-gu3-mu4-qun2
 #R	阿毛	a1-mao2
+#R	阿泰斯特	a1-tai4-si1-te4
 #R	阿玛雷	a1-ma3-lei2
 #R	阿皮尤	a1-pi2-you2
+#R	阿耆尼	a1-qi2-ni2
 #R	阿随	a1-sui2
 #R	陆	lu4
 #R	陆东福	lu4-dong1-fu2
+#R	陆放翁	lu4-fang4-weng1
+#R	陈伯严	chen2-bo2-yan2
 #R	降	jiang4
 #R	降到	jiang4-dao4
 #R	院中	yuan4-zhong1
@@ -1292,6 +1432,7 @@
 #R	露	lu4
 #R	露沙	lu4-sha1
 #R	青其儿	qing1-qi2-r5
+#R	青银通道	qing1-yin2-tong1-dao4
 #R	静儿	jing4-er2
 #R	静静地	jing4-jing4-de5
 #R	靡	mi2
@@ -1299,6 +1440,7 @@
 #R	韩子昂	han2-zi3-ang2
 #R	页	ye4
 #R	顷刻之间	qing3-ke4-zhi1-jian1
+#R	顾正秋	gu4-zheng4-qiu1
 #R	颈	jing3
 #R	题为	ti2-wei4
 #R	食	shi2
@@ -1306,7 +1448,9 @@
 #R	饮水	yin3-shui3
 #R	馆长	guan3-zhang3
 #R	首个	shou3-ge4
+#R	马卡洛夫	ma3-ka3-luo4-fu1
 #R	马可	ma2-ke3
+#R	马塞洛	ma3-sai1-luo4
 #R	驮	tuo2
 #R	驯熟	xun4-shu2
 #R	骑	qi2
@@ -1324,6 +1468,7 @@
 #R	鹤发童颜	he4-fa3-tong2-yan2
 #R	麦克格雷迪	mai4-ke4-ge2-lei2-di2
 #R	黄沙	huang2-sha1
+#R	默啜可汗	mo4-chuo4-ke4-han2
 #R	默默地	mo4-mo4-de5
 #R	黛比	dai4-bi3
 #R	鼓乐	gu3-yue4
@@ -1578,7 +1723,7 @@
 0.9	fa853b89	131	W79veX71232ue_srub3tVN	
 0.10	4db5b6eb	489	-a7b_w76h7v_33Z_01h33a7c_371-Nt99-2v_r7rbs2v_sa137kXva9ttu23dfY93turu42_1eY9td36aD	
 0.11	7d7bb2a9	122	u9_utn7rf_uue32t7e_-B	
-0.12	2b299204	115	jXfta3f9d3dvtrqd363	72:zhuan4-dao4
+0.12	2b299204	115	jXfta3f9d3dPtrqd363	71:zhuan4-dao4
 0.13	123adb7d	8	qB	
 1.0	062956da	8	sB	
 1.1	7a3cec2f	93	aVv7W72-G9-6btdD	
@@ -2020,7 +2165,7 @@
 3.28	b5ab696a	7	1	
 3.29	3b4cf977	9	1D	
 3.30	12b7df71	27	fnn9C	
-3.31	451aa7c2	63	-vrvu92v-XD	
+3.31	451aa7c2	63	-vrvu92j-XD	
 3.32	6f895003	10	9H	
 3.33	7f7fcb12	9	9D	
 3.34	7d7ffb04	139	2rbX1_X3e7xc3abj3-_3662	
@@ -2097,7 +2242,7 @@
 5.7	f40c789b	38	t111ebB	
 5.8	e191ad7f	190	9e36736-d7at7Ouv3rf_3t2ar3ebbXbF	
 5.9	c431abe3	178	66tt_ab32b7_973rt7133untt7tvrG	
-5.10	0510dea7	201	0vf318f92ar_9t71ff_v1m999_1q9-x9WD	
+5.10	0510dea7	201	0vf318f92ar_9t71ff_v1m999n1q9-x9WD	
 5.11	be2a8c4e	138	v9yt76-vbvd_B3dV3L23ubV	
 5.12	e7e3bc45	112	_X9-77_3fr_v93av_XH	
 5.13	f91085d4	13	d_	
@@ -2358,7 +2503,7 @@
 3.31	79c6c4a5	155	v22r9t9uV3bVvtrq_-qX9v9ueN	
 3.32	e0fcb04a	242	qZvuf1v76X76v719__Pf_rv3Xlvbe1d3f59_v371B	
 3.33	70b6b256	347	qpV293Ydt6t127V_231u1W329q1e9YVe772-e_uf3-3Xd9-V7_6t32_aWL	
-3.34	afb8bfbe	1037	6b3rrTtb912f91bv2v32-2uX_d_92r-9Wrrt6_2r_Vtu_6KXrO3u9ar47r-bt3elvb9291d7Wr9t269-9ut333a19qf939bb_Vv_7dtq6tufrTftujr1331YX7vW9477LTtf9__b9Hb1za3qt29qu16du1rd7t9_711t6-ff_Wd1O	253:fa4,724:ying4
+3.34	afb8bfbe	1037	6b3rrTtb912f91bv2v32-2uX_d_92r-9Wrrt6_2r_Vtu_6KXrO3u9ar47r-bt3elvb9291d7Wr9t269-9ut333a19qf939bb_Vv_7dtq6tufrTftujr1331YX7vW9477LTtf9__b9Hb1za3qt29qu16du1rd7t9_711t6-ff_Wd1O	253:fa4,295:xiang4,724:ying4
 3.35	c577e0bd	198	q9e_Ufvet7vN_713vZv2__9-_t7Z9tatd	94:ai1
 3.36	05e09498	58	cbf31Wb33G	
 3.37	b6b96fad	471	utuxeXbr7ar3-eb_0u19ev7_rfv2etfv_H1v9_33Zt6vfd7brd9Wbr26v5et_-f7X7--cz1r9_616rC	
@@ -2380,7 +2525,7 @@
 3.53	354072b2	143	y3W9-va996271X_tWfvvO3_L	4:wei4
 3.54	729bdefb	6	W	
 3.55	a2b3fa95	418	er679tf99-ufr2Xvb76_e_91f52__2z5599fvadb_d3X_9Xf1p-_6d769_626b3b7_-3-H	28:chai1,289:wei4
-3.56	4d5c00e9	553	b_-2r--Lr17abdf9f_u3b97r17ur-_Xv3pd9rb9r7-7W_jVftr_u1v13u16_bt0eXXd3bdvcedvrbfv_9b1r_461v977	
+3.56	4d5c00e9	553	b_-2r--Lr17abdf9f_u3bN7r17ur-_Xv3pd9rbdq7-7WPjVftrzu1v13u16fat0eXXd3bdvcedvrbfv_9b1r_461v977	
 3.57	c7cceab1	6	W	
 3.58	3af71595	85	XX_ub72f9_z_3_	
 3.59	38344d88	179	ubdv7t92td7d_uve7--ef7r96fX37O	
@@ -2398,7 +2543,7 @@
 3.71	4f954018	883	W7t2X1e396-71tf33t37-3u37673r19eV2732uu_6Z3ddr-f_d73tuu7W__99vb7e_Tevvy-_93u19_vfv33vXf_a3-qu8z-br3e7r393v69212X1m7q3uftrX9_7-_v6Vbt41v7v6ufv_fd_16	656:wei4
 3.72	856bb163	78	eav7Vt39-atbZ	
 3.73	cfac35ff	133	qv3X5-vc_796_bv2_et115	
-3.74	3db52c2b	68	u1verWb_pVvB	
+3.74	3db52c2b	68	u1vSrWb_pVvB	
 3.75	446758d5	133	erV3d5Xt1b_at7ftttXv-3	
 3.76	ef343743	3	C	
 3.77	33c4358d	72	u2f92Wb1__2b	
@@ -2439,7 +2584,7 @@
 0.12	b8eb12e0	124	_6i36rr6VTd9vXvV92rXH	
 0.13	c6a21aff	141	u_b_67-ddte967t7r9v3637C	
 0.14	3426a758	236	a__3Xdv3ds673tr3-7uv373-evu_u29t77XVzfXB	
-0.15	4fe4b0bd	217	2Xr1y68_9_ef_ye7_-8--v1tt-7a3-e9uW7r	71:di4
+0.15	4fe4b0bd	217	2Xr1y68_9_ef_ye7_-8--v1tt-7a3-e9uW7r	71:di4,93:shuai4
 0.16	987cae3d	225	u3frt3qX3_v__91_9vdfr7792_7_-u-f3__2_D	
 0.17	bbc7660c	71	-ftt-r72-6eL	
 0.18	084eec07	60	67b7_f2v7d	
@@ -2867,7 +3012,7 @@
 7.15	d5570240	63	W77b7av3d9D	
 7.16	386a9166	71	urf_vtf97-dL	20:dou3
 7.17	a13d3ae2	53	2XL3ft11K	
-7.18	1206a99b	75	6isUWf7qcb7bD	
+7.18	1206a99b	75	6isUWZ7qcb7bD	
 7.19	ec140322	85	2b77tL73N_e716	
 7.20	b022a5db	74	ax22_6rcdnvvB	41:na5
 7.21	57ef5f48	61	07unz129N3	
@@ -2886,7 +3031,7 @@
 7.34	92dda861	144	9-3tvtqt2d__96znf_W7t__f	72:gan4,73:gan4
 7.35	4986bd3d	38	et_2itB	
 7.36	b88bd8b8	32	171q-B	
-7.37	a43c7ddc	158	62938fuz_-X9rt92vrvr-__dbrB	
+7.37	a43c7ddc	158	62938fuz5-X9rt92vrvrO_ndbrB	
 7.38	6cb500a0	68	q2X7r9-2rafB	
 8.0	d8611848	1		
 8.1	5012834e	39	2-X7arC	
@@ -2964,7 +3109,7 @@
 10.24	6c2b154b	4	H	
 10.25	4e32dd01	28	b__-G	
 10.26	03f79fca	31	_t39_	
-10.27	824842d7	119	2pd6-7_t2vq_Z22X7-rP	
+10.27	824842d7	119	2pd6-7fs2vq_Z22X7-rP	
 10.28	59dcf843	33	f73uXD	
 10.29	b6412e84	71	9b_ee3et3L-N	
 10.30	f6238bea	219	7v_f9Xbv_fte93_ra7Xf_dn3_sfv69X8f779C	27:zhang3,103:zhang3
@@ -4087,7 +4232,7 @@
 0.7	0c616a24	1		
 0.8	63064ab5	528	V_ev7v0-t7m_0VT16_bvtf7r2dd1_2f7rvd_b3er3783a399-__u1b93v-vtv1dt9b7312_273v3_7__ut_W39Vb	
 0.9	5e53c03a	1		
-0.10	a3cd71d8	710	u19t96uddvab-H42uWtetr9e1t7v_ur629eXbdb3bNOb7_d3rr32vrsvtV3aZ5q227v1rv9Wtt1rVtv6a3arfXf_9_-9-afr3mvttX_ere3u223s723_tuB	311:dei3,372:de2
+0.10	a3cd71d8	710	u19t96uddvabmH42uWtetr9e1t7v_ur629eXbdb3bNOb7_d3rr32vrsvtV3aZ5q227v1rv9Wtt1rVtv6a3arfXf_9_-9-afr3mvttX_ere3u223s723_tuB	309:dei3,370:de2
 0.11	9160a883	1		
 0.12	42aac33c	172	qtvt1q1u_u21tv_2-W99t2_vVd32F	
 0.13	0207b7ea	298	vf1Wb9Wd__vf_2e_27t2dtt2ub12aVb33ut22bbX7rb-V1uuvF	3:zhi1,207:zhao2
@@ -4146,7 +4291,7 @@
 2.4	1a338f07	422	Wv273e_-2dt122W972u9v7__t32267_5nf3W_bbf_-dv-7arbrb9__ds3_2eb_v92tb3-dB	234:zhang3
 3.0	25b03772	11	-G	
 3.1	05615f1f	1		
-3.2	88158ea9	847	bbt179t92_tb9_edvd38iV7dr-r-22bgBG8Dg_79eZ3_Xo7_7uuDghB41-aHYMGwr6DGgnfnfRvXv5_337-erhBO49t_r1f7rb323_fbbfv3e_1ts329bz32Wfrsu76u6ufbtbvat7urv	24:wei4,112:wei4,120:wei4
+3.2	88158ea9	847	bbt179t92_tb9_edvd38iV7dr-r-22bgBG8Dg_79eZ3_Xo7_7uuDghB41-aHYMGwr6DGgnfnfRvXv5_337-erhBO49t_r1f7rb323_fbbfv3Sz1ts329bz32Wfrsu76u6ufbtbvat7urv	24:wei4,112:wei4,120:wei4
 3.3	89609beb	1		
 3.4	f72daf5f	226	db3rp39_t3-XtXt2f3m96V7dt53qdrbb-advtF	33:dei3,50:dei3,73:dei3
 3.5	1e7d2ec2	192	9bzvb9_f_v9dX7--e32nr67_t1vtu-3e	14:di4
@@ -4175,7 +4320,7 @@
 3.28	f6aa5980	302	323t32z_t6_tvX_q9STTtxlb7_t32tt_3_ev1ut_Tb__39vv0bB	139:di4,155:wei4,164:wei4
 3.29	a6e8d092	727	9bX322-ddXf_739322-ef_2c7_vdvt6_2da7_tq9-211qWb3d_f3t32b3vt__9_f_tvt32_23efb2b1_f_sWbut2frX_bb9vv_s93_2Wbtl-b_22-u7fzO97q	
 3.30	2ec9a32b	405	-3229lt1zeXbbb97V2f7_v-b_f72tP_t7vX92ffXbf73u2uf3v_9___8v-_f9f___7bD	79:wei4,239:wei4,271:juan4,282:di4
-3.31	2f42e404	452	_u3__s3_-3t-79uX727drq-3aV3tdd7Wt1-2t7vt_db1_a_-fvr3u-9W393uvdbvtvXbV7f_-t-B	
+3.31	2f42e404	452	8u3__s3_-3t-79uX727drq-3aV3tdd7Wt1-2t7vt_db1_a_-fvr3u-9W393uvdbvtvXbV7f_-t-B	
 3.32	8392994f	66	_tbX3b3W_5V	
 4.0	508d0792	6	e	
 4.1	d0beee74	199	3ft32_1u3V_f3_26123-u9ttfffqdv_3u	
@@ -4234,21 +4379,21 @@
 0.15	deaba8e7	115	-v9_7ve1bvt9_v4___r	
 0.16	afcdaa1a	7	X	
 0.17	5ba0bb35	514	e772222at_ftv3v-0_ffyf_-_vz31fVfr3_91339___73fr99_6__urvfv_br9qd__z59-___r71t36v_9fffH	115:zi3,385:zi3
-0.18	f79f9969	206	rX76bvt6qv83_719f9__rWte791qbu92_7B	128:wei4
+0.18	f79f9969	206	rX76bvt6qv83_719f9__rWte791qbu92f6B	128:wei4
 0.19	b21bc341	48	__-93_3b	
 0.20	3a49f94c	98	XTr9a_v9-_f37f_qB	
-0.21	2ef2094f	171	3-m1d19-f_f71vj3z3_r912df7rfD	
+0.21	2ef2094f	171	3-m1d1dMc_f71vj3z3_r912df7rfD	
 0.22	2d2b92d9	7	X	
 0.23	bc544c22	63	rv2f_1999_C	
 0.24	6996dfdb	9	_B	
-0.25	fa3ff22f	292	_X79_vXv7uv__7n39-q3vn_7ffv3_7_x9P_g_B-_2_-3_VtHG	75:wei4
+0.25	fa3ff22f	292	_X79_vXv7uv__7n39-q3vn_7ffv3_7_x9P_gnB-_2_-3_VtHG	75:wei4
 0.26	d9fab331	8	vA	
 0.27	7e080e32	172	bV7d16fv3_9e__7__v__b_u_Vsv7H	
 0.28	c935a669	62	679e_7f_W7B	28:me5
 0.29	9f435efe	140	7x3t33f__7f_vfftf_v3n_3B	59:me5
 0.30	f9d6734d	99	dd8u_1Wv-7v271ruD	
 0.31	49371ba7	5	H	
-0.32	ad4aac82	40	7-f37_H	
+0.32	ad4aac82	40	7-f37zH	
 0.33	334411a3	264	9__ev-3-2v3d_-dddt2__jH__94_4x79-__93t__dXxe	
 0.34	4994b9ce	28	3___F	
 0.35	8b4caf84	23	337P	
@@ -4260,14 +4405,14 @@
 0.41	b2944d65	28	ev7vF	
 0.42	420bb9a6	200	3v-2319ef_f9Xf_-_7__3-b17fdf__97_B	
 0.43	fb89b5d0	45	3fd_3_9D	1:zi3
-0.44	b78563d8	83	39_76____-_nfP	
+0.44	b78563d8	83	3d-76____-_nfP	
 0.45	d9778767	55	3____2Y_3	
-0.46	1b2f9a16	84	_f6__1n9v_tx-f	63:jin3
-0.47	763aed22	57	_9_e___7_D	
+0.46	1b2f9a16	84	_f6__Vm9v_tx-f	61:jin3
+0.47	763aed22	57	n9_e___L_D	
 0.48	f5a52dee	60	n9-_22-_3f	31:zi3
 0.49	47f20659	178	-7e3ef_793Ouv_9-77d7e_77r-zbfH	
 0.50	d36accda	62	377vP1vfdvB	
-0.51	b0b3afb9	38	3_72__B	
+0.51	b0b3afb9	38	3_72z_B	
 0.52	5c93be4e	64	____v_v6r7G	25:gan4,48:di4
 0.53	859ee972	17	3bN	
 0.54	09b5777c	48	_dVfv7_f	
@@ -4307,8 +4452,8 @@
 1.21	b05e3c1e	118	rt1d3e9b37_e9k2a3u6G	
 1.22	9e2c87a3	202	y7rv_eOPft7Z_vf9eu79_rN3Wrtv7uX75E	
 1.23	896b303c	110	bbee8suXv9zMz7tatWB	
-1.24	a1597f87	294	q72f7_XabP3Wdt26W3st9qtGvm7rqaTbb___O949fV_fs_vdb	
-1.25	606304b8	462	kWftVrafft73v79-dv927_32v_3732_6ul2fv3t2vz6Va96a1f8vd3t3_2uu-va956eu3yqe_a9_d	118:qu3
+1.24	a1597f87	294	q72f7_XabP3Wdt26W3st9qtGvm7rqaTbb___O949fV3fs3vdb	
+1.25	606304b8	462	kWftVrafft73v79-dv927_32v_3732_6ul2fv3t2vz6Va96a1f8ud3t3_2uuuva956eu3yqe_a97d	118:qu3
 1.26	af0dd8b9	49	-l29tttt	
 1.27	360caa42	1		
 1.28	8d91eebb	51	7l_2WLvtC	
@@ -4319,7 +4464,7 @@
 1.33	0d73f938	358	br-al7eVbrX32eX7PbDMG3Ygx4u2vO29er_3vWrdN3vrb7xG_d1rGnr7W7bG	
 1.34	8e65712d	58	2abr7tr93G	
 1.35	688c3f99	333	U7rbuqfmZb6ru6aZx-stTn2srtb73Vdse26WnpaTpuV9a3N8Pw_b7nbD	64:di4
-1.36	cca438f1	332	vX6v5qt2HruX3mrWvtb37P7939-7XLTfbfstt12ttb72WbXudfdzVXVB	
+1.36	cca438f1	332	vX6v5qt2HruX3mrWvtbX6P793l-7XLTfbfstt12ttb72WbXudfdzVXVB	
 1.37	b5de6132	49	q2tXbf7t	
 1.38	310ca263	1		
 1.39	d07323d7	51	bb7atWVrC	
@@ -4327,9 +4472,9 @@
 1.41	3841bc43	114	X___9_3232drWrX1stf	
 1.42	070d9544	77	fzmnHPXr33_5L	
 1.43	21979c96	214	vVd_qW_z11ub_9aft129vrubq7vN32u__m2E	
-1.44	0963f327	242	q86V5v2NXbelr192t633eXXzX-u_b7e-1qtdX1u-B	
+1.44	0963f327	242	q86V5v2NXbelr192t6X2eXXzX-u_b7e-1qtdX1u-B	
 1.45	c9884362	188	a_ut90vft92etdrtr7W3_6qPfbv6m_TB	
-1.46	27d4926c	951	3qq2q7eXv7-_qp299t__93r96zbv6vr9a99bv9x-7dc9_-2_dP-d73_f__6-__67Y7O2hr_-P_-xdfHX1v193f97v_v97V3XHWbsVr_G76frvfv79--_33u_8Kb_vef-7pW_ui379-Vvuu62vvd3d9Wbv7X9uGD	228:wei4
+1.46	27d4926c	951	3qq2q7eXv7-_qp299tZ-93r96zbv6vr9a99bv9x-7dc9_-2_dP-d73_f__6-__67Y7O2hr_-P_-xdfHX1v193f97v_v97V3XHWbsVr_G76frvfv79--_33u_8Kb_vef-7pW_ui379-Vvuu62vvd3d9Wbv7X9uGD	224:wei4
 1.47	1e0079a0	48	q2et2u9e	
 1.48	910dd223	12	af	
 1.49	81bc7b8b	250	fr7qWXftuts9vnp37q_1ebb__a2rvj3dr6e1Ktrp2F	
@@ -4397,7 +4542,7 @@
 2.44	0d16754a	257	rt1e_Zrt9e71_a6urddtX1Wvave92ux-d_tW7f33bvJ	
 2.45	45366f53	281	swavadgrxvwub-49-u_WbryareV34b7WVXdfj_dv9dv7m3M	
 2.46	3e1b78a2	44	kaMbGvVB	
-2.47	2872f99e	155	qeteruW7bVdb9X366b9_7_X_3I	
+2.47	2872f99e	155	qeteruW7bVdb9X366b9_7_Xz3I	
 2.48	d53cf678	43	j_UbcP2	
 2.49	330ca589	1		
 2.50	c6b8b422	282	9MVMr173vWt6XVqvp7rrd9XXdb7yrrdxtr2Vbv2G3_2tu6W	
@@ -4468,7 +4613,7 @@
 4.0	4f9b0a61	7	u	
 4.1	43e07076	42	2K2d_XR	
 4.2	c485bb78	187	q9f9f7u_72bva77f_vrt7vutv2278rr	63:zi3
-4.3	8875b885	336	6V827_aV_f9rtV36tqdvr3b11V3aVs7cbbP3v_1Xvr1_u_1-1X_Gvv3b	
+4.3	8875b885	336	6V827_aV_f9rtV36tqdvr3b11V3aVs7cbbP3v_1Xvr1_uf0-1X_Gvv3b	
 4.4	74f1f2fa	280	F79t99v_2_3_frvb9rb1-97u377Wfv1a932e17Wrya76rpH	133:dei3
 4.5	2bef6338	28	66r3H	
 4.6	c547de65	393	Xv1uue_-67fvqWt7fX3_fv__v7fXv__n-H_3ru3_f971rXvd_t-t_ra9__-3f9ud_D	107:huan2
@@ -4480,12 +4625,12 @@
 4.12	de5b6e6a	60	et92sm6t6X	
 4.13	7ced50e3	352	733733_N_aVXrb7rX741dx_37tv2tr9-bX99__Vr3ezt9vvVf3VXt7_339F	109:wei4,162:wei4,186:wei4,199:wei4
 4.14	cee5963e	35	3abb1K	
-4.15	197cc0b0	61	2999d3dvv_	
+4.15	197cc0b0	61	2999d3dvv8	
 4.16	5a58640c	115	__Z_fz_7--7____1vf7	44:ji4,58:wei4
 4.17	77a6345d	11	VP	
 4.18	2db0ba74	44	rvd9-v3B	
 4.19	ee98041b	21	_reD	
-4.20	ae3ccf09	153	63q1db_7L799vu_1___fya3aHD	
+4.20	ae3ccf09	153	63q1db_LL799vu_1___fya3aHD	
 4.21	560dd990	176	23tdfVc_aVr9bve37v3r72d33u92vB	
 4.22	29387b40	34	69367H	9:de2
 4.23	86200fc0	74	v___9r__e_v-B	
@@ -4517,7 +4662,7 @@
 4.49	0a55941c	65	X7_9e77v7vK	21:wei4
 4.50	d3a6de6a	108	X9mVdt2Xv2X__V33eV	
 4.51	4cf30923	76	XtX711_37_-XF	41:de2
-4.52	595a4a34	161	_v9a1dbvarWv6q9bv2W9q39-ruK	6:wei4,30:wei4,48:zi3
+4.52	595a4a34	161	_v9a1dbvarWv6q9bv2W9q39-ruK	6:wei4,13:zhuan4,30:wei4,48:zi3
 4.53	8b72a7a3	7	O	
 4.54	52e38e6d	44	H7ffsv_B	29:juan4
 @rulin-waishi
@@ -4591,12 +4736,12 @@
 1.1	c2b50214	127	b37udv1as-Xf72_--q-_-	40:di3
 1.2	10d034c2	139	-32X_v39bdX2tadvdrtbft6	
 1.3	0a473608	99	q179v2vW95vlr929D	
-1.4	be1cae37	232	qr_-Xbzf_373b1W73vv-v__XfX9____Xv9era7F	34:zhi1
+1.4	be1cae37	232	qr_-Xbzf_373b1W73vv-v_nXfX9____Xv1era7F	34:zhi1
 1.5	82e59545	257	__K3PWv379_u9-_erfv3rrzuFXrtla9t61a1evtr33K	
 1.6	cb5a6768	288	67V95-63v-_Xv-W3rf7326__9_1_3bf3f3q_-_72_2vrr9-c	139:geng1
 1.7	67fad37d	227	zFP_9f7a9bt7t3vu-19-r_--qe9-75rX_f3K-N	79:dao3
 1.8	17ec0019	282	m35377v3-frO_f_-dtdtXfP7uV5_726v7e79Y_6Pf_7urxZ	50:yi1-hang2,189:wei4,190:shen2
-1.9	2dd3c378	426	f_dd911vsqv37b9_7W32v197vy3Ovb_-6_Wt5_-9v__9_f73abv33avX1_LWt__u7v99-9X	
+1.9	2dd3c378	426	f_dd911vsqv37b9_7W32v197vy3Ovb_-6_Wt5_yNv__9_f73abv33avX1_LWt__u7v99-9X	
 1.10	12dd6b17	343	23_9su2eb7_36_Zn9f19qt7_3v7Wr_9_-9-_e9frVvrvv3tbMe16tO_73	248:wei4
 1.11	d77eeffb	196	zV169WL3_r_7v9fdeXe8udnvKbjL7399H	
 1.12	b2857a8f	239	zvrW9v93atu7-_fdb3392v33bt9OWbvttax3-_rP	
@@ -4628,7 +4773,7 @@
 1.3	414918b5	620	ft8-e_t9-vv134d_ufVvt6dfdff7f8rvu-t63a329u903X9rXf___u63_1rf_39q_b3--vvX1X_1f1V_9_rX9_v27q2-dv_29-ectWvB	17:chu3,240:chu3
 1.4	e19f1d1b	1710	__e7_v_W____a9a99_X_63uX__LerWt61qXj3rd7_j3rftY9_vftH7vv3r1j1-1_6V39r3Y52_3_f_b166b116X77e73_63id_fvWXvXv_tXvf_1_-6_v--6ver__jyX79b1av_af__f_-_vZ76-__3rtX97rV____9_vvfdj9-z_ur_fved_efter-_Xve3_9-2__7u_3_e_3__uXv_f9t91a_avrf93f9r1_3___ff61u__7t41r7_1_j1a16d3r8_r-__9_ta37ef9verVr79qfj3b	35:di4,357:chu3,773:wu4,864:di4,899:dan4,1071:wei4,1101:di4
 1.5	f3ef411b	937	8fsat_6a1rax__dv-3691_1_-9re16179uHjr2vX3RN2v292vr-vqr7t59W7-v_v9qjF_W92dv2XdH9u3_-v_rq1re331a87_WV739Vr2ta36f_-xj99b97tWr_7uvXvVH7a1q767at9d9-96__-_Xr1_xr3	7:di4,46:wei4
-1.6	2616937b	729	__6_r32x79W7137vu73f___37W_3P2-7_997_-__996r1rHre7Vv1b1b9e3_9_at__v3f_b3___Xrz___vXv_v3_v9r9__Xvl_t9V7etr_vWV73X_-axv9e3-D	80:wei4,98:xue1,106:xue1,198:chu3
+1.6	2616937b	729	__6_r32x79W7137vu73f___37W_3P2-7_997_-__996r1rHre7Vv1b1b9e3_9_atP_v3f_b3___Xrz___vXv_v3_v9r9__Xvl_t9V7etr_vWV73X_-axv9e3-D	80:wei4,98:xue1,106:xue1,198:chu3
 1.7	c1612bf2	235	8-u32qu_Wv36Xru26O7__d9-_ufvu2d__9f32__	8:di4
 1.8	b585a7d5	278	2f0_rv667f7_7rq_3t7W7233f3rWX773v1392ft-dvru3tB	
 1.9	b6f957fa	264	f9b9r1_dr_3XNW_3d7_uf_7Xtr_jq-3_e7n1XreVvWrX	96:dei3
@@ -4638,7 +4783,7 @@
 1.13	0bd77c05	14	qHB	
 @guanchang-xianxingji
 0.0	d312ec7f	21	e9vB	
-0.1	d5a9936e	211	bfpV_9__ePb1ft79bfvvbx_rf_f_fs691dr	48:ren2-jia1,92:zhong4,151:zi3,155:jiao1
+0.1	d5a9936e	211	bZpV_9__ePb1ft79bfvvbx_rf_f_fs691dr	46:ren2-jia1,90:zhong4,149:zi3,153:jiao1
 0.2	d8442c57	229	9L-9Wv16___X_3XNvW31X72tbW7at8bP3dfvdj	
 0.3	4e0b3a06	352	u__dv9410u-2d7993-eXeLvWua_-utT99r1mx7uu6XtY7__X91evd-9av2E	23:ba4,84:zhong4,99:de2,244:zhong4
 0.4	10db0cbe	523	m1ubvk1b78d_fxr9__U7mu-6a_9q793S97j-tb_o-r3-x3-fVj3dc37f_-qtVX-j_8c793ta062W_426v-5399q	8:zhong4,246:chai1,269:ying4
@@ -4646,7 +4791,7 @@
 0.6	40e50b6e	299	N3tr2vt1--7_tbv6fx_7_v33a_sd72-716jru-9b__3ffHbvvP	43:wa1,99:zhi1
 0.7	e93ea2da	228	Z29tb77tv7f51-uL-9Xfr9_Fvd_71KvXX33_-f	81:zhong4
 0.8	cbb57b8f	374	mVr9d8-YL3z1__tv2vt7-36_22__X34V9W36_-q_y9HXt6O7a_6f7fv3721_-fB	130:zhong4
-0.9	02a64a60	294	p6sWtvfu6F73_X_6t_3_vVf_etv1buz_29d_51v1ffr_f7pOd	
+0.9	02a64a60	294	p6sWtvfu6F73_X_6t_3_vVf_etv1buz_29d_51v1ffr_f7pOd	81:shuai4
 0.10	0a67dbdb	543	-vevbtjx7zdb62drd_-e7Wv7u_tXvV_b_sevb7uX-r_1_t76Vv2fb-97ux79_du9ftb9rWrddv_-_1n147fU_1bd_tD	
 0.11	8a50ed69	175	vad9ate99tva7V223733_7vrv29Hu	
 0.12	23679427	416	_v9O_vr_92b3-fe1yybbef32-3_X732-b79m9x9b3av6Vddu23977v4qY3qF3p973Wr9vB	0:zi3,23:wei4,252:ba4
@@ -4668,7 +4813,7 @@
 1.5	df4299dd	214	-3_tb963udv625v_3-3ftvdr_-729-9v1_9F	19:dong1-xi1
 1.6	04125fec	166	uz_7t23794frv9xr36qda7H7v32F	
 1.7	798239aa	113	vddv08t7V_7v-fl775P	
-1.8	7c45b320	282	Xv1129W_d7953_7ff_77rF777rv7Pv79tb3bv2792WrM_ve	
+1.8	7c45b320	282	Xv1129W_d7953z7fT_77rF777rv7Pv79tb3bv2792WrM_ve	
 1.9	ea88d28d	302	uuvl_-sO1d-X3Z7r-d1vv9qNv2c9Pbbv3W9euW-5r2t3_n7t-0B	82:huan2,175:zhang4
 1.10	514a0ffd	698	a6_9X33b_r_v7_332-2t633b_v9u71_r35tp7nX93q-1_71uavrV9XvH73udva8_rfrGXnnv-z7d7-V1Ou_876LT3r73WfXr5ft68W_a9-e_f19e_3tXB	121:gan4,324:wei4,399:de2
 1.11	d648a005	569	qu6tW9b32te1fr56-fxY3atWvUrP_-etef2m7q2-br9n2X73P_vd397_q9d7Xvv_3_v731r-fraVv9-4r9TX7uWvf9a-d7O	51:zhong4,123:jiao1,337:chai1,394:jiao1
@@ -4682,7 +4827,7 @@
 1.19	01732e81	787	8775z76uf_dv_Lte-_-1ebrWa3q1--1jrvu1d3v_-97-39X8397aVf7LNtX_9-27t9z3d32e5-v3_9uffvdvvt1u9a723bv_t1LW8ddd_7trfv-f_2tW_Wxezfvuu379bt6	197:ba4,207:huan2
 1.20	dd703153	635	27u-3q75_q366u_7X9a3v8v_33u2m1Wr_ar9_3-f51_jvr7N3_u7fir_vz2taW733fOteref37-r_t9d7-22b3t-1_bv39r3r1b3_9fX7K	18:zhao2,20:chang2,47:bu4-liao3,438:zhong4
 1.21	11f2e7fd	171	6f-_d1v_pdb1f_1bv_-7fv-_6ed5C	101:ba4
-1.22	c8649247	482	Of7d_aeWvvdu-Z_e7_992V_W_9vWtr-77n_P3bvedvetq39t_-78cf7_jd7Ufc_99d73_afbV3dd_v_9B	
+1.22	c8649247	482	Of7dnaeWvvdu-Z_e7_992V_W_9vWtr-77n_P3bvedvetq39t_-78cf7_jd7Ufc_99d73_afbV3dd_v_9B	
 1.23	5371ea35	251	ujta630b3re-937v_9uX_-qbvf_3f12Xre6erf3d_L	4:kong4,157:zhao2
 1.24	26f1ac1c	349	7_a974d_qb_X3b7_t7d3-_uuLf_v-ufrv3fG7vWb5vd72_uW7fvart6r90	
 1.25	44e14b5c	164	6vpLLV7-Xty7ma-26a3Oej9c_b_B	
@@ -4736,7 +4881,7 @@
 0.44	a3405369	285	3qraf7dtdDvdb_v36-96________9__v_7_v__9__v_3_eLC	118:wei4
 0.45	38f887a2	269	_cj93733j_7rv9-u3rj-_W3vf33__9_3d77f_-___2-_L	
 0.46	13bec0f9	26	-33_B	
-0.47	6083c484	657	fft933z-tb8bvu9-9ePqrdf73v9b__3927_7-__uv__vbP8bb9__9_9vfd396t--_-13v7_n7_7v__273dv_v-3-29_-v3-997Yvv-W51R_d_C	112:zhao2,246:wei4,255:gan3,329:zhi1,353:zhi1
+0.47	6083c484	657	fft933z-tb8bvu9-9ePqrdf73v9b__3927_7-__uv__vbP8bb9__9_9vfd396t--_-13v7_n7_7v__273dv_v-3-29_-v3-997Yvv-W51R_d_C	112:zhao2,198:xiang4,246:wei4,255:gan3,329:zhi1,353:zhi1
 0.48	4efe0048	182	yrqr3-dff_2b_129_-t72v_4r7OuFjB	
 0.49	31355a52	27	_fv_D	
 0.50	a78a738c	105	21e_6_-_PX7tX3_7_D	50:er2
@@ -4826,7 +4971,7 @@
 6.6	955fdea0	121	_2e_v3__v___Wbrvv-_3	
 7.0	b97ac93c	6	O	
 7.1	67c95746	791	_f_2__6_17723___--39_v3fvf_W7_6-___f3f93_3ff_5____96u39-v9_v9-__997_7fr-7_______e___bv__f__a7_9___d_e__9-_vbt379-_b_7_v9f_--7_7_3P_P	430:hang2
-7.2	cfec2a9a	1013	9-_fvt7_9___a1__dv23e9_____f__f-_r_293e__9X3__9___-f737_3_3__f_d_v-_ard_____dX3-Xr___9--9_t_v3v_96_9Be9-X_7__vv7__--2x_2_e___3v_f3fbXvtf_-9___u73-79fbvfzt_9_9_3r3__v799K	98:er2,184:wei4,485:de2,595:jiao1
+7.2	cfec2a9a	1013	9-_fvt7_9___a1__dv23e9_____f__f-_r_293e__9X3__9___-f737_3_3__f_d_v-_ard_____dX3-Xr___9--9_t_v3v_96_9Be9-X_7__vv7z_--2x_2_e___3v_f3fbXvtf_-9___u73-79fbvfzt_9_9_3r3__v799K	98:er2,184:wei4,485:de2,593:jiao1
 7.3	41d138e3	213	29_3-_1675X76f9_-__r77__ff_7f_79_-tD	
 7.4	20527b32	594	3__7r_-9-f_-7fv3__7_v-_371_37uev_19f____79fXb__3fv__v_b____3_v29fv__r3--_vt__9_v_ru_7_--_-v7r_99_af	85:zi3,121:jiao1,221:di4,236:pu1,264:wei4
 7.5	d44eac5b	72	___vf_17__ve	38:de2
@@ -4846,38 +4991,38 @@
 9.9	e82cc371	253	_v___v_t_v7uv1f__13P-7___-_9___u73____bq-7	
 @wiki-changcheng
 0.0	6ff04bb3	141	OqaqbVtaVrbf1cV7dVrOGdNC	
-0.1	4190879e	218	Wt188aVbbbbLbQbvaz4XvGAjbAFcV1PtrtW3B	5:wei4
+0.1	4190879e	218	Wt188YVbbbbLbQbvaz4XvGAjbAFcV1PtrtW3B	5:wei4
 0.2	5f3b2696	295	4Qr6YX39tyqWX1oVXruqttZb222WPz8f1qK4fH8PcF8DX5bBo	
 0.3	4fe97ad1	2	A	
-0.4	c00446ec	171	quV1Rvf121rc7fr79-8___t5-Vd1D	
+0.4	c00446ec	171	quV1Rvf121rc7fr79-8n__t5-Vd1D	
 0.5	e1fc5441	123	u2sta9WhVV1y86ua1uW9C	
 0.6	9878a6f6	82	W1t96jb36WrKbF	15:wei4
 0.7	0e75c139	6	I	
-0.8	d4a368f9	359	Gd32uf79r6_3atXfbZr6_u6u2z9e-_vt3_9n6-E6evdW7fv_77-v_-3-_29N	223:di4
+0.8	d4a368f9	359	Gd32uf79r6_3atXfbZr6_u6u2zle-_st3x9n6-E6evdW7fvn77-v_-3-_29N	214:di4
 0.9	c9e27fdb	117	4z2K2eWd26-9mv7u_d_D	
 0.10	7f5d70b4	12	NZ	
 0.11	6108252b	145	kzuVdbN5sKr1_1V3q94Xtz-t	
 0.12	eccb372d	194	tefp3c3AZmlVrttXyrt2db6t-6dtX7WpB	
 0.13	32987ec3	142	VtVtVvNVt369Wv126XGr20XF	
 0.14	a60825e6	12	NZ	
-0.15	e99074ec	145	a1V70pX_-rS2a32WSVrWr8u7	
+0.15	e99074ec	145	a1V70pX_yrS2a32WSVrWr8u7	
 0.16	f57f785b	12	aZ	
 0.17	270a6608	105	22W77lbP7DyxL39kTC	
 0.18	a01fc7a3	409	qaPvnvrvnn-_17ee9h99e-d9Xd7u5_9z753_39-l0z75--7_XvXN_-3_f5677_PfyWnq	
 0.19	b79dbdc8	53	WzX3Vz3_J	
 0.20	297b7427	11	sM	
 0.21	2e8f9a3e	138	5Zud1abr18826vnj2_2W37V	
-0.22	d1a6c982	413	0rtqWO7fX7_v_TvS1arm7vn719-_lzar9_W3e3X2T_aW-bs_XdX_bx-8tdr-7fX8m6vpK	4:wei4,231:wei4,236:wei4
+0.22	d1a6c982	413	0rtqWO7fX7fv_TvS1arm7vn719-_lzar9_W3e3X2T_aW-bs_XdX_bx-8tdr-7fX8m6vpK	4:wei4,235:wei4
 0.23	399659c4	2	A	
-0.24	d3e028d5	57	WtdVv5sN7C	
-0.25	93e089df	232	-TNn_vs_e3mu5raO_7_de8-5-_a1vvbVt_lv1qF	
+0.24	d3e028d5	57	WtdVj5sN7C	
+0.25	93e089df	232	-TNn_us_e3mu5raO_7_de8-5-_a1vvbVt_lv1qF	
 0.26	b16a91e6	4	C	
-0.27	9441409f	89	2_fxFN-WtOW3u9N	1:wei4,29:wei4
+0.27	9441409f	89	2_RxFN-WtOW3ulN	1:wei4,26:wei4
 0.28	748d136c	3	A	
-0.29	e9e9d3d6	99	70vrmtf51CaTd13mC	
+0.29	e9e9d3d6	99	70prmtf51CaTd13mC	
 0.30	2e51a047	11	2L	
 0.31	327467c5	40	a7MrtvF	
-0.32	4106fb63	220	e7qVr69a1avn-X7-tr-6qb72q-7iaqjrPb_KF	21:wei4
+0.32	4106fb63	220	S7qVr69a1avnyX7-tr-6qb72q-7iaqjrPb_KF	19:wei4
 0.33	c5cb7dd2	40	fbJrdrF	18:wei4
 0.34	fd5c89b6	195	On0b6p7kVmPZIWykNrn76O9rI3Mzl0avC	
 0.35	e484fffd	232	VInJ9XZ6dyTmM5c6kpnTTmM5clMbG5EXkXy01uF	
@@ -4896,15 +5041,15 @@
 1.6	1030a4e3	48	W3tzav5U	
 1.7	d97de668	4	C	
 1.8	c3644a48	96	6Z1mYNzmuosMr4dW	
-1.9	e49499a5	14	aWB	
+1.9	e49499a5	14	YWB	
 1.10	5dbac91f	67	Md1uWvWnSP-	
 1.11	1efc147f	59	Mlv1itz6RP	21:wei4
 1.12	d3921f67	24	cVcV	
-1.13	adf6d341	294	WBSrqvb-vfWvsrG34ev76-z221MbqGrdq92q2adt6XVrGX1WV	79:wei4
+1.13	adf6d341	294	WBSrqvb-vZWvsrG34ev76mz221MbqGrdq92q2adt6XVrGX1WV	77:wei4
 1.14	dca3ac23	2	A	
 1.15	bd2239ee	56	M9tWVbVjXB	
 1.16	16913630	2	B	
-1.17	8219aa44	3	D	
+1.17	8219aa44	3	A	
 1.18	579bee43	3	A	
 1.19	a87fcc41	3	A	
 1.20	f97cea87	5	E	
@@ -4919,13 +5064,13 @@
 1.29	7c31af5c	390	arZVrqaXV34mr-r71btata1a9u2WvaW3VzqrWWtzSr11_O73zG77a9Sv62t7q3-Xf	42:wei4
 1.30	26cd0ad6	312	s711cVraFv3tVZ7d16q_r9tt1s-_6vvZr3qX73bnqt7-quVv36aV	
 1.31	238b555a	6	K	
-1.32	5b3faaef	177	qqW3vWtVtVb1btutVz_b1b1eXv9atC	
+1.32	5b3faaef	177	qqW3vWtVtVb1btutVz_b1b1aXv9atC	
 1.33	3a3c587b	4	C	
 1.34	834d08c7	317	4a9Vt2Vbd3965qpbr6WbtZVNW9at1aVr2Yrqe1tlXWreb2puab1aL	169:meng3
-1.35	fb5913f3	246	qWrN73uLf-3vvz19Lf__7due__eX1e5499V6v__zf	63:di4
+1.35	fb5913f3	246	qWrN73uLf-3vvz19Lf__7due__eX1e549lV6v__zf	63:di4
 1.36	8ae2e3cf	92	4QHtuhqeru2q1qaB	39:wei4
 1.37	dae5420c	4	C	
-1.38	86ae0c45	151	2Vva92Vb7bVvbU_H_ddP6aT_1	
+1.38	86ae0c45	151	2Vva92Vb7bVvbU_E_ddP6aT_1	
 1.39	83d2f43f	368	1WbNqLb_-d_7qVtxiqZw2_A12V3u21eVrVM7lqu6Tfrar3vztYX3q2b_2tv5-B	214:wei4
 1.40	b318cec3	172	2TjGPqoVqNt3qd9qiagx6FddVqqaF	
 1.41	372f33fb	44	ua1qVrrB	
@@ -4933,29 +5078,29 @@
 1.43	89504504	2	A	
 1.44	c9ff9fcf	470	W1atdD0xtav2p0u2VVbs5VVrGfqeqeXr6WjdlrX34rmsWrV7qWrO1TXr2XxrxH2t21W7Xr2VTqXV1VB	
 1.45	fb88d296	256	49YTedb1Ntr61ha3eKtL1aUfqqjGNbbrv9jtaVV1qqF	116:huan2
-1.46	b533f732	364	tzVtrtV0e8PWKr3b1V9DHrf33_c99u1t1W81q3yeiVp4VbcVXZ1YrqaMWN6xF	102:wei4
+1.46	b533f732	364	tzVtrtV0e8PWKr3b1VNDHrf33_c99u1t1W81q3yeiVp4VbcVXZ1YrqaMWN6xF	100:wei4
 1.47	15d55492	201	4Ea1WvVfrudr2GXBqdX6WjVuqrat11V1sC	6:wei4
-1.48	363a09f0	209	4Rd0QvXrV1tqYVjtTpZ0qrv1V7adtabbTVL	
+1.48	363a09f0	209	4Rd0QpXrV1tqYVjtTpZ0qrv1V7adtabbTVL	
 @wiki-daxiongmao
 0.0	d5a74ae0	156	sBwAwy3-06a_390ixdvvf36rmV	
 0.1	2248c8fb	159	0yMtNu4Fjmr7_va6XPfg2Z7Wt1C	16:zhi1
 0.2	3da42ec7	4	C	
 0.3	f881bf81	77	xs6W1abvVb3aL	
 0.4	345dd22c	366	9Ke7K3r4VW-y25d1rmxr_7e5V39y45d0rcU37yaV5Ycv1b57-221efLP-e3uS	
-0.5	a669a978	363	YfxP37rvb4Fw-u9V7ud3_7cr91VbNW1b7WN2Zvdl9ev25dft9rWvW112df1sC	25:wei4
+0.5	a669a978	363	YfRO37rvb4Fw-u9V7ud3f6cr91VbNW1b7WN2Zvdl9ev25dft9rWvW112df1sC	23:wei4
 0.6	3748210a	9	aB	
-0.7	2104f12e	141	vaz2a19__9fPb3__v____dzC	
-0.8	bd1cb187	117	_b_O32Vt173qcWXb38tC	
-0.9	373b2180	86	4u7mNu3usVNXfbB	
+0.7	2104f12e	141	saz2a19__9fPb3__v____dzC	
+0.8	bd1cb187	117	_bzO32Vt173qcWXb38tC	
+0.9	373b2180	86	4G7mNu3usVNXfbB	
 0.10	28e261c5	106	iP2ZVhWxjV_3btut1H	53:zhi1
 0.11	035c07e1	4	C	
-0.12	ff71bb65	367	4r57V7Vd32dPvd3b76Xv7u2927u_dt32pdvKM-s3967AYA4v3jjm66trC3vpt	107:zhi1,229:juan4
+0.12	ff71bb65	367	4rJ7VrVd3WdBvd3b76Xv7u2927u_dt32pdvKM-s3967AYA4v3jjm66trC3vpt	100:zhi1,222:juan4
 0.13	fec12958	4	C	
 0.14	d0eee11a	254	4ryV7epWteccJ_Fdvq2Wda31aaGPzMfS9Wlx7Xt0qMB	74:zhi1
 0.15	c31b7fd6	158	4r0oary6Zgh7aV6d_zVbtFrNVNB	
 0.16	42c20c8e	2	A	
 0.17	67819b26	130	slZaHbJ1samZLbZeOV2L1G	
-0.18	94653051	322	M1m_3uK7s3u9amVrVzU1azMtdtmmZd2lu1sltMPnuTeyT8kNpsL3SH	106:di4
+0.18	94653051	322	M1m53uK7s3u9amVrVzU1azMtdtmmZd2lu1sltMPnuTeyT8kNpsL3SH	104:di4
 0.19	35185765	61	aS96NtlWyq	
 0.20	21dd590b	2	A	
 0.21	2a214919	159	U_1qbvObmfrt13636zoPWbTr5ND	
@@ -4969,7 +5114,7 @@
 0.29	c736916e	129	l7tslLe7y_6NW11YVRrs5C	
 0.30	9bd38669	103	vcTtudzFfLNQlHv9q	
 0.31	4ff995bd	4	C	
-0.32	3b2bdee4	318	YWdVt97z6n-TvVty6YNt4i84CrlXXvd6rq9Vb6bHqpfr2qcn1n5vV	
+0.32	3b2bdee4	318	YWdVt97z6n-TvVty6YNt4i84CrlXXvd6rqlVb6bHqpfr2qcn1n5vV	
 0.33	d46a9c04	154	Y7uUnUdN1M3U8Mtzvp60rtTvTF	
 0.34	88d8a4d5	4	A	
 0.35	647ce1b6	33	370y1C	16:wei4
@@ -5011,7 +5156,7 @@
 1.27	04f94c36	475	YYqpGAD8qRn9AwurR1W_7Xz60_2vcnXbOdPjTX7WTVdpXa2y1Sr0W_0K2efz7uGAAe-ndder-V7t20u	137:wei4,181:di4,196:di4,249:di4,267:wei4
 1.28	1f21d573	4	C	
 1.29	76170be7	428	sgG1uxWg1KLr11WTrR1ulXa7uWtr6qR1qrq2q16WtWXretsx1uWNmGraXbbsztr-m2WrVWVB	
-1.30	d426428d	255	Y7B2mvSbbjGo2m3tac16o26bteldUr1OQHb36FG2vrC	
+1.30	d426428d	255	Y7B2mvSbbjGo2m3tac16o26bteldUr1OQHbx6FG2jrC	
 1.31	3845eb1a	4	C	
 1.32	9082a57d	94	irvkYV64xx3zKv0G	23:zhi1,30:zhi1,39:zhi1
 1.33	f0c87b23	200	YY2tA3Uj1GOFWln7dj1u_sWLt_W149VtaB	27:zhi1,41:zhi1
@@ -5019,12 +5164,12 @@
 1.35	b4a99acf	49	4rqVd9a9	
 1.36	2f0faae9	4	A	
 1.37	8a26284f	228	at6YtSt1Lrjt0q74atut_r2qrYczm1KrxWZv8V	
-1.38	b4350478	60	Ut-6u2Wz8X	
+1.38	b4350478	60	Ut-6u2WzMU	
 1.39	9a532b5f	45	nqWXAWdD	
 1.40	f22a0fa8	75	YYesATXFLwkzC	
 1.41	6cc425c8	4	A	
-1.42	6a5494da	57	1Lnv-3vtxC	
-1.43	22fc0497	294	GFnvYduWbccgazqurGPu3pL141tGX70leLVNeHoaryym0d75Z	
+1.42	6a5494da	57	1Lnj-3vtxC	
+1.43	22fc0497	294	GFnpYduWbccgazqurGPu3pL141tGX70leLVNeHoaryym0d75Z	
 1.44	0d0adead	103	s20mtIreNV_tdF7Wz	
 @wiki-gaokao
 0.0	6fc0bf15	104	AAWt1BaqLWHtatu_WB	
@@ -5034,17 +5179,17 @@
 0.4	6de6d468	161	4qV1YbFr-qxRaRWLaNer21W7jHL	
 0.5	b87648c9	288	A16rxY8g11aD2qqG3WjqxxuLqiuiyqGvttt9Wb2ebVr16RpW	113:di4
 0.6	128d4fe7	4	C	
-0.7	b8ba23e6	497	4dMtYUr67YaF1u7oattLsRlqxVr1adrrWx--8d6W1u7Qd_HvJpTLi1uVXLbtRXtd12e1tXn31XdUt3tq21K	
+0.7	b8ba23e6	497	4dMtYUr67YaF1u7oattLsRlqxVr1adrrWx--8d6W1u7Qd_HvJpTLi1uVXLbtRXtd12e1tUn31XdUt3tq21K	
 0.8	add2cb99	4	C	
 0.9	cd2c437f	288	x0QHfsJZtyaXplVbd1792ud-YusYU7a8oqVt61attb3pF1iX	
 0.10	4b5b2b20	57	4V1atGtefD	
 0.11	b19f6e94	131	4q-fX12222222L_adr6VrL	
 0.12	ac61757f	24	4tVZ	
 0.13	90ef1021	82	444qW1ub1xr5dF	
-0.14	6c1ae0a8	152	YV1qOG3x4OOutb1q6XrWt8rqVB	43:xing3,55:wei4,57:xing3
+0.14	6c1ae0a8	152	YV1qOG3x4OOutb1o6XrWt8rqVB	43:xing3,54:wei4,56:xing3
 0.15	eaaa71ee	81	4p16Wb16qabbtC	
-0.16	7cf3695a	253	4Kq6VVLVrdXYNGrtuGLV9YsNWrxqxVDAI1Nuqw4rq1	
-0.17	5131c0bd	154	Y1r6f__6u_tttH322asbbbtxWF	
+0.16	7cf3695a	253	4Kq6VVLVrdXYNGrtuGLV9YsNWrxqxRDAI1Nuqw4rq1	
+0.17	5131c0bd	154	Y0r6f__6u_tttH322asbbbtxWF	
 0.18	93f65a32	5	F	
 0.19	e0bf93ee	321	40SFVtb6vqrutrdb7W72sb8v2-7q7Wttar2Wtq28qa7d3q7u2aVVVD	
 0.20	58112994	91	4UtVvvNOVtiWsqo	
@@ -5054,7 +5199,7 @@
 0.24	34177a78	5	F	
 0.25	7cc0954a	341	4TrqW3q62abXr6btab16a112q6qadttNbrXruVuqt5-Wr2r9ydtfvqddL	
 0.26	1de50cf7	95	4292qSV734ttS19L	7:di4
-0.27	d5da7e90	327	42222asKr9vxNbbru2_G3sttVX7fj3VjVr9vxfAFWoKqF6rwYsW0ytC	
+0.27	d5da7e90	327	42222asKr9vxNbbru2_G3sttVX7fj3VjVr9vxfAFWoKqFKqwYsW0ytC	
 0.28	f24cc13a	4	C	
 0.29	4716183a	15	qtC	
 0.30	8416c4c2	15	C0C	
@@ -5135,7 +5280,7 @@
 2.11	bc9a5a91	9	qA	
 2.12	62cc6fea	258	4h9atqXdtLWr0-1Vtr2VLfTq22GvWtGbrqeVtt2V3aV	
 2.13	9d99b8b4	48	22b717tV	8:di4
-2.14	2e0efe4d	115	aQpqV1tqx19rSel9q31	
+2.14	2e0efe4d	115	aQpqV1tqx19rSSl9q31	
 2.15	f6c8a7b1	4	G	
 2.16	add33c0c	215	11ubdl262q2qq-Svqatx6mf12aLX12tqVV9K	
 2.17	f1acae28	89	622q1OilWrWrW7K	
@@ -5143,21 +5288,21 @@
 2.19	efc0a398	8	qA	
 2.20	4946bfd0	236	xWV1U1uyW1qVrarqa9XXvv3GvThblTrasFVrbbNB	
 @wiki-gaotie
-0.0	1971297f	310	4NQqqGbr1YXVqxuexiWsuVd8dVl7stlpV3y0qsVtCslVtYtSratG	
-0.1	79984b9e	325	q1lYUvtdrNbtVbVv2kV7yaZVr3a1WbVblnqtVrtq1bpudxqVrj1qWr	
+0.0	1971297f	310	4NQqgGbr1YXVqxuexiWsuVd8dVl7stlpV3y0qsVtCslVtYtSratG	
+0.1	79984b9e	325	q1lYUvtdrNbtVbVv2kV7yaZVr3a1WbVblnqtVrtq1YpudxqVrj1qWr	
 0.2	18219b69	261	aVt62q1q1Va9qz4atwuqjLuWdr2BGqUrr62qrWLxK-1C	
 0.3	c6683123	2	A	
 0.4	716153ab	14	G1B	
-0.5	b8c579a8	67	KTjtuGr1att	
-0.6	3337e34e	70	KTjtu62r1t_F	
-0.7	09312130	57	KTbrtuWr3C	
-0.8	6f6535b2	156	206obX9WFHvPN1Ktat434VdqNW	
+0.5	b8c579a8	67	KTjtuGr1Yst	
+0.6	3337e34e	70	KTjtO42jxghF	
+0.7	09312130	57	KTbrtOGjxC	
+0.8	6f6535b2	156	206obXNWFHvPN1Ktat434VdqNW	
 0.9	c7933d45	4	C	
 0.10	ac49ec51	99	GrWrVrtWbX9WbbsWD	
-0.11	5127c1eb	125	Yvqd1r7X91j3X1Vf32fvN	
+0.11	5127c1eb	125	Yvqd1r7B91j3B1Vf32DvN	
 0.12	3073ec6c	108	YHx2ra76rrrXtebv6f	
 0.13	b775308c	37	aWv7-7	
-0.14	5b3e0c18	265	qGb7af1fMftvWX1K2u4Vvu1rXvWvr1679uuX_dft976v	
+0.14	5b3e0c18	265	qGb7af1fMftvWX1K2u4Vvu1rXPWjr167NuuX_dft976v	
 0.15	caf6d5a6	2	A	
 0.16	1eb8b841	172	qrVb02qdIDmrel6rVvKbtWLm6v7YF	
 0.17	73e8db5e	227	a161qNWrW7RsrKaHt73jYtGjV3xenactuWXt1I	
@@ -5170,7 +5315,7 @@
 0.24	980dd637	4	C	
 0.25	09c918a4	64	Iblq6iVrxWF	
 0.26	62fe1c5d	56	Y6iqugeVFB	
-0.27	838d7e29	87	42j19JdRVVXXxUC	
+0.27	838d7e29	87	4Gj19JdRVVXXxUC	
 0.28	19b3d55d	320	4i0U7ejjbraj1aRtVb87qV1tW8rVjfN6Y9NW96bX9YVm2bxmpuY1WB	
 0.29	54e5b70c	291	iquuqratuqFp-rWbn6tqNqu92abbVveDtqq0Ws6voppWXpy8C	
 0.30	2c29951c	4	C	
@@ -5178,53 +5323,53 @@
 0.32	d991055f	653	tWTN6mWdpjyVUb9qYffrWlqjbVZrVr1rvWjTXl1Wu1qpW6i0adzuK64KtCW11qassG_W2S14dL1uVratap784SVrWRFbraNVsx3x4tl22VfJK	5:wei4,36:wei4
 0.33	92d1fbb7	319	4dVq12233aXt0qpl2qRL1qZrVpSvqurKLdXmzZZp64orq26Fc2pex	
 1.0	23521ed8	4	G	
-1.1	633bca8f	362	4fYo6SZzaRV6t_eqcW3o25_Fda_26YmxqU5eUzErUN-UrySjd2GVtWzYX7WbB	
-1.2	256485e4	223	4q6j1pWtUHXt1q640qYp00-eVXoVbNX2yssch	
+1.1	633bca8f	362	4fYo6SZzaRV6tzeqcW3o25_Fda_26YmxqU5eUzErUN-UrySjd2GVtWzYX7WbB	
+1.2	256485e4	223	4g6j1pGsUHXt1q640qYp00-eQXoVbNX2yssch	
 1.3	c654f262	339	4Uuluiala1qaRV1RN14TlrdVV2a1Wab3FrG7uoajm12a9rlqVW7b1r95C	119:wei4
 1.4	22c70e4c	4	C	
 1.5	afb8950c	177	2XLrWX1qiWtVVrqlpt613sqlajxvKC	
 1.6	4d44597b	252	jdRW5WpyKImb0uWHftVRXtaXpN-D26qWZ2XXB3quXV	
 1.7	79fbd02d	330	4RLVj3rrtqZlm1cVrXVbZJntatfrVr1lWpad_Ut1af9aZ12r3WW3arV	
-1.8	dfad0b58	537	YXrcpq1WrqWq5qsX_1Xtu4q2KVN-sWrd3cVNPV0zj_2v2wqW77UtWtpq7TjTp32qVbLVjWXVb2Vbt2KnzvVra91N1C	311:wei4
+1.8	dfad0b58	537	YXrcpq1WrqWq5qsX_1Xtu4q2KVN-sWrdwcVNPV0zj_2v2wqW77UtWtpq7TjTp32qVbLVjWXVb2Vbt2KnzvVra91N1C	308:wei4
 1.9	0d910586	4	C	
 1.10	69872fc7	53	qsWXbrrEL	
 1.11	7af768a0	352	47ULiib3r6WqdKqUaxFl1dtVxylWRtklWsNWtdVLqVdVjWbnmsa8ardr6UF	57:wei4
-1.12	65c59ce4	86	4zSVzSLjtXdyWVB	
+1.12	65c59ce4	86	4zSVzSLjtXdyGUB	
 1.13	e66d510f	51	Y7UtRX1lC	
-1.14	977d0a6c	277	YzqSVj1qSjvS14dl6tKVVN-Xp6qlql-uSt0t2btSladj3q	
+1.14	977d0a6c	277	YzqSVj1qSjvS14dl6tKVVN-Xp6glql-uSt0t2btSladj3q	
 1.15	53da1724	186	4vddlTjF1Ktata7WbsYlnGVXbVr5ZaV	
 1.16	e7262d50	68	Gr03ua1t4qVB	
-1.17	359da0bd	220	q1aL2EvVL2aVVsa1qWtVdFruqabt9qtEatoaF	
+1.17	359da0bd	220	q1aL2EpVL2aVVsa1qWtVdFruqabt9qtEatoaF	
 1.18	a46108e9	4	C	
-1.19	9878d30a	303	xrt-LesXbVjtTSv2YvVVdraWze1khMk-sssusya019oq9LVxoqC	
-1.20	c1f323d0	335	Y7SVNF1V2Xv3Wb19ynJ34v28aNtoG_1aVjtraVdS24dRrapR1brVvurP	
+1.19	9878d30a	303	xrt-LesXbVjtTSv2YvVVdraWze1khMkGsssusya019oq9LVxoqC	
+1.20	c1f323d0	335	Y7SVNFxVGXv3Wb19ygJ34v28aNtoG_1aVjtDaVdS24dRrapR1brVvurP	
 1.21	f6130845	131	ivVboV7XKNWFFNats1qrVN	
 1.22	9ff40b2b	4	C	
 1.23	156f6e87	230	4Lzq1WqpaVjqVbarfj10q2KL6Y0tPa_U7abtKOB	
 1.24	e49ecb39	43	9uatWMq	
-1.25	3469ac27	664	4LlWtWraVrqF3WrW2xvVdpR3LVt1d9aZj3ZYrUbartruoytdv1mqLt1LdtqLt21VbyW1W6ldpxHrreR1rV7pR1tu0YHr12iPWV1OevtVt69astF	133:wei4
+1.25	3469ac27	664	4LlWtWraVrqF3WrW2xvVdpR3LVt1d9aZj3ZYrUbartruoytdv1mqLt1LdtqLt21VbyW1W6ldpxHrreRwgV7pR1tu0YHr12iPWV1OevtVt69astF	133:wei4
 2.0	9b1b2fce	80	U61r36X5v-7ruB	
 2.1	914e31a3	4	C	
 2.2	736a5892	380	YmMK3Y5444Ub4whHrwFbnaMbV3YzUFvbtVluO-W1ac1Xrb9er3-32F0qaXVr2frB	
 2.3	5f45bcab	105	qaN1q2mVta8pKqffrC	46:wei4
-2.4	30acd282	52	O-kVb1uWF	
+2.4	30acd282	52	O-kVb1OWF	
 2.5	9f829a64	4	C	
 2.6	15c9d7d3	92	oVjqYTpV9a_sR2IB	
-2.7	9671100f	204	YfT16Wt2FtaXjqW0oN0s2dtGrt6atp1WVV	
-2.8	dc007176	92	4Wtve1qtRVRXh-VB	
+2.7	9671100f	204	YfT1KWt2FtaXjqW0oN0s2dtGrt6atp1WVV	
+2.8	dc007176	92	4CsDG1qtRVRXh-VB	
 2.9	291c2693	4	C	
-2.10	8a4511cf	228	Y7SV1R0t2u-rWt-61SxrsFHpqtrSVX12S1PuOY	
-2.11	07b5076c	101	qGrqd94961612y2VL	
+2.10	8a4511cf	228	Y7SV1R0t2u-DGMGYwSxrsFHpqtrSVX12S1PuOY	
+2.11	07b5076c	101	qGrqFMY8awaw2y2VL	
 2.12	9c2995f1	52	4Uqyq9qqF	
-2.13	3a6c38c6	76	o1asWbVtxoWZF	
+2.13	3a6c38c6	76	o1aMGbVtxoWZF	
 2.14	885f8f52	65	Y7qqtbUb0KL	
 2.15	e520b96e	77	i3tU8VN-tpq6M	
-2.16	c7a66171	39	4dVb06C	
-2.17	9adf3a73	122	Y7Patto9aHttdtteraqYB	
+2.16	c7a66171	39	4dBb06C	
+2.17	9adf3a73	122	Y7PattoxaHttRtteraqYB	
 2.18	e9a79c7a	56	49iWpWbtVB	
-2.19	20de026a	250	YfVNeXto21-Grqdtqat2WrtWl32qNvadseVz4mW9WF	
+2.19	20de026a	250	YfQNeHto21-Grqdtqas2WrtWl32qNvadseVz4mW9WF	
 2.20	c545ccee	166	iL9a3fsri6VtoRs3azxvjV1vVvWF	90:di4
-2.21	18193350	63	4dtR93abblC	18:di4
+2.21	18193350	63	4dtR93abQlC	18:di4
 2.22	ffdce39f	4	C	
 2.23	9ec0b82c	30	G1b0W	
 2.24	586823c1	4	C	
@@ -5241,7 +5386,7 @@
 2.35	02320560	128	qmXb4C1V1-2jqRd906avVB	
 2.36	8531443d	225	RnrsV1xqaq-40q2KunLV1SV14ziw1W7aTFdr2C	
 2.37	4d70cf4a	526	qrue1atqtE31tbXf9Vxr4r1h22aV5-6aOb9e8H3aNeV5VL-aWpxr1irquabsp4rrWtvm36qdXrj17eNuSjdV-W7G	
-2.38	b0d247c9	253	Vrq7tjr24tWjrGvax6X1OeLa12qru23VbG70XveVvq	
+2.38	b0d247c9	253	VDq7tjr24tWjDGvax6X1OeLa12qru2xVbG70BDGUvq	
 2.39	ae8c6a8e	144	ids5quaxqK1uWXroa11VXrrW	
 3.0	aba63098	315	ibVX5aoxYX2444qb1qdVt6ltGbxaxKWVdVrbbV1q1WrWbtVtqFNWD	
 3.1	8474873a	272	ibWXr6Lrdr7qV1qq9VrWtrat3XVV96V7bFti2X1qtuLadB	
@@ -5256,18 +5401,18 @@
 3.10	f54da917	7	3	
 3.11	ba63048b	70	e7sttz22222E	
 3.12	3c08ff6e	137	ebb7abbtttt9bbbb32222aL	
-3.13	3e39b7c6	196	untNbbbrtdstttt9b22-vttttrVF_3udD	
+3.13	3e39b7c6	196	untNbbbrtYsttttFb22-vttttrVF_3udD	
 3.14	0a6a35d3	7	3	3:dong1-xi1
-3.15	2f1faacf	29	fmZMD	
-3.16	e26a7dc7	18	fjN	
-3.17	511eb989	20	fb2A	
+3.15	2f1faacf	29	YmZMD	
+3.16	e26a7dc7	18	YjN	
+3.17	511eb989	20	Yb2A	
 3.18	86b71a59	28	e222A	
-3.19	955cbf40	105	ebbbtttttebb7322sB	
-3.20	0512294c	13	fb	
+3.19	955cbf40	105	ebbbtttttYbbL222sB	
+3.20	0512294c	13	Yb	
 3.21	87375748	5	K	
 3.22	89f9a820	42	_bXRdqV	
 3.23	9fab8f0c	78	abbbbbbbbbbbb	
-3.24	56fcc5a7	59	YM2mZbbruN	
+3.24	56fcc5a7	59	YM2mZbbjuN	
 3.25	5ad2ca70	68	abbbbbbb2mtB	
 3.26	6e9413f7	46	abbbb22G	
 3.27	4f7c45f3	5	K	
@@ -5281,14 +5426,14 @@
 3.35	2d958591	196	WVp1Srlr00UN9STT10LXbN9qWslWrpXTH	
 3.36	bee73951	4	C	
 3.37	5598154a	143	bs2t1oWX1a81rWhe941_3zpK	
-3.38	952a9590	120	uu2mxNmzgbVdd1aYctqU	
+3.38	952a9590	120	uu2mxNmzgbVddwaYcNoU	
 3.39	5f86d83a	46	qqrt2W1F	
 3.40	dacb442f	114	uWXryuwV7Fsb16CPWjV	
 3.41	365b14ef	4	C	
 3.42	834b1bdc	108	WdlV1xU6-ajbbzt6aZ	49:di4
 3.43	c1d9d9c7	22	WVrG	
 3.44	5250d8cd	103	0qm4MEnyKEvj3ua1q	40:wei4
-3.45	a896f45c	106	049P1KLOVdbWt0x6WF	
+3.45	a896f45c	106	04dM1KLOVdbWt0x6WF	
 3.46	7b70fd75	95	a8uqtV1WL70O-WrK	26:wei4
 3.47	8055a4eb	4	C	
 3.48	1c473ef5	104	x_KtyWZtalbrZZmy0B	
@@ -5301,36 +5446,36 @@
 @wiki-hangzhou
 0.0	efd3b869	155	sHIzGraaaoz22acWrVrVzvzxUN	
 0.1	18d9c5ed	277	iTrqN1126vV1aNtu3Kq6Kbracc967bt-qvu3-l1q1sawqr	45:wei4
-0.2	4a4984ee	196	qatq2WvVrrWt1GrdXvBsWtrraHXjdZMcF	
+0.2	4a4984ee	196	qatq2WvVrrWt1GrNWjBsWtrraHXjdZMcF	
 0.3	40dd92f8	2	A	
-0.4	d6f0742c	205	qt976-_-9qvrfrW__7u--q_9vfbPr9vutt	73:di4
+0.4	d6f0742c	205	qt976-_m9qvrfrW__7uy-q_9vfbPr9vutt	71:di4
 0.5	b9064a08	2	A	
 0.6	ad1c2177	64	m6a13rtT1QF	
 0.7	61db35c3	257	uxijXqtW3qbsxGfrua1Vd7__a_ft2bt_91a0WXi1VRN	
 0.8	47e6853f	140	Ynm2qWryU32qVrteVr2etaNB	
 0.9	3067dea7	4	D	
 0.10	ef7c460b	125	kv2tvbttTuqt3WrVrt7qO	
-0.11	2c458ab8	186	a7P98f161bancrzritlt736lVrr2qWd	34:wei4,78:wei4,84:wei4
-0.12	4e9fb7a8	126	cl1qaTdcbrtt1P76tWNXZ	
+0.11	2c458ab8	186	a7M98f161bancrzritlt73qlVrr2qWd	32:wei4,76:wei4,82:wei4
+0.12	4e9fb7a8	126	cl1qaTdcbrtt1M76tWNXZ	
 0.13	2b3e868b	2	A	
-0.14	37f627ad	172	65_udtua19_6t31f13arr7WFOut6G	42:di4,114:wei4
+0.14	37f627ad	172	65zudtua19_6t31f13arr7WFOut6G	40:di4,112:wei4
 0.15	885c1809	208	Wte33j3e_e8V1tttWtX1e3u3Ofd82abbbbF	28:wei4
 0.16	a74b2ca3	3	B	
-0.17	39e0899c	167	4qra1s626dsV7kWd21_-q3br1GnK	
+0.17	39e0899c	167	4qra1s626dsV7kWd21_mq3br1GnK	
 0.18	8cbe3ef5	249	u7FL2evas6t9WtqG7edd7bVbp7V0N7s2erff5qusqC	5:wei4
-0.19	595209f4	302	oVsavtW8_dbHfXXOes9Ynqb719-Wjrl798Gfr1af3_Yft61X3WB	13:di4,161:wei4
-0.20	022aca67	194	apu313nff_vlebdXdX_3orVrXr1qu1e3B	126:wei4
+0.19	595209f4	302	oVsavtWc-dbHfXXOes9Ynqb719-Wjrl798Gfr1Yf3_Yft61X3WB	13:di4,158:wei4
+0.20	022aca67	194	apu313nRf_vlebdXdXj3orVrUr1qu1e3B	118:wei4
 0.21	2057b2e0	4	C	
-0.22	72e08452	576	ov5dv_lb8rrti1ur-71feV1YrxjflxVbNd6r1mUN2u69tt6tjjS11etuta38yo7td8Wf_qe-Wjq513pVj3fbF3fG7M294ftS	22:di4,74:dong1-xi1,102:di4,134:wei4,209:di4
+0.22	72e08452	576	ov5dv_lb8rrti1urm71feV1YrxjflxVbNd6r1mUN2u69tt6tjjS11etuta3Myo7td8Wf_qe-Wjq513pVj3fbF3fG7M294ftS	22:di4,72:dong1-xi1,100:di4,132:wei4,207:di4
 0.23	f4dcb68f	182	EtWDM-dqu3_q9vt_sVttulu1uVX39qB	
 0.24	23ddbc64	5	E	
 0.25	7f1ab1bf	313	YPQXBasgr2RruS0oRnD9uq22YBRPWcn1Wt2WbtaWvVr1aMrpNtFr	
 0.26	2bef80df	123	Ycjq1qWbdMugq4arytUFD	
 0.27	d9f8e6cf	236	4qKW14Cjvsdba1y2qGXUtWtd702S17Vto15X7YbB	24:wei4
-0.28	ad4d41f4	307	49QPbcVVcDd1WTprxv0q6Vr1hU9qttq1pVtum2YdDLoHv7ta9vu	89:wei4
+0.28	ad4d41f4	307	49QDbcVVcDd1WTprxv0q6Vr1hU9qttq1pVtum2YdDLoHv7ta9vu	87:wei4
 0.29	9abb5b0b	2	A	
 0.30	f2421980	164	U6ZV2qSn222udbaJIWFi_u2tL7sB	
-1.0	3e0a35a7	274	K8Urm2eX7_duVxtyvj3bh31-btmfYrm05JddsVXjbc9_3H	
+1.0	3e0a35a7	274	K8Urm2eX7_duVxtyvj3bh31-btmZYrm05JddsVXjbc9_3H	
 1.1	c13cdcee	2	A	
 1.2	28c9a78f	302	Mxq1vy1ev63rVVfW992b1662f_a3aXt-ut6xt3WbtVbfe9WN2WB	
 1.3	a61ca423	245	WxXruNO64lg2hbbX93q7mr1tVrta1pGasvfHF0UTL	69:wei4,118:wei4
@@ -5338,31 +5483,31 @@
 1.5	ccb2e2cf	98	W5WbyULbpptert3SB	13:wei4
 1.6	1b02f40d	4	A	
 1.7	88014c76	127	Ertq01cjfFtXGXxXTGoNl	
-1.8	50479f6e	139	2WbfrpXTLh1_mZu9mre3-tz	79:wei4
+1.8	50479f6e	139	2WbfrpXTLh1_mZulmre3-tz	77:wei4
 1.9	d45c68e0	4	A	
 1.10	2078f0a1	33	swa-dC	
 1.11	417b9d6c	43	MzMzMzM	
 1.12	fcbff732	7	M	
 1.13	63d4f825	9	zA	
-1.14	b4bed788	307	4frZz9zM_jVtSzud2YzzMzcX3GrdrZmZ6ct19c6sattKN-nmiWr	
+1.14	b4bed788	307	4frZzNzM_jVtSzud2YzzMzcX3GrdrZmZ6ct19c6sattKN-nmiWr	
 1.15	b0fdfc04	108	W5K-Nrq6siysAzKwuV	
 1.16	f4b8eca3	6	Y	
-1.17	77719b78	255	p2WxadvvffV1-_F1a1ygx1rjztWbu2u11a2bbVbbfrC	
-1.18	b1b16607	186	1qG_3aeXlb7VtV7mNzW6t6NWrqdrutV	
-1.19	df7495c2	138	ljPujpaVV3a7mx1rU_ax6WX	
-1.20	039ce4f7	223	a9aVrr2NuUrTtq30rqxoVtxVNauX_LXer5Kzy	18:di4
+1.17	77719b78	255	p2WxadvvfTV1-_F1a1ygx1rjztWbu2u11a2bbVbbfrC	
+1.18	b1b16607	186	1qG_3aeXlb7VtV7mNzW6t6NWrqRrutV	
+1.19	df7495c2	138	ljPujpaVV3a7mx1rUzax6WX	
+1.20	039ce4f7	223	aMaVrr2NuUrTtq30rqxoVtxVNauX_LXer5Kzy	15:di4
 1.21	eb474ae5	13	as	
 1.22	7ffd80b0	93	Y0SrV1OLvj1q4opD	
 1.23	c86d4be1	707	iWVrWTbXXLtNeXbbtSRatrq0sxEQLvdlBf1MGjTRhuyV9Vm2NSa5IRLHJ0yFzYsKG-VDdFG_qw4XU12arWbtzqa0671qUVN-qi6rV33bte9Fbtx5qNGbbN	
 1.24	2539b325	222	aBWgFYBeCsLHbFlxrVUWjvAxqiWR6mq5YtrAf	
-1.25	655b0f9a	274	1q2ybN8WssWbxaVNdrLbraVvYvvOSKDrjtVL9ddLMf3qtG	24:di4
+1.25	655b0f9a	274	1q2yYN8WssWbxaVNdrLbraVvYgjOSKDrjtVLdYdLMH3qtG	22:di4
 1.26	7cfc40ae	4	C	
-1.27	56e15493	178	o141S36tWMNtU-vMj_r9_fsfbltpdF	9:wei4
+1.27	56e15493	178	o141S36tWMNtU-vMj_r9_YsfbltpdF	9:wei4
 1.28	1f98951d	190	atq6V3qX9tab7aD3wdgbgrBM4abbmWVF	
-1.29	eb989231	215	rxVp99Ozsr3eXrKzW2sXjfaZr1ZNWrWTjOrK	
+1.29	eb989231	215	rxVp99Ozsr3eXrKzW2sRjfaZr1ZNWrWTjOrK	
 1.30	76a4d0ea	52	N-dtqxaWF	
-1.31	2fb66b05	155	Wj3qGXr3aJdqqattmxbpW12elL	
-1.32	4efd71ea	94	0p7aUtqV3iuutaLF	
+1.31	2fb66b05	155	Wj3qGXr3aJdqqastmxbpW12elL	
+1.32	4efd71ea	94	0p4aUtqVxiiutaLF	
 1.33	5320af0a	2	A	
 1.34	9da8d2ef	279	imK4XxbF8YVwrCeqgXFeZuMvtuK4qmUT1R1db4r4q2sxsCD	
 2.0	cc32d956	202	Yr1tYUTtWTVfcbVrNeVD3-bs1mjma8VeVF	
@@ -5374,37 +5519,37 @@
 2.6	67970c1e	9	7B	
 2.7	91763ae7	64	0qVr32v3rWF	25:di4
 2.8	cbb2f594	4	C	
-2.9	a7a10a0d	225	1TX732nv1q_p_W1W3bv1_6taXbfVdtaNelX3fD	144:wei4,151:wei4
+2.9	a7a10a0d	225	1TX732nv1qzp_W1W3bv1_6taXbfVdtaNelX3fD	142:wei4,149:wei4
 2.10	b480d348	96	UvJXrqla6qVrprWV	
 2.11	6f5d22d2	2	A	
-2.12	78e80532	122	WH_WVvu27VfdjH9usqeRB	41:di4
+2.12	78e80532	122	WH_WVvu27VfVjH9usqeRB	41:di4
 2.13	c843bac2	208	oV2sZsSVF_pjbVRFa1uFLtapRtoWxUv6rTH	
 2.14	ceffa605	445	qRdFeJOWtaVLmaUnu00atattHIdZm70qv6ue1uqWwiVrWt1qVr-q40q2VrYF41YrHfNv69r313	25:wei4,78:wei4
-2.15	3ab01ec0	123	4ftK1aNPXMtWr9qVz12_C	
+2.15	3ab01ec0	123	4ctK1aNPXMtWr9qVz12_C	
 2.16	079108b0	2	A	
-2.17	84fd374d	433	oWdq94ZmZrs_r7xSWNN1MzKLdtazcpxn63L2StHbX9ssWXPm1NvZeXVps-_LzLjrbU1iVWqi	169:di4,201:chang2
-2.18	cf703f87	228	SjNVpX7prrWZY5s7VvasWa6VX1atpVZ-dvx4eV	
+2.17	84fd374d	433	oWdq94ZmZrs_r7xSWNN1MzKLdtazcpxni3L2StHbX9ssWXPm1NvZeXVps-_LzLjrbU1iVWqi	167:di4,199:chang2
+2.18	cf703f87	228	SjNVpX7prrWZY5s7VvasWa6VX1atpVZ-dpx4GV	
 2.19	bd387bb1	169	qaWNOd1TVLf33ftKr22Gfbbmtt1o	
-2.20	88c702f5	554	a8EhRaOmx0TGLZsM2qO2SGHryYtUy6sy43TzkYstLj3qib29pU1StxuZB94dvVr_1tacsSWcsrZsMe7q0x0ZNprdvy2KB	269:wei4,280:di4
-2.21	a44b61e8	100	yqt2mq_3_syWtrt2F	
+2.20	88c702f5	554	a8EhRaOmx0TGLZsM2qO2SGHryYtUy6sy43TzkYstLj3qib2doU1StxuZB94dvVr_1tacsSWcMqZsMe7q0x0ZNprdvy2KB	265:wei4,276:di4
+2.21	a44b61e8	100	yqt2mq538syWtrt2F	
 2.22	7b3e303a	147	uik11mquGpWRradUrWFQrXVlC	
 2.23	d504ab52	2	A	
 2.24	5a599c0a	37	WVr1al	
-2.25	81f8bd67	560	qVN2uSjX92bbN6ctWxXV5vNrW1triGve_ubjr04qVr1atW7bV04qWLXt4Yh3qxr7WVtVxcUpd1qaLq-s62t25S9fp6v_pB	
-2.26	3d4bfb94	281	addVr616t-qsutuadab9qXXv69-VZdvuesr0WprX_edveqL	90:wei4,140:wei4
+2.25	81f8bd67	560	qVN2uSjX92bbN6ctWxXV5vNrW1triGve_OYjr04qVr1atW7bV04qWLXt4Yh3qxrDWVtVxcUpB1qaLq-s62t25S9fp6v_pB	
+2.26	3d4bfb94	281	addVra06t-qsutuadab9qRXv69-VZdvuesr0WprX_edveqL	86:wei4,136:wei4
 2.27	742a3d37	2	A	
-2.28	8bf0960b	259	RryaVxlXlXR8q4V0q__leppmqZ3qVVbr0xrsW1hXpxx	
+2.28	8bf0960b	259	RryaVxlXlXR8q4V0qx4leppmqZ3qVVbr0xrsW1hXpxx	
 2.29	9d2bde5d	2	A	
-2.30	98426b32	268	2r2613W9ybl3_zv__tt1_zqfz17WNft21LWrR18TV-XVF	
+2.30	98426b32	268	2r2613W9ybl3Mzs__tt1PzqTz17WNft21LWrR18TVOXVF	
 3.0	ebe31195	84	EN-2Ej9advKTPd	
-3.1	240dbb41	86	arhT04abtrt7bPB	
-3.2	3689888a	349	KVrmr22u8R14yaTto22ryFiHzxJvbqxzq5W1WtOjXpajj9f9M0qor4raWr	
+3.1	240dbb41	86	arhT04abtrt7YPB	
+3.2	3689888a	349	KVrmr22u8R14yaTto22ryFiHzxJvbqxzq5W1WtOjXpajjNflM0qor4raWr	
 3.3	da6def79	161	a7Tj6m9ix4V7qo0b72actasA4yK	7:di4,41:wei4
 3.4	e9b27cfb	8	vA	
 3.5	668b5670	71	3q22W9dUbMrK	
 3.6	39b67a98	225	r-_3btXX13m9_X_bb3Uc_3V3r36W_2fX3vetzC	
 3.7	93a92faa	142	7__urzq7811-r7V9tVbrtZ9H	
-3.8	cd29d64c	109	2_9t-VraX9ttap-vq_	
+3.8	cd29d64c	109	2n9t-VraX9ttapysq_	
 3.9	e26b0e61	4	C	
 3.10	6375ab20	166	q27td3XdtrW1atVt1t-Wp18Z37XF	
 3.11	be4a07f4	139	f92_v_vK_f_7_v_3-V_32br	110:wei4
@@ -5412,8 +5557,8 @@
 3.13	89650dd0	2	A	
 3.14	0dac6213	154	2r1aaVrsej1dta1qJ22rrqFv6F	
 3.15	4d452520	4	C	
-3.16	9fb3f78b	267	n_30v16bdv262NX81x9-f97c9_Xrq2qt-1aXefZcBwotC	88:wei4,101:wei4
-3.17	8e758350	214	f16er2Vr__v5__2qWtV9bt3xeVbv9fW83WbE	
+3.16	9fb3f78b	267	n_30o1Kbdv262NXk1x9-f97c9_Xrq2qt-1aXeRZcBwotC	81:wei4,94:wei4
+3.17	8e758350	214	Y16er2Vr__v5P-2qWtVNat3xeVbv9fW83WbE	
 3.18	f5d5cf59	4	C	
 3.19	f7bccc0c	257	KGbvHt-7rWr46a_77ar9_37W7zvlpbdcr-qNmXvuWrK	60:wei4
 3.20	11bdf070	145	q2dtt1a1-__eqR97_b9vV1Vr	84:wei4,93:wei4
@@ -5435,9 +5580,9 @@
 0.5	fc2ea218	81	1uaj35er675vnD	
 0.6	015df553	145	aV0Bvu7uD4ta3drZru73Rtxw	
 0.7	544463ed	2	A	
-0.8	49e1929d	171	d9Hva3-e76b9972_u92_m16ttVzfD	
+0.8	49e1929d	171	d9Eva3-e76b9972_u925m16ttVzfD	
 0.9	4fe97ad1	2	A	
-0.10	c619db1f	198	1N33bL0aVLtqqrGX-s1r1_7WtX11db1uf	
+0.10	c619db1f	198	1N33bL0aVLtqqrGXCs1r1_7WtX11db1uf	
 0.11	5291e105	2	A	
 0.12	08e63a5c	133	dfWZ7W33q18fX9qr2-9Y9l	
 0.13	47b117c9	139	v7N9vpu1919cfP3suu_73u-	1:huo2
@@ -5507,15 +5652,15 @@
 0.0	2607af4e	59	W7q2ttr9eP	
 0.1	a1b6025c	112	W1-ttZbXbbrrttxVFIF	
 0.2	6263a62a	4	A	
-0.3	d9f14712	199	KHve9__1r270_W_tdr12a9-t9___rrVr7	
+0.3	d9f14712	199	KHvel__1r270_W_tdr12a9-t9___rrVr7	
 0.4	b9ac0291	121	qxuqafd76v2Wr7ttr2-u	
-0.5	8d13e904	183	qW7Vttf3Vjf9_l6q7tX1r1YXrXtarbD	
-0.6	e9f42092	99	oFVftPa19r7vHv_uC	
+0.5	8d13e904	183	qW7Vttf3Vjf9_l6q7tX1r1YXrUtarbD	
+0.6	e9f42092	99	oFVftJa19r7vHv_uC	
 0.7	7c93283c	145	412qqdrtWbbbb20mNbbsZrdr	
 0.8	cc06a3c3	2	A	
 0.9	c9621bd5	335	rFvvrqdjqVr3q2Wv9tt9VbsaX33f7___-_8_v9_514VP9l3etmWjWqqL	150:xing4
-0.10	19bef658	277	SF_uc3etVN1u6e3OqrqvWVbtlpWtuatW1qqt1rvnq1ep-3	
-0.11	115f74f4	193	qtVrqdtbfXddVrVTNvq3669NrTmatq1q	
+0.10	19bef658	277	SF_uc3etVN1u6S3OqrqvWVbtlpWtuatW1qqt1rvnq1ep-3	
+0.11	115f74f4	193	qtVrqdtbTXddVrVTNsq3669NrTmatq1q	
 0.12	591d442e	7	a	
 0.13	21dc4e72	387	W7dtr2Wtr1uW361qb12aNWr1uFbstXXri1uad1d9GrVr3or2W16utm9qVjDk1U91C	
 0.14	f17c16cc	3	A	
@@ -5533,7 +5678,7 @@
 0.26	fadfb08d	3	C	
 0.27	f3aa82b8	77	WbvzP_v_u69rL	
 0.28	67cdb9d6	2	B	
-0.29	5c7de204	110	Vttz__36__8y7N117aB	
+0.29	5c7de204	110	Vttz__06P_8y7N117aB	
 0.30	69d17a87	2	B	
 0.31	d0d2e648	28	6araF	
 0.32	7af6989b	4	G	
@@ -5553,13 +5698,13 @@
 0.46	a253b65a	4	G	
 0.47	d6ba3e57	35	2___9P	
 0.48	ad0c9475	51	rGr72nf-D	
-0.49	49b9181c	43	rGjbbzn	
+0.49	49b9181c	43	rGjbbzm	
 0.50	249ebd5c	31	rt_tt	
 0.51	9ec88168	28	rGrbF	
 0.52	df324fff	35	fttzML	
 0.53	1ae9aa8e	14	LuB	
-0.54	6e8c68ec	26	rt8fB	
-0.55	73c03edf	28	-q19F	
+0.54	6e8c68ec	26	rt8bB	
+0.55	73c03edf	28	-q1tF	
 0.56	d867381f	32	v226MB	
 0.57	ae1eeda7	2	A	
 0.58	f3314d49	118	a5x36__r12ttVttx12rF	
@@ -5576,107 +5721,107 @@
 0.69	f2c9014b	53	e3f1263dL	
 0.70	53832146	49	Wbtuabbr	
 0.71	59456b1c	2	B	
-0.72	f709dab9	257	vVtZ7_97qqvqr7z7_9vnvXNv17z__9Xrr6tq_n____P	35:wei4
+0.72	f709dab9	257	pVtZ7_97qqpqr7z7_9vnvXNv17z__9Xrr6tq_n____P	33:wei4
 0.73	6ae9e9da	2	A	
-0.74	00628123	312	pratxmtq_f14q6Vtr_tWX1e679x7_1d841_7__7909-7Xz659__f	
-0.75	73a00124	108	6________f_7MzmZmZ	
+0.74	00628123	312	pratxmtq_f14q6Vtr_tWX1eK79x7_1d841_7__7909-7Xz659__f	
+0.75	73a00124	108	6MzM_8zM_fz7MzmZmZ	
 1.0	4850829c	2	B	
 1.1	b6d645c6	68	p1__77z_37_B	
-1.2	46364b03	117	6_____37__97______9D	
+1.2	46364b03	117	68z8zP37Mz97___7__9D	
 1.3	6d34dd49	2	B	
-1.4	b8b731f5	55	vzWve91_5	
-1.5	70e07d5a	63	6MzMz7____D	
+1.4	b8b731f5	55	pzWve91_5	
+1.5	70e07d5a	63	6MzMz7P___D	
 1.6	58ad2ab3	2	B	
-1.7	5901070d	81	vbr37__n____3D	
+1.7	5901070d	81	pbr37__n_n__3D	
 1.8	83ed8080	77	6MzMv___-__3P	
 1.9	ef32ff53	2	B	
-1.10	69f0a1d5	38	v177__B	
+1.10	69f0a1d5	38	p177__B	
 1.11	cf67b164	39	6MzMzMD	
 1.12	46525a46	2	B	
 1.13	ca431c4d	90	vb369_7_3v____d	
-1.14	db3572d5	27	6___D	
+1.14	db3572d5	27	6P_PD	
 1.15	941b8557	2	B	
 1.16	70f3a9fa	33	v177_D	
-1.17	3e92af06	23	69_N	
+1.17	3e92af06	23	6N_N	
 1.18	ed736d63	2	B	
 1.19	8f730f7e	27	r1v_D	
-1.20	dcb35aed	15	6_D	
+1.20	dcb35aed	15	6PD	
 1.21	9286fbc9	2	B	
-1.22	80270d22	37	v1777_	
+1.22	80270d22	37	p1777_	
 1.23	78c3573d	2	B	
-1.24	aa02bce3	7	v	
+1.24	aa02bce3	7	p	
 1.25	b7227072	2	B	
-1.26	e2d56e97	34	p1f-_H	
+1.26	e2d56e97	34	p1fm_H	
 1.27	c6befcfa	13	6_	
 1.28	94f81d9e	2	B	
-1.29	2796c21c	83	prqatW3r___8vP	4:wei4
+1.29	2796c21c	83	prqatW3rz8zMvM	4:wei4
 1.30	e1d807c0	32	6___3B	
 1.31	7a392e4b	2	B	
-1.32	526d5b1a	22	p1_H	
+1.32	526d5b1a	22	p15H	
 1.33	1b1c21b8	43	65____-	
 1.34	9ffa996f	2	B	
-1.35	f9a06cd5	41	pVrv-_P	
+1.35	f9a06cd5	41	pVrvOzM	
 1.36	74c2e1de	25	6597	
 1.37	c6c4a5f3	2	B	
-1.38	de0bbe0a	39	v1___vD	
+1.38	de0bbe0a	39	p1___vD	
 1.39	9e637ddb	2	B	
-1.40	cfad6c61	70	v1____9_-d_H	
-1.41	a0d99b34	237	69_3__773_7161___f6______X_f__nn3__fvr_D	100:di4
+1.40	cfad6c61	70	p1_nf-9_-d_H	
+1.41	a0d99b34	237	69_3__773_7161___f6______X_f__nn3__fvrnD	100:di4
 1.42	f45da609	2	B	
 1.43	4d93f4fc	19	p1z	
 1.44	14a18391	2	B	
-1.45	74cd359d	35	v1_u_P	
-1.46	1a39b2a3	61	677_7_z_z_	48:geng1
+1.45	74cd359d	35	p1_uZM	
+1.46	1a39b2a3	61	67777_z_z_	47:geng1
 1.47	fe652fe3	2	B	
 1.48	54dc9dce	34	v1ZmZG	
 1.49	ca59a0ec	27	69_7D	
 1.50	7a392e4b	2	B	
 1.51	10a0add0	7	r	
 1.52	6d34dd49	2	B	
-1.53	3785d590	102	v1__xHrFX1V2___rX	
+1.53	3785d590	102	v1__xHrFX1V2zMzrX	
 1.54	538f2b75	2	B	
-1.55	79bc18af	7	v	
+1.55	79bc18af	7	p	
 1.56	78c3573d	2	B	
-1.57	e2c4a36f	7	v	
+1.57	e2c4a36f	7	p	
 1.58	78c3573d	2	B	
-1.59	1ccd6e59	7	v	
+1.59	1ccd6e59	7	p	
 1.60	f2b618ff	2	B	
-1.61	bc4e960e	22	v1_H	
+1.61	bc4e960e	22	p1ZG	
 1.62	0c0d9055	2	B	
-1.63	f41b1131	22	v1_H	
+1.63	f41b1131	22	v15H	
 1.64	a7345178	27	6__nD	
 1.65	950b83ad	2	B	
-1.66	660937f0	7	v	
+1.66	660937f0	7	p	
 1.67	291291e6	2	B	
-1.68	48e7f109	17	v1P	
+1.68	48e7f109	17	p1P	
 1.69	3156b606	12	6d	
 1.70	c0ef73db	2	B	
-1.71	5cad71a9	34	v1_n9H	
-1.72	c3ce822e	31	6__7_	
+1.71	5cad71a9	34	p1Zm9H	
+1.72	c3ce822e	31	6_57_	
 1.73	2b74e642	2	B	
-1.74	3a83704c	36	v31f9e	
+1.74	3a83704c	36	p31Z9e	
 1.75	140de3a0	2	B	
 1.76	f59b2d40	27	v133D	
 1.77	146176bc	1		
-1.78	d1c2f467	15	6_C	
+1.78	d1c2f467	15	6nC	
 1.79	8f69ca9b	2	A	
 1.80	42ec55fa	68	atu2rWH3K-aB	
 1.81	cd931687	55	Mq2St_aLe	15:wei4
 1.82	4101cf7d	7	6	
-1.83	59bcaa43	11	9P	
+1.83	59bcaa43	11	ND	
 1.84	cf829d00	4	H	
-1.85	dd896e52	11	8P	
+1.85	dd896e52	11	MD	
 1.86	33eba07b	5	L	
-1.87	c5b11dae	52	__f3___zH	
+1.87	c5b11dae	52	P_f3P_PzE	
 1.88	c8928ae8	4	G	
-1.89	ba5cf972	15	M_D	
+1.89	ba5cf972	15	MzA	
 1.90	d3de6311	4	A	
-1.91	d3414953	28	oi5_B	
+1.91	d3414953	28	oiZmB	
 1.92	b33a2913	28	IiZmB	
 1.93	7115e543	4	C	
-1.94	0ca560ac	29	_rvWJ	
+1.94	0ca560ac	29	8rvWJ	
 1.95	7b6ac617	4	H	
-1.96	38047891	50	va__Wj1eB	
+1.96	38047891	50	va_nWj1eB	
 1.97	2dfd7a70	17	vfK	
 1.98	e5659c33	6	P	
 1.99	17acf0ef	42	33WbbNT	
@@ -5713,7 +5858,7 @@
 1.130	ba3baca9	18	XrW	
 1.131	a11a131e	84	WPltra11VbdvsX	25:wei4
 1.132	13584122	4	C	
-1.133	4e900f4a	26	-a3tA	
+1.133	4e900f4a	26	ma3tA	
 @wiki-luotuo-xiangzi
 0.0	c334312f	392	xVsGjbjVWRRri1YVtLG3Vfv4fHrl2atjdXXtW1qVr1qtjb716qart6Rz7troVrVMbB	
 0.1	d9514dff	2	A	
@@ -5746,9 +5891,9 @@
 0.28	70fe801c	121	qWc1W1aN-a9ab9b7er_q	
 0.29	aef5d90b	239	xVb3r1a3_V7e__v23_vv212Gb9xqXsb__1dd7atL	
 0.30	93b3665a	2	A	
-0.31	9f0b3f12	212	0xxWx7RfNutWX1a3ftbH31Oat3mVTHXtVFzB	
+0.31	9f0b3f12	212	0xxWx7RfNutWX1a3ftTH31Oat3mVTHXtVFzB	
 0.32	62f73a11	2	A	
-0.33	9dac8e34	374	x-_Xrf2eM2CYGXXt2iV1eddfl1kWv2Vn_mraVPjhVNOlWAjrUlptvwA_VAzHGXB	
+0.33	9dac8e34	374	x-_Xrf2eM2CYGXXt2iV1eddfl1kWv2Vn_mraVPjhVNOlWAjrUlptvwAzVAzHGXB	
 0.34	ae470b2e	4	C	
 0.35	791f7ed2	34	xbtNrF	
 @wiki-pingpangqiu
@@ -5759,14 +5904,14 @@
 0.4	e29c4fdd	153	5d7YszyDemx2O2eet291Vv6b3C	
 0.5	4fe97ad1	2	A	
 0.6	9c26efc7	92	rRbxXr2WHG8adwgB	
-0.7	c6661364	243	6UbVjXtk1Sm1Ub3S744SafcX7uVt9t1u2ct7VZ3_C	47:wei4
+0.7	c6661364	243	6UbVjXtk1Sm1Ub3S744SafcXjuVt9t1u2ct7VZ3_C	47:wei4
 0.8	4d2d1a3b	28	0YrUE	
 0.9	9a93d63e	2	A	
 0.10	b9c25178	103	W9arXdaxDvuL1q_2q	
 0.11	4de12b17	350	2QrtK2ertfVXfr397WV9P9qX_a1Vfret6qXvqWt1d3uv-_Vd9X7e_dXb9iB	
-0.12	f1bf785f	213	01V1vWv2SrtW34_aN23cAufX7611LM02wQbD	
+0.12	f1bf785f	213	01V1vWs2SrtW04_aN23cAufX7611LM02wQbD	
 0.13	3c9e02d2	4	C	
-0.14	7ea6eb78	140	q72ua1K2261bW9rXremttd1B	42:wei4
+0.14	7ea6eb78	140	qj2ua1K2261bW9rXremttd1B	40:wei4
 0.15	ebf6bff5	4	C	
 0.16	4c8ce074	31	0ab_1	
 0.17	1223594b	4	C	
@@ -5775,7 +5920,7 @@
 0.20	b873a0fc	77	evatqt6v99u2K	
 0.21	74be6d50	94	212YraVta9-vvf_H	
 0.22	4770b355	9	-C	
-0.23	3bde80e9	246	GYcttu_00_9Xt9r_3uuu-_b_306ab1rp1yWD2qeve	
+0.23	3bde80e9	246	GYcttu_00_9Xt9rm3uuu-8b_306ab1rp1yWD2qeve	
 0.24	81a710df	68	Ggx9tddvtuXB	18:wei4
 0.25	dadf4bd1	4	C	
 0.26	e729417d	59	Xbuaf9bzVL	
@@ -5823,7 +5968,7 @@
 0.68	961a462b	8	SA	
 0.69	2f00022d	7	k	
 0.70	d438f500	14	CkA	
-0.71	13e3e4fa	15	uuC	
+0.71	13e3e4fa	15	ouC	
 0.72	2cd76d1b	46	SLZykpOF	
 0.73	7288f9a3	14	USA	
 0.74	a0ae298a	10	QC	
@@ -5833,63 +5978,63 @@
 0.78	2ed6d10f	15	6rD	
 0.79	ee7f79be	8	SA	
 0.80	cc06a3c3	2	A	
-0.81	75255a13	3	D	
-0.82	7a783c8f	3	D	
-0.83	222f38d2	3	D	
-0.84	df56ba79	3	D	
+0.81	75255a13	3	A	
+0.82	7a783c8f	3	A	
+0.83	222f38d2	3	A	
+0.84	df56ba79	3	A	
 0.85	620abcda	3	B	
-0.86	c4ec8910	3	D	
-0.87	320ada9a	3	D	
-0.88	dc380459	3	D	
-0.89	5da8e7f0	3	D	
-0.90	18160a34	3	D	
-0.91	d5f50455	3	D	
-0.92	ec53d37f	3	D	
+0.86	c4ec8910	3	A	
+0.87	320ada9a	3	A	
+0.88	dc380459	3	A	
+0.89	5da8e7f0	3	A	
+0.90	18160a34	3	A	
+0.91	d5f50455	3	A	
+0.92	ec53d37f	3	A	
 0.93	5ffcbea4	2	A	
-0.94	4fc47c02	5	P	
-0.95	72d000fd	5	M	
+0.94	4fc47c02	5	A	
+0.95	72d000fd	5	A	
 0.96	f089857a	4	H	
 0.97	b93567bd	3	C	
-0.98	7b36ad80	3	D	
-0.99	204b9e26	3	D	
-0.100	585e6ce2	5	O	
+0.98	7b36ad80	3	A	
+0.99	204b9e26	3	A	
+0.100	585e6ce2	5	A	
 0.101	bf0b3afb	4	C	
-0.102	42e273af	4	G	
-0.103	34eae5ca	4	G	
-0.104	b98b14c8	4	G	
+0.102	42e273af	4	A	
+0.103	34eae5ca	4	A	
+0.104	b98b14c8	4	A	
 0.105	9d941fdb	4	G	
-0.106	abff144a	4	H	
-0.107	9e7730d9	4	G	
-0.108	3d519430	4	H	
-0.109	7d569ddb	4	G	
-0.110	4c7d9fec	4	H	
-0.111	5852a8d4	4	G	
-0.112	2f9a16c4	4	G	
-0.113	09c6a65f	4	G	
-0.114	a45530ef	4	G	
+0.106	abff144a	4	A	
+0.107	9e7730d9	4	A	
+0.108	3d519430	4	A	
+0.109	7d569ddb	4	A	
+0.110	4c7d9fec	4	A	
+0.111	5852a8d4	4	A	
+0.112	2f9a16c4	4	A	
+0.113	09c6a65f	4	A	
+0.114	a45530ef	4	A	
 0.115	304b4ebf	4	H	
 0.116	c00693cb	4	H	
 0.117	0eefc334	3	A	
-0.118	b9cafe13	3	D	
-0.119	f3b93916	3	D	
-0.120	615c6747	3	D	
+0.118	b9cafe13	3	A	
+0.119	f3b93916	3	A	
+0.120	615c6747	3	A	
 0.121	6332f23b	2	A	
 0.122	e2e48ebe	3	C	
-0.123	080f0c18	3	D	
-0.124	f8d219c1	3	D	
-0.125	e1bda0fa	3	D	
+0.123	080f0c18	3	A	
+0.124	f8d219c1	3	A	
+0.125	e1bda0fa	3	A	
 0.126	9eed8eb6	3	D	
-0.127	5279dd20	3	D	
-0.128	8c0c354f	3	D	
-0.129	aa08d8a6	3	D	
-0.130	8c40475d	3	D	
-0.131	efd02f11	3	D	
+0.127	5279dd20	3	A	
+0.128	8c0c354f	3	A	
+0.129	aa08d8a6	3	A	
+0.130	8c40475d	3	A	
+0.131	efd02f11	3	A	
 0.132	3b5f168f	3	B	
-0.133	ece39040	3	D	
-0.134	ed1416ec	3	D	
-0.135	9e0cf4ed	3	D	
-0.136	bd5802bb	3	D	
-0.137	fac3d520	3	D	
+0.133	ece39040	3	A	
+0.134	ed1416ec	3	A	
+0.135	9e0cf4ed	3	A	
+0.136	bd5802bb	3	A	
+0.137	fac3d520	3	A	
 0.138	09b0687b	2	A	
 0.139	328e68f6	10	bA	
 0.140	312cba9c	7	M	
@@ -5910,7 +6055,7 @@
 0.155	a6ecdcd4	2	A	
 0.156	e563c3d3	8	GA	
 0.157	96b20b1b	3	A	
-0.158	04d2bcdd	3	D	
+0.158	04d2bcdd	3	A	
 0.159	1ef6cd56	2	A	
 0.160	968408ec	6	M	
 0.161	be738ff3	2	A	
@@ -5922,16 +6067,16 @@
 0.167	0b45e8c0	4	C	
 0.168	bd28a68e	29	0lmaM	
 0.169	fe6bb7b2	4	C	
-0.170	00b6d09c	175	oXtKfld722K_q16Rj7bXr-u2Carfj	
+0.170	00b6d09c	175	oXtKfld722K_q16Rj7bXryu2Carfj	
 @wiki-taibei
 0.0	3547a6fe	155	sOmtaVvpdXysbeMGeUHtnWL3sM	
 0.1	d05acdc4	266	qttitL2uj1q1rY7X9YRPZbsrOWXjNrVbbbrXV24sqxGeB	
 0.2	48675671	11	6I	
-0.3	88f6c43e	288	Ss32aSsX22v9t7Y2b26SrzAA212a_pfA2rZv1urbNbtPbrrX	23:di4
+0.3	88f6c43e	288	Ss32aSsX22v9t7Y2b26SrzAA212azpfA2rZv1urbNbtPbrrX	23:di4
 0.4	e82556df	11	4I	
-0.5	58bb53d7	156	Gv-ofdNu_v_6_XfbfjvX17d7qV	
-0.6	02c36ba1	194	qt122cyqaVvazdtajq_r-7arrrvvlrVvB	48:di4,76:shuai4
-0.7	a32b1554	152	Y9laltt24VjabuVrx1b_n3q1aB	
+0.5	58bb53d7	156	Gv-oZdNu_v_6_UZbcjvU17d7qV	
+0.6	02c36ba1	194	qt122cyqaVvazdtajq5r-7arrrsvlrVvB	48:di4,74:shuai4
+0.7	a32b1554	152	YNlaltt24VjabuVrxVa_n3q1aB	
 0.8	49349cf9	11	4I	
 0.9	57edd3da	482	4Y0126W7zbvCLmdWjHV7uaZ61e7q6urXVbVb1aVttta1Urd0701qx4WWrqNrre9t1ratbUjjqpaa2eXVB	101:di4
 0.10	8be89733	115	YvWnr91vWtWrjoseWMq	
@@ -5940,7 +6085,7 @@
 0.13	008ea817	3	A	
 0.14	b0d74cb8	100	4PNj_nv9tkt7We8lE	
 0.15	38077767	118	oRtqpa9qtGLaWHr1V11F	
-0.16	7cbb3471	352	4dKutttttv1lm2Wr1aY1qabmV3qadVtVN7eTtVjVGrGryqd1SLLT9q1rluG	
+0.16	7cbb3471	352	4dKutttttv1lm2Wr1aY1qabmV3qadVtVN7GTtVjVGrGryqd1SLLT9q1rluG	
 0.17	301c0102	24	4K1S	
 0.18	df53de50	2	A	
 0.19	e469303a	157	m6Ng4SDgYzlmZb7bb7b39ULvt-	
@@ -5960,26 +6105,26 @@
 0.33	d45c68e0	4	A	
 0.34	c29ef424	120	q1LuqavLOMW0N72y2xsS	
 1.0	71908c0f	196	4GdKzjN9puabb7774P9L6kx_yv7vk29KF	
-1.1	11e0511e	189	4cu2mZuZmZmZ2Xn7rZ-a-mUmm3zvNzUC	
+1.1	11e0511e	189	4cu2mZuZmZmZ2XnbqZmammUmm3zvNzUC	
 1.2	f8f3af8c	140	xft14Vtb_uar-aVdl1qO2TdB	
 1.3	1f36bed2	3	C	
 1.4	96be0ac8	200	2pWdl2KuNeXbjtbrWbd3-72a9l35K_W7rB	57:dong1-xi1,117:dong1-xi1
 1.5	ec88053e	4	A	
-1.6	a6714252	479	qFrrstbV7q1mNsVrabXxeSt9qerev3q2_uK_1X3ua31staa1Wvab4dr1tWpJ3uddtitj7-eV_v6YruzK	
-1.7	b430b20c	759	WtWtuGt1Wtx21q9qadbbXqVba1aVtraNW9qsWxtyV1a1191ux1sVtbrVrWbt1alav0sK762qrVb1SraZ4YrVralVV1t97WFzrq60rrz0qqt7q-78OUqT3Vt2_f88qmC	
+1.6	a6714252	479	qFrrstbV7q1mNsVrabXxeSt9qerev3q2_uKz1X3ua31staa1Wvab4dr1tWpJ3uddtitj7-eVfs6YruzK	
+1.7	b430b20c	759	WtWtuGt1Wtx21q9qadbbXqVba1aVtraNW9qsWxtyV1a1191ux1sVtbrVrWbt1alav0sK762qrVb1SraZ4YrVralVV1t97WFzrq60rrz0qqt7q-78OUqT3Vt2Df88qmC	
 1.8	7abaa158	346	t0pq2fnXt6adx1qraabaZ1brmvqNtqNrGHr6yadLat2YtrqrVtota1riqF	
 1.9	14b45a43	283	6Sv13ltq312226qlpbruKv35a2ed9UO2Vt1qdd9q2a1dd37	
 1.10	481bfa8d	313	4lSTa1tttuNrdrVbdLtWvud326qpRr1qb9aVdsmVrdV7Ud_uua1m	
-1.11	b7db55e2	401	qrr1WdbrruqsqFv2uquNbX6uq5b7f70mXrrmbrWzdWfVr13aVVNva8bV282etb9e0HK	
-1.12	04fb3c65	785	uxGesbXnW3a19jtWb1zV9q242WF3W91u2V7trdd7rtttddut32qvmKataXXVVdvWsXaGPg1fdTd7u67__Vr6atWvttqVcrVt2fNat72drWtq1e72_u3f_Vtt7dvVvWPV3VK	107:di4,158:dong1-xi1,188:dong1-xi1,273:jin4-ke3-neng2,330:di4
+1.11	b7db55e2	401	qrr1WdbrruqsqFv2uquNbX6uq5b7f70mXrrmbrWzdGfVr13aVVMva8bV282etb9e0HK	
+1.12	04fb3c65	785	uxGesbXnW3a19jtWb1zV9q242WF3W91u2V7trdd7rtttddut32qvmKataXXVVdvWsXaGPg1cdTd7u67__Vr6atWvttqVcrVt2fNat72drWtq1e728u3fzVtt7dsVvWPV3VK	107:di4,158:dong1-xi1,188:dong1-xi1,271:jin4-ke3-neng2,328:di4
 1.13	288017b7	5	A	
 1.14	4b2fd9ee	317	QnFHvatuFDAf0WVFtNV78uvllXt6rvp6X_q62Gq1tyapqlZeV11yK	
-1.15	5c66e9be	567	Qty2VXbb16W-3-7Wtatt3tzqdvVT7rq6291qrbt_W7K9q6dr392VrxWd1aqtV1ttvarxqd4-H7vOVtW7z6Q16rtt1rVsdjC	247:dao3,275:dao3
-2.0	3ddafd59	718	wqnVV71rdUbb71uuad71YP114u3bb3xZ9VWvatqHd7Xv21761VX2a7fYTd1apO3L7YL2s-WuVbSvOavZzfbVtjzevJr16qd1S12s3V32m1tbrrVrVdtuaVzF	36:dong1-xi1,97:di4,100:di4
+1.15	5c66e9be	567	Qty2VXbb16WG2G6Wtatt3tzqdvVT7rq6291qrbt_W7K9q6dr392VrxWd1aqtV1ttvarxqd4-HLsOVtW7z6Q16rtt1rVsdjC	239:dao3,267:dao3
+2.0	3ddafd59	718	wqnVV71rdUbb71uuad71YP114u3bb3xZ9VWvatqHd7Xv21761VX2abYYTd1apO3L7YL2s-WuVbSvOavZzfbVtjzevJr16qd1S12s3V32m1tbrrVrVdtuaVzF	36:dong1-xi1,97:di4,100:di4
 2.1	964902cb	2	A	
 2.2	37a51680	118	SrLqasaVtVdNVVpt2VdF	
 2.3	dac13d73	155	2ar1WjjaLKq1VrubpabW9t2YtK	6:wei4
-2.4	d4eff545	535	ojVb1V1T3Il2qspcrrq32qGN6a0Vfd1rHVtpWsa_7u-Wrpd1tWrNqurppGHb1quglW1rfvWsGdav2qW1qR1004d39	239:di4,280:dong1-xi1
+2.4	d4eff545	535	ojVb1V1T3Il2qspcrrq32qGN6a0Vfd1rHVtpWsa_7u-Wrpd1tWrNqurppGHb1quglW1rBvWsGdav2qW1qR1004d39	276:dong1-xi1
 2.5	5320af0a	2	A	
 2.6	75940e54	73	ibWnHjDvyu64	
 2.7	f540dcdf	201	Mqa-uRXqradtYVrNW15WtSMdTLrbO_N1rC	
@@ -6002,34 +6147,34 @@
 2.24	2567e0af	378	ETrGeGeHeyTjTOa0gFrbxRXDu1bne1sra207nV1W3s2MUXtr2KfsrYqZr4RV9bd	
 2.25	18737a60	424	EbYrhbf7r526a3aCvWT84tW3sWv7j3-LWaf7KrNVWHh-rEO2X27Yf9EeLs_Tbs3UGvs2X7H	
 3.0	ea77ca28	2	A	
-3.1	3c507f5c	234	UvZ2setYTdt2att6WOvWNVf7frz9VMX32oLXr1R	
-3.2	b0cb29c6	394	qarWt2qWGwasew3axlFWGW9WNzs12VrZ1Jer0YFtVcrWW7K0J4rbTU3Ybpd_YrZX2F	
+3.1	3c507f5c	234	UvZ2setYTdt2att6WODWNVf7frz9VMX32oLXr1R	
+3.2	b0cb29c6	394	qarWt2qWGwasew0axlFWGWNWNzs12VrZ1Jer0YFtVcrWW7K0J4rbTU3Ybpd_YrZX2F	
 3.3	89650dd0	2	A	
-3.4	3801f573	169	qVs1aaleJrrZ_uu61qq1m-ve7UNr	
+3.4	3801f573	169	qVs1aaleJrrZzuu61qq1m-ve7UNr	
 3.5	10f95111	118	UUN2a16GL2K200qVtTrG	
 3.6	d7c88a8b	88	cb1S7aVrVNz6qNF	
 3.7	17b635a5	7	G	
-3.8	2b62e665	249	2oVsWrVrWtqfbrqV3LWb1er2-y6Ftoralbtt5722qD	
+3.8	2b62e665	249	2oVsWrVrWtqfbrqV3LWb1er2wy6Ftoralbtt5722qD	
 3.9	80297307	304	i10tq-2qNzUF6Vx6atc1WX72a520v26adttptVrtvrww6b8qVrF	
-3.10	725d59ce	92	mK6tWVV2dtbNvqlB	
+3.10	725d59ce	92	mK6tWVV2dMYNsqlB	
 3.11	ec64caad	4	C	
 3.12	cb8e6b2d	295	syalFWpb1tnVvq22tWerswll1ywKbta2WarU0a3o1b-MjNvav	127:di4,142:di4,162:di4
-3.13	919e153a	216	admVWVr6a9sqXtua9ls8mPLLus0FVu64VdWd	
+3.13	919e153a	216	admVWVr6aNsqXtua9ls8mBLLus0FVu64VdWd	
 3.14	555ab24c	4	A	
 3.15	6b6c5761	65	sWV3W06WraP	35:di4
-3.16	0cd1e826	208	qh63Kts6a1ahtq6r61W0u1tvyt2aN_M2m0H	90:wei4
+3.16	0cd1e826	208	qh63Kts6a1ahtq6o61W0u1tvSt2aN_M2m0H	87:wei4
 3.17	c3d15ec7	266	YV1VtyM1tqGj2atRNtuv5vqdttdt6v92qWnVWaPmUvSNB	
 3.18	7fffe1e1	201	JneUtovh3PXrxmzc-J3pNbPnd3Yb2pvrTD	
 3.19	77b249aa	2	A	
 3.20	37efe82b	159	U1WVb96Wr1a8drtqVtrabczVVtC	20:di4
 3.21	c1913173	253	2qevdq6qdpX1bZ7qqbr_2a17c1Vt2bNdFrt1Vtt6Fq	121:di4
 3.22	c7381bdb	185	btGbtqtXb18tsW5rq5z2dLZ1S91p3sO	108:wei4
-3.23	b92c513e	146	KZsp731aq21VtxbvVt-_ubreB	
+3.23	b92c513e	146	KZsp731aq21VtxbvVt-_ubrSB	
 3.24	4e2769cd	4	C	
 3.25	5a0c8f6f	233	iiZ16zGtKVtfv6quNrqG1K1qdtqWNqVV7opW11M	
 3.26	a33bef54	538	axgxpWxxfqBj2lVrr-11oD4O6AmXwYFO-VHgGM6irqodRrx7isYMc7Hzrtqd76dX42Gjx2erbL6207FMWFtrKbTtXF	10:wei4
 3.27	cadb87e9	4	C	
-3.28	f1c94983	269	qdbTv3q171qr6_mftattrd9v-WV7V5cLter2pdZd1r1bN	95:meng3,96:zang4
+3.28	f1c94983	269	qFbTv3q1b0qrKDmftattrd9v-WV7V5cLter2pdZd1r1bN	85:meng3,86:zang4
 @wiki-taifeng
 0.0	1f540c10	79	YDYg1tputna1r	
 0.1	15de213e	4	C	
@@ -6070,9 +6215,9 @@
 0.36	930a8ac3	31	ZtR1m	
 0.37	cfb8f605	5	G	
 0.38	4c32aef8	39	Ej14iWD	
-0.39	d6d006e6	179	Ydttt17tty1WvbtQL2ohvqjb1ijGHP	
+0.39	d6d006e6	179	Ydttt17tty1WvbtQL2ohvqjb1ijGHJ	
 0.40	b66f2eca	14	xjB	
-0.41	08c962d7	97	iquitdsYKvjdbs44	17:wei4,41:wei4
+0.41	08c962d7	97	iquitdsYKvjdbs44	
 0.42	cd62187f	8	aB	
 0.43	943667b6	77	YdrG7qqpdMsbN	
 0.44	15c103e7	212	r2op12e1vf1x4WNmXGXlq6ui9M2afXtZ5K2B	
@@ -6097,14 +6242,14 @@
 0.63	eaae29dc	4	F	0:wei4
 0.64	4c0ccce4	1		
 0.65	2ea086e4	39	DAeA8wD	
-0.66	00d5a07b	20	Z9nB	0:wei4
+0.66	00d5a07b	20	ZdkB	0:wei4
 0.67	e40c292c	1		
 0.68	e60c2c52	1		
 0.69	380cad68	1		
 0.70	e30c2799	1		
 0.71	f30c40c9	1		
 0.72	3721ac5a	26	DA-3B	
-0.73	ebba1d8d	61	uatq_57rVx	2:wei4
+0.73	ebba1d8d	61	uatqH57rVx	2:wei4
 0.74	898ab396	66	wuuXrPtWjrV	7:di4
 0.75	c3a71142	192	tqWtavq25q1Xttb712O1aht2ermZpmNV	
 0.76	11a4347f	187	w1WtGrdoa7r9a7uCfhit3eXVhdG9Ojv	
@@ -6173,7 +6318,7 @@
 1.59	7faa535a	4	C	
 1.60	eb4694be	305	aX1GwAwAAGs4qqjFt1RtBMwADW8ruqRVrotW1jNqhXvzom6yYsK	62:wei4,97:wei4,110:wei4,129:wei4
 2.0	977f4e49	4	G	2:di4
-2.1	e4d281a7	190	a8qab1Xb321K2XbNasn2XNasGdG9tVlF	
+2.1	e4d281a7	190	a8qab1Xb321K2XbNasnWWNasGdG9tVlF	
 2.2	e19715b1	23	qNaN	
 2.3	2cacfdc5	6	J	
 2.4	2b36a3b1	214	aVtNbbz3rYs2YWM0WTFjyalGbstj26Nqu_oE	
@@ -6200,7 +6345,7 @@
 2.25	1f42f39f	5	E	
 2.26	9fe5cd0b	84	tWGVrbfdssGLbR	
 2.27	938606a1	9	qB	
-2.28	b811cc9f	120	6-KWbsMaVPea_dtWlfZZ	
+2.28	b811cc9f	120	6-KWbsMaVPea5dtWlTZZ	
 2.29	b0b305d0	4	C	
 2.30	1b777141	88	oVrW9WXv1iP2-vF	
 2.31	bc750c80	31	SH3a7	
@@ -6226,13 +6371,13 @@
 0.0	8a2cba56	156	M2-KLDtSZZlSqWayzus2swNuqV	56:wei4
 0.1	3860c447	218	4TbsS0VvvZ1rkNLriRvCEHVjRLTcyupSVc5KB	
 0.2	18ef9567	2	A	
-0.3	8deb9ec1	164	sY71ete3a3e7_9_-_let7VpH7lUB	28:wei4
-0.4	df46a2b2	40	4prxqjF	
+0.3	8deb9ec1	164	sY71ete3a3e7_9_-_lSp7VpH7lUB	28:wei4
+0.4	df46a2b2	40	4poxqjF	
 0.5	057a94b9	259	4UkLtacL76vplSjTjlWd1az5Z8tIT8Rp2kG7pvyyYVq	122:wei4
 0.6	24d3b066	2	A	
 0.7	fa3aa3a6	184	4zmSrku1Wbb6qFr2qqVru9VbrMzq12G	
 0.8	2963439a	138	W0atv1c-au33atu___ars0S	
-0.9	c0b70e90	179	svvqVvdrIertZ9VlRvZVH0arVbaaWL	36:wei4
+0.9	c0b70e90	179	svvqVvdrIertZ9VlRjZVH0arVbaaWL	36:wei4
 0.10	52415807	2	A	
 0.11	793a9e90	179	KlU78ed66uVP7aVtirNb0rTd18sF7N	
 0.12	102a1ee4	146	0q776xVX9qVR1uVR96qMqddgB	
@@ -6255,12 +6400,12 @@
 0.29	64200822	70	Y7AKKghiWfrE	
 0.30	47c74b17	17	4KF	
 0.31	2edd48a6	6	C	
-0.32	17f29f85	427	UrmSdbN2naVsls-qWvarSzqr2q9JFaa1dfd2rkVZV7z6v2mdx2dFXzat3WKr17660v3WVlq	
+0.32	17f29f85	427	UrmSdbN2naVsks-qWvarSzqr2q9JFaa1dfd2rkVZV7z6v2mdx2dFXzat3WKr17660v3WVlq	
 0.33	9a9b3b1a	92	aXanLWd8cmHgB2YB	
 0.34	d2374f5d	5	E	
 0.35	e4febd2c	2	A	
-0.36	8bba7ade	272	U11_qqX_-tt39z-7--139e2a6rv91U9v9fT-RXajY_KTrB	6:wei4,63:zi3,79:wei4
-0.37	f0fb6f79	92	svl-W-Z3u-7Ws6aB	
+0.36	8bba7ade	272	U114qqX_-lt3lz-7--139e2aKrv91U9vlfTyRXajY5KTrB	6:wei4,57:zi3,73:wei4
+0.37	f0fb6f79	92	svl-W-Zwu-7Ws6aB	
 @wiki-weixin
 0.0	fb95b239	139	2grxbPaBmBGGGgRsW32YNtp	
 0.1	2aa3a57a	203	qWttXbt2VbpWrtbt1qZZfL1tSVdrYtK2qI	
@@ -6358,7 +6503,7 @@
 1.16	4d6849d2	72	4Plala9arrtV	
 1.17	ab12a58b	116	oTqMwsxfrxXErWUVbHJB	
 1.18	89fd4e52	7	0	
-1.19	b9c23150	543	qYr34lTjyt2OXj313QV3tVXIbpWV3qr8sqWpUMbjRXq-7X9frr3d6rar3tZr2Xf8ULbn6W_eb1uq5n19r6bVXt2nOqC	
+1.19	b9c23150	543	qYr34lTjyt2OXj313QV3tVXIbpWV3qr8sqWpUMbjRXq-7X9drr3d6qar3tZr2Wb8ULbn6W_eb1uq5n19r6bVXt2nOqC	
 1.20	9b1a8af1	6	K	
 1.21	02d125cb	564	CYqV1W1Wtq1qt1atdFz62IUFoaroG7qPXtqGXs14HpouGFrV1cXb0tYtr10dVcXBr2W1oAtiqXrdvycZg5qK3aVeru-2VX	
 1.22	b3be2172	265	4dNQjKQrVQr6rVKw9iVtdY2uV1dtsvGW1arL7tVreWd3	
@@ -6368,7 +6513,7 @@
 1.26	01b33767	197	4bGaFXt3qqphhRNraj7Cg2otUaVt0Vr1K	
 1.27	06a4ddf7	66	OeX9e1qZYtW	
 1.28	701c8b23	5	A	
-1.29	9839280f	247	2o40W1erCrtXd7Wr3otWHr3W92uNy-7qrtar1ue3q	65:wei4,146:wei4
+1.29	9839280f	247	2o40W1erCrtXd7Wr3otWHr3W92uNy47qrtar1ue3q	65:wei4,144:wei4
 1.30	ea22a6aa	334	Y7q12Sbt-Kt1tt29s6qx7qd7K1q1Wtt2qSjrq6q1uW1Qrf7iF2jxVhFH	
 1.31	709b8021	77	49l672qVv9-6N	39:chang2
 1.32	8cc3a4f7	390	49Z1V921ab1rbbt66rr2b1W7e1f11Sv61evajvSdX31a7W_61r1dXbbdbrtr2q1qa	
@@ -6384,7 +6529,7 @@
 2.9	d74b276a	19	4tW	
 2.10	95a33ea8	316	4ttu1tV9V9W76qVtvWFUV7q2V1atqm6WV92qareUt2q19qe1tqiWF	169:wei4
 2.11	86edab7f	9	SB	
-2.12	1e0561c5	313	4rqM2y8ibcaXdZVbfd_coWrrVVTrm1_Gruqh1RzsaL1ucrNtqVbr	
+2.12	1e0561c5	313	4rqM2y8ibcaXdZVbfd_coWrrVVTrm1_Gruqh0RzsaL1ucrNtqVbr	
 2.13	ccaf2b8c	4	C	
 2.14	0fd285f7	69	4vs1Wrez3yrD	
 2.15	054e79ce	109	YX1zs2qKrLDMAMYtV1	
@@ -6394,7 +6539,7 @@
 2.19	b4905531	185	4WZZAD6WlrdtWcr9o94XFtXtGvrqb7K	
 2.20	4154f6ea	67	4tVa1W3qva3	
 2.21	953ce638	80	4dtarWutWt13uB	
-2.22	8bc2e946	117	4fRVZ12-IgFyqV9qr2qC	
+2.22	8bc2e946	117	4fRVZ12yIgFyqV9qr2qC	
 2.23	ef6cb4e9	129	Y7qul2qSv22bXV9qWtVtrC	
 2.24	c129bc3e	114	Y7qabnqq6I91raX8q2V	18:wei4,42:wei4
 2.25	1858c42d	76	Y3qpRfP2grV3F	
@@ -6414,12 +6559,12 @@
 2.39	fa403e27	107	4vS1qWtC3evcX1WraN	18:wei4
 @wiki-yao-ming
 0.0	e6a390c1	182	GvvMWZJruVNblVNTbedGYYcrrrUtVQB	
-0.1	474a5599	166	qGM36jSu21YT-8tKt0V64ruZFLPF	
+0.1	474a5599	166	qGM36jSu21YT-MtKt0V64ruZFLPF	
 0.2	19df9a72	232	2ZtbLNuq1KNeX1Y7KNjvG04vTZ2UTlvOqsGbXBF	
-0.3	af28b929	49	Wl27LbQm	1:wei4
+0.3	af28b929	49	WlG7LbQm	1:wei4
 0.4	0cd4d804	10	aC	
 0.5	00d91bd8	238	4tVJVvt3qx7tN-dl1d6qFpt-9249ds2qbj37VLXF	
-0.6	ad819e81	383	6ab18WX1qu_76-aXf2Ztq5Ubr_26mx4e3s_e79MGd6uUW3WjRZurcdxx2zz4bttL	237:zhong4
+0.6	ad819e81	383	6ab18WX1qu_76-aXf2Ztq5Ubr_26mx4e3s_eb4MGdKsUW3WjRZurcdxx2zz4bttL	231:zhong4
 0.7	542a4f53	160	GrefW1b6Y01Xv5bsOttrrbLXzdF	
 0.8	ed2adf17	7	S	
 0.9	5eabb408	128	425Vx0vW1AMYuebdVrG3WB	
@@ -6427,13 +6572,13 @@
 0.11	74632aeb	256	Gn60V7K7vWV1yUtbmqq0ql20adX_rXrze16uqXTVddF	
 0.12	a81b9a81	99	xcr0FoVW92masxG0C	
 0.13	0f74138f	9	YB	
-0.14	23982f8a	337	quVF7xWZdNjBuZMYrULTmWrX9rZY4uN1Rub7ev3716fb7d1v-rT10b23	97:chang2,169:zhong4,175:zhong4
+0.14	23982f8a	337	quVF7xWZdNjBuZMYrULTmWrX9rZY4uN1Rub7Yv3716fb7d1v-rT10b23	97:chang2,167:zhong4,173:zhong4
 0.15	8b6e7a03	273	mZAGc64dM3rhBAA4XVtxTd3ublOr3q1ra2WfuTdtW12s2C	
 0.16	8b59fa7e	121	exmZ9apmZY1VlqWrV9S1	31:wei4
 0.17	cc1690d4	429	3jJrabt--zXXO92K7araVt2erVWLjVVlWtWtZrakRLrUtt2W1q20xZv9IHe9vVba0obtdlgD	
 0.18	5cf51510	177	xsVr-WcnZrd2WryEdGGzcRV24u-tqC	90:de2
 0.19	aac0d197	9	YB	
-0.20	381163bb	321	N1NNY1tusZMDrpa9uaXjvovv3V748Grq6OOTPtta1xa9VWPf37KdzC	
+0.20	381163bb	321	N1NNY1NosZMDrpa9uaXjvovv3V748Grq6OOTPtta1xa9VWPf37KdzC	
 0.21	dfea8d10	221	xl5qm2sV5RvZXz22WnZe6tVrOw9dX74MPucTK	
 0.22	17fb88cf	9	YB	
 0.23	e7e504e1	521	YPdvbZYnxMri5_-673ZIedt31G_l1KAbbWTr3l520vtK1Oef0d138b97YydXtUmSu9rtrnKL3zt6TT3XXcmx2bL	249:zhong4
@@ -6518,7 +6663,7 @@
 1.69	2488d123	4	C	
 1.70	98772ba3	100	4d91ub1qNtrt3WrrE	47:di4
 1.71	82ca5f29	3	A	
-1.72	778fa382	59	eNtxbh_KrL	
+1.72	778fa382	59	eNtxbhxKrL	
 1.73	96024b83	4	G	
 1.74	02a3f703	65	eDjbXtt7rVL	29:jiao1
 1.75	925dd05e	100	v9M2M3z0wADgVvoaF	
@@ -6529,25 +6674,25 @@
 0.3	8df25111	215	RNWtNu1xHMr2rtN4bbjW9gZNVr-w-A7H7t-K	
 0.4	9e6a633d	149	VHrBzX9qe1T9q-71e8j9bP-VL	
 0.5	039f940c	2	A	
-0.6	d5b6294e	184	q16tL214jaVZVtu17RtUtWNqWt11tfF	
+0.6	d5b6294e	184	q16tL214jaVZVtu17RtUtWNqWt11tcF	
 0.7	ac01bcda	101	62q2r2uVX9acsqWHL	
 0.8	51a6d752	2	A	
 0.9	0095565a	52	i9V18e_aF	
-0.10	407e5edf	129	9t7jX3qrr7adLWvbXbf9xC	
+0.10	407e5edf	129	9tLjX3qrr7adLWvbXbf9xC	
 0.11	639dded5	133	f1H_ar6a1Wv24q2GX161_u	
 0.12	31f1f976	114	6i1urdri11Wt93sXUnV	
 0.13	efdbaf8b	2	A	
 0.14	89be5617	71	oW16Vb7Yb6RL	
 0.15	6439721c	109	oGbdrOrmtWju2102Vs	
-0.16	8d835d8a	169	ouWXtat7Vt21ffzVrqtdsus1oZ1q	
+0.16	8d835d8a	169	ouWXtat7Vt21fczVrqtdsus1oZ1q	
 0.17	47d0770c	6	K	
-0.18	10914d83	132	YVbrqhRjaL2drnbUclt11S	
+0.18	10914d83	132	YVbrqhRjaL2dLmbUclt11S	
 0.19	8caf6a8b	134	ecxutastu9x6mvi3m7W9NWB	
 0.20	002b5059	39	2W7HLuC	
 0.21	517dc129	110	6bsyqpuPWteLWb1xmFB	
 0.22	76acdcb6	2	A	
 0.23	3d0c0fdf	75	4St-6qlqf9_4C	
-0.24	1104dad4	135	uA6txY7vXajLG_uuu4X1-rC	
+0.24	1104dad4	135	uAitxY7vXajLG_ouu4X1-rC	
 0.25	ed2e0b9e	5	G	
 0.26	ef496f80	92	YZXt1rbb7_qq1XbB	
 0.27	51054824	42	t-Xb9aR	
@@ -6595,7 +6740,7 @@
 0.2	5c119b14	115	uuvvuW_-_618d-L6-6_	11:wei4
 0.3	7bb5ed3d	144	39t39f_Vfv71-e3-q1cf1W6W	19:zhao1
 0.4	15c9a9de	286	q_vV7t1bNWjt-_9ft9d_v7rdt19rev8u_13ratr-ub1d1u7H	160:wei4
-0.5	88185a77	331	ZX77VHNtr21o1-2V1ezau-TXVtrrr13-vvu9Vm2uqrdLtqXr1etH792	
+0.5	88185a77	331	ZX77VHNtr21o1-2V1ezau-TXVtrrr13-vvu9Vm2uqrdLtqXr1etG792	
 0.6	dfc64214	4	C	
 0.7	b8972a95	84	sadtvlV7re1uWf	
 0.8	d7a8914f	276	ctdV7b7Wr9tttstttXX7ZvtWbrrbtqNjp25v1Z7bu167Xf	
@@ -6604,13 +6749,13 @@
 0.11	c79b9288	84	aat_-_2bf7vW7e	
 0.12	a059f745	175	9sderVtWXbbfaXtvaVvbtv7tWz7_v	3:di4
 0.13	45cb59fe	74	1a-3dt6V32veB	
-0.14	7fc7f80c	93	Ntqt623rz-rWX33C	12:wei4,26:wei4
+0.14	7fc7f80c	93	Ntqtq23qz-rWX31C	12:wei4,25:wei4
 0.15	19237f16	242	VdtatW33W8t1TXT3L2er2b79v7G3stdrts1pfrXtB	47:wei4,143:wei4
 0.16	2607c121	2	A	
 0.17	04e76334	264	0bd3bXL-_7a_2ervZbr_t3v9avqddtf7Gs2ed1d1k11W	
 0.18	d85c914c	322	yq6rSzfN-u2s209TrXrar-erW8VrulqubzuqxmTrrar2Wr2qVz3qrF	
 0.19	909e901e	2	A	
-0.20	7121b7c7	284	es1tKN_pb3t-Vt6sarrvWbFWvSr1qO7aUrLe9tlZbdVt2uXB	40:wei4
+0.20	7121b7c7	284	es1tKN_pb3tOUt6sarrvWbFWvSr1qO7aUrLe9tlZbdVt2uXB	40:wei4
 0.21	4651c658	8	MA	
 0.22	2ec72727	205	MmtibVprtsr5rVnWr1suvbzy2Vtd3a9Wbv	
 0.23	7d882b79	42	SzYPVuW	
@@ -6642,14 +6787,14 @@
 0.0	16b3a3bc	8	uA	
 0.1	c1a982a6	137	abVXlVvRrtucXurSbt7hr2K	22:wei4,72:wei4
 0.2	44c3afa9	103	4VtWT2XWqL_e3y0qr	3:wei4
-0.3	f8c6714c	608	W1qZpVb1rdbUVlPzybatLL7bVltqWrevVbVXzpq1emd1yqnWN1atsreNt4yW8VVaXm1q62fFXxlLdPEbcjWTqzu9brWF7Xdtr3a1UB	
-0.4	c5078f1e	564	9wp6bquUNNan8bWU-9Tje-WUHv641qdtqbVrquu_KdcpaKeV1taXrqacmycepV3uOtmRltV1WrRlmq_OFr7SusHNVqzatX	
+0.3	f8c6714c	608	W1qZpVb1rdbUVlPzybatLLbbVltqWrevVbVXzpq1emV1yqnWN1atsreNt4yWcVVaXm1q62fFXxlLdPEbcjWTqzu9brWF7Xdtr3a1UB	
+0.4	c5078f1e	564	9wp6bquUNNanEbWU-FTje-WUHv641qdtqbVrquu_KdcpaKWV1taXrqacmycepV3uOtmRltV1WrRlmqjOFr7SusHNVqzatX	156:wei4
 0.5	7e9c9afc	86	_ePztVf1ytq6WbB	
 1.0	2843b831	10	uB	
 1.1	6b00d8a4	281	qxs6apNu214atppb3t08Wsla5Te3qN9lHrxsX3Uf9q2NenK	
 2.0	f279baa9	9	eD	
 2.1	44d1a358	159	27Gb8tTZu-6sq27atnrWe1tuV1C	
-2.2	4056d3e3	267	u1dblZ1dd_q5n6rlTX7abuVLv-drruVr3VL_q9bt110qC	49:wei4,94:de2
+2.2	4056d3e3	267	u1FblZ1dd_q5n6rlTX7abuVLv-drruVr3VL_q9bt110qC	47:wei4,92:de2
 2.3	cdb8f1f5	249	dZtq2s756trz1e_6Kzbuq873q1qqtlVWlvrvpfftdD	
 2.4	c4f7bee1	255	Pbuatl-3Wry2r3T32VrK7-c7JLd3Xb1qV3rat6rK3vC	132:wei4
 2.5	2b21980d	295	r52qWWrut22tbW1dV12u1OW1uvrW91tt4VvrW1-3W1r6muXb3	
@@ -6667,7 +6812,7 @@
 3.11	eed5de09	156	e_aPVL3bvr1_VvrW9srWbTZpqV	
 4.0	f8a3b63b	7	u	
 4.1	4f32bdc5	203	t0WV_atebfv__71Xf9arVVb7_tWXbt22VL	49:wei4
-4.2	49bbcaf3	275	6a7rqvrudrW7_3f_2Xt1v-j9-vve1u1r1161e31v2v9V3K	79:wei4-ming2,135:wei4
+4.2	49bbcaf3	275	6a7rqvrudrW7_3f_2Xt1v-j9-vve1u1r1161e31v2v9V3K	10:shuai4,79:wei4-ming2,135:wei4
 4.3	acf5bf18	226	r-_rr7_7____t2qdv3d7t2433fj1qu3-_9Kf9H	10:shao4,152:wei4,170:wei4
 4.4	8554a1aa	129	etb1XXtrrZt6q-rfr9123C	78:wei4
 5.0	4e8c42a2	10	eH	
@@ -6697,9 +6842,9 @@
 8.1	7a38a47d	115	aKabb1sXsv_ft_28yYp	24:di4
 8.2	8054a943	154	7rd3bndf7VtfnftuFvWF76ra_G	
 8.3	423366e1	83	av3K9v__3_uf9M	44:zhi1,50:zhi1,56:zhi1
-8.4	b94491de	131	XrdbdrVr7q1r3e_qTTrbtO	44:wei4
+8.4	b94491de	131	XrdbdrVr7q1r3S_qTTrbtO	44:wei4
 8.5	e9b19356	20	_3bB	3:zhang3
-8.6	9e6c1224	140	Ut56tdbbxW1qq_nVttqtpdbB	
+8.6	9e6c1224	140	Ut56tdbbxW1qqfmVttqtpdbB	
 8.7	9d7c70cb	127	3c3vt97t20q1Fz2UVuadr	
 8.8	0b1ab6e6	99	6bfe9X__271W1svrC	
 8.9	d189ebe2	74	-6V5-X6Xlt-KB	21:di4
@@ -6712,18 +6857,18 @@
 9.5	60b713fa	316	quax61-eddVtW9eVrvWbVbFtav2qqVtpteb3V1dbtttruqetX1WrF	12:di4
 @news-aozhou-aizheng-juji
 0.0	8874a737	14	x2B	
-0.1	1da82853	36	Po3-UV	
-0.2	9c46797a	82	bst_pqVdt3qqVF	
+0.1	1da82853	36	Po0OQV	
+0.2	9c46797a	82	bstfgqVdt3qqVF	
 0.3	0ddfed68	52	Wr6WrVfXF	
 0.4	2a291ebf	108	2VVT_b7tq1Wtd7Vtud	
 0.5	c6bd1bbb	93	tarxWrt2fdruuqbD	
 0.6	aa421943	40	6q1uW7F	
 0.7	99f1c74d	61	0t9rxa1dXr	
-0.8	c1d7df0a	48	T9Ur682V	
+0.8	c1d7df0a	48	TNQr682V	
 0.9	a7582fec	76	WbV962TbrXrWF	
-0.10	59e0f24e	159	1T77arXtnev92rxyuVvbt33VrtC	
-0.11	010e1984	65	2vtqP-qx1qL	
-0.12	70a4b295	90	VXV1rKzv1q9Hj7Y	
+0.10	59e0f24e	159	1A77arXtBev92rxyuVvbt33VrtC	
+0.11	010e1984	65	2ptqP-qx1qL	
+0.12	70a4b295	90	VXV1rKzp1q9Hj7Y	
 @news-aozhou-shemei-jinling
 0.0	3ea3d8e3	14	x2B	
 0.1	96b5bae2	106	oq1aRFtFb7YMq56YbF	
@@ -6750,8 +6895,8 @@
 0.1	fb2949d0	98	oPxScGDsFsmu-sieB	
 0.2	3d72b917	62	svrmWtLuVrB	27:wei4
 0.3	2a41aeef	165	sWVvebd7nqNwYMwNqpa047__v2nC	50:wei4-ming2
-0.4	b9d95cf8	164	046Ub8xjpnr1UrXL3K3biN7cdmVB	
-0.5	fd986886	114	1pErunstt_hHc1qapYV	
+0.4	b9d95cf8	164	046Ub8Rgpnr1UrXL3K3biN7cdmVB	
+0.5	fd986886	114	1pErunsttnhHc1qapYV	
 0.6	4fcf3bf8	93	k4V_2a7qtb3qtbsC	13:wei4
 0.7	39dba44b	158	me7Or-rnWvanXMvb3c0q6Wt2fYB	
 @news-liuyang-yanhua
@@ -6769,7 +6914,7 @@
 0.3	0f37e55b	20	21qB	
 0.4	8650abdc	144	M-9bpWr9rvd1axr1quu1o_uV	
 0.5	6e8369b3	21	at3C	
-0.6	513ea565	174	Me38-e43WvqvarO3d9q1u9ZbVr21W	
+0.6	513ea565	174	Me38-eI3WvqvarO3d9q1u9ZbVr21W	
 0.7	0292872c	28	2t-qG	
 0.8	2d78165c	122	Mei27WtWd9q10qFXdr5WB	
 0.9	9afe18fc	31	2Vva1	
@@ -6788,10 +6933,10 @@
 0.22	02d9fc6e	151	MuqtWxqqq9uUdVdtaX2SVte36	
 @news-nba-dubo
 0.0	be5661b1	14	x2B	
-0.1	0d99de70	146	Y7CzqVtcrk0jBMwpaGGcTthhB	
+0.1	0d99de70	146	Y7CzqVtcrkUjBMwpaGGcTthhB	
 0.2	4cf7185f	18	VrX	
 0.3	945a369a	328	2qqTrx3pm1-Wd1qe1Nrtupad9xPU022eXbveZGM8HvXot1vaXVbmBGG	
-0.4	c58da2e5	394	2y1WtpMJxOWKNwRD40Ab1WKXTlaP_zuur3Vf1W2Wdrre9tOt2qb1U161tYN6aVt5VF	32:wei4
+0.4	c58da2e5	394	2y1WtpMJxOWKNwRD4wAb1WKXTlaP_zuur3Vf1W2Wdrre9tOt2qb1U161tYN6aVt5VF	32:wei4
 0.5	59d66586	244	aptjdNtGV3P_2HAwH9Gfl-2Wr744mGX5YcqN24ySF	
 0.6	471d045c	420	YuqVvanOXbwgjX6u2Wb1W1pe83yqulaVNN1uUZ3m30jBrm9iarlV1qUV7oGrpeqVG7t6WR	
 0.7	34e6382d	62	GTV7UdtO6rB	
@@ -6815,7 +6960,7 @@
 0.9	a4a063b8	120	86agOA0qrsbtbxtzm26R	
 @news-shijieyu-huang-yinbao
 0.0	1191c0ed	14	x2B	
-0.1	223402f6	204	5qd940mE7Xrbx7l2A2WXvlWssdr163UbpW	
+0.1	223402f6	204	5qd940mE7XrbR6l2A2WXvlWssdr163UbpW	
 0.2	163af692	26	3SbtB	
 0.3	df045546	142	rWj9B0t0-cb8b2ruSDo9NrtF	78:wei4
 0.4	b796e1a6	82	ufzf6brft3T1WH	
@@ -6890,7 +7035,7 @@
 0.18	74019965	60	tWLWv1a1Vb	
 0.19	458b6d4b	86	THWpWX2qfP8KvzB	
 0.20	79099077	147	bVfVjWrquq9WLvVr1nrWbtWtC	
-0.21	71449433	115	VrTru0v6qbV__Wv2oar	
+0.21	71449433	115	VrTru0v6qbV5_Wv2oar	
 0.22	440dfc06	41	adnrLtK	
 0.23	55988c1b	17	aoF	
 0.24	23303244	133	V0W7N21U7iXgttqW72bjXt	
@@ -8609,7 +8754,7 @@
 2.234	37c4ff50	8	tB	
 2.235	8a5e6be6	10	3H	
 2.236	c1359fc2	15	WuC	
-2.237	633c97ae	23	t_vK	
+2.237	633c97ae	23	t5vK	
 2.238	5fa338c0	22	WlVF	
 2.239	e584b6ba	6	W	
 2.240	c90bbbb9	19	ab3	
@@ -9342,7 +9487,7 @@
 4.110	57aac5a9	14	X2B	
 4.111	9bbcba23	21	z3zC	
 4.112	500a3986	8	rB	
-4.113	6bd35fe6	13	3j	
+4.113	6bd35fe6	13	0j	
 4.114	287a47d8	9	AC	
 4.115	48fdd272	10	nG	
 4.116	b7bd2a09	11	vK	
@@ -9462,7 +9607,7 @@
 0.52	177dac58	21	_zdD	
 0.53	68a5446b	14	tcB	
 0.54	d9aacef6	14	q6B	
-0.55	1d496ed1	24	9raT	
+0.55	1d496ed1	24	BraT	
 0.56	ff503902	7	_	
 0.57	c79dfa5e	35	Vt221L	
 0.58	101be54d	10	7G	
@@ -9952,7 +10097,7 @@
 1.174	3821cf8c	7	u	
 1.175	b5aea74d	6	X	
 1.176	a465942b	7	t	
-1.177	a3548ec1	51	alatzW16D	
+1.177	a3548ec1	51	alatzW1KD	
 1.178	3def5841	12	aR	
 1.179	8b2dab31	8	WB	
 1.180	52f60579	16	r6F	

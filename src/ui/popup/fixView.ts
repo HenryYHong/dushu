@@ -46,9 +46,10 @@ const cp = (s: string) => [...s];
 const places = (n: number) => `${n.toLocaleString('en-US')} place${n === 1 ? '' : 's'}`;
 
 /**
- * Saves `fix` (or several, as one change) and says so with Undo (which puts back the fixes they replaced, or takes them away).
+ * Saves `fix` (or several, as one change) and says so with Undo (which puts back the fixes they replaced, or takes them away, and
+ * runs `onUndo`).
  */
-export async function saveWithUndo(ctx: AppContext, fixer: Fixer, fix: Fix | Fix[], said: string): Promise<boolean> {
+export async function saveWithUndo(ctx: AppContext, fixer: Fixer, fix: Fix | Fix[], said: string, onUndo?: () => void): Promise<boolean> {
   const list = Array.isArray(fix) ? fix : [fix];
   const was: (Fix | undefined)[] = [];
   try { for (const f of list) was.push(await fixer.save(f)); } catch (e) {
@@ -57,7 +58,7 @@ export async function saveWithUndo(ctx: AppContext, fixer: Fixer, fix: Fix | Fix
   }
   ctx.toast(said, {
     ms: 7000,
-    action: { label: 'Undo', run: () => { void Promise.all(list.map((f, k) => { const w = was[k]; return w ? fixer.save(w) : fixer.remove(f.id); })).catch(() => {}); } },
+    action: { label: 'Undo', run: () => { onUndo?.(); void Promise.all(list.map((f, k) => { const w = was[k]; return w ? fixer.save(w) : fixer.remove(f.id); })).catch(() => {}); } },
   });
   return true;
 }

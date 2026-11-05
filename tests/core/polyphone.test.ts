@@ -420,6 +420,13 @@ describe('explicit context rules (pinyinFor with prev/next)', () => {
     // 底 for 的 and 蒙 the Mongols (tests/core/polyphone-oldspellings.test.ts, tests/core/polyphone-unseen.test.ts)
     ['底', { prev: '我', next: '书', spellings: { di: true, na: false } }, 'de5'], ['底', { prev: '我', next: '书' }, undefined],
     ['蒙', { next: '汉' }, 'meng3'], ['蒙', { next: '住' }, undefined],
+    // Cases that speak before the reading model (core/readingModel.ts) where it misread books.
+    ['刹', { prev: '一边', next: '裤子' }, 'sha1'], ['刹', { prev: '古', next: '前' }, undefined],
+    ['隽', { prev: '谈吐', next: '雅' }, 'juan4'], ['隽', { prev: '朱', next: '。' }, undefined],
+    ['茄', { prev: '胡', next: '十八' }, 'jia1'], ['茄', { prev: '炒', next: '。' }, undefined],
+    ['杈', { prev: '木', next: '、' }, 'cha1'], ['杈', { prev: '叶', next: '间' }, undefined],
+    ['奔', { prev: '东', next: '西' }, 'ben1'], ['什', { prev: '比', next: '头' }, 'shen2'], ['率', { prev: '煤', next: '最高' }, 'lü4'],
+    ['率', { prev: '油', next: '很', after: '低' }, 'lü4'],
   ];
   for (const [ch, ctx, expected] of rules) {
     it(`${ch} ${JSON.stringify(ctx)} -> ${expected}`, async () => {

@@ -6,7 +6,7 @@
 // reading. The rules are deliberately simple and explicit; tests/core/polyphone.test.ts pins every one.
 import { DEPENDS, asksWithNa } from './bookStyle';
 import { isHanCodePoint } from './text';
-import type { OldSpellings } from '../types';
+import type { LexiconEntry, OldSpellings } from '../types';
 
 export interface CharContext {
   ch: string;
@@ -44,6 +44,8 @@ export interface CharContext {
   noun?: (w: string) => boolean;
   /** The book's old spellings the reader follows (底 for 的, 那 for 哪: core/bookStyle.ts); absent when none. */
   spellings?: OldSpellings;
+  /** The kind of a token that the book's names and terms hold (its lexicon), for a name the dictionary lacks; absent when none. */
+  named?: (w: string) => LexiconEntry['kind'] | undefined;
 }
 
 export function lastCodePoint(s: string): string {
@@ -252,7 +254,8 @@ function nounLike(c: CharContext, units: readonly string[], k: number): boolean 
   if (isHan(firstCodePointOf(u)) && (units[k - 1] === '的' || (k >= 1 && /^[0-9０-９]/.test(units[k - 1])))) return true;
   if (PAIRS[u[0]] || /^[0-9０-９A-Za-z%％]/.test(u)) return true;
   if (!isHan(firstCodePointOf(u))) return false;
-  if (c.noun?.(u)) return true;
+  // (队长为王磊）: one of the book's names ends the clause.)
+  if (c.noun?.(u) || /^(name|place|term)$/.test(c.named?.(u) ?? '')) return true;
   return cpLen(u) >= 2 && (c.word?.(u) ?? false) && (c.verb?.(u) ?? 0) === 0 && has(NOUN_END, lastCodePoint(u));
 }
 
@@ -268,11 +271,13 @@ function modernWei(c: CharContext): 'wei2' | 'wei4' | undefined {
   const p = c.tok(-1);
   const pv = isHan(c.prevChar) ? c.verb(p) : 0;
   // What comes right before: a verb of naming or judging (宣布为, 诊断为), or a noun that is the subject (原型为, 中秋节（秋夕）为,
-  // CR200J为); not a pronoun, an adverb of "for", or a name the dictionary does not know (王小林为…).
+  // CR200J为); not a pronoun, an adverb of "for", or a name the dictionary does not know (王小林为…). A place or a term of the book
+  // counts as a word (钱唐郡为杭州); a person does not.
   const verbBefore = pv >= 1 && cpLen(p) >= 2 && !NOT_A_SUBJECT.test(p);
+  const known = (w: string): boolean => (c.word?.(w) ?? false) || /^(place|term)$/.test(c.named?.(w) ?? '');
   const subject = p !== '' && (verbBefore
     || (isHan(c.prevChar) && pv === 0 && !NOT_A_SUBJECT.test(p) && !/^(我|你|他|她|它|您|咱|自己|大家|别人|人家|人们)/.test(p) && !/们$/.test(p)
-      && ((c.word?.(p) ?? false) || cpLen(p) === 1) && !(c.word && cpLen(p) >= 2 && !c.word(p)))
+      && (known(p) || cpLen(p) === 1) && !(c.word && cpLen(p) >= 2 && !known(p)))
     || /[A-Za-z0-9０-９）)”」』》]$/.test(p));
   // 颁奖词为： what follows the colon is what it is.
   if (!units.length) return end !== undefined && /^[：:]/.test(end) && subject && !verbBefore ? 'wei2' : undefined;
@@ -375,7 +380,13 @@ export const CHAR_DEFAULTS: Readonly<Record<string, string>> = {
   怔: 'zheng4', // 发怔, 怔了 (dazed); zhēng only in the word 怔忡
 };
 
-type Rule = (c: CharContext) => string | undefined;
+/** A rule's own default, given when none of its cases matched: the reading model may speak there (core/readingModel.ts). */
+class Usual {
+  constructor(readonly reading: string) {}
+}
+const usual = (reading: string): Usual => new Usual(reading);
+
+type Rule = (c: CharContext) => string | Usual | undefined;
 
 /** Words before 得 "must" (děi): 还得, 也得, 就得, 须得. */
 const MODAL_BEFORE_DEI: readonly string[] = ['还', '也', '就', '都', '须', '总', '必', '非', '一定', '准', '也就', '还是', '到底'];
@@ -1156,7 +1167,7 @@ const RULES: Record<string, Rule> = {
   // 珍奇之宝相送 (presented to each other) is xiāng; 无相门中 无相之相 (formless) xiàng.
   // (苦苦相求, 苦相寻: each other; 满脸的痛苦相。 is a look.)
   // 罗拜相送 (bowed and saw him off), 内相掩袭 (attacked together from within): xiāng.
-  相: (c) => (((has('照首外宰真恩拜怜狈妙色宝傻丑凶馋', c.prevChar) || (/.苦$/.test(c.prevTok) && !isHan(c.nextChar) && c.nextKnown !== false)) && !(has('宝拜', c.prevChar) && has('送赠待报见助赐迎别辞谢', c.nextChar))) || (prevIs(c, '内师法') && !/^(掩|袭|应|接|策|攻|夹|呼)/.test(c.nextTok)) || (prevIs(c, '无') && (!isHan(c.nextChar) || nextIs(c, '门之'))) || ['貌', '片', '机', '声', '册', '位', '框', '纸', '府', '国', '者'].includes(c.nextTok) ? 'xiang4' : 'xiang1'),
+  相: (c) => (((has('照首外宰真恩拜怜狈妙色宝傻丑凶馋', c.prevChar) || (/.苦$/.test(c.prevTok) && !isHan(c.nextChar) && c.nextKnown !== false)) && !(has('宝拜', c.prevChar) && has('送赠待报见助赐迎别辞谢', c.nextChar))) || (prevIs(c, '内师法') && !/^(掩|袭|应|接|策|攻|夹|呼)/.test(c.nextTok)) || (prevIs(c, '无') && (!isHan(c.nextChar) || nextIs(c, '门之'))) || ['貌', '片', '机', '声', '册', '位', '框', '纸', '府', '国', '者'].includes(c.nextTok) ? 'xiang4' : usual('xiang1')),
   // 应 is yìng "to answer, to respond" in 应道 应了一声 应曰 内应 救应 齐声应 (以应之 叫应), yīng "should" otherwise.
   应: (c) => (has('付用对酬变验急聘邀声战允召运', c.nextChar) || nextIs(c, '了道曰着著诺喏和募约命敌试') || has('以后叫', c.prevChar)
     || prevIs(c, '内救接响答呼照策齐') || /(齐声|连声|一声|答|喏)$/.test(c.prevTok) || answered(c) ? 'ying4' : 'ying1'),
@@ -1170,7 +1181,7 @@ const RULES: Record<string, Rule> = {
   分: (c) => (has('成养过充本名缘安辈', c.prevChar) || ['内', '外', '例'].includes(c.nextTok) || (c.nextTok === '上' && c.prevChar === '的') || (prevIs(c, '有') && c.nextChar === '教') ? 'fen4' : 'fen1'),
   便: (c) => (c.nextChar === '宜' ? 'pian2' : 'bian4'),
   // 差不多先生传 (a biography after the one it is about, closing a title): zhuàn.
-  传: (c) => (['记', '略'].includes(c.nextTok) || has('自小列评别立正', c.prevChar) || (/先生$/.test(c.prevTok) && c.nextKnown !== false && !isHan(c.nextChar)) ? 'zhuan4' : 'chuan2'),
+  传: (c) => (['记', '略'].includes(c.nextTok) || has('自小列评别立正', c.prevChar) || (/先生$/.test(c.prevTok) && c.nextKnown !== false && !isHan(c.nextChar)) ? 'zhuan4' : usual('chuan2')),
   数: (c) => {
     // 数十 数百 数招: "several" (shù), also right after 了 (了数十招). 数个山头 数次 数日: "several" before a measure word.
     if (has('十百千万招余个次日天年月回遍里步丈尺寸条只场家处种般样位名件项头匹口门张套载辈代杯盏碗壶秒周合句', c.nextChar)) return 'shu4';
@@ -1282,8 +1293,10 @@ const RULES: Record<string, Rule> = {
   发: (c) => (c.orig === '髮' || (has('头理毛白黑假金银长短卷剪染披散蓬落削束鬓', c.prevChar) && !/(心|念|眉|山|街|码|源|关|苗|风|势|锋|劲|骨|枕|床|桥|墙|田|地|里|上)头$/.test(c.prevTok)) || (c.prevChar === '乱' && !isHan(c.nextChar)) || has('型廊夹胶簪际', c.nextChar) ? 'fa4' : 'fa1'), // 髮 is only hair (fà)
   // 自率大兵, 率本部, 率三万人马 (to lead): shuài.
   // 放大率 增长率 命中率 (a rate) stay lǜ before a number.
+  // 出煤率最高, 出油率很低: what is high or low, or rises and falls, is a rate (lǜ).
   率: (c) => (/(放大|增长|出生|死亡|命中|成功|折射|反射|发病|失业|利用|覆盖|转化|分辨|淘汰|通过|合格|及格|准确|错误|圆周|变化|压缩|识别|回报|收益|周转|使用|出勤|就业|升学|入学|普及|效|频|速|概|比|利|汇|税|功|费)$/.test(c.prevTok) ? 'lü4'
-    : has('领先兵军众团队大本部精数诸各' + NUMERALS, c.nextChar) || has('草轻表统坦真直督自亲', c.prevChar) ? 'shuai4' : 'lü4'),
+    : has('领先兵军众团队大本部精数诸各' + NUMERALS, c.nextChar) || has('草轻表统坦真直督自亲', c.prevChar) ? 'shuai4'
+      : /^(最|很|较|极|更|偏|太|也|还|都|比较|相当|非常)?(高|低)|^(提高|降低|下降|上升|达到|超过|不足)/.test(c.nextTok + (c.afterTok ?? '')) ? 'lü4' : usual('lü4')),
   // 量宋江有何德能 量此山僻之处: a clause that opens with 量 is the verb "to reckon" (liáng); 量词 量子 (liàng) are the exceptions.
   // 量你是个配军 (I reckon you are): liàng.
   量: (c) => (!isHan(c.prevChar) && has(PRONOUNS + '汝尔', c.nextChar) ? 'liang4' : has('体力身尺长入一', c.nextChar) || nextIs(c, '了到过着几') || /^(血压|体温)/.test(c.nextTok) || has('测估思度', c.prevChar) || (!isHan(c.prevChar) && isHan(c.nextChar) && !has('词子', c.nextChar)) ? 'liang2' : 'liang4'),
@@ -1463,7 +1476,7 @@ const RULES: Record<string, Rule> = {
   创: (c) => (has('伤口面痕', c.nextChar) ? 'chuang1' : 'chuang4'),
   横: (c) => (has('蛮强专霸', c.prevChar) || has('财祸死', c.nextChar) ? 'heng4' : 'heng2'),
   磨: (c) => (has('坊盘', c.nextChar) || has('石推', c.prevChar) ? 'mo4' : 'mo2'),
-  宿: (c) => (has('一二两半整', c.prevChar) ? 'xiu3' : has('列星二十八', c.prevChar) ? 'xiu4' : 'su4'), // 列宿 二十八宿 星宿: the constellations (xiù)
+  宿: (c) => (has('一二两半整', c.prevChar) ? 'xiu3' : has('列星二十八', c.prevChar) ? 'xiu4' : usual('su4')), // 列宿 二十八宿 星宿: the constellations (xiù)
   // 鲜 is xiǎn "few" in the classics (巧言令色, 鲜矣仁; 鲜有 鲜能), xiān everywhere else.
   鲜: (c) => (has('矣不有能克少知', c.nextChar) ? 'xian3' : 'xian1'),
   // 么 closes a question after a word (他不咬人么？) as ma; inside 什么 怎么 这么 the dictionary word wins.
@@ -1561,7 +1574,8 @@ const RULES: Record<string, Rule> = {
   恁: () => 'nen4', // 恁般 恁地 恁的: "such, so" in the novels
   咽: (c) => (has('呜哽咽', c.prevChar) || c.nextChar === '咽' ? 'ye4' : undefined), // 呜呜咽咽: sobbing
   // 什 is shí in 什物 什锦 and in a transliteration between other characters of one (米什内尔, 阿什): shí.
-  什: (c) => (has('物锦襲袭', c.nextChar) || (isHan(c.prevChar) && !has('么麼末', c.nextChar) && has(TRANSLIT_CHARS, c.prevChar) && (has(TRANSLIT_CHARS, c.nextChar) || !isHan(c.nextChar))
+  // 比什头都要贵重: 什头 for 什么 (shén).
+  什: (c) => (c.nextChar === '头' ? 'shen2' : has('物锦襲袭', c.nextChar) || (isHan(c.prevChar) && !has('么麼末', c.nextChar) && has(TRANSLIT_CHARS, c.prevChar) && (has(TRANSLIT_CHARS, c.nextChar) || !isHan(c.nextChar))
     && (c.alone !== false || [...c.prevTok, ...c.nextTok].every((ch) => has(TRANSLIT_CHARS, ch)))) ? 'shi2' : undefined),
   // 曾子 (Zēng, the disciple), not céng "once"; 曾祖 曾孙 曾外祖母 (great-): zēng.
   曾: (c) => ((has('子参', c.nextChar) && !isHan(c.prevChar)) || nextIs(c, '祖孙') || /^(外祖|祖父|祖母|孙子|孙女)/.test(c.nextTok) ? 'zeng1' : undefined),
@@ -1709,7 +1723,8 @@ const RULES: Record<string, Rule> = {
     : has('我你他她汝', c.nextChar) || nextIs(c, '开入出进漏') || /^(城门|开)/.test(c.nextTok)
     || (c.orig === '賺' && isHan(c.nextChar) && !/^(了|得|到|取|回|大|些|点|钱|銀|银)/.test(c.nextTok)) ? 'zuan4' : undefined),
   // 杀奔 径奔 直奔 望…奔 (heading for): bèn; bēn "to run" otherwise.
-  奔: (c) => (prevIs(c, '杀径直投望竟') || /杀$/.test(c.prevTok) ? 'ben4' : undefined),
+  // 东奔西突, 南奔北走: running about (bēn), not heading somewhere.
+  奔: (c) => (prevIs(c, '东南西北') && /^[东南西北]/.test(c.nextTok) ? 'ben1' : prevIs(c, '杀径直投望竟') || /杀$/.test(c.prevTok) ? 'ben4' : undefined),
   // 给散 给赏 给还 资给 (to supply, to issue): jǐ; gěi otherwise.
   // 给发 (to issue) only as the old books write it (給發); 每月再给发一袋米 is the everyday gěi.
   给: (c) => (nextIs(c, '散赏还付') || (nextIs(c, '发') && c.orig === '給' && !has('再甭不还也都就要得会没别先又', c.prevChar)) || has('资', c.prevChar) ? 'ji3' : undefined),
@@ -1717,6 +1732,14 @@ const RULES: Record<string, Rule> = {
   勾: (c) => (c.prevChar === '能' && !/^(结|引|搭|当|画|销|勒)/.test(c.nextTok) ? 'gou4' : undefined),
   // 参商 参宿 (a constellation), 参仙 (ginseng): shēn.
   参: (c) => (nextIs(c, '仙商宿') ? 'shen1' : undefined),
+  // 刹裤子, 刹住, 刹车 (to tighten, to brake): shā; 古刹, 宝刹 (a temple) are chà.
+  刹: (c) => (/^(住|紧|车|闸|不住|裤|腰带|裤带)/.test(c.nextTok) ? 'sha1' : undefined),
+  // 谈吐隽雅, 隽永, 隽语 (meaningful): juàn; in names (朱隽) and 俊 senses jùn.
+  隽: (c) => (has('永语雅味', c.nextChar) || /(谈吐|言语|言谈|文笔|文字|诗句|语言)$/.test(c.prevTok) ? 'juan4' : undefined),
+  // 胡茄 for 胡笳, the reed pipe (jiā).
+  茄: (c) => (prevIs(c, '胡') ? 'jia1' : undefined),
+  // 木杈, 草杈, 粪杈 (a pitchfork): chā; 树杈, 枝杈 (a fork in a branch) are chà.
+  杈: (c) => (prevIs(c, '木铁钢竹草粪') ? 'cha1' : undefined),
   // 双煞 凶煞 地煞 (a fiend): shà; shā "to stop" otherwise.
   煞: (c) => (has('双凶恶地天星神', c.prevChar) ? 'sha4' : undefined),
   // 宁作 宁为 宁死 (would rather): nìng; níng "peaceful" otherwise.
@@ -1898,9 +1921,22 @@ const RULES: Record<string, Rule> = {
 
 /** Rule-based reading for `ctx.ch`, or undefined when no rule applies (use the dictionary default). */
 export function polyphoneReading(ctx: CharContext): string | undefined {
-  const rule = RULES[ctx.ch];
-  return rule ? rule(ctx) : undefined;
+  return polyphoneRule(ctx).reading;
 }
+
+/**
+ * The rules' reading and whether it is only the rule's own default (`usual`: none of its cases matched). With no rule or a rule
+ * that says nothing, `reading` is undefined and `usual` true.
+ */
+export function polyphoneRule(ctx: CharContext): { reading: string | undefined; usual: boolean } {
+  const rule = RULES[ctx.ch];
+  const r = rule ? rule(ctx) : undefined;
+  if (r === undefined) return NO_RULE;
+  if (r instanceof Usual) return { reading: r.reading, usual: true };
+  return { reading: r, usual: false };
+}
+
+const NO_RULE: { reading: undefined; usual: true } = { reading: undefined, usual: true };
 
 /** Characters that have an explicit rule (for tests and tooling). */
 export const POLYPHONE_CHARS: readonly string[] = Object.keys(RULES);

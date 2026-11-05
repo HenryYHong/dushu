@@ -1,13 +1,14 @@
 // The dictionary: CC-CEDICT words, Unihan characters, segmentation vocabulary, HSK, script conversion.
 // Contract: ARCHITECTURE.md §3 and §4.1.
-import type { CharInfo, DataMeta, DictEntry, Dictionary, HskInfo, OldSpellings, RadicalInfo } from '../types';
+import type { CharInfo, DataMeta, DictEntry, Dictionary, HskInfo, LexiconEntry, OldSpellings, RadicalInfo } from '../types';
 import { asksWithNa } from './bookStyle';
 import { ConvTable } from './convert';
 import { hanBlockName } from './blocks';
 import { baseOf, markedToNumbered, normalizePinyinField, numberedToMarked } from './pinyin';
-import { CHAR_DEFAULTS, WORD_READINGS, firstCodePointOf, lastCodePoint, polyphoneReading } from './polyphone';
+import { CHAR_DEFAULTS, WORD_READINGS, firstCodePointOf, lastCodePoint, polyphoneRule } from './polyphone';
 import { isHanCodePoint } from './text';
 import { compareReading } from './hskMatch';
+import type { ReadingChooser } from './readingModel';
 
 // ---------------------------------------------------------------- loading ---
 
@@ -40,7 +41,7 @@ async function gunzipToText(bytes: Uint8Array): Promise<string> {
 }
 
 /** Fetch one data file. Handles servers that gunzip for us and dev servers that answer 404s with index.html. */
-async function fetchDataText(url: string, keep?: LoadOptions['keep'], count?: (size: number, read: number) => void): Promise<string> {
+export async function fetchDataText(url: string, keep?: LoadOptions['keep'], count?: (size: number, read: number) => void): Promise<string> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
   if (keep && /gzip|json/.test(res.headers.get('content-type') ?? '')) keep(url, res.clone());
@@ -296,6 +297,10 @@ class DictImpl implements Dictionary {
   private defaultCache = new Map<string, string>();
   private wordReadingCache = new Map<string, ReadingCandidate | null>();
   private verbMemo = new Map<string, number>();
+  /** The reading model (core/readingModel.ts), once loaded; null means the rules alone. */
+  private readingModel: ReadingChooser | null = null;
+  /** Each character's own readings (numbered), for the reading model. */
+  private ownReadings = new Map<string, Set<string>>();
 
   // -------------------------------------------------------------- parsing ---
 
@@ -1310,7 +1315,7 @@ class DictImpl implements Dictionary {
       const prevS = this.t2s.convert(prevTok);
       const nextS = this.t2s.convert(nextTok);
       const afterS = i < n - 1 ? '' : this.t2s.convert(ctx?.after ?? '');
-      const ruled = polyphoneReading({
+      const rule = polyphoneRule({
         ch: key,
         orig: orig ? orig[i] : cps[i],
         prevTok: prevS,
@@ -1326,12 +1331,35 @@ class DictImpl implements Dictionary {
         word: this.listed,
         noun: this.nounish,
         ...(ctx?.spellings ? { spellings: ctx.spellings } : {}),
+        ...(ctx?.named ? { named: ctx.named } : {}),
       });
-      out[i] = ruled ?? this.defaultSyllable(orig && this.narrows(orig[i], cps[i]) ? orig[i] : cps[i]);
+      const usual = rule.reading ?? this.defaultSyllable(orig && this.narrows(orig[i], cps[i]) ? orig[i] : cps[i]);
+      // Where no rule's case matched a one-character token, the reading model may speak, among the character's own readings.
+      const own = orig ? orig[i] : cps[i];
+      const learned = rule.usual && tok && this.readingModel && this.readingModel.knows?.(key) !== false
+        ? this.readingModel.choose({ ch: key, tok, verb: this.verbStrength, noun: this.nounish }, usual, (r) => this.readsAs(key, r) && this.readsAs(own, r))
+        : undefined;
+      out[i] = learned ?? usual;
     }
     // A verb + 不 + complement that the dictionary lacks (走不动, 看不到): the 不 is neutral.
     if (n === 3 && (cps[1] === '不') && isHanCodePoint(cps[0].codePointAt(0)!)) out[1] = 'bu5';
     return out;
+  }
+
+  /** Hands pinyinFor the reading model (core/readingModel.ts), or takes it away with null. */
+  setReadingModel(model: ReadingChooser | null): void {
+    this.readingModel = model;
+  }
+
+  /** Whether `reading` (numbered) is one of the character's own: a CC-CEDICT row of the character itself, or Unihan's. */
+  private readsAs(ch: string, reading: string): boolean {
+    let set = this.ownReadings.get(ch);
+    if (!set) {
+      set = new Set((this.entries.get(ch) ?? []).filter((e) => e.simp === ch || e.trad === ch).map((e) => e.pinyin.toLowerCase()));
+      for (const u of this.unihanReadings(ch.codePointAt(0)!)) set.add(markedToNumbered(u));
+      this.ownReadings.set(ch, set);
+    }
+    return set.has(reading);
   }
 
   /**
@@ -1541,6 +1569,8 @@ export interface PinyinContext {
   at?: number;
   /** The book's old spellings the reader follows (底 for 的, 那 for 哪: core/bookStyle.ts). */
   spellings?: OldSpellings;
+  /** The kind of a token of `line` that the book's lexicon holds, asked in simplified (a place before 为 is a noun). */
+  named?: (w: string) => LexiconEntry['kind'] | undefined;
 }
 
 /** Words in 那 that ask which or where in a book that writes 那 for 哪 (pinyinFor, core/bookStyle.ts). */

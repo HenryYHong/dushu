@@ -57,6 +57,11 @@ export interface TocFixes {
   importFile(file: File): Promise<void>;
   /** The book's old spellings (底 for 的, 那 for 哪): a switch each that the book needs, none when it needs neither. */
   spellings?(): SpellingSwitch[];
+  /** Check names: asks about the strings the book repeats that look like names (nameCheck.ts). */
+  checkNames?(): void;
+  /** Dictionary words the reader said are not names (nameCheck.ts): listed under Words, and asked about again once deleted. */
+  notNames?(): string[];
+  askAgain?(word: string): Promise<void>;
 }
 
 export interface SpellingSwitch { id: string; label: string; hint: string; on: boolean; set(on: boolean): Promise<void> }
@@ -107,6 +112,8 @@ interface FixRow {
   gloss: string;
   /** How its pinyin takes capitals, when not as `kind` says (an other name the reader marked is written like a name). */
   caps?: LexiconEntry['kind'];
+  /** A dictionary word the reader said is not a name: no switch, and Delete asks about it again. */
+  notName?: true;
 }
 
 const entryOf = (r: FixRow): LexiconEntry => ({ word: r.word, pinyin: r.pinyin, gloss: r.gloss, kind: r.kind, enabled: r.on, origin: 'user' });
@@ -174,6 +181,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (f && fx) void fx.importFile(f).then(() => loadNames());
   });
   const fixFoot = fx ? h('div.rd-fix-foot', null,
+    fx.checkNames ? h('button.btn.btn-sm.rd-fix-file.rd-fix-names', { type: 'button', onclick: () => fx.checkNames?.(), title: 'Strings this book repeats that may be names' }, icon('user'), 'Check names') : null,
     h('button.btn.btn-sm.rd-fix-file', { type: 'button', onclick: () => void fx.exportFile() }, icon('download'), 'Export corrections'),
     h('button.btn.btn-sm.rd-fix-file', { type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Import corrections'),
     fileIn) : null;
@@ -265,6 +273,16 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       h('span.rd-name-kind', { 'data-kind': r.kind }, r.label),
       count ? h('span.rd-name-count', null, `${count}×`) : null,
       fx ? h('span.rd-name-scope', null, r.scope) : null));
+    if (r.notName && fx) {
+      const del = async () => {
+        await fx.askAgain?.(r.word);
+        buildRows();
+        paintNames();
+        ctx.toast(`Check names may ask about ${word} again.`);
+      };
+      return h('div.rd-toc-row.rd-name', { role: 'listitem' }, main, h('span.rd-name-switch-none', { 'aria-hidden': 'true' }),
+        h('button.icon-btn.rd-fix-del', { type: 'button', 'aria-label': `Delete: ${word} is not a name`, title: 'Delete', onclick: () => void del() }, icon('trash')));
+    }
     return h('div.rd-toc-row.rd-name', { role: 'listitem', 'data-off': r.on ? null : '' }, main,
       h('label.rd-name-switch', { title: r.fix ? (r.on ? 'In use. Turn off to read the page without it.' : 'Not in use') : r.on ? 'Treated as a word. Turn off if this is not one.' : 'Not treated as a word' }, on,
         h('span.rd-sw-track', null, h('span.rd-sw-thumb'))),
@@ -291,7 +309,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       if (f.kind === 'spelling' || (f.kind === 'unword' && found.has(f.word) && everywhere(f))) continue;
       const role = f.role ?? 'user';
       const kind: LexiconEntry['kind'] = f.kind === 'word' ? role : 'term';
-      const scope = f.book === '*' ? 'All books' : f.at ? `Here, chapter ${f.at.chapter + 1}` : 'Everywhere';
+      const scope = f.book === '*' ? 'All books' : f.at ? `Here, chapter ${f.at.chapter + 1}` : 'This book';
       const label = f.kind === 'word' ? (role === 'user' ? 'Joined' : role === 'term' ? 'Other name' : KIND_LABEL[role]) : f.kind === 'cut' ? 'Split' : f.kind === 'reading' ? 'Reading' : 'Not a word';
       const note = f.kind === 'cut' ? cutPreview(f, text(f.word)) : f.kind === 'unword' ? 'Not read as one word' : undefined;
       // A person, a place or an other name the reader marked is under Names, its pinyin with capitals (Xīyóushì'èchuán).
@@ -299,6 +317,11 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       out.push({ key: `f:${f.id}`, word: f.word, pinyin: f.kind === 'word' || f.kind === 'reading' ? f.pinyin ?? '' : '', kind, label, note,
         seg: f.kind === 'reading' ? 'readings' : named ? 'names' : 'words',
         count: f.at ? 1 : f.n, scope, on: f.on, fix: f, gloss: f.gloss ?? '', ...(named && role === 'term' ? { caps: 'name' as const } : {}) });
+    }
+    // (水生: a dictionary word said not to be a name changes nothing on the page; it is kept so the name check does not ask again.)
+    for (const w of fx?.notNames?.() ?? []) {
+      if (found.has(w) || out.some((r) => r.word === w)) continue;
+      out.push({ key: `n:${w}`, word: w, pinyin: '', kind: 'term', label: 'Not a name', note: 'Not asked about again', seg: 'words', scope: 'This book', on: true, gloss: '', notName: true });
     }
     fixRows = out;
     // Opened on a part with nothing in it while another has rows: the first part with rows, until the reader picks one.

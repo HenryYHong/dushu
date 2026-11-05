@@ -2,7 +2,8 @@
 import './styles/tokens.css';
 import './styles/base.css';
 import type { AppContext, Dictionary, MountFn, Settings, Store } from './types';
-import { loadDictionary } from './core/dict';
+import { fetchDataText, loadDictionary } from './core/dict';
+import { loadReadingModel } from './core/readingModel';
 import { setDictBytes } from './core/dictProgress';
 import { openStore } from './store';
 import { createSettingsStore } from './store/settings';
@@ -118,8 +119,12 @@ async function boot(): Promise<void> {
       // A failed download is not kept: the next use (a lookup, opening a book) downloads it again.
       dictPromise ??= (early ?? loadDict({ onBytes: setDictBytes })).then((d) => {
         // Saved and known words match any form of a word: a script for Chinese, the dictionary form for the rest.
-        if (isChinese()) store.setNormalizer((w) => d.toSimplified(w));
-        else {
+        if (isChinese()) {
+          store.setNormalizer((w) => d.toSimplified(w));
+          // The reading model (core/readingModel.ts) follows the dictionary in the background. Until it arrives, and when it
+          // cannot (offline with an old copy, a missing file), the rules alone give every reading.
+          void loadReadingModel((name) => fetchDataText(dictUrl + name)).then((m) => { if (m) d.setReadingModel?.(m); });
+        } else {
           const engine = activeEngine();
           if (engine) store.setNormalizer((w) => engine.normalize(w));
         }

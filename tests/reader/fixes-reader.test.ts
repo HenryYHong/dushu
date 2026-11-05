@@ -99,7 +99,7 @@ describe('fixes on the page', () => {
     const nameRow = document.querySelector('.rd-names .rd-name')!;
     expect(nameRow.querySelector('.rd-name-py')!.textContent).toBe('Zǐjūn');
     expect(nameRow.querySelector('.rd-name-kind')!.textContent).toBe('Person');
-    expect(nameRow.querySelector('.rd-name-scope')!.textContent).toBe('Everywhere');
+    expect(nameRow.querySelector('.rd-name-scope')!.textContent).toBe('This book');
     [...document.querySelectorAll<HTMLElement>('.rd-fix-seg')][1].click();
     const cutRow = document.querySelector('.rd-names .rd-name')!;
     expect(cutRow.querySelector('.rd-name-word')!.textContent).toBe('银行');

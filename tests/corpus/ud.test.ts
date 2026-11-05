@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadTestDictionary } from '../helpers/data';
 import { goldLines, round, scoreSegmentation, segmentLines, TOLERANCE, type Mode } from '../../scripts/eval/zh-score';
+import { loadEvalGazetteer } from '../../scripts/eval/zh-shown';
 
 const DIR = join(__dirname, 'ud');
 const BASELINE = join(DIR, 'baseline.json');
@@ -16,6 +17,8 @@ type Numbers = Record<string, Record<Mode, { f1: number; cross: number; tokens: 
 describe('UD Chinese test sets through the reader', () => {
   it('cuts words no worse than the recorded baseline', async () => {
     const dict = await loadTestDictionary();
+    // ("book" mode detects names with the name list, as the reader does.)
+    await loadEvalGazetteer();
     const now: Numbers = {};
     for (const [set, file] of Object.entries(SETS)) {
       const gold = goldLines(readFileSync(join(DIR, file), 'utf8'));

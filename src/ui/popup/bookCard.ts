@@ -29,10 +29,14 @@ function wordFix(fixer: Fixer, entry: LexiconEntry, all = false) {
 
 const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: 'Person', place: 'Place', term: 'Term', user: 'Your word' };
 
-/** Numbered pinyin as colored spans in the user's style (a name or a place with capitals). */
-function pinyinLine(ctx: AppContext, entry: LexiconEntry): HTMLElement {
-  return pinyinSpans(ctx, entry.pinyin.split(/\s+/).filter(Boolean), { kind: entry.kind, word: entry.word });
+/** Numbered pinyin as colored spans in the user's style (a name or a place with capitals; `kind` says how, when not the entry's). */
+function pinyinLine(ctx: AppContext, entry: LexiconEntry, kind: LexiconEntry['kind'] = entry.kind): HTMLElement {
+  return pinyinSpans(ctx, entry.pinyin.split(/\s+/).filter(Boolean), { kind, word: entry.word });
 }
+
+/** Whether the reader marked `entry` as an other name (a fix of the book: 孙八爷 as Other name), which reads like a name. */
+const markedOther = (env: BookCardEnv, entry: LexiconEntry): boolean => entry.kind === 'term' && entry.origin === 'user'
+  && !!env.lexicon?.fixes?.some((f: Fix) => f.kind === 'word' && f.role === 'term' && f.word === entry.word);
 
 const field = (label: string, input: HTMLElement, hint?: string) =>
   h('label.pp-field', null, h('span.pp-field-label', null, label), input, hint ? h('span.pp-field-hint', null, hint) : null);
@@ -47,11 +51,12 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
     root.replaceChildren(
       h('div.pp-book-head', null,
         h('span.pp-section', null, 'In this book'),
-        h('span.chip.chip-accent', null, KIND_LABEL[current.kind]),
+        // (Corrections and the name check call it Other name, its pinyin with capitals: Sūn Bāyé.)
+        h('span.chip.chip-accent', null, markedOther(env, current) ? 'Other name' : KIND_LABEL[current.kind]),
         current.count ? h('span.pp-muted', null, `${current.count.toLocaleString('en-US')} time${current.count === 1 ? '' : 's'}`) : null,
       ),
       h('div.pp-book-main', null,
-        current.pinyin ? pinyinLine(ctx, current) : null,
+        current.pinyin ? pinyinLine(ctx, current, markedOther(env, current) ? 'name' : current.kind) : null,
         current.gloss ? h('span.pp-book-gloss', null, current.gloss) : null,
       ),
       h('div.pp-book-actions', null,

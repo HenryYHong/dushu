@@ -27,6 +27,7 @@ import { pointToOffset, rangeToSpans, snapToCodePoint, spansText } from './selec
 import { createToc } from './toc';
 import { correctionsTab, createBookFixes, fixTarget, toggleFound } from './bookFixes';
 import { askText, createBookSpellings } from './oldSpellings';
+import { createNameCheck } from './nameCheck';
 import { fixesSig, hereIn, placeHere } from '../../core/fixes';
 import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang } from '../../lang/active';
@@ -146,6 +147,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   try { await fixes?.load(); } catch (e) { console.error('fixes', e); }
   // The book's old spellings (底 for 的, 那 for 哪): found once in the background, chosen by the reader (oldSpellings.ts).
   const spellings = fixes ? createBookSpellings(ctx, book, fixes) : null;
+  // "Names in this book?": once the names are found, the strings the book repeats that look like names (nameCheck.ts).
+  const nameCheck = fixes ? createNameCheck(ctx, book, dict, fixes, () => found.entries(), (s) => text(s)) : null;
   /** The names and terms as detection and the store give them, before the fixes (kept to lay new fixes over). */
   let found: Lexicon = EMPTY_LEXICON;
   const dress = (lex: Lexicon): Lexicon => {
@@ -260,7 +263,12 @@ export const mount: MountFn = async (root, params, ctx) => {
       await store.lexicon.upsert(book.id, { ...entry, enabled: !entry.enabled, origin: 'user' });
       await reloadLexicon();
     },
-    fixes: fixes ? correctionsTab(ctx, fixes, book.title, spellings ? () => spellings.switches() : undefined) : undefined,
+    fixes: fixes ? {
+      ...correctionsTab(ctx, fixes, book.title, spellings ? () => spellings.switches() : undefined),
+      checkNames: () => void checkNamesNow(),
+      notNames: () => nameCheck?.notNames() ?? [],
+      askAgain: async (w: string) => { await nameCheck?.askAgain(w); },
+    } : undefined,
   }, {
     text,
     bookmarks: {
@@ -339,6 +347,8 @@ export const mount: MountFn = async (root, params, ctx) => {
     pauseBtn.title = paused ? 'Resume reading' : 'Pause reading';
     audio.hidden = !speaking;
     rd.classList.toggle('rd-audio-on', speaking);
+    // A card at the bottom (the first-visit hint, a question, the name check) sits above the read-aloud bar (reader.css).
+    if (speaking) requestAnimationFrame(() => { if (!audio.hidden) document.body.style.setProperty('--rd-audio-h', `${Math.ceil(audio.getBoundingClientRect().height)}px`); });
     audioStatus.textContent = paused ? 'Paused' : audioStarted ? 'Reading aloud' : 'Preparing audio…';
     audioPause.replaceChildren(icon(paused ? 'play' : 'pause'), paused ? 'Resume' : 'Pause');
     audioPause.setAttribute('aria-label', paused ? 'Resume audio' : 'Pause audio');
@@ -1547,6 +1557,43 @@ export const mount: MountFn = async (root, params, ctx) => {
   if (!disposed && failing === null) showReaderHint();
   void loadBookmarks();
   void findSpellings();
+  void checkNames();
+
+  /** Once the book's names are found (the first scan can take a few seconds), asks once about the strings that look like names. */
+  async function checkNames(): Promise<void> {
+    if (!nameCheck?.due()) return;
+    await new Promise((r) => window.setTimeout(r, 1500));
+    while (!disposed && isDetecting(book!.id)) await new Promise((r) => window.setTimeout(r, 1000));
+    if (disposed) return;
+    let list;
+    try { list = await nameCheck.candidates(); } catch (e) { console.error('name check', e); return; }
+    if (!disposed && nameCheck.due()) askNames(list);
+  }
+
+  /**
+   * The card at the bottom of the page, after the first-visit hint and the old spellings question, which sit in the same place. In
+   * the page's order it comes right after the top bar, so the keyboard reaches it before the text.
+   */
+  function askNames(list: Awaited<ReturnType<NonNullable<typeof nameCheck>['candidates']>>): void {
+    if (disposed || !list.length || rd.querySelector('.rd-name-ask')) return;
+    if (rd.querySelector('.rd-coach')) { window.setTimeout(() => askNames(list), 2000); return; }
+    const box = nameCheck?.show(rd, list);
+    if (box) { bar.after(box); liftToasts(box); }
+  }
+
+  /** The Corrections tab's Check names: the candidates the reader has not answered yet, now. */
+  async function checkNamesNow(): Promise<void> {
+    if (!nameCheck) return;
+    toc.close();
+    if (isDetecting(book!.id)) { ctx.toast('Dushu is still finding the names in this book. Try again in a moment.'); return; }
+    let list;
+    try { list = await nameCheck.candidates(true); } catch (e) { console.error('name check', e); ctx.toast('Could not look for names.'); return; }
+    if (disposed) return;
+    if (!list.length) { ctx.toast('No more names to check in this book.'); return; }
+    rd.querySelector('.rd-spell-ask, .rd-coach:not(.rd-name-ask)')?.remove();
+    const box = nameCheck.show(rd, list);
+    if (box) { bar.after(box); liftToasts(box); box.querySelector<HTMLElement>('.rd-nc-word')?.focus(); }
+  }
 
   /** What the book does with 底 and 那, found once when the browser is idle; the page follows, and the reader is asked once. */
   async function findSpellings(): Promise<void> {
@@ -1583,6 +1630,11 @@ export const mount: MountFn = async (root, params, ctx) => {
     requestAnimationFrame(set);
     window.addEventListener('resize', set);
     box.addEventListener('click', () => requestAnimationFrame(set));
+    // (The name check's card grows when a chip opens its kind menu or wraps onto another line.)
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(() => { if (box.isConnected) set(); else { ro.disconnect(); set(); } });
+      ro.observe(box);
+    }
   }
 
   /** The first time a book is opened on this device: how to look things up, once. */
@@ -1628,6 +1680,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   return () => {
     offFull();
     stopCoach?.();
+    nameCheck?.hide();
     stopChapterSpeech();
     saveProgressNow();
     disposed = true;

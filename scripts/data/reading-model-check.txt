@@ -1,0 +1,21 @@
+# Invented sentences for the reading model's test (tests/core/readingModel.test.ts): scripts/train_reading_model.py writes the
+# features and scores of every place in them to tests/core/fixtures/reading-model-check.tsv. One paragraph per line. CC0.
+我先读了《王冕传》，又读了宋濂写的另一篇传。
+李将军率三千人马出城，直奔东门。
+她在门外叫了好几声，屋里没有人应。
+厨房的墙上挂着一把木杓，锅里炖着茄。
+老先生精通天文，能说出东方七宿的名字。
+他们在山里找到一座古刹，就在刹前歇了一会儿。
+看他的相，倒像个读书人。
+城北有一座艮山门，门外是一条小河。
+桌上摆着一盘鹿脯，还有一壶酒。
+他被大家说得臊了，低着头不说话。
+孩子拗不过母亲，只好回家吃饭。
+屋里的什物都是从城里借来的。
+那员裨将带着五百人守在桥头。
+他藉着月光，在院子里找那把钥匙。
+大家都说这个仔是个好孩子。
+树上有一个杈，杈上搭着一个鸟窝。
+苍颉造字的故事，他小时候就听过。
+这座桥的全长为三百米，桥面宽为十二米。
+他为孩子们做了一顿晚饭。

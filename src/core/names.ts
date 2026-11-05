@@ -21,6 +21,7 @@ export const SURNAME_READINGS: Readonly<Record<string, string>> = {
   燕: 'yan1', // 燕青 燕顺: the surname is Yān (the swallow is yàn)
   宁: 'ning4', // 宁采臣: the surname is Nìng
   沈: 'shen3', // 沈从文: the surname is Shěn (沈 chén is an old form of 沉)
+  薄: 'bo2', // 薄太后, 薄一波: the surname is Bó (báo is "thin")
 };
 
 export const COMPOUND_SURNAME_READINGS: Readonly<Record<string, string>> = {
@@ -45,7 +46,32 @@ export const NAME_CHAR_READINGS: Readonly<Record<string, string>> = {
   都: 'du1', // 张都监, 老都管: never the adverb dōu inside a name
   乾: 'qian2', // 孫乾: looked up by the character as written (it folds to 干, which is gàn in 蒋干)
   少: 'shao4', // 李少春, 少林寺: "young", not shǎo "few"
+  // Names the name list joins, read wrong by the plain lookup (CPP, Wikipedia sentences): 严隽琪, 朱隽 (jùn, not 隽永 juàn);
+  // 裨治文 (pí); 马加什, 什坊街 (shí, not 什么); 黎刹, 罗刹 (chà); 茆圩乡 (máo).
+  隽: 'jun4',
+  裨: 'pi2',
+  什: 'shi2',
+  刹: 'cha4',
+  茆: 'mao2',
 };
+
+/** Characters a given name reads apart from their usual reading, in a person's name only (陈蕃 Fān; 孛儿只斤, 孛要合 Bó). */
+export const PERSON_CHAR_READINGS: Readonly<Record<string, string>> = { 蕃: 'fan2', 孛: 'bo2' };
+
+/** Given names that read as a whole apart from their characters (郦食其 Yìjī, 金日磾 Mìdī, 金兀术 Wùzhú, 司马相如 Xiàngrú). */
+export const NAME_PIECE_READINGS: Readonly<Record<string, string>> = {
+  食其: 'yi4 ji1', 日磾: 'mi4 di1', 日䃅: 'mi4 di1', 兀术: 'wu4 zhu2', 相如: 'xiang4 ru2',
+};
+
+/**
+ * The lunar mansions in the shape mansion + one of the seven luminaries + animal (斗木獬, 参水猿, 角木蛟): the mansions read
+ * here are 斗 dǒu (the Dipper, not dòu "to fight") and 参 shēn.
+ */
+export const MANSION_READINGS: Readonly<Record<string, string>> = { 斗: 'dou3', 参: 'shen1' };
+export const LUMINARIES: ReadonlySet<string> = new Set([...'日月火水木金土']);
+
+/** Colors before 发 in a name: hair (赤发鬼, 白发魔女 fà). 金 is not one: 王金发 is "prosper" (fā). */
+export const HAIR_COLORS: ReadonlySet<string> = new Set([...'赤红白黑青银乌紫']);
 
 /**
  * Characters of transliterated foreign names, both scripts (拉希姆, 贝莱赫斯特, 奎登·德拉尔, 施特茨纳). A string made only of these
@@ -91,6 +117,9 @@ export const ERA_NAMES: ReadonlySet<string> = new Set((
 
 // ------------------------------------------------------------- display ---
 
+/** A place in the family (老三, 小乙: numerals and the stems 甲乙丙丁). */
+const BIRTH_ORDER = new Set([...'一二三四五六七八九十甲乙丙丁大']);
+
 /** Endings that make a place name two words: 桃花岛 is Táohuā Dǎo, 归云庄 is Guīyún Zhuāng, 净衣派 is Jìngyī Pài. */
 const PLACE_GENERIC = new Set([...'岛山庄寺城府村镇峰谷关江河湖海岭洞殿堡宫楼阁庙塔桥坡寨营州县国派帮教门会宗亭郡院庵观觀湾沟屯坪']);
 
@@ -109,6 +138,10 @@ export function pinyinGroups(word: string, kind: string | undefined, fold: (s: s
   }
   if (kind !== 'name') return null;
   if (n === 1) return [1];
+  // 老张, 小乙, 阿长: 老 and 小 before a surname or a place in the family, and 阿 before a name, are written apart (GB/T 16159:
+  // Lǎo Zhāng, Xiǎo Yǐ, Ā Cháng). (小红 is a given name, Xiǎohóng; 阿里 a transliteration, Ālǐ.)
+  if (n === 2 && (((simp[0] === '老' || simp[0] === '小') && (SURNAMES.has(simp[1]) || BIRTH_ORDER.has(simp[1])))
+    || (simp[0] === '阿' && !TRANSLIT_CHARS.has(simp[1])))) return [1, 1];
   if (n >= 3 && COMPOUND_SURNAMES.has(simp[0] + simp[1])) return [2, n - 2];
   if (n <= 4 && SURNAMES.has(simp[0])) return [1, n - 1];
   // 老顽童, 小红马: the prefix is a word of its own.

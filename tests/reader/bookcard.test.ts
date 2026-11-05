@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildLexicon, entryPinyinProblem, parseEntryPinyin, USER_SCOPE } from '../../src/core/lexicon';
+import { makeFix, withFixes } from '../../src/core/fixes';
 import type { LexiconEntry } from '../../src/types';
 import { closePopup, openPhrasePopup, openWordPopup } from '../../src/ui/popup/popup';
 import { anchorRect, makeCtx, stubBrowser, tick } from './helpers';
@@ -56,6 +57,19 @@ describe('In this book card', () => {
     expect(text('.pp-pyline .pp-py')).toBe('Guō Jìng'); // the header reading comes from the entry too
     expect(document.querySelectorAll('.pp-card')).toHaveLength(2); // the characters are still there
     expect(q('.pp-body')!.firstElementChild!.classList.contains('pp-book')).toBe(true);
+  });
+
+  it('calls a name the reader marked as an other name so, with capitals, as Corrections and the name check do', async () => {
+    const { ctx } = await makeCtx();
+    const fix = makeFix({ book: 'k1', bookId: 'b1', kind: 'word', word: '孙八爷', role: 'term', pinyin: 'sun1 ba1 ye2', n: 11 });
+    openWordPopup({ ctx, word: '孙八爷', anchor: anchorRect(), lexicon: withFixes(buildLexicon([]), [fix]), bookId: 'b1' });
+    expect(text('.pp-book .chip')).toBe('Other name');
+    expect(text('.pp-book .pp-py')).toBe('Sūn Bāyé');
+    closePopup();
+    // A term the book's detection found stays a term.
+    openWordPopup({ ctx, word: '降龙十八掌', anchor: anchorRect(), lexicon: buildLexicon([entry('降龙十八掌', { kind: 'term', pinyin: 'xiang2 long2 shi2 ba1 zhang3', gloss: 'name or term in this book' })]), bookId: 'b1' });
+    expect(text('.pp-book .chip')).toBe('Term');
+    expect(text('.pp-book .pp-py')).toBe('xiáng lóng shí bā zhǎng');
   });
 
   it('is absent for ordinary words and when no book is open', async () => {

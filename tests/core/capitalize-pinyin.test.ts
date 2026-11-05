@@ -17,6 +17,15 @@ describe('capitalizePinyin', () => {
     expect(capitalizePinyin(marks('ping2 er2'), 'name', '平兒')).toBe("Píng'ér"); // an apostrophe where a syllable starts with a, o or e
     expect(capitalizePinyin(marks('he2 sa1 er2'), 'name', '合撒儿')).toBe("Hésā'ér");
   });
+  it('writes 老 and 小 before a surname or a place in the family, and 阿 before a name, apart (GB/T 16159)', () => {
+    expect(capitalizePinyin(marks('lao3 zhang1'), 'name', '老张')).toBe('Lǎo Zhāng');
+    expect(capitalizePinyin(marks('xiao3 yi3'), 'name', '小乙')).toBe('Xiǎo Yǐ');
+    expect(capitalizePinyin(marks('a1 chang2'), 'name', '阿長', (s) => s.replace('長', '长'))).toBe('Ā Cháng');
+    expect(capitalizePinyin(marks('lao3 san1'), 'name', '老三')).toBe('Lǎo Sān');
+    // A given name in 小 stays one word, and so does a transliteration in 阿.
+    expect(capitalizePinyin(marks('xiao3 hong2'), 'name', '小红')).toBe('Xiǎohóng');
+    expect(capitalizePinyin(marks('a1 li3'), 'name', '阿里')).toBe('Ālǐ');
+  });
   it('joins the syllables of a place and sets the generic ending apart', () => {
     expect(capitalizePinyin(marks('tao2 hua1 dao3'), 'place', '桃花岛')).toBe('Táohuā Dǎo');
     expect(capitalizePinyin(marks('gui1 yun2 zhuang1'), 'place', '归云庄')).toBe('Guīyún Zhuāng');
@@ -43,5 +52,14 @@ describe('surname readings', () => {
     expect(dict.pinyinFor('燕')).toEqual(['yan4']); // the precondition: the bare character is the swallow
     expect(pinyinOf('燕青', 'name', dict)).toBe('yan1 qing1');
     expect(pinyinOf('燕順', 'name', dict)).toBe('yan1 shun4');
+  });
+
+  it('reads 隽 裨 什 刹 茆 inside a name or a place as names have them (names the name list joins)', async () => {
+    const dict = await loadTestDictionary();
+    expect(pinyinOf('朱隽', 'name', dict)).toBe('zhu1 jun4');
+    expect(pinyinOf('裨治文', 'name', dict)).toBe('pi2 zhi4 wen2');
+    expect(pinyinOf('马加什', 'name', dict).split(' ')[2]).toBe('shi2');
+    expect(pinyinOf('黎刹省', 'place', dict).split(' ')[1]).toBe('cha4');
+    expect(pinyinOf('茆圩乡', 'place', dict).split(' ')[0]).toBe('mao2');
   });
 });
