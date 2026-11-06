@@ -1,4 +1,5 @@
 // App shell: theme, fonts, nav, hash router, toasts, and the AppContext every screen receives.
+import globeSvg from './ui/globe.svg?raw';
 import './styles/tokens.css';
 import './styles/base.css';
 import type { AppContext, Dictionary, MountFn, Settings, Store } from './types';
@@ -194,10 +195,11 @@ async function boot(): Promise<void> {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') accountBooks(); });
   setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, 5 * 60_000);
 
-  /** The app's mark, as on its icon (public/icon.svg): a globe drawn in lines of text. */
+  /** The app's mark, as on its icon (public/icon.svg): a desk globe with the continents. */
   const brandMark = () => {
     const el = h('span.app-brand-mark', { 'aria-hidden': 'true' });
-    el.innerHTML = '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="20"/><g><rect x="21" y="19.5" width="20" height="3" rx="1.5"/><rect x="15" y="25.5" width="30" height="3" rx="1.5"/><rect x="13.5" y="31.5" width="26" height="3" rx="1.5"/><rect x="15" y="37.5" width="33" height="3" rx="1.5"/><rect x="21" y="43.5" width="16" height="3" rx="1.5"/></g></svg>';
+    // A desk globe with the continents (ui/globe.svg); base.css colors it for the theme.
+    el.innerHTML = globeSvg;
     return el;
   };
   const reviewBadge = h('span.app-badge', { hidden: true });

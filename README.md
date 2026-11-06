@@ -209,6 +209,7 @@ The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Rus
 | Universal Dependencies treebanks | Counts of which lemma and part of speech a spelling usually is (no treebank text is used) | each treebank's license, listed in the app |
 | Aozora Bunko, Project Gutenberg, Wikisource | The bundled classics (public domain in the United States) | public domain |
 | Wikimedia Commons and museum open-access images | The classics' cover paintings (public domain) | public domain |
+| Natural Earth (1:110m land) | The continents on the app's globe icon (`scripts/make-globe.py`) | public domain |
 
 The tests (not the app) also read freely licensed Chinese text, kept in `tests/corpus/` with its attribution:
 

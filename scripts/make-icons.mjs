@@ -1,27 +1,30 @@
-// Renders the app icons (PNG) from the same design as public/icon.svg (a globe drawn in lines of text), using headless Chrome.
-// Usage: node scripts/make-icons.mjs        Writes public/icons/*.png
+// Renders the app icons (PNG) and public/icon.svg from src/ui/globe.svg (a desk globe with the continents, from Natural Earth's
+// public-domain map: scripts/make-globe.py), on the app's red, using headless Chrome.
+// Usage: node scripts/make-icons.mjs        Writes public/icon.svg and public/icons/*.png
 //   apple-touch-icon.png  180, full bleed (iOS rounds the corners itself)
 //   icon-192.png, icon-512.png   rounded, "any" purpose
 //   icon-maskable-512.png        full bleed, globe inside the central 80 percent safe zone
 import puppeteer from 'puppeteer-core';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const out = join(root, 'public', 'icons');
 mkdirSync(out, { recursive: true });
 
-/** The globe drawn in lines of text, in a 64 box; `scale` shrinks it about the center (maskable icons keep a safe zone). */
-function globe(scale) {
-  const lines = [[21, 19.5, 20], [15, 25.5, 30], [13.5, 31.5, 26], [15, 37.5, 33], [21, 43.5, 16]]
-    .map(([x, y, w]) => `<rect x="${x}" y="${y}" width="${w}" height="3" rx="1.5"/>`).join('');
-  return `<g transform="translate(32 32) scale(${scale}) translate(-32 -32)"><circle cx="32" cy="32" r="20" fill="#fbf7f0"/><g fill="#b8402e">${lines}</g></g>`;
-}
+/** The globe's drawing (what is inside its <svg>), in a 64 box. */
+const inner = readFileSync(join(root, 'src', 'ui', 'globe.svg'), 'utf8').replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+
 /** kind: 'round' (corners drawn, transparent outside), 'bleed' (full square), 'maskable' (full square, smaller globe). */
-function svg(kind) {
+function svg(kind, size = '100%') {
   const bleed = kind !== 'round';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%"><rect width="64" height="64" rx="${bleed ? 0 : 14}" fill="#b8402e"/>${globe(kind === 'maskable' ? 0.8 : 1)}</svg>`;
+  const scale = kind === 'maskable' ? 0.8 : 1;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="${size}" height="${size}"><rect width="64" height="64" rx="${bleed ? 0 : 14}" fill="#b8402e"/><g transform="translate(32 32) scale(${scale}) translate(-32 -32)">${inner}</g></svg>`;
 }
+
+writeFileSync(join(root, 'public', 'icon.svg'), svg('round').replace(' width="100%" height="100%"', '') + '\n');
+console.log('wrote public/icon.svg');
 
 const jobs = [
   ['apple-touch-icon.png', 180, 'bleed'],

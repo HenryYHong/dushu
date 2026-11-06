@@ -38,11 +38,12 @@ a { color: var(--ink); }
   border-bottom: 1px solid var(--rule);
 }
 .app-brand { display: flex; align-items: center; gap: 10px; margin-right: auto; text-decoration: none; color: var(--text); border-radius: var(--radius-s); }
-/* The brand mark, like the app icon: a globe drawn in lines of text, in a vermilion square. */
+/* The brand mark, like the app icon: a desk globe with the continents (ui/globe.svg), in a vermilion square. */
 .app-brand-mark { display: inline-grid; flex: none; width: 32px; height: 32px; border-radius: 7px; background: var(--accent-fill); }
 .app-brand-mark svg { width: 100%; height: 100%; }
-.app-brand-mark circle { fill: var(--accent-fill-text); }
-.app-brand-mark rect { fill: var(--accent-fill); }
+.app-brand-mark .gr-sea, .app-brand-mark .gr-base { fill: var(--accent-fill-text); }
+.app-brand-mark .gr-land { fill: var(--accent-fill); }
+.app-brand-mark .gr-frame { stroke: var(--accent-fill-text); }
 .app-brand-zh, .seal {
   display: inline-grid; place-items: center; flex: none;
   background: var(--accent-fill); color: var(--accent-fill-text);
