@@ -259,7 +259,7 @@ export function stripBidi(text: string): string {
   return text.replace(BIDI, '');
 }
 
-export const NOT_TEXT_MESSAGE = 'This file does not look like text (it may be a binary file with a .txt name), so Dushu did not import it.';
+export const NOT_TEXT_MESSAGE = 'This file does not look like text (it may be a binary file with a .txt name), so Globereader did not import it.';
 
 /**
  * Whether bytes decoded as text really are text: not full of zero or control bytes. A strict UTF-8 decode is accepted

@@ -506,7 +506,7 @@ export async function speakSequence(
         opts?.onError?.(error instanceof Error ? error.message : 'Could not prepare Premium audio.');
         return false;
       }
-      console.warn('Dushu: the account voice could not read, so this device’s voice reads instead', error);
+      console.warn('Globereader: the account voice could not read, so this device’s voice reads instead', error);
       voice = own;
       from = at;
     } finally {

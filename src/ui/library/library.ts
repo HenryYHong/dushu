@@ -479,7 +479,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(macNote);
     if (homeTip) {
       macNote.append(
-        h('p', null, 'Add Dushu to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.'),
+        h('p', null, 'Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.'),
         h('div.lib-actions', null, h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.home-note.v1') }, 'Got it')));
       return;
     }
@@ -487,7 +487,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       macNote.append(
         h('p', null, cloudBase()
           ? 'Your books and words are saved in this browser. Sign in with your email to have them on your other devices too.'
-          : 'Your books and words are saved in this browser. If you run Dushu on your own Mac, connect this device to it in Settings to use its translator, voices and books.'),
+          : 'Your books and words are saved in this browser. If you run Globereader on your own Mac, connect this device to it in Settings to use its translator, voices and books.'),
         h('div.lib-actions', null,
           cloudBase()
             ? h('button.btn.btn-sm', { type: 'button', onclick: () => openSignIn() }, 'Sign in')

@@ -70,26 +70,26 @@ const PAGES = [
 
 const NAMES = [
   'Novels are full of names no dictionary has, like 郭靖 or 桃花岛. Left alone they get split into single characters that make no sense.',
-  'The first time you open a book, Dushu looks for names and terms that keep coming up and reads them as whole words. It takes a few seconds, on your device.',
+  'The first time you open a book, Globereader looks for names and terms that keep coming up and reads them as whole words. It takes a few seconds, on your device.',
   'Tap one to fix its pinyin or meaning, or to say it isn\'t a word. You can also add a name it missed.',
 ];
 
 const DEVICES = [
-  'Open Dushu in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.',
+  'Open Globereader in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.',
   'To add your own books, tap Import book and pick a file from the Files app.',
   'Safari has no built-in translator. On an iPhone or iPad, sign in and your sentences are translated through your account. Signed out, you get a word-by-word gloss.',
 ];
 
 const ACCOUNT = [
-  'Dushu is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer\'s password or PIN. You don\'t need a Dushu password or an email. After that, tap Sign in at the top and use your passkey.',
+  'Globereader is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer\'s password or PIN. You don\'t need a Globereader password or an email. After that, tap Sign in at the top and use your passkey.',
   'On an iPhone, iPad or Mac, your passkey is on your other Apple devices too. On another device, sign in once with your phone (the browser offers it), then add a passkey there in Settings.',
   'Your books, saved words, lookups, bookmarks, reading places and settings follow you to any device you sign in on. A few things that depend on the screen, like one or two pages, stay with each device.',
-  'Signed in, books are read aloud in your account\'s voice, up to a daily limit. Otherwise Dushu uses your device\'s own voices.',
+  'Signed in, books are read aloud in your account\'s voice, up to a daily limit. Otherwise Globereader uses your device\'s own voices.',
   'Only you can see what\'s in your account. You can delete it in Settings, and this device keeps its own copy.',
 ];
 
 const MAC = [
-  'If you run Dushu on your own Mac, the website can use it over Tailscale for Premium voices, a translation model and the books on that Mac. Only the Mac\'s owner can do this.',
+  'If you run Globereader on your own Mac, the website can use it over Tailscale for Premium voices, a translation model and the books on that Mac. Only the Mac\'s owner can do this.',
   'To connect a device, copy the connect link from Settings on the Mac and open it on the device, or type the Mac\'s address into Settings on the website. The address stays in that browser.',
   'Books the Mac shares are added to the library by themselves and work offline after that. They can\'t be deleted, and if the browser clears them they come back.',
 ];
@@ -100,7 +100,7 @@ const showMac = () => isMacOrigin() || !!connectedMac() || isAccountOwner();
 /** Where translations come from, for a language other than Chinese: no Mac model (it was measured on Chinese only). */
 const otherTranslation = (furigana: boolean): string[] => [
   `Meanings${furigana ? ' and readings' : ''} come from the dictionaries listed at the bottom. They're part of the app and work offline. Machine translation is only used for whole sentences.`,
-  'On Automatic, Dushu tries Claude first if your account has it, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
+  'On Automatic, Globereader tries Claude first if your account has it, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
   ...TRANSLATION_REST,
 ];
 
@@ -114,7 +114,7 @@ const TRANSLATION_REST = [
 
 const TRANSLATION = [
   'Pinyin and meanings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.',
-  'On Automatic, Dushu tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
+  'On Automatic, Globereader tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.',
   ...TRANSLATION_REST,
 ];
 
@@ -147,7 +147,7 @@ function storageCard(): HTMLElement {
     try { kept = await api.persisted(); } catch { /* ignore */ }
     status.textContent = kept
       ? 'Your browser has agreed to keep your books and words, even when space runs low.'
-      : 'Your browser may clear your books and words if space runs low. Adding Dushu to the Home Screen and asking here makes that much less likely.';
+      : 'Your browser may clear your books and words if space runs low. Adding Globereader to the Home Screen and asking here makes that much less likely.';
     btn.hidden = kept;
   };
   btn.addEventListener('click', () => {
@@ -184,16 +184,16 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
     furigana
       ? 'Choose where furigana show: nowhere, over every word with kanji, over words you haven\'t marked as known, or over words above your JLPT level.'
       : `Turn on Hints to see a short English meaning over hard words: every word, words you haven't marked as known, or words above your level.${L.stress ? ' Stress marks show which vowel to stress.' : ''}`,
-    `Tap a word for its meaning${furigana ? ', reading and kanji' : ''}. Dushu looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.`,
+    `Tap a word for its meaning${furigana ? ', reading and kanji' : ''}. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.`,
     `Star a word to study it later. Mark a word as known and its ${aidWord()} go${furigana ? '' : 'es'} away.`,
     'Open Review once a day. It brings back the words you starred or looked up, with longer gaps as you remember them.',
   ];
   const levels = `${L.levels.about} Mark a whole ${levelScheme() === 'JLPT' ? 'JLPT level' : 'level'} as known in Vocabulary.`;
   const statRows = Object.entries(counts).filter(([, v]) => typeof v === 'number' && v > 0).slice(0, 6);
   return h('div.page.ab-page', null,
-    h('div.page-head', null, h('div', null, pageTitle('about', 'About Dushu'))),
+    h('div.page-head', null, h('div', null, pageTitle('about', 'About Globereader'))),
     h('section.ab-section', null,
-      h('p.ab-lead', null, `Dushu is for reading real books in ${L.name}. Tap a word to see its meaning${furigana ? ' and reading' : ''}, and tap it twice to translate the whole sentence.`),
+      h('p.ab-lead', null, `Globereader is for reading real books in ${L.name}. Tap a word to see its meaning${furigana ? ' and reading' : ''}, and tap it twice to translate the whole sentence.`),
       h('p.ab-p', null, 'It runs in your browser. Your books and words stay on this device, and in your account if you sign in, where only you can see them. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.'),
       h('p.ab-p', null, 'Each language is its own library, with its own books, words and settings, and each syncs with your account on its own. Switch languages in Settings or with the language menu at the top.')),
     h('section.ab-section', null, h('h2.section-title', null, 'How to use it'), steps(how)),
@@ -277,10 +277,10 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
   ];
 
   return h('div.page.ab-page', null,
-    h('div.page-head', null, h('div', null, pageTitle('about', 'About Dushu'))),
+    h('div.page-head', null, h('div', null, pageTitle('about', 'About Globereader'))),
 
     h('section.ab-section', null,
-      h('p.ab-lead', null, 'I made Dushu (读书, “reading books”) to read real Chinese books. Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.'),
+      h('p.ab-lead', null, 'I made Globereader to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.'),
       h('p.ab-p', null, 'It runs in your browser. Your books and words stay on this device, and in your account if you sign in, where only you can see them. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.')),
 
     h('section.ab-section', null,
@@ -306,7 +306,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
     h('section.ab-section', null,
       h('h2.section-title', null, 'On a phone or iPad'),
       steps(DEVICES),
-      h('p.ab-p.ab-gap', null, 'Safari can delete a website\'s data if you don\'t open it for about a week. Sites on the Home Screen are safe from that. Dushu also asks the browser to keep its data once you add a book, and if you\'re signed in, your books come back from your account anyway.'),
+      h('p.ab-p.ab-gap', null, 'Safari can delete a website\'s data if you don\'t open it for about a week. Sites on the Home Screen are safe from that. Globereader also asks the browser to keep its data once you add a book, and if you\'re signed in, your books come back from your account anyway.'),
       storageCard()),
 
     showMac() ? h('section.ab-section', null,
@@ -319,7 +319,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
 
     h('section.ab-section', null,
       h('h2.section-title', null, 'Every character'),
-      h('p.ab-p', null, 'Dushu can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.'),
+      h('p.ab-p', null, 'Globereader can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.'),
       stats.length
         ? h('table.ab-counts', null, h('tbody', null, stats.map((s) => h('tr.ab-count', null,
             h('td.ab-count-value', null, s.value),

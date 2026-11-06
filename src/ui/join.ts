@@ -15,7 +15,7 @@ export const mount: MountFn = (root, params, ctx) => {
   const name = h('input.input.join-name', { type: 'text', autocomplete: 'name', maxlength: 40, placeholder: 'Your name', 'aria-label': 'Your name' }) as HTMLInputElement;
   const go = h('button.btn.btn-primary', { type: 'submit' }, 'Make my account') as HTMLButtonElement;
   const form = h('form.join-form', { hidden: true }, name, go) as HTMLFormElement;
-  const note = h('p.join-note', { hidden: true }, 'Your phone or computer saves a passkey for Dushu. You unlock it the way you unlock the device: Face ID, a fingerprint, or your computer’s password or PIN. You don’t need a Dushu password or an email. On a shared computer, pick your phone instead and scan the code. On an iPhone or iPad the passkey is on your other Apple devices too.');
+  const note = h('p.join-note', { hidden: true }, 'Your phone or computer saves a passkey for Globereader. You unlock it the way you unlock the device: Face ID, a fingerprint, or your computer’s password or PIN. You don’t need a Globereader password or an email. On a shared computer, pick your phone instead and scan the code. On an iPhone or iPad the passkey is on your other Apple devices too.');
   const done = h('div.join-done', { hidden: true });
 
   const say = (text: string, bad = false) => { status.textContent = text; status.classList.toggle('join-bad', bad); };
@@ -41,7 +41,7 @@ export const mount: MountFn = (root, params, ctx) => {
 
   done.append(h('a.btn.btn-primary', { href: '#/' }, 'Open the library'));
   root.appendChild(h('div.page.join-page', null,
-    h('div.page-head', null, h('div', null, pageTitle('join', 'Join Dushu'))),
+    h('div.page-head', null, h('div', null, pageTitle('join', 'Join Globereader'))),
     lead, form, status, note, done));
 
   const signedIn = cloudSession();
@@ -55,7 +55,7 @@ export const mount: MountFn = (root, params, ctx) => {
   } else {
     void inviteLabel(invite).then((label) => {
       if (!alive) return;
-      lead.textContent = label ? `You’re invited to Dushu (${label}). Make an account with a passkey: no password, no email.` : 'You’re invited to Dushu. Make an account with a passkey: no password, no email.';
+      lead.textContent = label ? `You’re invited to Globereader (${label}). Make an account with a passkey: no password, no email.` : 'You’re invited to Globereader. Make an account with a passkey: no password, no email.';
       form.hidden = note.hidden = false;
       name.focus();
     }, (err) => {

@@ -76,7 +76,7 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
       fill(settings.get().ttsVoice);
       note.textContent = list.length
         ? `Automatic picks the best voice you have. On iPad you can add ${langName()} voices in Settings > Accessibility > Read & Speak.`
-        : `No ${langName()} voices found. Add one in your device’s Accessibility > Read & Speak settings, then reopen Dushu.`;
+        : `No ${langName()} voices found. Add one in your device’s Accessibility > Read & Speak settings, then reopen Globereader.`;
     }).catch(() => { listed = true; });
   }
 

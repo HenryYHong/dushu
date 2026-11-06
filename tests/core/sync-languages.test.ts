@@ -253,7 +253,7 @@ describe('a new library on a hub from before languages (main’s exchange)', () 
     expect([...h.data.keys()]).toEqual(['v:学生']);
     expect(h.log.filter((x) => x.lang === 'ja').every((x) => changesOf(x.body).length === 0)).toBe(true);
     expect(ja.syncer.status()).toMatchObject({ state: 'outdated', hub: 'mac', pending: 2 });
-    expect(describeSync(ja.syncer.status(), true)).toBe('Dushu on your Mac is older than this page and does not keep Japanese yet. Your Japanese words, places and bookmarks stay on this device and sync once it is updated. 2 changes from this device are waiting.');
+    expect(describeSync(ja.syncer.status(), true)).toBe('Globereader on your Mac is older than this page and does not keep Japanese yet. Your Japanese words, places and bookmarks stay on this device and sync once it is updated. 2 changes from this device are waiting.');
     expect(await ja.store.vocab.get('学生')).toMatchObject({ pinyin: 'がくせい' });
     expect(ja.store.known.all()).toEqual(['先生']);
     // The next syncs ask, sending nothing (no loop of records the hub drops), and the Chinese library is untouched.

@@ -29,7 +29,7 @@ export function macRows(params: Record<string, string>): { rows: HTMLElement[]; 
     say('Checking your Mac…');
     try {
       await probeMac(origin);
-      if (!connectMac(origin)) throw new Error('This browser would not keep the address. Allow site data for Dushu and try again.');
+      if (!connectMac(origin)) throw new Error('This browser would not keep the address. Allow site data for Globereader and try again.');
       say(`Connected. Claude, the local model, Premium voices and your books now use your Mac (${host(origin)}).`, 'good');
       return true;
     } catch (e) {
@@ -50,7 +50,7 @@ export function macRows(params: Record<string, string>): { rows: HTMLElement[]; 
     const mac = connectedMac();
     disconnectBtn.hidden = !mac;
     status.textContent = mac ? `Connected to ${host(mac)}. Claude, the local model, Premium voices and your books use that Mac while it is awake.`
-      : isMacOrigin() ? 'You opened Dushu from your Mac, so this device already uses it.'
+      : isMacOrigin() ? 'You opened Globereader from your Mac, so this device already uses it.'
       : 'Not connected. Without a Mac, translation uses Chrome on-device or the dictionary, and voices use this device.';
     if (mac && document.activeElement !== address) address.value = host(mac);
   }
@@ -67,7 +67,7 @@ export function macRows(params: Record<string, string>): { rows: HTMLElement[]; 
       pending.hidden = false;
       pending.replaceChildren(
         h('div.set-label', null, `Connect this device to ${host(origin)}?`),
-        h('p.set-help', null, 'Only do this if the link came from your own Dushu. After connecting, translation, voices and your books on this device use that Mac.'),
+        h('p.set-help', null, 'Only do this if the link came from your own Globereader. After connecting, translation, voices and your books on this device use that Mac.'),
         h('div.set-btn-row', null,
           h('button.btn.btn-sm.btn-primary', { type: 'button', onclick: async () => { if (await connect(origin)) pending.hidden = true; } }, 'Connect'),
           h('button.btn.btn-sm', { type: 'button', onclick: () => { pending.hidden = true; } }, 'Not now')));
@@ -80,7 +80,7 @@ export function macRows(params: Record<string, string>): { rows: HTMLElement[]; 
   const shareBtn = h('button.btn.btn-sm', { type: 'button', hidden: typeof navigator === 'undefined' || typeof navigator.share !== 'function' }, 'Share') as HTMLButtonElement;
   const linkNote = h('div.set-help');
   const linkRow = row('Link for your other devices',
-    'Open this link once on a device that uses the public Dushu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.',
+    'Open this link once on a device that uses the public Globereader site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.',
     h('div.set-link-wrap', null, h('div.set-link-row', null, linkInput, copyBtn, shareBtn), linkNote));
   linkRow.hidden = true;
   copyBtn.addEventListener('click', async () => {
@@ -96,7 +96,7 @@ export function macRows(params: Record<string, string>): { rows: HTMLElement[]; 
       if (!alive) return;
       linkRow.hidden = false;
       if (link) linkInput.value = link;
-      else { linkInput.value = ''; copyBtn.disabled = true; shareBtn.disabled = true; linkNote.textContent = 'Run npm run ipad in Dushu on your Mac to set up the private address first.'; }
+      else { linkInput.value = ''; copyBtn.disabled = true; shareBtn.disabled = true; linkNote.textContent = 'Run npm run ipad in Globereader on your Mac to set up the private address first.'; }
     }).catch(() => {});
   }
 

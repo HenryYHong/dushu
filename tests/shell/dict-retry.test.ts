@@ -34,7 +34,7 @@ beforeAll(async () => {
 describe('dictionary download', () => {
   it('says plainly that it failed, and the next use tries again', async () => {
     await vi.waitFor(() => expect(document.querySelector('.app-toast-text')?.textContent)
-      .toBe('Could not download the dictionary. Check your connection; Dushu will try again.'));
+      .toBe('Could not download the dictionary. Check your connection; Globereader will try again.'));
     await go(`#/read/${meta.id}`);
     await readerDrawn();
     expect(document.body.textContent).not.toContain('Dictionary not loaded');

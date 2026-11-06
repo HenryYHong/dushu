@@ -60,7 +60,7 @@ describe('Settings on the private site', () => {
     await until(() => [...root.querySelectorAll('.set-status dt')].some(dt => dt.textContent === 'Today'));
     expect(asked).toContain('/api/claude/status');
     expect(connectedMac()).toBeNull();
-    expect(root.textContent).toContain('You opened Dushu from your Mac, so this device already uses it.');
+    expect(root.textContent).toContain('You opened Globereader from your Mac, so this device already uses it.');
     const chips = Object.fromEntries([...root.querySelectorAll('.set-prov')].map(r => [r.querySelector('.set-prov-name')?.textContent, r.querySelector('.set-chip')?.textContent]));
     expect(chips['Claude (through your Mac)']).toBe('Ready');
     await until(() => root.querySelector('.set-prov .set-chip')?.textContent !== '…');

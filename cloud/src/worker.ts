@@ -157,7 +157,7 @@ function mailer(env: Env): Mailer {
   if (env.mailer) return env.mailer;
   if (env.MAIL_MODE === 'log') return logMailer();
   if (!env.RESEND_API_KEY) throw new CloudError(503, 'Sign-in emails are not set up on the sync server yet.');
-  return resendMailer(env.RESEND_API_KEY, env.MAIL_FROM || 'Dushu <onboarding@resend.dev>');
+  return resendMailer(env.RESEND_API_KEY, env.MAIL_FROM || 'Globereader <onboarding@resend.dev>');
 }
 
 /** Counts against the days shared by every account (the Limits object); false when any is used up. */
@@ -237,17 +237,17 @@ async function speech(request: Request, env: Env): Promise<Response> {
     ...(owner ? [] : [{ name: 'speech-others', n: chars, max: SPEECH_OTHERS_CHARS }]),
   ];
   if (!await takeShared(env, shared)) {
-    throw new CloudError(429, 'Today’s free read-aloud is used up. It resets at midnight (UTC); until then Dushu reads with this device’s voice.', 'daily_limit');
+    throw new CloudError(429, 'Today’s free read-aloud is used up. It resets at midnight (UTC); until then Globereader reads with this device’s voice.', 'daily_limit');
   }
   // The model's answer as it comes, { audio: base64 WAV }: decoding megabytes here would take the Worker past the free plan's
   // CPU time, so the device decodes it (src/speech/tts.ts).
   let res: unknown;
   try { res = await env.AI.run(SPEECH_MODEL, { prompt: text, lang: 'zh' }, { returnRawResponse: true }); } catch (e) {
-    console.error('Dushu speech', e);
+    console.error('Globereader speech', e);
     throw new CloudError(502, 'The sync server could not read that aloud. Try again in a moment.', 'voice_failed');
   }
   if (!(res instanceof Response) || !res.ok || !res.body) {
-    console.error('Dushu speech', res instanceof Response ? res.status : typeof res);
+    console.error('Globereader speech', res instanceof Response ? res.status : typeof res);
     throw new CloudError(502, 'The sync server could not read that aloud. Try again in a moment.', 'voice_failed');
   }
   return new Response(res.body, { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
@@ -296,7 +296,7 @@ async function aiTranslate(request: Request, env: Env): Promise<Response> {
         max_tokens: maxTokens, temperature: 0,
       }) as QwenAnswer;
     } catch (e) {
-      console.error('Dushu translate', e);
+      console.error('Globereader translate', e);
       throw new CloudError(502, 'The sync server could not translate that. Try again in a moment.', 'model_failed');
     }
     const u = answer.usage ?? {};
@@ -358,7 +358,7 @@ async function perNetwork(request: Request, env: Env, name: string, max: number,
 /** The page asking, as WebAuthn names it: one of Dushu's own origins, and its host as the passkey's site (the rpID). */
 function pageOrigin(request: Request): { origin: string; rpID: string } {
   const origin = request.headers.get('Origin') ?? '';
-  if (!ORIGINS.some((r) => r.test(origin))) throw new CloudError(403, 'Passkeys work only on Dushu’s own pages.');
+  if (!ORIGINS.some((r) => r.test(origin))) throw new CloudError(403, 'Passkeys work only on Globereader’s own pages.');
   return { origin, rpID: new URL(origin).hostname };
 }
 
@@ -372,7 +372,7 @@ const handleOf = (id: string) => isoBase64URL.fromBuffer(isoUint8Array.fromHex(i
 function creationOptions(challenge: string, rpID: string, id: string, name: string, exclude: string[] = []) {
   return {
     challenge, timeout: 120_000, attestation: 'none',
-    rp: { id: rpID, name: 'Dushu' },
+    rp: { id: rpID, name: 'Globereader' },
     user: { id: handleOf(id), name, displayName: name },
     pubKeyCredParams: [-7, -8, -257].map((alg) => ({ type: 'public-key', alg })),
     authenticatorSelection: { residentKey: 'required', requireResidentKey: true, userVerification: 'preferred' },
@@ -397,7 +397,7 @@ async function newPasskey(response: unknown, challenge: string, origin: string, 
     const c = v.registrationInfo.credential;
     return { id: c.id, publicKey: isoBase64URL.fromBuffer(c.publicKey), counter: c.counter, rpID, created: 0, ...(c.transports?.length ? { transports: c.transports } : {}) };
   } catch (e) {
-    console.error('Dushu passkey', e instanceof Error ? e.message : e);
+    console.error('Globereader passkey', e instanceof Error ? e.message : e);
     throw new CloudError(400, 'That passkey could not be checked. Try again.', 'bad_passkey');
   }
 }
@@ -458,7 +458,7 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
     let id = '';
     try { id = isoUint8Array.toHex(isoBase64URL.toBuffer(str(response?.response?.userHandle))); } catch { /* not ours */ }
     const gone = new CloudError(401, 'This passkey’s account was deleted.', 'no_account');
-    if (!/^[0-9a-f]{64}$/.test(id)) throw new CloudError(400, 'That passkey is not one for Dushu.', 'bad_passkey');
+    if (!/^[0-9a-f]{64}$/.test(id)) throw new CloudError(400, 'That passkey is not one for Globereader.', 'bad_passkey');
     let stub: DurableObjectStub;
     try { stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromString(id)); } catch { throw gone; }
     const { key } = await (await call(env, stub, 'passkey-get', { id: str(response?.id) })).json() as { key?: PasskeyRecord | null };
@@ -470,7 +470,7 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
       if (!v.verified) throw new Error('not verified');
       counter = v.authenticationInfo.newCounter;
     } catch (e) {
-      console.error('Dushu passkey', e instanceof Error ? e.message : e);
+      console.error('Globereader passkey', e instanceof Error ? e.message : e);
       throw new CloudError(401, 'That passkey could not be checked. Try again.', 'bad_passkey');
     }
     const s = secret();
@@ -526,7 +526,7 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   if (path === '/auth/code' && request.method === 'POST') {
     const email = normalEmail((await readJson(request, 4096)).email);
     if (!email) throw new CloudError(400, 'That does not look like an email address.');
-    if (!allowedEmail(email, env.ALLOWED_EMAILS)) throw new CloudError(403, 'That email cannot sign in to this Dushu.');
+    if (!allowedEmail(email, env.ALLOWED_EMAILS)) throw new CloudError(403, 'That email cannot sign in here.');
     // The account's own limits first (a code sent just now, too many this hour), then the network's and the day's. Anyone may
     // ask for a code, so a network has a limit: it is named by a hash, never kept as it is.
     const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName(`email:${email}`));
@@ -543,7 +543,7 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     const code = sixDigits();
     try { await mailer(env).send({ to: email, ...codeEmail(code) }); } catch (e) {
       if (e instanceof CloudError) throw e;
-      console.error('Dushu sync: the sign-in email was not sent', e);
+      console.error('Globereader sync: the sign-in email was not sent', e);
       throw new CloudError(502, 'The sign-in email could not be sent. Try again in a minute.');
     }
     const kept = await call(env, stub, 'code', { email, hash: await sha256(code) });
@@ -643,7 +643,7 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
 function failure(e: unknown): Response {
   if (e instanceof CloudError) return json(e.status, { error: e.message, ...(e.code ? { code: e.code } : {}) });
   if (e instanceof SyncError) return json(e.status, { error: e.message });
-  console.error('Dushu sync', e);
+  console.error('Globereader sync', e);
   return json(500, { error: 'The sync server could not do that. Try again in a minute.' });
 }
 

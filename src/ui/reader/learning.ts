@@ -120,7 +120,7 @@ export function createLearning(host: LearningHost): Learning {
 
   const tick = () => {
     if (!ctx.settings.get().autoKnown) { tracker.tick(null); return; }
-    try { tracker.tick(current()); } catch (e) { console.warn('Dushu: could not read what is on screen', e); }
+    try { tracker.tick(current()); } catch (e) { console.warn('Globereader: could not read what is on screen', e); }
   };
   const timer = window.setInterval(tick, TICK_MS);
 

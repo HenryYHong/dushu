@@ -112,7 +112,7 @@ export function privateGateway(config: () => PrivateAccess | null = privateAcces
     const path = new URL(req.url || '/', 'http://localhost').pathname;
     const bridge = isBridgeRoute(path);
     if (bridge && bridgeCors(req, res, config())) return;
-    if (!(bridge ? bridgeRequest(req, config()) : trustedRequest(req, config()))) { res.writeHead(403, { 'Cache-Control': 'no-store' }).end('Private Dushu: connect with the Mac owner’s Tailscale account.'); return; }
+    if (!(bridge ? bridgeRequest(req, config()) : trustedRequest(req, config()))) { res.writeHead(403, { 'Cache-Control': 'no-store', 'Content-Type': 'text/plain; charset=utf-8' }).end('Private Globereader: connect with the Mac owner’s Tailscale account.'); return; }
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'same-origin');

@@ -26,7 +26,7 @@ interface TocEntry {
 const IMAGE_EXT = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif']);
 const FONT_ALGORITHMS = ['http://www.idpf.org/2008/embedding', 'http://ns.adobe.com/pdf/enc#rc'];
 const DRM_MESSAGE =
-  'This EPUB is protected by DRM (copy protection), so Dushu cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.';
+  'This EPUB is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.';
 
 const utf8 = (b: Uint8Array) => new TextDecoder('utf-8').decode(b);
 const extOf = (p: string) => (/\.([A-Za-z0-9]+)$/.exec(p)?.[1] ?? '').toLowerCase();

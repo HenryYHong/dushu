@@ -567,7 +567,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       const reply = await response.json().catch(() => null) as Reply | null;
       if (stopped) return;
       if (!reply || typeof reply.epoch !== 'string' || !Number.isInteger(reply.version) || !Array.isArray(reply.records)) {
-        setStatus({ state: 'error', hub, message: `${hub === 'cloud' ? 'The sync server' : 'Your Mac'} sent an answer Dushu did not understand.` });
+        setStatus({ state: 'error', hub, message: `${hub === 'cloud' ? 'The sync server' : 'Your Mac'} sent an answer Globereader did not understand.` });
         return;
       }
       if (prefix && reply.lang !== lang) {
@@ -582,7 +582,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         const name = LANGS[lang].name;
         setStatus({
           state: 'outdated', hub, lastOk: undefined, counts: undefined, pending: dirty().length,
-          message: `${hub === 'cloud' ? 'The sync server is older than this version of Dushu' : 'Dushu on your Mac is older than this page'} and does not keep ${name} yet. Your ${name} words, places and bookmarks stay on this device and sync once it is updated.`,
+          message: `${hub === 'cloud' ? 'The sync server is older than this version of Globereader' : 'Globereader on your Mac is older than this page'} and does not keep ${name} yet. Your ${name} words, places and bookmarks stay on this device and sync once it is updated.`,
         });
         return;
       }
@@ -851,7 +851,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         if (locks?.request) await locks.request('dushu-sync', () => once());
         else await once();
       } catch (e) {
-        console.warn('Dushu sync', e);
+        console.warn('Globereader sync', e);
         setStatus({ state: 'error', message: e instanceof Error ? e.message : String(e) });
       }
     };

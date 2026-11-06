@@ -1,7 +1,7 @@
 {
-  "name": "Dushu 读书",
-  "short_name": "Dushu",
-  "description": "Read real Chinese books with pinyin, definitions and translation on tap.",
+  "name": "Globereader",
+  "short_name": "Globereader",
+  "description": "Read real books in Chinese, Japanese, Spanish, French, German, Italian, Portuguese and Russian, with readings, definitions and translation on tap.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

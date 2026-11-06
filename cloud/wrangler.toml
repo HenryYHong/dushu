@@ -26,5 +26,5 @@ new_sqlite_classes = ["Account", "Limits"]
 binding = "AI"
 
 [vars]
-MAIL_FROM = "Dushu <onboarding@resend.dev>"
+MAIL_FROM = "Globereader <onboarding@resend.dev>"
 DAILY_EMAILS = "90"

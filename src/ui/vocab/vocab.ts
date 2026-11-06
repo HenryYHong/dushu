@@ -193,7 +193,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       if (r.known.added) bits.push(`${plural(r.known.added, 'known word')} added`);
       ctx.toast(bits.join(', ') + (restored ? '. Settings restored.' : '.'), { ms: 6000 });
     } catch (e) {
-      ctx.toast(e instanceof Error ? e.message : 'That file is not a Dushu backup.', { ms: 6000 });
+      ctx.toast(e instanceof Error ? e.message : 'That file is not a Globereader backup.', { ms: 6000 });
     }
   }
 

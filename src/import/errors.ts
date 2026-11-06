@@ -8,7 +8,7 @@ export class ImportError extends Error {
   }
 }
 
-export const NO_CHINESE = 'No Chinese text found in this file. Dushu reads books written in Chinese characters.';
+export const NO_CHINESE = 'No Chinese text found in this file. Globereader reads books written in Chinese characters.';
 
 /** The same, for the language being read (lang/active.ts). */
 export function noTextMessage(): string {
@@ -17,7 +17,7 @@ export function noTextMessage(): string {
 }
 
 export const PDF_HOST_MESSAGE =
-  'The PDF reader could not start. This is a problem with how Dushu is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.';
+  'The PDF reader could not start. This is a problem with how Globereader is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.';
 
 export const PDF_OFFLINE_MESSAGE = 'PDF import needs a connection the first time. Connect once and try again.';
 

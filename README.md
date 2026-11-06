@@ -1,6 +1,8 @@
-# Dushu 读书
+# Globereader
 
-Dushu is a reader for learning Chinese from real books. Open an EPUB, a text file or a PDF, or paste a chapter. Click any word to see its pinyin, English meanings and how it is built from its characters. Drag across a sentence for its pinyin and a translation. Words you save become flashcards.
+Globereader (first called Dushu, 读书) is a reader for learning a language from real books: Chinese, Japanese, Spanish, French, German, Italian, Portuguese and Russian. The code and its data keys still say dushu.
+
+For Chinese: open an EPUB, a text file or a PDF, or paste a chapter. Click any word to see its pinyin, English meanings and how it is built from its characters. Drag across a sentence for its pinyin and a translation. Words you save become flashcards.
 
 It handles every Chinese character, including the rare ones in the Unicode extension blocks. It works with simplified and traditional text, and it works offline once it has loaded.
 

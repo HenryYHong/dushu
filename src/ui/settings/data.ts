@@ -115,7 +115,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
       if (report.settings) ctx.settings.set(report.settings);
       say(describeReport(report));
     } catch (e) {
-      say(e instanceof Error ? e.message : 'That file is not a Dushu backup.', true);
+      say(e instanceof Error ? e.message : 'That file is not a Globereader backup.', true);
     }
   });
   const importBtn = h('button.btn.btn-sm', { type: 'button', onclick: () => file.click() }, icon('upload'), 'Import backup');

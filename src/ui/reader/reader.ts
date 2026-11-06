@@ -139,7 +139,7 @@ export const mount: MountFn = async (root, params, ctx) => {
    * read since on another device, so it is not saved again. */
   let lastSaved = saved ? { chapter: saved.chapter, block: saved.block, offset: saved.offset ?? 0 } : { chapter: 0, block: 0, offset: 0 };
   const prevTitle = document.title;
-  document.title = `${book.title} - Dushu`;
+  document.title = `${book.title} - Globereader`;
   void store.books.update(book.id, { lastOpenedAt: Date.now() }).catch(() => {});
 
   // The reader's fixes of this book (bookFixes.ts): laid over the names and terms, so the page is cut and read as they say.
@@ -222,8 +222,8 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (isFullscreen()) { void setFullscreen(false).catch(() => {}); return; }
     if (!fullscreenSupported()) {
       ctx.toast(isStandalone()
-        ? 'Opened from your Home Screen, Dushu already reads without the browser bars.'
-        : 'This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open Dushu from there to read without the bars.', { ms: 7000 });
+        ? 'Opened from your Home Screen, Globereader already reads without the browser bars.'
+        : 'This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open Globereader from there to read without the bars.', { ms: 7000 });
       return;
     }
     void setFullscreen(!isFullscreen()).catch(() => ctx.toast('This browser would not go full screen.'));
@@ -1585,7 +1585,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   async function checkNamesNow(): Promise<void> {
     if (!nameCheck) return;
     toc.close();
-    if (isDetecting(book!.id)) { ctx.toast('Dushu is still finding the names in this book. Try again in a moment.'); return; }
+    if (isDetecting(book!.id)) { ctx.toast('Globereader is still finding the names in this book. Try again in a moment.'); return; }
     let list;
     try { list = await nameCheck.candidates(true); } catch (e) { console.error('name check', e); ctx.toast('Could not look for names.'); return; }
     if (disposed) return;

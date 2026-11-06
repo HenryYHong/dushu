@@ -24,7 +24,7 @@ export function watchServiceWorker(
     if (now() < autoUntil) { worker.postMessage('SKIP_WAITING'); return; }
     if (updateOffered) return;
     updateOffered = true;
-    ctx.toast('A new version of Dushu is ready.', {
+    ctx.toast('A new version of Globereader is ready.', {
       ms: 24 * 3600 * 1000,
       action: { label: 'Reload', run: () => waitingWorker?.postMessage('SKIP_WAITING') },
     });

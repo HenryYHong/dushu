@@ -71,7 +71,7 @@ async function boot(): Promise<void> {
   app.append(opening);
   const slow = setTimeout(() => {
     opening.replaceChildren(h('div.app-spinner'),
-      h('span', null, 'Still opening your library. If this does not finish, close any other Dushu tabs and reload this page.'));
+      h('span', null, 'Still opening your library. If this does not finish, close any other Globereader tabs and reload this page.'));
   }, 5000);
 
   // The dictionary takes longest to be ready, so it starts first: its files download and parse while the library opens.
@@ -103,7 +103,7 @@ async function boot(): Promise<void> {
     clearTimeout(slow);
     opening.remove();
     app.append(h('main.app-fatal', null,
-      h('h1', null, 'Dushu cannot open your saved data'),
+      h('h1', null, 'Globereader cannot open your saved data'),
       h('p', null, e instanceof Error ? e.message : 'The local database could not be opened.')));
     return;
   }
@@ -169,7 +169,7 @@ async function boot(): Promise<void> {
     ctx.toast('This browser is blocking local storage, so books and words will be lost when you close the tab.', { ms: 9000 });
   }
   // Start parsing the dictionary right away; the library does not wait for it.
-  ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not download the dictionary. Check your connection; Dushu will try again.', { ms: 8000 }); });
+  ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not download the dictionary. Check your connection; Globereader will try again.', { ms: 8000 }); });
   // Saved words, known words, reading places, lookups and bookmarks, kept the same on every device signed in to the sync
   // account (or connected to the Mac), each language's library apart. Signed in, a device also learns where the Mac is, for
   // the Mac's books.
@@ -194,11 +194,17 @@ async function boot(): Promise<void> {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') accountBooks(); });
   setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, 5 * 60_000);
 
+  /** The app's mark, as on its icon (public/icon.svg): a globe drawn in lines of text. */
+  const brandMark = () => {
+    const el = h('span.app-brand-mark', { 'aria-hidden': 'true' });
+    el.innerHTML = '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="20"/><g><rect x="21" y="19.5" width="20" height="3" rx="1.5"/><rect x="15" y="25.5" width="30" height="3" rx="1.5"/><rect x="13.5" y="31.5" width="26" height="3" rx="1.5"/><rect x="15" y="37.5" width="33" height="3" rx="1.5"/><rect x="21" y="43.5" width="16" height="3" rx="1.5"/></g></svg>';
+    return el;
+  };
   const reviewBadge = h('span.app-badge', { hidden: true });
   const navLink = (href: string, label: string, ic: string, extra?: Node) =>
     h('a.app-navlink', { href, title: label, 'aria-label': label, 'data-route': href.replace(/^#\/?/, '') }, icon(ic), h('span.app-navlabel', null, label), extra ?? null);
   const nav = h('nav.app-nav', { 'aria-label': 'Main' },
-    h('a.app-brand', { href: '#/' }, h('span.app-brand-zh', null, '读书'), h('span.app-brand-en', null, 'Dushu')),
+    h('a.app-brand', { href: '#/', 'aria-label': 'Globereader, library' }, brandMark(), h('span.app-brand-en', null, 'Globereader')),
     langChip(),
     navLink('#/', 'Library', 'library'),
     navLink('#/vocab', 'Vocabulary', 'list'),

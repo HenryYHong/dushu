@@ -343,8 +343,8 @@ describe('backup', () => {
 
   it('rejects garbage with clear messages and writes nothing', async () => {
     await expect(store.importBackup('{nope')).rejects.toThrow(/not valid JSON/);
-    await expect(store.importBackup('[]')).rejects.toThrow(/not a Dushu backup/);
-    await expect(store.importBackup(JSON.stringify({ app: 'other' }))).rejects.toThrow(/not a Dushu backup/);
+    await expect(store.importBackup('[]')).rejects.toThrow(/not a Globereader backup/);
+    await expect(store.importBackup(JSON.stringify({ app: 'other' }))).rejects.toThrow(/not a Globereader backup/);
     await expect(store.importBackup(JSON.stringify({ app: 'dushu', version: 2 }))).rejects.toThrow(/newer version/);
     expect((await store.vocab.list()).length).toBe(0);
   });

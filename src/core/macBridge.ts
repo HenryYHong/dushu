@@ -113,9 +113,9 @@ export async function probeMac(origin: string, signal?: AbortSignal): Promise<{ 
     credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(6000)]) : AbortSignal.timeout(6000),
   });
   if (response.status === 403) throw new Error('Your Mac answered but did not accept this device. Sign in to Tailscale with the same account as the Mac.');
-  if (!response.ok) throw new Error('That address did not answer like Dushu on your Mac.');
+  if (!response.ok) throw new Error('That address did not answer like Globereader on your Mac.');
   const data = await response.json().catch(() => null) as { app?: string; url?: string | null } | null;
-  if (!data || data.app !== 'dushu') throw new Error('That address did not answer like Dushu on your Mac.');
+  if (!data || data.app !== 'dushu') throw new Error('That address did not answer like Globereader on your Mac.');
   return { url: typeof data.url === 'string' ? data.url : null };
 }
 

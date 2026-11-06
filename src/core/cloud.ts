@@ -55,7 +55,7 @@ export function forgetSession(): void {
 
 export async function post(path: string, body: unknown, token?: string): Promise<Response> {
   const base = cloudBase();
-  if (!base) throw new Error('This copy of Dushu has no sync server.');
+  if (!base) throw new Error('This copy of Globereader has no sync server.');
   let res: Response;
   try {
     res = await fetch(`${base}${path}`, {
@@ -100,10 +100,10 @@ export async function signIn(email: string, code: string): Promise<CloudSession>
 /** Keeps the sign-in the sync server answered with (a code, or a passkey): this device is signed in. */
 export async function keepSession(res: Response): Promise<CloudSession> {
   const data = await res.json().catch(() => null) as Partial<CloudSession> | null;
-  if (!data || typeof data.token !== 'string' || typeof data.email !== 'string') throw new Error('The sync server sent an answer Dushu did not understand.');
+  if (!data || typeof data.token !== 'string' || typeof data.email !== 'string') throw new Error('The sync server sent an answer Globereader did not understand.');
   const session: CloudSession = { token: data.token, email: data.email, ...(typeof data.name === 'string' && data.name ? { name: data.name } : {}),
     ...(typeof data.created === 'string' && data.created ? { created: data.created } : {}) };
-  try { storage()?.setItem(SESSION_KEY, JSON.stringify(session)); } catch { throw new Error('This browser would not keep the sign-in. Allow site data for Dushu and try again.'); }
+  try { storage()?.setItem(SESSION_KEY, JSON.stringify(session)); } catch { throw new Error('This browser would not keep the sign-in. Allow site data for Globereader and try again.'); }
   announce();
   return session;
 }

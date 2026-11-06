@@ -52,7 +52,7 @@ describe('the join screen', () => {
     pk.inviteLabel.mockResolvedValue('Mom’s class');
     pk.joinWithPasskey.mockResolvedValue({ token: 't', email: 'passkey:x', name: 'Amy' });
     mountJoin(root, { invite: 'abc' }, ctx());
-    await until(() => text().includes('You’re invited to Dushu (Mom’s class)'));
+    await until(() => text().includes('You’re invited to Globereader (Mom’s class)'));
     const name = root.querySelector<HTMLInputElement>('.join-name')!;
     root.querySelector<HTMLFormElement>('.join-form')!.requestSubmit();
     await until(() => text().includes('Type your name.'));

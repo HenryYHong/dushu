@@ -19,7 +19,7 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     const el = group('Sync', null,
       account.el,
       sync.el,
-      row('Install', 'Open Dushu from that icon and it works offline.', h('span', null, 'In Safari: Share, then Add to Home Screen')),
+      row('Install', 'Open Globereader from that icon and it works offline.', h('span', null, 'In Safari: Share, then Add to Home Screen')),
       row('Books', 'Books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.', h('span', null, 'Import book, in the library')));
     return { el, dispose() { sync.dispose(); account.dispose(); } };
   }
@@ -28,7 +28,7 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
   const invites = invitesRow();
   const status = h('div.set-help', { role: 'status' }, 'Checking private connection…');
   const link = h('a.btn.btn-sm', { hidden: true }, 'Open private iPad link') as HTMLAnchorElement;
-  if (!isMacOrigin()) status.textContent = 'This is the public copy of Dushu. The private address is shown when you open Dushu from your Mac.';
+  if (!isMacOrigin()) status.textContent = 'This is the public copy of Globereader. The private address is shown when you open Globereader from your Mac.';
   else void fetch('/api/private-status', { cache: 'no-store', signal: AbortSignal.timeout(3000) }).then(async response => {
     if (!response.ok) throw new Error();
     const data = await response.json() as { url?: string };
@@ -38,7 +38,7 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     link.href = `${url.href}?importLocalBooks#/`;
     link.hidden = false;
     status.textContent = `Private address: ${url.origin}. Only the Mac owner's Tailscale account can connect.`;
-  }).catch(() => { status.textContent = 'Turn on Tailscale on your Mac and run npm run ipad in Dushu to set up the private address.'; });
+  }).catch(() => { status.textContent = 'Turn on Tailscale on your Mac and run npm run ipad in Globereader to set up the private address.'; });
   const el = group('Your Mac and iPad', account
     ? 'Signed in, your books, words and Claude go with your account. Connecting a device to your Mac only adds its voices and local AI.'
     : 'Connect each device to your Mac once. Your words and reading places then sync through it.',
@@ -47,7 +47,7 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     sync.el,
     ...mac.rows,
     row('Connect', 'Turn on Tailscale on your iPad with the same account as this Mac, then open the private link in Safari.', h('div', null, link, status)),
-    row('Install', 'Open Dushu from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.', h('span', null, 'In Safari: Share, then Add to Home Screen')),
+    row('Install', 'Open Globereader from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.', h('span', null, 'In Safari: Share, then Add to Home Screen')),
     row('Books', 'Books on your Mac reach every device by themselves. For other books, use Import book.', h('span', null, 'Your Mac keeps a daily copy of your synced words for two weeks.')));
   return { el, dispose() { mac.dispose(); sync.dispose(); account?.dispose(); invites?.dispose(); } };
 }

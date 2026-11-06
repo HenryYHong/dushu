@@ -230,9 +230,9 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     try { void navigator.storage?.persist?.(); } catch { /* best effort */ }
   } catch (e) {
     if ((e as { name?: string } | null)?.name === 'VersionError') {
-      throw new Error('Your saved data was written by a newer version of Dushu. Update the app to open it.', { cause: e });
+      throw new Error('Your saved data was written by a newer version of Globereader. Update the app to open it.', { cause: e });
     }
-    console.warn('Dushu: IndexedDB is unavailable, so books and words will be kept in memory only and lost on reload.', e);
+    console.warn('Globereader: IndexedDB is unavailable, so books and words will be kept in memory only and lost on reload.', e);
     backend = createMemoryBackend();
   }
   const db = backend;
@@ -261,7 +261,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     try {
       if (m.what === 'vocab') rebuildVocab(await db.getAll<VocabItem>('vocab'));
       else if (m.what === 'known') loadKnown(await db.getAll<KnownRow>('known')); else if (m.what === 'books' && typeof m.removed === 'string') dropUrls(m.removed);
-    } catch (e) { console.error('Dushu: could not refresh after a change in another tab', e); return; }
+    } catch (e) { console.error('Globereader: could not refresh after a change in another tab', e); return; }
     notify(m.what, true);
   };
   if (db.kind === 'idb') {
@@ -574,7 +574,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         if (!cur) throw new Error('That book is no longer in your library.');
         const data = await bytesOf(image);
         const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
-        if (!type) throw new Error('That cover is not a picture Dushu can show.');
+        if (!type) throw new Error('That cover is not a picture Globereader can show.');
         // A new name for each picture, so a cached address for the old one is never shown for the new.
         const name = `cover-${from.replace(/[^\w.-]+/g, '-').slice(-40)}`;
         await write([
@@ -861,13 +861,13 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     importBackup(json) {
       return exclusive(async () => {
         let data: unknown;
-        try { data = JSON.parse(json); } catch { throw new Error('That file is not a Dushu backup (it is not valid JSON).'); }
-        if (!isObj(data) || data.app !== 'dushu') throw new Error('That file is not a Dushu backup.');
+        try { data = JSON.parse(json); } catch { throw new Error('That file is not a Globereader backup (it is not valid JSON).'); }
+        if (!isObj(data) || data.app !== 'dushu') throw new Error('That file is not a Globereader backup.');
         // A backup made while reading another language holds that language's words: they would be noise here.
         const from = isLangId(data.lang) ? data.lang : 'zh';
-        if (from !== langId()) throw new Error(`That backup is from Dushu in ${LANGS[from].name}. Switch to ${LANGS[from].name} to restore it.`);
+        if (from !== langId()) throw new Error(`That backup is from Globereader in ${LANGS[from].name}. Switch to ${LANGS[from].name} to restore it.`);
         if (typeof data.version === 'number' && data.version > 1) {
-          throw new Error('That backup was made by a newer version of Dushu. Update the app and try again.');
+          throw new Error('That backup was made by a newer version of Globereader. Update the app and try again.');
         }
         const report: BackupReport = {
           vocab: { added: 0, updated: 0, skipped: 0 }, known: { added: 0 },

@@ -177,7 +177,7 @@ describe('the Fix sheet', () => {
     q('.pp-fix-btn')!.click();
     expect(row("It's a name")).toBeUndefined();
     await expect(fixer.save({ id: 'y', book: fixer.book.key, bookId: fixer.book.id, kind: 'word', word: '来', role: 'name', pinyin: 'lai2', on: true, t: 1 } as Fix))
-      .rejects.toThrow('Dushu cannot keep that correction.');
+      .rejects.toThrow('Globereader cannot keep that correction.');
     expect(await saved(ctx)).toEqual([]);
     expect(toast).not.toHaveBeenCalled();
   });

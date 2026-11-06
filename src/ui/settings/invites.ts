@@ -13,7 +13,7 @@ export function invitesRow(): { el: HTMLElement; dispose(): void } | null {
   const make = h('button.btn.btn-sm', { type: 'button' }, 'Make a link') as HTMLButtonElement;
   const list = h('div.set-invites');
   const result = h('div.set-test-out', { role: 'status', 'aria-live': 'polite' });
-  const el = row('Invite people', 'Send a link to people you want to use Dushu. They make an account with a passkey, with no email, and the link works for as many people as you set.',
+  const el = row('Invite people', 'Send a link to people you want to use Globereader. They make an account with a passkey, with no email, and the link works for as many people as you set.',
     h('div.set-invite', null, h('div.set-cloud-row', null, label, max, make), list, result), labelId);
   el.hidden = true;
   let alive = true;
@@ -28,7 +28,7 @@ export function invitesRow(): { el: HTMLElement; dispose(): void } | null {
       try { await navigator.clipboard.writeText(link); say(`Copied the link for ${inv.label}.`); } catch { field.select(); say('Select the link and copy it.'); }
     } }, 'Copy');
     const share = typeof navigator.share === 'function'
-      ? h('button.btn.btn-sm', { type: 'button', onclick: () => void navigator.share({ title: 'Dushu', text: 'Read Chinese books with me on Dushu', url: link }).catch(() => {}) }, 'Share')
+      ? h('button.btn.btn-sm', { type: 'button', onclick: () => void navigator.share({ title: 'Globereader', text: 'Read Chinese books with me on Globereader', url: link }).catch(() => {}) }, 'Share')
       : null;
     const stop = h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: async () => {
       try { await revokeInvite(inv.token); say(`The link for ${inv.label} no longer works. Accounts made with it stay.`); void load(); } catch (e) { say(e instanceof Error ? e.message : 'Could not stop the link.'); }

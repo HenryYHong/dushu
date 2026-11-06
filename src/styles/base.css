@@ -38,7 +38,11 @@ a { color: var(--ink); }
   border-bottom: 1px solid var(--rule);
 }
 .app-brand { display: flex; align-items: center; gap: 10px; margin-right: auto; text-decoration: none; color: var(--text); border-radius: var(--radius-s); }
-/* The brand is a seal: 读 over 书, carved white in a vermilion square (白文印), like the app icon. */
+/* The brand mark, like the app icon: a globe drawn in lines of text, in a vermilion square. */
+.app-brand-mark { display: inline-grid; flex: none; width: 32px; height: 32px; border-radius: 7px; background: var(--accent-fill); }
+.app-brand-mark svg { width: 100%; height: 100%; }
+.app-brand-mark circle { fill: var(--accent-fill-text); }
+.app-brand-mark rect { fill: var(--accent-fill); }
 .app-brand-zh, .seal {
   display: inline-grid; place-items: center; flex: none;
   background: var(--accent-fill); color: var(--accent-fill-text);
@@ -339,6 +343,7 @@ dialog.modal:focus { outline: none; }
   .app-nav { padding: var(--safe-t) var(--space-3) 0 var(--space-4); gap: 0; }
   .app-brand-en { display: none; }
   .app-brand-zh { width: 30px; height: 30px; font-size: 12px; }
+  .app-brand-mark { width: 30px; height: 30px; }
   .app-navlink { margin: 0 6px; padding: 0 1px; font-size: 13.5px; gap: 3px; }
   .app-navlink:last-child { margin-right: 0; }
   .app-signin { width: 34px; height: 34px; margin-left: 6px; padding: 0; justify-content: center; }
@@ -355,6 +360,7 @@ dialog.modal:focus { outline: none; }
   .app-nav { padding-left: var(--space-3); padding-right: var(--space-2); }
   .app-navlink { margin: 0 4px; font-size: 12.5px; }
   .app-brand-zh { width: 28px; height: 28px; font-size: 11.5px; }
+  .app-brand-mark { width: 28px; height: 28px; }
 }
 /* Narrower still: the icons alone, each a 40 px target (the labels are their accessible names). */
 @media (max-width: 349px) {

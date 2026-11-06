@@ -34,7 +34,7 @@ export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date
   if (st.state === 'refused') return 'Your Mac did not accept this device. Sign in to Tailscale with the same account as the Mac.';
   if (st.state === 'error') return `Sync did not finish: ${st.message ?? 'unknown error'}${waiting}`;
   // A hub from before this language synced: the records wait here (core/sync.ts says which hub and what to do).
-  if (st.state === 'outdated') return `${st.message ?? 'Your sync server is older than this version of Dushu.'}${st.pending ? ` ${n(st.pending, 'change')} from this device ${st.pending === 1 ? 'is' : 'are'} waiting.` : ''}`;
+  if (st.state === 'outdated') return `${st.message ?? 'Your sync server is older than this version of Globereader.'}${st.pending ? ` ${n(st.pending, 'change')} from this device ${st.pending === 1 ? 'is' : 'are'} waiting.` : ''}`;
   if (st.state === 'syncing' && !st.lastOk) return 'Syncing with your Mac…';
   if (!st.lastOk) return 'Not synced yet.';
   const c = st.counts;

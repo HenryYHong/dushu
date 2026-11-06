@@ -142,7 +142,7 @@ describe('bridgeFetch', () => {
 
 describe('probeMac', () => {
   const answer = (response: Response) => { const fetch = vi.fn(async () => response); vi.stubGlobal('fetch', fetch); return fetch; };
-  it('accepts a Dushu bridge and asks without credentials', async () => {
+  it('accepts a Globereader bridge and asks without credentials', async () => {
     const fetch = answer(new Response(JSON.stringify({ app: 'dushu', url: `${MAC}/` })));
     expect(await probeMac(MAC)).toEqual({ url: `${MAC}/` });
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
@@ -153,11 +153,11 @@ describe('probeMac', () => {
     answer(new Response(null, { status: 403 }));
     await expect(probeMac(MAC)).rejects.toThrow(/did not accept this device/);
     answer(new Response(JSON.stringify({ hello: 'world' })));
-    await expect(probeMac(MAC)).rejects.toThrow(/did not answer like Dushu/);
+    await expect(probeMac(MAC)).rejects.toThrow(/did not answer like Globereader/);
     answer(new Response('<html>', { status: 200 }));
-    await expect(probeMac(MAC)).rejects.toThrow(/did not answer like Dushu/);
+    await expect(probeMac(MAC)).rejects.toThrow(/did not answer like Globereader/);
     answer(new Response(null, { status: 404 }));
-    await expect(probeMac(MAC)).rejects.toThrow(/did not answer like Dushu/);
+    await expect(probeMac(MAC)).rejects.toThrow(/did not answer like Globereader/);
   });
 });
 

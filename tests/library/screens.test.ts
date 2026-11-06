@@ -611,7 +611,7 @@ describe('about screen', () => {
   it('shows coverage from meta.json, every source, and the CC-CEDICT attribution', async () => {
     cleanup = await mountAbout(root, {}, { ...ctx, dictSync: () => null, dict: () => new Promise(() => {}) });
     await until(() => !!root.querySelector('.ab-count'));
-    expectPageHead('关于', 'About Dushu');
+    expectPageHead('关于', 'About Globereader');
     expect(root.textContent).toContain('101,997');
     expect(root.textContent).toContain('CC-CEDICT');
     expect(root.textContent).toContain('Creative Commons Attribution-ShareAlike 4.0');

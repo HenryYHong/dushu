@@ -35,7 +35,7 @@ function why(e: unknown): Error {
   const name = (e as { name?: string })?.name;
   if (name === 'NotAllowedError' || name === 'AbortError') return new Error('The passkey was not used. Try again when you’re ready.');
   if (name === 'InvalidStateError') return new Error('This device already has a passkey for this account.');
-  if (name === 'SecurityError') return new Error('Passkeys work only on Dushu’s own address.');
+  if (name === 'SecurityError') return new Error('Passkeys work only on Globereader’s own address.');
   return e instanceof Error ? e : new Error('The passkey did not work. Try again.');
 }
 

@@ -54,6 +54,6 @@ export function wrongLanguage(sample: string, here: LangId): string | null {
   const found = guessLanguage(sample);
   if (!found || found === here) return null;
   const name = NAMES[found] ?? found;
-  if (found === 'en') return `This book looks like it is in English. Dushu reads books in the language you are learning; this library is ${NAMES[here]}.`;
+  if (found === 'en') return `This book looks like it is in English. Globereader reads books in the language you are learning; this library is ${NAMES[here]}.`;
   return `This book looks like it is in ${name}, and this library is ${NAMES[here]}. Switch to ${name} (in Settings, or the language menu at the top) and add it there.`;
 }

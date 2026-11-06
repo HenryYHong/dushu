@@ -1,4 +1,6 @@
-# Dushu 读书 — architecture
+# Globereader (formerly Dushu 读书): architecture
+
+The app is shown as Globereader. Internal names (storage keys, the `dushu-sync` Worker, the X-Dushu-* headers, `app: 'dushu'` in files) keep the old name so saved data, sync and the Mac bridge go on working.
 
 A local web app for reading real Chinese books. Import an EPUB, TXT or PDF (or paste text).
 Every word can be looked up: tap or double-click a word for pinyin, definitions and

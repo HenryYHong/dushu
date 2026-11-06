@@ -1,8 +1,8 @@
-// Renders the app icons (PNG) from the same design as public/icon.svg, using headless Chrome.
+// Renders the app icons (PNG) from the same design as public/icon.svg (a globe drawn in lines of text), using headless Chrome.
 // Usage: node scripts/make-icons.mjs        Writes public/icons/*.png
 //   apple-touch-icon.png  180, full bleed (iOS rounds the corners itself)
 //   icon-192.png, icon-512.png   rounded, "any" purpose
-//   icon-maskable-512.png        full bleed, glyph inside the central 80 percent safe zone
+//   icon-maskable-512.png        full bleed, globe inside the central 80 percent safe zone
 import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -11,14 +11,16 @@ import { fileURLToPath } from 'node:url';
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
 mkdirSync(out, { recursive: true });
 
-const FONT = "'Songti SC', 'STSong', 'Noto Serif SC', serif";
-/** kind: 'round' (corners drawn, transparent outside), 'bleed' (full square), 'maskable' (full square, smaller glyph). */
+/** The globe drawn in lines of text, in a 64 box; `scale` shrinks it about the center (maskable icons keep a safe zone). */
+function globe(scale) {
+  const lines = [[21, 19.5, 20], [15, 25.5, 30], [13.5, 31.5, 26], [15, 37.5, 33], [21, 43.5, 16]]
+    .map(([x, y, w]) => `<rect x="${x}" y="${y}" width="${w}" height="3" rx="1.5"/>`).join('');
+  return `<g transform="translate(32 32) scale(${scale}) translate(-32 -32)"><circle cx="32" cy="32" r="20" fill="#fbf7f0"/><g fill="#b8402e">${lines}</g></g>`;
+}
+/** kind: 'round' (corners drawn, transparent outside), 'bleed' (full square), 'maskable' (full square, smaller globe). */
 function svg(kind) {
   const bleed = kind !== 'round';
-  const size = kind === 'maskable' ? 30 : 38;
-  const y = kind === 'maskable' ? 42.2 : 45.5;
-  const frame = kind === 'maskable' ? '' : `<rect x="5" y="5" width="54" height="54" rx="${bleed ? 4 : 10}" fill="none" stroke="#fbf7f0" stroke-opacity=".35" stroke-width="1.2"/>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%"><rect width="64" height="64" rx="${bleed ? 0 : 14}" fill="#b8402e"/>${frame}<text x="32" y="${y}" font-size="${size}" text-anchor="middle" fill="#fbf7f0" font-family="${FONT}" font-weight="700">读</text></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%"><rect width="64" height="64" rx="${bleed ? 0 : 14}" fill="#b8402e"/>${globe(kind === 'maskable' ? 0.8 : 1)}</svg>`;
 }
 
 const jobs = [

@@ -331,13 +331,13 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
   // and says so; elsewhere (an iPhone), say how.
   const full = add(toggle(isFullscreen, (v) => {
     void setFullscreen(v)
-      .catch(() => ctx.toast(isStandalone() ? 'Opened from the Home Screen, Dushu already reads without the browser bars.' : 'This browser would not go full screen. In Safari: Share, then Add to Home Screen.'))
+      .catch(() => ctx.toast(isStandalone() ? 'Opened from the Home Screen, Globereader already reads without the browser bars.' : 'This browser would not go full screen. In Safari: Share, then Add to Home Screen.'))
       .finally(() => full.sync());
   }));
   const fullRow = fullscreenSupported()
     ? row('Full screen', full.el, 'Hides the browser bars (F)')
     : isStandalone() ? row('Full screen', h('span.rd-row-note', null, 'On'), 'Opened from the Home Screen: no browser bars')
-    : row('Full screen', h('span.rd-row-note', null, 'Add to Home Screen'), 'In Safari: Share, then Add to Home Screen. Open Dushu from there to read without the browser bars.');
+    : row('Full screen', h('span.rd-row-note', null, 'Add to Home Screen'), 'In Safari: Share, then Add to Home Screen. Open Globereader from there to read without the browser bars.');
   const el = h('div.rd-menu.rd-display', null,
     section('Text',
       row('Text size', size),
