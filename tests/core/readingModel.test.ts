@@ -16,7 +16,7 @@ import { loadTestDictionary, readDataFile } from '../helpers/data';
 
 const ROOT = join(__dirname, '..', '..');
 /** The characters the model file speaks for (see the training script's report). */
-const ENABLED = '中为什仔传刹圜奔好姥宿少差数杈杓槛率畜相着种脯艮苕茄茆藉藏裨还镝长隽颉';
+const ENABLED = '中为什仔传刹圜奔好姥宿将少差得数杈杓槛率畜相着祇种给脯艮苕茄茆藉藏裨还镝长隽颉';
 let dict: Dictionary;
 let model: ReadingModel;
 
@@ -176,7 +176,15 @@ describe('where the dictionary asks the model', () => {
     // 率 after 效 is a rate (the 率 rule's own case), 宿 after 一 is a night: the model is not asked.
     expect(readingAt('这台机器的效率很高。', '率', true)).toBe(readingAt('这台机器的效率很高。', '率', false));
     expect(readingAt('我们在店里住了一宿。', '宿', true)).toBe('xiu3');
-    // 了 得 地 的 never; 着 where it is a particle stays as the rules read it (zhe).
+    // Enabled 2026-11-05: 祇 for 只 (zhǐ), 得 meaning "get to, obtain" (dé), 为 in a set phrase (wéi); 着了气 (zháo).
+    expect(readingAt('丫鬟去不多时，祇见他走入房来。', '祇', true)).toBe('zhi3');
+    expect(readingAt('我才得回乡去看看母亲。', '得', true)).toBe('de2');
+    expect(readingAt('从何而得？', '得', true)).toBe('de2');
+    expect(readingAt('他慈悲为怀，从不杀生。', '为', true)).toBe('wei2');
+    expect(readingAt('那两个官着了气，散席后各自回家。', '着', true)).toBe('zhao2');
+    // The complement after an adjective or a verb stays de, the reading the model got wrong below 0.99.
+    expect(readingAt('他痛得象刀割一样。', '得', true)).toBe('de5');
+    // 了 地 的 never; 得 after a verb and 着 where it is a particle stay as the rules read them (de, zhe).
     const t = '他慢慢地走着，看了一眼，跑得很快的样子。';
     for (const p of ['地', '着', '了', '得', '的']) expect(readingAt(t, p, true)).toBe(readingAt(t, p, false));
   });

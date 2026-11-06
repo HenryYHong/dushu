@@ -45,10 +45,10 @@ export interface ReadingChooser {
 export const READING_FEATURES_VERSION = 2;
 
 /**
- * Characters the model never reads: particles, interjections and suffixes, whose readings the rules own. 着 is not here: where
- * its rule falls back to zhe, the model may read zháo and zhuó if the file lists it.
+ * Characters the model never reads: particles, interjections and suffixes, whose readings the rules own. 着 and 得 are not here:
+ * where their rules fall back to zhe and de, the model may read zháo, zhuó and dé if the file lists them.
  */
-export const NOT_FOR_MODEL = new Set([...'了得著地的儿兒么麼罢罷吧呢啊呀哇啦哪嘛哟喔哦噢呐咯哩唻嘞呗唄啰囉耶邪欤歟乎哉兮焉矣也夫唉嗯哼嘿哈喂呸噫嘻吁咦嗨呃嗳噯哎呦呵嚯个個们們子头頭一不']);
+export const NOT_FOR_MODEL = new Set([...'了著地的儿兒么麼罢罷吧呢啊呀哇啦哪嘛哟喔哦噢呐咯哩唻嘞呗唄啰囉耶邪欤歟乎哉兮焉矣也夫唉嗯哼嘿哈喂呸噫嘻吁咦嗨呃嗳噯哎呦呵嚯个個们們子头頭一不']);
 
 const HAN = /\p{Script=Han}/u;
 const CLAUSE_END = /^[。！？!?；;…．]/;

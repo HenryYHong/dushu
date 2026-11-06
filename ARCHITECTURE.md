@@ -82,7 +82,7 @@ in Node tests. Real files are present; tests should use them (they load in ~0.3 
 | `chars-extra.tsv.gz` | char, readings, definition (Wiktionary supplement; may be absent) | 5,132 |
 | `cedict-extra.tsv.gz` | same columns as `cedict` (Wiktionary words CC-CEDICT lacks; optional) | see file |
 | `book-words.tsv.gz` | trad, simp, pinyin, defs, optional segmentation count (curated senses for the words the books use most; optional) | ~430 |
-| `reading-model.tsv.gz` | `!` settings rows (features version, default threshold, `threshold:<char>` for a character's own), then char, readings, biases, one `feature weights` column per feature (the reading model, §4.1; CC BY-SA, made by `scripts/train_reading_model.py`; optional, loaded after the dictionary) | 35 characters, 79 KB |
+| `reading-model.tsv.gz` | `!` settings rows (features version, default threshold, `threshold:<char>` for a character's own), then char, readings, biases, one `feature weights` column per feature (the reading model, §4.1; CC BY-SA, made by `scripts/train_reading_model.py`; optional, loaded after the dictionary) | 39 characters, 138 KB |
 | `words.tsv.gz` | word, count | 287,084 |
 | `corpus-words.tsv.gz` | `# format 1`; word, count (a count read off free text for a dictionary word jieba never counted), or trad, simp, pinyin, defs, count (a word no dictionary has); made by `scripts/build_corpus_words.py`, CC BY-SA; optional | 313 counts, 189 words, 7 KB |
 | `hsk.tsv.gz` | simp, trad, hsk3 (easiest reading), hsk2, rank, readings, same-word readings, of | 11,694 |
@@ -357,8 +357,8 @@ Details:
   text's sha256 in `scripts/data/reading-model-books-2.tsv`, their pages and revisions in `reading-model-books-2-pages.tsv.gz`; of
   these only the rule-decided and hand-labeled places are kept in memory; none of the books is in the corpus or the sealed set);
   and the hand labels of `tests/corpus/zh/readings-calibration.tsv`, weight 10, less a third (by a hash of the place) kept for
-  evaluation only. They are 5,413 places: the first model's 734, the second's 1,469 and 3,210 of 2026-11, labeled by a native
-  reader where the rules fell back to their default in the 98 books (2,484) and the held-out corpus (726), of 得 着 长 种 好 难 量 中
+  evaluation only. They are 7,953 places, 2,540 of them from the round of 2026-11-05 (below), and before
+  those the first model's 734, the second's 1,469 and 3,210 of 2026-11, labeled by a native reader where the rules fell back to their default in the 98 books (2,484) and the held-out corpus (726), of 得 着 长 种 好 难 量 中
   还 差 当 应 将 处 少 降 调 重 行 便 都 觉 教 干 背 盛 挑 冲 转 散 发 分 数 只 系 塞 传 薄 藏 为: first where a model trained on the earlier
   labels would change the reading (at random among those places) and at random among the rest, then more of the places it would
   change with some confidence for the characters near the bar (`--candidates` writes such a list). The samples' defaults count
@@ -375,12 +375,12 @@ Details:
   8 of 8 (0.9); 少 38/46 of 60, 9 of 10 (0.95); 好 48/62 of 79, 15 of 16 (0.9); 藏 28/34 of 41, 6 of 6 (0.85); 数 32/36 of 46, 4 of 4
   (0.7). 得 passed (38 of 41 changes right, 83 of 107 places against the rules' 46) but read the complement de as dé in modern
   novels (most of its 182 changes in the tuned books: 高兴得 + a verb, 痛得 + what follows), which the held-out third, mostly old
-  books, holds few of; it stays in `NOT_FOR_MODEL`. 都 passed once (dū for a capital and in Mongol names, 33 of 35 changes in the
+  books, holds few of; it stayed in `NOT_FOR_MODEL` until the round below. 都 passed once (dū for a capital and in Mongol names, 33 of 35 changes in the
   corpus and the tuned books right) but with the sites read again changed only 4 held-out places; 薄 (12 of 14), 当 (17 of 22),
   应, 量, 难, 降, 调, 重, 冲, 盛, 塞, 挑 and the rest changed too few or too wrongly. 为 retrained read wéi as wèi in modern novels
   (慈悲为怀 and the like, 40 places in the tuned books, all wrong) and was right at 5 of 24 new held-out places against the shipped
-  model's 16, so the shipped model of 为 is carried unchanged (`scripts/data/reading-model-carried.tsv`, `CARRIED`, thresholds 0.8
-  and 0.9 to wéi). The first model's 24 rare characters (传 杓 相 刹 艮 率 藉 圜 裨 脯 茆 什 奔 宿 隽 苕 茄 杈 颉 槛 镝 仔 姥 畜) are trained as
+  model's 16, so the shipped model of 为 was carried unchanged (`scripts/data/reading-model-carried.tsv`, `CARRIED`, thresholds 0.8
+  and 0.9 to wéi) until the round below. The first model's 24 rare characters (传 杓 相 刹 艮 率 藉 圜 裨 脯 茆 什 奔 宿 隽 苕 茄 杈 颉 槛 镝 仔 姥 畜) are trained as
   before, on CPP alone with the version 1 features and threshold 0.7, so what its review checked stays; they passed together (37
   of 37 held-out changes right). A rule case now takes 魂不着体 不着边际 不着痕迹 (zhuó after a lone 不) from 着's model, which read
   them zháo. Fairly measured (the new model fit on the training two-thirds, the shipped one as it is), the held-out labels where
@@ -393,7 +393,21 @@ Details:
   谈吐隽雅 juàn; 胡茄 jiā; 木杈 chā; 为 + someone + 高兴 活着 自豪 牺牲 … is wèi, the feelings and lives of `FOR_DEED`; 藏|宝塔 cáng; a
   rate before an adverb, 返修率都在下降, lǜ). A native review of every change then found seven wrong; rule cases now speak first there
   (从长商议 and 夜复渐长 cháng, 还坐于 hái before a verb of posture, 头顶着 zhe after a verb of carrying, 善中取计 zhōng before 取 选),
-  and 率 changes to shuài at 0.55 (every place of the tuned books the model leaned to shuài below 0.7 was shuài: 王浚率水兵). Bump
+  and 率 changes to shuài at 0.55 (every place of the tuned books the model leaned to shuài below 0.7 was shuài: 王浚率水兵).
+  The round of 2026-11-05 followed a blind measurement of unseen text (13.4 errors per 1,000 Han characters, readings the largest
+  share: 得 dé, 为, 长 zhǎng, 那 for 哪, 祇 for 只, classical senses). 2,540 more places were hand-labeled, of 得 为 那 长 将 好 还 教 舍
+  着 强 给 应 祇 弄 监, where the rules fell back to their default in the texts above (most in the second set of books), 60% where a
+  model trained on the earlier labels would change the reading and 40% at random, each labeled without seeing the app's reading
+  (230 places labeled twice agreed every time); 那 舍 强 祇 给 监 弄 joined `COMMON`. On the held-out third: 为 is retrained, no longer
+  carried (127 of 173 places, 72 of 72 changes, against the carried model's 126; 0.65, and 0.85 to wéi); 得 leaves `NOT_FOR_MODEL` at
+  0.99 (169 of 268 places against the rules' 106, 63 of 63 changes; at 0.95, 36 of its 239 judged changes, most in the tuned books,
+  read the complement after an adjective as dé: 痛得 乱得 + 象); 将 (0.6, 37 of 37), 祇 (0.95, 15 of 15: zhǐ where old books write
+  it for 只) and 给 (0.85, 5 of 5: jǐ, to supply) are new; 着 moves to 0.85 (36 of 40), 长 to 0.85 (26 of 26), 还 to 0.9 (33 of 34).
+  那 (2 of 3), 教 and 舍 (3 of 3, under the bar of 5), 监 (4 of 5), 强, 弄 and 应 did not pass; 恶 切 铺 never reach the model (a
+  rule case always decides them). Every reading that changes against 84a1f5f in the held-out corpus, the last blind set and the
+  tuned books (257 places) was judged blind, the two readings shown in random order: 238 better, 13 worse, 4 neither (děi,
+  which the model did not offer), 2 not judged; in the public texts 132 better and 1 worse. The file is 138 KB gzipped (455 KB,
+  39 characters, 27,239 features). Bump
   `READING_FEATURES_VERSION` with any change to the features (a file of another version is not used); retrain after a change to the rules or the dictionary (the word counts of other data files move the cuts
   the features see). tests/core/readingModel.test.ts checks the TypeScript's features and scores against the script's
   (tests/core/fixtures/reading-model-check.tsv, from the invented sentences of scripts/data/reading-model-check.txt), the list of

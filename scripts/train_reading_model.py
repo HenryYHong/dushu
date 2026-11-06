@@ -26,7 +26,8 @@ Usage (python3 -I, from a venv with numpy, scipy and scikit-learn; Node 22 on PA
    labels, it changes at least MIN_CHANGES readings (MIN_CHANGES_KEPT for the characters enabled before, KEPT), is right at least
    ENABLE_RIGHT of the time when it does and gets more of them right than the rules. ENABLED holds the outcome, so a retrain gives
    the same characters. A character's threshold may be higher for changing to one of its readings ({"": 0.8, "wei2": 0.9}:
-   threshold:为:wei2 in the file). The model of 为 is carried unchanged from scripts/data/reading-model-carried.tsv (CARRIED).
+   threshold:为:wei2 in the file). A character listed in CARRIED keeps an earlier model unchanged, read from
+   scripts/data/reading-model-carried.tsv (none since 2026-11-05).
    --report FILE writes the per-character table.
 5. Writes the model (weights rounded to 2 decimals) and tests/core/fixtures/reading-model-check.tsv: the features and scores of
    the invented sentences in scripts/data/reading-model-check.txt, which tests/core/readingModel.test.ts checks against the
@@ -56,7 +57,7 @@ CPP_SHA256 = {
 # Must match READING_FEATURES_VERSION in src/core/readingModel.ts.
 FEATURES_VERSION = 2
 # The characters trained: the common ones whose rules leave a default (为 得 着 长 …) and the rare ones of the first model.
-COMMON = "为得着长应将中还种便处差少藏当降难好数量调重行都觉教干背盛挑冲转散发分只系塞薄"
+COMMON = "为得着长应将中还种便处差少藏当降难好数量调重行都觉教干背盛挑冲转散发分只系塞薄那舍强祇给监弄"
 RARE = "传杓相刹艮率藉圜裨脯茆什奔宿隽苕茄杈颉槛镝仔姥畜"
 TRAINED = COMMON + RARE
 # Inverse regularization, pseudo-examples of the rules' reading, features seen fewer times than this are dropped, weights
@@ -91,24 +92,31 @@ FIRST_THRESHOLD = 0.7
 # 3,210 hand labels of 2026-11 and the second set of books, 着 长 中 还 种 差 少 好 passed besides 藏 数 (report in ARCHITECTURE §4.1),
 # and their changes in the held-out corpus and the tuned books were judged; 得 passed but failed that judgement (NOT_FOR_MODEL),
 # 都 (4 of 4 at 0.9), 薄 (12 of 14), 当 (17 of 22), 应 量 难 and the rest did not pass. 为 is carried (CARRIED). The first model's 24
-# rare characters passed together.
+# rare characters passed together. With the 2,540 hand labels of 2026-11-05 (of the readings a blind measurement found wrong in
+# older books), 为 retrained is right at 127 of 173 held-out places (72 of 72 changes) against the carried model's 126, and 64 of
+# the 71 places where the two differ in the held-out corpus and the tuned books were judged its way (5 the other, 2 neither), so
+# it is no longer carried; 得 passed at 0.99 (63 of 63; at 0.95, 36 of the 239 judged changes, most in the tuned books,
+# were wrong: the complement after an adjective, 痛得 乱得, read dé), and 将 (37 of 37), 祇 (15 of 15, zhǐ for 只) and 给 (5 of 5, jǐ) are new;
+# 那 (2 of 3), 教 舍 (3 of 3), 监 (4 of 5), 强 弄 应 did not pass. Changing 为 to wéi asks 0.85 (at 0.65, 8 of the 43 judged changes
+# between the two bars were wrong).
 # Rule cases take 为 + someone + what is felt or lived for them (为朋友高兴: wèi), 藏宝 (cáng), a rate before an adverb (率 lǜ) and
 # 魂不着体 (zhuó) from the model, where reviews found it wrong.
-ENABLED = {"着": 0.95, "长": 0.8, "中": 0.95, "还": 0.95, "种": 0.95, "差": 0.9, "少": 0.95, "藏": 0.85, "好": 0.9, "数": 0.7,
+ENABLED = {"为": {"": 0.65, "wei2": 0.85}, "得": 0.99, "着": 0.85, "长": 0.85, "将": 0.6, "中": 0.95, "还": 0.9, "种": 0.95, "差": 0.9, "少": 0.95,
+           "藏": 0.85, "好": 0.9, "数": 0.7, "祇": 0.95, "给": 0.85,
            **{ch: FIRST_THRESHOLD for ch in RARE},
            # 率 "to lead" (shuài): every place in the tuned books where the model leaned to it below the first threshold was
            # shuài (王浚率水兵, 曹嵩率家小, 普天率土); the rate is read by the rules.
            "率": 0.55}
 # Characters whose model is carried unchanged from scripts/data/reading-model-carried.tsv (with its thresholds), not retrained.
-CARRIED = set("为")
+CARRIED = set()
 # Characters enabled before the bar rose to MIN_CHANGES: they stay while their held-out changes are right ENABLE_RIGHT of the time
 # and number at least MIN_CHANGES_KEPT (the first bar), since a native review checked every change they made.
 KEPT = set("为藏数")
 MIN_CHANGES_KEPT = 3
-# Particles and interjections: the rules own them (NOT_FOR_MODEL in src/core/readingModel.ts). 着 is not among them: where its rule
-# falls back to zhe, the model may read zháo and zhuó. 得 passed the held-out bar (34 of 37) but read the complement de as dé in
-# modern novels (高兴得 + a verb, 痛得 + what follows: most of 182 changes in the tuned books), so it stays with the rules.
-NOT_FOR_MODEL = set("了得著地的儿兒么麼罢罷吧呢啊呀哇啦哪嘛哟喔哦噢呐咯哩唻嘞呗唄啰囉耶邪欤歟乎哉兮焉矣也夫唉嗯哼嘿哈喂呸噫嘻吁咦嗨呃嗳噯哎呦呵嚯个個们們子头頭一不")
+# Particles and interjections: the rules own them (NOT_FOR_MODEL in src/core/readingModel.ts). 着 and 得 are not among them: where
+# their rules fall back to zhe and de, the model may read zháo, zhuó and dé (得 only when it is 0.99 sure: below that it read the
+# complement after an adjective as dé in modern novels).
+NOT_FOR_MODEL = set("了著地的儿兒么麼罢罷吧呢啊呀哇啦哪嘛哟喔哦噢呐咯哩唻嘞呗唄啰囉耶邪欤歟乎哉兮焉矣也夫唉嗯哼嘿哈喂呸噫嘻吁咦嗨呃嗳噯哎呦呵嚯个個们們子头頭一不")
 
 
 def sha256(path):
@@ -538,7 +546,7 @@ def main():
     report = ["char\tlabels (train/held-out)\tthreshold\theld-out: places\trules right\tmodel right\tchanged\tchanges right\tenabled"]
     models, thresholds, results = {}, {}, {}
     enabled = None if "--decide" in argv else ENABLED
-    carried, _, carried_t = load_model(os.path.join(repo, "scripts", "data", "reading-model-carried.tsv"))
+    carried, carried_t = ({}, {}) if not CARRIED else (lambda m: (m[0], m[2]))(load_model(os.path.join(repo, "scripts", "data", "reading-model-carried.tsv")))
     for ch in TRAINED:
         rows = data.hand[ch]
         train_rows = [h for h in rows if not h["held"]]
