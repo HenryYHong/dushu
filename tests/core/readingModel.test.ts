@@ -16,7 +16,7 @@ import { loadTestDictionary, readDataFile } from '../helpers/data';
 
 const ROOT = join(__dirname, '..', '..');
 /** The characters the model file speaks for (see the training script's report). */
-const ENABLED = '为什仔传刹圜奔姥宿数杈杓槛率畜相脯艮苕茄茆藉藏裨镝隽颉';
+const ENABLED = '中为什仔传刹圜奔好姥宿少差数杈杓槛率畜相着种脯艮苕茄茆藉藏裨还镝长隽颉';
 let dict: Dictionary;
 let model: ReadingModel;
 
@@ -176,7 +176,7 @@ describe('where the dictionary asks the model', () => {
     // 率 after 效 is a rate (the 率 rule's own case), 宿 after 一 is a night: the model is not asked.
     expect(readingAt('这台机器的效率很高。', '率', true)).toBe(readingAt('这台机器的效率很高。', '率', false));
     expect(readingAt('我们在店里住了一宿。', '宿', true)).toBe('xiu3');
-    // Particles never: 了 着 得 地 的 stay as the rules read them.
+    // 了 得 地 的 never; 着 where it is a particle stays as the rules read it (zhe).
     const t = '他慢慢地走着，看了一眼，跑得很快的样子。';
     for (const p of ['地', '着', '了', '得', '的']) expect(readingAt(t, p, true)).toBe(readingAt(t, p, false));
   });
@@ -199,6 +199,24 @@ describe('where the dictionary asks the model', () => {
     // What the model got right stays: a temple, a branch fork, a leader.
     expect(readingAt('他们在山里找到一座古刹，就在刹前歇了一会儿。', '刹前', true)).toBe('cha4');
     expect(readingAt('露水挂在叶杈间。', '杈', true)).toBe('cha4');
+  });
+
+  it('reads the characters the hand labels of 2026-11 enabled where the rules fall back to their default', () => {
+    // Invented sentences: the young and the grown (少 shào, 长 zhǎng), a liking (好 hào), planting (种 zhòng), a mistake (差 chà),
+    // sending someone and wearing (着 zhuó).
+    const cases: [string, string, string][] = [
+      ['他少孤，及长，好读书，尤好写诗。', '少孤', 'shao4'], ['他少孤，及长，好读书，尤好写诗。', '长，', 'zhang3'],
+      ['其人贪而好利，不可与谋。', '好利', 'hao4'], ['他在门前种竹，屋后种梅。', '种竹', 'zhong4'],
+      ['这件事你可说差了，不是这样的。', '差了', 'cha4'],
+      ['员外着人去请他来。', '着人', 'zhuo2'], ['他身上着一领青布道袍。', '着一', 'zhuo2'],
+    ];
+    for (const [t, part, want] of cases) {
+      expect(readingAt(t, part, false), `${part} with the rules alone`).not.toBe(want);
+      expect(readingAt(t, part, true), part).toBe(want);
+    }
+    // 魂不着体 is a rule's own case (zhuó, with or without the model).
+    expect(readingAt('那书生吓得魂不着体，半天才回过神来。', '着体', false)).toBe('zhuo2');
+    expect(readingAt('那书生吓得魂不着体，半天才回过神来。', '着体', true)).toBe('zhuo2');
   });
 
   it('chooses only among the character\'s own readings', () => {

@@ -691,6 +691,10 @@ const RULES: Record<string, Rule> = {
   },
   的: () => 'de5',
   着: (c) => {
+    // 魂不着体, 不着边际, 不着痕迹, 不着一字 (to touch, to cling to): the literary zhuó after a lone 不, not the result zháo
+    // (摸不着边际 is a verb + 不 + 着: zháo).
+    if (prevIs(c, '不') && /^(体|边际|痕迹|形迹|一字|一尘|一笔)/.test(c.nextTok)
+      && !(c.tok !== undefined && /^[摸找看挨沾靠够碰说想抓捉见寻猜打睡]$/.test(c.tok(-2)))) return 'zhuo2';
     // 睡不着, 睡不着觉, 见不着 (a verb + 不 + 着, whatever follows it).
     if (c.prevChar === '不' && (!isHan(c.nextChar) || nextIs(c, '觉了') || (prevIs(c, '不') && c.tok !== undefined && /^[见找睡摸够碰买寻挨沾靠用管吃喝]$/.test(c.tok(-2))))) return 'zhao2';
     // 没伤着, 别吓着, 别累着, 怕碰着, 别踩着 (a harm feared or avoided after 没 别 怕 不能 …), 找着 + what + 了 (found): zháo.
@@ -715,6 +719,8 @@ const RULES: Record<string, Rule> = {
       && (c.orig === '著' || behind(c, 6).slice(1).some((t) => /^(把|被|让|叫|能|不能|别|没|未)$/.test(t)))) return 'zhao2';
     // 车仗尽著， (all caught fire).
     if (prevIs(c, '尽') && end && c.orig === '著') return 'zhao2';
+    // 头顶着一盘面饼, 背着, 捧着 (carrying): the -ing zhe after a verb of carrying, not zhuó.
+    if (has('顶背扛捧抱提挑拿举握挎端搂抬', c.prevChar) && c.nextTok !== '了') return 'zhe5';
     return usual('zhe5');
   },
   // 得: děi after a pronoun or an adverb ("must": 我得去, 还得上班), de after a verb (跑得快). dé stays in words (得到, 取得).
@@ -895,10 +901,12 @@ const RULES: Record<string, Rule> = {
     if (/^(不上|不起|不清|得上|得起|得清|清)$/.test(c.nextTok) && !isHan(c.afterChar ?? '') && c.afterTok !== undefined) return 'huan2';
     // 还京 还乡 还寨 还营 还朝: going back to a place.
     if (nextIs(c, '京乡家寨营朝国郡城府宫山庄蜀吴魏')) return 'huan2';
+    // 还坐于大鹏之下, 还站在那里, 还睡着 (still sitting, standing, asleep): hái.
+    if (has('坐站立卧躺睡', c.nextChar)) return 'hai2';
     return has('书钱给回债款账原本愿手价礼俗乡魂', c.nextChar) ? 'huan2' : usual('hai2');
   },
   // 都 is dū "capital" in 首都 京都 古都 许都 东都 (the whole word before it: 尸首都推 is "all") and in the titles 都头 都监 都统 都尉.
-  都: (c) => (prevIs(c, '首京古故旧陪帝许') || ['东', '西', '中'].includes(c.prevTok) && !isHan(c.nextChar) || nextIs(c, '头监统尉') || c.nextChar === '亭' ? 'du1' : 'dou1'),
+  都: (c) => (prevIs(c, '首京古故旧陪帝许') || ['东', '西', '中'].includes(c.prevTok) && !isHan(c.nextChar) || nextIs(c, '头监统尉') || c.nextChar === '亭' ? 'du1' : usual('dou1')),
   行: (c) => (has('银同排各商内外米数两几', c.prevChar) || has('业列当家话情字', c.nextChar) ? 'hang2' : usual('xing2')),
   长: (c) => {
     // 越长越大, 越长越像他 (grows): zhǎng; 日子越长越难熬 (the longer) stays cháng.
@@ -915,10 +923,13 @@ const RULES: Record<string, Rule> = {
     if (prevIs(c, '矿什舰船队连排营团师军省市县乡村镇局处科校院厂社站组班族酋仙侍') || /[舰矿]$/.test(c.prevTok) || nextIs(c, '史嫂兄女孙房吏男')) return 'zhang3';
     // 时间长得很, 路长得很: a time or a length is long (cháng), whatever follows.
     if (LENGTHS.test(c.prevTok)) return 'chang2';
+    // 待我从长商议, 从长计较 (think it over at length): cháng.
+    if (c.prevTok === '从' && /^(商议|计议|计较|商量|斟酌|考虑|讨论|打算)/.test(c.nextTok)) return 'chang2';
     if (c.tok !== undefined) {
       // 日子 还 长着呢, 日子 不长了, 话也长了, 夜越发长了, 活不长了 (a time still or no longer long): cháng, with adverbs between.
       const back = behind(c, 4);
-      const k = back.findIndex((t) => !/^(还|也|都|不|很|太|真|可|就|并|又|倒|却|总|越|更|最|已|实在|已经|并不|也不|还不|都不|越发|越来越|渐渐|日渐|一天天)$/.test(t));
+      // (夜复渐长: the nights grow long again.)
+      const k = back.findIndex((t) => !/^(还|也|都|不|很|太|真|可|就|并|又|倒|却|总|越|更|最|已|复|渐|实在|已经|并不|也不|还不|都不|越发|越来越|渐渐|日渐|一天天)$/.test(t));
       if (k >= 1 && (LENGTHS.test(back[k]) || (back[k] === '活' && back[0] === '不'))) return 'chang2';
       // 天长了 (the days grew long), 住长了 (stayed long), 把扇子弄长了, 拉长了 (made longer): cháng.
       if (nextIs(c, '了些点') && (c.prevTok === '天' || prevIs(c, '住弄拉抻扯伸放'))) return 'chang2';
@@ -1121,7 +1132,7 @@ const RULES: Record<string, Rule> = {
   },
   // 觉 is jiào "a sleep" after 睡 午 懒 一, and after 睡 a few words back (睡不着觉, 睡了一觉); jué "to feel" otherwise.
   // 把觉睡足 (the sleep): jiào.
-  觉: (c) => (has('忽顿自只便即方始渐已又才甚颇深', c.prevChar) ? 'jue2' : (prevIs(c, '把') && nextIs(c, '睡')) || has('睡午懒补回一', c.prevChar) || (c.alone !== false && behind(c, 3).some((t) => t.includes('睡'))) ? 'jiao4' : 'jue2'),
+  觉: (c) => (has('忽顿自只便即方始渐已又才甚颇深', c.prevChar) ? 'jue2' : (prevIs(c, '把') && nextIs(c, '睡')) || has('睡午懒补回一', c.prevChar) || (c.alone !== false && behind(c, 3).some((t) => t.includes('睡'))) ? 'jiao4' : usual('jue2')),
   // 好 is hào "to be fond of" before what one likes (好学 好色 好读书 好结交, 好谋无断 好作乱) and after 专 素 一心 不甚 (专好结交);
   // 好机会 is a good chance (hǎo).
   好: (c) => (['学', '客', '动', '胜', '奇', '色', '斗', '战', '赌', '洁', '礼', '武', '善', '读书', '结交', '犯上', '作乱'].includes(c.nextTok)
@@ -1132,7 +1143,8 @@ const RULES: Record<string, Rule> = {
     return has('年女爷将校尉壮妇主儿先帅小', c.nextChar) || nextIs(c, '帝子') ? 'shao4' : usual('shao3');
   },
   // 骑 is jì "a horseman" after a number or a kind of rider (一骑自北而来, 单骑, 铁骑, 轻骑); qí "to ride" before what is ridden.
-  骑: (c) => (has('一二两三四五六七八九十数单铁轻骁越', c.prevChar) && !has('马乘着了过', c.nextChar) ? 'ji4' : undefined),
+  // (单骑这匹马: rides this one, qí, before what is ridden.)
+  骑: (c) => (has('一二两三四五六七八九十数单铁轻骁越', c.prevChar) && !has('马乘着了过这那', c.nextChar) ? 'ji4' : undefined),
   // 系 as 繫 is jì "to tie" (腰繫金带, 系着, 系鞋带), xì "to connect, to relate" otherwise.
   // 系住菜根, 系一条长绳, 系在树上, 没有系裙 (to tie, whatever the spelling): jì.
   系: (c) => ((c.orig === '繫' && (has('腰足颈臂手身马鞋', c.prevChar) || has('着住上好紧带铃', c.nextChar)))
@@ -1167,6 +1179,8 @@ const RULES: Record<string, Rule> = {
       const after = c.afterChar ?? '';
       if (isHan(after) ? !has('么吗吧罢呢啊呀哩啦哪', after) : has(PRONOUNS, c.prevChar)) return 'zhong4';
     }
+    // 善中取计, 从中取利 (to pick from among): "in".
+    if (nextIs(c, '取选挑拣择')) return 'zhong1';
     return usual('zhong1');
   },
   看: (c) => (['守', '护', '管', '门', '家', '押', '犬'].includes(c.nextTok) ? 'kan1' : 'kan4'),
@@ -1185,7 +1199,7 @@ const RULES: Record<string, Rule> = {
     return has('有没抽挤留填偷趁补得', c.prevChar) || ['闲', '白', '缺', '隙', '当', '儿'].includes(c.nextTok) || nextIs(c, '出') || /^一(块|格|行|段|处)/.test(c.nextTok) ? 'kong4' : 'kong1';
   },
   // 分 is fèn (= 份, one's share) in 成分 本分 名分 分内, 的分上 (for the sake of), 分例 and 有分教; fēn otherwise.
-  分: (c) => (has('成养过充本名缘安辈', c.prevChar) || ['内', '外', '例'].includes(c.nextTok) || (c.nextTok === '上' && c.prevChar === '的') || (prevIs(c, '有') && c.nextChar === '教') ? 'fen4' : 'fen1'),
+  分: (c) => (has('成养过充本名缘安辈', c.prevChar) || ['内', '外', '例'].includes(c.nextTok) || (c.nextTok === '上' && c.prevChar === '的') || (prevIs(c, '有') && c.nextChar === '教') ? 'fen4' : usual('fen1')),
   便: (c) => (c.nextChar === '宜' ? 'pian2' : usual('bian4')),
   // 差不多先生传 (a biography after the one it is about, closing a title): zhuàn.
   传: (c) => (['记', '略'].includes(c.nextTok) || has('自小列评别立正', c.prevChar) || (/先生$/.test(c.prevTok) && c.nextKnown !== false && !isHan(c.nextChar)) ? 'zhuan4' : usual('chuan2')),
@@ -1251,7 +1265,7 @@ const RULES: Record<string, Rule> = {
     if (c.nextTok === '的' && /^(好事|坏事|事)/.test(c.afterTok ?? '')) return 'gan4';
     // 干了好些年 干了坏事 (did) but 头发干了。 一口干了， (dried, drained).
     if (c.nextTok === '了' && isHan(c.afterChar ?? '') && !/^(后|以后|之后)/.test(c.afterTok ?? '')) return 'gan4';
-    return 'gan1';
+    return usual('gan1');
   },
   // 假 is jià "leave, holiday" (请假 放假 请了假), jiǎ "false" otherwise.
   假: (c) => (has('放请休暑寒病年度产例事婚探补销长短告天日歇', c.prevChar) || ['期', '日', '条'].includes(c.nextTok) || (prevIs(c, '了') && behind(c, 3).some((t) => /^[请放休告]/.test(t))) ? 'jia4' : 'jia3'),
@@ -1288,16 +1302,16 @@ const RULES: Record<string, Rule> = {
   薄: (c) => {
     if (c.nextChar === '荷') return 'bo4';
     if (has('弱利暮情命酒礼雾膜', c.nextChar) || has('淡单稀刻微菲浅厚轻', c.prevChar)) return 'bo2';
-    return 'bao2';
+    return usual('bao2');
   },
   角: (c) => (['色', '逐', '斗'].includes(c.nextTok) || has('主配丑旦名反', c.prevChar) ? 'jue2' : 'jiao3'),
   // 处 is chǔ "to deal with, to be in" (处理 处在 所处 相处), chù "a place" (之处 此处 到处 好处).
   处: (c) => (has('之此彼某各何到住去好长短益难妙用', c.prevChar) ? 'chu4'
     : has('理罚分置决境事世方身于在', c.nextChar) || has('相共独身位地所', c.prevChar) ? 'chu3' : usual('chu4')),
   // 只 is zhī the measure word after a number (and 像只猫 "like a cat"), zhǐ "only" otherwise.
-  只: (c) => (c.orig === '隻' || has(NUMERALS, c.prevChar) || /[0-9]/.test(c.prevChar) || (prevIs(c, '像象') && c.alone !== false && cpLen(c.nextTok) >= 1 && !has('是有要能会好得管见顾怕', c.nextChar)) ? 'zhi1' : 'zhi3'),
+  只: (c) => (c.orig === '隻' || has(NUMERALS, c.prevChar) || /[0-9]/.test(c.prevChar) || (prevIs(c, '像象') && c.alone !== false && cpLen(c.nextTok) >= 1 && !has('是有要能会好得管见顾怕', c.nextChar)) ? 'zhi1' : usual('zhi3')),
   // 心头发闷, 念头发 …: the 头 of a word that is not the head (发 is the verb fā there).
-  发: (c) => (c.orig === '髮' || (has('头理毛白黑假金银长短卷剪染披散蓬落削束鬓', c.prevChar) && !/(心|念|眉|山|街|码|源|关|苗|风|势|锋|劲|骨|枕|床|桥|墙|田|地|里|上)头$/.test(c.prevTok)) || (c.prevChar === '乱' && !isHan(c.nextChar)) || has('型廊夹胶簪际', c.nextChar) ? 'fa4' : 'fa1'), // 髮 is only hair (fà)
+  发: (c) => (c.orig === '髮' || (has('头理毛白黑假金银长短卷剪染披散蓬落削束鬓', c.prevChar) && !/(心|念|眉|山|街|码|源|关|苗|风|势|锋|劲|骨|枕|床|桥|墙|田|地|里|上)头$/.test(c.prevTok)) || (c.prevChar === '乱' && !isHan(c.nextChar)) || has('型廊夹胶簪际', c.nextChar) ? 'fa4' : usual('fa1')), // 髮 is only hair (fà)
   // 自率大兵, 率本部, 率三万人马 (to lead): shuài.
   // 放大率 增长率 命中率 (a rate) stay lǜ before a number.
   // 出煤率最高, 出油率很低: what is high or low, or rises and falls, is a rate (lǜ).
@@ -1455,7 +1469,7 @@ const RULES: Record<string, Rule> = {
     if (learner && /^[个一些几两三招法手字本]/.test(after) && (has(PRONOUNS, c.prevChar) || TEACHER_BEFORE.includes(c.prevTok))) return 'jiao1';
     // 我来教你。 开始教隔壁的孩子 (to teach); 押解我来教你赴府 (to tell you to go) stays jiào.
     if (TEACHER_BEFORE.includes(c.prevTok) && !(learner && isHan(c.afterChar ?? ''))) return 'jiao1';
-    return 'jiao4';
+    return usual('jiao4');
   },
   晕: (c) => (has('车船机', c.nextChar) ? 'yun4' : 'yun1'),
   卷: (c) => {

@@ -11,6 +11,8 @@ export interface MiniData {
   chars?: string[][];
   /** chars-extra.tsv rows: char, readings, definition. Omit to make the file absent. */
   extra?: string[][];
+  /** corpus-words.tsv.gz as written (header lines included). Omit to make the file absent. */
+  corpusWords?: string;
   /** words.tsv rows: [word, count] */
   words?: [string, number][];
   hsk?: string[][];
@@ -40,6 +42,7 @@ export function miniDict(data: MiniData = {}): Promise<Dictionary> {
   };
   if (data.extra) files['chars-extra.tsv.gz'] = tsv('extra', data.extra);
   if (data.cedictExtra) files['cedict-extra.tsv.gz'] = tsv('cedict-extra', data.cedictExtra);
+  if (data.corpusWords !== undefined) files['corpus-words.tsv.gz'] = data.corpusWords;
   return loadDictionary('/', {
     fetchText: async (name) => {
       if (name in files) return files[name];

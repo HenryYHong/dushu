@@ -128,6 +128,7 @@ export async function loadDictionary(baseUrl: string, opts?: LoadOptions): Promi
   files.meta = load('meta.json');
   const extra: Promise<string | null> = load('chars-extra.tsv.gz').catch(() => null);
   const wordsExtra: Promise<string | null> = load('cedict-extra.tsv.gz').catch(() => null);
+  const corpusWords: Promise<string | null> = load('corpus-words.tsv.gz').catch(() => null);
   const bookWords: Promise<string | null> = load('book-words.tsv.gz').catch(() => null);
   for (const p of Object.values(files)) p.catch(() => {}); // surfaced when awaited below
   report(10);
@@ -146,6 +147,8 @@ export async function loadDictionary(baseUrl: string, opts?: LoadOptions): Promi
   if (extraText) await data.parse('chars-extra', extraText);
   const wordsExtraText = await wordsExtra;
   if (wordsExtraText) await data.parse('cedict-extra', wordsExtraText);
+  const corpusText = await corpusWords;
+  if (corpusText) await data.parse('corpus-words', corpusText);
   // Last of the word files: its rows go ahead of whatever CC-CEDICT has for the same headword.
   const bookWordsText = await bookWords;
   if (bookWordsText) await data.parse('book-words', bookWordsText);
@@ -267,6 +270,9 @@ class DictImpl implements Dictionary {
   private wordTotal = 1;
   private wordsExtraLoaded = 0;
   private bookWordsLoaded = 0;
+  private corpusWordsLoaded = 0;
+  /** Segmentation counts from free text for words the jieba corpus never counted (corpus-words), simplified spellings. */
+  private corpusCounts = new Map<string, number>();
   /** Headwords of the Wiktionary supplement (cedict-extra), which has none of CC-CEDICT's. */
   private extraWords = new Set<string>();
   /** segmentFreq's floors, by word. */
@@ -308,6 +314,7 @@ class DictImpl implements Dictionary {
     switch (name) {
       case 'cedict': return this.parseCedict(text, false);
       case 'cedict-extra': return this.parseCedict(text, true);
+      case 'corpus-words': return this.parseCorpusWords(text);
       case 'book-words': return this.parseBookWords(text);
       case 'chars': return this.parseChars(text);
       case 'chars-extra': return this.parseExtra(text);
@@ -336,6 +343,42 @@ class DictImpl implements Dictionary {
       if (entry.trad !== entry.simp) { this.addEntry(entry.trad, entry); this.twoScript.push(entry); }
       else if (entry.simp.length > 1) this.sameScript.push(entry.simp);
     });
+  }
+
+  /**
+   * Counts and words from free text (public/data/corpus-words.tsv.gz, made by scripts/build_corpus_words.py from Wikipedia and
+   * public-domain books). A row `word<TAB>count` is the segmentation count of a dictionary word the jieba corpus never counted:
+   * segmentFreq gives it in place of the floor (0 takes the floor away). A row `trad<TAB>simp<TAB>pinyin<TAB>defs<TAB>count` is a
+   * word no dictionary has, added like a Wiktionary row, with its count. A file of another `# format` is not used.
+   */
+  private async parseCorpusWords(text: string): Promise<void> {
+    let format = '';
+    await eachLine(
+      text,
+      (line) => {
+        if (format !== '1') return;
+        const t = line.split('\t');
+        if (t.length === 2) {
+          const n = Number(t[1]);
+          if (t[0] && Number.isFinite(n) && n >= 0) this.corpusCounts.set(t[0], n);
+          return;
+        }
+        if (t.length < 5 || !t[1] || !t[2] || !t[3]) return;
+        const n = Number(t[4]);
+        if (!this.entries.get(t[1])?.some((e) => e.trad === t[0] && e.pinyin === t[2])) {
+          const entry: DictEntry = { trad: t[0], simp: t[1], pinyin: t[2], defs: t[3].split('/') };
+          this.addEntry(entry.simp, entry);
+          if (entry.trad !== entry.simp) { this.addEntry(entry.trad, entry); this.twoScript.push(entry); }
+          else this.sameScript.push(entry.simp);
+          this.corpusWordsLoaded++;
+        }
+        if (Number.isFinite(n) && n > 0) this.corpusCounts.set(t[1], n);
+      },
+      (comment) => {
+        const m = /^# format (\d+)/.exec(comment);
+        if (m) format = m[1];
+      },
+    );
   }
 
   /**
@@ -473,6 +516,8 @@ class DictImpl implements Dictionary {
     this.meta.counts.extraLoaded = this.extraLines.size;
     this.meta.counts.wordsExtraLoaded = this.wordsExtraLoaded;
     this.meta.counts.bookWordsLoaded = this.bookWordsLoaded;
+    this.meta.counts.corpusWordsLoaded = this.corpusWordsLoaded;
+    this.meta.counts.corpusCounts = this.corpusCounts.size;
     let seen = 0;
     const bits = this.foldBits;
     for (const word of this.vocab.keys()) {
@@ -788,11 +833,16 @@ class DictImpl implements Dictionary {
     return this.scoped;
   }
 
-  /** freq(), or the floor of a dictionary word the corpus never saw (floorOf). For segmentation scores only. */
+  /**
+   * freq(), or for a dictionary word the jieba corpus never saw its count in free text (corpus-words) or else the floor (floorOf).
+   * For segmentation scores only.
+   */
   segmentFreq(word: string): number {
     const w = this.normalizeWord(word);
     const c = this.vocab.get(w) ?? 0;
     if (c > 0) return c;
+    const counted = this.corpusCounts.get(w);
+    if (counted !== undefined) return counted;
     let f = this.floorMemo.get(w);
     if (f === undefined) {
       f = this.floorOf(w);

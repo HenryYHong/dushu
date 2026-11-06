@@ -1,0 +1,194 @@
+# Words no app dictionary has that the offline corpus uses as words, built into public/data/corpus-words.tsv.gz by
+# scripts/build_corpus_words.py. simp<TAB>trad<TAB>pinyin<TAB>defs (CC-CEDICT style)<TAB>source. Old and other spellings that
+# Wiktionary (CC BY-SA 4.0) redirects to a word the dictionary has point to it ("variant of"), so the card shows its meaning.
+# Each row was reviewed by hand; the reading is the word it points to unless its own characters say otherwise.
+# Rows "written for Dushu" have meanings written for this file (CC0), where Wiktionary has none or another sense.
+部份	部份	bu4 fen5	variant of 部分|部分[bu4 fen5]	Wiktionary: 部份 > 部分
+英呎	英呎	ying1 chi3	variant of 英尺|英尺[ying1 chi3]	Wiktionary: 英呎 > 英尺
+英吋	英吋	ying1 cun4	variant of 英寸|英寸[ying1 cun4]	Wiktionary: 英吋 > 英寸
+实录	实录	shi2 lu4	variant of 實錄|实錄[shi2 lu4]	Wiktionary: 实录 > 實錄
+座标	座标	zuo4 biao1	variant of 坐標|坐标[zuo4 biao1]	Wiktionary: 座标 > 坐標
+冒险游戏	冒险游戏	mao4 xian3 you2 xi4	variant of 冒險遊戲|冒险遊戏[mao4 xian3 you2 xi4]	Wiktionary: 冒险游戏 > 冒險遊戲
+规画	规画	gui1 hua4	variant of 規劃|规划[gui1 hua4]	Wiktionary: 规画 > 規劃
+串连	串連	chuan4 lian2	variant of 串聯|串联[chuan4 lian2]	Wiktionary: 串连 > 串連 > 串聯
+知识份子	知识份子	zhi1 shi5 fen4 zi3	variant of 知識份子|知识分子[zhi1 shi5 fen4 zi3]	Wiktionary: 知识份子 > 知識份子 > 知識分子
+游憩	游憩	you2 qi4	variant of 遊憩|遊憩[you2 qi4]	Wiktionary: 游憩 > 遊憩
+刻划	刻划	ke4 hua4	variant of 刻畫|刻画[ke4 hua4]	Wiktionary: 刻划 > 刻畫
+造形	造形	zao4 xing2	variant of 造型|造型[zao4 xing2]	Wiktionary: 造形 > 造型
+闲住	闲住	xian2 zhu4	variant of 閒住|閒住[xian2 zhu4]	Wiktionary: 闲住 > 閒住
+渡假村	渡假村	du4 jia4 cun1	variant of 度假村|度假村[du4 jia4 cun1]	Wiktionary: 渡假村 > 度假村
+斗栱	斗栱	dou3 gong3	variant of 斗拱|斗拱[dou3 gong3]	Wiktionary: 斗栱 > 斗拱
+精采	精采	jing1 cai3	variant of 精彩|精彩[jing1 cai3]	Wiktionary: 精采 > 精彩
+凶徒	凶徒	xiong1 tu2	variant of 兇徒|兇徒[xiong1 tu2]	Wiktionary: 凶徒 > 兇徒
+慇懃	慇懃	yin1 qin2	variant of 殷勤|殷勤[yin1 qin2]	Wiktionary: 慇懃 > 殷勤
+粘膜	粘膜	nian2 mo2	variant of 黏膜|黏膜[nian2 mo2]	Wiktionary: 粘膜 > 黏膜
+充份	充份	chong1 fen4	variant of 充分|充分[chong1 fen4]	Wiktionary: 充份 > 充分
+赞歌	赞歌	zan4 ge1	variant of 讚歌|讚歌[zan4 ge1]	Wiktionary: 赞歌 > 讚歌
+顽耍	顽耍	wan2 shua3	variant of 玩耍|玩耍[wan2 shua3]	Wiktionary: 顽耍 > 玩耍
+海浬	海浬	hai3 li3	variant of 海里|海里[hai3 li3]	Wiktionary: 海浬 > 海里
+菓子	菓子	guo3 zi5	variant of 果子|果子[guo3 zi5]	Wiktionary: 菓子 > 果子 > 餜子
+歌妓	歌妓	ge1 ji4	variant of 歌伎|歌伎[ge1 ji4]	Wiktionary: 歌妓 > 歌伎
+转录因子	转录因子	zhuan3 lu4 yin1 zi3	variant of 轉錄因子|转錄因子[zhuan3 lu4 yin1 zi3]	Wiktionary: 转录因子 > 轉錄因子
+辞汇	辭彙	ci2 hui4	variant of 詞彙|词汇[ci2 hui4]	Wiktionary: 辞汇 > 辭彙 > 詞彙
+算帐	算帳	suan4 zhang4	variant of 算賬|算账[suan4 zhang4]	Wiktionary: 算帐 > 算帳 > 算賬
+帐房	帳房	zhang4 fang2	tent (of an army camp or a herdsman)/accounts office (in former times); variant of 賬房|账房[zhang4 fang2]	Wiktionary: 帐房 > 帳房 > 賬房; the tent sense written for Dushu
+沙咀	沙咀	sha1 zui3	variant of 沙嘴|沙嘴[sha1 zui3]	Wiktionary: 沙咀 > 沙嘴
+录音师	录音师	lu4 yin1 shi1	variant of 錄音師|錄音师[lu4 yin1 shi1]	Wiktionary: 录音师 > 錄音師
+生存游戏	生存游戏	sheng1 cun2 you2 xi4	variant of 生存遊戲|生存遊戏[sheng1 cun2 you2 xi4]	Wiktionary: 生存游戏 > 生存遊戲
+柰何	柰何	nai4 he2	variant of 奈何|奈何[nai4 he2]	Wiktionary: 柰何 > 奈何
+连盟	連盟	lian2 meng2	variant of 聯盟|联盟[lian2 meng2]	Wiktionary: 连盟 > 連盟 > 聯盟
+普度	普度	pu3 du4	variant of 普渡|普渡[pu3 du4]	Wiktionary: 普度 > 普渡
+山岗	山崗	shan1 gang1	variant of 山岡|山冈[shan1 gang1]	Wiktionary: 山岗 > 山崗 > 山岡
+世界记录	世界記錄	shi4 jie4 ji4 lu4	variant of 世界紀錄|世界纪录[shi4 jie4 ji4 lu4]	Wiktionary: 世界记录 > 世界記錄 > 世界紀錄
+益智游戏	益智游戏	yi4 zhi4 you2 xi4	variant of 益智遊戲|益智遊戏[yi4 zhi4 you2 xi4]	Wiktionary: 益智游戏 > 益智遊戲
+蝉连	蟬連	chan2 lian2	variant of 蟬聯|蝉联[chan2 lian2]	Wiktionary: 蝉连 > 蟬連 > 蟬聯
+引伸	引伸	yin3 shen1	variant of 引申|引申[yin3 shen1]	Wiktionary: 引伸 > 引申
+徬徨	徬徨	pang2 huang2	variant of 彷徨|彷徨[pang2 huang2]	Wiktionary: 徬徨 > 彷徨
+畅游	畅游	chang4 you2	variant of 暢遊|畅遊[chang4 you2]	Wiktionary: 畅游 > 暢遊
+鲇鱼	鮎魚	nian2 yu2	variant of 鯰魚|鲶鱼[nian2 yu2]	Wiktionary: 鲇鱼 > 鮎魚 > 鯰魚
+悠游	悠游	you1 you2	variant of 悠遊|悠遊[you1 you2]	Wiktionary: 悠游 > 悠遊
+箝制	箝制	qian2 zhi4	variant of 鉗制|钳制[qian2 zhi4]	Wiktionary: 箝制 > 鉗制
+嘱付	嘱付	zhu3 fu5	variant of 囑咐|嘱咐[zhu3 fu5]	Wiktionary: 嘱付 > 囑咐
+粘合剂	粘合劑	nian2 he2 ji4	variant of 黏合劑|黏合剂[nian2 he2 ji4]	Wiktionary: 粘合剂 > 粘合劑 > 黏合劑
+粘合	粘合	nian2 he2	variant of 黏合|黏合[nian2 he2]	Wiktionary: 粘合 > 黏合
+稽察	稽察	ji1 cha2	variant of 稽查|稽查[ji1 cha2]	Wiktionary: 稽察 > 稽查
+竞速游戏	竞速游戏	jing4 su4 you2 xi4	variant of 競速遊戲|竞速遊戏[jing4 su4 you2 xi4]	Wiktionary: 竞速游戏 > 競速遊戲
+磁砖	磁磚	ci2 zhuan1	variant of 瓷磚|瓷砖[ci2 zhuan1]	Wiktionary: 磁砖 > 磁磚 > 瓷磚
+孝弟	孝弟	xiao4 ti4	variant of 孝悌|孝悌[xiao4 ti4]	Wiktionary: 孝弟 > 孝悌
+旗幡	旗幡	qi2 fan1	variant of 旗旛|旗旛[qi2 fan1]	Wiktionary: 旗幡 > 旗旛
+歌辞	歌辭	ge1 ci2	variant of 歌詞|歌词[ge1 ci2]	Wiktionary: 歌辞 > 歌辭 > 歌詞
+豪桀	豪桀	hao2 jie2	variant of 豪傑|豪杰[hao2 jie2]	Wiktionary: 豪桀 > 豪傑
+升座	升座	sheng1 zuo4	variant of 陞座|陞座[sheng1 zuo4]	Wiktionary: 升座 > 陞座
+扬扬	揚揚	yang2 yang2	variant of 洋洋|洋洋[yang2 yang2]	Wiktionary: 扬扬 > 揚揚 > 洋洋 > 養養
+缘份	緣份	yuan2 fen4	variant of 緣分|缘分[yuan2 fen4]	Wiktionary: 缘份 > 緣份 > 緣分
+觔斗	觔斗	jin1 dou3	variant of 筋斗|筋斗[jin1 dou3]	Wiktionary: 觔斗 > 筋斗
+彩缎	彩缎	cai3 duan4	variant of 綵緞|綵缎[cai3 duan4]	Wiktionary: 彩缎 > 綵緞
+柑桔	柑桔	gan1 ju2	variant of 柑橘|柑橘[gan1 ju2]	Wiktionary: 柑桔 > 柑橘
+辈份	輩份	bei4 fen5	variant of 輩分|辈分[bei4 fen5]	Wiktionary: 辈份 > 輩份 > 輩分
+惶惧	惶懼	huang2 ju4	variant of 惶遽|惶遽[huang2 ju4]	Wiktionary: 惶惧 > 惶懼 > 惶遽
+佚事	佚事	yi4 shi4	variant of 逸事|逸事[yi4 shi4]	Wiktionary: 佚事 > 逸事
+座标系	座标系	zuo4 biao1 xi4	variant of 座標系|坐标系[zuo4 biao1 xi4]	Wiktionary: 座标系 > 座標系 > 坐標系
+机动游戏	机动游戏	ji1 dong4 you2 xi4	variant of 機動遊戲|机动遊戏[ji1 dong4 you2 xi4]	Wiktionary: 机动游戏 > 機動遊戲
+冢雉	冢雉	zhong3 zhi4	variant of 塚雉|塚雉[zhong3 zhi4]	Wiktionary: 冢雉 > 塚雉
+腭化	腭化	e4 hua4	variant of 顎化|颚化[e4 hua4]	Wiktionary: 腭化 > 顎化
+气忿	氣忿	qi4 fen4	variant of 氣憤|气愤[qi4 fen4]	Wiktionary: 气忿 > 氣忿 > 氣憤
+摄录机	摄录机	she4 lu4 ji1	variant of 攝錄機|摄錄机[she4 lu4 ji1]	Wiktionary: 摄录机 > 攝錄機
+词章	詞章	ci2 zhang1	variant of 辭章|辞章[ci2 zhang1]	Wiktionary: 词章 > 詞章 > 辭章
+宫庭	宮庭	gong1 ting2	variant of 宮廷|宫廷[gong1 ting2]	Wiktionary: 宫庭 > 宮庭 > 宮廷
+陵辱	淩辱	ling2 ru3	variant of 凌辱|凌辱[ling2 ru3]	Wiktionary: 陵辱 > 淩辱 > 凌辱
+噗通	噗通	pu1 tong1	variant of 撲通|扑通[pu1 tong1]	Wiktionary: 噗通 > 撲通
+辐凑	辐凑	fu2 cou4	variant of 輻湊|辐湊[fu2 cou4]	Wiktionary: 辐凑 > 輻湊 > 輻輳
+游乐器	游乐器	you2 le4 qi4	variant of 遊樂器|遊乐器[you2 le4 qi4]	Wiktionary: 游乐器 > 遊樂器
+啦啦队员	啦啦队员	la1 la1 dui4 yuan2	variant of 拉拉隊員|拉拉队员[la1 la1 dui4 yuan2]	Wiktionary: 啦啦队员 > 拉拉隊員 > 啦啦隊員
+丘引	丘引	qiu1 yin3	variant of 蚯蚓|蚯蚓[qiu1 yin3]	Wiktionary: 丘引 > 蚯蚓
+答剌	答剌	da1 la5	variant of 耷拉|耷拉[da1 la5]	Wiktionary: 答剌 > 耷拉
+砂漠	砂漠	sha1 mo4	variant of 沙漠|沙漠[sha1 mo4]	Wiktionary: 砂漠 > 沙漠
+棋盘游戏	棋盘游戏	qi2 pan2 you2 xi4	variant of 棋盤遊戲|棋盘遊戏[qi2 pan2 you2 xi4]	Wiktionary: 棋盘游戏 > 棋盤遊戲
+决择	決擇	jue2 ze2	variant of 抉擇|抉择[jue2 ze2]	Wiktionary: 决择 > 決擇 > 抉擇
+旗竿	旗竿	qi2 gan1	variant of 旗杆|旗杆[qi2 gan1]	Wiktionary: 旗竿 > 旗杆
+城廓	城廓	cheng2 kuo4	variant of 城郭|城郭[cheng2 guo1]	Wiktionary: 城廓 > 城郭; read with 廓's own kuò
+嘻笑	嘻笑	xi1 xiao4	variant of 譆笑|譆笑[xi1 xiao4]	Wiktionary: 嘻笑 > 譆笑
+蚂蝗	螞蝗	ma3 huang2	variant of 螞蟥|蚂蟥[ma3 huang2]	Wiktionary: 蚂蝗 > 螞蝗 > 螞蟥
+宾铁	宾铁	bin1 tie3	variant of 賓鐵|賓铁[bin1 tie3]	Wiktionary: 宾铁 > 賓鐵 > 鑌鐵
+图版游戏	图版游戏	tu2 ban3 you2 xi4	variant of 圖版遊戲|图版遊戏[tu2 ban3 you2 xi4]	Wiktionary: 图版游戏 > 圖版遊戲
+径取	径取	jing4 qu3	variant of 逕取|逕取[jing4 qu3]	Wiktionary: 径取 > 逕取
+夙缘	夙緣	su4 yuan2	variant of 宿緣|宿缘[su4 yuan2]	Wiktionary: 夙缘 > 夙緣 > 宿緣
+订价	订价	ding4 jia4	variant of 定價|定价[ding4 jia4]	Wiktionary: 订价 > 定價
+繇役	繇役	yao2 yi4	variant of 徭役|徭役[yao2 yi4]	Wiktionary: 繇役 > 徭役
+屈伏	屈伏	qu1 fu2	variant of 屈服|屈服[qu1 fu2]	Wiktionary: 屈伏 > 屈服
+乌呼	烏呼	wu1 hu1	variant of 嗚呼|呜呼[wu1 hu1]	Wiktionary: 乌呼 > 烏呼 > 嗚呼
+担阁	擔閣	dan1 ge5	variant of 耽擱|耽搁[dan1 ge5]	Wiktionary: 担阁 > 擔閣 > 耽擱
+姑洗	姑洗	gu1 xian3	variant of 姑冼|姑冼[gu1 xian3]	Wiktionary: 姑洗 > 姑冼
+乌乎	烏乎	wu1 hu1	variant of 嗚呼|呜呼[wu1 hu1]	Wiktionary: 乌乎 > 烏乎 > 嗚呼
+柳阴	柳阴	liu3 yin1	variant of 柳陰|柳陰[liu3 yin1]	Wiktionary: 柳阴 > 柳陰
+城濠	城濠	cheng2 hao2	variant of 城壕|城壕[cheng2 hao2]	Wiktionary: 城濠 > 城壕
+蒙冲	蒙衝	meng2 chong1	variant of 艨艟|艨艟[meng2 chong1]	Wiktionary: 蒙冲 > 蒙衝 > 艨艟
+糖份	糖份	tang2 fen4	variant of 糖分|糖分[tang2 fen4]	Wiktionary: 糖份 > 糖分
+谋画	謀畫	mou2 hua4	variant of 謀劃|谋划[mou2 hua4]	Wiktionary: 谋画 > 謀畫 > 謀劃
+夜游神	夜游神	ye4 you2 shen2	variant of 夜遊神|夜遊神[ye4 you2 shen2]	Wiktionary: 夜游神 > 夜遊神
+能勾	能勾	neng2 gou4	variant of 能夠|能够[neng2 gou4]	Wiktionary: 能勾 > 能夠
+桌面游戏	桌面游戏	zhuo1 mian4 you2 xi4	variant of 桌面遊戲|桌面遊戏[zhuo1 mian4 you2 xi4]	Wiktionary: 桌面游戏 > 桌面遊戲
+托疾	托疾	tuo1 ji2	variant of 託疾|託疾[tuo1 ji2]	Wiktionary: 托疾 > 託疾
+河鲀毒素	河魨毒素	he2 tun2 du2 su4	variant of 河豚毒素|河豚毒素[he2 tun2 du2 su4]	Wiktionary: 河鲀毒素 > 河魨毒素 > 河豚毒素
+休闲食品	休闲食品	xiu1 xian2 shi2 pin3	variant of 休閒食品|休閒食品[xiu1 xian2 shi2 pin3]	Wiktionary: 休闲食品 > 休閒食品
+三山五岳	三山五岳	san1 shan1 wu3 yue4	variant of 三山五嶽|三山五嶽[san1 shan1 wu3 yue4]	Wiktionary: 三山五岳 > 三山五嶽
+乔梓	乔梓	qiao2 zi3	variant of 喬梓|喬梓[qiao2 zi3]	Wiktionary: 乔梓 > 喬梓 > 橋梓
+刀鎗	刀鎗	dao1 qiang1	variant of 刀槍|刀枪[dao1 qiang1]	Wiktionary: 刀鎗 > 刀槍
+材力	材力	cai2 li4	variant of 才力|才力[cai2 li4]	Wiktionary: 材力 > 才力
+南溟	南溟	nan2 ming2	variant of 南冥|南冥[nan2 ming2]	Wiktionary: 南溟 > 南冥
+转录组	转录组	zhuan3 lu4 zu3	variant of 轉錄組|转錄组[zhuan3 lu4 zu3]	Wiktionary: 转录组 > 轉錄組
+岐路	岐路	qi2 lu4	variant of 歧路|歧路[qi2 lu4]	Wiktionary: 岐路 > 歧路
+议事录	议事录	yi4 shi4 lu4	variant of 議事錄|议事錄[yi4 shi4 lu4]	Wiktionary: 议事录 > 議事錄
+优闲	优闲	you1 xian2	variant of 悠閒|悠闲[you1 xian2]	Wiktionary: 优闲 > 悠閒
+背畔	背畔	bei4 pan4	variant of 背叛|背叛[bei4 pan4]	Wiktionary: 背畔 > 背叛
+寒颤	寒顫	han2 zhan4	variant of 寒戰|寒战[han2 zhan4]	Wiktionary: 寒颤 > 寒顫 > 寒戰
+胡梯	胡梯	hu2 ti1	variant of 扶梯|扶梯[fu2 ti1]	Wiktionary: 胡梯 > 扶梯
+韮菜	韮菜	jiu3 cai4	variant of 韭菜|韭菜[jiu3 cai4]	Wiktionary: 韮菜 > 韭菜
+贤材	賢材	xian2 cai2	variant of 賢才|贤才[xian2 cai2]	Wiktionary: 贤材 > 賢材 > 賢才
+豫备	豫備	yu4 bei4	variant of 預備|预备[yu4 bei4]	Wiktionary: 豫备 > 豫備 > 預備
+怒叱	怒叱	nu4 chi4	variant of 怒斥|怒斥[nu4 chi4]	Wiktionary: 怒叱 > 怒斥
+纠纠	糾糾	jiu1 jiu1	variant of 赳赳|赳赳[jiu1 jiu1]	Wiktionary: 纠纠 > 糾糾 > 赳赳
+按验	按驗	an4 yan4	variant of 案驗|案验[an4 yan4]	Wiktionary: 按验 > 按驗 > 案驗
+纯厚	純厚	chun2 hou4	variant of 淳厚|淳厚[chun2 hou4]	Wiktionary: 纯厚 > 純厚 > 淳厚
+蒲萄	蒲萄	pu2 tao5	variant of 葡萄|葡萄[pu2 tao5]	Wiktionary: 蒲萄 > 葡萄
+沈黙	沈黙	chen2 mo4	variant of 沉默|沉默[chen2 mo4]	Wiktionary: 沈黙 > 沉默
+玉珮	玉珮	yu4 pei4	variant of 玉佩|玉佩[yu4 pei4]	Wiktionary: 玉珮 > 玉佩
+低徊	低徊	di1 hui2	variant of 低迴|低回[di1 hui2]	Wiktionary: 低徊 > 低回
+唱导	唱導	chang4 dao3	variant of 倡導|倡导[chang4 dao3]	Wiktionary: 唱导 > 唱導 > 倡導
+逆转录	逆转录	ni4 zhuan3 lu4	variant of 逆轉錄|逆转錄[ni4 zhuan3 lu4]	Wiktionary: 逆转录 > 逆轉錄
+戮辱	戮辱	lu4 ru3	variant of 僇辱|僇辱[lu4 ru3]	Wiktionary: 戮辱 > 僇辱
+采色	采色	cai3 se4	variant of 彩色|彩色[cai3 se4]	Wiktionary: 采色 > 彩色
+反畔	反畔	fan3 pan4	variant of 反叛|反叛[fan3 pan4]	Wiktionary: 反畔 > 反叛
+砂粒	砂粒	sha1 li4	variant of 沙粒|沙粒[sha1 li4]	Wiktionary: 砂粒 > 沙粒
+大氐	大氐	da4 di3	variant of 大抵|大抵[da4 di3]	Wiktionary: 大氐 > 大抵
+怂慂	慫慂	song3 yong3	variant of 慫恿|怂恿[song3 yong3]	Wiktionary: 怂慂 > 慫慂 > 慫恿
+版图游戏	版图游戏	ban3 tu2 you2 xi4	variant of 版圖遊戲|版图遊戏[ban3 tu2 you2 xi4]	Wiktionary: 版图游戏 > 版圖遊戲
+帐蓬	帳蓬	zhang4 peng5	variant of 帳篷|帐篷[zhang4 peng5]	Wiktionary: 帐蓬 > 帳蓬 > 帳篷
+闲工夫	闲工夫	xian2 gong1 fu5	variant of 閒工夫|閒工夫[xian2 gong1 fu5]	Wiktionary: 闲工夫 > 閒工夫
+扬扬得意	揚揚得意	yang2 yang2 de2 yi4	variant of 洋洋得意|洋洋得意[yang2 yang2 de2 yi4]	Wiktionary: 扬扬得意 > 揚揚得意 > 洋洋得意
+冤雠	冤讎	yuan1 chou2	variant of 冤仇|冤仇[yuan1 chou2]	Wiktionary: 冤雠 > 冤讎 > 冤仇
+倢伃	倢伃	jie2 yu2	variant of 婕妤|婕妤[jie2 yu2]	Wiktionary: 倢伃 > 婕妤
+昆仑奴	昆仑奴	kun1 lun2 nu2	variant of 崑崙奴|崑仑奴[kun1 lun2 nu2]	Wiktionary: 昆仑奴 > 崑崙奴
+惟物	惟物	wei2 wu4	variant of 唯物|唯物[wei2 wu4]	Wiktionary: 惟物 > 唯物
+昏愦	昏愦	hun1 kui4	variant of 昏聵|昏聩[hun1 kui4]	Wiktionary: 昏愦 > 昏聵
+骁雄	驍雄	xiao1 xiong2	valiant; brave (of a warrior)/a valiant warrior	written for Dushu (Wiktionary points it to 梟雄, a ruthless ambitious man, which the books do not mean)
+预闻	预闻	yu4 wen2	variant of 預聞|預闻[yu4 wen2]	Wiktionary: 预闻 > 預聞 > 與聞
+漫游记	漫游记	man4 you2 ji4	variant of 漫遊記|漫遊记[man4 you2 ji4]	Wiktionary: 漫游记 > 漫遊記
+簿录	簿录	bu4 lu4	variant of 簿錄|簿錄[bu4 lu4]	Wiktionary: 簿录 > 簿錄
+芸苔	芸苔	yun2 tai2	variant of 蕓薹|芸薹[yun2 tai2]	Wiktionary: 芸苔 > 蕓薹
+祝辞	祝辞	zhu4 ci2	variant of 祝辭|祝辭[zhu4 ci2]	Wiktionary: 祝辞 > 祝辭 > 祝詞
+蚤死	蚤死	zao3 si3	variant of 早死|早死[zao3 si3]	Wiktionary: 蚤死 > 早死
+丰韵	丰韻	feng1 yun4	variant of 風韻|风韵[feng1 yun4]	Wiktionary: 丰韵 > 丰韻 > 風韻
+桜花	桜花	ying1 hua1	variant of 櫻花|樱花[ying1 hua1]	Wiktionary: 桜花 > 櫻花
+雄纠纠	雄糾糾	xiong2 jiu1 jiu1	variant of 雄赳赳|雄赳赳[xiong2 jiu1 jiu1]	Wiktionary: 雄纠纠 > 雄糾糾 > 雄赳赳
+讨帐	討帳	tao3 zhang4	variant of 討賬|讨账[tao3 zhang4]	Wiktionary: 讨帐 > 討帳 > 討賬
+疯颠	瘋顛	feng1 dian1	variant of 瘋癲|疯癫[feng1 dian1]	Wiktionary: 疯颠 > 瘋顛 > 瘋癲
+黄蘗	黄蘗	huang2 bo4	variant of 黃檗|黄檗[huang2 bo4]	Wiktionary: 黄蘗 > 黃檗
+微辞	微辭	wei1 ci2	variant of 微詞|微词[wei1 ci2]	Wiktionary: 微辞 > 微辭 > 微詞
+骆驿	駱驛	luo4 yi4	variant of 絡繹|络绎[luo4 yi4]	Wiktionary: 骆驿 > 駱驛 > 絡繹
+激厉	激厲	ji1 li4	variant of 激勵|激励[ji1 li4]	Wiktionary: 激厉 > 激厲 > 激勵
+疍家人	疍家人	dan4 jia1 ren2	variant of 蜑家人|蜑家人[dan4 jia1 ren2]	Wiktionary: 疍家人 > 蜑家人
+白茆	白茆	bai2 mao2	variant of 白茅|白茅[bai2 mao2]	Wiktionary: 白茆 > 白茅
+好管闲事	好管闲事	hao4 guan3 xian2 shi4	variant of 好管閒事|好管閒事[hao4 guan3 xian2 shi4]	Wiktionary: 好管闲事 > 好管閒事
+傜役	傜役	yao2 yi4	variant of 徭役|徭役[yao2 yi4]	Wiktionary: 傜役 > 徭役
+癞虾蟆	癩蝦蟆	lai4 ha2 ma5	variant of 癩蛤蟆|癞蛤蟆[lai4 ha2 ma5]	Wiktionary: 癞虾蟆 > 癩蝦蟆 > 癩蛤蟆
+砂眼	砂眼	sha1 yan3	variant of 沙眼|沙眼[sha1 yan3]	Wiktionary: 砂眼 > 沙眼
+欠帐	欠帳	qian4 zhang4	variant of 欠賬|欠账[qian4 zhang4]	Wiktionary: 欠帐 > 欠帳 > 欠賬
+布疋	布疋	bu4 pi3	variant of 布匹|布匹[bu4 pi3]	Wiktionary: 布疋 > 布匹
+沙盒游戏	沙盒游戏	sha1 he2 you2 xi4	variant of 沙盒遊戲|沙盒遊戏[sha1 he2 you2 xi4]	Wiktionary: 沙盒游戏 > 沙盒遊戲
+屈强	屈強	jue2 jiang4	variant of 倔強|倔强[jue2 jiang4]	Wiktionary: 屈强 > 屈強 > 倔強
+慇勤	慇勤	yin1 qin2	variant of 殷勤|殷勤[yin1 qin2]	Wiktionary: 慇勤 > 殷勤
+寒喧	寒喧	han2 xuan1	variant of 寒暄|寒暄[han2 xuan1]	Wiktionary: 寒喧 > 寒暄
+邪婬	邪婬	xie2 yin2	variant of 邪淫|邪淫[xie2 yin2]	Wiktionary: 邪婬 > 邪淫
+反转录酶	反转录酶	fan3 zhuan3 lu4 mei2	variant of 反轉錄酶|反转錄酶[fan2 zhuan3 lu4 mei2]	Wiktionary: 反转录酶 > 反轉錄酶
+昆山腔	昆山腔	kun1 shan1 qiang1	variant of 崑山腔|崑山腔[kun1 shan1 qiang1]	Wiktionary: 昆山腔 > 崑山腔
+朞年	朞年	ji1 nian2	variant of 期年|期年[ji1 nian2]	Wiktionary: 朞年 > 期年
+啊唷	啊唷	a1 yo5	variant of 啊喲|啊哟[a1 yo5]	Wiktionary: 啊唷 > 啊喲
+雠敌	雠敌	chou2 di2	variant of 仇敵|仇敌[chou2 di2]	Wiktionary: 雠敌 > 仇敵
+搾取	搾取	zha4 qu3	variant of 榨取|榨取[zha4 qu3]	Wiktionary: 搾取 > 榨取
+嫚骂	嫚骂	man4 ma4	variant of 謾罵|谩骂[man4 ma4]	Wiktionary: 嫚骂 > 謾罵
+傍若无人	傍若無人	pang2 ruo4 wu2 ren2	variant of 旁若無人|旁若无人[pang2 ruo4 wu2 ren2]	Wiktionary: 傍若无人 > 傍若無人 > 旁若無人
+齿录	齿录	chi3 lu4	variant of 齒錄|齿錄[chi3 lu4]	Wiktionary: 齿录 > 齒錄
+欹斜	欹斜	qi1 xie2	variant of 攲斜|攲斜[qi1 xie2]	Wiktionary: 欹斜 > 攲斜
+杏黄	杏黃	xing4 huang2	apricot yellow (the color)	written for Dushu
+散骑常侍	散騎常侍	san4 qi2 chang2 shi4	(archaic) Cavalier Attendant-in-ordinary (an official title of the Three Kingdoms to the Tang)	written for Dushu

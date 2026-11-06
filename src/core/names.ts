@@ -88,6 +88,12 @@ export const TRANSLIT_CHARS: ReadonlySet<string> = new Set([...(
 /** In a name with no Chinese surname (a transliterated Mongol or Jurchen name), 术 is zhú; after a surname (袁术) it stays shù. */
 export const TRANSLITERATION_READINGS: Readonly<Record<string, string>> = { 术: 'zhu2' };
 
+/**
+ * After 老 小 阿, a character that makes a word for a thing, an animal, a kind of person or a part of something longer (老屋, 小军,
+ * 老尼, 小耗|子), not a nickname (core/nameCandidates.ts, core/lexicon.ts).
+ */
+export const NOT_NICK_TAIL: ReadonlySet<string> = new Set([...'军兵卒尼僧屋院房楼门窗耗鼠猫狗犬鸡鸭鹅猪牛马羊兔虫鸟鱼蛇龙虎孩童子儿女人客官吏贼头脚手脸心事话船车家店铺庙村镇城山河路桥树花草叶米饭菜酒茶钱']);
+
 /** A doubled kinship word at the end of a name is neutral (靖哥哥, 小姑姑); a doubled given name is not (李师师). */
 export const KIN_CHARS: ReadonlySet<string> = new Set([...'哥姐妹弟爷奶姑叔伯舅婶娘爹妈婆公嫂姨姥嬷兄侄姊']);
 

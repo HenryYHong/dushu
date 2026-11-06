@@ -10,7 +10,10 @@ export const DATA_DIR = join(__dirname, '..', '..', 'public', 'data');
 /** Decompressed text of a data file by name ("cedict", "cedict.tsv", "cedict.tsv.gz" and "meta.json" all work). */
 export async function readDataFile(name: string): Promise<string> {
   const file = /\.(gz|json)$/.test(name) ? name : name.replace(/(\.tsv)?$/, '.tsv.gz');
-  const raw = await readFile(join(DATA_DIR, file));
+  // ZH_CORPUS_WORDS=off leaves the corpus counts and words out (a diff of their own changes); a path reads another file.
+  const corpus = file === 'corpus-words.tsv.gz' ? process.env.ZH_CORPUS_WORDS : undefined;
+  if (corpus === 'off') throw new Error('corpus-words.tsv.gz left out (ZH_CORPUS_WORDS=off)');
+  const raw = await readFile(corpus || join(DATA_DIR, file));
   const text = file.endsWith('.gz') ? gunzipSync(raw).toString('utf8') : raw.toString('utf8');
   return text;
 }

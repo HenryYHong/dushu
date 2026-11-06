@@ -1,0 +1,108 @@
+# The second set of public-domain books the reading model learns from (scripts/train_reading_model.py --books2, default
+# .cache/raw/reading-books-2): 98 works from zh.wikisource, all first published in 1930 or earlier (US public domain), read from
+# the zh.wikisource dump of 2026-10-01 (zhwikisource-20261001-pages-articles-multistream.xml.bz2) by the offline corpus build of
+# 2026-11-05, in the original script, one paragraph per line, a heading per page. None of them is in tests/corpus/zh or the
+# sealed test set, nor a work of public/samples or scripts/data/reading-model-books.tsv (a few pieces overlap: 學而 in 論語, two
+# essays of 民初散文選 in 郁達夫's and 李大釗's; places whose text is already there were not hand-labeled again). The Wu-dialect
+# novels (海上花列傳, 九尾龜) and the three longest histories are left out. Hand labels in tests/corpus/zh/readings-calibration.tsv
+# (folder wikisource-2) point into these texts by offset, so the training script warns about a text whose sha256 differs. The
+# pages and their revisions are in reading-model-books-2-pages.tsv.gz.
+# Columns: id, title, author, first published, genre, Han characters, sha256 of the .txt file.
+baihua-wenxueshi	白話文學史	胡適	1928	1920s-prose	128322	c5130f4a447133299053510b3fa6f4df148f75676a5d27db34aa57855acf9201
+baogongan	包公案	安遇時 (comp.)	1594	ming-novel	143605	d76823dbfc372f677b8a8a922c3b912dc81c62bfd881b1265d7cd2d376268957
+bianfa-tongyi	變法通議	梁啟超	1896–99	late-qing-prose	35170	c75e5d89c2759af1d48882dece5b904a6e0cc4c821470a3443e061ddc0c2c6f1
+caigentan	菜根譚	洪應明	c. 1590s	classical	13035	c6d1080f45749c001dc48ec3c5de3ce37058c7f3d9324584403460d172667bed
+caiyuanpei-pre1931	蔡元培作品（1930年以前發表）	蔡元培	1912–1927	1920s-prose	18181	48b94fda2f1a37cf80bb1c749a7b22ff0abfacdc12c6be5fc20c28cbb61ed60b
+chanzhen-yishi	禪真逸史	方汝浩	c. 1620s	ming-novel	321552	5a9cca83cf3d481ded39146d65e5bdc85c1bc0346037642a4b7af4865c7d750c
+chenduxiu-pre1931	陳獨秀作品（1930年以前發表）	陳獨秀	1903–1930	1920s-prose	231218	f1350ecd1248dbe1c0d4941e887216ec5c5ceef7b82bb4042c1219363870d857
+chuke-paian	初刻拍案驚奇	凌濛初	1628	ming-novel	331287	f7de9e755963e182a59e0ece8d2f00db6036658e1c5ebb2d0374d73ae6919d9e
+dangkouzhi	蕩寇志	俞萬春	1853	qing-novel	283422	cffa94a5acf112a59d80d16a4786ea1a8d63e84ba2a35e16935f7da0be706bdd
+datang-xiyuji	大唐西域記	玄奘, 辯機	646	classical	107369	27695a86e5f22c156f46485a7c2a7ee67231ab6926135e70f4169fa177a88a20
+donghan-yanyi	東漢演義	謝詔	16th century	ming-novel	124604	f1c0c55dc5c54ab3d412b537fc44e1cc7a685b90eb46eaecd0a6660f877c5061
+dongzhou-lieguozhi	東周列國志	馮夢龍, 蔡元放 (rev.)	1752 (蔡元放 revision)	qing-novel	552302	6420d0fc6f50ac13a365d65f564058c1ae25a9a19543a9e706d2fb9696e14a1a
+doupeng-xianhua	豆棚閒話	艾衲居士	c. 1670s	qing-novel	73917	4e8dcd95d4b61f8ed94844220523afe00ce8dd23a99418b15e4d0556c0bf721b
+erke-paian	二刻拍案驚奇	凌濛初	1632	ming-novel	356427	c177997cdc40bb32526f2f8f698e093274315fd5d86b48a21222c4c2789d4294
+fengshen-yanyi	封神演義	許仲琳 (attr.)	c. 1600	ming-novel	485192	67d86dea9a66f89c1ad83432511afd8f11fd66ab139243db3ecc8136e0feb77a
+fenzhuanglou	粉妝樓	竹溪山人	c. 1790s	qing-novel	173378	fe511f3c82e8812b919f938e4b80214fd49b4be672fe48d4bb0902e97dce7aa2
+fusheng-liuji	浮生六記	沈復	written 1808, printed 1877	classical	47275	058697eb531078fb3e5ef53d649f4ac42abeb96857f3f098e29b2e723a2c9e6c
+guoyu	國語	左丘明 (attr.)	c. 400 BC	classical	72980	33857e37471c8b8eb332d24cdc352cd58a9587082c8242065d8c48d0d4f7855c
+guwen-guanzhi	古文觀止	吳楚材, 吳調侯 (ed.)	1695	classical	122266	300adf82cb55d2a3bd7490b63d87107766bf34b9688da03d727e94c5018d86a4
+hanfeizi	韓非子	韓非	c. 240 BC	classical	235887	d919be4ea1d56cda0e3da9c801f281fb236d3ab725500a8340f11670ba0b6ea6
+haoqiuzhuan	好逑傳	名教中人	c. 1680	qing-novel	105716	936c4f0d3998099d86cfc664e736c4b2897294b6ce41ac1b775b716be5382e28
+hushi-pre1931	胡適作品（1930年以前發表）	胡適	1913–1930	1920s-prose	300919	2d2a909556482ef9a937cccefb7d0d3026318ebcbb08359014e4eff0826bf966
+jiandeng-xinhua	剪燈新話	瞿佑	1378	classical	40313	94cc979f2b568d1ea8cfbbc6eb23849972657cbf111b51e008337f6b893d1c50
+jingshi-tongyan	警世通言	馮夢龍 (ed.)	1624	ming-novel	312335	d73adc85a0d60a34a14d9cd5460c8b169243b7a595bc3157199dddb449776d7a
+jinpingmei	金瓶梅	蘭陵笑笑生	c. 1610 (崇禎本 c. 1630s)	ming-novel	629523	10d607bb47cda8f7274b368b27fe40bbb2dd31be90c63fd873140c99d438e62d
+kangyouwei-pre1931	康有為作品（1930年以前發表）	康有為	1895–1926	late-qing-prose	241211	977a0945b8e9d526092422b39604ac2744eca18a3d21d4da2b48bde43a0b30ab
+liangqichao-pre1931	梁啟超作品（1930年以前發表）	梁啟超	1859–1925	late-qing-prose	458299	e6ccd42303d9ec387e9114b3aa7f43c629087868e6f022c25219e678f8165a9a
+lidazhao-pre1931	李大釗作品（1930年以前發表）	李大釗	1912–1927	1920s-prose	312680	f381ad9af7ce818f65e601b89d9cd3feb8ed990b1daeca667e0fa13e97c92438
+lihongzhang-zhuan	李鴻章傳	梁啟超	1901	late-qing-prose	56272	f71904c0f481d9f8c50fa839b35abc246c8acdafd5f9107e848535c74e58bfb2
+lunyu	論語	孔子弟子	c. 400 BC	classical	22629	451152e5dc9131538fee09a44a0e89830ce486b0be562ddcd82f3a2cb6f1076a
+luoyang-qielanji	洛陽伽藍記	楊衒之	547	classical	21634	44987d2bf1143d5e3c848374b5f1d033c80038d958b082474094e35f0ec34d83
+lvshi-chunqiu	呂氏春秋	呂不韋 (ed.)	239 BC	classical	95161	09fa02aefff7e85070e93197ef22e54eddd8cf8fcc84f38b4546ca3a739a1c32
+mengxi-bitan	夢溪筆談	沈括	1088	classical	102499	0a1b1fe74b59e59df6e9715ef6e012b510c93fc528c1b09b16b9baef820d9653
+mengzi	孟子	孟軻	c. 300 BC	classical	70864	707cb24b8399b4c7563036920a01ca6ad5d81acc88ee5dbe58642c03fb7fadac
+nvxian-waishi	女仙外史	呂熊	1711	qing-novel	442893	729948a1f886f4aff4282eebdaade22d7fe98c959c39fbc87df6cb268bea4c83
+penggongan	彭公案	貪夢道人	1891–92	qing-novel	724465	5d1f2c5bd8241762d59a53d8d179fe36bac779d37327b9ce53e7916e64b12c45
+pingshan-lengyan	平山冷燕	天花藏主人	c. 1658	qing-novel	111547	38b2628fe52c46c82dd073bffbbc912858c197a25ac0b499690663322775048d
+pingyaozhuan	三遂平妖傳	羅貫中, 馮夢龍 (rev.)	1620 (馮夢龍 40-chapter version)	ming-novel	63740	2736813bdf6f0ee8206e383e940f6baa7a4e04e80f59bcca5089a07c85986ab8
+qianxuantong-pre1931	錢玄同作品（1930年以前發表）	錢玄同	1918–1919	1920s-prose	10175	8e3c96740c330cc30a6e55bd5718c01d45c079a25a544145f12c086151166a3c
+qijian-shisanxia	七劍十三俠	唐芸洲	1892	qing-novel	425343	3593316d3a676f3bae08a7064e14b87d01e5077e9e0a960e2a10b4bc11730232
+quqiubai-pre1931	瞿秋白作品（1930年以前發表）	瞿秋白	1923–1927	1920s-prose	97219	5478795dd35384d88b49b629ad8abc88c158ee1a1061f15fed439cbfca52e238
+renjian-cihua	人間詞話	王國維	1908–09	late-qing-prose	12854	120a698ff342088f9560a122284947d33184e5ba30a32c153ef18f2f52126239
+renxue	仁學	譚嗣同	1899	late-qing-prose	46843	28890afa1b5cd9470f469aab3471f0d7bde1cf1630efa3a812b3bb386de8a865
+rongzhai-suibi	容齋隨筆	洪邁	1180–1202	classical	71499	12eddada2fd884803c102562574bfc508f4dab496e019e01df841ec30c6fe034
+sanguozhi	三國志	陳壽	c. 290	classical	311046	ecf91e33e93f75d7441b491c7a5f5d2ff1ce3a18810110ef7bc53fb2405b64df
+sanmin-zhuyi	三民主義	孫文	1924	1920s-prose	156542	2d2c4bba8c8aff1a0e4b2b27f266a04ca49cc96f94097e566dfc7752e9e31536
+shidiantou	石點頭	天然癡叟	c. 1630s	ming-novel	168590	cc99b8c38a173c6c857261e2cc4a3ccb4230c1bf509567c585190c60aedb1e83
+shierlou	覺世名言十二樓	李漁	1658	qing-novel	298054	314e08c78a1a343ce2b20f102decac0552cf7dad4d823069a77ec42ec07650c5
+shiji	史記	司馬遷	c. 91 BC	classical	566458	5c42b6276769209374282db952b5f43a6c68a2866c5ba1d1b7f3ed4b2a9b2ba8
+shishuo-xinyu	世說新語	劉義慶	c. 430	classical	113852	0a9ca719fb91efd495417ea0a186c68bef89dd8bb6c3916c0adffa97bdd63ae9
+songci-sanbaishou	宋詞三百首	朱祖謀 (ed.)	1924	classical	26475	2b04a019b15b5f774c64d0a57d06bd4227587b75e2134e73fc178022ee110ee2
+songyuan-xiqushi	宋元戲曲史	王國維	1913–15	1920s-prose	58495	78363f24b2fbc21d560d42b9c41bf622a118d44c2638f11fad0132882c5386b4
+soushenji	搜神記	干寶	c. 350	classical	56373	968a5abd4a7733230cc310c5bde651b0a449363d49a75b10243e8257f64f9880
+suishi-yiwen	隋史遺文	袁于令	1633	ming-novel	243954	048c67339926ecb2711091919020a0bbd119eb6e20ec946a3565290ab0ef8396
+suitang-yanyi	隋唐演義	褚人穫	1695	qing-novel	519097	4b362ec2b26aa91e6ba694f9440f5c73c6a346e1e2c898c29e968c9c1f8f98c6
+sunwen-pre1931	孫文作品（1930年以前發表）	孫文	1891–1925	1920s-prose	187075	a1568a5b2514ae67b58f5f180063ddd09aa76d49e4dfde4746226eea4c972c67
+tang-caizizhuan	唐才子傳	辛文房	1304	classical	58424	8f7badd4bc4a223b8cf01fe2747b23f38039a757a4dadb649f609dd6a6ea79e9
+tangshi-sanbaishou	唐詩三百首	蘅塘退士 (ed.)	1763	classical	23305	3b3b6c7198db58418f77871bee268a9c0c2ba018cb51883825e8c8472367cbaf
+taoan-mengyi	陶庵夢憶	張岱	1794 (printed)	classical	35289	203d27f0cb7cdfe9199d8043db38beb81a0a519020d32631138b1e738cdabcde
+tianyanlun	天演論	嚴復 (tr.)	1898	late-qing-prose	48590	6ad022220a684fe1e019200644e0b5d5b910d5999c9f893c194ca4b4a5c4629f
+wanhualou	萬花樓	李雨堂	1808	qing-novel	421675	4b44739d3b181013c40644a0bd17877708ffc54f6b1d8119089491931197aaa4
+wenxin-diaolong	文心雕龍	劉勰	c. 501	classical	39206	7c1c500831fd64345e8806f0695ef4a4bdde2c378bfd83d5eedfb254eb9e84cf
+wenyiduo-pre1931	聞一多作品（1930年以前發表）	聞一多	1923–1928	1920s-prose	4540	d3d41095e7de5626f3e4458b18ee3c8f39d88c5ef1dda5b11f42268da8a050ae
+wuhu-pingnan	五虎平南	李雨堂	1806	qing-novel	105904	77707f72e8539f2831c4cffba893e51651ad3f33453028e4bede55e08f9d012b
+wuhu-zhengxi	五虎征西	李雨堂	1805	qing-novel	264552	bab7195665005a996dc0fbad482157239e746f6d2d444433c7c7f1b59e37523b
+xiaochuang-youji	醉古堂劍掃	陸紹珩	1624	classical	46129	90d1822ca7d2d1afb8989aac50d64842ebe64d80983f07e0b49cbf5bd467f0b8
+xiaowuyi	小五義	石玉昆 (tradition)	1890	qing-novel	332089	f807156039379770bfe88ae374be6b41b4b7e5869addeeedeb713a59a64cbad2
+xieduo	諧鐸	沈起鳳	1791	classical	69444	781df2cd8d10010a89219d831f6f4b96993fd688c9155b840fa0b4bd5d97209a
+xihan-yanyi	西漢演義	甄偉	1612	ming-novel	213347	f4cd459c8f3a7aaa9198f61567abdb0ed903382f8f79d14c5030681298470495
+xihu-erji	西湖二集	周清原	c. 1630s	ming-novel	270436	c2fd7aa0d27723ccd5158cbf9f9b8409371037f26e52e53f68223e30d3df9ec9
+xihu-mengxun	西湖夢尋	張岱	1717 (printed)	classical	41657	f886c2b425e463229c39495efbd9b88e9e16d9c32e5d777db93a62bb7f12ae63
+xingshi-hengyan	醒世恆言	馮夢龍 (ed.)	1627	ming-novel	448240	40f5f8d7f8391fa83ca1ef4085828043a17e2427eeb03da9646f54ce528cd36b
+xinminshuo	新民說	梁啟超	1902–06	late-qing-prose	94643	1f3f116736089cc4b2d9158c0e2bcef128ae0bf13b99c0e5523ee9496dae9abc
+xiyoubu	西遊補	董說	1641	ming-novel	37323	909ed03d368d136afa24f6460b522476b372b5805b9d79096b978dca39854d25
+xu-xiaowuyi	續小五義	石玉昆 (tradition)	1891	qing-novel	339827	601c251ce8d2fea8807fd69d33be9f0deb71da98f135743eab4871f2bcebbdd9
+xudishan-pre1931	許地山作品（1930年以前發表）	許地山	1921–1922	1920s-prose	9388	154f5b50661217c89483cd8306ca8362465e1a85b1be578460f9200275d8374f
+xuerengui-zhengdong	薛仁貴征東	anonymous	18th century	qing-novel	244252	221ee486f4f13cee70940f62b96290a6e57b6c9a004e092440210b6998b5e221
+xunzi	荀子	荀況	c. 250 BC	classical	75953	3ffd3f6f3cf69083df87c23ace8ff6721b7e92146bde43df22a177699d3f8fb3
+xuxiake-youji	徐霞客遊記	徐弘祖	1776 (printed)	classical	492686	11c6a4dbcdb0c4248f6530a042d9849887bcb2317abffa0574fda37bba6415dc
+xuzhimo-pre1931	徐志摩作品（1930年以前發表）	徐志摩	1794–1930	1920s-prose	64845	3253b3b232ebb57417a96cc4eeaf29198e6f903039ffd6738283a244fa262963
+yanfu-pre1931	嚴復作品（1930年以前發表）	嚴復	1896–1911	late-qing-prose	194254	721228c4da9ea059e94c9809bb9812a53b579536657358c1e10259c4c69c7dcc
+yanshi-jiaxun	顏氏家訓	顏之推	c. 590	classical	33175	4aa549c9449adc65e1254fc38098e801c412d1feca1841f715fa67d6572a30fa
+yesou-puyan	野叟曝言	夏敬渠	1881	qing-novel	979749	07fbaecba7bf1013b072e454866ef54021b2feb65b080700ea20b3c683c39e61
+yetan-suilu	夜譚隨錄	和邦額	1779	classical	148645	7915fcb176a08accda4e135a131eef8c87ef5fa91da279760c155a3496c7314d
+yeyu-qiudenglu	夜雨秋燈錄	宣鼎	1877	classical	532002	0b54e6ac3f710e59a3cf87f50231fdab4496278374c511a5124f5e9b46659643
+yingchuang-yicao	螢窗異草	長白浩歌子	18th century	classical	238982	9e5959502bcdd07bb35592bb4be280c3da700e3d0627bff03abe79804a91457a
+yinglie-zhuan	英烈傳	anonymous	16th century	ming-novel	171293	9ea4efc2e9b144ace6a854b1f32d62392288290ec007cf25243eb0338191e496
+youmengying	幽夢影	張潮	c. 1690s	classical	11011	1d5c7a5400471cbf333ca30ae669a8c86dd8d61481571eefdf4f71c2c58546c9
+yuchu-xinzhi	虞初新志	張潮 (ed.)	1683	classical	179668	6a9835c0a24c5d900a23b9e474aef0a695dbf4f74b75b9c2166cbf50b1b90c56
+yudafu-pre1931	郁達夫作品（1930年以前發表）	郁達夫	1918–1927	1920s-fiction	21674	0eab6f4901f37077d130fe2a623cbaf97fe931d403f2c189162c6b422b30ddb6
+yulihun	玉梨魂	徐枕亞	1912	1920s-fiction	89985	3c5e5697ec9de3104a5cb7dad8e46fd6e6a1867cfe11afafbd63685b801b4297
+zhangtaiyan-pre1931	章太炎作品（1930年以前發表）	章太炎	1901–1928	late-qing-prose	489426	80a661c639867506bcb9010b2f17e5626b614a8affe8d3d7f122358fe8cb538f
+zhanguoce	戰國策 (士禮居叢書本)	劉向 (ed.)	c. 1st century BC	classical	133866	a465538904b35bcb7a5f27aff03d152e7a29b15a5790e127a5a339af5dda8c15
+zhongguo-xiaoshuo-shilue	中國小說史略	魯迅	1923–24	1920s-prose	100300	dbad293b097eee11c8a6634129a08f35f5028aaec7b9601d6801cc13fece99d6
+zhouzuoren-pre1931	周作人作品（1930年以前發表）	周作人	1921–1930	1920s-prose	31157	5d4e56ff7d303406a3ae57f930c67e1c45228271c32a8c60f2b2c60c8b2fce9f
+zhuangzi	莊子	莊周	c. 300 BC	classical	65347	fd9da670d865765bc2dbc44b3ab1eeee1eb5a9ae6ff3e0d3510b1587ae60ab76
+zuixingshi	醉醒石	東魯古狂生	c. 1650s	qing-novel	91023	f79ce360449ae685551b9b5ea66b95d887e21ab13bfa6239852d0b403731bd81
+zuozhuan	春秋左氏傳	左丘明 (attr.)	c. 400 BC	classical	297923	9ef01d68e81cc471178848dd47d4421a692d3d32e43e82abaad529104c7b3ddc

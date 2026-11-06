@@ -7,7 +7,7 @@ These gates run with `npm test` and need nothing outside the repository:
 | `zh-corpus.test.ts`, silver gold | `zh/` (the held-out corpus, `zh/INDEX.md`), `zh/silver.tsv` | fewer audited errors are right than `zh/baseline.json` records |
 | `zh-corpus.test.ts`, groupings | `zh/shown-baseline.tsv` | never (it prints every change); `ZH_CORPUS_STRICT=1` makes any change fail |
 | `ud.test.ts` | `ud/` (UD Chinese GSDSimp and HK test sets) | crossing rises more than 0.03 points or F1 falls more than 0.3 below `ud/baseline.json` |
-| `readings-calibration.test.ts` | `zh/readings-calibration.tsv` (2,203 readings of one-character tokens labeled by a native reader, which the reading model also trains on except a held-out third; the corpus rows) | fewer than 90% of the reading model's changes are right, or the page gets fewer of them right than the rules alone |
+| `readings-calibration.test.ts` | `zh/readings-calibration.tsv` (5,413 readings of one-character tokens labeled by a native reader, which the reading model also trains on except a held-out third; the corpus rows) | fewer than 90% of the reading model's changes are right, or the page gets fewer of them right than the rules alone |
 
 The corpus and UD tests read the texts the way the reader shows them: the app's import, its name detection over the book (with
 the name list, `public/data/names.tsv.gz`; `ZH_GAZETTEER=off` leaves it out) and `ui/reader/shown.ts` with the page set to

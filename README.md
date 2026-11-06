@@ -92,7 +92,7 @@ Not supported: scanned PDFs (they have no text to read) and DRM-protected books,
 
 ## Names and terms
 
-Novels are full of names the dictionary does not have. The first time you open a book, Dushu scans it in the background and learns its people, places and martial-arts terms (王熙凤, 林冲, 大观园), so each reads as one word with a name's pinyin. It also checks a list of about 580,000 people, places and organizations from Wikidata (downloaded once, the first time a book is scanned), so a name the book mentions only once, like a painter or an old county, can be found too. Tap one to see an "In this book" card. You can edit its pinyin and meaning, say it is not a word, or select any phrase and choose "Add as a word". Once the scan is done, Dushu may ask once, "Names in this book?", about strings the book repeats that look like names but that it could not be sure of (七斤, 七大人, 老栓): tap the ones that are names (press and hold, or the arrow, to make one a place or another kind of name), tap × on the rest, then Done. Your answers are corrections, so they sync and can be undone, and **Check names** on the Corrections tab asks again. The list is under the contents button, on the Names & terms tab. Everything stays on your device.
+Novels are full of names the dictionary does not have. The first time you open a book, Dushu scans it in the background and learns its people, places and martial-arts terms (王熙凤, 林冲, 大观园), so each reads as one word with a name's pinyin. It also checks a list of about 580,000 people, places and organizations from Wikidata (downloaded once, the first time a book is scanned), so a name the book mentions only once, like a painter or an old county, can be found too. A small name model, trained once on Wikipedia and public-domain books and downloaded with the list, also takes the names a book repeats in shapes the scan's rules turn down when it is sure of them (七斤, 四婶, 周仓, 孙八爷). Tap one to see an "In this book" card. You can edit its pinyin and meaning, say it is not a word, or select any phrase and choose "Add as a word". Once the scan is done, Dushu may ask once, "Names in this book?", about strings the book repeats that look like names but that it could not be sure of (七斤, 七大人, 老栓): tap the ones that are names (press and hold, or the arrow, to make one a place or another kind of name), tap × on the rest, then Done. Your answers are corrections, so they sync and can be undone, and **Check names** on the Corrections tab asks again. The list is under the contents button, on the Names & terms tab. Everything stays on your device.
 
 ## Read aloud
 
@@ -181,7 +181,9 @@ On the hosted site, everything is local to your browser. Books, saved words, pro
 | Wiktionary via kaikki.org | Readings and definitions for rare characters and extra words | CC BY-SA 4.0 |
 | jieba | Word frequencies for splitting sentences | MIT |
 | Wikidata | The name list (`public/data/names.tsv.gz`, made by `scripts/build-gazetteer.mjs`): people, places and organizations with a Chinese Wikipedia article | CC0 |
-| CPP (Chinese Polyphones with Pinyin, Kakao Brain; sentences from Chinese Wikipedia), public-domain books from Wikisource and readings hand-labeled in them and in the held-out corpus | The reading model (`public/data/reading-model.tsv.gz`, made by `scripts/train_reading_model.py`): the reading of 为 (wéi or wèi), 藏, 数 and a few rarer characters with two readings where the rules fall back to their default | CC BY-SA 4.0 (the model; CPP's code is Apache-2.0) |
+| The Wikidata name list, Chinese Wikipedia (by its contributors) and public-domain books from Wikisource, with candidates hand-labeled in them | The name model (`public/data/name-model.tsv.gz`, made by `scripts/train_name_model.py`): how likely a character is to open, fill or end a name, and which strings a book repeats are its people and places (the text was read, not copied) | CC BY-SA 4.0 (the model) |
+| Chinese Wikipedia (by its contributors) and public-domain books from Wikisource, with Wiktionary's redirects | Word counts read off about 380 million characters of free text, so old words the dictionary has but no count covers (制台, 辕门, 叙礼) read as one word, and old spellings (豫备, 帐房, 精采) that point to the word they stand for (`public/data/corpus-words.tsv.gz`, made by `scripts/build_corpus_words.py`; the text was counted, not copied) | CC BY-SA 4.0 |
+| CPP (Chinese Polyphones with Pinyin, Kakao Brain; sentences from Chinese Wikipedia), public-domain books from Wikisource and 5,413 readings hand-labeled in them and in the held-out corpus | The reading model (`public/data/reading-model.tsv.gz`, made by `scripts/train_reading_model.py`): the reading of 为 (wéi or wèi), 着 (zháo, zhuó), 长 (zhǎng), 中 (zhòng), 还 (huán), 种 (zhòng), 差 (chà), 少 (shào), 好 (hào), 藏, 数 and a few rarer characters with two readings where the rules fall back to their default | CC BY-SA 4.0 (the model; CPP's code is Apache-2.0) |
 | hsk30 (Ivan Krasilnikov), from the official HSK 3.0 list (GF0025-2021) | HSK levels for each reading of a word | MIT |
 | complete-hsk-vocabulary | HSK 2.0 levels and HSK words CC-CEDICT lacks | MIT |
 | OpenCC | Simplified and traditional conversion | Apache-2.0 |
@@ -190,7 +192,7 @@ On the hosted site, everything is local to your browser. Books, saved words, pro
 | LXGW WenKai | The Kai reading typeface | SIL OFL 1.1 |
 | Newsreader (Production Type) | The serif of screen titles, folios and numbers (a Latin subset in `public/fonts/`) | SIL OFL 1.1 |
 | hanzi-writer, hanzi-writer-data | Stroke-order animation | MIT, Arphic Public License |
-| Wikisource | The bundled classics, and the books the reading model learns from (`scripts/data/reading-model-books.tsv`) | public domain |
+| Wikisource | The bundled classics, the books the reading model learns from (`scripts/data/reading-model-books.tsv` and `reading-model-books-2.tsv`, 98 works read from the zh.wikisource dump of 2026-10-01), and the books the word counts are read from | public domain |
 
 The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Russian) add:
 
@@ -238,6 +240,10 @@ python3 -I scripts/fetch_samples.py .        # the short sample texts
 python3 -I scripts/fetch_classics.py .       # the four classical novels
 node scripts/build-gazetteer.mjs --fetch      # the name list, from Wikidata (a few dozen SPARQL queries)
 ```
+
+The name model (`public/data/name-model.tsv.gz`) is trained from a folder of Wikipedia and Wikisource text kept outside the
+repository (its layout is in `scripts/train_name_model.py`): `texts`, `priors`, `sites`, then `train --labels FILE` with the hand
+labels.
 
 Raw downloads are cached in `.cache/raw/`, so reruns are mostly offline. The file formats are described in `ARCHITECTURE.md`. `python3 scripts/build_data.py --hsk` rebuilds only the HSK levels, from the pinned HSK list and `scripts/data/hsk-same-word.tsv`.
 

@@ -13,6 +13,7 @@ import { loadDictionary } from '../../src/core/dict';
 import { detectTerms, mergeLexicon } from '../../src/core/lexicon';
 import { loadReadingModel } from '../../src/core/readingModel';
 import { parseGazetteer, type Gazetteer } from '../../src/core/gazetteer';
+import { parseNameModel, type NameModel } from '../../src/core/nameModel';
 import { importFile } from '../../src/import';
 import { inScript, lexiconInScript, segmentShown, type ScriptMode } from '../../src/ui/reader/shown';
 import type { Chapter, Dictionary, Lexicon, LexiconEntry, Script, Token } from '../../src/types';
@@ -24,13 +25,24 @@ export const DATA_DIR = join(REPO_ROOT, 'public', 'data');
 export async function loadEvalDictionary(dataDir = DATA_DIR): Promise<Dictionary> {
   const fetchText = async (name: string) => {
     const file = /\.(gz|json)$/.test(name) ? name : name.replace(/(\.tsv)?$/, '.tsv.gz');
-    const raw = await readFile(join(dataDir, file));
+    const raw = await readFile(corpusWordsFile(file) ?? join(dataDir, file));
     return file.endsWith('.gz') ? gunzipSync(raw).toString('utf8') : raw.toString('utf8');
   };
   const dict = await loadDictionary('/', { fetchText });
   await loadEvalReadingModel(dict, fetchText);
   await loadEvalGazetteer(dataDir);
   return dict;
+}
+
+/**
+ * The corpus counts and words (public/data/corpus-words.tsv.gz) are read like any data file. ZH_CORPUS_WORDS=off leaves them out
+ * (for a diff of their own changes: the loader then gives today's floors), a path reads another file. Undefined: the usual file.
+ */
+export function corpusWordsFile(file: string): string | undefined {
+  const which = process.env.ZH_CORPUS_WORDS;
+  if (file !== 'corpus-words.tsv.gz' || !which) return undefined;
+  if (which === 'off') throw new Error('corpus-words.tsv.gz left out (ZH_CORPUS_WORDS=off)');
+  return which;
 }
 
 /**
@@ -55,10 +67,24 @@ export async function loadEvalGazetteer(dataDir = DATA_DIR): Promise<void> {
   const list = process.env.ZH_GAZETTEER;
   evalGazetteer = list === 'off' ? null : await readFile(list || join(dataDir, 'names.tsv.gz'))
     .then((raw) => parseGazetteer(gunzipSync(raw).toString('utf8')), () => null);
+  await loadEvalNameModel(dataDir);
 }
 
 /** The name list loadEvalGazetteer read (null: none), which bookLexicon hands to detection. */
 let evalGazetteer: Gazetteer | null = null;
+
+/**
+ * The name model, as detection has it once loaded (loadEvalGazetteer reads it with the list). ZH_NAME_MODEL=off detects without it
+ * (for diffs of the model's own changes); a path reads another model file; a missing file is the same as off.
+ */
+export async function loadEvalNameModel(dataDir = DATA_DIR): Promise<void> {
+  const which = process.env.ZH_NAME_MODEL;
+  evalNameModel = which === 'off' ? null : await readFile(which || join(dataDir, 'name-model.tsv.gz'))
+    .then((raw) => parseNameModel(gunzipSync(raw).toString('utf8')), () => null);
+}
+
+/** The name model loadEvalNameModel read (null: none), which bookLexicon hands to detection. */
+let evalNameModel: NameModel | null = null;
 
 /** One paragraph, heading or quote as the reader shows it. `key` is "chapter.block" (block index within the chapter). */
 export interface ShownBlock {
@@ -92,7 +118,7 @@ export function detectionTexts(chapters: Chapter[]): string[] {
 
 /** Detected names and terms of a book, converted for the page like the reader does. */
 export function bookLexicon(chapterTexts: string[], dict: Dictionary, mode: ScriptMode, script: Script): { found: LexiconEntry[]; lexicon: Lexicon | undefined } {
-  const found = detectTerms(chapterTexts, dict, { gazetteer: evalGazetteer });
+  const found = detectTerms(chapterTexts, dict, { gazetteer: evalGazetteer, nameModel: evalNameModel });
   // The book's old spellings (底 for 的, 那 for 哪) where detection is sure of them, as the reader applies them.
   const lexicon = withOldSpellings(mergeLexicon([], found), chooseOldSpellings(detectOldSpellings(chapterTexts)));
   return { found, lexicon: lexiconInScript(lexicon, mode, dict, script) };

@@ -1,7 +1,7 @@
 {
  "recorded": "2026-11-05",
  "silver": {
-  "right": 441,
+  "right": 451,
   "total": 1129,
   "rightHashes": [
    "006fa0b1",
@@ -95,6 +95,7 @@
    "31fefaad",
    "3326e79a",
    "33395071",
+   "3764926b",
    "38d34d83",
    "39f142e7",
    "39f142e7",
@@ -119,6 +120,7 @@
    "416e4639",
    "41f27ad9",
    "42bf7dbb",
+   "42cd7952",
    "43473999",
    "43f21efb",
    "44277d5e",
@@ -177,6 +179,7 @@
    "5a881820",
    "5adf00e4",
    "5c2d3d5c",
+   "5c4e6efc",
    "5cfdea2f",
    "5d071f28",
    "5e609f19",
@@ -210,6 +213,7 @@
    "6c970371",
    "6d1370ad",
    "6d39e0e5",
+   "6d41cf2d",
    "6f563ac6",
    "70224a09",
    "70fe6b6f",
@@ -255,6 +259,7 @@
    "85f4a606",
    "866eb3ff",
    "86e490ff",
+   "872fd217",
    "8785615c",
    "88069114",
    "8930ac01",
@@ -275,6 +280,7 @@
    "910eea1f",
    "91777e7c",
    "921418d4",
+   "92f9bee0",
    "9308780e",
    "941a94a7",
    "94f03d43",
@@ -292,6 +298,7 @@
    "9d8c907a",
    "9edd76b3",
    "a1be6ced",
+   "a24301da",
    "a38f4d6c",
    "a3d51c6f",
    "a44a6f49",
@@ -331,6 +338,7 @@
    "b6fd3a0b",
    "b76048c8",
    "b83ac2d9",
+   "b88b7d82",
    "b8ad6f71",
    "b9b29128",
    "ba9252b9",
@@ -343,6 +351,7 @@
    "c1374766",
    "c1ffd34c",
    "c262f4ba",
+   "c32f6339",
    "c33a7dfa",
    "c61b8db6",
    "c68ec29e",
@@ -390,6 +399,7 @@
    "e0471483",
    "e0c595ae",
    "e21098e9",
+   "e2fb745e",
    "e3428d6d",
    "e37e6ee5",
    "e3b82e18",
@@ -452,42 +462,42 @@
    "texts": 7,
    "blocks": 2265,
    "han": 135011,
-   "hanTokens": 94277,
-   "names": 66
+   "hanTokens": 94171,
+   "names": 71
   },
   "1920s-prose": {
    "texts": 3,
    "blocks": 918,
    "han": 70067,
-   "hanTokens": 48704,
+   "hanTokens": 48685,
    "names": 60
   },
   "qing-novel": {
    "texts": 5,
    "blocks": 265,
    "han": 57932,
-   "hanTokens": 41673,
+   "hanTokens": 41650,
    "names": 48
   },
   "classical": {
    "texts": 1,
    "blocks": 53,
    "han": 10923,
-   "hanTokens": 9265,
+   "hanTokens": 9256,
    "names": 5
   },
   "wiki": {
    "texts": 18,
    "blocks": 1848,
    "han": 148590,
-   "hanTokens": 86285,
-   "names": 631
+   "hanTokens": 86239,
+   "names": 633
   },
   "news": {
    "texts": 18,
    "blocks": 262,
    "han": 21422,
-   "hanTokens": 12293,
+   "hanTokens": 12287,
    "names": 41
   },
   "contemporary-story": {

@@ -6,10 +6,10 @@
 // reader to dismiss it, so a book with nothing good gets no prompt.
 import type { Dictionary, LexiconEntry } from '../types';
 import {
-  EDGE_STOP, INTERJECTIONS, MEASURE_START, NOT_IN_NAME, NUMERALS, PERSON_DEF, PERSON_HEAD, PLACE_SUFFIX, SOFT_END, SPEECH_NEXT,
-  commonInside, covered, detectGen, isHanUnit, surnameSplit, verbPhrase, type TermCandidate,
+  EDGE_STOP, NUMERALS, PERSON_DEF, PERSON_HEAD, PLACE_SUFFIX, SPEECH_NEXT,
+  commonInside, covered, detectGen, isHanUnit, plausibleName as plausible, surnameSplit, type TermCandidate,
 } from './lexicon';
-import { KIN_CHARS, SURNAMES } from './names';
+import { KIN_CHARS, NOT_NICK_TAIL, SURNAMES } from './names';
 
 /** Bump when the candidates change enough that a book should be looked at again. */
 export const NAME_CHECK_VERSION = 1;
@@ -37,14 +37,8 @@ const HONOR_TAILS = new Set(['大人', '太爷', '老爷', '奶奶', '太太', '
 const DERIVED_TAILS = [...'翁公兄君哥姐妹弟叔伯嫂娘爷姑婆妈老'];
 /** 老, 小 and 阿 before one character make a nickname (老栓, 小栓, 阿长) … */
 const NICK_HEADS = [...'老小阿'];
-/** … unless that character is a thing, an animal, a kind of person or a part of something longer (老屋, 小军, 老尼, 小耗|子). */
-const NOT_NICK_TAIL = new Set([...'军兵卒尼僧屋院房楼门窗耗鼠猫狗犬鸡鸭鹅猪牛马羊兔虫鸟鱼蛇龙虎孩童子儿女人客官吏贼头脚手脸心事话船车家店铺庙村镇城山河路桥树花草叶米饭菜酒茶钱']);
 /** A string that ends in one of these is a kind of person, an animal or a thing (村女, 蛊师, 主母, 指蜜鸟), not someone's name. */
 const NOT_NAME_TAIL = new Set([...'师客女母父人者鸟兽虫鱼犬猫狗马牛羊猪鸡鸭花草树木板术法学教语文书话事物品类型式性化业界']);
-/** Never open a name: they open a clause or a phrase. */
-const BAD_START = new Set([...'这那哪某各每众诸几只又还便就也都却则的了是在有无不既且莫待方自如虽话快忙对向因以此然纵倘若更再仍已正才并将把被从往跟与及连为没谓转第些两按唱']);
-/** A numeral and one of these is a quantity (一碗, 十里, 二字), not a name. */
-const QUANTITY_TAIL = new Set([...'个只件条张把顶本头匹位口座片块根枝支双对句声眼次回遍下番场阵天日月年岁时分秒里丈尺寸亩两钱元文串层间样种代人字成倍等般面方边']);
 /** What a person does right after their name: speak, or think, look, listen, go. */
 const SAYS = new Set([...SPEECH_NEXT, ...'想看听走跑站坐']);
 /** Before a place: 在窗口, 到村口, 从城里. A string after one of these half the time is somewhere, not someone. */
@@ -311,21 +305,6 @@ export function nameCandidates(chapterTexts: string[], dict: Dictionary, taken: 
   debug?: (all: (NameCandidate & { signs: string })[]) => void): NameCandidate[] {
   const gen = nameCandidatesGen(chapterTexts, dict, taken, found, debug);
   for (;;) { const r = gen.next(); if (r.done) return r.value; }
-}
-
-/** Whether a string (simplified) could be a name at all: no particle, no function word at its edges, not a quantity or a phrase. */
-function plausible(simp: string[], dict: Dictionary): boolean {
-  const len = simp.length;
-  const first = simp[0];
-  const last = simp[len - 1];
-  if (BAD_START.has(first) || EDGE_STOP.has(first) || EDGE_STOP.has(last) || SOFT_END.has(last) || INTERJECTIONS.has(first) || INTERJECTIONS.has(last)) return false;
-  if (simp.some((ch) => NOT_IN_NAME.has(ch) || '的了着过'.includes(ch) || !isHanUnit(ch.charCodeAt(0)))) return false;
-  if (len >= 3 && simp[0] === simp[1]) return false;
-  // (晁、宋二公, 三公: the two lords, the three dukes.)
-  if ((simp[len - 2] === '二' || simp[len - 2] === '三' || simp[len - 2] === '两') && last === '公') return false;
-  // (一碗, 十里, 二人, 五千: a numeral before a measure word or another numeral is a quantity.)
-  if (NUMERALS.has(first) && (QUANTITY_TAIL.has(simp[1]) || NUMERALS.has(simp[1]) || MEASURE_START.has(simp[1]))) return false;
-  return !verbPhrase(simp, dict);
 }
 
 /**

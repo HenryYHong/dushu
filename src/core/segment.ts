@@ -875,6 +875,8 @@ const AFTER_FLOOR_NUMERAL = NUMERAL_BEFORE_MEASURE + '年月日天岁歲点點�
 const FLOOR_DIGITS = '〇零一二三四五六七八九';
 /** A sense that is a verb ("to hold with one's hand", "(of a car) to stall"). */
 const VERB_DEF = /^(\([^)]*\) )*to /;
+/** A sense tagged archaic ("(archaic) chariots and cavalry"). */
+const ARCHAIC_DEF = /^(\([^)]*\) )*\(archaic\)/;
 /** A sense that is a whole exclamation or question ("Oh that's true!", "what is this?") or an interjection. */
 const UTTERANCE_DEF = /[!?]\s*$|\binterjection\b/;
 
@@ -910,6 +912,10 @@ function unseenScore(text: string, pos: number, a: number, b: number, w: string,
   if (n === 2 && w[0] === '起' && pos + 2 < b && has('来來', text[pos + 2])) return -UNSEEN_WORD_PENALTY;
   // 被|罩在铜缸里, 把|捉回来的人: 被 and 把 before a verb and its complement mark the passive and the object, not 被罩 or 把捉.
   if (n === 2 && ((w[0] === '被' && has('在着著了住上下起回来來去到得出进進过過', next)) || (w[0] === '把' && has('回到', next)))) return -UNSEEN_WORD_PENALTY;
+  // 把车骑回家, 单骑这匹马: in the modern 把 … 回 and before 这 那, an archaic word that ends in a verb (and does not open with one:
+  // 习学这枝画戟 stays) is that verb with its object, not 车骑 "chariots and horsemen" or 单骑 "a lone rider".
+  if (n === 2 && ((prev === '把' && has('回到进進出上下来來去过過了着著', next)) || has('这這那', next)) && isVerbChar(w[1], dict) && !isVerbChar(w[0], dict)
+    && dict.lookup(w).every((e) => e.defs.every((d) => ARCHAIC_DEF.test(d)))) return -UNSEEN_WORD_PENALTY;
   // 那知 哪知 谁知 岂知 (who would have thought): 知 is theirs, not the start of 知遇.
   if (w[0] === '知' && has('那哪谁誰岂豈怎焉', prev)) return -UNSEEN_WORD_PENALTY;
   // 便 opening a word the corpus never saw is the adverb "then" before a verb (便|闭了口, 便|乘间, 便|换了), not 便闭 "constipation".

@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { DETECTOR_VERSION, loadLexicon, USER_SCOPE, WITHOUT_LIST } from '../../src/core/lexicon';
 import { loadGazetteer } from '../../src/core/gazetteer';
+import { loadNameModel } from '../../src/core/nameModel';
 import { openStore } from '../../src/store';
 import type { AppContext, ImportedBook, Lexicon, LexiconEntry } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
@@ -158,8 +159,9 @@ describe('loadLexicon', () => {
     const ctx = { store, dict: async () => dict, dictSync: () => dict } as unknown as AppContext;
     const meta = await store.books.add(book(`${novel(4, 300)}\n后来他去了毗陵，在那里住了三年。`));
     await store.lexicon.putDetected(meta.id, [], WITHOUT_LIST);
-    // (An invented list of one place; the real one is public/data/names.tsv.gz.)
+    // (An invented list of one place; the real one is public/data/names.tsv.gz. An empty name model, which takes nothing.)
     expect(await loadGazetteer(async () => '# format 1\n毗陵\tl\n')).not.toBeNull();
+    expect(await loadNameModel(async () => '# format 1\n!features\t1\n')).not.toBeNull();
     let updated: { has(w: string): boolean } | null = null;
     await loadLexicon(ctx, meta.id, (lex) => { updated = lex; });
     for (let i = 0; i < 100 && !updated; i++) await new Promise((r) => setTimeout(r, 50));

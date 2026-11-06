@@ -7,26 +7,26 @@
  "sets": {
   "gsdsimp": {
    "dict": {
-    "f1": 81.21,
+    "f1": 81.22,
     "cross": 0.341,
-    "tokens": 11740
+    "tokens": 11739
    },
    "book": {
-    "f1": 81.95,
+    "f1": 81.97,
     "cross": 0.34,
-    "tokens": 11481
+    "tokens": 11480
    }
   },
   "hk": {
    "dict": {
-    "f1": 88.57,
+    "f1": 88.58,
     "cross": 0.051,
-    "tokens": 9758
+    "tokens": 9757
    },
    "book": {
-    "f1": 89.58,
+    "f1": 89.6,
     "cross": 0.052,
-    "tokens": 9654
+    "tokens": 9653
    }
   }
  }

@@ -8,8 +8,9 @@ import type { AppContext, Dictionary, Lexicon, LexiconEntry } from '../types';
 import { isSyllableBase, markedToNumbered, splitPinyinRun } from './pinyin';
 import { SURNAME_READINGS, COMPOUND_SURNAME_READINGS, NAME_CHAR_READINGS, TRANSLITERATION_READINGS, KIN_CHARS, HEAD_BEFORE_ZHANG, TRANSLIT_CHARS, ERA_NAMES } from './names';
 import { HAIR_COLORS, LUMINARIES, MANSION_READINGS, NAME_PIECE_READINGS, PERSON_CHAR_READINGS } from './names';
-import { COMPOUND_SURNAMES, SURNAMES } from './names';
+import { COMPOUND_SURNAMES, NOT_NICK_TAIL, SURNAMES } from './names';
 import { loadGazetteer, type Gazetteer, type GazetteerKind } from './gazetteer';
+import { loadNameModel, nameFeatures, nameShape, personThreshold, standOf, type NameModel, type NameSite } from './nameModel';
 import { isChinese } from '../lang/active';
 export { capitalizePinyin, pinyinGroups } from './names';
 
@@ -18,9 +19,11 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 11;
+export const DETECTOR_VERSION = 12;
 /** Stored for a book read without the name list (core/gazetteer.ts could not fetch it): it is read again once the list is there. */
 export const WITHOUT_LIST = DETECTOR_VERSION - 0.5;
+/** Stored for a book read with the list but without the name model (core/nameModel.ts): it is read again once the model is there. */
+export const WITHOUT_MODEL = DETECTOR_VERSION - 0.25;
 
 /** Lexicon over the given rows (disabled rows ignored). */
 export function buildLexicon(rows: LexiconEntry[]): Lexicon {
@@ -173,6 +176,25 @@ export interface DetectOptions {
   statsOnly?: boolean;
   /** The name list (core/gazetteer.ts): a listed name seen once may join when nothing around it says otherwise (listed()). */
   gazetteer?: Gazetteer | null;
+  /** The name model (core/nameModel.ts): a repeated string the rules turned down joins when the model is sure (modelNames()). */
+  nameModel?: NameModel | null;
+  /** Every string the name model was asked about, with its features, scores and whether it joined (tools; whole books only). */
+  nameSites?: (sites: NameSiteRecord[]) => void;
+}
+
+/** One string the name model was asked about (DetectOptions.nameSites). */
+export interface NameSiteRecord {
+  word: string;
+  site: NameSite;
+  features: string[];
+  /** none, person, place; null without a model. */
+  scores: [number, number, number] | null;
+  /** The kind it joined as, or null. */
+  took: LexiconEntry['kind'] | null;
+  /** The kind it had already (a name or place the rules found), or null. */
+  found: LexiconEntry['kind'] | null;
+  /** Whether the book's statistics back it (enough places, rarely cutting a word, not a piece of something longer). */
+  backed: boolean;
 }
 
 /** True for a name like 郭靖: a surname followed by one or two given-name characters. */
@@ -418,6 +440,8 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     if (drop.size) named = named.filter((e) => !drop.has(e.word));
     named.push(...add);
   }
+  // Then what the book repeats that the rules turned down and the name model is sure of (七斤, 老栓, 淑云, 周秉昆).
+  if (opts.nameModel || opts.nameSites) named.push(...(yield* modelNames(named, cands, text, dict, opts, hanCount, (ch) => uni[ch.charCodeAt(0)], due)));
   return [...named, ...bookScoped(named, text, dict, (ch) => uni[ch.charCodeAt(0)] > 0)];
 }
 
@@ -1835,6 +1859,187 @@ const LIST_GLOSS: Record<GazetteerKind, string> = {
   person: 'name (person)', place: 'place name', org: 'name of an organization', other: 'name (Wikipedia)',
 };
 
+/** A string that opens with one of these opens a clause or a phrase, not a name. */
+const BAD_START = new Set([...'这那哪某各每众诸几只又还便就也都却则的了是在有无不既且莫待方自如虽话快忙对向因以此然纵倘若更再仍已正才并将把被从往跟与及连为没谓转第些两按唱']);
+/** A numeral and one of these is a quantity (一碗, 十里, 二字), not a name. */
+const QUANTITY_TAIL = new Set([...'个只件条张把顶本头匹位口座片块根枝支双对句声眼次回遍下番场阵天日月年岁时分秒里丈尺寸亩两钱元文串层间样种代人字成倍等般面方边']);
+/** After a character of a name found: another way of calling that person (础翁 beside 尔础). */
+const DERIVED_TAILS = [...'翁公兄君哥姐妹弟叔伯嫂娘爷姑婆妈老'];
+/** After a numeral, a group of people (三雄, 七子, 二人). */
+const GROUP_AFTER_NUMERAL = new Set([...'雄杰傑侠俠英贤賢子人位怪鬼仙友']);
+/** Shapes in which a string jieba counts may still be a name (老张, 八爷, 孝儿). */
+const JIEBA_SHAPES = new Set(['nick', 'numhon', 'numjin', 'surnum', 'laonum', 'er']);
+
+/**
+ * Whether a string (simplified) could be a name at all: no particle, no function word at its edges, not a quantity or a phrase.
+ * Shared with core/nameCandidates.ts.
+ */
+export function plausibleName(simp: string[], dict: Dictionary): boolean {
+  const len = simp.length;
+  const first = simp[0];
+  const last = simp[len - 1];
+  if (BAD_START.has(first) || EDGE_STOP.has(first) || EDGE_STOP.has(last) || SOFT_END.has(last) || INTERJECTIONS.has(first) || INTERJECTIONS.has(last)) return false;
+  if (simp.some((ch) => NOT_IN_NAME.has(ch) || '的了着过'.includes(ch) || !isHanUnit(ch.charCodeAt(0)))) return false;
+  if (len >= 3 && simp[0] === simp[1]) return false;
+  // (晁、宋二公, 三公: the two lords, the three dukes.)
+  if ((simp[len - 2] === '二' || simp[len - 2] === '三' || simp[len - 2] === '两') && last === '公') return false;
+  // (一碗, 十里, 二人, 五千: a numeral before a measure word or another numeral is a quantity.)
+  if (NUMERALS.has(first) && (QUANTITY_TAIL.has(simp[1]) || NUMERALS.has(simp[1]) || MEASURE_START.has(simp[1]))) return false;
+  return !verbPhrase(simp, dict);
+}
+
+/** Senses of a word for a title, an office or a kind of person beyond PERSON_DEF and ROLE_DEF (判官, 和尚, 先锋, 堂尊). */
+const TITLE_DEF = /\b(magistrate|judge|monk|abbot|abbess|vanguard|midwife|partner|assistant|apprentice|ancestor|deity|immortal|venerable|mister|miss|mrs?|grandpa|grandma|granny|auntie|gentleman|lady|courtesan|prostitute|concubine|maidservant|novice|professor|warrior|hero|heroine|tutor|marquis|duke|earl|count|baron|consort|eunuch|chancellor|commissioner|inspector|magnate|patriarch|matriarch|fairy|candidate|graduate|licentiate|censor|viceroy|prefect|squire|landlord|matchmaker|bawd|wet nurse|principal|headmaster|president|chairman|manager|mayor|cadre)s?\b/i;
+
+/** Whether a word (simplified) is a dictionary word for a title, an office or a kind of person (驿丞, 大叔, 先生, 沙弥). */
+function personWord(w: string, dict: Dictionary): boolean {
+  if ([...w].length < 2) return false;
+  return dict.lookup(w).some((e) => { const d = e.defs.join('; '); return PERSON_DEF.test(d) || ROLE_DEF.test(d) || TITLE_DEF.test(d); });
+}
+
+/**
+ * The strings a whole book repeats that the rules turned down, asked of the name model (core/nameModel.ts). A string of two to
+ * four characters seen often enough (5 times in a short text, 8 in a long one, more past 800,000 Han characters) that could be a
+ * name (plausibleName and the guards below), not a dictionary word (jieba's 老张 and 八爷 only in a name's shape), is read in the
+ * text once (standOf) and scored. It joins as a person or a place when the model is at least as sure as the file's threshold for
+ * its shape and the book's statistics back it: that many places of its own, rarely cutting a word or a name (a fifth), seldom
+ * inside a name found or a title, not one character's tail (the same character before or after it most of the time), not a piece
+ * of a longer candidate, not counted, not a surname and a title tail, not a numbered title several people share, and for a person
+ * not after 在 到 从 half the time nor before an office a third of the time (龙骧将军). `opts.nameSites` gets every string asked about.
+ */
+function* modelNames(found: LexiconEntry[], cands: TermCandidate[], text: string, dict: Dictionary, opts: DetectOptions, hanCount: number,
+  charCount: (ch: string) => number, due: () => boolean): Generator<void, LexiconEntry[], void> {
+  const model = opts.nameModel ?? null;
+  // (A string seen fewer times than a name must be is never taken: it is not asked about either.)
+  const minTake = hanCount < SHORT_TEXT ? 5 : Math.max(8, Math.round(hanCount / 100000));
+  const fold = (s: string) => dict.toSimplified(s);
+  const foundKind = new Map<string, LexiconEntry['kind']>();
+  for (const e of found) { foundKind.set(e.word, e.kind); foundKind.set(fold(e.word), e.kind); }
+  const pool = new Map<string, { c: TermCandidate; simp: string[]; found: LexiconEntry['kind'] | null }>();
+  let k = 0;
+  for (const c of cands) {
+    if ((++k & 0xff) === 0 && due()) yield;
+    const len = c.word.length;
+    if (c.count < minTake || len < 2 || len > 4) continue;
+    const simp = [...fold(c.word)];
+    if (simp.length !== len) continue;
+    const had = foundKind.get(c.word) ?? foundKind.get(simp.join('')) ?? null;
+    // (The tools also see the names the rules found, as examples of what a name looks like.)
+    if (had) {
+      if (opts.nameSites && (had === 'name' || had === 'place')) pool.set(c.word, { c, simp, found: had });
+      continue;
+    }
+    if (c.known === 'entry' || !plausibleName(simp, dict)) continue;
+    const shape = nameShape(simp);
+    if (c.known === 'jieba' && !JIEBA_SHAPES.has(shape)) continue;
+    // (老尼, 小军, 老屋, 小舅: 老 小 and a thing, an animal, a kind of person or kin; 阿 before kin is that kin, 阿母.)
+    if (shape === 'nick' && (NOT_NICK_TAIL.has(simp[1]) || KIN_CHARS.has(simp[1]) || (simp[0] !== '阿' && PERSON_HEAD.has(simp[1])))) continue;
+    // (万美元, 三桂: a numeral opens a quantity unless the string is a numbered name, 七斤 七大人.)
+    if (NUMERALS.has(simp[0]) && shape !== 'numhon' && shape !== 'numjin') continue;
+    // (厉声高, 白玉珪: an ordinary word and one character more; the rules decide the few names of this shape, 白玉堂.)
+    if (len === 3 && dict.freq(simp.slice(0, 2).join('')) > 0 && dict.lookup(simp.slice(0, 2).join('')).some((e) => !/^[A-Z]/.test(e.pinyin))) continue;
+    // (戴一顶, 阮氏三雄, 河两岸: a numeral before a measure word or a word for a group counts something; 两 is never in a name.)
+    if (simp.includes('两') || simp.some((ch, i) => i > 0 && NUMERALS.has(ch) && (MEASURE_AFTER.has(simp[i + 1] ?? '') || GROUP_AFTER_NUMERAL.has(simp[i + 1] ?? '')))) continue;
+    // (王驿丞, 韩大叔, 马先生, 小沙弥, 陈源教授, 知县相公: a string that ends in a word for a title or a kind of person describes
+    // someone; split, each part keeps its meaning, and the rules decide the few that are names.)
+    // (七大人, 鄒七嫂 are numbered names.)
+    if (len >= 3 && shape !== 'numhon' && (personWord(simp.slice(-2).join(''), dict) || (len === 4 && personWord(simp.slice(-3).join(''), dict)))) continue;
+    pool.set(c.word, { c, simp, found: null });
+  }
+  if (!pool.size) return [];
+  yield;
+  // Given names that share a character (觉新, 觉民, 觉慧) the book uses mostly in them.
+  const groups = new Map<string, string[]>();
+  for (const [w, p] of pool) {
+    if (w.length !== 2 || p.found || (p.c.npmi ?? 0) < 0.7 || NUMERALS.has(p.simp[0])) continue;
+    for (const key of ['0' + w[0], '1' + w[1]]) groups.set(key, [...(groups.get(key) ?? []), w]);
+  }
+  const sib = new Set<string>();
+  for (const [key, list] of groups) {
+    if (list.length < 2 || list.length > 6) continue;
+    if (list.reduce((n, w) => n + pool.get(w)!.c.count, 0) >= 0.6 * charCount(key.slice(1))) for (const w of list) sib.add(w);
+  }
+  // Forms of a name found (础翁 beside 尔础), and the names found that hold a string (洪七 inside 洪七公).
+  const byFold = new Map<string, string>();
+  for (const [w, p] of pool) byFold.set(p.simp.join(''), w);
+  const der = new Set<string>();
+  const holders = new Map<string, string[]>();
+  for (const e of found) {
+    if (e.enabled === false) continue;
+    const f = e.word;
+    for (let a = 0; a < f.length; a++) {
+      for (let b = a + 2; b <= Math.min(f.length, a + 4); b++) {
+        if (b - a === f.length || !pool.has(f.slice(a, b))) continue;
+        holders.set(f.slice(a, b), [...(holders.get(f.slice(a, b)) ?? []), f]);
+      }
+    }
+    if (e.kind !== 'name') continue;
+    const sur = surnameSplit(f, dict);
+    const given = [...fold(sur ? sur.given : f)];
+    if (given.length > 2) continue;
+    for (const ch of given) {
+      for (const t of DERIVED_TAILS) { const w = byFold.get(ch + t); if (w) der.add(w); }
+      for (const hd of NICK_HEAD) { const w = byFold.get(hd + ch); if (w) der.add(w); }
+    }
+  }
+  // The characters of the given names found (宝 of 宝玉, 琏 of 贾琏): a numbered title after several of them is how each is called.
+  const givenChars = new Set<string>();
+  for (const e of found) {
+    if (e.enabled === false || e.kind !== 'name') continue;
+    const sur = surnameSplit(e.word, dict);
+    for (const ch of fold(sur ? sur.given : e.word)) givenChars.add(ch);
+  }
+  const stands = yield* standOf(text, pool.keys(), dict, holders, due, givenChars);
+  // The most places of a longer candidate that holds each one (七大 inside 七大人).
+  const held = new Map<string, number>();
+  for (const [w, p] of pool) {
+    for (let a = 0; a < w.length; a++) {
+      for (let b = a + 2; b <= w.length; b++) {
+        if (b - a < w.length && pool.has(w.slice(a, b))) held.set(w.slice(a, b), Math.max(held.get(w.slice(a, b)) ?? 0, p.c.count));
+      }
+    }
+  }
+  const rows: NameSiteRecord[] = [];
+  const out: LexiconEntry[] = [];
+  for (const p of pool.values()) {
+    if ((++k & 0x3f) === 0 && due()) yield;
+    const { c, simp } = p;
+    const st = stands.get(c.word)!;
+    const free = c.count - st.inside;
+    const site: NameSite = {
+      simp, count: c.count, bind: c.bind, npmi: c.npmi ?? 0, left: c.left, right: c.right, said: c.said ?? c.speech, prep: c.prep,
+      pprep: c.pprep ?? 0, voc: c.voc ?? 0, counted: c.counted ?? 0, open: c.open ?? 0, known: c.known, covered: covered(simp, dict),
+      common: commonInside(simp, dict), headFreq: dict.freq(simp.slice(0, 2).join('')), tailFreq: dict.freq(simp.slice(-2).join('')),
+      free, stand: st, siblings: sib.has(c.word), derived: der.has(c.word),
+    };
+    const features = model ? nameFeatures(site, model.chars, model.tails) : [];
+    const scores = model ? model.score(features) : null;
+    // What the book's statistics must back, whatever the model says.
+    // (一翁斯 "an ounce": a string after a numeral or a demonstrative a quarter of the time counts something. 萧中丞, 赵监生, 王大喜:
+    // three characters or more ending in a title tail are a surname and a title or a phrase; 徐三爷 is a numbered name.)
+    const backed = free >= minTake && st.inside <= 0.4 * c.count && st.cut <= 0.2 * free && st.titled <= 0.3 * free
+      && st.topLeft < 0.6 && st.topRight < 0.6 && (held.get(c.word) ?? 0) < 0.7 * c.count && (c.counted ?? 0) < 0.25
+      && !(simp.length >= 3 && model?.tails.has(simp.slice(-2).join('')) && nameShape(simp) !== 'numhon')
+      // (宝二爷, 琏二爷: 二爷 after the given names of two or more people found is how each of them is called.)
+      && !(NUMERALS.has(simp[0]) && st.givenWho >= 2 && st.afterGiven >= 0.1 * free);
+    let kind: LexiconEntry['kind'] | null = null;
+    if (scores && !p.found && backed) {
+      // (龙骧将军王浚, 虎翼将军张苞: a string before an office a third of the time is a rank.)
+      if (scores[1] >= personThreshold(model!, simp) && scores[1] >= scores[2] && st.atPlace < 0.5 * free && st.rankAfter < 0.3 * free) kind = 'name';
+      else if (scores[2] >= model!.threshold.place && scores[2] > scores[1]) kind = 'place';
+    }
+    if (opts.nameSites) rows.push({ word: c.word, site, features, scores, took: kind, found: p.found, backed });
+    if (!kind) continue;
+    const shape = nameShape(simp);
+    let pinyin = pinyinOf(c.word, kind, dict, !!surnameSplit(c.word, dict) && shape !== 'translit' && shape !== 'nick');
+    // (祥子, 小福子: a nickname in 子 reads it neutral.)
+    if (kind === 'name' && shape === 'zi') pinyin = pinyin.replace(/zi3$/, 'zi5');
+    out.push({ word: c.word, pinyin, gloss: GLOSS[kind], kind, count: free, enabled: true, origin: 'auto' });
+  }
+  opts.nameSites?.(rows);
+  return out;
+}
+
 /** Pure, synchronous detection. */
 export function detectTerms(chapterTexts: string[], dict: Dictionary, opts?: DetectOptions): LexiconEntry[] {
   const it = detectGen(chapterTexts, dict, opts);
@@ -2449,15 +2654,17 @@ export async function loadLexicon(ctx: AppContext, bookId: string, onUpdate?: (l
   if (await store.lexicon.detected(bookId, DETECTOR_VERSION)) return lex;
   if (!running.has(bookId)) {
     const job = (async () => {
-      // The name list is fetched here, not with the dictionary: only detection needs it. Without it, the rules alone.
-      const [dict, texts, gazetteer] = await Promise.all([ctx.dict(), bookTexts(ctx, bookId), loadGazetteer()]);
-      // (Read without the list before, and still no list: nothing new to find.)
+      // The name list and the name model are fetched here, not with the dictionary: only detection needs them. Without them, the
+      // rules alone.
+      const [dict, texts, gazetteer, nameModel] = await Promise.all([ctx.dict(), bookTexts(ctx, bookId), loadGazetteer(), loadNameModel()]);
+      // (Read without the list before, and still no list; or without the model, and still no model: nothing new to find.)
       if (!gazetteer && await store.lexicon.detected(bookId, WITHOUT_LIST)) return;
+      if (gazetteer && !nameModel && await store.lexicon.detected(bookId, WITHOUT_MODEL)) return;
       // The first page is the reader's job: start when the browser is idle (or after a moment), then work in
       // slices of about 10 ms with the event loop getting a turn between them.
       await whenIdle(1500);
-      const found = await detectTermsAsync(texts, dict, { gazetteer }, 10);
-      await store.lexicon.putDetected(bookId, found, gazetteer ? DETECTOR_VERSION : WITHOUT_LIST);
+      const found = await detectTermsAsync(texts, dict, { gazetteer, nameModel }, 10);
+      await store.lexicon.putDetected(bookId, found, !gazetteer ? WITHOUT_LIST : !nameModel ? WITHOUT_MODEL : DETECTOR_VERSION);
     })().finally(() => { running.delete(bookId); });
     running.set(bookId, job);
   }

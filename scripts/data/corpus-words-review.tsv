@@ -1,0 +1,174 @@
+# Hand review of the words scripts/build_corpus_words.py shortlists (CC0). word<TAB>keep or drop<TAB>why.
+# keep: the dictionary's reading is right where the characters alone read otherwise (the build drops such a word unless it is kept here).
+# drop: the word is cut wrongly, its card says something else than the books mean, or its reading would be wrong.
+# yield<TAB>words: where it overlaps one of these dictionary words (comma-separated), that word wins (the build keeps its count under
+# what that takes).
+仆射	keep	púyè
+做甚么	keep	shénme
+这是甚么	keep	shénme
+应龙	keep	yìng
+万乘	keep	shèng
+千乘	keep	shèng
+济阴	keep	Jǐ, a place
+单骑	keep	jì
+精舍	keep	shè
+乘间	keep	jiàn
+弱冠	keep	guàn
+迦叶	keep	shè
+乐工	keep	yuè
+号泣	keep	háo
+累迁	keep	lěi
+渔父	keep	fǔ
+薄葬	keep	bó
+辟易	keep	bì
+凉薄	keep	bó
+抄没	keep	mò
+身毒	keep	Juāndú
+激切	keep	qiè
+童仆	keep	pú
+调护	keep	tiáo
+抹额	keep	mò
+畜养	keep	xù
+累代	keep	lěi
+挤塞	keep	sè
+乐评	keep	yuè
+藏历	keep	zàng
+兜率	keep	shuài
+弹仓	keep	dàn
+幻想曲	keep	qǔ
+屏居	keep	bǐng
+搭挡	keep	dàng
+切骨	keep	qiè
+哀切	keep	qiè
+粤曲	keep	qǔ
+铜臭	keep	xiù
+粘度	keep	nián
+乞假	keep	jià
+练习曲	keep	qǔ
+拆弹	keep	dàn
+参错	keep	cēn
+婚丧	keep	sāng
+打击乐	keep	yuè
+屏绝	keep	bǐng
+诘难	keep	nàn
+煞星	keep	shà
+笔削	keep	xuē
+吓阻	keep	hè
+灵魂乐	keep	yuè
+裁量	keep	liáng
+弹巢	keep	dàn
+阙疑	keep	quē
+泊岸	keep	bó
+占卦	keep	zhān
+粘附	keep	nián
+叨光	keep	tāo
+浇薄	keep	bó
+幺麽	keep	mó
+无尽藏	keep	zàng
+创伤性	keep	chuāng/chuàng
+呛声	keep	qiàng
+累坠	keep	léizhui
+间冰期	keep	jiàn
+信号弹	keep	dàn
+代数数	keep	shù
+评量	keep	liáng
+保险杆	keep	gǎn
+郭嘉	drop	the strategist; the card says "variant of 国家"
+碧莲	drop	a name in one novel; vulgar pointer
+麻麻	drop	pointer to 妈妈; one novel
+颗星	drop	measure word + noun
+老妖	drop	"variant of 老幺" is not the old demon
+春申	drop	"variant of 上海"; mostly 春申君
+东廊	drop	"Island Eastern Corridor"; mostly the east corridor
+滇南	drop	"variant of 云南"
+我不知道	drop	a phrase
+孩子们	drop	们 is cut after a kind of person
+朋友们	drop	们 is cut after a kind of person
+他们俩	drop	a phrase
+你们俩	drop	a phrase
+我们俩	drop	a phrase
+你好吗	drop	a phrase
+忙着	drop	verb + 着
+靠着	drop	verb + 着
+冒着	drop	verb + 着
+没办法	drop	a phrase
+妈呀	drop	an interjection
+捉鸡	drop	"variant of 捉急"; catching a chicken
+压腰	drop	pointer to 压岁钱
+钉钉	drop	DingTalk; nails
+青箱	drop	"variant of 青葙"; one book
+稽首	drop	the dictionary writes qí (sandhi)
+披发	drop	the dictionary writes fǎ
+剪发	drop	the dictionary writes fǎ
+蓄发	drop	the dictionary writes fǎ
+发际	drop	the dictionary writes fǎ
+敛手	drop	the dictionary writes liàn
+采薇	drop	the dictionary writes wéi
+粘着	drop	nián zhe / zhuó
+楼底下	drop	neutral tone written full
+窗户纸	drop	neutral tone written full
+伟丈夫	drop	neutral tone written full
+白葡萄酒	drop	neutral tone written full
+红葡萄酒	drop	neutral tone written full
+白牡丹	drop	neutral tone written full
+油葫芦	drop	neutral tone written full
+讲价钱	drop	neutral tone written full
+招女婿	drop	neutral tone written full
+包打听	drop	neutral tone written full
+报酬率	drop	neutral tone written full
+逻辑闸	drop	neutral tone written full
+书记员	drop	neutral tone written full
+行李车	drop	neutral tone written full
+换衣服	drop	neutral tone written full
+拾起来	drop	neutral tone written full
+爬起来	drop	neutral tone written full
+多少钱	drop	neutral tone written full
+弄清楚	drop	neutral tone written full
+老爷们	drop	neutral tone written full
+月亮门	drop	neutral tone written full
+王爷庙	drop	neutral tone written full
+嗳呀	drop	interjection reading
+啦啦	drop	"clam"
+卡卡	drop	sandhi; a footballer
+北港	drop	sandhi
+粉岭	drop	sandhi
+土佐	drop	sandhi
+佐久	drop	sandhi
+鸟取	drop	sandhi
+甲斐	drop	sandhi
+港尾	drop	sandhi
+铁嘴	drop	sandhi
+犬养	drop	sandhi
+虎尾	drop	sandhi
+缅北	drop	sandhi
+曲谱	drop	sandhi
+蒙古人种	drop	sandhi
+反法西斯	drop	the dictionary writes fà
+脂质	drop	the dictionary writes zhǐ
+薄薄	drop	literary bóbó; usually báobáo
+木驴	drop	the dictionary writes lǚ
+斗姥	drop	sandhi
+晃晃	drop	reading
+手爪	drop	sandhi
+倒泻	drop	reading unsure
+榜掠	drop	reading unsure
+古拙	drop	the dictionary writes zhuó
+切入点	drop	the dictionary writes qiè
+战斗员	drop	the dictionary writes dǒu
+夹谷	drop	reading unsure
+殑伽	drop	reading unsure
+馆舍	keep	shè
+济北	drop	the card reads Jí
+肩挑	drop	the dictionary writes tiǎo
+哀切	drop	cuts 哀切切
+乐评	drop	cuts 乐评人, 乐评家
+婚丧	drop	cuts 已婚丧偶
+州牧	drop	cuts 豫州牧
+打击乐	drop	cuts 打击乐手
+评量	drop	cuts 量表
+圆眼	drop	the card says longan; cuts 头圆眼细
+按剑	yield	剑柄	按 + 剑柄 (pressed the hilt)
+披衣	yield	衣甲	披 + 衣甲 (put on armor)
+胆裂	yield	肝胆	肝胆 + 裂
+辈份	yield	我辈	我辈 + 份 (it is our part)
+亭子间	drop	the card says a garret over a kitchen; cuts 亭子|间
