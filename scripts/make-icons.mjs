@@ -1,5 +1,5 @@
 // Renders the app icons (PNG) and public/icon.svg from src/ui/globe.svg (a desk globe with the continents, from Natural Earth's
-// public-domain map: scripts/make-globe.py): green land, a pale blue sea, on navy, using headless Chrome.
+// public-domain map: scripts/make-globe.py), on the app's red, using headless Chrome.
 // Usage: node scripts/make-icons.mjs        Writes public/icon.svg and public/icons/*.png
 //   apple-touch-icon.png  180, full bleed (iOS rounds the corners itself)
 //   icon-192.png, icon-512.png   rounded, "any" purpose
@@ -20,7 +20,7 @@ const inner = readFileSync(join(root, 'src', 'ui', 'globe.svg'), 'utf8').replace
 function svg(kind, size = '100%') {
   const bleed = kind !== 'round';
   const scale = kind === 'maskable' ? 0.8 : 1;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="${size}" height="${size}"><rect width="64" height="64" rx="${bleed ? 0 : 14}" fill="#1f4f86"/><g transform="translate(32 32) scale(${scale}) translate(-32 -32)">${inner}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="${size}" height="${size}"><rect width="64" height="64" rx="${bleed ? 0 : 14}" fill="#b8402e"/><g transform="translate(32 32) scale(${scale}) translate(-32 -32)">${inner}</g></svg>`;
 }
 
 writeFileSync(join(root, 'public', 'icon.svg'), svg('round').replace(' width="100%" height="100%"', '') + '\n');
