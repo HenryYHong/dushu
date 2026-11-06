@@ -17,4 +17,6 @@ export const SAMPLE_SENTENCES: Record<LangId, string> = {
   pt: 'Uma noite destas, vindo da cidade para o Engenho Novo, encontrei no trem da Central um rapaz aqui do bairro.',
   // Tolstoy, Anna Karenina (1878)
   ru: 'Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.',
+  // Austen, Pride and Prejudice (1813)
+  en: 'It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.',
 };

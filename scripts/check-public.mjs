@@ -199,12 +199,12 @@ async function ownerBookText(path) {
 const ownerShort = new Set();
 if (OWNER_BOOKS.length) {
   // Public text: the public-domain samples, and the third-party dictionaries the app ships (CC-CEDICT, Wiktionary, the
-  // segmentation vocabulary, OpenCC, JMdict), whose set phrases any book may use.
+  // segmentation vocabulary, OpenCC, JMdict, ECDICT's Chinese definitions of English words), whose set phrases any book may use.
   const publicShort = new Set();
   const addPublic = (text) => { for (const w of windowsOf(text, SHORT)) publicShort.add(hash53(w)); };
   const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
   for (const p of walk(join(root, 'public', 'samples')).filter((p) => p.endsWith('.txt'))) addPublic(readFileSync(p, 'utf8'));
-  for (const name of ['cedict.tsv.gz', 'cedict-extra.tsv.gz', 'words.tsv.gz', 's2t.tsv.gz', 't2s.tsv.gz', 'ja/jmdict.tsv.gz']) {
+  for (const name of ['cedict.tsv.gz', 'cedict-extra.tsv.gz', 'words.tsv.gz', 's2t.tsv.gz', 't2s.tsv.gz', 'ja/jmdict.tsv.gz', 'en/entries.tsv.gz', 'en/phrases.tsv.gz']) {
     const p = join(root, 'public', 'data', name);
     if (existsSync(p)) addPublic(new TextDecoder().decode(gunzipSync(new Uint8Array(readFileSync(p)))));
   }

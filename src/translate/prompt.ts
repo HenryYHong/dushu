@@ -366,7 +366,7 @@ function otherChecks(lang: NonNullable<TranslateRequest['lang']>, text: string, 
 
 /** The scripts each book language is written in, for the leftover check. */
 const SOURCE_SCRIPTS: Record<NonNullable<TranslateRequest['lang']> | 'zh', readonly Script[]> = {
-  zh: ['Han'], ja: ['Han', 'Hiragana', 'Katakana'], es: ['Latin'], fr: ['Latin'], de: ['Latin'], it: ['Latin'], pt: ['Latin'], ru: ['Cyrillic'],
+  zh: ['Han'], ja: ['Han', 'Hiragana', 'Katakana'], es: ['Latin'], fr: ['Latin'], de: ['Latin'], it: ['Latin'], pt: ['Latin'], ru: ['Cyrillic'], en: ['Latin'],
 };
 /** One Han or kana character is a word or part of one: any of them in an answer whose language does not write them is left over. */
 const SYLLABIC: ReadonlySet<Script> = new Set(['Han', 'Hiragana', 'Katakana']);

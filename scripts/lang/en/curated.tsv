@@ -1,0 +1,322 @@
+# Hand-written entries for English's commonest words and contractions, which replace ECDICT's for the same word (its Chinese
+# for these is thin: "the" is only 那). Written for this app, CC0. Columns: word, part of speech (the engine's names), hint
+# (the short gloss over a word), then one column per sense: glosses separated by |, notes in braces first.
+# Articles and determiners
+the	article	这/那	（定冠词）这个|那个|这些|那些	{用在形容词比较级前}越……越……
+a	article	一个	（不定冠词）一个|一|某一个	每一|每
+an	article	一个	（不定冠词，用在元音前）一个|一|某一个
+this	determiner	这	这|这个
+this	pronoun	这个	这个|这件事|这人
+that	determiner	那	那|那个
+that	pronoun	那个	那个|那件事
+that	conjunction	以致	（引导从句）……的|以致
+that	adverb	那么	那么|那样
+these	determiner	这些	这些
+these	pronoun	这些	这些
+those	determiner	那些	那些
+those	pronoun	那些	那些
+some	determiner	一些	一些|若干|某些|某个
+some	pronoun	一些	一些|有些人
+any	determiner	任何	任何|任何一个|（疑问、否定句中）一些
+any	adverb	丝毫	丝毫|稍微
+every	determiner	每个	每个|每一|一切
+each	determiner	每个	每个|各自
+each	pronoun	每个	每个|各个
+no	determiner	没有	没有|无|不是
+no	adverb	不	不|没有
+no	interjection	不	不
+all	determiner	所有	所有的|全部的|一切的
+all	pronoun	全部	全部|所有人|一切
+all	adverb	完全	完全|十分
+both	determiner	两者都	两个都|双方的
+both	pronoun	两者	两者|双方
+either	determiner	两者之一	（两者中）任一的|每一方的
+either	adverb	（否定句）也	（否定句）也
+either	conjunction	要么……要么……	要么……要么……
+neither	determiner	两者都不	两者都不
+neither	conjunction	既不……也不……	既不……也不……|也不
+much	determiner	许多	许多|大量的
+much	adverb	很	很|非常|……得多
+much	pronoun	许多	许多|大量
+many	determiner	许多	许多|很多
+many	pronoun	许多人	许多人|许多
+more	determiner	更多	更多的|更多
+more	adverb	更	更|更加|再
+more	pronoun	更多的人或物	更多的人或物
+most	determiner	最多	最多的|大多数的
+most	adverb	最	最|非常
+most	pronoun	大多数	大多数|大部分
+few	determiner	很少	很少的|不多的	{a few}几个|一些
+little	adjective	小	小的|年幼的|微不足道的	{a little}一点|稍微
+little	determiner	很少的	很少的|不多的
+other	determiner	其他	其他的|另外的|别的
+other	pronoun	另一个	另一个|其他人
+another	determiner	另一个	另一个|又一个|再一个
+another	pronoun	另一个	另一个
+such	determiner	这样的	这样的|如此的|那样的	{such as}例如|像……这样的
+own	adjective	自己的	自己的|特有的
+own	verb	拥有	拥有|承认
+what	pronoun	什么	什么|什么东西	（引导从句）……的事物|所……的
+what	interjection	多么	多么
+which	pronoun	哪个	哪个|哪些	（引导从句）……的那个|这|那
+who	pronoun	谁	谁	（引导从句）……的人
+whom	pronoun	谁	谁（宾格）	（引导从句）……的人
+whose	pronoun	谁的	谁的	（引导从句）……的（那个人的）
+# Pronouns
+I	pronoun	我	我
+me	pronoun	我	我（宾格）
+my	determiner	我的	我的
+mine	pronoun	我的	我的（东西）
+mine	noun	矿	矿|矿井|地雷
+myself	pronoun	我自己	我自己|我亲自
+you	pronoun	你	你|你们	（泛指）人|任何人
+your	determiner	你的	你的|你们的
+yours	pronoun	你的	你的（东西）|你们的（东西）
+yourself	pronoun	你自己	你自己|你亲自
+he	pronoun	他	他
+him	pronoun	他	他（宾格）
+his	determiner	他的	他的
+his	pronoun	他的	他的（东西）
+himself	pronoun	他自己	他自己|他亲自
+she	pronoun	她	她
+her	pronoun	她	她（宾格）
+her	determiner	她的	她的
+hers	pronoun	她的	她的（东西）
+herself	pronoun	她自己	她自己|她亲自
+it	pronoun	它	它	（形式主语或宾语，常不译）
+its	determiner	它的	它的
+itself	pronoun	它自己	它自己|它本身
+we	pronoun	我们	我们
+us	pronoun	我们	我们（宾格）
+our	determiner	我们的	我们的
+ours	pronoun	我们的	我们的（东西）
+ourselves	pronoun	我们自己	我们自己
+they	pronoun	他们	他们|她们|它们	（泛指）人们
+them	pronoun	他们	他们|她们|它们（宾格）
+their	determiner	他们的	他们的|她们的|它们的
+theirs	pronoun	他们的	他们的（东西）
+themselves	pronoun	他们自己	他们自己|她们自己|它们自己
+one	numeral	一	一|一个
+one	pronoun	一个人	一个人|任何人|（代替前面的名词）那个
+nothing	pronoun	没有什么	没有什么|无
+nothing	noun	无关紧要的人或事	无关紧要的人或事
+something	pronoun	某事	某事|某物|什么东西
+anything	pronoun	任何事	任何事|任何东西|（疑问、否定句中）什么
+everything	pronoun	一切	一切|所有事物|每件事
+nobody	pronoun	没有人	没有人|谁也不
+somebody	pronoun	某人	某人|有人
+someone	pronoun	某人	某人|有人
+anyone	pronoun	任何人	任何人|（疑问、否定句中）谁
+everyone	pronoun	每个人	每个人|大家
+# Prepositions
+of	preposition	……的	……的|属于	（表示部分）……中的	关于|由……制成
+to	preposition	到	到|向|往	对|对于	（不定式符号，常不译）
+in	preposition	在……里	在……里|在……中|在……内	在（某时间）|在……之后
+in	adverb	在里面	在里面|进来
+on	preposition	在……上	在……上|在……上面	在（某天）|关于
+on	adverb	继续	继续|穿上
+at	preposition	在	在（某地点）|在（某时刻）	向|朝
+for	preposition	为了	为了|给|对于	在……期间（表示时间长度）
+for	conjunction	因为	因为
+with	preposition	和	和……一起|带着|有	用	随着
+by	preposition	被	被|由	在……旁边|通过|在……之前
+by	adverb	经过	经过
+from	preposition	从	从|来自|离	由于
+about	preposition	关于	关于|对于	在……周围
+about	adverb	大约	大约|到处
+into	preposition	进入	进入|到……里	变成
+upon	preposition	在……上	在……上|一……就……
+over	preposition	在……上方	在……上方|越过|超过
+over	adverb	结束	结束|翻过来
+under	preposition	在……下面	在……下面|少于|在……之下
+after	preposition	在……之后	在……之后|追赶
+after	conjunction	在……之后	在……之后
+before	preposition	在……之前	在……之前|在……前面
+before	conjunction	在……之前	在……之前
+before	adverb	以前	以前
+through	preposition	穿过	穿过|通过|凭借
+through	adverb	自始至终	自始至终
+between	preposition	在……之间	在……之间|在……中间
+against	preposition	反对	反对|靠着|逆着
+without	preposition	没有	没有|无|不
+within	preposition	在……之内	在……之内|在……里面
+among	preposition	在……之中	在……之中|在……之间
+toward	preposition	朝	朝|向|对于
+towards	preposition	朝	朝|向|对于
+across	preposition	穿过	穿过|横过|在……对面
+along	preposition	沿着	沿着|顺着
+along	adverb	向前	向前|一起
+around	preposition	在……周围	在……周围|绕着
+around	adverb	大约	大约|到处
+behind	preposition	在……后面	在……后面|落后于
+beside	preposition	在……旁边	在……旁边|与……相比
+till	preposition	直到	直到
+till	conjunction	直到……为止	直到……为止
+until	preposition	直到	直到
+until	conjunction	直到……为止	直到……为止
+since	preposition	自从	自从
+since	conjunction	自从	自从|因为|既然
+as	preposition	作为	作为|当作
+as	conjunction	当……时	当……时|因为|像……一样|正如
+as	adverb	同样地	同样地|一样
+like	preposition	像	像|如同
+like	verb	喜欢	喜欢|想要
+than	conjunction	比	比
+# Conjunctions
+and	conjunction	和	和|与|而且|然后
+or	conjunction	或者	或者|还是|否则
+but	conjunction	但是	但是|可是|而是
+but	preposition	除了	除了
+if	conjunction	如果	如果|假如	是否
+because	conjunction	因为	因为	{because of}由于
+so	adverb	如此	如此|这么|非常	{so that}以便
+so	conjunction	所以	所以|因此
+though	conjunction	虽然	虽然|尽管
+though	adverb	不过	不过|可是
+although	conjunction	虽然	虽然|尽管
+while	conjunction	当……时	当……时|而|虽然
+while	noun	一会儿	一会儿
+when	adverb	什么时候	什么时候
+when	conjunction	当……时	当……时|然后
+where	adverb	哪里	哪里|在哪里
+where	conjunction	在……的地方	在……的地方
+why	adverb	为什么	为什么
+why	interjection	哎呀	哎呀
+how	adverb	怎样	怎样|如何|多么
+whether	conjunction	是否	是否|不管
+nor	conjunction	也不	也不|也没有
+yet	adverb	还	还|仍然|已经（疑问句）
+yet	conjunction	然而	然而
+# Verbs: be, have, do, the modals
+be	verb	是	是|成为|存在|在	（助动词，构成进行时、被动语态）
+have	verb	有	有|拥有|吃|得到	（助动词，构成完成时）	{have to}不得不
+do	verb	做	做|干|办	（助动词，构成疑问句、否定句，或加强语气）
+will	verb	将	将|会|要|愿意
+will	noun	意志	意志|遗嘱|意愿
+would	verb	将会	将会|会|愿意|（表示过去的习惯）总是	（委婉语气）想要
+shall	verb	将	将|会|应该
+should	verb	应该	应该|应当|竟然
+can	verb	能	能|会|可以
+can	noun	罐头	罐头|罐子
+could	verb	能	能|可以|（can的过去式）能够	（委婉语气）可能
+may	verb	可以	可以|可能|祝
+may	noun	五月	五月（May）
+might	verb	可能	可能|也许|（may的过去式）可以
+might	noun	力量	力量|威力
+must	verb	必须	必须|一定|准是
+ought	verb	应该	应该|应当
+# Adverbs and others
+not	adverb	不	不|没有
+very	adverb	非常	非常|很
+very	adjective	正是	正是|恰好的
+too	adverb	也	也|太|过于
+also	adverb	也	也|而且
+only	adverb	只	只|仅仅|才
+only	adjective	唯一的	唯一的
+just	adverb	刚刚	刚刚|只是|正好|就
+just	adjective	公正的	公正的
+then	adverb	然后	然后|那时|那么
+there	adverb	那里	那里|在那里	（there is/are）有
+here	adverb	这里	这里|在这里
+now	adverb	现在	现在|此刻|如今
+now	conjunction	既然	既然
+never	adverb	从不	从不|从来没有|绝不
+ever	adverb	曾经	曾经|永远|究竟
+again	adverb	又	又|再|再次
+still	adverb	仍然	仍然|还|更
+still	adjective	静止的	静止的|平静的
+even	adverb	甚至	甚至|即使|更
+even	adjective	平坦的	平坦的|偶数的
+up	adverb	向上	向上|起来|完全
+up	preposition	沿着……向上	沿着……向上
+down	adverb	向下	向下|下来
+down	preposition	沿着……向下	沿着……向下
+out	adverb	出去	出去|在外|出来|熄灭
+off	adverb	离开	离开|去掉|关掉
+off	preposition	从……离开	从……离开
+away	adverb	离开	离开|远离|在远处
+back	adverb	回	回|向后|回原处
+back	noun	背	背|后面
+yes	interjection	是	是|对|好的
+oh	interjection	哦	哦|啊|噢
+well	adverb	好	好|很好|充分地
+well	interjection	嗯	嗯|好吧
+well	noun	井	井
+# Contractions
+don't	contraction	不要	（= do not）不要|不
+doesn't	contraction	不	（= does not）不
+didn't	contraction	没有	（= did not）没有|不
+can't	contraction	不能	（= cannot）不能|不会
+couldn't	contraction	不能	（= could not）不能|不会
+won't	contraction	不会	（= will not）不会|将不
+wouldn't	contraction	不会	（= would not）不会|不愿
+shouldn't	contraction	不应该	（= should not）不应该
+isn't	contraction	不是	（= is not）不是
+aren't	contraction	不是	（= are not）不是
+wasn't	contraction	不是	（= was not）不是|没有
+weren't	contraction	不是	（= were not）不是|没有
+hasn't	contraction	没有	（= has not）没有
+haven't	contraction	没有	（= have not）没有
+hadn't	contraction	没有	（= had not）没有
+mustn't	contraction	不准	（= must not）不准|一定不要
+needn't	contraction	不必	（= need not）不必
+shan't	contraction	不会	（= shall not）不会
+ain't	contraction	不是	（口语，= am not / is not / are not / has not / have not）不是|没有
+I'm	contraction	我是	（= I am）我是|我在
+I've	contraction	我已经	（= I have）我已经|我有
+I'll	contraction	我会	（= I will）我会|我将
+I'd	contraction	我会	（= I would / I had）我会|我愿意|我已经
+you're	contraction	你是	（= you are）你是|你们是
+you've	contraction	你已经	（= you have）你已经|你有
+you'll	contraction	你会	（= you will）你会|你将
+you'd	contraction	你会	（= you would / you had）你会|你已经
+he's	contraction	他是	（= he is / he has）他是|他已经
+he'll	contraction	他会	（= he will）他会
+he'd	contraction	他会	（= he would / he had）他会|他已经
+she's	contraction	她是	（= she is / she has）她是|她已经
+she'll	contraction	她会	（= she will）她会
+she'd	contraction	她会	（= she would / she had）她会|她已经
+it's	contraction	它是	（= it is / it has）它是|这是|它已经
+it'll	contraction	它会	（= it will）它会|这会
+we're	contraction	我们是	（= we are）我们是|我们在
+we've	contraction	我们已经	（= we have）我们已经|我们有
+we'll	contraction	我们会	（= we will）我们会|我们将
+we'd	contraction	我们会	（= we would / we had）我们会|我们已经
+they're	contraction	他们是	（= they are）他们是|他们在
+they've	contraction	他们已经	（= they have）他们已经|他们有
+they'll	contraction	他们会	（= they will）他们会|他们将
+they'd	contraction	他们会	（= they would / they had）他们会|他们已经
+that's	contraction	那是	（= that is / that has）那是|那就是
+there's	contraction	有	（= there is / there has）有|那里有
+here's	contraction	这是	（= here is）这是|这里有
+what's	contraction	什么是	（= what is / what has）什么是|……是什么
+who's	contraction	谁是	（= who is / who has）谁是|谁已经
+where's	contraction	在哪里	（= where is）……在哪里
+how's	contraction	怎么样	（= how is）……怎么样
+let's	contraction	让我们	（= let us）让我们|咱们……吧
+o'clock	adverb	点钟	……点钟
+ma'am	noun	夫人	（= madam）夫人|女士
+'tis	contraction	这是	（古，= it is）这是
+'twas	contraction	这曾是	（古，= it was）这是|那是
+# Old forms in classic books
+thee	pronoun	你	（古）你（宾格）
+thou	pronoun	你	（古）你
+thy	determiner	你的	（古）你的
+thine	pronoun	你的	（古）你的
+ye	pronoun	你们	（古）你们
+hath	verb	有	（古，= has）有
+doth	verb	做	（古，= does）做
+art	verb	是	（古，thou art = you are）是
+art	noun	艺术	艺术|美术|技艺
+shalt	verb	将	（古，thou shalt）将|应当
+wilt	verb	将	（古，thou wilt）将|愿意
+wilt	verb	枯萎	枯萎
+ere	preposition	在……之前	（古）在……之前|早于
+nay	adverb	不	（古）不|不仅如此
+aye	adverb	是	（古）是|对|赞成
+'em	pronoun	他们	（口语，= them）他们
+mr.	noun	先生	（= Mister）先生
+mrs.	noun	夫人	（= Mistress）夫人|太太
+dr.	noun	博士	（= Doctor）医生|博士
+st.	noun	圣	（= Saint）圣|（= Street）街
+'s	particle	的	（所有格）……的	（= is / has）是|已经

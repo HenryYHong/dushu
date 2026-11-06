@@ -23,6 +23,16 @@ export interface SpacedLang {
   keepCase?: boolean;
   /** Russian: find and report the stressed vowel. */
   stress?: boolean;
+  /**
+   * English: a verb found by its dictionary form and the particle after it are the phrasal verb before a noun as well ("She gave
+   * up the idea", "looked after the children"); elsewhere such a verb and preposition make a phrase only before an infinitive.
+   */
+  phrasesBeforeNoun?: boolean;
+  /**
+   * English: a hyphened word whose pieces joined are one word of the dictionary is that word, as older books spell it (to-day,
+   * to-morrow, sand-bank): kept whole, and read through `respell`, which drops the hyphens.
+   */
+  joinHyphens?: boolean;
   /** Words written with an apostrophe in front of the next word, lower case: French l' qu', Italian dell' un'. */
   elisions?: string[];
   /** Pieces after an apostrophe that are words of their own: German geht's ('s = es). */
@@ -271,6 +281,11 @@ class Data {
   senses: string[] = [];
   byKey = new Map<string, number[]>();
   rankOfKey = new Map<string, number>();
+  /**
+   * levels.tsv.gz (optional): a key's level in a scheme of the language's own (English: the Chinese exam lists), which then
+   * replaces the levels by frequency rank (LEVEL_CUTOFFS).
+   */
+  levelOfKey = new Map<string, number>();
   /** Keys by rank, for levelWords. */
   ranked: string[] = [];
   /** Fixed phrases (sin embargo, потому что) by their folded words joined with spaces. */
@@ -416,6 +431,20 @@ class Data {
    * the words cut as segment() cuts them (c' est à dire); senses as in entries.tsv.gz ({notes}gloss|gloss). Words that start
    * with = make a phrase found only as spelled (Phrase.spelled): `=passer la main`.
    */
+  parseLevels(text: string): void {
+    for (const line of text.split('\n')) {
+      if (!line || line[0] === '#') continue;
+      const tab = line.indexOf('\t');
+      const level = Number(line.slice(tab + 1));
+      if (tab > 0 && level > 0) this.levelOfKey.set(line.slice(0, tab), level);
+    }
+  }
+
+  /** A key's level: from levels.tsv.gz when the language has one, else by its frequency rank. */
+  levelOf(key: string): number | undefined {
+    return this.levelOfKey.size ? this.levelOfKey.get(key) : levelOfRank(this.rankOfKey.get(key));
+  }
+
   parsePhrases(text: string): void {
     for (const line of text.split('\n')) {
       if (!line || line.charCodeAt(0) === 35 /* # */) continue;
@@ -1187,6 +1216,11 @@ export class SpacedEngine implements LangEngine {
     // Hyphenated (dit-il, dá-me, Haus-tür) and apostrophe words (that the tokenizer kept whole).
     const pieces = word.split(/(?<=\p{L})[-‐](?=\p{L})/u);
     if (pieces.length > 1) {
+      if (this.lang.joinHyphens) {
+        // to-morrow, sand-bank: the word the pieces make, as the dictionary spells it today.
+        const whole = this.candidates(pieces.join(''), capMid);
+        if (whole.length) return { cands: whole, key: d.key[whole[0].e], lemma: d.head[whole[0].e] };
+      }
       if (this.lang.compounds) {
         const joined = pieces[0] + pieces.slice(1).map((p) => p.toLowerCase()).join('');
         const parts = (): Part[] => pieces.map((p, i) => this.part(p, i ? 'noun' : 'content'));
@@ -1573,7 +1607,7 @@ export class SpacedEngine implements LangEngine {
     }
     if (s >= b) return out;
     const rest = text.slice(s, b);
-    if (!/[-‐]/.test(rest) || this.wholeKnown(rest)) {
+    if (!/[-‐]/.test(rest) || this.wholeKnown(rest) || (this.lang.joinHyphens && this.wholeKnown(rest.replace(/[-‐]/g, '')))) {
       out.push(tok(s, b));
       return out;
     }
@@ -2309,7 +2343,7 @@ export class SpacedEngine implements LangEngine {
         // A verb and a preposition found by the verb's infinitive are the phrase before an infinitive ("acababan de colocar"
         // is acabar de "to have just", "Io sto per mettermi in viaggio" stare per "to be about to"); before a noun the
         // preposition is as often its own: "lo tenía por el asa asido" (Lazarillo), "quello che stava a cavalcioni".
-        if (r === 2 && len === 2) {
+        if (r === 2 && len === 2 && !this.lang.phrasesBeforeNoun) {
           const p = this.chosen.get(words[k + 1].t)?.c;
           const after = k + 2 < words.length && joined(words[k + 1], words[k + 2]) ? this.chosen.get(words[k + 2].t)?.c : undefined;
           if (p && d.pos[p.e] === 'preposition' && !(after && d.pos[after.e] === 'verb' && (after.desc < 0 || /\binfinitive\b/.test(d.descs[after.desc])))) continue;
@@ -2552,7 +2586,7 @@ export class SpacedEngine implements LangEngine {
       if (!entry) {
         entry = { head: d.head[c.e], senses: [], source: 'Wiktionary' };
         if (d.reading[c.e]) entry.reading = d.reading[c.e];
-        const level = levelOfRank(d.rank[c.e]);
+        const level = d.levelOfKey.size ? d.levelOfKey.get(d.key[c.e]) : levelOfRank(d.rank[c.e]);
         if (level) entry.level = level;
         if (d.rank[c.e] && d.rank[c.e] <= COMMON_RANK) entry.common = true;
         if (c.desc >= 0 && d.descs[c.desc]) entry.form = d.descs[c.desc];
@@ -2582,10 +2616,17 @@ export class SpacedEngine implements LangEngine {
   }
 
   level(key: string): number | undefined {
-    return levelOfRank(this.data.rankOfKey.get(key));
+    return this.data.levelOf(key);
   }
 
   levelWords(max: number): string[] {
+    if (this.data.levelOfKey.size) {
+      // Commonest first, as for the levels by rank; a listed word the dictionary does not rank comes last.
+      const top = Math.max(max, 1);
+      const out = [...this.data.levelOfKey].filter(([, l]) => l <= top).map(([k]) => k);
+      const r = (k: string): number => this.data.rankOfKey.get(k) ?? Infinity;
+      return out.sort((a, b) => r(a) - r(b));
+    }
     const cut = LEVEL_CUTOFFS[Math.min(Math.max(max, 1), LEVEL_CUTOFFS.length) - 1];
     const out: string[] = [];
     for (const k of this.data.ranked) {
@@ -2738,6 +2779,8 @@ export async function loadSpacedEngine(lang: SpacedLang, baseUrl: string, opts?:
   const priorP = get('prior.tsv.gz').then(gunzip).catch(() => '');
   // Fixed phrases are optional: a language without the file reads word by word.
   const phrasesP = get('phrases.tsv.gz').then(gunzip).catch(() => '');
+  // Levels of its own are optional too (English): without the file, levels follow the frequency rank.
+  const levelsP = get('levels.tsv.gz').then(gunzip).catch(() => '');
   for (const p of [entriesP, formsP]) p.catch(() => {});
   const data = new Data();
   data.parseForms(await formsP);
@@ -2746,6 +2789,7 @@ export async function loadSpacedEngine(lang: SpacedLang, baseUrl: string, opts?:
   await data.parseEntries(await entriesP, (f) => report(25 + f * 70));
   data.parsePrior(await priorP);
   data.parsePhrases(await phrasesP);
+  data.parseLevels(await levelsP);
   const engine = new SpacedEngine(lang, data);
   try {
     const m = JSON.parse(await metaP) as Partial<LangEngine['meta']>;

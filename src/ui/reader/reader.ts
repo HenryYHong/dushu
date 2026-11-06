@@ -31,7 +31,7 @@ import { createNameCheck } from './nameCheck';
 import { fixesSig, hereIn, placeHere } from '../../core/fixes';
 import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang } from '../../lang/active';
-import { aidName, aidSeal, aidWord, levelLabel } from '../../lang/labels';
+import { aidName, aidSeal, aidWord, glossLanguage, levelLabel } from '../../lang/labels';
 import { POS_SEL } from './render';
 
 const BAR_H = 52;
@@ -183,7 +183,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   // The 拼 seal: solid while pinyin shows, an outline (朱文) when it is off. The mode follows it ("All", "HSK 3"); on a
   // phone the label is set smaller, and on the narrowest only the HSK level stays beside the seal.
   const L = lang();
-  const pinyinSeal = h(`span.rd-seal${isChinese() || L.id === 'ja' ? '.zh' : '.rd-seal-latin'}`, { 'aria-hidden': 'true', lang: L.tag }, aidSeal());
+  // English books' hints are Chinese: a 中 seal, set like the Chinese one.
+  const pinyinSeal = h(`span.rd-seal${isChinese() || L.id === 'ja' || L.id === 'en' ? '.zh' : '.rd-seal-latin'}`, { 'aria-hidden': 'true', lang: L.id === 'en' ? 'zh-Hans' : L.tag }, aidSeal());
   const pinyinBtn = h('button.rd-pill.rd-pinyin-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: `${aidName()} (P)`, onclick: () => togglePinyinMenu() },
     pinyinSeal, pinyinLabel) as HTMLButtonElement;
   const aaBtn = h('button.rd-pill.rd-aa-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': 'Display settings', title: 'Display settings', onclick: () => toggleDisplayMenu() },
@@ -1646,10 +1647,10 @@ export const mount: MountFn = async (root, params, ctx) => {
         ? 'Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.'
         : 'Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.'],
       // The seal as the bar draws it, so the button is easy to find.
-      [touch ? 'Tap ' : 'Click ', h(`span.rd-seal${isChinese() || L.id === 'ja' ? '.zh' : '.rd-seal-latin'}`, null, aidSeal()), touch ? ' at the top' : ' at the top (or press P)',
+      [touch ? 'Tap ' : 'Click ', h(`span.rd-seal${isChinese() || L.id === 'ja' || L.id === 'en' ? '.zh' : '.rd-seal-latin'}`, null, aidSeal()), touch ? ' at the top' : ' at the top (or press P)',
         isChinese() ? " to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level."
           : L.aid === 'furigana' ? " to choose where furigana show: every word, words you don't know yet, or words above your JLPT level."
-          : " to show short English hints over words: every word, words you don't know yet, or words above your level."],
+          : ` to show short ${glossLanguage()} hints over words: every word, words you don't know yet, or words above your level.`],
     ];
     const s = ctx.settings.get();
     if (s.pinyin === 'unknown' && store.known.count() === 0) {

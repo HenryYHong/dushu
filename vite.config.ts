@@ -45,7 +45,7 @@ export function contentVersion(dist: string, dirs: string[], skip: (path: string
 }
 
 /** The languages other than Chinese, whose data (data/<id>/) and classics (samples/<id>/) have caches of their own. */
-export const OTHER_LANGS = ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru'];
+export const OTHER_LANGS = ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'en'];
 const LANG_PATH = new RegExp(`^(?:data|samples)/(?:${OTHER_LANGS.join('|')})/`);
 
 /** Chinese data files that are not precached: each is stored the first time the app fetches it. */

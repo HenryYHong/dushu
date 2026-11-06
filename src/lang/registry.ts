@@ -81,6 +81,17 @@ export const LANGS: Record<LangId, LangInfo> = {
     fonts: { serif: `'Iowan Old Style', 'PT Serif', 'Georgia', 'Times New Roman', serif`, sans: LATIN_SANS },
     load: () => import('./spaced/ru'),
   },
+  en: {
+    // For Chinese speakers: the hints and the word cards are in Chinese (scripts/lang/en/build_en.py).
+    id: 'en', name: 'English', native: 'English', brand: 'Read', tag: 'en', voices: ['en'], aid: 'hint',
+    levels: {
+      scheme: 'Exam',
+      labels: ['中考', '高考', 'CET-4', 'CET-6', 'IELTS/TOEFL', 'GRE'],
+      about: 'English word levels follow the Chinese exam word lists in ECDICT: 中考 (middle school), 高考 (high school), CET-4 and CET-6 (college English), IELTS/TOEFL (with 考研) and GRE. A word’s level is the first list it is on.',
+    },
+    spaced: true, fonts: { serif: LATIN_SERIF, sans: LATIN_SANS },
+    load: () => import('./spaced/en'),
+  },
 };
 
 export const LANG_IDS = Object.keys(LANGS) as LangId[];

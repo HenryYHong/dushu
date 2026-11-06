@@ -11,7 +11,7 @@ const ROOT = join(__dirname, '..', '..', '..');
 const DATA = process.env.DUSHU_LANG_DATA || join(ROOT, 'public', 'data');
 const cache = new Map<string, Promise<LangEngine>>();
 
-export function loadLang(id: 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru'): Promise<LangEngine> {
+export function loadLang(id: 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru' | 'en'): Promise<LangEngine> {
   let p = cache.get(id);
   if (!p) {
     p = import(`../../../src/lang/spaced/${id}.ts`).then((m: { loadEngine: (base: string, opts: object) => Promise<LangEngine> }) =>

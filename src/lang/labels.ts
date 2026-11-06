@@ -12,10 +12,13 @@ export function aidName(): string {
 /** The aid in a phrase: "pinyin", "furigana", "hints" (lowercase, for sentences). */
 export const aidWord = (): string => aidName().toLowerCase();
 
+/** The language the dictionary's meanings and hints are in: Chinese for English books (read by Chinese speakers), else English. */
+export const glossLanguage = (): string => (lang().id === 'en' ? 'Chinese' : 'English');
+
 /** The character on the aid button's seal. */
 export function aidSeal(): string {
   const a = lang().aid;
-  return a === 'pinyin' ? '拼' : a === 'furigana' ? 'ふ' : 'En';
+  return a === 'pinyin' ? '拼' : a === 'furigana' ? 'ふ' : lang().id === 'en' ? '中' : 'En';
 }
 
 /** The name of a level (1-based): "HSK 3", "N4", "B1". Chinese 7 is HSK 7–9. */

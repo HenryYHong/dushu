@@ -1882,11 +1882,20 @@ of each change it makes there).
 
 ## 9. Other languages (`src/lang/`)
 
-Dushu reads Japanese, Spanish, French, German, Italian, Portuguese and Russian as well as Chinese. It is one app: the language
+Dushu reads Japanese, Spanish, French, German, Italian, Portuguese, Russian and English as well as Chinese. It is one app: the language
 is chosen per page load (`lang/active.ts`: `?lang=ja` in the address, else the last one opened, else Chinese) and switching
 reloads at the library. Chinese is the original app and keeps every name it had; nothing about it changes when another language
 exists.
 
+- **English is for Chinese speakers.** Every other library explains its language in English; the English one explains English in
+  Chinese. Its dictionary (`scripts/lang/en/build_en.py`) is ECDICT (MIT): Chinese glosses and hints, the forms of each word
+  (went is go's past tense; a noun's 's and s' its possessive), COCA/BNC ranks, and the Chinese exam lists, which give its levels
+  (`levels.tsv.gz`, read by the spaced engine when a language has one: 中考, 高考, CET-4, CET-6, IELTS/TOEFL with 考研, GRE; a word
+  is at the first list it is on). `scripts/lang/en/curated.tsv` replaces ECDICT's entries for the commonest words, whose Chinese
+  is thin there ("the" is only 那), and adds the contractions (don't, I'm, it's are words of their own) and be/have/do's forms.
+  Phrasal verbs are ECDICT's verb + particle rows for common verbs, matched before a noun too (`SpacedLang.phrasesBeforeNoun`:
+  "gave up the idea"). A sentence from an English book translates into Chinese unless the reader picks another language
+  (`targetFor`), and the screens keep their Chinese names (书架, 生词 …).
 - **Each language is its own library.** Chinese keeps the `dushu` database and the `dushu.*` keys; another language uses the
   database `dushu-<id>` and the keys `dushu.<id>.*` (`langKey`, `storeName`), so its books, words, places and settings never mix
   with the Chinese ones. A backup records its language and is refused by another one.

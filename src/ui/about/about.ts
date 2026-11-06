@@ -169,6 +169,7 @@ const OTHER_FINDING: Record<Exclude<LangId, 'zh'>, [string, string, string][]> =
   it: [['https://www.gutenberg.org/browse/languages/it', 'Project Gutenberg', ' has hundreds of Italian books as EPUB and plain text.'], ['https://www.liberliber.it/', 'Liber Liber', ' has thousands of Italian books in the public domain.']],
   pt: [['https://www.gutenberg.org/browse/languages/pt', 'Project Gutenberg', ' has hundreds of Portuguese books as EPUB and plain text.'], ['https://pt.wikisource.org/', 'Portuguese Wikisource', ' has thousands more.']],
   ru: [['https://www.gutenberg.org/browse/languages/ru', 'Project Gutenberg', ' has Russian classics as EPUB and plain text.'], ['https://ru.wikisource.org/', 'Russian Wikisource', ' has thousands of public-domain texts, many as EPUB.']],
+  en: [['https://www.gutenberg.org/', 'Project Gutenberg', ' has more than 60,000 free books, most of them in English, as EPUB and plain text.'], ['https://standardebooks.org/', 'Standard Ebooks', ' has carefully made EPUBs of public-domain English books.']],
 };
 
 /** The About page when the library is another language: the same app, told for that language. */
@@ -183,7 +184,7 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
     'Import a book (EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown), paste some text, or pick a classic in the library.',
     furigana
       ? 'Choose where furigana show: nowhere, over every word with kanji, over words you haven\'t marked as known, or over words above your JLPT level.'
-      : `Turn on Hints to see a short English meaning over hard words: every word, words you haven't marked as known, or words above your level.${L.stress ? ' Stress marks show which vowel to stress.' : ''}`,
+      : `Turn on Hints to see a short ${L.id === 'en' ? 'Chinese' : 'English'} meaning over hard words: every word, words you haven't marked as known, or words above your level.${L.stress ? ' Stress marks show which vowel to stress.' : ''}`,
     `Tap a word for its meaning${furigana ? ', reading and kanji' : ''}. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.`,
     `Star a word to study it later. Mark a word as known and its ${aidWord()} go${furigana ? '' : 'es'} away.`,
     'Open Review once a day. It brings back the words you starred or looked up, with longer gaps as you remember them.',

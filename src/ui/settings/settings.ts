@@ -11,7 +11,7 @@ import { translationGroup } from './translation';
 import { ipadGroup } from './ipad';
 import { pageTitle } from '../pageHead';
 import { isChinese, lang } from '../../lang/active';
-import { aidName, aidWord, autoKnownHelp, levelCount, levelLabel, levelScheme } from '../../lang/labels';
+import { aidName, aidWord, autoKnownHelp, glossLanguage, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { langSelect } from '../langSwitch';
 
 export const mount: MountFn = (root, params, ctx) => {
@@ -84,7 +84,7 @@ export const mount: MountFn = (root, params, ctx) => {
     zh ? row('Characters', 'Show books in simplified (简体) or traditional (繁體) characters.', script) : null);
   const aidHelp = zh ? 'Unknown skips words you have marked as known. HSK also skips words up to your level.'
     : L.aid === 'furigana' ? 'Readings in kana over words with kanji. Unknown skips words you have marked as known; JLPT also skips words up to your level.'
-    : 'A short English meaning over each word. Unknown skips words you have marked as known; Level also skips words up to your level.';
+    : `A short ${glossLanguage()} meaning over each word. Unknown skips words you have marked as known; ${levelScheme()} also skips words up to your level.`;
   const pinyinGroup = group(aidName(), null,
     row(`Show ${aidWord()}`, aidHelp, pinyin),
     hskRow,

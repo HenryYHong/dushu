@@ -26,13 +26,16 @@ const SCREEN_NAMES: Record<Exclude<LangId, 'zh'>, Record<ScreenName, string>> = 
   it: { library: 'Biblioteca', vocab: 'Vocaboli', review: 'Ripasso', settings: 'Impostazioni', about: 'Informazioni', join: 'Unisciti' },
   pt: { library: 'Biblioteca', vocab: 'Vocabulário', review: 'Revisão', settings: 'Ajustes', about: 'Sobre', join: 'Entrar' },
   ru: { library: 'Библиотека', vocab: 'Слова', review: 'Повторение', settings: 'Настройки', about: 'О приложении', join: 'Вход' },
+  // English is read by Chinese speakers: the screens keep their Chinese names.
+  en: SCREEN_ZH,
 };
 
 /** `<h1 class="page-title"><span lang="zh-Hans" aria-hidden="true">书架</span><span>Library</span></h1>` */
 export function pageTitle(screen: ScreenName, english: string, tag: 'h1' | 'h2' = 'h1', cls = 'page-title'): HTMLElement {
   const L = lang();
   const native = L.id === 'zh' ? SCREEN_ZH[screen] : SCREEN_NAMES[L.id][screen];
+  const zh = L.id === 'zh' || L.id === 'en';
   return h(`${tag}.${cls}`, null,
-    h(L.id === 'zh' || L.id === 'ja' ? 'span.page-title-zh' : 'span.page-title-zh.page-title-native', { lang: L.id === 'zh' ? 'zh-Hans' : L.tag, 'aria-hidden': 'true' }, native),
+    h(zh || L.id === 'ja' ? 'span.page-title-zh' : 'span.page-title-zh.page-title-native', { lang: zh ? 'zh-Hans' : L.tag, 'aria-hidden': 'true' }, native),
     h('span.page-title-en', null, english));
 }

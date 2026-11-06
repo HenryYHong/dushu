@@ -106,4 +106,17 @@ COVERS = {
     ('ru', 'granatovyy-braslet'): 'Viktor Borisov-Musatov, Two Seated Ladies, 1899. Public domain, via Wikimedia Commons.',
     ('ru', 'povesti-belkina'): 'Alexey Venetsianov, A Peasant Girl from Tver, 1840s. Public domain, via Wikimedia Commons.',
     ('ru', 'ottsy-i-deti'): 'Vasily Polenov, Grandmother’s Garden, 1878. Tretyakov Gallery, Moscow. Public domain, via Wikimedia Commons.',
+    # ---- English, added 2026-11-05
+    ('en', 'beatrix-potter-tales'): 'Beatrix Potter, Mrs. Rabbit and her children, from The Tale of Peter Rabbit, 1902. Public domain, via Wikimedia Commons.',
+    ('en', 'aesop-fables'): 'Milo Winter, The Fox and the Grapes, from The Aesop for Children, 1919. Public domain, via Wikimedia Commons.',
+    ('en', 'velveteen-rabbit'): 'William Nicholson, the Velveteen Rabbit, illustration for The Velveteen Rabbit, 1922. Public domain, via Wikimedia Commons.',
+    ('en', 'winnie-the-pooh'): 'Ivan Shishkin and Konstantin Savitsky, Morning in a Pine Forest, 1889. Tretyakov Gallery, Moscow. Public domain, via Wikimedia Commons.',
+    ('en', 'alice-in-wonderland'): 'John Tenniel, The White Rabbit, illustration for Alice’s Adventures in Wonderland, 1865. Public domain, via Wikimedia Commons.',
+    ('en', 'wizard-of-oz'): 'W. W. Denslow, Dorothy gazed thoughtfully at the Scarecrow, illustration for The Wonderful Wizard of Oz, 1900. Public domain, via Wikimedia Commons.',
+    ('en', 'secret-garden'): 'Mary at the garden wall, cover of an early illustrated edition of The Secret Garden (Project Gutenberg eText 17396). Public domain, via Wikimedia Commons.',
+    ('en', 'sherlock-holmes'): 'Sidney Paget, illustration for The Adventure of the Speckled Band, The Strand Magazine, 1892. Public domain, via Wikimedia Commons.',
+    ('en', 'pride-and-prejudice'): 'Hugh Thomson, illustration for chapter 36 of Pride and Prejudice, 1894. Public domain, via Wikimedia Commons.',
+    ('en', 'jane-eyre'): 'Edmund H. Garrett, “Show me your palm”: Jane Eyre has her fortune told, illustration for Jane Eyre, 1890. Public domain, via Wikimedia Commons.',
+    ('en', 'great-gatsby'): 'Francis Cugat, Celestial Eyes, cover of the first edition of The Great Gatsby, 1925. Public domain, via Wikimedia Commons.',
+    ('en', 'frankenstein'): 'Theodor von Holst, frontispiece to the 1831 edition of Frankenstein. Public domain, via Wikimedia Commons.',
 }

@@ -1,0 +1,22 @@
+{
+ "lang": "en",
+ "built": "2026-11-05",
+ "counts": {
+  "entries": 68183,
+  "keys": 60040,
+  "forms": 144370,
+  "rules": 252,
+  "paradigms": 243,
+  "descriptions": 12,
+  "ranked": 56990,
+  "levels": 14957,
+  "phrases": 2863
+ },
+ "sources": [
+  {
+   "name": "ECDICT (English-Chinese dictionary), Linwei (skywind3000)",
+   "license": "MIT",
+   "url": "https://github.com/skywind3000/ECDICT"
+  }
+ ]
+}

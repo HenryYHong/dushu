@@ -3,7 +3,7 @@
 import type { RubySpan, Token } from '../types';
 
 /** The languages Dushu reads. 'zh' is the original app; the rest load an engine from src/lang/<id>/. */
-export type LangId = 'zh' | 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru';
+export type LangId = 'zh' | 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru' | 'en';
 
 /** One sense of a dictionary entry. */
 export interface Sense {

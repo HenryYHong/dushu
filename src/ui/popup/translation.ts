@@ -1,5 +1,6 @@
 // A translation block: picks a provider, streams the result, and offers Explain, a provider switcher,
 // retry, and the one-time on-device model download. Used by the phrase popup and paragraph translate.
+import { glossLanguage } from '../../lang/labels';
 import type { AppContext, Dictionary, Lexicon, Settings, Translator, TranslatorId } from '../../types';
 import { chromeSupported, getTranslator, listTranslators, pickTranslator, type ChromeTranslator } from '../../translate';
 import { chromePairName } from '../../translate/chrome';
@@ -206,7 +207,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
   function appendReferences(t: Translator): void {
     if (t.id === 'gloss') {
       // The dictionaries only give English, whatever language the reader translates into.
-      body.appendChild(h('p.pp-tr-note', null, into ? 'A word-by-word gloss in English, not a real translation. The first meanings may be wrong here.'
+      body.appendChild(h('p.pp-tr-note', null, into ? `A word-by-word gloss in ${glossLanguage()}, not a real translation. The first meanings may be wrong here.`
         : 'A word-by-word gloss, not a real translation. The first meanings may be wrong here.'));
       return;
     }
@@ -367,7 +368,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     void gloss.translate({ text: o.text, mode: 'translate' }).then((g) => {
       if (mine !== seq || destroyed || !g) return;
       resultText = g;
-      body.append(h('p.pp-tr-note', null, into ? 'Word by word in English, in the meantime:' : 'Word by word, in the meantime:'), h('div.pp-tr-text', null, g));
+      body.append(h('p.pp-tr-note', null, into ? `Word by word in ${glossLanguage()}, in the meantime:` : 'Word by word, in the meantime:'), h('div.pp-tr-text', null, g));
       renderActions(retryAction);
       changed();
     }, () => { /* the gloss is a bonus */ });

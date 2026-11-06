@@ -11,7 +11,7 @@ import type { LangId } from '../lang/types';
  * never lands in its Chinese library. A hub keeps only the prefixes listed here (syncExchange.ts): a language added later
  * needs the hubs updated first, and until then its device keeps its records unsent and says so.
  */
-export const OTHER_LANGS = ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru'] as const satisfies readonly Exclude<LangId, 'zh'>[];
+export const OTHER_LANGS = ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'en'] as const satisfies readonly Exclude<LangId, 'zh'>[];
 export type OtherLang = (typeof OTHER_LANGS)[number];
 // Every language but Chinese is listed: one added to LangId and not here fails to compile.
 const _everyLanguage: [Exclude<LangId, 'zh' | OtherLang>] extends [never] ? true : false = true;

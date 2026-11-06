@@ -687,7 +687,7 @@ export interface TranslateRequest {
   /** translate = the translation only; explain = translation + short notes on words and grammar. */
   mode: 'translate' | 'explain';
   /** The language of `text` when it is not Chinese (src/lang): the prompt and the checks follow it. */
-  lang?: 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru';
+  lang?: 'ja' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru' | 'en';
   /**
    * The language to translate into (translate/targets.ts), absent for English: a request into English is byte for byte the
    * one sent before the reader could choose. A code that is not listed, or is the book's own language, means English.

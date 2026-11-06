@@ -105,7 +105,8 @@ export function isOwnLanguage(code: string, source: LangId | string): boolean {
  */
 export function targetFor(choice: unknown, source: LangId | string = 'zh'): string {
   const t = targetLanguage(choice);
-  return t && !isOwnLanguage(t.code, source) ? t.code : DEFAULT_TARGET;
+  // An English book's readers learn English: theirs is Chinese unless they pick another.
+  return t && !isOwnLanguage(t.code, source) ? t.code : source === 'en' ? 'zh' : DEFAULT_TARGET;
 }
 
 /** The languages offered for a book in `source`: every one but its own. */

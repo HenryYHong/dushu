@@ -1,5 +1,6 @@
 // The Translation group: the language to translate into, provider list with live availability, Claude through the Mac (model,
 // Local only, status, test), Chrome model download.
+import { glossLanguage } from '../../lang/labels';
 import type { AppContext, Settings, TranslatorId } from '../../types';
 import { h } from '../dom';
 import { icon } from '../icons';
@@ -83,7 +84,7 @@ export function targetControl(settings: AppContext['settings']): { el: HTMLEleme
       if (select.value !== to) select.value = to;
       const own = s.translateTo !== to ? targetLanguage(s.translateTo) : undefined;
       note.hidden = !own;
-      note.textContent = own ? `These books are in ${lang().name}, so they are translated into English. ${own.name} is used for your other books.` : '';
+      note.textContent = own ? `These books are in ${lang().name}, so they are translated into ${targetLanguage(to)?.name ?? 'English'}. ${own.name} is used for your other books.` : '';
     },
   };
 }
@@ -280,7 +281,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
       into.update(s);
       // The dictionaries behind the gloss only give English, whatever language the reader translates into.
       descs.get('gloss')!.textContent = translateTarget(s) === DEFAULT_TARGET ? NAMES.gloss.desc
-        : 'Each word with its first dictionary meaning, in English. Works offline, but it is not a real translation.';
+        : `Each word with its first dictionary meaning, in ${glossLanguage()}. Works offline, but it is not a real translation.`;
       // Chrome's model, and so whether it is ready, depends on the language translated into.
       if (translateTarget(s) !== shownTarget) { shownTarget = translateTarget(s); void refresh(); }
       for (const [v, input] of radios) input.checked = s.translator === v;

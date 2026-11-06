@@ -3,7 +3,7 @@
 import type { LangId } from './types';
 
 export const LANG_NAMES: Record<LangId, string> = {
-  zh: 'Chinese', ja: 'Japanese', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', pt: 'Portuguese', ru: 'Russian',
+  zh: 'Chinese', ja: 'Japanese', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', pt: 'Portuguese', ru: 'Russian', en: 'English',
 };
 
 /** A language a translation request may name, other than Chinese (which is what a request with no language is). */
