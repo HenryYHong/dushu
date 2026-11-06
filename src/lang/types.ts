@@ -21,6 +21,8 @@ export interface WordEntry {
   head: string;
   /** Japanese: the kana reading. Russian: the headword with its stress marked (до́ма). Absent elsewhere. */
   reading?: string;
+  /** English: how the headword is said, in IPA (/ˈkʌlə/, or /lɪv/, /laɪv/). */
+  sound?: string;
   /** Other written forms the learner may meet (Japanese kanji spellings, a German old spelling). */
   alts?: string[];
   senses: Sense[];
@@ -63,6 +65,8 @@ export interface WordLookup {
   chars?: KanjiInfo[];
   /** A proper noun (a person or place) the dictionary does not list. */
   name?: boolean;
+  /** English: how the word on the page is said, in IPA (went /went/, of go /ɡəʊ/). */
+  sound?: string;
   /**
    * The fixed phrase the word is part of where it stands (sin embargo, потому что), folded: the first entry is then the
    * phrase's, and `key` stays the word's own (what the reader marks known or saved).

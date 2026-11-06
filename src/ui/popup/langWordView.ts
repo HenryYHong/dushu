@@ -88,7 +88,7 @@ export function mountLangWordView(
   }
 
   /** One entry: its headword (when it is not the word on the page, or has a reading to show), part of speech, senses. */
-  function entryBlock(e: WordEntry, v: View, many: boolean): HTMLElement {
+  function entryBlock(e: WordEntry, v: View, many: boolean, said?: string): HTMLElement {
     const block = h('section.pp-reading.pp-lang-entry');
     const showHead = many || e.head !== v.word || (e.reading && e.reading !== e.head);
     const chips: (Node | null)[] = [];
@@ -99,6 +99,8 @@ export function mountLangWordView(
       block.appendChild(h('div.pp-reading-head', null,
         showHead ? h('span.pp-lang-head', { lang: L.tag }, e.head) : null,
         showHead && e.reading && e.reading !== e.head ? h('span.pp-lang-reading', { lang: L.tag }, e.reading) : null,
+        // English: how the headword is said, when it is not what the line under the word already says (went: go /ɡəʊ/).
+        showHead && e.sound && e.sound !== said ? h('span.pp-lang-reading.pp-lang-ipa', { lang: 'en-fonipa' }, e.sound) : null,
         e.alts?.length ? h('span.pp-trad-note', null, 'Also ', h('span', { lang: L.tag }, e.alts.slice(0, 4).join(', '))) : null,
         ...chips));
     }
@@ -196,6 +198,8 @@ export function mountLangWordView(
     const line = h('div.pp-pyline');
     const shownReading = tokReading || (reading && reading !== v.word && head === v.word ? reading : '');
     if (shownReading) line.appendChild(h('span.pp-lang-reading.pp-lang-reading-main', { lang: L.tag }, shownReading));
+    // English: how the word on the page is said, in IPA.
+    else if (lu.sound) line.appendChild(h('span.pp-lang-reading.pp-lang-reading-main.pp-lang-ipa', { lang: 'en-fonipa' }, lu.sound));
     if (lu.form) {
       line.appendChild(h('span.pp-lang-form', null, lu.form, head !== v.word ? [' of ', h('button.pp-xref', { type: 'button', onclick: () => push({ word: head }) }, h('span', { lang: L.tag }, head))] : null));
     } else if (head !== v.word && lu.entries.length) {
@@ -211,7 +215,7 @@ export function mountLangWordView(
 
     if (lu.entries.length) {
       const many = lu.entries.length > 1;
-      lu.entries.slice(0, 6).forEach((e) => body.appendChild(entryBlock(e, v, many)));
+      lu.entries.slice(0, 6).forEach((e) => body.appendChild(entryBlock(e, v, many, lu.sound)));
       if (many && (o.context?.sentence || v.token)) body.appendChild(h('p.pp-note', null, 'Every word this can be. The first fits best where it is used here.'));
     } else {
       body.appendChild(h('p.pp-note', null, lu.name || v.token?.name

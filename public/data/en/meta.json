@@ -1,6 +1,6 @@
 {
  "lang": "en",
- "built": "2026-11-05",
+ "built": "2026-11-06",
  "counts": {
   "entries": 68183,
   "keys": 60040,
@@ -10,7 +10,8 @@
   "descriptions": 12,
   "ranked": 56990,
   "levels": 14957,
-  "phrases": 2863
+  "phrases": 2863,
+  "pronunciations": 65491
  },
  "sources": [
   {

@@ -205,7 +205,7 @@ The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Rus
 | JLPT lists (Jonathan Waller), matched by yomitan-jlpt-vocab | Japanese levels | CC BY 4.0 |
 | English Wiktionary via kaikki.org (wiktextract) | Words, forms and senses of the European languages and Russian | CC BY-SA 4.0 (and GFDL) |
 | FrequencyWords (Hermit Dave, OpenSubtitles 2018) | How common a word is; the plainest English hint | CC BY-SA 4.0 |
-| ECDICT (Linwei, skywind3000/ECDICT) | English words with Chinese definitions, their forms, how common they are, and the Chinese exam lists (中考 to GRE) for English levels | MIT |
+| ECDICT (Linwei, skywind3000/ECDICT) | English words with Chinese definitions, their forms and pronunciations (IPA), how common they are, and the Chinese exam lists (中考 to GRE) for English levels | MIT |
 | Universal Dependencies treebanks | Counts of which lemma and part of speech a spelling usually is (no treebank text is used) | each treebank's license, listed in the app |
 | Aozora Bunko, Project Gutenberg, Wikisource | The bundled classics (public domain in the United States) | public domain |
 | Wikimedia Commons and museum open-access images | The classics' cover paintings (public domain) | public domain |

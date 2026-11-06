@@ -24,6 +24,8 @@ export const ENGLISH: SpacedLang = {
   phrasesBeforeNoun: true,
   // to-day, to-morrow, sand-bank (Peter Rabbit, Jane Eyre): today, tomorrow, sandbank.
   joinHyphens: true,
+  // /ˈkʌlə/ on the card, from ECDICT (ipa.tsv.gz).
+  pronunciations: true,
   respell: (folded) => (/[-‐]/.test(folded) ? [folded.replace(/[-‐]/g, '')] : []),
   // Mr. Darcy, Lady Catherine, Aunt Polly: courtesy, not a name of its own.
   titles: ['mr.', 'mrs.', 'miss', 'sir', 'lady', 'lord', 'dr.', 'madam', 'master', 'captain', 'aunt', 'uncle', 'mr', 'mrs', 'dr'],

@@ -28,6 +28,8 @@ export interface SpacedLang {
    * up the idea", "looked after the children"); elsewhere such a verb and preposition make a phrase only before an infinitive.
    */
   phrasesBeforeNoun?: boolean;
+  /** English: the language has ipa.tsv.gz, how its words are said, for the word card. */
+  pronunciations?: boolean;
   /**
    * English: a hyphened word whose pieces joined are one word of the dictionary is that word, as older books spell it (to-day,
    * to-morrow, sand-bank): kept whole, and read through `respell`, which drops the hyphens.
@@ -286,6 +288,11 @@ class Data {
    * replaces the levels by frequency rank (LEVEL_CUTOFFS).
    */
   levelOfKey = new Map<string, number>();
+  /**
+   * ipa.tsv.gz (optional, English): how a word or form is said, `word\tIPA` with | between two pronunciations. Read after
+   * the engine is ready, so the card shows it once it has come.
+   */
+  soundOfWord = new Map<string, string>();
   /** Keys by rank, for levelWords. */
   ranked: string[] = [];
   /** Fixed phrases (sin embargo, потому что) by their folded words joined with spaces. */
@@ -438,6 +445,20 @@ class Data {
       const level = Number(line.slice(tab + 1));
       if (tab > 0 && level > 0) this.levelOfKey.set(line.slice(0, tab), level);
     }
+  }
+
+  parseSounds(text: string): void {
+    for (const line of text.split('\n')) {
+      if (!line || line[0] === '#') continue;
+      const tab = line.indexOf('\t');
+      if (tab > 0) this.soundOfWord.set(line.slice(0, tab), line.slice(tab + 1));
+    }
+  }
+
+  /** How a folded word is said, as the card shows it: /lɪv/, /laɪv/. */
+  soundOf(word: string): string | undefined {
+    const s = this.soundOfWord.get(word);
+    return s ? s.split('|').map((v) => `/${v}/`).join(', ') : undefined;
   }
 
   /** A key's level: from levels.tsv.gz when the language has one, else by its frequency rank. */
@@ -2522,6 +2543,8 @@ export class SpacedEngine implements LangEngine {
       }
     }
     if (a.name || named || (named === undefined && !entries.length && isUpper(surface[0] ?? ''))) out.name = true;
+    const sound = d.soundOf(this.fold(surface));
+    if (sound) out.sound = sound;
     return out;
   }
 
@@ -2586,6 +2609,8 @@ export class SpacedEngine implements LangEngine {
       if (!entry) {
         entry = { head: d.head[c.e], senses: [], source: 'Wiktionary' };
         if (d.reading[c.e]) entry.reading = d.reading[c.e];
+        const sound = d.soundOf(key);
+        if (sound) entry.sound = sound;
         const level = d.levelOfKey.size ? d.levelOfKey.get(d.key[c.e]) : levelOfRank(d.rank[c.e]);
         if (level) entry.level = level;
         if (d.rank[c.e] && d.rank[c.e] <= COMMON_RANK) entry.common = true;
@@ -2790,6 +2815,8 @@ export async function loadSpacedEngine(lang: SpacedLang, baseUrl: string, opts?:
   data.parsePrior(await priorP);
   data.parsePhrases(await phrasesP);
   data.parseLevels(await levelsP);
+  // Pronunciations are optional and big (English: 460 KB): they come after the engine is ready.
+  if (lang.pronunciations) void get('ipa.tsv.gz').then(gunzip).then((t) => data.parseSounds(t), () => {});
   const engine = new SpacedEngine(lang, data);
   try {
     const m = JSON.parse(await metaP) as Partial<LangEngine['meta']>;

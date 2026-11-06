@@ -14,8 +14,9 @@ commonest words and the contractions. --texts DIR also takes in every ECDICT wor
 there (the starter books, public/samples/en, by default), however rare.
 
 Writes the files src/lang/spaced/core.ts reads (scripts/lang/wikt/build.py documents the formats): entries.tsv.gz,
-forms.tsv.gz, phrases.tsv.gz, meta.json, and levels.tsv.gz (key, level: the first Chinese exam list a word is on, 1 中考,
-2 高考, 3 CET-4, 4 CET-6, 5 IELTS/TOEFL or 考研, 6 GRE; registry.ts names them). Glosses are Chinese.
+forms.tsv.gz, phrases.tsv.gz, meta.json, levels.tsv.gz (key, level: the first Chinese exam list a word is on, 1 中考,
+2 高考, 3 CET-4, 4 CET-6, 5 IELTS/TOEFL or 考研, 6 GRE; registry.ts names them) and ipa.tsv.gz (word or form, IPA: what the
+word card shows). Glosses are Chinese.
 """
 import collections, csv, datetime, gzip, hashlib, json, os, re, sys, unicodedata
 
@@ -66,6 +67,52 @@ in the morning|at night|as a matter of fact|in a hurry|on purpose|by chance|in v
 as far as|at the same time|all the same|in any case|in general|in particular|on foot|by heart|in turn|now that|once upon a time|
 all of a sudden|as usual|at home|by and by|every now and then|in love|in want of|no doubt|to and fro|any more'''
 EXPRESSIONS = [e.strip() for e in EXPRESSIONS.replace('\n', '').split('|') if e.strip()]
+
+
+# ECDICT's phonetics mix the older British notation Chinese textbooks long used ('kʌlә, liv, bәu: a Cyrillic ә, ' and : for
+# stress and length) with the current one (ˈkʌlə, lɪv, bəʊ), and often print the old ɔ as ɒ, and some rows were typed in a font that put ^ for ɡ, \ for ɜ and
+# j for ʊ. All of it comes out in the current notation (Oxford's and today's Chinese textbooks': ɪ ʊ ɒ ɜː eə əʊ).
+IPA_OK = re.compile(r"[a-zæðŋɑɒɔəɚɛɜɝɡɪʃʊʌʒθˈˌː()]+")
+NEW_MARKS = set('ɪʊːɜ')
+VOWELS = set('aeiouæɑɒɔəɛɜɪʊʌ')
+
+
+def ipa(raw):
+    """ECDICT's phonetic field -> up to two pronunciations in the current notation, [] when it is not clean."""
+    s = unicodedata.normalize('NFC', raw).replace('\xa0', ' ').strip().strip('[]/')
+    if not s:
+        return []
+    new = any(c in NEW_MARKS for c in s)
+    if '^' in s or '\\' in s:  # the misprinted rows
+        s = re.sub(r'\\+', 'ɜ', s.replace('^', 'ɡ'))
+        s = re.sub(r'([әəa])j', lambda m: m.group(1) + 'ʊ', s)
+    out = []
+    for v in re.split(r'\s*[.;；]\s*|,\s+|\s+', s):
+        if not v or v.startswith('-') or v.endswith('-'):
+            continue
+        v = (v.replace("'", 'ˈ').replace('ˊ', 'ˈ').replace(',', 'ˌ').replace(':', 'ː').replace('ә', 'ə').replace('g', 'ɡ')
+             .replace('ε', 'e').replace('є', 'e').replace('ɛ', 'e'))
+        if not new:
+            v = v.replace('əː', 'ɜː').replace('aː', 'ɑː').replace('ou', 'əu')
+            b = []
+            for i, c in enumerate(v):
+                nxt = v[i + 1] if i + 1 < len(v) else ''
+                prev = v[i - 1] if i else ''
+                if c == 'i' and nxt != 'ː':
+                    # happy's final i stays i; a diphthong's (my, day, boy) is ɪ.
+                    c = 'i' if not nxt and prev not in VOWELS else 'ɪ'
+                elif c == 'u' and nxt != 'ː':
+                    c = 'ʊ'
+                elif c in 'ɔɒ':
+                    # The old notation's ɔ (ECDICT often prints it ɒ) is ɔ long or in boy, else ɒ.
+                    c = 'ɔ' if nxt in ('ː', 'i') else 'ɒ'
+                b.append(c)
+            v = ''.join(b)
+        if not IPA_OK.fullmatch(v) or not re.search('[aeiouæɑɒɔəɚɛɜɝɪʊʌ]', v) and v not in ('m', 'n'):
+            continue
+        if v not in out:
+            out.append(v)
+    return out[:2]
 
 
 def fold(s):
@@ -224,10 +271,15 @@ def main(argv):
     curated_keys = {fold(w) for w, _ in curated}
     curated_pos_all = {(fold(w), p) for w, p in curated}
 
-    rows = {}
+    rows, phonetic = {}, {}
     with open(src, encoding='utf-8') as f:
         for r in csv.DictReader(f):
             w = r['word']
+            # How each word is said, the lower-case row's first (polish before Polish).
+            if r['phonetic'].strip() and ' ' not in w and (fold(w) not in phonetic or w == w.lower()):
+                said = ipa(r['phonetic'])
+                if said:
+                    phonetic[fold(w)] = said
             if ' ' in w or not re.fullmatch(r"[A-Za-z][A-Za-z'\-]*\.?", w) or len(w) > 30 or w in AUX_ONLY:
                 continue
             useful = num(r['frq']) or num(r['bnc']) or r['collins'] or r['oxford'] or r['tag'] or met.get(fold(w), 0) >= 2
@@ -325,6 +377,7 @@ def main(argv):
         for kind, form in f.items():
             by_key_forms[key].setdefault(kind, form)
     n_forms = 0
+    form_words = set()
     for idx, e in enumerate(entries):
         if e.pos in ('contraction', 'article', 'preposition', 'conjunction', 'interjection', 'numeral', 'determiner'):
             continue
@@ -352,6 +405,7 @@ def main(argv):
                 toks[pl + "'" if pl.endswith('s') else pl + "'s"].append('plural possessive')
         tok_list = []
         for form, ds in toks.items():
+            form_words.add(form)
             d = ' and '.join(dict.fromkeys(ds))
             c = lcp(e.key, form)
             rule = rules.setdefault((e.key[c:], form[c:]), len(rules))
@@ -398,13 +452,17 @@ def main(argv):
     write_gz(os.path.join(OUT, 'phrases.tsv.gz'), '# Globereader English fixed phrases, from ECDICT (MIT): words folded lower-case, hint, senses.\n'
              + '\n'.join('\t'.join([w, h, *s]) for _, _, w, h, s in plines) + '\n')
 
+    # How the words and their forms are said (the card shows it): `word\tIPA`, two pronunciations split by |.
+    said = {w: phonetic[w] for w in known | form_words if w in phonetic}
+    write_gz(os.path.join(OUT, 'ipa.tsv.gz'), '# word\tIPA (| between two pronunciations), from ECDICT\'s phonetics in the current British notation\n'
+             + '\n'.join(f'{w}\t{"|".join(v)}' for w, v in sorted(said.items())) + '\n')
     write_gz(os.path.join(OUT, 'levels.tsv.gz'), '# key\tlevel (1 中考, 2 高考, 3 CET-4, 4 CET-6, 5 IELTS/TOEFL/考研, 6 GRE), from ECDICT\'s exam tags\n'
              + '\n'.join(f'{k}\t{v}' for k, v in sorted(level_of.items()) if k in known) + '\n')
     meta = {
         'lang': 'en', 'built': datetime.date.today().isoformat(),
         'counts': {'entries': len(lines), 'keys': len(known), 'forms': n_forms, 'rules': len(rules), 'paradigms': len(paradigms),
                    'descriptions': len(descs), 'ranked': len(rank_of), 'levels': sum(1 for k in level_of if k in known),
-                   'phrases': len(plines)},
+                   'phrases': len(plines), 'pronunciations': len(said)},
         'sources': [{'name': 'ECDICT (English-Chinese dictionary), Linwei (skywind3000)', 'license': 'MIT',
                      'url': 'https://github.com/skywind3000/ECDICT'}],
     }

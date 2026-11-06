@@ -1,6 +1,6 @@
 // English for Chinese speakers (src/lang/spaced/en.ts, data from scripts/lang/en/build_en.py): Chinese hints and cards, the
 // forms of a word found under its dictionary form, contractions and possessives, phrasal verbs, and exam levels.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { loadLang, lookupIn, tok, words } from './load';
 
 const ALICE = 'Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do.';
@@ -42,6 +42,18 @@ describe('English', () => {
     // be + particle is not a phrasal verb: "must be in want of a wife" (Pride and Prejudice) is no 到达.
     const austen = 'It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.';
     expect(en.hint(tok(en, austen, 'be'))).toBe('是');
+  });
+
+  it('says how the word on the page and its dictionary form are pronounced, in IPA', async () => {
+    const en = await loadLang('en');
+    // ipa.tsv.gz comes after the engine is ready.
+    await vi.waitFor(() => expect(lookupIn(en, DARCY, 'went').sound).toBe('/went/'));
+    expect(lookupIn(en, DARCY, 'went').entries.find((e) => e.head === 'go')?.sound).toBe('/ɡəʊ/');
+    // ECDICT's older notation comes out in the current one: 'kʌlә, θɒ:t, bɒi.
+    expect(lookupIn(en, 'The colour of the sky.', 'colour').sound).toBe('/ˈkʌlə/');
+    expect(lookupIn(en, 'I thought so.', 'thought').sound).toBe('/θɔːt/');
+    expect(lookupIn(en, 'The boy ran.', 'boy').sound).toBe('/bɔɪ/');
+    expect(lookupIn(en, 'Where do you live?', 'live').sound).toBe('/lɪv/, /laɪv/');
   });
 
   it('has the Chinese exam levels', async () => {

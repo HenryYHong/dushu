@@ -1894,7 +1894,10 @@ exists.
   is at the first list it is on). `scripts/lang/en/curated.tsv` replaces ECDICT's entries for the commonest words, whose Chinese
   is thin there ("the" is only 那), and adds the contractions (don't, I'm, it's are words of their own) and be/have/do's forms.
   Phrasal verbs are ECDICT's verb + particle rows for common verbs, matched before a noun too (`SpacedLang.phrasesBeforeNoun`:
-  "gave up the idea"). A sentence from an English book translates into Chinese unless the reader picks another language
+  "gave up the idea"). The card says how the word on the page and its dictionary form are pronounced (went /went/, go /ɡəʊ/):
+  ECDICT's phonetics, which mix the older British notation Chinese textbooks used ('kʌlә, liv) with the current one, all in the
+  current one (`ipa.tsv.gz`, `SpacedLang.pronunciations`, read after the engine is ready since it is 460 KB; not on flashcards,
+  whose reading field sorts the word list). A sentence from an English book translates into Chinese unless the reader picks another language
   (`targetFor`), and the screens keep their Chinese names (书架, 生词 …).
 - **Each language is its own library.** Chinese keeps the `dushu` database and the `dushu.*` keys; another language uses the
   database `dushu-<id>` and the keys `dushu.<id>.*` (`langKey`, `storeName`), so its books, words, places and settings never mix
