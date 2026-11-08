@@ -1,0 +1,33 @@
+/* The daily goal and streak card at the top of the library (ui/goalCard.ts). Classes start with goal-. */
+.goal {
+  display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 12px 24px;
+  margin: 0 0 var(--space-6); padding: 16px 20px;
+}
+.goal-streak { display: flex; align-items: center; gap: 10px; min-width: 150px; }
+.goal-flame { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--wash-2); flex: none; }
+.goal-flame svg { width: 22px; height: 22px; fill: var(--text-3); }
+.goal.met .goal-flame { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.goal.met .goal-flame svg { fill: var(--accent); }
+.goal-num { font: 600 24px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
+.goal-unit { font-size: 14px; font-weight: 560; color: var(--text); }
+.goal-best { display: block; margin-top: 3px; font-size: 12.5px; color: var(--text-3); }
+.goal-today { min-width: 0; }
+.goal-today-text { font-size: 14px; color: var(--text-2); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+.goal-bar { height: 6px; border-radius: 3px; background: var(--wash-2); overflow: hidden; }
+.goal-bar-fill { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--accent); transition: width var(--dur) var(--ease); }
+.goal-week { display: flex; gap: 6px; }
+.goal-day { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 18px; }
+.goal-day-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--rule-strong); }
+.goal-day.some .goal-day-dot { background: conic-gradient(var(--text-3) var(--part, 0%), transparent 0); }
+.goal-day.met .goal-day-dot { background: var(--accent); border-color: var(--accent); }
+.goal-day.today .goal-day-dot { outline: 1.5px solid var(--text); outline-offset: 1.5px; }
+.goal-day-name { font-size: 10.5px; color: var(--text-3); line-height: 1; }
+.goal-set { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+.goal-select { height: 32px; font-size: 13px; padding-top: 0; padding-bottom: 0; }
+
+@media (max-width: 760px) {
+  .goal { grid-template-columns: auto 1fr; gap: 12px 16px; padding: 14px 16px; }
+  .goal-today { grid-column: 1 / -1; grid-row: 2; }
+  .goal-week { justify-self: end; }
+  .goal-set { grid-column: 1 / -1; grid-row: 3; justify-self: start; }
+}

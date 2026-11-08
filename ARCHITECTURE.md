@@ -1272,6 +1272,13 @@ books go through the account, and so do the reader's corrections (§4.12: names 
   that, roll the Worker forward rather than back: a rollback loses nothing either, but the Chinese room counts every language while
   it runs (Rolling back, above).
 
+- **Reading time** (`core/activity.ts`): each device's day is one record, `l:act:<day>:<device>` with `{ s: seconds by language,
+  g: the goal in minutes when last written, t }`, kept in localStorage (`dushu.activity.v1`, no language's prefix) and sent with
+  whichever library syncs, so one streak counts every language. Under `l:` like fixes: every hub keeps it as a record of its own
+  (last writer wins), and a device from before reads an `l:` key only when it names a day, so neither needs an update. Copies merge
+  by taking the larger time of each language (the day only grows), so the hub's copy is always taken and one with more here goes
+  back. Only the last 60 days are sent; a day past that is let go of on the hub and kept here (400 days) for the best streak.
+
 ### 4.12 Corrections (`core/fixes.ts`, `ui/reader/bookFixes.ts`, `ui/popup/fixView.ts`, the Corrections tab in `ui/reader/toc.ts`)
 No reader cuts and reads every word right. A **fix** (`Fix` in types.ts) is what the reader says about one word of one book, and it acts
 after the cut: `segment.ts` never changes for it.
@@ -1603,6 +1610,17 @@ again: a toast says it is already in the library and offers Open (the Mac's own 
 Mac's file). A progress row past the start of a long book shows at least 1%, never "Not started". Card menu: rename, delete (confirm), cover (Automatic, Classic, Modern). "Start with a classic"
 section listing `public/samples/index.json` (title, author, level hint, blurb) → one click adds
 and opens it. Empty state explains what the app does in two sentences.
+
+### 5.4.1 Welcome, goal and streak (`ui/welcome.ts`, `ui/goalCard.ts`, `core/plan.ts`, `core/readingClock.ts`)
+
+- A device never used (no `dushu.*` key at all) sees the welcome screen before the dictionary downloads: the languages to learn,
+  the language translations go into (any of `translate/targets.ts`, 94), and a daily goal. Finishing opens the first language
+  chosen; a device used before the screen existed is marked welcomed and never interrupted. Settings › Learning changes the
+  languages and the goal and shows the screen again. The languages being learned come first in the language switcher.
+- The reading clock runs on the Read and Review routes (`main.ts`): time counts while the page is in front and there was input in
+  the last three minutes (or speech is playing), flushed every five seconds. Reaching the goal says so once, in a toast.
+- A day is won when its time reaches the goal in force that day (each record keeps it), so raising the goal never undoes a day.
+  The streak runs to today once today is won, else to yesterday.
 
 ### 5.5 Vocab and review (`ui/vocab/`, `ui/review/`)
 - Vocab: searchable/sortable table (word, pinyin, gloss, context sentence with the word bold,

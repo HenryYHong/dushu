@@ -1,5 +1,6 @@
 // Library screen: book grid, continue card, import (button, drop anywhere, paste), classics. ARCHITECTURE.md 5.4.
 import '../../styles/library.css';
+import { goalCard } from '../goalCard';
 import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
@@ -163,7 +164,8 @@ export const mount: MountFn = (root, _params, ctx) => {
   const samplesEl = h('div.lib-samples');
   const drop = h('div.lib-drop', { hidden: true, 'aria-hidden': 'true' },
     h('div.lib-drop-box', null, icon('upload', 'icon lib-drop-icon'), h('div.lib-drop-title', null, 'Drop to add to your library'), h('div.muted', null, 'EPUB, Kindle (MOBI or AZW3), TXT, PDF, HTML or Markdown')));
-  const page = h('div.page.lib-page', null, head, macNote, continueEl, libraryTools, gridEl, samplesEl, fileInput);
+  const goal = goalCard();
+  const page = h('div.page.lib-page', null, head, goal.el, macNote, continueEl, libraryTools, gridEl, samplesEl, fileInput);
   root.append(page, drop);
 
   // Progress ticks many times a second: update the running cards in place, and rebuild the grid only when the set of jobs
@@ -627,6 +629,7 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   return () => {
     alive = false;
+    goal.dispose();
     closeMenu();
     offChange();
     offSettings();

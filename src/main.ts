@@ -22,6 +22,8 @@ import { scriptView } from './ui/vocab/render';
 import { activeEngine, isChinese, lang, setActiveEngine, storeName } from './lang/active';
 import { noChineseDictionary } from './lang/noChinese';
 import { langChip } from './ui/langSwitch';
+import { needsWelcome } from './core/plan';
+import { startReadingClock } from './core/readingClock';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -58,6 +60,9 @@ function applyTheme(s: Settings): void {
 const parseHash = () => parseRoute(location.hash, (r) => Object.prototype.hasOwnProperty.call(ROUTES, r));
 
 async function boot(): Promise<void> {
+  // Asked before anything is written: a device that has never been used is welcomed (ui/welcome.ts) before the dictionary
+  // downloads, so someone learning Spanish never waits for the Chinese one.
+  const welcome = needsWelcome();
   injectFonts();
   const L = lang();
   document.documentElement.dataset.lang = L.id;
@@ -65,6 +70,10 @@ async function boot(): Promise<void> {
   applyTheme(settings.get());
   settings.subscribe((s, changed) => { if (changed.includes('theme')) applyTheme(s); });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(settings.get()));
+  if (welcome) {
+    const { showWelcome } = await import('./ui/welcome');
+    await showWelcome(settings, { current: L.id });
+  }
 
   // If IndexedDB never answers, the page would stay empty. Say what is happening, and after a while what to try.
   const app = document.getElementById('app')!;
@@ -240,6 +249,15 @@ async function boot(): Promise<void> {
   store.onChange((what) => { if (what === 'vocab' || what === 'lookups' || what === 'known') void refreshBadge(); });
   void refreshBadge();
 
+  // Time in a book or in Review counts toward the day's goal (core/readingClock.ts); reaching it says so once.
+  let stopClock: (() => void) | null = null;
+  const onGoal = (days: number, goal: number) =>
+    ctx.toast(days > 1 ? `Daily goal reached: ${goal} minutes. That is ${days} days in a row.` : `Daily goal reached: ${goal} minutes. Your streak has started.`, { ms: 6000 });
+  const clockFor = (route: string) => {
+    stopClock?.();
+    stopClock = route === 'read' || route === 'review' ? startReadingClock(L.id, onGoal) : null;
+  };
+
   let cleanup: (() => void) | void;
   let navSeq = 0;
   const render = async () => {
@@ -250,6 +268,7 @@ async function boot(): Promise<void> {
     try { cleanup?.(); } catch (e) { console.error(e); }
     cleanup = undefined;
     document.body.dataset.route = route || 'library';
+    clockFor(route);
     for (const a of nav.querySelectorAll<HTMLAnchorElement>('.app-navlink')) {
       a.toggleAttribute('aria-current', a.dataset.route === route);
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page');

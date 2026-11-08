@@ -9,7 +9,8 @@ import type { LangId } from '../lang/types';
  * target's own script: Han in a Japanese answer to a Chinese book is Japanese, Han in a Spanish one is left over.
  */
 export type Script = 'Latin' | 'Cyrillic' | 'Greek' | 'Hebrew' | 'Arabic' | 'Devanagari' | 'Bengali' | 'Tamil' | 'Telugu' | 'Gujarati'
-  | 'Thai' | 'Han' | 'Hiragana' | 'Katakana' | 'Hangul';
+  | 'Thai' | 'Han' | 'Hiragana' | 'Katakana' | 'Hangul' | 'Armenian' | 'Georgian' | 'Ethiopic' | 'Khmer' | 'Lao' | 'Myanmar' | 'Sinhala'
+  | 'Kannada' | 'Malayalam' | 'Gurmukhi' | 'Tibetan';
 
 export interface TargetLanguage {
   /** BCP 47, as Chrome's Translator API takes it ('zh' is simplified, 'zh-Hant' traditional). */
@@ -83,6 +84,57 @@ export const TARGET_LANGUAGES: readonly TargetLanguage[] = [
   // Serbian is written in both alphabets, so neither counts as left over.
   { code: 'sr', name: 'Serbian', native: 'Српски', scripts: ['Cyrillic', 'Latin'] },
   { code: 'lt', name: 'Lithuanian', native: 'Lietuvių', scripts: L },
+  // Added 2026-11-07, so a reader can translate into the language they know best, whichever it is. Claude and MyMemory take
+  // them all; Chrome's on-device translator takes some and says so for the rest.
+  { code: 'af', name: 'Afrikaans', native: 'Afrikaans', scripts: L },
+  { code: 'sq', name: 'Albanian', native: 'Shqip', scripts: L },
+  { code: 'am', name: 'Amharic', native: 'አማርኛ', scripts: ['Ethiopic'] },
+  { code: 'hy', name: 'Armenian', native: 'Հայերեն', scripts: ['Armenian'] },
+  { code: 'az', name: 'Azerbaijani', native: 'Azərbaycanca', scripts: L },
+  { code: 'eu', name: 'Basque', native: 'Euskara', scripts: L },
+  { code: 'be', name: 'Belarusian', native: 'Беларуская', scripts: C },
+  { code: 'bs', name: 'Bosnian', native: 'Bosanski', scripts: L },
+  { code: 'my', name: 'Burmese', native: 'မြန်မာ', scripts: ['Myanmar'] },
+  { code: 'eo', name: 'Esperanto', native: 'Esperanto', scripts: L },
+  { code: 'et', name: 'Estonian', native: 'Eesti', scripts: L },
+  { code: 'gl', name: 'Galician', native: 'Galego', scripts: L },
+  { code: 'ka', name: 'Georgian', native: 'ქართული', scripts: ['Georgian'] },
+  { code: 'ht', name: 'Haitian Creole', native: 'Kreyòl ayisyen', scripts: L },
+  { code: 'ha', name: 'Hausa', native: 'Hausa', scripts: L },
+  { code: 'is', name: 'Icelandic', native: 'Íslenska', scripts: L },
+  { code: 'ig', name: 'Igbo', native: 'Igbo', scripts: L },
+  { code: 'ga', name: 'Irish', native: 'Gaeilge', scripts: L },
+  { code: 'jv', name: 'Javanese', native: 'Basa Jawa', scripts: L },
+  { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', scripts: ['Kannada'] },
+  { code: 'kk', name: 'Kazakh', native: 'Қазақ тілі', scripts: C },
+  { code: 'km', name: 'Khmer', native: 'ខ្មែរ', scripts: ['Khmer'] },
+  { code: 'ku', name: 'Kurdish', native: 'Kurdî', scripts: L },
+  { code: 'ky', name: 'Kyrgyz', native: 'Кыргызча', scripts: C },
+  { code: 'lo', name: 'Lao', native: 'ລາວ', scripts: ['Lao'] },
+  { code: 'la', name: 'Latin', native: 'Latina', scripts: L },
+  { code: 'lv', name: 'Latvian', native: 'Latviešu', scripts: L },
+  { code: 'lb', name: 'Luxembourgish', native: 'Lëtzebuergesch', scripts: L },
+  { code: 'mk', name: 'Macedonian', native: 'Македонски', scripts: C },
+  { code: 'ml', name: 'Malayalam', native: 'മലയാളം', scripts: ['Malayalam'] },
+  { code: 'mt', name: 'Maltese', native: 'Malti', scripts: L },
+  { code: 'mi', name: 'Māori', native: 'Māori', scripts: L },
+  { code: 'mn', name: 'Mongolian', native: 'Монгол', scripts: C },
+  { code: 'ne', name: 'Nepali', native: 'नेपाली', scripts: ['Devanagari'] },
+  { code: 'ps', name: 'Pashto', native: 'پښتو', scripts: A, rtl: true },
+  { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', scripts: ['Gurmukhi'] },
+  { code: 'si', name: 'Sinhala', native: 'සිංහල', scripts: ['Sinhala'] },
+  { code: 'sl', name: 'Slovenian', native: 'Slovenščina', scripts: L },
+  { code: 'so', name: 'Somali', native: 'Soomaali', scripts: L },
+  { code: 'tg', name: 'Tajik', native: 'Тоҷикӣ', scripts: C },
+  { code: 'tt', name: 'Tatar', native: 'Татарча', scripts: C },
+  { code: 'bo', name: 'Tibetan', native: 'བོད་ཡིག', scripts: ['Tibetan'] },
+  { code: 'ug', name: 'Uyghur', native: 'ئۇيغۇرچە', scripts: A, rtl: true },
+  { code: 'uz', name: 'Uzbek', native: 'Oʻzbekcha', scripts: L },
+  { code: 'cy', name: 'Welsh', native: 'Cymraeg', scripts: L },
+  { code: 'xh', name: 'Xhosa', native: 'isiXhosa', scripts: L },
+  { code: 'yi', name: 'Yiddish', native: 'ייִדיש', scripts: ['Hebrew'], rtl: true },
+  { code: 'yo', name: 'Yoruba', native: 'Yorùbá', scripts: L },
+  { code: 'zu', name: 'Zulu', native: 'isiZulu', scripts: L },
 ];
 
 export const DEFAULT_TARGET = 'en';

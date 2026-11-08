@@ -13,6 +13,7 @@ import { pageTitle } from '../pageHead';
 import { isChinese, lang } from '../../lang/active';
 import { aidName, aidWord, autoKnownHelp, glossLanguage, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { langSelect } from '../langSwitch';
+import { learningControls } from './learning';
 
 export const mount: MountFn = (root, params, ctx) => {
   const { settings, store } = ctx;
@@ -93,10 +94,15 @@ export const mount: MountFn = (root, params, ctx) => {
     zh ? row('Tone changes for yī and bù', '一个 as yí gè, 不是 as bú shì.', sandhi) : null,
     L.stress ? row('Stress marks', 'A mark over the stressed vowel of each word, as in a learner’s dictionary.', stress) : null,
     row('Learn known words as I read', autoKnownHelp(), autoKnown));
-  // The language being read. Each one keeps its own books, words and settings; switching opens its library.
-  const language = group('Language', null,
+  // The language being read. Each one keeps its own books, words and settings; switching opens its library. Then what the
+  // reader is learning and the daily goal (core/plan.ts).
+  const learning = learningControls(ctx);
+  const language = group('Learning', null,
     row('Reading in', 'Each language keeps its own library, words and settings, and syncs them on its own.',
-      { el: langSelect('select'), update: () => {} }));
+      { el: langSelect('select'), update: () => {} }),
+    row('Languages you are learning', 'These come first when you switch languages.', learning.langs),
+    row('Daily goal', 'Minutes of reading or review a day, in any language. Each day you reach it adds to your streak.', learning.goal),
+    row('Welcome screen', 'Choose your languages, translation language and goal again, step by step.', learning.welcome));
   const lookup = group('Lookup', null,
     row('Look up a word by', null, trigger),
     row('Translate paragraphs', 'With a mouse, adds a translate button beside each paragraph in Scroll.', paragraph));
@@ -125,7 +131,7 @@ export const mount: MountFn = (root, params, ctx) => {
 
   // A list of the sections at the left on a wide screen: the page is long.
   const sections: { id: string; label: string; el: HTMLElement }[] = [
-    { id: 'set-language', label: 'Language', el: language },
+    { id: 'set-language', label: 'Learning', el: language },
     { id: 'set-reading', label: 'Reading', el: reading },
     { id: 'set-pinyin', label: aidName(), el: pinyinGroup },
     { id: 'set-lookup', label: 'Lookup', el: lookup },

@@ -1,0 +1,72 @@
+/* The welcome screen (ui/welcome.ts): the languages to learn, the translation language, a daily goal. Classes start with wel-. */
+.wel {
+  position: fixed; inset: 0; z-index: 100; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: var(--bg); color: var(--text);
+  padding: calc(var(--safe-t) + 40px) calc(var(--safe-r) + 16px) calc(var(--safe-b) + 32px) calc(var(--safe-l) + 16px);
+}
+body.wel-open { overflow: hidden; }
+.wel-box { max-width: 640px; margin: 0 auto; }
+.wel-head { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+.wel-mark { display: inline-grid; flex: none; width: 56px; height: 56px; border-radius: 12px; background: var(--accent-fill); }
+.wel-mark svg { width: 100%; height: 100%; }
+.wel-mark .gr-sea, .wel-mark .gr-base { fill: var(--accent-fill-text); }
+.wel-mark .gr-land { fill: var(--accent-fill); }
+.wel-mark .gr-frame { stroke: var(--accent-fill-text); }
+.wel-title { margin: 0; font: italic 500 34px/1.1 var(--font-display); letter-spacing: -0.01em; }
+.wel-title:focus, .wel-q:focus { outline: none; }
+.wel-lede { margin: 6px 0 0; color: var(--text-2); font-size: 16px; }
+.wel-q { margin: 0 0 4px; font: 500 22px/1.25 var(--font-display); }
+.wel-help { margin: 0 0 16px; color: var(--text-2); font-size: 14.5px; }
+.wel-small { margin-top: 16px; font-size: 13.5px; color: var(--text-3); }
+.wel-warn { margin: 10px 0 0; color: var(--text); }
+
+.wel-langs { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 10px; }
+.wel-lang {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 72px;
+  padding: 12px 40px 12px 14px; text-align: left; cursor: pointer;
+  background: var(--surface); color: var(--text); border: 1px solid var(--rule); border-radius: var(--radius);
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+@media (hover: hover) { .wel-lang:hover { border-color: var(--text-3); } }
+.wel-lang[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.wel-lang-native { font-size: 19px; font-weight: 560; line-height: 1.2; }
+.wel-lang-name { font-size: 13.5px; color: var(--text-2); }
+.wel-lang-note { font-size: 12px; color: var(--text-3); line-height: 1.3; margin-top: 2px; }
+.wel-lang-check {
+  position: absolute; top: 12px; right: 12px; display: inline-grid; place-items: center; width: 20px; height: 20px;
+  border-radius: 50%; border: 1px solid var(--rule-strong); color: transparent;
+}
+.wel-lang-check .icon { width: 14px; height: 14px; stroke-width: 2.5; }
+.wel-lang[aria-pressed='true'] .wel-lang-check { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--accent-fill-text); }
+
+.wel-select { width: 100%; max-width: 420px; }
+
+.wel-goals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.wel-goal {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 16px 6px; cursor: pointer;
+  background: var(--surface); color: var(--text); border: 1px solid var(--rule); border-radius: var(--radius);
+}
+@media (hover: hover) { .wel-goal:hover { border-color: var(--text-3); } }
+.wel-goal[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.wel-goal-min { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wel-goal-name { font-size: 12.5px; color: var(--text-2); }
+
+.wel-foot { display: flex; align-items: center; gap: 12px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.wel-foot .btn-primary { margin-left: auto; }
+.wel-steps { display: inline-flex; gap: 6px; margin: 0 auto; }
+.wel-foot .wel-steps + .btn-primary { margin-left: 0; }
+.wel-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rule-strong); }
+.wel-dot.on { background: var(--text); }
+.wel-skip { background: transparent; box-shadow: none; color: var(--text-2); }
+
+@media (max-width: 520px) {
+  .wel { padding-top: calc(var(--safe-t) + 24px); }
+  .wel-head { gap: 12px; margin-bottom: 22px; }
+  .wel-mark { width: 46px; height: 46px; border-radius: 10px; }
+  .wel-title { font-size: 27px; }
+  .wel-lede { font-size: 15px; }
+  .wel-langs { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .wel-lang { min-height: 64px; padding: 10px 34px 10px 12px; }
+  .wel-lang-native { font-size: 17px; }
+  .wel-goals { grid-template-columns: repeat(3, 1fr); }
+}

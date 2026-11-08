@@ -56,16 +56,18 @@ describe('English, the default', () => {
 });
 
 describe('the list of languages', () => {
-  it('has about 45, each once, English first, with English and native names', () => {
-    expect(TARGET_LANGUAGES.length).toBe(45);
-    expect(new Set(TARGET_LANGUAGES.map(t => t.code)).size).toBe(45);
+  it('has 94, each once, English first, with English and native names', () => {
+    expect(TARGET_LANGUAGES.length).toBe(94);
+    expect(new Set(TARGET_LANGUAGES.map(t => t.code)).size).toBe(94);
+    // Every script a target names is one a regular expression knows (the answer checks build \p{Script=…} from it).
+    for (const t of TARGET_LANGUAGES) for (const sc of t.scripts) expect(() => new RegExp(`\\p{Script=${sc}}`, 'u')).not.toThrow();
     expect(TARGET_LANGUAGES[0]).toMatchObject({ code: 'en', name: 'English' });
     for (const t of TARGET_LANGUAGES) expect(t.name && t.native && t.scripts.length).toBeTruthy();
   });
 
   it('hides the book’s own language, and turns a choice of it into English', () => {
     expect(targetsFor('es').map(t => t.code)).not.toContain('es');
-    expect(targetsFor('es')).toHaveLength(44);
+    expect(targetsFor('es')).toHaveLength(93);
     // Both Chinese scripts are a Chinese book's own language; a Japanese book can go into either.
     expect(targetsFor('zh').map(t => t.code).filter(c => c.startsWith('zh'))).toEqual([]);
     expect(targetsFor('ja').map(t => t.code)).toEqual(expect.arrayContaining(['zh', 'zh-Hant', 'en']));

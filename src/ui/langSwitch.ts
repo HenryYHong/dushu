@@ -4,11 +4,15 @@ import { icon } from './icons';
 import { LANGS, LANG_IDS } from '../lang/registry';
 import { isChinese, langId, switchLang } from '../lang/active';
 import type { LangId } from '../lang/types';
+import { getPlan } from '../core/plan';
 
 /** Set once this device has read a language other than Chinese: from then on the bar shows which language is open. */
 const USED_KEY = 'dushu.langs-used.v1';
 
 function usedOther(): boolean {
+  // Learning a language other than Chinese, or more than one (the welcome screen or Settings).
+  const learning = getPlan().langs;
+  if (learning.length > 1 || learning.some((l) => l !== 'zh')) return true;
   try {
     if (!isChinese()) localStorage.setItem(USED_KEY, '1');
     return localStorage.getItem(USED_KEY) === '1';
@@ -17,8 +21,14 @@ function usedOther(): boolean {
 
 /** A native select of every language, so a phone shows its own picker. Picking one opens that language's library. */
 export function langSelect(cls = ''): HTMLSelectElement {
+  const option = (id: LangId) => h('option', { value: id, selected: id === langId() }, `${LANGS[id].native} · ${LANGS[id].name}`);
+  // The languages being learned first, in the order chosen, then the rest.
+  const learning = getPlan().langs;
+  const rest = LANG_IDS.filter((id) => !learning.includes(id));
   const sel = h('select', { class: cls || null, 'aria-label': 'Language you are reading' },
-    ...LANG_IDS.map((id) => h('option', { value: id, selected: id === langId() }, `${LANGS[id].native} · ${LANGS[id].name}`)));
+    ...(learning.length && rest.length
+      ? [h('optgroup', { label: 'Learning' }, learning.map(option)), h('optgroup', { label: 'More languages' }, rest.map(option))]
+      : LANG_IDS.map(option)));
   sel.addEventListener('change', () => { if (sel.value !== langId()) switchLang(sel.value as LangId); });
   return sel;
 }

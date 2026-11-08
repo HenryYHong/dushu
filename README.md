@@ -137,6 +137,8 @@ The translation panel says which one answered. You can stop a translation, switc
 
 **MyMemory** is a free online service. It is never used unless you choose it, because it sends the selected text to a third party. With **Local only** on, it is off, and every sentence stays on your Mac.
 
+Sentences can go into any of 94 languages: pick yours under **Settings › Translation** or on the welcome screen. Claude and MyMemory take them all; Chrome's on-device translator takes some and says when it cannot. Word cards keep their short meanings in English (in Chinese for English books).
+
 Machine translation is a help, not a proof. Names keep their readings, and the dictionary stays the source of truth for pinyin. A real-model evaluation script is in `scripts/evaluate-translations.mjs`.
 
 ## Words you looked up
@@ -146,6 +148,10 @@ Every word you tap while reading is kept on the Vocabulary page under **Looked u
 ## Bookmarks and full screen
 
 Tap the bookmark at the top of a page (or press `B`) to bookmark it; the button fills in on a bookmarked page, and tapping it again takes the bookmark away. Your bookmarks are listed under **Bookmarks** in the chapter list, and a tap takes you back. **Full screen** is a button in the top bar while you read, next to read-aloud (also in the Aa menu, or press `F`). On an iPad, Safari can go full screen; added to the Home Screen, Dushu opens without the browser bars anyway. Bookmarks and the Looked up list sync like your saved words.
+
+## Daily goal and streak
+
+The first time you open Globereader it asks which languages you want to learn, which language translations should be in, and a daily goal (5 to 30 minutes). The library shows today's minutes against the goal, your streak (days in a row you reached it) and the last seven days. Time counts while you read or review and are active (a page turned, a word tapped, a scroll in the last three minutes), in any language. Signed in or connected to your Mac, each device's time syncs, so reading on the iPad counts on the phone. Change the languages and the goal in **Settings › Learning**, where **Show it again** brings back the welcome screen.
 
 ## Review
 

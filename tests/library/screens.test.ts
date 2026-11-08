@@ -448,7 +448,7 @@ describe('settings screen', () => {
     expect(ctx.settings.get().scrollFontSize).toBe(28);
     // A change from elsewhere (another tab) shows up in the controls.
     ctx.settings.set({ theme: 'sepia', scrollFontSize: 18 });
-    expect(root.querySelector('.set-seg-btn[aria-checked=true]')?.textContent).toBe('Sepia');
+    expect(root.querySelector('#set-reading .set-seg-btn[aria-checked=true]')?.textContent).toBe('Sepia');
     expect(range.value).toBe('18');
   });
 

@@ -205,3 +205,13 @@
 .set-invite-label { font-weight: 600; color: var(--text); }
 .set-invite-uses { color: var(--text-3); font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) { .set-invite { width: 100%; align-items: flex-start; } }
+
+/* ---------- the languages being learned (settings/learning.ts) ---------- */
+.set-learn { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 360px; }
+.set-learn-chip {
+  height: 30px; padding: 0 11px; border: 1px solid var(--rule); border-radius: 999px; background: transparent; color: var(--text-2);
+  font-size: 13.5px; cursor: pointer;
+}
+@media (hover: hover) { .set-learn-chip:hover { border-color: var(--text-3); color: var(--text); } }
+.set-learn-chip[aria-pressed='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--text); }
+@media (max-width: 640px) { .set-learn { justify-content: flex-start; max-width: none; } }

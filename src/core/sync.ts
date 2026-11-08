@@ -23,6 +23,7 @@ import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge
 import { CLOUD_EVENT, accountInfo, accountMark, cloudFetch, cloudSession, forgetSession, isAccountOwner } from './cloud';
 import { FIX_KEY, SYNCED_SETTINGS, bookKey, canonical, fixKey, hash, isFixKey, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 import { cleanFix, fixWire } from './fixes';
+import { actKey, cleanDay, isActKey, mergeRecord, parseActKey, syncRecords } from './activity';
 
 export { bookKey, canonical, hash };
 
@@ -187,6 +188,8 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, 
   for (const r of await store.lookups.list()) putNamed(lookupKey(r.day, r.id), lookupWire(r, books), r.last);
   for (const b of await store.bookmarks.list()) put(`b:${b.id}`, bookmarkWire(b, books), b.createdAt);
   for (const f of await store.fixes.list()) put(fixKey(f.id), fixWire(f), f.t);
+  // Time read each day, this device's and the others' (core/activity.ts), whichever library is open: one streak for them all.
+  for (const r of syncRecords()) put(actKey(r.day, r.device), r.rec, r.rec.t);
   for (const [id, key] of books.keyOf) {
     const p = await store.progress.get(id);
     if (p) put(`p:${key}`, progressWire(p), p.updatedAt);
@@ -670,6 +673,10 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         const f = fixLocal(id.slice(FIX_KEY.length - 2), data, books);
         return f ? sigOf(fixWire(f)) : null;
       }
+      if (kind === 'l' && isActKey(`l:${id}`)) {
+        const d = cleanDay(data);
+        return d ? sigOf(d) : null;
+      }
       if (kind === 'l') {
         const r = lookupLocal(`l:${id}`, data, books);
         return r ? sigOf(lookupWire(r, books)) : null;
@@ -692,6 +699,19 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       if (r.key[1] !== ':' || !id || !'vkplbo'.includes(kind)) continue;
       if (kind === 'o' && !opts.settings) continue;
       const base = rows.get(r.key);
+      if (kind === 'l' && isActKey(r.key)) {
+        // A day's reading time grows and never shrinks, so the copies merge (the larger time of each language) and the copy
+        // there is always taken; one with more here goes back. A day past the window was let go of there: so it is here.
+        const at = parseActKey(r.key);
+        if (!at) continue;
+        if (r.data === null || r.data === undefined) { next.push({ key: r.key, at: r.at, sig: '-' }); continue; }
+        const theirs = cleanDay(r.data);
+        if (!theirs) continue;
+        const sig = sigOf(theirs);
+        if (sigOf(mergeRecord(at.day, at.device, theirs)) !== sig) resend = true;
+        next.push({ key: r.key, at: r.at, sig });
+        continue;
+      }
       if (kind === 'l' && r.data !== null && r.data !== undefined && !isFixKey(r.key)) {
         // Lookups merge (mergeLookups), so the Mac's copy is always taken: the store merges it with the row here, and what
         // only this device had is sent next time (the row records the Mac's copy, which no longer matches the one here).
