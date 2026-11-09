@@ -41,6 +41,12 @@ describe('chapter structure', () => {
     expect(view.blocks).toHaveLength(chapter.blocks.length);
   });
 
+  it('takes a heading spaced another way for the title: 第一章 序 is 第一章　序', async () => {
+    const { view } = await setup({}, { title: '第一章 序', blocks: [{ t: 'h', level: 2, text: '第一章　序' }, { t: 'p', text: '我们见面。' }] });
+    expect(view.synthetic).toBe(0);
+    expect(view.blocks.filter((b) => b.el.tagName === 'H1')).toHaveLength(1);
+  });
+
   it('shows the book\'s own title heading as the chapter title, whatever level the file gave it', async () => {
     const { view } = await setup({}, { title: '开始', blocks: chapter.blocks });
     expect(view.blocks[0].el.tagName).toBe('H1');

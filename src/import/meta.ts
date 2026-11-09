@@ -44,6 +44,9 @@ export function cleanAuthorName(raw: string): string {
     p = p.replace(ROLE_PREFIX, '').replace(COUNTRY_TAG, '').replace(DYNASTY, '');
     if (p === before) break;
   }
+  // Wikisource's credit line: "автор Антон Павлович Чехов (1860—1904)", "Author Mary Shelley (1797–1851)": the role word in
+  // front and the years of a life behind are not the name.
+  p = p.replace(/^(?:автор|author|auteur|autor|autore)\s+(?=\p{Lu})/iu, '').replace(/\s*\(\s*\d{3,4}\s*[-–—]\s*\d{0,4}\s*\)\s*$/u, '');
   return p.replace(/\s*[著编編译譯撰续續]$/, '').trim();
 }
 

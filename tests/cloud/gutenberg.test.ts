@@ -44,3 +44,28 @@ describe('books from Project Gutenberg', () => {
     expect(asked.every((u) => u.startsWith('https://www.gutenberg.org/cache/epub/7/'))).toBe(true);
   });
 });
+
+describe('works from Wikisource', () => {
+  it('brings a work in a reading language as ws-export makes it, and nothing else', async () => {
+    const c = cloud();
+    const asked: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input instanceof Request ? input.url : input);
+      asked.push(url);
+      return url.startsWith('https://ws-export.wmcloud.org/') ? new Response(EPUB, { status: 200 }) : new Response('no', { status: 404 });
+    }));
+    const res = await c.call(`/wikisource/zh/${encodeURIComponent('阿Q正傳')}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('application/epub+zip');
+    expect(asked).toEqual([`https://ws-export.wmcloud.org/?format=epub&lang=zh&page=${encodeURIComponent('阿Q正傳')}`]);
+    // Spaces become underscores, as Wikisource writes its page names.
+    await c.call(`/wikisource/fr/${encodeURIComponent('Le Horla')}`);
+    expect(asked[1]).toBe('https://ws-export.wmcloud.org/?format=epub&lang=fr&page=Le_Horla');
+    // Another language, another host, a broken name, another page: refused before anything is fetched.
+    for (const path of ['/wikisource/ko/x', '/wikisource/zh/', `/wikisource/zh/${'a'.repeat(201)}`, '/wikisource/zh/%E0%A4%A', `/wikisource/zh/${encodeURIComponent('a|b')}`]) {
+      expect([400, 404]).toContain((await c.call(path)).status);
+    }
+    expect((await c.call('/wikisource/zh/x', { origin: 'https://example.com' })).status).toBe(403);
+    expect(asked).toHaveLength(2);
+  });
+});

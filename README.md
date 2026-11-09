@@ -85,6 +85,7 @@ Your library can be searched by title or author, in simplified or traditional ch
 
 Once you have marked some words known, each book in your library says how much of its vocabulary you know ("You know 82% of its words"), estimated from six chapters spread through it. Use it to pick a book at your level.
 
+- **Find a book** searches two free libraries in the language you are reading: Project Gutenberg (most read first, or by title or author) and Wikisource (any work on that language's Wikisource, made into a book with its chapters; Chinese and Japanese open here, with well-known works to start with). Add one and it opens like any other book. The page searches the catalogs itself; the book is fetched through the sync server, which fetches nothing but a book from those two sites. A new library also suggests a first book, the easiest classic, one tap from its first page.
 - **Import book**, or drop a file anywhere on the Library page. Supported: EPUB, MOBI and AZW3 (Kindle files without DRM), TXT (UTF-8, GBK, Big5 and UTF-16 are detected), PDF with a text layer, HTML and Markdown. Importing a book that is already in your library offers to open it instead of adding a second copy.
 - **Paste text** for an article or a chapter you copied from the web.
 - **Start with a classic** adds a public-domain text in one click.

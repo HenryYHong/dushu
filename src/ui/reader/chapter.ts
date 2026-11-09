@@ -172,8 +172,11 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
   });
   let synthetic = 0;
   const title = chapter.title?.trim();
-  const firstText = first && (first.t === 'h' || first.t === 'p') ? first.text.trim() : '';
-  if (title && !chapter.cont && !(first && first.t === 'h' && (firstText === title || firstText.includes(title) || title.includes(firstText)))) {
+  // Spaces are compared as one: a contents entry "第一章 序" is the heading "第一章　序" (an ideographic space), not a second title.
+  const spaced = (t: string) => t.replace(/[\s\u3000]+/g, ' ').trim();
+  const firstText = first && (first.t === 'h' || first.t === 'p') ? spaced(first.text) : '';
+  const titleText = title ? spaced(title) : '';
+  if (title && !chapter.cont && !(first && first.t === 'h' && (firstText === titleText || firstText.includes(titleText) || titleText.includes(firstText)))) {
     pieces.unshift({ block: { t: 'h', level: 1, text: title }, src: -1, start: 0, cont: false, more: false });
     synthetic = 1;
   } else if (!chapter.cont && first?.t === 'h' && first.level !== 1) {

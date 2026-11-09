@@ -113,16 +113,28 @@ export function dropTitlePage(chapters: Chapter[], title: string, author: string
     const bare = squash(cleanAuthorName(t) || t);
     return !!bare && names.some((n) => n === bare || (bare.length >= 2 && (n.includes(bare) || bare.includes(n))));
   };
+  // The first rule as it was: a page of nothing but the title and the author, matched as written.
   const texts = first.blocks.filter((b) => b.t !== 'hr').map(blockText);
   if (!texts.length) return chapters;
   if (texts.length <= 4 && texts.every(known)) return chapters.slice(1);
-  const furniture = (t: string) => /^\d{3,4}\.?$/.test(t.trim()) || (t.trim().length <= 60 && !/[.!?;。！？；…]["”’»」』]?$/.test(t.trim()));
+  // A printed title page sets them in capitals ("MARIANELA / POR / B. PEREZ GALDÓS."): from here case does not count.
+  const lower = (t: string) => squash(t).toLocaleLowerCase();
+  const knownAnyCase = (t: string) => known(t) || names.some((n) => { const a = n.toLocaleLowerCase(); const b = lower(cleanAuthorName(t) || t); return !!b && (a === b || (b.length >= 2 && (a.includes(b) || b.includes(a)))); });
+  const YEAR = /^\d{3,4}\s*[.年]?$/;
+  const letters = (t: string) => t.replace(/[^\p{L}]/gu, '');
+  const capitals = (t: string) => { const l = letters(t); return l.length >= 2 && l === l.toLocaleUpperCase() && l !== l.toLocaleLowerCase(); };
+  // A line of a title page: short and ends no sentence, or in capitals, or an address with its number ("calle de las Pozas,
+  // núm. 12."), or a year.
+  const furniture = (t: string) => {
+    const x = t.trim();
+    return YEAR.test(x) || (x.length <= 60 && (!/[.!?;。！？；…]["”’»」』]?$/.test(x) || capitals(x) || (/\d/.test(x) && x.length <= 40)));
+  };
   // What only a title page has, so a short first poem headed with the book's title is never taken for one: the author, a year,
   // a credit or a publisher.
-  const authors = author.split(/,\s*/).map(squash).filter((n) => n.length >= 2);
-  const printed = (t: string) => authors.some((a) => squash(t).includes(a)) || /^\d{3,4}\.?$/.test(t.trim())
-    || /^(?:produced by|by|por|par|von|di|от|著|作者|譯|译)\b|imprenta|editorial|librer[ií]a|verlag|[ée]ditions?|edizioni|editora|издани|出版|書局|书局/i.test(t.trim());
-  return texts.some(known) && texts.some(printed) && texts.every((t) => known(t) || furniture(t)) ? chapters.slice(1) : chapters;
+  const authors = author.split(/,\s*/).map(lower).filter((n) => n.length >= 2);
+  const printed = (t: string) => authors.some((a) => lower(t).includes(a)) || YEAR.test(t.trim())
+    || /^(?:(?:produced by|by|por|par|von|di|от)\b|(?:著|作者|譯|译)\s*[:：]?)|imprenta|editorial|librer[ií]a|verlag|[ée]ditions?|edizioni|editora|издани|出版|書局|书局/i.test(t.trim());
+  return texts.some(knownAnyCase) && texts.some(printed) && texts.every((t) => knownAnyCase(t) || furniture(t)) ? chapters.slice(1) : chapters;
 }
 
 /** Headings of a contents page, in the languages the app reads. */

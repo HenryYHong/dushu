@@ -142,6 +142,51 @@ function readToc(
   return ncxItem ? fromNcx(ncxItem) : [];
 }
 
+/** Pictures Wikisource's pages carry that are not the book's: license and project icons, flags, its logo. */
+const WIKISOURCE_ICON = /(?:_icon|_logo|Wikisource-logo|Wikimedia|\.svg\.png_utm_source|PD-icon|Flag_of)/i;
+/** Wikisource's author namespaces, as its sites in the reading languages name them. */
+const WIKISOURCE_AUTHOR = /^(?:Author|Autor|Auteur|Autore|Автор|作者|著者):\s*/;
+
+/**
+ * Takes Wikisource's furniture out of one part, before its blocks are made: the header template (headerContainer: the parts
+ * before and after, the title, "作者：<author>"), the sister-project list, and anything marked not to print or export. Returns
+ * the author the header names, and the part's own title from the header's middle cell when the text does not carry it: 西遊記's
+ * "第二回 悟徹菩提真妙理　斷魔歸本合元神" (the work's title, `work`, is left out of it).
+ */
+export function tidyWikisource(doc: Document, work = ''): { author: string; part: string } {
+  let author = '';
+  for (const a of doc.querySelectorAll('a[title]')) {
+    const t = a.getAttribute('title') ?? '';
+    // The page's own name ("Автор:Антон Павлович Чехов"), not the link's words ("автор Антон Павлович Чехов (1860—1904)").
+    if (WIKISOURCE_AUTHOR.test(t)) { author = t.replace(WIKISOURCE_AUTHOR, '').replace(/\s*\([^)]*\)\s*$/, '').trim() || (a.textContent ?? '').trim(); break; }
+  }
+  let part = '';
+  const header = doc.querySelector('[id^="headerContainer"]');
+  const middle = header ? [...header.querySelectorAll('td')].find((td) => td.querySelector('b')) : undefined;
+  if (middle) {
+    // Its lines, up to the author's: the work's title in bold, then the part's number and name.
+    const lines: string[] = [];
+    let line = '';
+    for (const node of middle.childNodes) {
+      if (node.nodeName.toLowerCase() === 'br') { lines.push(line.trim()); line = ''; continue; }
+      const el = node as Element;
+      if (el.nodeType === 1 && (el.matches?.('a[title]') && WIKISOURCE_AUTHOR.test(el.getAttribute('title') ?? ''))) break;
+      line += node.textContent ?? '';
+    }
+    lines.push(line.trim());
+    const kept = [];
+    for (const l of lines) {
+      if (/^(?:作者|著者|Author|Autor|Auteur|Autore|Автор)\s*[：:]/.test(l)) break;
+      if (l && l !== work.trim()) kept.push(l);
+    }
+    part = kept.join(' ').replace(/\s+/g, ' ').trim();
+  }
+  // Each Wikisource names its header its own way: headerContainer (zh, en), navigationHeader and navigationNotes (ja),
+  // headertemplate (ru). The printed book's page numbers (ws-pagenum) are not the reader's.
+  for (const el of doc.querySelectorAll('[id^="headerContainer"], [id^="navigationHeader"], [id^="navigationNotes"], [id^="headertemplate"], [id^="plainSister"], .noprint, .ws-noexport, .ws-pagenum, .mw-editsection, .ws-summary, .licenseContainer')) el.remove();
+  return { author, part };
+}
+
 export async function importEpub(data: Uint8Array, sourceName: string, onProgress?: (fraction: number) => void): Promise<ImportedBook> {
   // List the archive first (declared sizes are checked there), then inflate only what the book needs.
   const archive = new Archive(data);
@@ -173,6 +218,13 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
       properties: attr(el, 'properties').split(/\s+/).filter(Boolean),
     }));
   const byId = new Map(manifest.map((m) => [m.id, m]));
+  // Wikisource's own EPUB export (ws-export, used by Find a book): its source is a wikisource.org page. Each part starts with the
+  // site's header (the parts before and after, the author) and sister-project links, an English "About this digital edition" page
+  // and a title page come with it, the cover is the Wikisource logo, and license icons sit in the text. All of that goes.
+  const wikisource = byLocal(opf, 'source').some((el) => /\bwikisource\.org\//i.test(el.textContent ?? ''))
+    || byLocal(opf, 'contributor').some((el) => /^\s*wikisource\s*$/i.test(el.textContent ?? ''));
+  let wikisourceAuthor = '';
+  const workTitle = byLocal(opf, 'title')[0]?.textContent?.trim() ?? '';
   const isImagePath = (path: string) => IMAGE_EXT.has(extOf(path));
   // Inflate what the package lists, plus any image file (some books use pictures their manifest forgot). Other
   // entries (fonts, audio, stray files) are never inflated. A picture over the size cap is skipped, not fatal.
@@ -220,7 +272,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
     const bytes = getFile(item.path);
     const doc: SpineDoc = { path: item.path, blocks: [], anchors: new Map(), skipped: false };
     docs.push(doc);
-    if (!bytes || navPaths.has(item.path)) {
+    if (!bytes || navPaths.has(item.path) || (wikisource && /(?:^|\/)(?:about|title)\.xhtml$/i.test(item.path))) {
       doc.skipped = true;
       continue;
     }
@@ -238,8 +290,15 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
     const decoded = await withHongKongCharacters(decodeText(bytes, sniffMarkupCharset(bytes)));
     unreadable.n += decoded.unreadable ?? 0;
     const markup = parseXhtml(decoded.text);
+    let wikisourcePart = '';
+    if (wikisource) {
+      const named = tidyWikisource(markup, workTitle);
+      wikisourceAuthor ||= named.author;
+      wikisourcePart = named.part;
+    }
     const extracted = extractBlocks(markup, {
       resolveImage: (src) => {
+        if (wikisource && WIKISOURCE_ICON.test(src)) return undefined;
         if (/^data:/i.test(src)) return store.addDataUri(src);
         if (/^[a-z][a-z0-9+.-]*:/i.test(src) || src.startsWith('//')) return undefined;
         return registerAsset(resolvePath(item.path, src));
@@ -250,6 +309,12 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
     } else {
       doc.blocks = extracted.blocks;
       doc.anchors = extracted.anchors;
+      // A Wikisource part whose title was only in the header gets it back as its heading.
+      const top = doc.blocks.find((b) => b.t !== 'hr');
+      if (wikisourcePart && !(top?.t === 'h' && wikisourcePart.includes(top.text.trim()))) {
+        doc.blocks.unshift({ t: 'h', level: 2, text: wikisourcePart });
+        for (const [k, v] of doc.anchors) doc.anchors.set(k, v + 1);
+      }
     }
     onProgress?.(0.05 + 0.85 * ((i + 1) / spine.length));
     if (Date.now() - lastYield > 30) {
@@ -275,7 +340,8 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   // The whole book in one file under one contents entry (a converter's EPUB, the entry often "正文"): its chapters are found in
   // its text, as in a TXT file.
   const content = docs.filter((d) => !d.skipped && d.blocks.some((b) => b.t === 'p' || b.t === 'quote'));
-  if (content.length === 1 && refs.length <= 1) {
+  // Wikisource's contents also list its title and About pages, which are not read: one work on one page is still one file.
+  if (content.length === 1 && (refs.length <= 1 || wikisource)) {
     const byText = chaptersByTextHeadings(content[0].blocks, refs[0]?.title ?? '');
     if (byText) chapters = docs.flatMap((d) => (d === content[0] ? byText : !d.skipped && d.blocks.length ? [{ title: firstHeading(d.blocks), blocks: d.blocks }] : []));
   }
@@ -295,9 +361,10 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   const authorList = (authorsOnly.length ? authorsOnly : creators.filter((c) => !roleOf(c) || roleOf(c) === 'aut')).map((c) => plainText(c));
   const fromFile = parseFilename(sourceName);
   const title = cleanTitle(dc('title').map((t) => plainText(t)).find(Boolean) ?? '') || fromFile.title || 'Untitled';
-  const author = cleanAuthors(authorList);
+  const author = cleanAuthors(authorList.length ? authorList : wikisourceAuthor ? [wikisourceAuthor] : []);
 
-  const coverName = findCover(opf, opfPath, manifest, byId, getText, registerAsset);
+  // Wikisource's cover is its own logo: the app draws a cover instead.
+  const coverName = wikisource ? undefined : findCover(opf, opfPath, manifest, byId, getText, registerAsset);
 
   // SVG images become PNG here; any that cannot be converted are removed from the text and the cover.
   const dropped = await store.finalize();

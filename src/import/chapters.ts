@@ -530,10 +530,22 @@ function demoteContentsRuns(blocks: Block[]): Block[] {
 }
 
 /** Indices where chapters start, choosing the most trustworthy signal. Mutates `blocks` when it promotes paragraphs. */
+/**
+ * A heading element names a chapter by its start: "Глава третья. Новое, очень приятное знакомство" (Каштанка) is longer than a
+ * heading line may be, but "Глава третья" before its title is one. Only for a heading the file marked as such; a plain line
+ * keeps the length limit.
+ */
+function namedHeading(b: Block): boolean {
+  if (!isHead(b)) return false;
+  if (detectHeadingLine(b.text)) return true;
+  const lead = b.text.split(/(?<=\S)[.:：]\s+|\s+[—–-]\s+/)[0];
+  return lead !== b.text && !!detectHeadingLine(lead);
+}
+
 function boundaries(blocks: Block[]): number[] | null {
   const named: number[] = [];
   blocks.forEach((b, i) => {
-    if (isHead(b) && detectHeadingLine(b.text)) named.push(i);
+    if (namedHeading(b)) named.push(i);
   });
   if (named.length >= 2) return named;
 

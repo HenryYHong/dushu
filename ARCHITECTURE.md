@@ -1622,6 +1622,26 @@ and opens it. Empty state explains what the app does in two sentences.
 - A day is won when its time reaches the goal in force that day (each record keeps it), so raising the goal never undoes a day.
   The streak runs to today once today is won, else to yesterday.
 
+### 5.4.2 Find a book (`ui/library/findBooks.ts`, `cloud/src/worker.ts` relayEpub)
+
+- Two catalogs, searched from the page (both send Access-Control-Allow-Origin, and the CSP's connect-src names them): Project
+  Gutenberg's OPDS search (`l.<code>` for the language, `sort_order=downloads`) and the language's Wikisource search API
+  (`generator=search` with `pageprops|categories`, so disambiguation pages and lists of editions are left out; a part of a
+  work, "吶喊/狂人日記", too). Wikisource has no "most read" list: Chinese and Japanese open on it with a short list of
+  well-known works whose pages hold the whole work.
+- The book itself comes through the Worker, which fetches only `GET /gutenberg/<number>` (gutenberg.org's EPUB 3, then older
+  EPUBs) and `GET /wikisource/<lang>/<title>` (ws-export.wmcloud.org's EPUB of that page, for the nine reading languages): Origin
+  must be one of the app's, a network may fetch 200 books a day, 40 MB at most, an EPUB (a zip) only, a week in the Worker's
+  cache. The file is named `gutenberg-<n>.epub` or `wikisource-<lang>-<title>.epub`, which is how the dialog knows a book is
+  already in the library.
+- Import: Gutenberg's license header and footer were already dropped (`stripGutenberg`); its printed title page and contents
+  page now are too (`spine.ts dropTitlePage`, `dropContentsPages`). A ws-export EPUB (its OPF's dc:source is a wikisource.org
+  page) loses each part's header template (`headerContainer`, `navigationHeader`/`navigationNotes`, `headertemplate`), sister
+  links, page numbers, license icons, the logo as cover and the English About page; the author comes from the header's author
+  link, and a part whose title was only in the header (西遊記's couplets) gets it back as its heading (`epub.ts tidyWikisource`).
+- Problems while adding (wrong language, a damaged file, already in the library) are said in the dialog, not in a toast it
+  would cover (`Importer.files` `onProblem`).
+
 ### 5.5 Vocab and review (`ui/vocab/`, `ui/review/`)
 - Vocab: searchable/sortable table (word, pinyin, gloss, context sentence with the word bold,
   book, added date, due), click a row → word popup (reuse `openWordPopup`), remove, export

@@ -7,6 +7,9 @@ import { CONTAINER, asFile, makeEpub, ncxDoc, opf, prose, xhtml } from './helper
 
 describe('author names', () => {
   it.each([
+    ['автор Антон Павлович Чехов (1860—1904)', 'Антон Павлович Чехов'],
+    ['Author Mary Shelley (1797–1851)', 'Mary Shelley'],
+    ['Autoren Kollektiv', 'Autoren Kollektiv'],
     ['原著：金庸', '金庸'],
     ['原著:金庸', '金庸'],
     ['著：金庸', '金庸'],

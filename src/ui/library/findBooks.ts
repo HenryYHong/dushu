@@ -1,26 +1,37 @@
-// "Find a free book": Project Gutenberg's public-domain books in the language being read, most read first, or by title or
-// author. The catalog answers any page directly; its files do not, so the EPUB comes through the sync server
-// (cloud/src/worker.ts gutenbergBook), which fetches nothing but a Gutenberg book by its number.
+// "Find a free book", from two public-domain libraries:
+// - Project Gutenberg: books in the language being read, most read first, or by title or author. Its catalog (OPDS) answers any
+//   page directly; its files do not, so the EPUB comes through the sync server (cloud/src/worker.ts gutenbergBook).
+// - Wikisource: any work on the language's Wikisource, by title or author, made an EPUB by Wikisource's own exporter
+//   (ws-export) through the sync server (wikisourceBook); its search API answers any page. Chinese and Japanese open on it,
+//   since Gutenberg has few of their books.
+// The sync server fetches nothing but a book from those two places.
 import { h } from '../dom';
 import { icon } from '../icons';
 import { showModal } from './dialogs';
 import { lang, langId } from '../../lang/active';
 import { cloudBase } from '../../core/cloud';
 import type { AppContext, BookMeta } from '../../types';
+import type { LangId } from '../../lang/types';
 import type { Importer } from './importer';
 
-const SEARCH = 'https://www.gutenberg.org/ebooks/search.opds/';
+const GUTENBERG_SEARCH = 'https://www.gutenberg.org/ebooks/search.opds/';
+
+export type SourceId = 'gutenberg' | 'wikisource';
 
 export interface FoundBook {
-  id: number;
+  source: SourceId;
+  /** Gutenberg's book number, or the Wikisource page's title. */
+  key: string;
   title: string;
   author: string;
   /** Other languages the book is also in (a bilingual reader), as Gutenberg names them. */
   also: string[];
 }
 
-/** The file name a book from Gutenberg is added under, so the dialog can tell it is already in the library. */
-export const gutenbergFile = (id: number): string => `gutenberg-${id}.epub`;
+/** The file name a book is added under, so the dialog can tell it is already in the library. */
+export const gutenbergFile = (id: number | string): string => `gutenberg-${id}.epub`;
+export const wikisourceFile = (code: string, title: string): string => `wikisource-${code}-${title.replace(/[/\\:*?"<>|]+/g, '_')}.epub`;
+const fileOf = (b: FoundBook, code: string) => (b.source === 'gutenberg' ? gutenbergFile(b.key) : wikisourceFile(code, b.key));
 
 /**
  * One page of Gutenberg's OPDS search: its books (navigation entries such as "Sort by" have no book number and are left out),
@@ -41,12 +52,12 @@ export function parseOpds(xml: string, language = ''): { books: FoundBook[]; nex
     }
     const content = (entry.getElementsByTagName('content')[0]?.textContent ?? '').replace(/\s+/g, ' ').trim();
     const author = /^\d[\d,]* downloads?$/.test(content) ? '' : content;
-    if (title) books.push({ id: Number(m[1]), title, author, also: langs.filter((l) => l !== language) });
+    if (title) books.push({ source: 'gutenberg', key: m[1], title, author, also: langs.filter((l) => l !== language) });
   }
   let next: number | null = null;
   for (const link of [...doc.getElementsByTagName('link')]) {
     if (link.getAttribute('rel') !== 'next') continue;
-    const start = Number(new URL(link.getAttribute('href') ?? '', SEARCH).searchParams.get('start_index'));
+    const start = Number(new URL(link.getAttribute('href') ?? '', GUTENBERG_SEARCH).searchParams.get('start_index'));
     if (start > 0) next = start;
   }
   return { books, next };
@@ -56,37 +67,101 @@ export function parseOpds(xml: string, language = ''): { books: FoundBook[]; nex
 export async function searchGutenberg(query: string, code: string, start = 1, signal?: AbortSignal): Promise<{ books: FoundBook[]; next: number | null }> {
   const params = new URLSearchParams({ query: `${query.trim()} l.${code}`.trim(), sort_order: 'downloads' });
   if (start > 1) params.set('start_index', String(start));
-  const res = await fetch(`${SEARCH}?${params}`, { signal });
+  const res = await fetch(`${GUTENBERG_SEARCH}?${params}`, { signal });
   if (!res.ok) throw new Error(`Project Gutenberg answered ${res.status}.`);
   return parseOpds(await res.text(), lang().name);
 }
 
-/** The book's EPUB, through the sync server. Throws with the server's own words when it says why it could not. */
-export async function fetchGutenberg(id: number, signal?: AbortSignal): Promise<File> {
-  const base = cloudBase();
-  if (!base) throw new Error('Adding books from Project Gutenberg needs the sync server, which this copy of Globereader does not have.');
-  const res = await fetch(`${base}/gutenberg/${id}`, { signal });
-  if (!res.ok) {
-    const why = await res.json().then((b: { error?: unknown }) => (typeof b?.error === 'string' ? b.error : ''), () => '');
-    throw new Error(why || `The book could not be downloaded (${res.status}).`);
+/** A list of a work's editions or of works sharing a name: a page to choose from, not a book. */
+const LIST_PAGE = /versions pages|disambiguation|éditions multiples|homonymie|begriffskl|消歧|曖昧|многозначн|desambiguaci|disambigua/i;
+
+/**
+ * Wikisource's search results that are works, in its order: a part of one ("吶喊/狂人日記"), an author's or a portal's page, and
+ * a list of editions or of works with the same name (flagged as disambiguation, or in such a category) are left out. Titles are
+ * plain text from the API (its snippets, which carry markup, are never used).
+ */
+export function parseWikisourceSearch(json: unknown): { books: FoundBook[]; next: number | null } {
+  type Page = { title?: unknown; index?: unknown; pageprops?: { disambiguation?: unknown }; categories?: { title?: unknown }[] };
+  const d = json as { query?: { pages?: Page[] }; continue?: { gsroffset?: unknown } };
+  const pages = [...(d?.query?.pages ?? [])].sort((a, b) => (Number(a.index) || 0) - (Number(b.index) || 0));
+  const books: FoundBook[] = [];
+  for (const p of pages) {
+    const title = typeof p.title === 'string' ? p.title.trim() : '';
+    if (!title || title.includes('/') || /^(?:Author|Autor|Auteur|Autore|Автор|作者|Portal|Portail|Категория|Category|Catégorie)\s*:/i.test(title)) continue;
+    if (p.pageprops && 'disambiguation' in p.pageprops) continue;
+    if ((p.categories ?? []).some((c) => typeof c.title === 'string' && LIST_PAGE.test(c.title))) continue;
+    books.push({ source: 'wikisource', key: title, title, author: '', also: [] });
   }
-  return new File([await res.blob()], gutenbergFile(id), { type: 'application/epub+zip' });
+  const offset = Number(d?.continue?.gsroffset);
+  return { books, next: Number.isInteger(offset) && offset > 0 ? offset : null };
 }
 
+export async function searchWikisource(query: string, code: string, offset = 0, signal?: AbortSignal): Promise<{ books: FoundBook[]; next: number | null }> {
+  const params = new URLSearchParams({
+    action: 'query', generator: 'search', gsrsearch: query.trim(), gsrnamespace: '0', gsrlimit: '25',
+    prop: 'pageprops|categories', ppprop: 'disambiguation', cllimit: 'max', format: 'json', formatversion: '2', origin: '*',
+  });
+  if (offset > 0) params.set('gsroffset', String(offset));
+  const res = await fetch(`https://${code}.wikisource.org/w/api.php?${params}`, { signal });
+  if (!res.ok) throw new Error(`Wikisource answered ${res.status}.`);
+  return parseWikisourceSearch(await res.json());
+}
+
+/**
+ * Where to start on Wikisource, which has no "most read" list: well-known works whose pages hold the whole work, checked
+ * 2026-11-09 (modern prose first for Chinese, then the long classics; Japanese has few modern works there).
+ */
+const WIKISOURCE_STARTERS: Partial<Record<LangId, string[]>> = {
+  zh: ['吶喊', '彷徨', '朝花夕拾', '故事新編', '野艸', '阿Q正傳', '浮生六記', '老殘遊記', '儒林外史', '鏡花緣', '聊齋志異', '世說新語', '封神演義'],
+  ja: ['蜘蛛の糸', '竹取物語', '土佐日記', '方丈記', '徒然草', '伊勢物語', '更級日記', '枕草子', '源氏物語'],
+};
+
+/** The book's EPUB, through the sync server. Throws with the server's own words when it says why it could not. */
+export async function fetchFound(b: FoundBook, code: string, signal?: AbortSignal): Promise<File> {
+  const base = cloudBase();
+  if (!base) throw new Error('Adding free books needs the sync server, which this copy of Globereader does not have.');
+  const url = b.source === 'gutenberg' ? `${base}/gutenberg/${b.key}` : `${base}/wikisource/${code}/${encodeURIComponent(b.key)}`;
+  const res = await fetch(url, { signal });
+  if (!res.ok) {
+    const why = await res.json().then((x: { error?: unknown }) => (typeof x?.error === 'string' ? x.error : ''), () => '');
+    throw new Error(why || `The book could not be downloaded (${res.status}).`);
+  }
+  return new File([await res.blob()], fileOf(b, code), { type: 'application/epub+zip' });
+}
+
+/** Kept for callers from before Wikisource: a Gutenberg book by its number. */
+export const fetchGutenberg = (id: number, signal?: AbortSignal): Promise<File> =>
+  fetchFound({ source: 'gutenberg', key: String(id), title: '', author: '', also: [] }, langId(), signal);
+
 export const canFindBooks = (): boolean => !!cloudBase();
+
+const SOURCES: Record<SourceId, { name: string; credit: string }> = {
+  gutenberg: { name: 'Project Gutenberg', credit: 'Books from gutenberg.org, free in the United States.' },
+  wikisource: { name: 'Wikisource', credit: 'Works from Wikisource, free to read and share.' },
+};
 
 /** The dialog. Resolves with the book to open when the reader chose Read on one just added (or already there). */
 export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<BookMeta | undefined> {
   const L = lang();
   const code = langId();
+  const name = code === 'zh' ? 'Chinese' : L.name;
   return showModal<BookMeta>('Find a free book', (api) => {
-    const input = h('input.input.lib-find-input', { type: 'search', placeholder: 'Title or author', 'aria-label': 'Search Project Gutenberg', autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
+    let source: SourceId = WIKISOURCE_STARTERS[code] ? 'wikisource' : 'gutenberg';
+    const input = h('input.input.lib-find-input', { type: 'search', placeholder: 'Title or author', 'aria-label': 'Search for a book', autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
+    const intro = h('p.lib-find-intro.muted');
     const heading = h('div.lib-find-heading', { role: 'status', 'aria-live': 'polite' });
     const list = h('ol.lib-find-list');
     const more = h('button.btn.lib-find-more', { type: 'button', hidden: true }, 'More books') as HTMLButtonElement;
+    const credit = h('span.lib-find-credit.muted');
+    const tabs = (Object.keys(SOURCES) as SourceId[]).map((id) => {
+      const b = h('button.lib-find-tab', { type: 'button', role: 'tab', 'aria-selected': 'false' }, SOURCES[id].name) as HTMLButtonElement;
+      b.addEventListener('click', () => { if (source !== id) { source = id; showSource(); void load(false); } });
+      return b;
+    });
+    const tabBar = h('div.lib-find-tabs', { role: 'tablist', 'aria-label': 'Where to look' }, tabs);
     let have: BookMeta[] = [];
     void ctx.store.books.list().then((b) => { have = b; for (const row of list.children) (row as HTMLElement & { sync?: () => void }).sync?.(); }, () => {});
-    const inLibrary = (id: number) => have.find((b) => b.sourceName === gutenbergFile(id));
+    const inLibrary = (b: FoundBook) => have.find((m) => m.sourceName === fileOf(b, code));
 
     const row = (b: FoundBook): HTMLElement => {
       const btn = h('button.btn.btn-sm.lib-find-add', { type: 'button' }) as HTMLButtonElement;
@@ -94,7 +169,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
       let added: BookMeta | undefined;
       let busy = false;
       const sync = () => {
-        added ??= inLibrary(b.id);
+        added ??= inLibrary(b);
         btn.replaceChildren(...(added ? ['Read'] : busy ? ['Adding…'] : [icon('plus'), 'Add']));
         btn.classList.toggle('btn-primary', !!added);
         btn.disabled = busy;
@@ -106,11 +181,11 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
         err.hidden = true;
         sync();
         try {
-          const file = await fetchGutenberg(b.id);
+          const file = await fetchFound(b, code);
           let problem = '';
           const [meta] = await importer.files([file], { quiet: true, onProblem: (message, twin) => { if (twin) added = twin; else problem = message; } });
           if (meta) { added = meta; have.push(meta); }
-          // The importer names the file, which here is only the book's number: the title is already on the row.
+          // The importer names the file, which here is only the book's number or page: the title is already on the row.
           if (problem) throw new Error(problem.replace(/^“[^”]*”:\s*/, ''));
         } catch (e) {
           err.textContent = navigator.onLine === false ? 'You are offline. Connect to the internet to add books.' : e instanceof Error ? e.message : 'The book could not be added.';
@@ -136,27 +211,45 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
     let ctrl: AbortController | null = null;
     let next: number | null = null;
     let query = '';
+    const showSource = () => {
+      tabs.forEach((t, i) => t.setAttribute('aria-selected', String((Object.keys(SOURCES) as SourceId[])[i] === source)));
+      credit.textContent = SOURCES[source].credit;
+      intro.textContent = source === 'gutenberg'
+        ? `Free public-domain books in ${name} from Project Gutenberg. Add one and it opens like any other book.`
+        : `Any work on the ${name} Wikisource, made into a book with its chapters. Search by title or author.`;
+    };
     const load = async (append: boolean) => {
       const mine = ++seq;
       ctrl?.abort();
       ctrl = new AbortController();
-      if (!append) {
-        list.replaceChildren();
-        heading.textContent = 'Searching…';
-      }
+      if (!append) { list.replaceChildren(); next = null; }
+      heading.textContent = append ? heading.textContent : 'Searching…';
       more.hidden = true;
       try {
-        const page = await searchGutenberg(query, code, append && next ? next : 1, ctrl.signal);
+        let page: { books: FoundBook[]; next: number | null };
+        if (source === 'wikisource' && !query) {
+          const starters = WIKISOURCE_STARTERS[code];
+          if (!starters) {
+            heading.textContent = `Type a title or an author to search the ${name} Wikisource.`;
+            return;
+          }
+          page = { books: starters.map((t) => ({ source: 'wikisource', key: t, title: t, author: '', also: [] })), next: null };
+        } else {
+          page = source === 'gutenberg'
+            ? await searchGutenberg(query, code, append && next ? next : 1, ctrl.signal)
+            : await searchWikisource(query, code, append && next ? next : 0, ctrl.signal);
+        }
         if (mine !== seq) return;
         next = page.next;
         list.append(...page.books.map(row));
         heading.textContent = list.childElementCount
-          ? (query ? `Books in ${L.name} matching “${query}”` : `The most read books in ${L.name}`)
-          : (query ? `No books in ${L.name} match “${query}”. Try a shorter title or the author’s last name.` : `Project Gutenberg has no books in ${L.name} yet.`);
+          ? (query ? `Books in ${name} matching “${query}”` : source === 'gutenberg' ? `The most read books in ${name}` : `Well-known works to start with`)
+          : (query ? `No books in ${name} match “${query}”. Try a shorter title or the author’s last name${source === 'gutenberg' && WIKISOURCE_STARTERS[code] === undefined ? ', or look on Wikisource' : ''}.`
+            : `${SOURCES[source].name} has no books in ${name} yet.`);
         more.hidden = !next;
       } catch (e) {
         if (mine !== seq || (e instanceof DOMException && e.name === 'AbortError')) return;
-        heading.textContent = navigator.onLine === false ? 'You are offline. Connect to the internet to find books.' : 'Project Gutenberg did not answer. Try again in a moment.';
+        heading.textContent = navigator.onLine === false ? 'You are offline. Connect to the internet to find books.' : `${SOURCES[source].name} did not answer. Try again in a moment.`;
       }
     };
     let timer = 0;
@@ -177,13 +270,11 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
       void load(false);
     });
     more.addEventListener('click', () => void load(true));
+    showSource();
     void load(false);
     return {
-      body: h('div.lib-find', null,
-        h('p.lib-find-intro.muted', null, `Free public-domain books in ${L.name} from Project Gutenberg. Add one and it opens like any other book.`),
-        h('div.lib-find-search', null, icon('search'), input),
-        heading, list, more),
-      footer: [h('span.lib-find-credit.muted', null, 'Books from gutenberg.org, free in the United States.'), h('button.btn', { type: 'button', onclick: () => api.close() }, 'Done')],
+      body: h('div.lib-find', null, tabBar, intro, h('div.lib-find-search', null, icon('search'), input), heading, list, more),
+      footer: [credit, h('button.btn', { type: 'button', onclick: () => api.close() }, 'Done')],
       focus: input,
     };
   }, { wide: true });
