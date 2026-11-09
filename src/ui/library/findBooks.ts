@@ -13,6 +13,8 @@ import { icon } from '../icons';
 import { showModal } from './dialogs';
 import { lang, langId } from '../../lang/active';
 import { cloudBase } from '../../core/cloud';
+import { LANGS, isLangId } from '../../lang/registry';
+import { targetLanguage } from '../../translate/targets';
 import { fetchDataText } from '../../core/dict';
 import type { AppContext, BookMeta } from '../../types';
 import type { LangId } from '../../lang/types';
@@ -175,6 +177,72 @@ const WIKISOURCE_STARTERS: Partial<Record<LangId, string[]>> = {
   ja: ['蜘蛛の糸', '竹取物語', '土佐日記', '方丈記', '徒然草', '伊勢物語', '更級日記', '枕草子', '源氏物語'],
 };
 
+/**
+ * A link to a book in one of the libraries, pasted into the search box: a Gutenberg book page (or one of its files), a page of a
+ * Wikisource, an Aozora Bunko card or work page. Null when it is no such link.
+ */
+export function parseBookLink(text: string): { source: SourceId; key: string; lang?: string } | null {
+  let url: URL;
+  try { url = new URL(text.trim()); } catch { return null; }
+  if (!/^https?:$/.test(url.protocol)) return null;
+  const host = url.hostname.toLowerCase().replace(/^www\./, '');
+  if (host === 'gutenberg.org' || host === 'dev.gutenberg.org') {
+    const m = /^\/(?:ebooks|cache\/epub|files)\/(\d{1,6})(?:[./]|$)/.exec(url.pathname);
+    return m ? { source: 'gutenberg', key: m[1] } : null;
+  }
+  const ws = /^([a-z]{2,3})(?:\.m)?\.wikisource\.org$/.exec(host);
+  if (ws) {
+    const m = /^\/wiki\/(.+)$/.exec(url.pathname);
+    if (!m) return null;
+    let title: string;
+    try { title = decodeURIComponent(m[1]); } catch { return null; }
+    title = title.replace(/_/g, ' ').trim();
+    return title ? { source: 'wikisource', key: title, lang: ws[1] } : null;
+  }
+  if (host === 'aozora.gr.jp') {
+    const card = /^\/cards\/(\d{6})\/card(\d+)\.html$/.exec(url.pathname);
+    if (card) return { source: 'aozora', key: card[2] };
+    const file = /^\/cards\/(\d{6})\/files\/(\d+)_\d+\.html$/.exec(url.pathname);
+    if (file) return { source: 'aozora', key: file[2] };
+  }
+  return null;
+}
+
+/** "Pérez Galdós, Benito" as people write it: Benito Pérez Galdós. */
+const nameOrder = (s: string) => { const m = /^([^,]+),\s*([^,]+)$/.exec(s.trim()); return m ? `${m[2]} ${m[1]}` : s.trim(); };
+
+/** The book a pasted link names, with its title and author when its library says them. Throws with a reason a reader can act on. */
+export async function bookFromLink(link: { source: SourceId; key: string; lang?: string }, code: LangId, signal?: AbortSignal): Promise<FoundBook> {
+  const name = code === 'zh' ? 'Chinese' : lang().name;
+  if (link.source === 'gutenberg') {
+    let title = `Project Gutenberg book ${link.key}`;
+    let author = '';
+    try {
+      const res = await fetch(`https://www.gutenberg.org/ebooks/${link.key}.opds`, { signal });
+      if (res.ok) {
+        const doc = new DOMParser().parseFromString(await res.text(), 'application/xml');
+        const entry = [...doc.getElementsByTagName('entry')].find((e) => e.getElementsByTagName('author').length);
+        title = entry?.getElementsByTagName('title')[0]?.textContent?.trim() || title;
+        author = nameOrder(entry?.getElementsByTagName('author')[0]?.getElementsByTagName('name')[0]?.textContent ?? '');
+      }
+    } catch (e) { if (e instanceof DOMException && e.name === 'AbortError') throw e; }
+    return { source: 'gutenberg', key: link.key, title, author, also: [] };
+  }
+  if (link.source === 'wikisource') {
+    if (link.lang && link.lang !== code) {
+      const other = LANGS[link.lang as LangId]?.name ?? targetLanguage(link.lang)?.name;
+      throw new Error(other && isLangId(link.lang)
+        ? `That page is on the ${other} Wikisource. Open the ${other} library to add it; this one reads ${name}.`
+        : `That page is on ${other ? `the ${other}` : 'another language’s'} Wikisource, a language Globereader does not read yet.`);
+    }
+    return { source: 'wikisource', key: link.key, title: link.key, author: '', also: [] };
+  }
+  if (code !== 'ja') throw new Error(`Aozora Bunko's works are in Japanese. Open the Japanese library to add one; this one reads ${name}.`);
+  const work = (await loadAozora()).find((w) => w.id === link.key);
+  if (!work) throw new Error('That Aozora Bunko work is not one Globereader can add: it may still be under copyright, or have no XHTML page.');
+  return aozoraBook(work);
+}
+
 /** The book's EPUB, through the sync server. Throws with the server's own words when it says why it could not. */
 export async function fetchFound(b: FoundBook, code: string, signal?: AbortSignal): Promise<File> {
   const base = cloudBase();
@@ -214,7 +282,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
   return showModal<BookMeta>('Find a free book', (api) => {
     const offered = sourcesFor(code);
     let source: SourceId = offered[0];
-    const input = h('input.input.lib-find-input', { type: 'search', placeholder: 'Title or author', 'aria-label': 'Search for a book', autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
+    const input = h('input.input.lib-find-input', { type: 'search', placeholder: 'Title, author, or a link to a book', 'aria-label': 'Search for a book, or paste a link to one', autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
     const intro = h('p.lib-find-intro.muted');
     const heading = h('div.lib-find-heading', { role: 'status', 'aria-live': 'polite' });
     const list = h('ol.lib-find-list');
@@ -297,7 +365,11 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
       more.hidden = true;
       try {
         let page: { books: FoundBook[]; next: number | null };
-        if (source === 'aozora') {
+        const link = parseBookLink(query);
+        if (link) {
+          // A pasted link: that one book, whichever library it is in.
+          page = { books: [await bookFromLink(link, code, ctrl.signal)], next: null };
+        } else if (source === 'aozora') {
           const found = searchAozora(await loadAozora(), query);
           const from = append && next ? next : 0;
           const to = from + AOZORA_PAGE;
@@ -318,13 +390,15 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
         next = page.next;
         list.append(...page.books.map(row));
         heading.textContent = list.childElementCount
-          ? (query ? `Books in ${name} matching “${query}”` : source === 'wikisource' ? `Well-known works to start with` : `The most read books in ${name}`)
+          ? (link ? 'The book at that link' : query ? `Books in ${name} matching “${query}”` : source === 'wikisource' ? `Well-known works to start with` : `The most read books in ${name}`)
           : (query ? `No books in ${name} match “${query}”. Try a shorter title or the author’s last name${source === 'gutenberg' && WIKISOURCE_STARTERS[code] === undefined ? ', or look on Wikisource' : ''}.`
             : `${SOURCES[source].name} has no books in ${name} yet.`);
         more.hidden = !next;
       } catch (e) {
         if (mine !== seq || (e instanceof DOMException && e.name === 'AbortError')) return;
-        heading.textContent = navigator.onLine === false ? 'You are offline. Connect to the internet to find books.' : `${SOURCES[source].name} did not answer. Try again in a moment.`;
+        heading.textContent = navigator.onLine === false ? 'You are offline. Connect to the internet to find books.'
+          : parseBookLink(query) && e instanceof Error ? e.message
+          : `${SOURCES[source].name} did not answer. Try again in a moment.`;
       }
     };
     let timer = 0;

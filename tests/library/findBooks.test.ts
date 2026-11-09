@@ -70,3 +70,19 @@ bad\tno file\t\t\t\t1\tnot/a/path\t
     expect(sourcesFor('es')).toEqual(['gutenberg', 'wikisource']);
   });
 });
+
+describe('a pasted link', () => {
+  it('names the book in whichever library it is, and nothing else', async () => {
+    const { parseBookLink } = await import('../../src/ui/library/findBooks');
+    expect(parseBookLink('https://www.gutenberg.org/ebooks/17340')).toEqual({ source: 'gutenberg', key: '17340' });
+    expect(parseBookLink('https://www.gutenberg.org/cache/epub/17340/pg17340-images.html')).toEqual({ source: 'gutenberg', key: '17340' });
+    expect(parseBookLink(' http://gutenberg.org/ebooks/2000.epub3.images ')).toEqual({ source: 'gutenberg', key: '2000' });
+    expect(parseBookLink('https://zh.wikisource.org/wiki/%E9%98%BFQ%E6%AD%A3%E5%82%B3')).toEqual({ source: 'wikisource', key: '阿Q正傳', lang: 'zh' });
+    expect(parseBookLink('https://fr.m.wikisource.org/wiki/Le_Horla_(recueil,_Ollendorff_1895)')).toEqual({ source: 'wikisource', key: 'Le Horla (recueil, Ollendorff 1895)', lang: 'fr' });
+    expect(parseBookLink('https://www.aozora.gr.jp/cards/000148/card752.html')).toEqual({ source: 'aozora', key: '752' });
+    expect(parseBookLink('https://www.aozora.gr.jp/cards/000148/files/752_14964.html')).toEqual({ source: 'aozora', key: '752' });
+    for (const no of ['夏目漱石', 'gutenberg.org/ebooks/1', 'https://example.com/ebooks/12', 'https://www.gutenberg.org/ebooks/search/?query=x', 'javascript:alert(1)', 'https://zh.wikisource.org/w/index.php?title=x', 'https://www.aozora.gr.jp/index_pages/person148.html']) {
+      expect(parseBookLink(no)).toBeNull();
+    }
+  });
+});
