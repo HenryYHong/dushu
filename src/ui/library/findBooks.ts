@@ -275,7 +275,7 @@ export const sourcesFor = (code: LangId): SourceId[] =>
   code === 'ja' ? ['aozora', 'wikisource', 'gutenberg'] : code === 'zh' ? ['wikisource', 'gutenberg'] : ['gutenberg', 'wikisource'];
 
 /** The dialog. Resolves with the book to open when the reader chose Read on one just added (or already there). */
-export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<BookMeta | undefined> {
+export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { query?: string } = {}): Promise<BookMeta | undefined> {
   const L = lang();
   const code = langId();
   const name = code === 'zh' ? 'Chinese' : L.name;
@@ -420,6 +420,8 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
     });
     more.addEventListener('click', () => void load(true));
     showSource();
+    // Opened on a link shared to the app, or a search: it shows that at once.
+    if (opts.query) { input.value = opts.query; query = opts.query.trim(); }
     void load(false);
     return {
       body: h('div.lib-find', null, tabBar, intro, h('div.lib-find-search', null, icon('search'), input), heading, list, more),

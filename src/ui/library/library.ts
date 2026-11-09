@@ -1,7 +1,8 @@
 // Library screen: book grid, continue card, import (button, drop anywhere, paste), classics. ARCHITECTURE.md 5.4.
 import '../../styles/library.css';
 import { goalCard } from '../goalCard';
-import { canFindBooks, findBooksDialog } from './findBooks';
+import { canFindBooks, findBooksDialog, parseBookLink } from './findBooks';
+import { INCOMING_EVENT, takeIncoming } from './incoming';
 import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
@@ -182,15 +183,33 @@ export const mount: MountFn = (root, _params, ctx) => {
   });
   prefetchImporters();
 
-  async function openFind(): Promise<void> {
-    const meta = await findBooksDialog(ctx, importer);
+  async function openFind(query?: string): Promise<void> {
+    const meta = await findBooksDialog(ctx, importer, { query });
     if (meta && alive) ctx.navigate(readHref(meta.id));
   }
 
-  async function openPaste(): Promise<void> {
-    const meta = await pasteDialog((text, title, author) => importer.text(text, title, author));
+  async function openPaste(given?: { text?: string; title?: string }): Promise<void> {
+    const meta = await pasteDialog((text, title, author) => importer.text(text, title, author), given);
     if (meta && alive) ctx.navigate(readHref(meta.id));
   }
+
+  /** A book opened with the app, or shared to it: files are added (one opens), a link to a book finds it, text is pasted. */
+  const takeOutside = async () => {
+    const got = await takeIncoming();
+    if (!got || !alive) return;
+    if (got.files.length) {
+      const added = await importer.files(got.files);
+      if (added.length === 1 && alive) ctx.navigate(readHref(added[0].id));
+      return;
+    }
+    const link = [got.url, ...got.text.split(/\s+/)].map((t) => t.trim()).find((t) => t && parseBookLink(t));
+    if (link && canFindBooks()) { void openFind(link); return; }
+    const text = [got.text, got.url].filter((t) => t.trim()).join('\n\n');
+    if (text.trim()) void openPaste({ text, title: got.title });
+  };
+  const onIncoming = () => void takeOutside();
+  window.addEventListener(INCOMING_EVENT, onIncoming);
+  void takeOutside();
 
   // ---- data ----
   async function load(): Promise<void> {
@@ -675,6 +694,7 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   return () => {
     alive = false;
+    window.removeEventListener(INCOMING_EVENT, onIncoming);
     goal.dispose();
     closeMenu();
     offChange();

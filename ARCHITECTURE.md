@@ -1652,6 +1652,13 @@ and opens it. Empty state explains what the app does in two sentences.
   `takeMarkedRuby` turns the marks into spans at the end. Chinese pages keep dropping <rt> (pinyin) as before.
 - Problems while adding (wrong language, a damaged file, already in the library) are said in the dialog, not in a toast it
   would cover (`Importer.files` `onProblem`).
+- A link pasted into the search box (`parseBookLink`: a Gutenberg book or file, a page of any Wikisource, an Aozora card or work
+  page) shows that one book, whichever tab is open; a link to another language's library says which library to open.
+- From outside the app (`ui/library/incoming.ts`): the manifest's `share_target` (Android) posts to `./share-target`, which
+  sw.js answers by keeping the files (up to 20), title, text and link in the cache `dushu-shared` and redirecting to the library;
+  its `file_handlers` ("Open with", installed from Chrome or Edge) hand files to `launchQueue`, kept from the start of main.ts.
+  The library takes either when it opens: files are imported (one opens), a link to a book opens Find a book on it, other text
+  opens Paste text filled in. iOS offers neither.
 
 ### 5.5 Vocab and review (`ui/vocab/`, `ui/review/`)
 - Vocab: searchable/sortable table (word, pinyin, gloss, context sentence with the word bold,

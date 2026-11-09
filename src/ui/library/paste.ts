@@ -13,7 +13,7 @@ const ownText = (): RegExp => {
 };
 const HEADING_EXAMPLE: Record<string, string> = { zh: '第一章', ja: '第一章', es: 'Capítulo 1', fr: 'Chapitre 1', de: 'Kapitel 1', it: 'Capitolo 1', pt: 'Capítulo 1', ru: 'Глава 1' };
 
-export function pasteDialog(submit: (text: string, title: string, author: string) => Promise<BookMeta | null>): Promise<BookMeta | undefined> {
+export function pasteDialog(submit: (text: string, title: string, author: string) => Promise<BookMeta | null>, given: { text?: string; title?: string } = {}): Promise<BookMeta | undefined> {
   return showModal<BookMeta>('Paste text', (api) => {
     const title = h('input.input', { type: 'text', placeholder: 'Title (optional)', 'aria-label': 'Title', autocomplete: 'off' }) as HTMLInputElement;
     const author = h('input.input', { type: 'text', placeholder: 'Author (optional)', 'aria-label': 'Author', autocomplete: 'off' }) as HTMLInputElement;
@@ -29,6 +29,9 @@ export function pasteDialog(submit: (text: string, title: string, author: string
       const elsewhere = !has && L.id !== 'zh' && text.value.trim() ? wrongLanguage(text.value.slice(0, 4000), L.id)?.replace(/^This book/, 'This text') : null;
       hint.textContent = elsewhere ?? (text.value.trim() && !has ? `No ${L.id === 'zh' ? 'Chinese characters' : `${L.name} text`} found in this text.` : headingHint);
     };
+    // Text shared to the app comes filled in.
+    if (given.text) text.value = given.text;
+    if (given.title) title.value = given.title;
     text.addEventListener('input', sync);
     sync();
     go.addEventListener('click', async () => {

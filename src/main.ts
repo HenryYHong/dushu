@@ -24,6 +24,7 @@ import { noChineseDictionary } from './lang/noChinese';
 import { langChip } from './ui/langSwitch';
 import { needsWelcome } from './core/plan';
 import { startReadingClock } from './core/readingClock';
+import { listenForOpenedFiles } from './ui/library/incoming';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -63,6 +64,8 @@ async function boot(): Promise<void> {
   // Asked before anything is written: a device that has never been used is welcomed (ui/welcome.ts) before the dictionary
   // downloads, so someone learning Spanish never waits for the Chinese one.
   const welcome = needsWelcome();
+  // A book opened with the installed app ("Open with") is kept for the library from the very start.
+  listenForOpenedFiles();
   injectFonts();
   const L = lang();
   document.documentElement.dataset.lang = L.id;

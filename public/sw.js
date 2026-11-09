@@ -92,7 +92,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const langs = new Set(Object.keys(LANG_VERSIONS).map(langCache));
     for (const name of await caches.keys()) {
-      if (name.startsWith('dushu-') && name !== APP_CACHE && name !== STATIC_CACHE && name !== FONT_CACHE && !langs.has(name)) await caches.delete(name);
+      if (name.startsWith('dushu-') && name !== APP_CACHE && name !== STATIC_CACHE && name !== FONT_CACHE && name !== SHARED_CACHE && !langs.has(name)) await caches.delete(name);
     }
     // A service worker from before the languages filed a language's files with the Chinese data (data/es/, samples/ja/ in
     // the static cache). They are read only from the language's own cache now, so the copies there would only take room.
@@ -140,8 +140,29 @@ async function cacheFirst(request, cacheName) {
   return res;
 }
 
+/**
+ * Something shared to the installed app (manifest share_target, Android): its files, title, text and link are kept in a cache
+ * of their own and the library opens, which takes them (ui/library/incoming.ts). Only this app's own share address is answered.
+ */
+const SHARED_CACHE = 'dushu-shared';
+async function takeShare(request) {
+  try {
+    const form = await request.formData();
+    const cache = await caches.open(SHARED_CACHE);
+    const files = form.getAll('books').filter((f) => f && typeof f === 'object' && 'size' in f && f.size > 0).slice(0, 20);
+    await Promise.all(files.map((f, i) => cache.put(`./shared/file-${i}`, new Response(f, { headers: { 'Content-Type': f.type || 'application/octet-stream', 'X-Name': encodeURIComponent(f.name || `book-${i}`) } }))));
+    const field = (k) => { const v = form.get(k); return typeof v === 'string' ? v.slice(0, 200000) : ''; };
+    await cache.put('./shared/meta', new Response(JSON.stringify({ files: files.length, title: field('title'), text: field('text'), url: field('url') }), { headers: { 'Content-Type': 'application/json' } }));
+  } catch { /* nothing usable was shared: the library opens as it is */ }
+  return Response.redirect(new URL('./#/', self.registration.scope).href, 303);
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
+  if (request.method === 'POST' && relPath(new URL(request.url)) === 'share-target' && new URL(request.url).origin === self.location.origin) {
+    event.respondWith(takeShare(request));
+    return;
+  }
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   // Only this app's own files. Translation APIs and stroke-order data on other origins are left alone.
