@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { importFile } from '../../src/import';
 import { cleanAuthorName, cleanAuthors, parseFilename, authorFromLine } from '../../src/import/meta';
-import { dropTitlePage } from '../../src/import/spine';
+import { dropContentsPages, dropTitlePage } from '../../src/import/spine';
 import { CONTAINER, asFile, makeEpub, ncxDoc, opf, prose, xhtml } from './helpers';
 
 describe('author names', () => {
@@ -99,5 +99,30 @@ describe('EPUB title page and heading spelling', () => {
     expect(dropTitlePage([ch('道', ['道']), rest], '道德经', '老子')).toHaveLength(2); // one character is too little to match
     expect(dropTitlePage([ch('序', [prose(100)]), rest], '天龙八部', '金庸')).toHaveLength(2);
     expect(dropTitlePage([ch('天龙八部', ['天龙八部'])], '天龙八部', '金庸')).toHaveLength(1); // never the only chapter
+  });
+
+  it('drops a printed title page as Project Gutenberg keeps it, and never a short first poem', () => {
+    const ch = (title: string, texts: string[]) => ({ title, blocks: texts.map((text) => ({ t: 'p' as const, text })) });
+    const rest = ch('I', [prose(100)]);
+    // Marianela (Gutenberg 17340): the title, "Por", the author, the printer, the city, the year.
+    expect(dropTitlePage([ch('Marianela', ['Marianela', 'Por', 'Benito Pérez Galdós', 'Imprenta y Litografía de La Guirnalda', 'Madrid', '1878']), rest], 'Marianela', 'Benito Pérez Galdós')).toEqual([rest]);
+    expect(dropTitlePage([ch('道德經', ['Produced by Ching-yi Chen', '老子《道德經》第一~四十章', '老子道經']), rest], '道德經', 'Laozi')).toEqual([rest]);
+    // A poem headed with the book's title says nothing of a printed book.
+    expect(dropTitlePage([ch('Rimas', ['Rimas', 'Volverán las oscuras golondrinas', 'en tu balcón sus nidos a colgar']), rest], 'Rimas', 'Gustavo Adolfo Bécquer')).toHaveLength(2);
+    // A line that ends a sentence is the book talking, not its title page.
+    expect(dropTitlePage([ch('Marianela', ['Marianela', 'Benito Pérez Galdós', 'Se puso el sol.']), rest], 'Marianela', 'Benito Pérez Galdós')).toHaveLength(2);
+  });
+
+  it('drops a contents page kept as a chapter, and keeps a short chapter that lists other things', () => {
+    const ch = (title: string, texts: string[]) => ({ title, blocks: texts.map((text) => ({ t: 'p' as const, text })) });
+    const body = ['-I- Perdido', '-II- Guiado', '-III- Un diálogo', '-IV- La familia de piedra'].map((t) => ch(t, [prose(100)]));
+    const toc = ch('Capítulos:', ['Capítulos:', '-I-,', '-II-,', '-III-,', '-IV-.']);
+    expect(dropContentsPages([toc, ...body])).toEqual(body);
+    expect(dropContentsPages([ch('Contents', ['Contents', 'Preface', 'The Voyage', 'Notes']), ...body])).toEqual(body);
+    // The titles listed, without a heading (an index at the end).
+    expect(dropContentsPages([...body, ch('', ['I. Perdido', 'II. Guiado', 'III. Un diálogo', 'IV. La familia de piedra'])])).toEqual(body);
+    // A chapter of short lines that are not the book's chapters, and no contents heading: a poem, kept.
+    const poem = ch('Rima I', ['Yo sé un himno gigante y extraño', 'que anuncia en la noche del alma una aurora', 'y estas páginas son de ese himno', 'cadencias que el aire dilata en las sombras']);
+    expect(dropContentsPages([poem, ...body])).toEqual([poem, ...body]);
   });
 });

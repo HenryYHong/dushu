@@ -94,6 +94,9 @@ const WRONG_PER_NETWORK = 20;
 /** Accounts started on invites from one network a day (a classroom shares one), and passkey sign-ins and invite checks. */
 const JOINS_PER_NETWORK = 40;
 const PASSKEYS_PER_NETWORK = 300;
+/** Books one network may fetch from Project Gutenberg through the Worker in a day (gutenbergBook), and the largest one. */
+const BOOKS_PER_NETWORK = 200;
+const BOOK_MAX_BYTES = 40 * 1024 * 1024;
 
 /**
  * The network a request came from, as the limits count it: an IPv4 address, or an IPv6 address's /64 (anyone holding one
@@ -520,6 +523,8 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
 async function route(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
   const path = new URL(request.url).pathname;
   if (path === '/' && request.method === 'GET') return json(200, { app: 'dushu-sync' });
+  const gutenberg = /^\/gutenberg\/([1-9]\d{0,5})$/.exec(path);
+  if (gutenberg && request.method === 'GET') return gutenbergBook(gutenberg[1], request, env, ctx);
   const passkeys = await passkeyRoute(path, request, env);
   if (passkeys) return passkeys;
 
@@ -638,6 +643,43 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     return call(env, stub, 'sync', await readJson(request, SYNC_LIMITS.body), s);
   }
   throw new CloudError(404, 'Not found.');
+}
+
+/**
+ * A public-domain book from Project Gutenberg, by its number (ui/library/findBooks.ts). Gutenberg's search answers a page
+ * directly, but its files do not let a page read them, so the Worker fetches the EPUB for Globereader's own pages: only a book
+ * number, only from gutenberg.org, each kept a week in the Worker's cache, and a few hundred a day from one network. Nothing
+ * about the reader is kept or passed on.
+ */
+async function gutenbergBook(id: string, request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+  const origin = request.headers.get('Origin') ?? '';
+  if (!ORIGINS.some((r) => r.test(origin))) throw new CloudError(403, 'Books are fetched for Globereader’s own pages only.');
+  const cache = typeof caches === 'undefined' ? undefined : (caches as unknown as { default?: Cache }).default;
+  const key = new Request(`https://gutenberg.books/${id}.epub`);
+  const hit = await cache?.match(key);
+  if (hit) return hit;
+  const ip = request.headers.get('CF-Connecting-IP');
+  if (ip && !await takeShared(env, [{ name: `books:${await networkOf(ip)}`, n: 1, max: BOOKS_PER_NETWORK }])) {
+    throw new CloudError(429, 'Too many books were added from this network today. Try again tomorrow.');
+  }
+  // The EPUB 3 with its pictures (and cover) first, then the plain one older books have.
+  for (const file of [`pg${id}-images-3.epub`, `pg${id}-images.epub`, `pg${id}.epub`]) {
+    const res = await fetch(`https://www.gutenberg.org/cache/epub/${id}/${file}`, { headers: { 'User-Agent': 'Globereader-sync/0.1 (personal reading app)' } });
+    if (!res.ok) continue;
+    if (Number(res.headers.get('Content-Length')) > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to add.');
+    const bytes = await res.arrayBuffer();
+    if (bytes.byteLength > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to add.');
+    // An EPUB is a zip: anything else (an error page) is not a book.
+    const head = new Uint8Array(bytes, 0, Math.min(4, bytes.byteLength));
+    if (head[0] !== 0x50 || head[1] !== 0x4b) continue;
+    const out = new Response(bytes, { headers: { 'Content-Type': 'application/epub+zip', 'Cache-Control': 'public, max-age=604800' } });
+    if (cache) {
+      const put = cache.put(key, out.clone());
+      if (ctx) ctx.waitUntil(put); else await put;
+    }
+    return out;
+  }
+  throw new CloudError(404, 'Project Gutenberg has no EPUB of that book.');
 }
 
 function failure(e: unknown): Response {

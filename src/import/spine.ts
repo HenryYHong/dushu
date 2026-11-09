@@ -99,11 +99,13 @@ export function chaptersFromSpine(docs: SpineDoc[], toc: TocRef[]): Chapter[] {
 
 /**
  * A first page that only repeats the book's title and author ("天龙八部" over "原著：金庸") is not a
- * chapter. It is dropped when other chapters follow.
+ * chapter. It is dropped when other chapters follow. So is a printed title page around them, as Project Gutenberg keeps it:
+ * "Marianela / Por / Benito Pérez Galdós / Imprenta y Litografía de La Guirnalda / Madrid / 1878" (short lines that end no
+ * sentence, and a year), as long as the title or the author is one of its lines.
  */
 export function dropTitlePage(chapters: Chapter[], title: string, author: string): Chapter[] {
   const first = chapters[0];
-  if (!first || chapters.length < 2 || first.blocks.length > 4) return chapters;
+  if (!first || chapters.length < 2 || first.blocks.length > 10) return chapters;
   if (first.blocks.some((b) => b.t === 'img' || b.t === 'quote')) return chapters;
   if (first.blocks.reduce((n, b) => n + countHan(blockText(b)), 0) > 40 * unitScale()) return chapters;
   const names = [title, ...author.split(/,\s*/)].map(squash).filter(Boolean);
@@ -112,5 +114,38 @@ export function dropTitlePage(chapters: Chapter[], title: string, author: string
     return !!bare && names.some((n) => n === bare || (bare.length >= 2 && (n.includes(bare) || bare.includes(n))));
   };
   const texts = first.blocks.filter((b) => b.t !== 'hr').map(blockText);
-  return texts.length > 0 && texts.every(known) ? chapters.slice(1) : chapters;
+  if (!texts.length) return chapters;
+  if (texts.length <= 4 && texts.every(known)) return chapters.slice(1);
+  const furniture = (t: string) => /^\d{3,4}\.?$/.test(t.trim()) || (t.trim().length <= 60 && !/[.!?;。！？；…]["”’»」』]?$/.test(t.trim()));
+  // What only a title page has, so a short first poem headed with the book's title is never taken for one: the author, a year,
+  // a credit or a publisher.
+  const authors = author.split(/,\s*/).map(squash).filter((n) => n.length >= 2);
+  const printed = (t: string) => authors.some((a) => squash(t).includes(a)) || /^\d{3,4}\.?$/.test(t.trim())
+    || /^(?:produced by|by|por|par|von|di|от|著|作者|譯|译)\b|imprenta|editorial|librer[ií]a|verlag|[ée]ditions?|edizioni|editora|издани|出版|書局|书局/i.test(t.trim());
+  return texts.some(known) && texts.some(printed) && texts.every((t) => known(t) || furniture(t)) ? chapters.slice(1) : chapters;
+}
+
+/** Headings of a contents page, in the languages the app reads. */
+const CONTENTS = /^(?:contents|table of contents|índice|indice|capítulos|capitulos|sumario|sumário|chapitres|table des matières|table|sommaire|inhalt|inhaltsverzeichnis|sommario|содержание|оглавление|目录|目錄|目次|もくじ)\s*[:.：]?$/i;
+
+/**
+ * A contents page kept as a chapter of its own (Project Gutenberg's "Capítulos: -I-, -II-, …"): a chapter near the start or
+ * the end whose lines are the other chapters' titles, or which is headed as a contents page and is all short lines. The
+ * reader has its own contents, so this one only stands between the reader and the first page.
+ */
+export function dropContentsPages(chapters: Chapter[]): Chapter[] {
+  if (chapters.length < 3) return chapters;
+  const norm = (t: string) => t.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const isContents = (c: Chapter, i: number): boolean => {
+    const lines = c.blocks.filter((b) => b.t !== 'hr').map((b) => blockText(b).trim()).filter(Boolean);
+    if (lines.length < 3 || lines.some((l) => l.length > 120) || c.blocks.some((b) => b.t === 'img')) return false;
+    const head = CONTENTS.test(c.title.trim()) || CONTENTS.test(lines[0]);
+    const others = chapters.filter((_, k) => k !== i).map((o) => norm(o.title)).filter(Boolean);
+    const named = lines.filter((l) => {
+      const n = norm(l);
+      return !!n && others.some((o) => o === n || o.startsWith(`${n} `) || n.startsWith(`${o} `));
+    }).length;
+    return named >= Math.max(3, (lines.length - (head ? 1 : 0)) * 0.6) || (head && lines.slice(1).every((l) => l.length <= 80));
+  };
+  return chapters.filter((c, i) => !((i < 3 || i >= chapters.length - 2) && isContents(c, i)));
 }

@@ -82,13 +82,16 @@ export function sameBookIn<B extends BookMeta>(book: Pick<ImportedBook, 'title' 
   return books.find((b) => shapeKey(b) === key);
 }
 
+/**
+ * `quiet` skips the "Added" toast, for a caller that says it once for a whole batch. `mac` is for the Mac's own books
+ * (syncMacBooks): they are always added, even beside a copy imported by hand. `onProblem` hears what would have been a toast
+ * (a book that could not be read, or one already in the library), for a caller whose dialog covers the toasts.
+ */
+export interface FileOpts { quiet?: boolean; mac?: boolean; onProblem?: (message: string, twin?: BookMeta) => void }
+
 export interface Importer {
   jobs: Job[];
-  /**
-   * `quiet` skips the "Added" toast, for a caller that says it once for a whole batch. `mac` is for the Mac's own books
-   * (syncMacBooks): they are always added, even beside a copy imported by hand.
-   */
-  files(files: File[], opts?: { quiet?: boolean; mac?: boolean }): Promise<BookMeta[]>;
+  files(files: File[], opts?: FileOpts): Promise<BookMeta[]>;
   text(text: string, title: string, author: string): Promise<BookMeta | null>;
   sample(s: Sample): Promise<BookMeta | null>;
 }
@@ -106,6 +109,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
     who: { title: string; author?: string },
     make: (m: ImportModule, onProgress: (f: number) => void) => Promise<ImportedBook> | ImportedBook,
     twinOf?: (book: ImportedBook, m: ImportModule) => BookMeta | undefined,
+    onProblem?: FileOpts['onProblem'],
   ): Promise<BookMeta | null> {
     const job: Job = { id: nextId++, label, fraction: 0, title: who.title, author: who.author ?? '' };
     jobs.push(job);
@@ -117,6 +121,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       const book = await make(m, (f) => { job.fraction = Math.min(1, Math.max(0, f)) * 0.9; onJobs(); });
       const twin = twinOf?.(book, m);
       if (twin) {
+        if (onProblem) { onProblem(`“${shown(twin.title)}” is already in your library.`, twin); return null; }
         ctx.toast(`“${shown(twin.title)}” is already in your library.`, { action: { label: 'Open', run: () => ctx.navigate(`/read/${encodeURIComponent(twin.id)}`) }, ms: 7000 });
         return null;
       }
@@ -130,7 +135,8 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       for (const w of book.warnings ?? []) ctx.toast(`${label}: ${w}`, { ms: 9000 });
       return meta;
     } catch (e) {
-      ctx.toast(errorText(e, label, m?.ImportError), { ms: 9000 });
+      if (onProblem) onProblem(errorText(e, label, m?.ImportError));
+      else ctx.toast(errorText(e, label, m?.ImportError), { ms: 9000 });
       return null;
     } finally {
       jobs.splice(jobs.indexOf(job), 1);
@@ -152,7 +158,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
         }
         // A file picked again would be a second card with its own progress: the book it copies is offered instead.
         const twinOf = opts?.mac ? undefined : (book: ImportedBook, m: ImportModule) => sameBookIn(book, m.countHan, have);
-        const meta = await run(`“${f.name}”`, { title: titleFromFileName(f.name) }, (m, onProgress) => m.importFile(f, { onProgress }), twinOf);
+        const meta = await run(`“${f.name}”`, { title: titleFromFileName(f.name) }, (m, onProgress) => m.importFile(f, { onProgress }), twinOf, opts?.onProblem);
         if (meta) { added.push(meta); have.push(meta); }
       }
       if (opts?.quiet) return added;

@@ -12,7 +12,7 @@ import { parseXhtml } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
 import { readIndex, type IndexTable } from './mobiIndex';
 import { COMPRESSION_HUFF, COMPRESSION_NONE, COMPRESSION_PALMDOC, HuffReader, palmdocDecompress, trailingSize } from './mobiText';
-import { chaptersFromSpine, dropTitlePage, type SpineDoc, type TocRef } from './spine';
+import { chaptersFromSpine, dropContentsPages, dropTitlePage, type SpineDoc, type TocRef } from './spine';
 import { bookFromText } from './txt';
 
 export const KINDLE_DRM_MESSAGE =
@@ -563,7 +563,7 @@ export async function importMobi(data: Uint8Array, sourceName: string, onProgres
     author,
     format: isAzw3 ? 'azw3' : 'mobi',
     script: 'unknown',
-    chapters: dropTitlePage(finalizeChapters(dropLeadingNoise(stripGutenberg(tightenSpaces(chapters), title))), title, author),
+    chapters: dropTitlePage(dropContentsPages(finalizeChapters(dropLeadingNoise(stripGutenberg(tightenSpaces(chapters), title)))), title, author),
     assets: store.assets,
     cover,
     sourceName,

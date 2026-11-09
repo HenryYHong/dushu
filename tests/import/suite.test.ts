@@ -331,8 +331,9 @@ const CASES: Case[] = [
   },
 
   // ---------------------------------------------------------------------------------------------------------- Kindle ---
-  { file: 'gutenberg-daodejing.azw3', upload: 'daodejing.azw3', make: () => kindle('daodejing.gutenberg.azw3'), expect: { title: '道德經', author: 'Laozi', script: 'traditional', chapters: ['道德經', ...DAODEJING_CHAPTERS], sourceSpaces: 6 } },
-  { file: 'gutenberg-daodejing.mobi', upload: 'daodejing.mobi', make: () => kindle('daodejing.gutenberg.mobi'), expect: { title: '道德經', author: 'Laozi', script: 'traditional', chapters: ['道德經', ...DAODEJING_CHAPTERS], sourceSpaces: 6 } },
+  // Gutenberg's title page ("Produced by …", the title, 老子道經) is no chapter: the book opens on 第一章 (spine.ts dropTitlePage).
+  { file: 'gutenberg-daodejing.azw3', upload: 'daodejing.azw3', make: () => kindle('daodejing.gutenberg.azw3'), expect: { title: '道德經', author: 'Laozi', script: 'traditional', chapters: DAODEJING_CHAPTERS, sourceSpaces: 6 } },
+  { file: 'gutenberg-daodejing.mobi', upload: 'daodejing.mobi', make: () => kindle('daodejing.gutenberg.mobi'), expect: { title: '道德經', author: 'Laozi', script: 'traditional', chapters: DAODEJING_CHAPTERS, sourceSpaces: 6 } },
   {
     file: 'kf8-azw3.azw3', upload: `${T}.azw3`,
     make: () => buildKf8({ title: T, author: A, files: HANS.map(([t, ps]) => `<h2>${esc(t)}</h2>` + ps.map((p) => `<p>${esc(p)}</p>`).join('')), fragsPerFile: 3, toc: HANS.map(([t], i) => ({ file: i, offset: 0, title: t })) }).bytes,

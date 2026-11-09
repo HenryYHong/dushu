@@ -43,6 +43,21 @@ try {
     await page.screenshot({ path: join(out, name), omitBackground: kind === 'round' });
     console.log(`wrote public/icons/${name} (${px}px)`);
   }
+  // The picture a shared link shows (og:image in index.html): the icon, the name in Newsreader italic and what the app does.
+  const font = (f) => `data:font/woff2;base64,${readFileSync(join(root, 'public', 'fonts', f)).toString('base64')}`;
+  await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
+  await page.setContent(`<!doctype html><style>
+    @font-face { font-family: N; src: url(${font('newsreader-italic.woff2')}); font-style: italic; }
+    @font-face { font-family: N; src: url(${font('newsreader-roman.woff2')}); font-style: normal; }
+    html, body { margin: 0; width: 1200px; height: 630px; background: #f6f2ea; color: #1c1a17; }
+    body { display: flex; align-items: center; gap: 64px; padding: 0 96px; box-sizing: border-box; border-bottom: 14px solid #c13616; }
+    svg { width: 260px; height: 260px; flex: none; filter: drop-shadow(0 18px 30px rgba(60, 30, 10, 0.18)); }
+    h1 { margin: 0; font: italic 500 104px/1 N, serif; letter-spacing: -0.01em; }
+    p { margin: 22px 0 0; font: 400 38px/1.3 N, serif; color: #4c4741; }
+  </style>${svg('round')}<div><h1>Globereader</h1><p>Read real books in the language you are learning, with every word a tap away.</p></div>`);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: join(out, 'og.png') });
+  console.log('wrote public/icons/og.png (1200x630)');
 } finally {
   await browser.close();
 }

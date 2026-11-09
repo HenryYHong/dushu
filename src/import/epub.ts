@@ -8,7 +8,7 @@ import { ImportError } from './errors';
 import { Archive, ZIP_LIMITS } from './zip';
 import { attr, byLocal, childrenByLocal, dirname, fragmentOf, localName, parseXhtml, parseXmlLoose, plainText, resolvePath } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
-import { chaptersFromSpine, dropTitlePage, firstHeading, type SpineDoc, type TocRef } from './spine';
+import { chaptersFromSpine, dropContentsPages, dropTitlePage, firstHeading, type SpineDoc, type TocRef } from './spine';
 
 interface ManifestItem {
   id: string;
@@ -301,7 +301,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
 
   // SVG images become PNG here; any that cannot be converted are removed from the text and the cover.
   const dropped = await store.finalize();
-  const kept = dropAssets(dropTitlePage(finalizeChapters(stripGutenberg(chapters, title)), title, author), coverName, dropped);
+  const kept = dropAssets(dropTitlePage(dropContentsPages(finalizeChapters(stripGutenberg(chapters, title))), title, author), coverName, dropped);
 
   onProgress?.(0.97);
   return {

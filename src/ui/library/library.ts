@@ -1,6 +1,7 @@
 // Library screen: book grid, continue card, import (button, drop anywhere, paste), classics. ARCHITECTURE.md 5.4.
 import '../../styles/library.css';
 import { goalCard } from '../goalCard';
+import { canFindBooks, findBooksDialog } from './findBooks';
 import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
@@ -134,8 +135,9 @@ export const mount: MountFn = (root, _params, ctx) => {
   });
   const importBtn = () => h('button.btn.btn-primary', { type: 'button', onclick: () => fileInput.click() }, icon('upload'), 'Import book');
   const pasteBtn = () => h('button.btn', { type: 'button', onclick: () => void openPaste() }, icon('text'), 'Paste text');
+  const findBtn = () => (canFindBooks() ? h('button.btn', { type: 'button', onclick: () => void openFind() }, icon('search'), 'Find a book') : null);
 
-  const headActions = h('div.lib-actions', null, pasteBtn(), importBtn());
+  const headActions = h('div.lib-actions', null, findBtn(), pasteBtn(), importBtn());
   const macBooks = h('button.btn', { type: 'button', hidden: true, onclick: () => void addMacBooks() }, icon('download'), 'Add books from Mac') as HTMLButtonElement;
   headActions.appendChild(macBooks);
   // What this device knows about the Mac: set by refreshMac(), which runs when the library opens and when the connection changes.
@@ -179,6 +181,11 @@ export const mount: MountFn = (root, _params, ctx) => {
     renderGrid();
   });
   prefetchImporters();
+
+  async function openFind(): Promise<void> {
+    const meta = await findBooksDialog(ctx, importer);
+    if (meta && alive) ctx.navigate(readHref(meta.id));
+  }
 
   async function openPaste(): Promise<void> {
     const meta = await pasteDialog((text, title, author) => importer.text(text, title, author));
@@ -239,19 +246,29 @@ export const mount: MountFn = (root, _params, ctx) => {
     const empty = !books.length && !jobs.length;
     libraryTools.hidden = !books.length;
     headActions.hidden = empty; // the empty state carries the same two buttons, bigger
+    // A new reader's first screen is about a first book; the goal and streak come once there is one.
+    goal.el.hidden = empty;
     if (empty) {
       // A phone or tablet has no file to drop and no mouse to drag with: it is told its own way to a sentence.
       const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
       const gives = isChinese() ? 'its pinyin and meaning' : lang().aid === 'furigana' ? 'its reading and meaning' : 'its meaning';
+      // The easiest classic, one tap from its first page; the other ways in are under it.
+      const first = samples.find((x) => levelOf(x) === 'easy') ?? samples[0];
+      if (first) {
+        gridEl.appendChild(startCard(first, touch
+          ? `Tap any word for ${gives}, and tap it twice for the whole sentence and its translation.`
+          : `Click any word for ${gives}, or drag across a sentence to translate it.`));
+        return;
+      }
       gridEl.appendChild(h('section.lib-empty.card', null,
         h('h2.lib-empty-title', null, 'No books yet'),
         h('p', null, touch
-          ? 'Import an EPUB, a Kindle file without DRM, a text file or a PDF, or paste a chapter. Or pick a classic below.'
-          : 'Import an EPUB, a Kindle file without DRM, a text file or a PDF, or paste a chapter. You can also drop a file anywhere on this page, or pick a classic below.'),
+          ? `Pick a classic below, find a free book in ${isChinese() ? 'Chinese' : lang().name}, or import an EPUB, a Kindle file without DRM, a text file or a PDF.`
+          : `Pick a classic below, find a free book in ${isChinese() ? 'Chinese' : lang().name}, or import an EPUB, a Kindle file without DRM, a text file or a PDF. You can also drop a file anywhere on this page.`),
         h('p', null, touch
           ? `Then tap any word for ${gives}, and tap it twice for the whole sentence and its translation.`
           : `Then click any word for ${gives}, or drag across a sentence to translate it.`),
-        h('div.lib-actions.lib-empty-actions', null, importBtn(), pasteBtn(), macBooks)));
+        h('div.lib-actions.lib-empty-actions', null, findBtn(), importBtn(), pasteBtn(), macBooks)));
       return;
     }
     const searchKey = (value: string) => (ctx.dictSync()?.toSimplified(value) ?? value).normalize('NFKC').toLocaleLowerCase();
@@ -363,6 +380,35 @@ export const mount: MountFn = (root, _params, ctx) => {
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not delete the book.');
     }
+  }
+
+  /** The first book for a reader with none: the easiest classic, to start in one tap, and the other ways to add one. */
+  function startCard(s: Sample, how: string): HTMLElement {
+    const start = h('button.btn.btn-primary.lib-start-go', { type: 'button' }, 'Start reading', icon('chevronRight')) as HTMLButtonElement;
+    start.addEventListener('click', async () => {
+      start.disabled = true;
+      start.replaceChildren('Opening…');
+      const meta = await importer.sample(s);
+      if (!alive) return;
+      if (meta) ctx.navigate(readHref(meta.id));
+      else { start.disabled = false; start.replaceChildren('Start reading', icon('chevronRight')); }
+    });
+    const link = (label: string, run: () => void) => h('button.lib-start-link', { type: 'button', onclick: run }, label);
+    const others = [
+      canFindBooks() ? link(`find a free book in ${isChinese() ? 'Chinese' : lang().name}`, () => void openFind()) : null,
+      link('paste some text', () => void openPaste()),
+      link('import a file', () => fileInput.click()),
+    ].filter((x): x is HTMLElement => !!x);
+    return h('section.lib-start.card', { 'aria-label': 'Your first book' },
+      h('div.lib-start-cover', null, sampleCoverEl(s)),
+      h('div.lib-start-body', null,
+        h('div.lib-start-kicker', null, 'Your first book'),
+        h('h2.lib-start-title.zh', null, sampleShown(s, 'title')),
+        s.author ? h('div.lib-start-author', null, sampleShown(s, 'author')) : null,
+        s.blurb ? h('p.lib-start-blurb', null, s.blurb) : null,
+        h('p.lib-start-how', null, how),
+        h('div.lib-start-actions', null, start),
+        h('p.lib-start-other', null, 'Or ', others.flatMap((el, i) => (i ? [i === others.length - 1 ? ' or ' : ', ', el] : [el])), '. EPUB, Kindle without DRM, text and PDF files all work.')));
   }
 
   // ---- classics ----
@@ -541,7 +587,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     }
   }
   const samplesReady = fetchSamples().catch((): Sample[] => []).then((list) => {
-    if (alive) { samples = list; renderSamples(); }
+    if (alive) { samples = list; renderSamples(); if (!books.length) renderGrid(); }
     return list;
   });
 
