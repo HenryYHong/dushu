@@ -69,3 +69,27 @@ describe('works from Wikisource', () => {
     expect(asked).toHaveLength(2);
   });
 });
+
+describe('works from Aozora Bunko', () => {
+  it('brings a work page by its card and file, and only a page of the library', async () => {
+    const c = cloud();
+    const asked: string[] = [];
+    const work = new TextEncoder().encode('<?xml version="1.0" encoding="Shift_JIS"?><html xmlns="http://www.w3.org/1999/xhtml"><head><meta name="DC.Publisher" content="x"/></head><body/></html>');
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input instanceof Request ? input.url : input);
+      asked.push(url);
+      return url.endsWith('752_14964.html') ? new Response(work, { status: 200 }) : new Response('<html><body>Not found</body></html>', { status: 200 });
+    }));
+    const res = await c.call('/aozora/000148/752_14964.html');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('text/html');
+    expect(asked).toEqual(['https://www.aozora.gr.jp/cards/000148/files/752_14964.html']);
+    // A page that is not one of its works is no book.
+    expect((await c.call('/aozora/000148/1_1.html')).status).toBe(404);
+    for (const path of ['/aozora/148/752_14964.html', '/aozora/000148/../x.html', '/aozora/000148/752_14964.txt', '/aozora/000148/a_b.html']) {
+      expect((await c.call(path)).status).toBe(404);
+    }
+    expect((await c.call('/aozora/000148/752_14964.html', { origin: 'https://example.com' })).status).toBe(403);
+    expect(asked).toHaveLength(2);
+  });
+});

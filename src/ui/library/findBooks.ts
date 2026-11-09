@@ -4,19 +4,23 @@
 // - Wikisource: any work on the language's Wikisource, by title or author, made an EPUB by Wikisource's own exporter
 //   (ws-export) through the sync server (wikisourceBook); its search API answers any page. Chinese and Japanese open on it,
 //   since Gutenberg has few of their books.
-// The sync server fetches nothing but a book from those two places.
+// - Aozora Bunko (青空文庫), for Japanese: its catalog is shipped as a search index (public/data/ja/aozora.tsv.gz, made by
+//   scripts/lang/ja/build_aozora_index.py) and searched on the page; the work's XHTML page, with the readings it prints, comes
+//   through the sync server (aozoraBook). Japanese opens on it.
+// The sync server fetches nothing but a book from those places.
 import { h } from '../dom';
 import { icon } from '../icons';
 import { showModal } from './dialogs';
 import { lang, langId } from '../../lang/active';
 import { cloudBase } from '../../core/cloud';
+import { fetchDataText } from '../../core/dict';
 import type { AppContext, BookMeta } from '../../types';
 import type { LangId } from '../../lang/types';
 import type { Importer } from './importer';
 
 const GUTENBERG_SEARCH = 'https://www.gutenberg.org/ebooks/search.opds/';
 
-export type SourceId = 'gutenberg' | 'wikisource';
+export type SourceId = 'gutenberg' | 'wikisource' | 'aozora';
 
 export interface FoundBook {
   source: SourceId;
@@ -26,12 +30,67 @@ export interface FoundBook {
   author: string;
   /** Other languages the book is also in (a bilingual reader), as Gutenberg names them. */
   also: string[];
+  /** A word about the edition (Aozora: older spelling). */
+  note?: string;
+  /** The file name it is added under, when the key does not make it (Aozora: by its work id). */
+  file?: string;
 }
 
 /** The file name a book is added under, so the dialog can tell it is already in the library. */
 export const gutenbergFile = (id: number | string): string => `gutenberg-${id}.epub`;
 export const wikisourceFile = (code: string, title: string): string => `wikisource-${code}-${title.replace(/[/\\:*?"<>|]+/g, '_')}.epub`;
-const fileOf = (b: FoundBook, code: string) => (b.source === 'gutenberg' ? gutenbergFile(b.key) : wikisourceFile(code, b.key));
+export const aozoraFile = (id: string): string => `aozora-${id}.html`;
+const fileOf = (b: FoundBook, code: string) => b.file ?? (b.source === 'gutenberg' ? gutenbergFile(b.key) : wikisourceFile(code, b.key));
+
+/** One work in Aozora Bunko's index. */
+export interface AozoraWork { id: string; title: string; reading: string; authors: string; authorReadings: string; modern: boolean; path: string; rank: number }
+
+export function parseAozoraIndex(text: string): AozoraWork[] {
+  const out: AozoraWork[] = [];
+  for (const line of text.split('\n')) {
+    if (!line || line[0] === '#') continue;
+    const [id, title, reading, authors, authorReadings, modern, path, rank] = line.split('\t');
+    if (!id || !title || !/^\d{6}\/\d+_\d+\.html$/.test(path ?? '')) continue;
+    out.push({ id, title, reading: reading ?? '', authors: authors ?? '', authorReadings: authorReadings ?? '', modern: modern === '1', path, rank: Number(rank) || 0 });
+  }
+  return out;
+}
+
+/** For matching: full-width and half-width alike, katakana as hiragana, no spaces or middle dots, lower case. */
+export function foldJa(s: string): string {
+  return s.normalize('NFKC').replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60)).replace(/[\s・･]+/g, '').toLowerCase();
+}
+
+/**
+ * Works matching a query by title, reading, author or the author's reading: a title that is the query first, then one that
+ * starts with it, then the rest, each in the index's order (most read, then modern spelling). No query: the index's order.
+ */
+export function searchAozora(works: AozoraWork[], query: string): AozoraWork[] {
+  const q = foldJa(query);
+  if (!q) return works;
+  const exact: AozoraWork[] = [];
+  const starts: AozoraWork[] = [];
+  const rest: AozoraWork[] = [];
+  for (const w of works) {
+    const title = foldJa(w.title);
+    const reading = foldJa(w.reading);
+    if (title === q || reading === q) exact.push(w);
+    else if (title.startsWith(q) || reading.startsWith(q)) starts.push(w);
+    else if (title.includes(q) || reading.includes(q) || foldJa(w.authors).includes(q) || foldJa(w.authorReadings).includes(q)) rest.push(w);
+  }
+  return [...exact, ...starts, ...rest];
+}
+
+let aozoraIndex: Promise<AozoraWork[]> | null = null;
+const loadAozora = (): Promise<AozoraWork[]> => {
+  aozoraIndex ??= fetchDataText(new URL('data/ja/aozora.tsv.gz', document.baseURI).href).then(parseAozoraIndex, (e: unknown) => { aozoraIndex = null; throw e; });
+  return aozoraIndex;
+};
+const AOZORA_PAGE = 25;
+const aozoraBook = (w: AozoraWork): FoundBook => ({
+  source: 'aozora', key: w.path, title: w.title, author: w.authors, also: [], file: aozoraFile(w.id),
+  ...(w.modern ? {} : { note: 'Older spelling (旧仮名遣い)' }),
+});
 
 /**
  * One page of Gutenberg's OPDS search: its books (navigation entries such as "Sort by" have no book number and are left out),
@@ -120,13 +179,15 @@ const WIKISOURCE_STARTERS: Partial<Record<LangId, string[]>> = {
 export async function fetchFound(b: FoundBook, code: string, signal?: AbortSignal): Promise<File> {
   const base = cloudBase();
   if (!base) throw new Error('Adding free books needs the sync server, which this copy of Globereader does not have.');
-  const url = b.source === 'gutenberg' ? `${base}/gutenberg/${b.key}` : `${base}/wikisource/${code}/${encodeURIComponent(b.key)}`;
+  const url = b.source === 'gutenberg' ? `${base}/gutenberg/${b.key}`
+    : b.source === 'aozora' ? `${base}/aozora/${b.key}`
+    : `${base}/wikisource/${code}/${encodeURIComponent(b.key)}`;
   const res = await fetch(url, { signal });
   if (!res.ok) {
     const why = await res.json().then((x: { error?: unknown }) => (typeof x?.error === 'string' ? x.error : ''), () => '');
     throw new Error(why || `The book could not be downloaded (${res.status}).`);
   }
-  return new File([await res.blob()], fileOf(b, code), { type: 'application/epub+zip' });
+  return new File([await res.blob()], fileOf(b, code), { type: b.source === 'aozora' ? 'text/html' : 'application/epub+zip' });
 }
 
 /** Kept for callers from before Wikisource: a Gutenberg book by its number. */
@@ -136,9 +197,14 @@ export const fetchGutenberg = (id: number, signal?: AbortSignal): Promise<File> 
 export const canFindBooks = (): boolean => !!cloudBase();
 
 const SOURCES: Record<SourceId, { name: string; credit: string }> = {
+  aozora: { name: '青空文庫', credit: 'Works from Aozora Bunko (aozora.gr.jp), out of copyright in Japan.' },
   gutenberg: { name: 'Project Gutenberg', credit: 'Books from gutenberg.org, free in the United States.' },
   wikisource: { name: 'Wikisource', credit: 'Works from Wikisource, free to read and share.' },
 };
+
+/** The sources offered for a language, the first one open: Japanese reads Aozora Bunko first, Chinese Wikisource. */
+export const sourcesFor = (code: LangId): SourceId[] =>
+  code === 'ja' ? ['aozora', 'wikisource', 'gutenberg'] : code === 'zh' ? ['wikisource', 'gutenberg'] : ['gutenberg', 'wikisource'];
 
 /** The dialog. Resolves with the book to open when the reader chose Read on one just added (or already there). */
 export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<BookMeta | undefined> {
@@ -146,15 +212,16 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
   const code = langId();
   const name = code === 'zh' ? 'Chinese' : L.name;
   return showModal<BookMeta>('Find a free book', (api) => {
-    let source: SourceId = WIKISOURCE_STARTERS[code] ? 'wikisource' : 'gutenberg';
+    const offered = sourcesFor(code);
+    let source: SourceId = offered[0];
     const input = h('input.input.lib-find-input', { type: 'search', placeholder: 'Title or author', 'aria-label': 'Search for a book', autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
     const intro = h('p.lib-find-intro.muted');
     const heading = h('div.lib-find-heading', { role: 'status', 'aria-live': 'polite' });
     const list = h('ol.lib-find-list');
     const more = h('button.btn.lib-find-more', { type: 'button', hidden: true }, 'More books') as HTMLButtonElement;
     const credit = h('span.lib-find-credit.muted');
-    const tabs = (Object.keys(SOURCES) as SourceId[]).map((id) => {
-      const b = h('button.lib-find-tab', { type: 'button', role: 'tab', 'aria-selected': 'false' }, SOURCES[id].name) as HTMLButtonElement;
+    const tabs = offered.map((id) => {
+      const b = h('button.lib-find-tab', { type: 'button', role: 'tab', 'aria-selected': 'false', ...(id === 'aozora' ? { title: 'Aozora Bunko' } : {}) }, SOURCES[id].name) as HTMLButtonElement;
       b.addEventListener('click', () => { if (source !== id) { source = id; showSource(); void load(false); } });
       return b;
     });
@@ -201,6 +268,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
           h('div.lib-find-title', { lang: L.tag }, b.title),
           b.author ? h('div.lib-find-author', null, b.author) : null,
           b.also.length ? h('div.lib-find-note', null, `Also in ${b.also.join(' and ')}`) : null,
+          b.note ? h('div.lib-find-note', null, b.note) : null,
           err),
         btn) as HTMLElement & { sync?: () => void };
       li.sync = sync;
@@ -212,11 +280,13 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
     let next: number | null = null;
     let query = '';
     const showSource = () => {
-      tabs.forEach((t, i) => t.setAttribute('aria-selected', String((Object.keys(SOURCES) as SourceId[])[i] === source)));
+      tabs.forEach((t, i) => t.setAttribute('aria-selected', String(offered[i] === source)));
       credit.textContent = SOURCES[source].credit;
       intro.textContent = source === 'gutenberg'
         ? `Free public-domain books in ${name} from Project Gutenberg. Add one and it opens like any other book.`
-        : `Any work on the ${name} Wikisource, made into a book with its chapters. Search by title or author.`;
+        : source === 'aozora'
+          ? 'Over 17,000 works out of copyright in Japan, with the readings the library prints over hard words. Search by title or author, in kanji or kana.'
+          : `Any work on the ${name} Wikisource, made into a book with its chapters. Search by title or author.`;
     };
     const load = async (append: boolean) => {
       const mine = ++seq;
@@ -227,7 +297,12 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
       more.hidden = true;
       try {
         let page: { books: FoundBook[]; next: number | null };
-        if (source === 'wikisource' && !query) {
+        if (source === 'aozora') {
+          const found = searchAozora(await loadAozora(), query);
+          const from = append && next ? next : 0;
+          const to = from + AOZORA_PAGE;
+          page = { books: found.slice(from, to).map(aozoraBook), next: to < found.length ? to : null };
+        } else if (source === 'wikisource' && !query) {
           const starters = WIKISOURCE_STARTERS[code];
           if (!starters) {
             heading.textContent = `Type a title or an author to search the ${name} Wikisource.`;
@@ -243,7 +318,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer): Promise<Bo
         next = page.next;
         list.append(...page.books.map(row));
         heading.textContent = list.childElementCount
-          ? (query ? `Books in ${name} matching “${query}”` : source === 'gutenberg' ? `The most read books in ${name}` : `Well-known works to start with`)
+          ? (query ? `Books in ${name} matching “${query}”` : source === 'wikisource' ? `Well-known works to start with` : `The most read books in ${name}`)
           : (query ? `No books in ${name} match “${query}”. Try a shorter title or the author’s last name${source === 'gutenberg' && WIKISOURCE_STARTERS[code] === undefined ? ', or look on Wikisource' : ''}.`
             : `${SOURCES[source].name} has no books in ${name} yet.`);
         more.hidden = !next;

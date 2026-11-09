@@ -43,3 +43,30 @@ describe('Wikisource search', () => {
     expect(wikisourceFile('zh', 'a/b:c')).toBe('wikisource-zh-a_b_c.epub');
   });
 });
+
+describe('Aozora Bunko', () => {
+  const index = `# Aozora Bunko index
+# id\ttitle\treading\tauthors\tauthor readings\tmodern spelling\tcard/file\trank
+1567\t走れメロス\tはしれメロス\t太宰治\tだざいおさむ\t1\t000035/1567_14913.html\t2
+773\tこころ\tこころ\t夏目漱石\tなつめそうせき\t1\t000148/773_14560.html\t3
+752\t坊っちゃん\tぼっちゃん\t夏目漱石\tなつめそうせき\t1\t000148/752_14964.html\t
+9999\tこころの旅\tこころのたび\t誰か\tだれか\t0\t000001/9999_1.html\t
+bad\tno file\t\t\t\t1\tnot/a/path\t
+`;
+  it('reads the index and finds works by title, reading, author or the author’s reading, best match first', async () => {
+    const { parseAozoraIndex, searchAozora, foldJa, sourcesFor } = await import('../../src/ui/library/findBooks');
+    const works = parseAozoraIndex(index);
+    expect(works.map((w) => w.id)).toEqual(['1567', '773', '752', '9999']);
+    expect(works[3]).toMatchObject({ modern: false, rank: 0 });
+    expect(searchAozora(works, 'こころ').map((w) => w.id)).toEqual(['773', '9999']);
+    expect(searchAozora(works, 'ココロ').map((w) => w.id)).toEqual(['773', '9999']);
+    expect(searchAozora(works, '夏目 漱石').map((w) => w.id)).toEqual(['773', '752']);
+    expect(searchAozora(works, 'なつめ').map((w) => w.id)).toEqual(['773', '752']);
+    expect(searchAozora(works, 'メロス').map((w) => w.id)).toEqual(['1567']);
+    expect(searchAozora(works, '').map((w) => w.id)).toEqual(['1567', '773', '752', '9999']);
+    expect(foldJa('ﾊｼﾚ メロス')).toBe('はしれめろす');
+    expect(sourcesFor('ja')[0]).toBe('aozora');
+    expect(sourcesFor('zh')).toEqual(['wikisource', 'gutenberg']);
+    expect(sourcesFor('es')).toEqual(['gutenberg', 'wikisource']);
+  });
+});

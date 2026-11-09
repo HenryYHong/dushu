@@ -85,7 +85,7 @@ Your library can be searched by title or author, in simplified or traditional ch
 
 Once you have marked some words known, each book in your library says how much of its vocabulary you know ("You know 82% of its words"), estimated from six chapters spread through it. Use it to pick a book at your level.
 
-- **Find a book** searches two free libraries in the language you are reading: Project Gutenberg (most read first, or by title or author) and Wikisource (any work on that language's Wikisource, made into a book with its chapters; Chinese and Japanese open here, with well-known works to start with). Add one and it opens like any other book. The page searches the catalogs itself; the book is fetched through the sync server, which fetches nothing but a book from those two sites. A new library also suggests a first book, the easiest classic, one tap from its first page.
+- **Find a book** searches free libraries in the language you are reading: Project Gutenberg (most read first, or by title or author), Wikisource (any work on that language's Wikisource, made into a book with its chapters; Chinese opens here, with well-known works to start with) and, for Japanese, Aozora Bunko (青空文庫: over 17,000 works out of copyright, most read first, searchable in kanji or kana, with the readings it prints over hard words kept as furigana). Add one and it opens like any other book. The page searches the catalogs itself; the book is fetched through the sync server, which fetches nothing but a book from those two sites. A new library also suggests a first book, the easiest classic, one tap from its first page.
 - **Import book**, or drop a file anywhere on the Library page. Supported: EPUB, MOBI and AZW3 (Kindle files without DRM), TXT (UTF-8, GBK, Big5 and UTF-16 are detected), PDF with a text layer, HTML and Markdown. Importing a book that is already in your library offers to open it instead of adding a second copy.
 - **Paste text** for an article or a chapter you copied from the web.
 - **Start with a classic** adds a public-domain text in one click.
@@ -216,6 +216,7 @@ The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Rus
 | Universal Dependencies treebanks | Counts of which lemma and part of speech a spelling usually is (no treebank text is used) | each treebank's license, listed in the app |
 | Aozora Bunko, Project Gutenberg, Wikisource | The bundled classics (public domain in the United States) | public domain |
 | Wikimedia Commons and museum open-access images | The classics' cover paintings (public domain) | public domain |
+| Aozora Bunko (青空文庫) catalog | The Japanese search index for Find a book (`public/data/ja/aozora.tsv.gz`, made by `scripts/lang/ja/build_aozora_index.py`: titles, authors and file names of works out of copyright; the works are fetched when you add one) | catalog data published by Aozora Bunko for anyone's use |
 | Natural Earth (1:110m land) | The continents on the app's globe icon (`scripts/make-globe.py`) | public domain |
 
 The tests (not the app) also read freely licensed Chinese text, kept in `tests/corpus/` with its attribution:

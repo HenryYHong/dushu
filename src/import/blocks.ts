@@ -1,5 +1,5 @@
 // XHTML/HTML document to Block[]. Shared by the EPUB and HTML importers.
-import type { Block } from '../types';
+import type { Block, RubySpan } from '../types';
 import { attr, localName } from './markup';
 import { spaceBetweenIsNoise } from './han';
 import {
@@ -9,7 +9,60 @@ import {
 export interface ExtractOptions {
   /** Turn an image src/href into an asset name (and store the bytes), or undefined to drop the image. */
   resolveImage?: (src: string) => string | undefined;
+  /**
+   * Keep the readings a <ruby> prints (親譲<rt>おやゆず</rt>) on the blocks as RubySpans, for a Japanese book: the engine takes
+   * them over its own guess. Off, a reading is dropped and only its base text is kept, as before.
+   */
+  ruby?: boolean;
 }
+
+/**
+ * While text is collected, a reading rides in it between three noncharacters (never in any real text): base, reading, end. The
+ * text is then cleaned and cut into paragraphs as usual, and takeMarkedRuby turns the marks into spans of the final text.
+ */
+const RB = '\ufdd0';
+const RT = '\ufdd1';
+const RE = '\ufdd2';
+const MARKED = /\ufdd0([^\ufdd0-\ufdd2]*)\ufdd1([^\ufdd0-\ufdd2]*)\ufdd2/g;
+
+/** A block's text with its marked readings taken out, and the readings as spans of that text. */
+export function takeMarkedRuby(text: string): { text: string; ruby: RubySpan[] } {
+  if (!text.includes(RB)) return { text, ruby: [] };
+  const ruby: RubySpan[] = [];
+  let out = '';
+  let last = 0;
+  for (const m of text.matchAll(MARKED)) {
+    out += text.slice(last, m.index);
+    const base = m[1];
+    const rt = m[2].trim();
+    if (base && rt) ruby.push({ start: out.length, end: out.length + base.length, rt });
+    out += base;
+    last = m.index! + m[0].length;
+  }
+  out += text.slice(last);
+  // A mark cut in two by a paragraph split, or left open: its pieces go, the text stays.
+  return { text: out.replace(/[\ufdd0-\ufdd2]/g, ''), ruby };
+}
+
+/** The pairs of base text and reading in a <ruby>: 親<rt>おや</rt>譲<rt>ゆず</rt> is two, <rb>無鉄砲</rb><rp>(</rp><rt>むてっぽう</rt> one. */
+function rubyPairs(el: Element): { base: string; rt: string }[] {
+  const pairs: { base: string; rt: string }[] = [];
+  let base = '';
+  const visit = (n: Node) => {
+    if (n.nodeType === 3 || n.nodeType === 4) { base += (n as CharacterData).data; return; }
+    if (n.nodeType !== 1) return;
+    const name = localName(n as Element);
+    if (name === 'rp') return;
+    if (name === 'rt') { pairs.push({ base, rt: (n.textContent ?? '').replace(/\s+/g, '') }); base = ''; return; }
+    if (name === 'rtc') return;
+    n.childNodes.forEach(visit);
+  };
+  el.childNodes.forEach(visit);
+  if (base) pairs.push({ base, rt: '' });
+  return pairs;
+}
+const markRuby = (pairs: { base: string; rt: string }[]) =>
+  pairs.map(({ base, rt }) => (rt && base.trim() ? `${RB}${collapse(base)}${RT}${rt}${RE}` : collapse(base))).join('');
 
 export interface Extracted {
   blocks: Block[];
@@ -190,6 +243,7 @@ export function extractBlocks(doc: Document, opts: ExtractOptions = {}): Extract
       const nm = localName(c);
       if (SKIP.has(nm) || isHidden(c) || isNoteMarker(c, nm)) return;
       mark(c);
+      if (nm === 'ruby' && opts.ruby) { parts.push(markRuby(rubyPairs(c))); return; }
       if (nm === 'br') parts.push(' ');
       else if (nm === 'img' || nm === 'image') imgs.push(c);
       else if (nm === 'svg') imgs.push(...imagesIn(c));
@@ -197,8 +251,8 @@ export function extractBlocks(doc: Document, opts: ExtractOptions = {}): Extract
     };
     el.childNodes.forEach(collect);
     const raw = parts.join('');
-    total += raw.replace(/\s+/g, '').length;
-    if (raw.trim()) items.push({ t: 'h', level, raw });
+    total += raw.replace(/[\s\ufdd0-\ufdd2]+/g, '').length;
+    if (raw.replace(/[\ufdd0-\ufdd2]/g, '').trim()) items.push({ t: 'h', level, raw });
     for (const img of imgs) emitImage(img, localName(img));
   };
 
@@ -213,6 +267,15 @@ export function extractBlocks(doc: Document, opts: ExtractOptions = {}): Extract
     if (SKIP.has(name) || isHidden(el) || isNoteMarker(el, name)) return;
     if (name === 'br') {
       run.push('\n');
+      return;
+    }
+    if (name === 'ruby' && opts.ruby) {
+      mark(el);
+      const marked = markRuby(rubyPairs(el));
+      const n = marked.replace(/[\s\ufdd0-\ufdd2]+/g, '').length;
+      total += n;
+      if (linkDepth > 0) linked += n;
+      run.push(marked);
       return;
     }
     if (name === 'img' || name === 'image') {
@@ -269,7 +332,13 @@ export function extractBlocks(doc: Document, opts: ExtractOptions = {}): Extract
   if (body) walk(body);
   flush();
 
-  const { blocks, starts } = expand(items);
+  const { blocks: expanded, starts } = expand(items);
+  // Readings marked while collecting become spans of each block's final text.
+  const blocks = opts.ruby ? expanded.map((b): Block => {
+    if ((b.t !== 'p' && b.t !== 'h' && b.t !== 'quote') || !b.text.includes(RB)) return b;
+    const { text, ruby } = takeMarkedRuby(b.text);
+    return ruby.length ? { ...b, text, ruby } : { ...b, text };
+  }) : expanded;
   const mapped = new Map<string, number>();
   for (const [id, idx] of anchors) mapped.set(id, starts[Math.min(idx, starts.length - 1)]);
   return { blocks, anchors: mapped, linkShare: total ? linked / total : 0, linkCount };

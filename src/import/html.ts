@@ -6,12 +6,30 @@ import { chaptersFromBlocks, detectWrapWidth, linesToParagraphs, paragraphsToBlo
 import { decodeText, normalizeNewlines, sniffMarkupCharset, unreadableMessage, withHongKongCharacters } from './encoding';
 import { parseXhtml } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
+import { langId } from '../lang/active';
+
+/**
+ * An Aozora Bunko (青空文庫) work page, as "Find a book" brings it: its DC metadata names it, the story is .main_text, and the
+ * header (title and author again), the hidden contents and the bibliographic notes after the text are the library's.
+ * Returns the title and author it names, after taking everything but the story out of the page; null for any other page.
+ */
+export function tidyAozora(doc: Document): { title: string; author: string } | null {
+  const meta = (name: string) => [...doc.getElementsByTagName('meta')].find((m) => (m.getAttribute('name') ?? '') === name)?.getAttribute('content')?.trim() ?? '';
+  const main = doc.querySelector('.main_text');
+  if (meta('DC.Publisher') !== '青空文庫' || !main) return null;
+  const body = doc.getElementsByTagName('body')[0];
+  if (body) body.replaceChildren(main);
+  return { title: meta('DC.Title'), author: meta('DC.Creator') };
+}
 
 export async function importHtml(bytes: Uint8Array, sourceName: string): Promise<ImportedBook> {
   const decoded = await withHongKongCharacters(decodeText(bytes, sniffMarkupCharset(bytes)));
   const doc = parseXhtml(decoded.text);
+  const aozora = tidyAozora(doc);
   const store = new AssetStore();
-  const { blocks } = extractBlocks(doc, { resolveImage: (src) => (/^data:/i.test(src) ? store.addDataUri(src) : undefined) });
+  // A Japanese page's own readings (<ruby>) stay on its blocks: Aozora prints them over the hard words.
+  const ruby = langId() === 'ja' || (doc.documentElement.getAttribute('xml:lang') ?? doc.documentElement.getAttribute('lang') ?? '').startsWith('ja');
+  const { blocks } = extractBlocks(doc, { ruby, resolveImage: (src) => (/^data:/i.test(src) ? store.addDataUri(src) : undefined) });
 
   const meta = (name: string): string => {
     for (const m of Array.from(doc.getElementsByTagName('meta'))) {
@@ -22,8 +40,8 @@ export async function importHtml(bytes: Uint8Array, sourceName: string): Promise
   const pageTitle = doc.getElementsByTagName('title')[0]?.textContent ?? '';
   const firstH1 = blocks.find((b): b is Extract<Block, { t: 'h' }> => b.t === 'h' && b.level === 1);
   const fromFile = parseFilename(sourceName);
-  const title = cleanTitle(meta('og:title') || pageTitle || firstH1?.text || '') || fromFile.title || 'Untitled';
-  const author = cleanAuthors([meta('author') || meta('article:author')]);
+  const title = cleanTitle(aozora?.title || meta('og:title') || pageTitle || firstH1?.text || '') || fromFile.title || 'Untitled';
+  const author = cleanAuthors([aozora?.author || meta('author') || meta('article:author')]);
 
   const dropped = await store.finalize(); // SVG images become PNG; any that cannot are removed
   return {

@@ -3,6 +3,7 @@ import type { Block, Chapter, ImportedBook } from '../types';
 import { AssetStore, dropAssets } from './assets';
 import { extractBlocks } from './blocks';
 import { chaptersByTextHeadings, finalizeChapters, stripGutenberg } from './chapters';
+import { langId } from '../lang/active';
 import { decodeText, sniffMarkupCharset, unreadableMessage, withHongKongCharacters } from './encoding';
 import { ImportError } from './errors';
 import { Archive, ZIP_LIMITS } from './zip';
@@ -224,6 +225,8 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   const wikisource = byLocal(opf, 'source').some((el) => /\bwikisource\.org\//i.test(el.textContent ?? ''))
     || byLocal(opf, 'contributor').some((el) => /^\s*wikisource\s*$/i.test(el.textContent ?? ''));
   let wikisourceAuthor = '';
+  // A Japanese book's printed readings (<ruby>) stay on its blocks, for the engine to take over its own guess.
+  const japanese = langId() === 'ja' || byLocal(opf, 'language').some((el) => /^\s*ja\b/i.test(el.textContent ?? ''));
   const workTitle = byLocal(opf, 'title')[0]?.textContent?.trim() ?? '';
   const isImagePath = (path: string) => IMAGE_EXT.has(extOf(path));
   // Inflate what the package lists, plus any image file (some books use pictures their manifest forgot). Other
@@ -297,6 +300,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
       wikisourcePart = named.part;
     }
     const extracted = extractBlocks(markup, {
+      ruby: japanese,
       resolveImage: (src) => {
         if (wikisource && WIKISOURCE_ICON.test(src)) return undefined;
         if (/^data:/i.test(src)) return store.addDataUri(src);

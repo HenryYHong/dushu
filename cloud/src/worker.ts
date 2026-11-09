@@ -527,6 +527,8 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   if (gutenberg && request.method === 'GET') return gutenbergBook(gutenberg[1], request, env, ctx);
   const wikisource = /^\/wikisource\/(zh|ja|es|fr|de|it|pt|ru|en)\/([^/]+)$/.exec(path);
   if (wikisource && request.method === 'GET') return wikisourceBook(wikisource[1], wikisource[2], request, env, ctx);
+  const aozora = /^\/aozora\/(\d{6})\/(\d{1,7}_\d{1,7}\.html)$/.exec(path);
+  if (aozora && request.method === 'GET') return aozoraBook(aozora[1], aozora[2], request, env, ctx);
   const passkeys = await passkeyRoute(path, request, env);
   if (passkeys) return passkeys;
 
@@ -647,8 +649,15 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   throw new CloudError(404, 'Not found.');
 }
 
-/** Fetches one EPUB for a book source below: the size cap, the zip check and the week in the Worker's cache are the same. */
-async function relayEpub(cacheKey: string, urls: string[], request: Request, env: Env, ctx: ExecutionContext | undefined, missing: string): Promise<Response> {
+/** An EPUB is a zip: anything else (an error page) is not a book. */
+const isZip = (bytes: ArrayBuffer): boolean => { const b = new Uint8Array(bytes, 0, Math.min(4, bytes.byteLength)); return b[0] === 0x50 && b[1] === 0x4b; };
+
+/**
+ * Fetches one book for a source below: the origin check, the per-network limit, the size cap, the check that it is a book of the
+ * source's kind and the week in the Worker's cache are the same for all of them.
+ */
+async function relayEpub(cacheKey: string, urls: string[], request: Request, env: Env, ctx: ExecutionContext | undefined, missing: string,
+  kind: { isBook: (bytes: ArrayBuffer) => boolean; type: string } = { isBook: isZip, type: 'application/epub+zip' }): Promise<Response> {
   const origin = request.headers.get('Origin') ?? '';
   if (!ORIGINS.some((r) => r.test(origin))) throw new CloudError(403, 'Books are fetched for Globereader’s own pages only.');
   const cache = typeof caches === 'undefined' ? undefined : (caches as unknown as { default?: Cache }).default;
@@ -665,10 +674,8 @@ async function relayEpub(cacheKey: string, urls: string[], request: Request, env
     if (Number(res.headers.get('Content-Length')) > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to add.');
     const bytes = await res.arrayBuffer();
     if (bytes.byteLength > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to add.');
-    // An EPUB is a zip: anything else (an error page) is not a book.
-    const head = new Uint8Array(bytes, 0, Math.min(4, bytes.byteLength));
-    if (head[0] !== 0x50 || head[1] !== 0x4b) continue;
-    const out = new Response(bytes, { headers: { 'Content-Type': 'application/epub+zip', 'Cache-Control': 'public, max-age=604800' } });
+    if (!kind.isBook(bytes)) continue;
+    const out = new Response(bytes, { headers: { 'Content-Type': kind.type, 'Cache-Control': 'public, max-age=604800' } });
     if (cache) {
       const put = cache.put(key, out.clone());
       if (ctx) ctx.waitUntil(put); else await put;
@@ -691,6 +698,21 @@ async function wikisourceBook(lang: string, encoded: string, request: Request, e
   const page = encodeURIComponent(title.replace(/ /g, '_'));
   return relayEpub(`https://wikisource.books/${lang}/${page}.epub`, [`https://ws-export.wmcloud.org/?format=epub&lang=${lang}&page=${page}`],
     request, env, ctx, 'Wikisource could not make an EPUB of that page.');
+}
+
+/**
+ * A work of Aozora Bunko (青空文庫), Japan's library of works out of copyright, as its XHTML page (Shift_JIS, with the readings
+ * it prints as <ruby>): the card and file name from its catalog (public/data/ja/aozora.tsv.gz), and nothing else. Its pages do
+ * not let a page read them, so the Worker does. Only a page that is one of Aozora's works (its DC publisher) is passed on.
+ */
+async function aozoraBook(card: string, file: string, request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+  const isWork = (bytes: ArrayBuffer) => {
+    // Shift_JIS keeps ASCII as it is, so the markup can be looked at as Latin-1.
+    const head = new TextDecoder('latin1').decode(new Uint8Array(bytes, 0, Math.min(4096, bytes.byteLength)));
+    return /<html[\s>]/i.test(head) && /name="DC\.Publisher"/i.test(head);
+  };
+  return relayEpub(`https://aozora.books/${card}/${file}`, [`https://www.aozora.gr.jp/cards/${card}/files/${file}`], request, env, ctx,
+    'Aozora Bunko has no page for that work.', { isBook: isWork, type: 'text/html' });
 }
 
 /**

@@ -1639,6 +1639,17 @@ and opens it. Empty state explains what the app does in two sentences.
   page) loses each part's header template (`headerContainer`, `navigationHeader`/`navigationNotes`, `headertemplate`), sister
   links, page numbers, license icons, the logo as cover and the English About page; the author comes from the header's author
   link, and a part whose title was only in the header (西遊記's couplets) gets it back as its heading (`epub.ts tidyWikisource`).
+- Japanese also gets Aozora Bunko (青空文庫), first: its catalog is shipped as `data/ja/aozora.tsv.gz` (17,229 works out of
+  copyright with an XHTML file, most read first by its 2022 access ranking, then modern spelling; 610 KB, fetched only when the
+  dialog opens there, and cached with the Japanese data) and searched on the page by title, reading, author or the author's
+  reading, katakana as hiragana. The work's XHTML page comes through the Worker (`GET /aozora/<card>/<file>`, only a page whose
+  DC publisher tag is there). `import/html.ts tidyAozora` keeps only `.main_text` and takes the title and author from the DC
+  metadata; the page's `<ruby>` readings stay on the blocks (below).
+- Printed readings: for a Japanese book (the app's language, or the EPUB's or page's own), `extractBlocks` keeps each
+  `<ruby>`'s readings (mono ruby 御<rt>お</rt>釈<rt>しゃ</rt> as one pair each, group ruby as one) as RubySpans, the same spans
+  the Aozora text format gives (`import/aozora.ts`), which the Japanese engine takes over its own guess. While text is gathered a
+  reading rides inside it between noncharacters U+FDD0–U+FDD2, so cleaning and paragraph cutting move it with its base text;
+  `takeMarkedRuby` turns the marks into spans at the end. Chinese pages keep dropping <rt> (pinyin) as before.
 - Problems while adding (wrong language, a damaged file, already in the library) are said in the dialog, not in a toast it
   would cover (`Importer.files` `onProblem`).
 
