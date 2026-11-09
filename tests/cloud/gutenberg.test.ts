@@ -93,3 +93,28 @@ describe('works from Aozora Bunko', () => {
     expect(asked).toHaveLength(2);
   });
 });
+
+describe('the book relay', () => {
+  it('stops reading a book that grows past the limit, with or without a length', async () => {
+    const c = cloud();
+    const big = () => new ReadableStream<Uint8Array>({
+      start(ctl) { ctl.enqueue(new Uint8Array([0x50, 0x4b, 3, 4])); for (let i = 0; i < 41; i++) ctl.enqueue(new Uint8Array(1024 * 1024)); ctl.close(); },
+    });
+    let pulled = 0;
+    vi.stubGlobal('fetch', vi.fn(async () => { pulled++; return new Response(big(), { status: 200 }); }));
+    expect((await c.call('/wikisource/en/Huge')).status).toBe(413);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('x', { status: 200, headers: { 'Content-Length': String(50 * 1024 * 1024) } })));
+    expect((await c.call('/gutenberg/12')).status).toBe(413);
+    expect(pulled).toBe(1);
+  });
+
+  it('takes a Tailscale page only when it is the owner’s, once that is set', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(EPUB, { status: 200 })));
+    const open = cloud();
+    expect((await open.call('/gutenberg/12', { origin: 'https://box.tail1234.ts.net' })).status).toBe(200);
+    const pinned = cloud({ BOOK_ORIGINS: 'https://my-mac.tail9999.ts.net:8443' });
+    expect((await pinned.call('/gutenberg/12', { origin: 'https://box.tail1234.ts.net' })).status).toBe(403);
+    expect((await pinned.call('/gutenberg/12', { origin: 'https://my-mac.tail9999.ts.net:8443' })).status).toBe(200);
+    expect((await pinned.call('/gutenberg/12', { origin: 'https://henryyhong.com' })).status).toBe(200);
+  });
+});

@@ -29,6 +29,11 @@ export interface ExecutionContext { waitUntil(promise: Promise<unknown>): void }
 export interface Env {
   ACCOUNTS: DurableObjectNamespace;
   LIMITS: DurableObjectNamespace;
+  /**
+   * The owner's own private copies (comma-separated origins, such as their Mac's Tailscale address), a Worker setting set with
+   * wrangler secret put, never in this repo. Once set, a Tailscale page may use the book relay only if it is one of them.
+   */
+  BOOK_ORIGINS?: string;
   /** Resend (resend.com) key for the sign-in emails: a secret, never in this repo. */
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
@@ -649,6 +654,30 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   throw new CloudError(404, 'Not found.');
 }
 
+/**
+ * A body read up to `max` bytes and no further: Gutenberg says its length, ws-export sends its EPUB in chunks without one, so
+ * the count is kept as it arrives and the stream let go of as soon as it passes the limit.
+ */
+async function readCapped(res: Response, max: number): Promise<ArrayBuffer> {
+  const tooLarge = () => new CloudError(413, 'That book is too large to add.');
+  if (Number(res.headers.get('Content-Length')) > max) { await res.body?.cancel().catch(() => {}); throw tooLarge(); }
+  if (!res.body) return new ArrayBuffer(0);
+  const reader = res.body.getReader();
+  const parts: Uint8Array[] = [];
+  let n = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    n += value.byteLength;
+    if (n > max) { await reader.cancel().catch(() => {}); throw tooLarge(); }
+    parts.push(value);
+  }
+  const out = new Uint8Array(n);
+  let at = 0;
+  for (const p of parts) { out.set(p, at); at += p.byteLength; }
+  return out.buffer;
+}
+
 /** An EPUB is a zip: anything else (an error page) is not a book. */
 const isZip = (bytes: ArrayBuffer): boolean => { const b = new Uint8Array(bytes, 0, Math.min(4, bytes.byteLength)); return b[0] === 0x50 && b[1] === 0x4b; };
 
@@ -658,8 +687,15 @@ const isZip = (bytes: ArrayBuffer): boolean => { const b = new Uint8Array(bytes,
  */
 async function relayEpub(cacheKey: string, urls: string[], request: Request, env: Env, ctx: ExecutionContext | undefined, missing: string,
   kind: { isBook: (bytes: ArrayBuffer) => boolean; type: string } = { isBook: isZip, type: 'application/epub+zip' }): Promise<Response> {
+  // The Origin check only stops a page elsewhere from using this relay in a browser: a script can send any Origin. The real
+  // limits are the per-network count below and the week each book stays in the cache. A Tailscale page counts only when it is
+  // one of BOOK_ORIGINS (a Worker setting, never in the source, naming the owner's own copy) once that is set.
   const origin = request.headers.get('Origin') ?? '';
-  if (!ORIGINS.some((r) => r.test(origin))) throw new CloudError(403, 'Books are fetched for Globereader’s own pages only.');
+  const own = (env.BOOK_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+  const tailnet = /\.ts\.net(?::\d+)?$/.test(origin);
+  if (!ORIGINS.some((r) => r.test(origin)) || (tailnet && own.length && !own.includes(origin))) {
+    throw new CloudError(403, 'Books are fetched for Globereader’s own pages only.');
+  }
   const cache = typeof caches === 'undefined' ? undefined : (caches as unknown as { default?: Cache }).default;
   const key = new Request(cacheKey);
   const hit = await cache?.match(key);
@@ -671,9 +707,7 @@ async function relayEpub(cacheKey: string, urls: string[], request: Request, env
   for (const url of urls) {
     const res = await fetch(url, { headers: { 'User-Agent': 'Globereader-sync/0.1 (personal reading app)' } });
     if (!res.ok) continue;
-    if (Number(res.headers.get('Content-Length')) > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to add.');
-    const bytes = await res.arrayBuffer();
-    if (bytes.byteLength > BOOK_MAX_BYTES) throw new CloudError(413, 'That book is too large to add.');
+    const bytes = await readCapped(res, BOOK_MAX_BYTES);
     if (!kind.isBook(bytes)) continue;
     const out = new Response(bytes, { headers: { 'Content-Type': kind.type, 'Cache-Control': 'public, max-age=604800' } });
     if (cache) {

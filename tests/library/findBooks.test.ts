@@ -35,9 +35,16 @@ describe('Wikisource search', () => {
       { index: 5, title: 'The Raven', pageprops: { disambiguation: '' } },
       { index: 6, title: 'The Raven (Poe)', categories: [{ title: 'Category:Versions pages' }] },
       { index: 7, title: 'Le Horla (recueil)', categories: [{ title: 'Catégorie:Éditions multiples' }] },
+      { index: 8, title: 'Don Quijote de la Mancha', categories: [{ title: 'Categoría:Versiones' }] },
+      { index: 9, title: 'Os Lusíadas', categories: [{ title: 'Categoria:!Listas de versões' }] },
+      { index: 10, title: '竹取物語', categories: [{ title: 'カテゴリ:底本選択ページ' }] },
+      { index: 11, title: 'Johann Wolfgang von Goethe', categories: [{ title: 'Kategorie:Autoren' }] },
+      { index: 12, title: 'ADB:Goethe, Johann Wolfgang von' },
+      { index: 13, title: 'Berlioz: Fausts Verdammung', categories: [{ title: 'Kategorie:ADB:Autor:Michael Bernays' }] },
     ] } };
     const { books, next } = parseWikisourceSearch(json);
-    expect(books.map((b) => [b.source, b.key])).toEqual([['wikisource', '阿Q正傳'], ['wikisource', '吶喊']]);
+    // A real work whose title has ": " and whose page names an ADB author category stays.
+    expect(books.map((b) => [b.source, b.key])).toEqual([['wikisource', '阿Q正傳'], ['wikisource', '吶喊'], ['wikisource', 'Berlioz: Fausts Verdammung']]);
     expect(next).toBe(25);
     expect(parseWikisourceSearch({})).toEqual({ books: [], next: null });
     expect(wikisourceFile('zh', 'a/b:c')).toBe('wikisource-zh-a_b_c.epub');

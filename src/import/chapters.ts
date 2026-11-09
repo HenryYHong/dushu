@@ -531,24 +531,20 @@ function demoteContentsRuns(blocks: Block[]): Block[] {
 
 /** Indices where chapters start, choosing the most trustworthy signal. Mutates `blocks` when it promotes paragraphs. */
 /**
- * A heading element names a chapter by its start: "Глава третья. Новое, очень приятное знакомство" (Каштанка) is longer than a
- * heading line may be, but "Глава третья" before its title is one. Only for a heading the file marked as such; a plain line
- * keeps the length limit.
+ * A heading element named by its start: "Глава третья. Новое, очень приятное знакомство" (Каштанка) is longer than a heading
+ * line may be, but "Глава третья" before its title is one. Only a lead with a chapter word: a bare number or initials ("I. The
+ * Problem", "C. S. Lewis", "LXXXVIII. Um pretexto honesto") is not, and only at or above the level the book's chapters are set
+ * at (`level`), so numbered sections inside titled chapters never split a book.
  */
-function namedHeading(b: Block): boolean {
-  if (!isHead(b)) return false;
-  if (detectHeadingLine(b.text)) return true;
-  const lead = b.text.split(/(?<=\S)[.:：]\s+|\s+[—–-]\s+/)[0];
-  return lead !== b.text && !!detectHeadingLine(lead);
+function leadNamed(b: Block, level: number): boolean {
+  if (!isHead(b) || b.level > level) return false;
+  const lead = b.text.split(/(?<=\S)[.:：]\s+|\s+[—–-]\s+/)[0].trim();
+  if (lead === b.text.trim() || /^[\p{N}IVXLCDM]+\.?$/iu.test(lead)) return false;
+  return !!detectHeadingLine(lead);
 }
 
 function boundaries(blocks: Block[]): number[] | null {
-  const named: number[] = [];
-  blocks.forEach((b, i) => {
-    if (namedHeading(b)) named.push(i);
-  });
-  if (named.length >= 2) return named;
-
+  // The shallowest heading level used twice or more: the level a book's chapters are usually set at.
   const counts = new Map<number, number>();
   for (const b of blocks) if (isHead(b)) counts.set(b.level, (counts.get(b.level) ?? 0) + 1);
   let level = 0;
@@ -558,6 +554,22 @@ function boundaries(blocks: Block[]): number[] | null {
       break;
     }
   }
+  const named: number[] = [];
+  let byLead = false;
+  blocks.forEach((b, i) => {
+    if (isHead(b) && detectHeadingLine(b.text)) named.push(i);
+    else if (leadNamed(b, level || 6)) { named.push(i); byLead = true; }
+  });
+  if (named.length >= 2) {
+    if (!byLead) return named;
+    // Chapters named by their start say the level the book sets them at: its other headings there or above (a prologue, an
+    // epilogue, notes) are chapters too, not text of the chapter before them.
+    const deepest = Math.max(...named.map((i) => (blocks[i] as Extract<Block, { t: 'h' }>).level));
+    const idx: number[] = [];
+    blocks.forEach((b, i) => { if (isHead(b) && b.level <= deepest) idx.push(i); });
+    return idx;
+  }
+
   const promoted: number[] = [];
   blocks.forEach((b, i) => {
     if (b.t === 'p' && detectHeadingLine(b.text)) promoted.push(i);

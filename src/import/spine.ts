@@ -117,12 +117,19 @@ export function dropTitlePage(chapters: Chapter[], title: string, author: string
   const texts = first.blocks.filter((b) => b.t !== 'hr').map(blockText);
   if (!texts.length) return chapters;
   if (texts.length <= 4 && texts.every(known)) return chapters.slice(1);
-  // A printed title page sets them in capitals ("MARIANELA / POR / B. PEREZ GALDÓS."): from here case does not count.
+  // A printed title page sets them in capitals ("MARIANELA / POR / B. PEREZ GALDÓS."): from here case does not count, but only
+  // for a whole line or whole words (a capital "TO" is not "Stoker").
   const lower = (t: string) => squash(t).toLocaleLowerCase();
-  const knownAnyCase = (t: string) => known(t) || names.some((n) => { const a = n.toLocaleLowerCase(); const b = lower(cleanAuthorName(t) || t); return !!b && (a === b || (b.length >= 2 && (a.includes(b) || b.includes(a)))); });
+  const words = (t: string) => ` ${lower(t).replace(/[^\p{L}\p{N}]+/gu, ' ').trim()} `;
+  const knownAnyCase = (t: string) => known(t) || names.some((n) => {
+    const line = words(cleanAuthorName(t) || t).trim();
+    const name = words(n).trim();
+    return !!line && (line === name || (line.length >= 4 && (words(n).includes(` ${line} `) || words(t).includes(` ${name} `))));
+  });
   const YEAR = /^\d{3,4}\s*[.年]?$/;
   const letters = (t: string) => t.replace(/[^\p{L}]/gu, '');
-  const capitals = (t: string) => { const l = letters(t); return l.length >= 2 && l === l.toLocaleUpperCase() && l !== l.toLocaleLowerCase(); };
+  // In capitals: two letters running somewhere (initials such as "L.F.B." are a signature, not a line of capitals).
+  const capitals = (t: string) => { const l = letters(t); return /\p{L}{2}/u.test(t) && l === l.toLocaleUpperCase() && l !== l.toLocaleLowerCase(); };
   // A line of a title page: short and ends no sentence, or in capitals, or an address with its number ("calle de las Pozas,
   // núm. 12."), or a year.
   const furniture = (t: string) => {
@@ -132,8 +139,13 @@ export function dropTitlePage(chapters: Chapter[], title: string, author: string
   // What only a title page has, so a short first poem headed with the book's title is never taken for one: the author, a year,
   // a credit or a publisher.
   const authors = author.split(/,\s*/).map(lower).filter((n) => n.length >= 2);
-  const printed = (t: string) => authors.some((a) => lower(t).includes(a)) || YEAR.test(t.trim())
-    || /^(?:(?:produced by|by|por|par|von|di|от)\b|(?:著|作者|譯|译)\s*[:：]?)|imprenta|editorial|librer[ií]a|verlag|[ée]ditions?|edizioni|editora|издани|出版|書局|书局/i.test(t.trim());
+  // A year counts as printed in figures alone ("1878"); "1934年" is as likely a date in a preface.
+  const printed = (t: string) => authors.some((a) => lower(t).includes(a)) || /^\d{3,4}\.?$/.test(t.trim())
+    || /^(?:(?:produced by|by|por|par|von|di|от)\b|(?:著|作者|譯|译)\s*[:：])|imprenta|editorial|librer[ií]a|verlag|[ée]ditions?|edizioni|editora|издани|出版社|書局|书局/i.test(t.trim());
+  // A dedication is the author's own page, kept whatever else is on it (Oz: "This book is dedicated to my good friend & comrade
+  // / My Wife / L.F.B.").
+  const dedication = (t: string) => /dedicat|d[ée]di[ée]|gewidmet|посвящ|献给|獻給|谨以|謹以/i.test(t) || (!knownAnyCase(t) && /^(?:to|à|для)(?:\s|$)/i.test(t.trim()));
+  if (texts.some(dedication)) return chapters;
   return texts.some(knownAnyCase) && texts.some(printed) && texts.every((t) => knownAnyCase(t) || furniture(t)) ? chapters.slice(1) : chapters;
 }
 

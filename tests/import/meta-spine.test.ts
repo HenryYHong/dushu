@@ -10,6 +10,9 @@ describe('author names', () => {
     ['автор Антон Павлович Чехов (1860—1904)', 'Антон Павлович Чехов'],
     ['Author Mary Shelley (1797–1851)', 'Mary Shelley'],
     ['Autoren Kollektiv', 'Autoren Kollektiv'],
+    ['Author of Waverley', 'Author of Waverley'],
+    ['autor desconocido', 'autor desconocido'],
+    ['автор неизвестен', 'автор неизвестен'],
     ['原著：金庸', '金庸'],
     ['原著:金庸', '金庸'],
     ['著：金庸', '金庸'],
@@ -112,6 +115,11 @@ describe('EPUB title page and heading spelling', () => {
     expect(dropTitlePage([ch('道德經', ['Produced by Ching-yi Chen', '老子《道德經》第一~四十章', '老子道經']), rest], '道德經', 'Laozi')).toEqual([rest]);
     // A poem headed with the book's title says nothing of a printed book.
     expect(dropTitlePage([ch('Rimas', ['Rimas', 'Volverán las oscuras golondrinas', 'en tu balcón sus nidos a colgar']), rest], 'Rimas', 'Gustavo Adolfo Bécquer')).toHaveLength(2);
+    // A dedication stays, initials and all (Gutenberg's Oz), and so does a dedication in capitals.
+    expect(dropTitlePage([ch('The Wonderful Wizard of Oz', ['The Wonderful Wizard of Oz', 'by L. Frank Baum', 'This book is dedicated to my good friend & comrade', 'My Wife', 'L.F.B.']), rest], 'The Wonderful Wizard of Oz', 'L. Frank Baum')).toHaveLength(2);
+    expect(dropTitlePage([ch('Dracula', ['DRACULA', 'BY BRAM STOKER', 'TO', 'MY DEAR FRIEND', 'HOMMY-BEG', '1897']), rest], 'Dracula', 'Bram Stoker')).toHaveLength(2);
+    // Chinese credit lines need their colon: 作者的话 is the author speaking.
+    expect(dropTitlePage([ch('边城', ['边城', '作者的话', '1934年']), rest], '边城', '沈从文')).toHaveLength(2);
     // A line that ends a sentence is the book talking, not its title page.
     expect(dropTitlePage([ch('Marianela', ['Marianela', 'Benito Pérez Galdós', 'Se puso el sol.']), rest], 'Marianela', 'Benito Pérez Galdós')).toHaveLength(2);
   });

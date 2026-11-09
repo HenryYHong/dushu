@@ -382,5 +382,10 @@
 }
 .lib-find-tabs { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border-radius: 999px; background: var(--wash-2); }
 .lib-find-tab { height: 30px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-2); font-size: 13.5px; font-weight: 560; cursor: pointer; }
-.lib-find-tab[aria-selected='true'] { background: var(--elev); color: var(--text); box-shadow: var(--shadow-xs); }
+.lib-find-tab[aria-pressed='true'] { background: var(--elev); color: var(--text); box-shadow: var(--shadow-xs); }
+@media (pointer: coarse) { .lib-find-tab { height: 40px; padding: 0 16px; } }
+/* Said to a screen reader only: what happens to a book being added. */
+.lib-find-said { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.lib-find-add[aria-disabled='true'] { opacity: 0.7; cursor: progress; }
+.lib-find-more[aria-busy='true'] { opacity: 0.7; cursor: progress; }
 @media (hover: hover) { .lib-find-tab:hover { color: var(--text); } }

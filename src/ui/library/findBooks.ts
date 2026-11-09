@@ -12,13 +12,14 @@ import { h } from '../dom';
 import { icon } from '../icons';
 import { showModal } from './dialogs';
 import { lang, langId } from '../../lang/active';
+import { scriptView } from '../vocab/render';
 import { cloudBase } from '../../core/cloud';
 import { LANGS, isLangId } from '../../lang/registry';
 import { targetLanguage } from '../../translate/targets';
 import { fetchDataText } from '../../core/dict';
 import type { AppContext, BookMeta } from '../../types';
 import type { LangId } from '../../lang/types';
-import type { Importer } from './importer';
+import { isNetworkFailure, type Importer } from './importer';
 
 const GUTENBERG_SEARCH = 'https://www.gutenberg.org/ebooks/search.opds/';
 
@@ -133,8 +134,15 @@ export async function searchGutenberg(query: string, code: string, start = 1, si
   return parseOpds(await res.text(), lang().name);
 }
 
-/** A list of a work's editions or of works sharing a name: a page to choose from, not a book. */
-const LIST_PAGE = /versions pages|disambiguation|éditions multiples|homonymie|begriffskl|消歧|曖昧|многозначн|desambiguaci|disambigua/i;
+/**
+ * A list of a work's editions or of works sharing a name: a page to choose from, not a book. The categories each Wikisource
+ * files them under (en Versions pages, fr Éditions multiples, es Versiones, pt !Listas de versões, ja 底本選択ページ, …).
+ */
+const LIST_PAGE = /versions pages|disambiguation|éditions multiples|homonymie|begriffskl|消歧|曖昧|многозначн|desambiguaci|disambigua|versiones|listas de versões|底本選択/i;
+/** German Wikisource keeps authors' and topics' pages among the works: by their exact category. */
+const NOT_A_WORK = /^Kategorie:(?:Autoren|Thema)$/;
+/** Encyclopedia entries filed as pages of their own ("ADB:Goethe", "MKL1888:Faust"); a title with ": " is a real work's. */
+const ENTRY_PREFIX = /^[A-Z][A-Za-z0-9]*:\S/;
 
 /**
  * Wikisource's search results that are works, in its order: a part of one ("吶喊/狂人日記"), an author's or a portal's page, and
@@ -150,31 +158,44 @@ export function parseWikisourceSearch(json: unknown): { books: FoundBook[]; next
     const title = typeof p.title === 'string' ? p.title.trim() : '';
     if (!title || title.includes('/') || /^(?:Author|Autor|Auteur|Autore|Автор|作者|Portal|Portail|Категория|Category|Catégorie)\s*:/i.test(title)) continue;
     if (p.pageprops && 'disambiguation' in p.pageprops) continue;
-    if ((p.categories ?? []).some((c) => typeof c.title === 'string' && LIST_PAGE.test(c.title))) continue;
+    if ((p.categories ?? []).some((c) => typeof c.title === 'string' && (LIST_PAGE.test(c.title) || NOT_A_WORK.test(c.title)))) continue;
+    if (ENTRY_PREFIX.test(title)) continue;
     books.push({ source: 'wikisource', key: title, title, author: '', also: [] });
   }
   const offset = Number(d?.continue?.gsroffset);
   return { books, next: Number.isInteger(offset) && offset > 0 ? offset : null };
 }
 
+/**
+ * A page of works from the language's Wikisource search. Most hits of a work in parts are its parts ("Les Misérables/Tome 1/…"),
+ * which are left out, so pages are asked for one after another (never at once: the API slows a burst down) until five works are
+ * found or four pages were read.
+ */
 export async function searchWikisource(query: string, code: string, offset = 0, signal?: AbortSignal): Promise<{ books: FoundBook[]; next: number | null }> {
-  const params = new URLSearchParams({
-    action: 'query', generator: 'search', gsrsearch: query.trim(), gsrnamespace: '0', gsrlimit: '25',
-    prop: 'pageprops|categories', ppprop: 'disambiguation', cllimit: 'max', format: 'json', formatversion: '2', origin: '*',
-  });
-  if (offset > 0) params.set('gsroffset', String(offset));
-  const res = await fetch(`https://${code}.wikisource.org/w/api.php?${params}`, { signal });
-  if (!res.ok) throw new Error(`Wikisource answered ${res.status}.`);
-  return parseWikisourceSearch(await res.json());
+  const books: FoundBook[] = [];
+  let next: number | null = offset;
+  for (let asked = 0; next !== null && asked < 4 && books.length < 5; asked++) {
+    const params = new URLSearchParams({
+      action: 'query', generator: 'search', gsrsearch: query.trim(), gsrnamespace: '0', gsrlimit: '25',
+      prop: 'pageprops|categories', ppprop: 'disambiguation', cllimit: 'max', format: 'json', formatversion: '2', origin: '*',
+    });
+    if (next > 0) params.set('gsroffset', String(next));
+    const res = await fetch(`https://${code}.wikisource.org/w/api.php?${params}`, { signal });
+    if (!res.ok) throw new Error(`Wikisource answered ${res.status}.`);
+    const page = parseWikisourceSearch(await res.json());
+    for (const b of page.books) if (!books.some((x) => x.key === b.key)) books.push(b);
+    next = page.next;
+  }
+  return { books, next };
 }
 
 /**
- * Where to start on Wikisource, which has no "most read" list: well-known works whose pages hold the whole work, checked
- * 2026-11-09 (modern prose first for Chinese, then the long classics; Japanese has few modern works there).
+ * Where Chinese starts on Wikisource, which has no "most read" list: well-known works whose pages hold the whole work, each
+ * exported and imported 2026-11-09 (modern prose first, then the long classics). Japanese opens on Aozora Bunko instead: its
+ * Wikisource files most classics as pages to choose an edition from.
  */
 const WIKISOURCE_STARTERS: Partial<Record<LangId, string[]>> = {
-  zh: ['吶喊', '彷徨', '朝花夕拾', '故事新編', '野艸', '阿Q正傳', '浮生六記', '老殘遊記', '儒林外史', '鏡花緣', '聊齋志異', '世說新語', '封神演義'],
-  ja: ['蜘蛛の糸', '竹取物語', '土佐日記', '方丈記', '徒然草', '伊勢物語', '更級日記', '枕草子', '源氏物語'],
+  zh: ['吶喊', '彷徨', '朝花夕拾', '故事新編', '野艸', '阿Q正傳', '浮生六記', '老殘遊記', '儒林外史', '鏡花緣', '聊齋志異', '封神演義'],
 };
 
 /**
@@ -282,18 +303,23 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
   return showModal<BookMeta>('Find a free book', (api) => {
     const offered = sourcesFor(code);
     let source: SourceId = offered[0];
-    const input = h('input.input.lib-find-input', { type: 'search', placeholder: 'Title, author, or a link to a book', 'aria-label': 'Search for a book, or paste a link to one', autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
+    const input = h('input.input.lib-find-input', { type: 'search', 'aria-label': 'Search for a book, or paste a link to one', autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
+    // Titles in the reader's script (a Chinese reader on simplified sees 呐喊 for 吶喊); the key stays as the library spells it.
+    const shown = (t: string) => scriptView(ctx.settings.get().script, ctx.dictSync()).text(t);
+    // What happens to a book being added, said aloud (the button's own text changes are not announced).
+    const said = h('div.lib-find-said', { role: 'status', 'aria-live': 'polite' });
     const intro = h('p.lib-find-intro.muted');
     const heading = h('div.lib-find-heading', { role: 'status', 'aria-live': 'polite' });
     const list = h('ol.lib-find-list');
     const more = h('button.btn.lib-find-more', { type: 'button', hidden: true }, 'More books') as HTMLButtonElement;
     const credit = h('span.lib-find-credit.muted');
+    // Two or three places to look: toggle buttons (as the welcome screen's), not tabs, so nothing promises arrow keys.
     const tabs = offered.map((id) => {
-      const b = h('button.lib-find-tab', { type: 'button', role: 'tab', 'aria-selected': 'false', ...(id === 'aozora' ? { title: 'Aozora Bunko' } : {}) }, SOURCES[id].name) as HTMLButtonElement;
+      const b = h('button.lib-find-tab', { type: 'button', 'aria-pressed': 'false', ...(id === 'aozora' ? { title: 'Aozora Bunko' } : {}) }, SOURCES[id].name) as HTMLButtonElement;
       b.addEventListener('click', () => { if (source !== id) { source = id; showSource(); void load(false); } });
       return b;
     });
-    const tabBar = h('div.lib-find-tabs', { role: 'tablist', 'aria-label': 'Where to look' }, tabs);
+    const tabBar = h('div.lib-find-tabs', { role: 'group', 'aria-label': 'Where to look' }, tabs);
     let have: BookMeta[] = [];
     void ctx.store.books.list().then((b) => { have = b; for (const row of list.children) (row as HTMLElement & { sync?: () => void }).sync?.(); }, () => {});
     const inLibrary = (b: FoundBook) => have.find((m) => m.sourceName === fileOf(b, code));
@@ -303,18 +329,24 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
       const err = h('div.lib-find-error', { role: 'alert', hidden: true });
       let added: BookMeta | undefined;
       let busy = false;
+      const title = shown(b.title);
       const sync = () => {
         added ??= inLibrary(b);
         btn.replaceChildren(...(added ? ['Read'] : busy ? ['Adding…'] : [icon('plus'), 'Add']));
         btn.classList.toggle('btn-primary', !!added);
-        btn.disabled = busy;
-        btn.setAttribute('aria-label', `${added ? 'Read' : 'Add'} “${b.title}”`);
+        // Not disabled while busy: a disabled button drops the keyboard's focus to the page. A second press does nothing.
+        btn.setAttribute('aria-disabled', String(busy));
+        btn.setAttribute('aria-label', `${added ? 'Read' : busy ? 'Adding' : 'Add'} “${title}”${busy ? '…' : ''}`);
       };
       btn.addEventListener('click', async () => {
+        if (busy) return;
         if (added) { api.close(added); return; }
         busy = true;
         err.hidden = true;
         sync();
+        said.textContent = `Adding “${title}”…`;
+        // Done is not Cancel: an add carries on with the dialog closed, and then says how it went in a toast.
+        const gone = () => !api.el.isConnected;
         try {
           const file = await fetchFound(b, code);
           let problem = '';
@@ -322,9 +354,16 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
           if (meta) { added = meta; have.push(meta); }
           // The importer names the file, which here is only the book's number or page: the title is already on the row.
           if (problem) throw new Error(problem.replace(/^“[^”]*”:\s*/, ''));
+          said.textContent = `Added “${title}”. The button now opens it.`;
+          if (meta && gone()) ctx.toast(`Added “${shown(meta.title)}”.`, { action: { label: 'Read', run: () => ctx.navigate(`/read/${encodeURIComponent(meta.id)}`) }, ms: 7000 });
         } catch (e) {
-          err.textContent = navigator.onLine === false ? 'You are offline. Connect to the internet to add books.' : e instanceof Error ? e.message : 'The book could not be added.';
+          const msg = navigator.onLine === false ? 'You are offline. Connect to the internet to add books.'
+            : isNetworkFailure(e) ? 'The book could not be downloaded: the network did not answer. Check your connection and try again.'
+            : e instanceof Error ? e.message : 'The book could not be added.';
+          if (gone()) ctx.toast(`“${title}” could not be added. ${msg}`, { ms: 9000 });
+          err.textContent = msg;
           err.hidden = false;
+          said.textContent = '';
         } finally {
           busy = false;
           sync();
@@ -333,7 +372,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
       sync();
       const li = h('li.lib-find-row', null,
         h('div.lib-find-text', null,
-          h('div.lib-find-title', { lang: L.tag }, b.title),
+          h('div.lib-find-title', { lang: code === 'zh' && ctx.settings.get().script === 'traditional' ? 'zh-Hant' : L.tag }, title),
           b.author ? h('div.lib-find-author', null, b.author) : null,
           b.also.length ? h('div.lib-find-note', null, `Also in ${b.also.join(' and ')}`) : null,
           b.note ? h('div.lib-find-note', null, b.note) : null,
@@ -348,21 +387,24 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
     let next: number | null = null;
     let query = '';
     const showSource = () => {
-      tabs.forEach((t, i) => t.setAttribute('aria-selected', String(offered[i] === source)));
+      tabs.forEach((t, i) => t.setAttribute('aria-pressed', String(offered[i] === source)));
+      input.placeholder = source === 'wikisource' ? 'Title, or a link to a book' : 'Title, author, or a link to a book';
       credit.textContent = SOURCES[source].credit;
       intro.textContent = source === 'gutenberg'
         ? `Free public-domain books in ${name} from Project Gutenberg. Add one and it opens like any other book.`
         : source === 'aozora'
           ? 'Over 17,000 works out of copyright in Japan, with the readings the library prints over hard words. Search by title or author, in kanji or kana.'
-          : `Any work on the ${name} Wikisource, made into a book with its chapters. Search by title or author.`;
+          : `Any work on the ${name} Wikisource, made into a book with its chapters. Search by title; add the author to narrow it${code === 'zh' ? ' (吶喊 魯迅)' : ''}.`;
     };
     const load = async (append: boolean) => {
       const mine = ++seq;
       ctrl?.abort();
       ctrl = new AbortController();
-      if (!append) { list.replaceChildren(); next = null; }
-      heading.textContent = append ? heading.textContent : 'Searching…';
-      more.hidden = true;
+      if (!append) { list.replaceChildren(); next = null; more.hidden = true; heading.textContent = 'Searching…'; }
+      // More stays where it is while the next page comes (hiding it would drop the keyboard's focus to the page).
+      more.setAttribute('aria-busy', String(append));
+      more.setAttribute('aria-disabled', String(append));
+      const before = list.childElementCount;
       try {
         let page: { books: FoundBook[]; next: number | null };
         const link = parseBookLink(query);
@@ -377,7 +419,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
         } else if (source === 'wikisource' && !query) {
           const starters = WIKISOURCE_STARTERS[code];
           if (!starters) {
-            heading.textContent = `Type a title or an author to search the ${name} Wikisource.`;
+            heading.textContent = `Type a title to search the ${name} Wikisource.`;
             return;
           }
           page = { books: starters.map((t) => ({ source: 'wikisource', key: t, title: t, author: '', also: [] })), next: null };
@@ -389,20 +431,37 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
         if (mine !== seq) return;
         next = page.next;
         list.append(...page.books.map(row));
+        more.removeAttribute('aria-busy');
+        more.setAttribute('aria-disabled', 'false');
+        // After More, the keyboard goes on from the first new book (or stays on More when nothing came).
+        if (append && document.activeElement === more) {
+          const first = list.children[before]?.querySelector<HTMLElement>('button');
+          if (first && !next) first.focus();
+        }
         heading.textContent = list.childElementCount
           ? (link ? 'The book at that link' : query ? `Books in ${name} matching “${query}”` : source === 'wikisource' ? `Well-known works to start with` : `The most read books in ${name}`)
           : (query ? `No books in ${name} match “${query}”. Try a shorter title or the author’s last name${source === 'gutenberg' && WIKISOURCE_STARTERS[code] === undefined ? ', or look on Wikisource' : ''}.`
             : `${SOURCES[source].name} has no books in ${name} yet.`);
-        more.hidden = !next;
+        // Never "No books match" with a More button under it.
+        if (!append && !list.childElementCount) next = null;
+        if (more.hidden !== !next) {
+          if (!next && document.activeElement === more) (list.lastElementChild?.querySelector<HTMLElement>('button') ?? input).focus();
+          more.hidden = !next;
+        }
       } catch (e) {
         if (mine !== seq || (e instanceof DOMException && e.name === 'AbortError')) return;
+        more.removeAttribute('aria-busy');
+        more.setAttribute('aria-disabled', 'false');
         heading.textContent = navigator.onLine === false ? 'You are offline. Connect to the internet to find books.'
           : parseBookLink(query) && e instanceof Error ? e.message
           : `${SOURCES[source].name} did not answer. Try again in a moment.`;
       }
     };
+    // Chinese and Japanese are typed through an input method: nothing is searched for while a word is being composed ("lu xun"
+    // before it becomes 魯迅), only once it is chosen.
     let timer = 0;
-    input.addEventListener('input', () => {
+    let composing = false;
+    const schedule = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         const q = input.value.trim();
@@ -410,21 +469,24 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
         query = q;
         void load(false);
       }, 400);
-    });
+    };
+    input.addEventListener('compositionstart', () => { composing = true; window.clearTimeout(timer); });
+    input.addEventListener('compositionend', () => { composing = false; schedule(); });
+    input.addEventListener('input', (e) => { if (!composing && !(e as InputEvent).isComposing) schedule(); });
     input.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
+      if (e.key !== 'Enter' || composing || e.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       window.clearTimeout(timer);
       query = input.value.trim();
       void load(false);
     });
-    more.addEventListener('click', () => void load(true));
+    more.addEventListener('click', () => { if (more.getAttribute('aria-busy') !== 'true') void load(true); });
     showSource();
     // Opened on a link shared to the app, or a search: it shows that at once.
     if (opts.query) { input.value = opts.query; query = opts.query.trim(); }
     void load(false);
     return {
-      body: h('div.lib-find', null, tabBar, intro, h('div.lib-find-search', null, icon('search'), input), heading, list, more),
+      body: h('div.lib-find', null, tabBar, intro, h('div.lib-find-search', null, icon('search'), input), heading, list, more, said),
       footer: [credit, h('button.btn', { type: 'button', onclick: () => api.close() }, 'Done')],
       focus: input,
     };

@@ -69,6 +69,20 @@ describe('a book from Wikisource', () => {
     expect(JSON.stringify(b.chapters)).not.toMatch(/書誌情報|作者|1918年/);
   });
 
+  it('keeps the cover of a book that only came from Wikisource (Standard Ebooks)', async () => {
+    const se = makeEpub({
+      'META-INF/container.xml': CONTAINER('OPS/content.opf'),
+      'OPS/content.opf': opf({
+        title: 'A Confession', metaExtra: '<dc:source>https://en.wikisource.org/wiki/A_Confession</dc:source><dc:contributor id="t">Wikisource</dc:contributor><meta property="role" refines="#t">trc</meta>',
+        manifest: [['cover', 'images/cover.png', 'image/png', 'cover-image'], ['c1', 'c1.xhtml', 'application/xhtml+xml']], spine: ['c1'],
+      }),
+      'OPS/c1.xhtml': xhtml(`<h1>I</h1><p>${prose(80)}</p>`),
+      'OPS/images/cover.png': PNG,
+    });
+    const b = await importFile(asFile(se, 'a-confession.epub'));
+    expect(b.cover).toBeTruthy();
+  });
+
   it('leaves another book with the same markup alone', async () => {
     const b = await importFile(asFile(book(''), 'other.epub'));
     expect(JSON.stringify(b.chapters)).toContain('About this digital edition');

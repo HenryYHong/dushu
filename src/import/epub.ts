@@ -149,7 +149,8 @@ const WIKISOURCE_ICON = /(?:_icon|_logo|Wikisource-logo|Wikimedia|\.svg\.png_utm
 const WIKISOURCE_AUTHOR = /^(?:Author|Autor|Auteur|Autore|Автор|作者|著者):\s*/;
 
 /**
- * Takes Wikisource's furniture out of one part, before its blocks are made: the header template (headerContainer: the parts
+ * Takes Wikisource's furniture out of one part, before its blocks are made: the header template (headerContainer, or zh's
+ * table.ws-header for its novels: the parts
  * before and after, the title, "作者：<author>"), the sister-project list, and anything marked not to print or export. Returns
  * the author the header names, and the part's own title from the header's middle cell when the text does not carry it: 西遊記's
  * "第二回 悟徹菩提真妙理　斷魔歸本合元神" (the work's title, `work`, is left out of it).
@@ -162,9 +163,12 @@ export function tidyWikisource(doc: Document, work = ''): { author: string; part
     if (WIKISOURCE_AUTHOR.test(t)) { author = t.replace(WIKISOURCE_AUTHOR, '').replace(/\s*\([^)]*\)\s*$/, '').trim() || (a.textContent ?? '').trim(); break; }
   }
   let part = '';
-  const header = doc.querySelector('[id^="headerContainer"]');
-  const middle = header ? [...header.querySelectorAll('td')].find((td) => td.querySelector('b')) : undefined;
-  if (middle) {
+  const header = doc.querySelector('[id^="headerContainer"]') ?? doc.querySelector('table.ws-header');
+  const middles: Element[] = !header ? [] : header.matches('table.ws-header')
+    ? [...header.querySelectorAll('tr')].map((tr) => [...tr.children].filter((c) => c.localName === 'td')).filter((tds) => tds.length >= 3).map((tds) => tds[1])
+    : [[...header.querySelectorAll('td')].find((td) => td.querySelector('b'))].filter((x): x is HTMLTableCellElement => !!x);
+  const kept: string[] = [];
+  for (const middle of middles) {
     // Its lines, up to the author's: the work's title in bold, then the part's number and name.
     const lines: string[] = [];
     let line = '';
@@ -172,19 +176,20 @@ export function tidyWikisource(doc: Document, work = ''): { author: string; part
       if (node.nodeName.toLowerCase() === 'br') { lines.push(line.trim()); line = ''; continue; }
       const el = node as Element;
       if (el.nodeType === 1 && (el.matches?.('a[title]') && WIKISOURCE_AUTHOR.test(el.getAttribute('title') ?? ''))) break;
+      // table.ws-header (老殘遊記, 儒林外史, 鏡花緣, 世說新語): the bold line is the work's title, often in another form (世説新語, 野草).
+      if (el.nodeType === 1 && el.localName === 'b' && header!.matches('table.ws-header')) continue;
       line += node.textContent ?? '';
     }
     lines.push(line.trim());
-    const kept = [];
     for (const l of lines) {
       if (/^(?:作者|著者|Author|Autor|Auteur|Autore|Автор)\s*[：:]/.test(l)) break;
       if (l && l !== work.trim()) kept.push(l);
     }
-    part = kept.join(' ').replace(/\s+/g, ' ').trim();
   }
+  part = kept.join(' ').replace(/\s+/g, ' ').trim();
   // Each Wikisource names its header its own way: headerContainer (zh, en), navigationHeader and navigationNotes (ja),
   // headertemplate (ru). The printed book's page numbers (ws-pagenum) are not the reader's.
-  for (const el of doc.querySelectorAll('[id^="headerContainer"], [id^="navigationHeader"], [id^="navigationNotes"], [id^="headertemplate"], [id^="plainSister"], .noprint, .ws-noexport, .ws-pagenum, .mw-editsection, .ws-summary, .licenseContainer')) el.remove();
+  for (const el of doc.querySelectorAll('[id^="headerContainer"], table.ws-header, [id^="navigationHeader"], [id^="navigationNotes"], [id^="headertemplate"], [id^="plainSister"], .noprint, .ws-noexport, .ws-pagenum, .mw-editsection, .ws-summary, .licenseContainer')) el.remove();
   return { author, part };
 }
 
@@ -367,8 +372,9 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   const title = cleanTitle(dc('title').map((t) => plainText(t)).find(Boolean) ?? '') || fromFile.title || 'Untitled';
   const author = cleanAuthors(authorList.length ? authorList : wikisourceAuthor ? [wikisourceAuthor] : []);
 
-  // Wikisource's cover is its own logo: the app draws a cover instead.
-  const coverName = wikisource ? undefined : findCover(opf, opfPath, manifest, byId, getText, registerAsset);
+  // Wikisource's cover is its own logo: refused, so the app draws a cover. A book that names a cover of its own keeps it, also
+  // one that only came from Wikisource (Standard Ebooks names Wikisource as its transcriber and has its own cover.jpg).
+  const coverName = findCover(opf, opfPath, manifest, byId, getText, wikisource ? (p) => (WIKISOURCE_ICON.test(p) ? undefined : registerAsset(p)) : registerAsset);
 
   // SVG images become PNG here; any that cannot be converted are removed from the text and the cover.
   const dropped = await store.finalize();
