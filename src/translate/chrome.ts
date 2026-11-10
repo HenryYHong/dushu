@@ -4,6 +4,7 @@ import type { TranslateRequest, Translator } from '../types';
 import { chunkText } from './chunk';
 import { isChinese, lang, langId } from '../lang/active';
 import { DEFAULT_TARGET, chunkJoiner, targetFor, targetLanguage } from './targets';
+import { langName, tt } from '../i18n';
 
 type ChromeAvailability = 'unavailable' | 'downloadable' | 'downloading' | 'available'
   // Names used by earlier Chrome builds.
@@ -64,13 +65,25 @@ function api(): ChromeTranslatorStatic | null {
 
 export function chromeSupported(): boolean { return api() !== null; }
 
+/** The language of the book, named in the app's language ("Chinese", "chinois"). */
+function fromName(): string {
+  const L = lang();
+  return langName(L.id, L.name);
+}
+
+/** A language translated into, named in the app's language; English for one not on the list. */
+function toName(code: string): string {
+  const t = targetLanguage(code) ?? targetLanguage(DEFAULT_TARGET)!;
+  // Intl names plain 'zh' "Chinese": the list's simplified Chinese is 'zh-Hans' to it.
+  return langName(t.code === 'zh' ? 'zh-Hans' : t.code, t.name);
+}
+
 /**
  * The pair a Chrome model translates, as the reader reads it: "Chinese" into English, "Chinese to Filipino" into another
  * language. Settings and the popup both say a pair is missing with it, rather than that the browser has no translator.
  */
 export function chromePairName(to: string = DEFAULT_TARGET): string {
-  const from = isChinese() ? 'Chinese' : lang().name;
-  return to === DEFAULT_TARGET ? from : `${from} to ${targetLanguage(to)?.name ?? 'English'}`;
+  return to === DEFAULT_TARGET ? fromName() : tt('{from} to {to}', { from: fromName(), to: toName(to) });
 }
 
 /** Whether Chrome can translate this pair: each pair is its own model (zh to en, zh to fr, es to en are three downloads). */
@@ -96,7 +109,7 @@ const instances = new Map<string, Promise<ChromeTranslatorInstance>>();
 
 function create(source: Source, target: Target, onProgress?: (fraction: number) => void): Promise<ChromeTranslatorInstance> {
   const t = api();
-  if (!t) return Promise.reject(new Error('This browser has no built-in translator. Use Chrome 138 or newer on a computer.'));
+  if (!t) return Promise.reject(new Error(tt('This browser has no built-in translator. Use Chrome 138 or newer on a computer.')));
   const pair = `${source}>${target}`;
   const have = instances.get(pair);
   if (have) return have;
@@ -108,9 +121,10 @@ function create(source: Source, target: Target, onProgress?: (fraction: number) 
   }).catch((e: unknown) => {
     instances.delete(pair); // let the next click try again
     const name = (e as { name?: string })?.name;
-    if (name === 'NotAllowedError') throw new Error('Chrome needs a click to download the translation model. Press the download button in Settings.');
-    if (name === 'NotSupportedError') throw new Error(`Chrome cannot translate ${isChinese() ? 'Chinese' : lang().name} to ${targetLanguage(target)?.name ?? 'English'} on this device.`);
-    throw new Error('Chrome could not start its translator: ' + ((e as Error)?.message ?? 'unknown error'));
+    if (name === 'NotAllowedError') throw new Error(tt('Chrome needs a click to download the translation model. Press the download button in Settings.'));
+    if (name === 'NotSupportedError') throw new Error(tt('Chrome cannot translate {from} to {to} on this device.', { from: fromName(), to: toName(target) }));
+    // Chrome's own message stays as it gave it.
+    throw new Error(tt('Chrome could not start its translator: {error}', { error: (e as Error)?.message ?? tt('unknown error') }));
   });
   instances.set(pair, p);
   return p;
@@ -155,7 +169,7 @@ export function createChromeTranslator(to: string = DEFAULT_TARGET): ChromeTrans
   const bound = () => targetFor(to, langId());
   return {
     id: 'chrome',
-    label: 'Chrome on-device',
+    get label() { return tt('Chrome on-device'); },
     availability: () => rawAvailability(baseSource(), bound()),
     async prepare(onProgress) {
       await create(baseSource(), bound(), onProgress);
@@ -165,7 +179,7 @@ export function createChromeTranslator(to: string = DEFAULT_TARGET): ChromeTrans
       if (signal?.aborted) aborted();
       const target = targetFor(req.to, langId());
       const state = await rawAvailability(baseSource(), target);
-      if (state === 'no') throw new Error('Chrome\'s on-device translator is not available here.');
+      if (state === 'no') throw new Error(tt('Chrome\'s on-device translator is not available here.'));
       // 'download' only works inside a click; create() reports NotAllowedError otherwise.
       // Traditional text uses the zh-Hant model when it is ready; otherwise the plain zh one, as before.
       const source: Source = !isChinese() ? baseSource() : sourceFor(req.text) === 'zh-Hant' && (await rawAvailability('zh-Hant', target)) === 'yes' ? 'zh-Hant' : 'zh';

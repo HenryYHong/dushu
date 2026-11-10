@@ -3,6 +3,7 @@ import { COMMON_CHARS } from './commonChars';
 import { isHan } from './han';
 import { langId } from '../lang/active';
 import type { LangId } from '../lang/types';
+import { ttm, ttn } from '../i18n';
 
 export interface Decoded {
   text: string;
@@ -16,7 +17,7 @@ export interface Decoded {
 
 /** What the import result says when some characters could not be decoded (`unreadable`). */
 export function unreadableMessage(n: number): string {
-  return n === 1 ? '1 character could not be read and shows as �.' : `${n.toLocaleString('en-US')} characters could not be read and show as �.`;
+  return ttn(n, '{n} character could not be read and shows as �.', '{n} characters could not be read and show as �.');
 }
 
 /** Map a declared charset label to one TextDecoder understands, or undefined. */
@@ -289,7 +290,7 @@ export function stripBidi(text: string): string {
   return text.replace(BIDI, '');
 }
 
-export const NOT_TEXT_MESSAGE = 'This file does not look like text (it may be a binary file with a .txt name), so Globereader did not import it.';
+export const NOT_TEXT_MESSAGE = ttm('This file does not look like text (it may be a binary file with a .txt name), so Globereader did not import it.');
 
 /**
  * Whether bytes decoded as text really are text: not full of zero or control bytes. A strict UTF-8 decode is accepted

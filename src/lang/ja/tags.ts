@@ -1,21 +1,22 @@
-// JMdict's tag codes in plain English: parts of speech for Sense.pos, the rest for Sense.notes.
+// JMdict's tag codes in plain English: parts of speech for Sense.pos (in the app's language: src/i18n), the rest for Sense.notes.
+import { tt, ttm } from '../../i18n';
 
 /** Parts of speech. Verbs say their class, which tells a learner how the word conjugates. */
 const POS: Record<string, string> = {
-  n: 'noun', 'n-adv': 'adverbial noun', 'n-t': 'noun (time)', 'n-pref': 'noun used as a prefix', 'n-suf': 'noun used as a suffix',
-  pn: 'pronoun', num: 'number', ctr: 'counter', pref: 'prefix', suf: 'suffix', prt: 'particle', conj: 'conjunction', int: 'interjection',
-  exp: 'expression', cop: 'copula', aux: 'auxiliary', 'aux-v': 'auxiliary verb', 'aux-adj': 'auxiliary adjective', unc: '',
-  adv: 'adverb', 'adv-to': 'adverb (takes と)',
-  'adj-i': 'adjective (i)', 'adj-ix': 'adjective (i, いい/よい class)', 'adj-na': 'adjective (na)', 'adj-no': 'noun (takes の)',
-  'adj-pn': 'pre-noun adjective', 'adj-t': 'adjective (taru)', 'adj-f': 'used before nouns', 'adj-ku': 'adjective (archaic ku)',
-  'adj-shiku': 'adjective (archaic shiku)', 'adj-nari': 'adjective (archaic nari)', 'adj-kari': 'adjective (archaic kari)',
-  v1: 'verb (ichidan)', 'v1-s': 'verb (ichidan, くれる class)', vz: 'verb (ichidan, -ずる)',
-  v5u: 'verb (godan, -う)', 'v5u-s': 'verb (godan, -う, special)', v5k: 'verb (godan, -く)', 'v5k-s': 'verb (godan, 行く class)',
-  v5g: 'verb (godan, -ぐ)', v5s: 'verb (godan, -す)', v5t: 'verb (godan, -つ)', v5n: 'verb (godan, -ぬ)', v5b: 'verb (godan, -ぶ)',
-  v5m: 'verb (godan, -む)', v5r: 'verb (godan, -る)', 'v5r-i': 'verb (godan, -る, irregular)', v5aru: 'verb (godan, -ある honorific)',
-  v5uru: 'verb (godan, -うる)', vk: 'verb (irregular, 来る)', vs: 'verb with する', 'vs-i': 'verb (irregular, する)',
-  'vs-s': 'verb (する, special)', 'vs-c': 'verb (archaic す)', vn: 'verb (irregular, -ぬ)', vr: 'verb (irregular, -り)',
-  'v-unspec': 'verb', vi: 'intransitive', vt: 'transitive',
+  n: ttm('noun'), 'n-adv': ttm('adverbial noun'), 'n-t': ttm('noun (time)'), 'n-pref': ttm('noun used as a prefix'), 'n-suf': ttm('noun used as a suffix'),
+  pn: ttm('pronoun'), num: ttm('number'), ctr: ttm('counter'), pref: ttm('prefix'), suf: ttm('suffix'), prt: ttm('particle'), conj: ttm('conjunction'), int: ttm('interjection'),
+  exp: ttm('expression'), cop: ttm('copula'), aux: ttm('auxiliary'), 'aux-v': ttm('auxiliary verb'), 'aux-adj': ttm('auxiliary adjective'), unc: '',
+  adv: ttm('adverb'), 'adv-to': ttm('adverb (takes と)'),
+  'adj-i': ttm('adjective (i)'), 'adj-ix': ttm('adjective (i, いい/よい class)'), 'adj-na': ttm('adjective (na)'), 'adj-no': ttm('noun (takes の)'),
+  'adj-pn': ttm('pre-noun adjective'), 'adj-t': ttm('adjective (taru)'), 'adj-f': ttm('used before nouns'), 'adj-ku': ttm('adjective (archaic ku)'),
+  'adj-shiku': ttm('adjective (archaic shiku)'), 'adj-nari': ttm('adjective (archaic nari)'), 'adj-kari': ttm('adjective (archaic kari)'),
+  v1: ttm('verb (ichidan)'), 'v1-s': ttm('verb (ichidan, くれる class)'), vz: ttm('verb (ichidan, -ずる)'),
+  v5u: ttm('verb (godan, -う)'), 'v5u-s': ttm('verb (godan, -う, special)'), v5k: ttm('verb (godan, -く)'), 'v5k-s': ttm('verb (godan, 行く class)'),
+  v5g: ttm('verb (godan, -ぐ)'), v5s: ttm('verb (godan, -す)'), v5t: ttm('verb (godan, -つ)'), v5n: ttm('verb (godan, -ぬ)'), v5b: ttm('verb (godan, -ぶ)'),
+  v5m: ttm('verb (godan, -む)'), v5r: ttm('verb (godan, -る)'), 'v5r-i': ttm('verb (godan, -る, irregular)'), v5aru: ttm('verb (godan, -ある honorific)'),
+  v5uru: ttm('verb (godan, -うる)'), vk: ttm('verb (irregular, 来る)'), vs: ttm('verb with する'), 'vs-i': ttm('verb (irregular, する)'),
+  'vs-s': ttm('verb (する, special)'), 'vs-c': ttm('verb (archaic す)'), vn: ttm('verb (irregular, -ぬ)'), vr: ttm('verb (irregular, -り)'),
+  'v-unspec': ttm('verb'), vi: ttm('intransitive'), vt: ttm('transitive'),
 };
 
 /** Usage notes. */
@@ -65,7 +66,7 @@ export function isPosTag(t: string): boolean {
 export function posText(tags: readonly string[]): string | undefined {
   const out: string[] = [];
   for (const t of tags) {
-    const s = POS[t] ?? (ARCHAIC_VERB.test(t) ? 'verb (archaic)' : undefined);
+    const s = POS[t] ? tt(POS[t]) : ARCHAIC_VERB.test(t) ? tt('verb (archaic)') : undefined;
     if (s && !out.includes(s)) out.push(s);
   }
   return out.length ? out.join(', ') : undefined;

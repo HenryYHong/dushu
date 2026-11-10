@@ -1,4 +1,5 @@
 import { lang } from '../lang/active';
+import { langName, tt, ttm } from '../i18n';
 
 /** A problem with the user's file, worded for the user. */
 export class ImportError extends Error {
@@ -8,18 +9,16 @@ export class ImportError extends Error {
   }
 }
 
-export const NO_CHINESE = 'No Chinese text found in this file. This library reads books written in Chinese.';
-
-/** The same, for the language being read (lang/active.ts). */
+/** A file with none of the language being read (lang/active.ts) in it, in the app's language. */
 export function noTextMessage(): string {
   const L = lang();
-  return L.id === 'zh' ? NO_CHINESE : `No ${L.name} text found in this file. This library reads books written in ${L.name}.`;
+  return tt('No {lang} text found in this file. This library reads books written in {lang}.', { lang: langName(L.id, L.name) });
 }
 
-export const PDF_HOST_MESSAGE =
-  'The PDF reader could not start. This is a problem with how Globereader is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.';
+export const PDF_HOST_MESSAGE = ttm(
+  'The PDF reader could not start. This is a problem with how Globereader is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.');
 
-export const PDF_OFFLINE_MESSAGE = 'PDF import needs a connection the first time. Connect once and try again.';
+export const PDF_OFFLINE_MESSAGE = ttm('PDF import needs a connection the first time. Connect once and try again.');
 
 /**
  * True when the server Dushu came from does not answer: the device is offline, or the Mac is asleep. A HEAD request is
@@ -38,5 +37,5 @@ async function serverUnreachable(): Promise<boolean> {
 
 /** The PDF reader's own files did not load: offline before they were ever stored, or a hosting problem. */
 export async function pdfStartFailure(): Promise<ImportError> {
-  return new ImportError((await serverUnreachable()) ? PDF_OFFLINE_MESSAGE : PDF_HOST_MESSAGE);
+  return new ImportError(tt((await serverUnreachable()) ? PDF_OFFLINE_MESSAGE : PDF_HOST_MESSAGE));
 }

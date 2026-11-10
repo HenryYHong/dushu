@@ -8,6 +8,7 @@ import { createMyMemoryTranslator } from './mymemory';
 import { createLocalTranslator, qualityLocalAvailable } from './localMeaning';
 import { isChinese, langId } from '../lang/active';
 import { targetFor } from './targets';
+import { tt } from '../i18n';
 
 export type { ChromeTranslator } from './chrome';
 export { chromeSupported } from './chrome';
@@ -42,9 +43,9 @@ export function getTranslator(id: TranslatorId, settings: Settings, dict: Dictio
 function withoutThirdParty(translator: Translator): Translator {
   return {
     id: translator.id,
-    label: translator.label,
+    get label() { return translator.label; },
     availability: async () => 'no',
-    translate: async () => { throw new Error('Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use this service.'); },
+    translate: async () => { throw new Error(tt('Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use this service.')); },
   };
 }
 

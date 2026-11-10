@@ -1,6 +1,7 @@
 // Which language a book is in, roughly: enough to tell someone who drops an English or French book into the Spanish library,
 // or a Chinese one into the Japanese library, where it belongs. Common little words decide the languages written with spaces.
 import type { LangId } from './types';
+import { langName, tt } from '../i18n';
 
 /** The most frequent short words of each language (articles, prepositions, pronouns), few enough to be shared rarely. */
 const STOPWORDS: Record<string, string[]> = {
@@ -50,17 +51,20 @@ export function guessLanguage(sample: string): string | null {
 
 /**
  * The message for a book that is plainly in another language than the library it is being added to, or null when it fits
- * (or it cannot tell). `here` is the library's language.
+ * (or it cannot tell). `here` is the library's language; `what` is 'text' for pasted text ("This text looks like…").
  */
-export function wrongLanguage(sample: string, here: LangId): string | null {
+export function wrongLanguage(sample: string, here: LangId, what: 'book' | 'text' = 'book'): string | null {
   const found = guessLanguage(sample);
   if (!found || found === here) return null;
-  return elsewhere(found, here);
+  return elsewhere(found, here, what);
 }
 
-function elsewhere(found: string, here: LangId): string {
-  const name = NAMES[found] ?? found;
-  return `This book looks like it is in ${name}, and this library is ${NAMES[here]}. Switch to ${name} (in Settings, or the language menu at the top) and add it there.`;
+/** Each language named in the app's language: "Japanese" in English, "japonais" in French. */
+function elsewhere(found: string, here: LangId, what: 'book' | 'text' = 'book'): string {
+  const vars = { found: langName(found, NAMES[found] ?? found), here: langName(here, NAMES[here]) };
+  return what === 'text'
+    ? tt('This text looks like it is in {found}, and this library is {here}. Switch to {found} (in Settings, or the language menu at the top) and add it there.', vars)
+    : tt('This book looks like it is in {found}, and this library is {here}. Switch to {found} (in Settings, or the language menu at the top) and add it there.', vars);
 }
 
 /**

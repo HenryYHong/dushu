@@ -5,6 +5,7 @@ import { chunkText } from './chunk';
 import { contextWindow, translateChecked, unverifiedDetail, type CheckIssue, type TranslateOptions } from './prompt';
 import { bridgeFetch, hasMacBridge } from '../core/macBridge';
 import { QUALITY_MODELS, LOCAL_MODELS as MODELS } from './localModels';
+import { tt } from '../i18n';
 export interface MeaningSuggestion { meaning: string; reason: string; evidence?: string; confidence: 'high' | 'medium' | 'low' }
 
 const BASE = '/api/local-model';
@@ -29,11 +30,11 @@ export function translationIssue(answer: string, wineShop: boolean, terms: NonNu
 
 async function localModel(signal?: AbortSignal): Promise<string> {
   const response = await bridgeFetch(`${BASE}/api/tags`, { signal: boundedSignal(signal, 5000) });
-  if (!response.ok) throw new Error('The local language model is not available. Start Ollama on this Mac.');
+  if (!response.ok) throw new Error(tt('The local language model is not available. Start Ollama on this Mac.'));
   const data = await response.json() as { models?: { name?: string }[] };
   const names = new Set(data.models?.map(m => m.name) ?? []);
   const model = MODELS.find(name => names.has(name));
-  if (!model) throw new Error('No supported Chinese-capable model is installed in Ollama on this Mac.');
+  if (!model) throw new Error(tt('No supported Chinese-capable model is installed in Ollama on this Mac.'));
   return model;
 }
 
@@ -45,7 +46,7 @@ async function readGeneration(response: Response, onDelta?: (text: string) => vo
   if (!response.body) {
     const data = await response.json() as { response?: string; error?: string; done_reason?: string };
     if (data.error) throw new Error(data.error);
-    if (data.done_reason === 'length') throw new Error('The local model stopped before finishing. Translate a shorter selection or try another provider.');
+    if (data.done_reason === 'length') throw new Error(tt('The local model stopped before finishing. Translate a shorter selection or try another provider.'));
     const answer = data.response?.trim() ?? '';
     onDelta?.(answer);
     return answer;
@@ -59,7 +60,7 @@ async function readGeneration(response: Response, onDelta?: (text: string) => vo
     if (!line.trim()) return;
     const data = JSON.parse(line) as { response?: string; error?: string; done?: boolean; done_reason?: string };
     if (data.error) throw new Error(data.error);
-    if (data.done_reason === 'length') throw new Error('The local model stopped before finishing. Translate a shorter selection or try another provider.');
+    if (data.done_reason === 'length') throw new Error(tt('The local model stopped before finishing. Translate a shorter selection or try another provider.'));
     if (data.done) finished = true;
     if (data.response) { answer += data.response; onDelta?.(answer); }
   };
@@ -78,14 +79,14 @@ async function readGeneration(response: Response, onDelta?: (text: string) => vo
     await reader.cancel().catch(() => {});
     throw error;
   } finally { reader.releaseLock(); }
-  if (!finished) throw new Error('The translation connection ended before completion. Please retry.');
+  if (!finished) throw new Error(tt('The translation connection ended before completion. Please retry.'));
   return answer.trim();
 }
 
 export function createLocalTranslator(): Translator {
   return {
     id: 'local',
-    label: 'Private Mac AI (Ollama)',
+    get label() { return tt('Private Mac AI (Ollama)'); },
     async availability() {
       if (!hasMacBridge()) return 'no';
       const ctl = new AbortController();
@@ -110,7 +111,7 @@ export function createLocalTranslator(): Translator {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ model, system, prompt: message, stream: true, think: false, options: { temperature: 0, num_ctx: 4096, num_predict: 1400 } }),
           });
-          if (!response.ok) throw new Error(`The local model could not translate (${response.status}).`);
+          if (!response.ok) throw new Error(tt('The local model could not translate ({status}).', { status: response.status }));
           return readGeneration(response, onDelta);
         };
         const result = await translateChecked({ ...req, text, context: contextWindow(evidence, text), terms: glossary }, generate, {
@@ -118,13 +119,13 @@ export function createLocalTranslator(): Translator {
           onDelta: held ? undefined : partial => opts?.onDelta?.([...completed, partial].join('\n\n')),
           extra: answer => { const issue = translationIssue(answer, hint?.kind === 'tavern', glossary, hint?.kind === 'lodging'); return issue ? [{ code: 'sense', message: issue }] : []; },
         });
-        if (result.issues.some(issue => issue.code === 'sense')) throw new Error('The model contradicted a supplied reference after correction. Try another provider or compare the dictionary; this answer was withheld.');
-        if (!result.text) throw new Error('The local model returned no translation.');
+        if (result.issues.some(issue => issue.code === 'sense')) throw new Error(tt('The model contradicted a supplied reference after correction. Try another provider or compare the dictionary; this answer was withheld.'));
+        if (!result.text) throw new Error(tt('The local model returned no translation.'));
         completed.push(result.text);
         unresolved.push(...result.issues);
         if (held) opts?.onDelta?.(completed.join('\n\n'));
       }
-      if (!completed.length) throw new Error(req.lang ? 'Select some text to translate.' : 'Select some Chinese text to translate.');
+      if (!completed.length) throw new Error(req.lang ? tt('Select some text to translate.') : tt('Select some Chinese text to translate.'));
       if (unresolved.length) opts?.onNote?.({ kind: 'unverified', detail: unverifiedDetail(unresolved, req.lang) });
       return completed.join('\n\n');
     },
@@ -155,19 +156,19 @@ export async function suggestMeaning(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, prompt, stream: false, think: false, format: 'json', options: { temperature: 0, num_ctx: 4096, num_predict: 400 } }),
   });
-  if (!response.ok) throw new Error(`The local model could not answer (${response.status}).`);
+  if (!response.ok) throw new Error(tt('The local model could not answer ({status}).', { status: response.status }));
   const data = await response.json() as { response?: string; done_reason?: string; error?: string };
-  if (data.error || data.done_reason === 'length') throw new Error('The model could not finish checking this meaning. Compare the dictionary senses.');
+  if (data.error || data.done_reason === 'length') throw new Error(tt('The model could not finish checking this meaning. Compare the dictionary senses.'));
   let parsed: Record<string, unknown>;
-  try { parsed = JSON.parse(data.response ?? ''); } catch { throw new Error('The local model returned an unreadable answer.'); }
+  try { parsed = JSON.parse(data.response ?? ''); } catch { throw new Error(tt('The local model returned an unreadable answer.')); }
   const meaning = typeof parsed.meaning === 'string' ? parsed.meaning.trim().slice(0, 160) : '';
   const reason = typeof parsed.reason === 'string' ? parsed.reason.trim().slice(0, 280) : '';
   const evidence = typeof parsed.evidence === 'string' ? parsed.evidence.trim() : '';
   const confidence = parsed.confidence === 'high' || parsed.confidence === 'medium' ? parsed.confidence : 'low';
-  if (!meaning) throw new Error('The local model returned no meaning.');
-  if (confidence === 'low') throw new Error('The local model is uncertain. Compare the dictionary senses and translate the whole sentence.');
+  if (!meaning) throw new Error(tt('The local model returned no meaning.'));
+  if (confidence === 'low') throw new Error(tt('The local model is uncertain. Compare the dictionary senses and translate the whole sentence.'));
   if (!senses.some(sense => sense.trim().toLowerCase() === meaning.toLowerCase()) || !evidence || !context.includes(evidence)) {
-    throw new Error('A dictionary meaning could not be confirmed from this paragraph. Use the sentence translation and compare the listed senses.');
+    throw new Error(tt('A dictionary meaning could not be confirmed from this paragraph. Use the sentence translation and compare the listed senses.'));
   }
   return { meaning, reason, evidence, confidence };
 }

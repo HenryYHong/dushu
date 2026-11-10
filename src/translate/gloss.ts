@@ -7,6 +7,7 @@ import { wordSenseHint } from './contextSense';
 import { activeEngine } from '../lang/active';
 import { safeLookup, shortGlossOf } from '../lang/words';
 import { DEFAULT_TARGET } from './targets';
+import { tt } from '../i18n';
 
 export interface GlossDeps {
   segment: (text: string, dict: Dictionary) => Token[];
@@ -83,13 +84,13 @@ export function glossText(text: string, dict: Dictionary, deps: GlossDeps = defa
 export function createGlossTranslator(dict: Dictionary | null, deps: GlossDeps = defaultDeps, to: string = DEFAULT_TARGET): Translator {
   return {
     id: 'gloss',
-    label: to === DEFAULT_TARGET ? 'Word-by-word (offline)' : 'Word by word, in English',
+    get label() { return to === DEFAULT_TARGET ? tt('Word-by-word (offline)') : tt('Word by word, in English'); },
     async availability() { return dict ? 'yes' : 'no'; },
     async translate(req, opts) {
-      if (!dict) throw new Error('The dictionary is still loading. Try again in a moment.');
+      if (!dict) throw new Error(tt('The dictionary is still loading. Try again in a moment.'));
       if (opts?.signal?.aborted) throw new DOMException('Translation canceled', 'AbortError');
       const out = glossText(req.text, dict, deps, req.context);
-      if (!out) throw new Error(activeEngine() ? 'There are no words to gloss here.' : 'There are no Chinese words to gloss here.');
+      if (!out) throw new Error(activeEngine() ? tt('There are no words to gloss here.') : tt('There are no Chinese words to gloss here.'));
       opts?.onDelta?.(out);
       return out;
     },

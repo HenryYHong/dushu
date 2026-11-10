@@ -6,6 +6,7 @@ import { blockText, chapterHan, chaptersByTextHeadings, chaptersFromBlocks, fina
 import { langId } from '../lang/active';
 import { decodeText, sniffMarkupCharset, unreadableMessage, withHongKongCharacters } from './encoding';
 import { ImportError } from './errors';
+import { tt, ttm } from '../i18n';
 import { Archive, ZIP_LIMITS } from './zip';
 import { attr, byLocal, childrenByLocal, dirname, fragmentOf, localName, parseXhtml, parseXmlLoose, plainText, resolvePath } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
@@ -26,8 +27,8 @@ interface TocEntry {
 
 const IMAGE_EXT = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif']);
 const FONT_ALGORITHMS = ['http://www.idpf.org/2008/embedding', 'http://ns.adobe.com/pdf/enc#rc'];
-const DRM_MESSAGE =
-  'This EPUB is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.';
+const DRM_MESSAGE = ttm(
+  'This EPUB is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.');
 
 const utf8 = (b: Uint8Array) => new TextDecoder('utf-8').decode(b);
 const extOf = (p: string) => (/\.([A-Za-z0-9]+)$/.exec(p)?.[1] ?? '').toLowerCase();
@@ -46,7 +47,7 @@ function assertNotDrm(archive: Archive): void {
     const algorithm = attr(byLocal(ed, 'encryptionmethod')[0] ?? ed, 'algorithm').toLowerCase();
     const uri = attr(byLocal(ed, 'cipherreference')[0] ?? ed, 'uri');
     const fontFile = /\.(?:otf|ttf|ttc|woff2?)$/i.test(uri);
-    if (!FONT_ALGORITHMS.includes(algorithm) && !fontFile) throw new ImportError(DRM_MESSAGE);
+    if (!FONT_ALGORITHMS.includes(algorithm) && !fontFile) throw new ImportError(tt(DRM_MESSAGE));
   }
 }
 
@@ -81,8 +82,8 @@ function findOpf(archive: Archive): string {
   }
   const opf = archive.names().find((k) => k.toLowerCase().endsWith('.opf'));
   if (!opf) {
-    if (archive.has('word/document.xml')) throw new ImportError('Word documents are not supported. Save the document as a text file or PDF, then import that.');
-    throw new ImportError('This zip archive is not an EPUB (no package document found).');
+    if (archive.has('word/document.xml')) throw new ImportError(tt('Word documents are not supported. Save the document as a text file or PDF, then import that.'));
+    throw new ImportError(tt('This zip archive is not an EPUB (no package document found).'));
   }
   return opf;
 }
@@ -341,7 +342,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   const opfPath = findOpf(archive);
   archive.inflate([opfPath], { maxBytes: textMax });
   const opfText = getText(opfPath);
-  if (!opfText) throw new ImportError('This EPUB is damaged: its package document is missing.');
+  if (!opfText) throw new ImportError(tt('This EPUB is damaged: its package document is missing.'));
   const opf = parseXmlLoose(opfText);
 
   const manifest: ManifestItem[] = byLocal(opf, 'item')
@@ -383,7 +384,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
       .sort(naturalCompare)
       .map((path) => ({ id: path, path, mediaType: 'application/xhtml+xml', properties: [] }));
   }
-  if (!spine.length) throw new ImportError('This EPUB has no readable content.');
+  if (!spine.length) throw new ImportError(tt('This EPUB has no readable content.'));
   // Project Gutenberg's conversion of a plain-text Chinese book (its files named …-0-1.txt.xhtml): one printed line per <p>, the
   // lines with a capital letter set as h4 or h5, and a contents of only the title and the license. Its headings are lines of
   // text, and its chapters are found in its text (第一回 …).
@@ -479,7 +480,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   }
 
   // A store's book with its encryption.xml stripped (a half-done DRM removal): the chapters are still ciphertext.
-  if (encrypted && encrypted * 2 >= textDocs) throw new ImportError(DRM_MESSAGE);
+  if (encrypted && encrypted * 2 >= textDocs) throw new ImportError(tt(DRM_MESSAGE));
 
   // ---- chapters
   const indexByPath = new Map<string, number>();

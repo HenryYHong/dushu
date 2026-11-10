@@ -8,6 +8,7 @@ import { blockText, chaptersFromBlocks, finalizeChapters, stripGutenberg } from 
 import { decodeText } from './encoding';
 import { countHan, spaceBetweenIsNoise } from './han';
 import { ImportError } from './errors';
+import { tt, ttm } from '../i18n';
 import { parseXhtml } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
 import { readIndex, type IndexTable } from './mobiIndex';
@@ -15,9 +16,9 @@ import { COMPRESSION_HUFF, COMPRESSION_NONE, COMPRESSION_PALMDOC, HuffReader, pa
 import { chaptersFromSpine, dropContentsPages, dropTitlePage, type SpineDoc, type TocRef } from './spine';
 import { bookFromText } from './txt';
 
-export const KINDLE_DRM_MESSAGE =
-  'This Kindle book is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.';
-const BROKEN = 'This Kindle book could not be read (the file is damaged or in a layout Globereader does not know).';
+export const KINDLE_DRM_MESSAGE = ttm(
+  'This Kindle book is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.');
+const BROKEN = ttm('This Kindle book could not be read (the file is damaged or in a layout Globereader does not know).');
 const NULL_INDEX = 0xffffffff;
 
 const u16 = (b: Uint8Array, o: number): number => (b[o] << 8) | b[o + 1];
@@ -74,7 +75,7 @@ interface Header {
 }
 
 function readHeader(rec: Uint8Array): Header {
-  if (rec.length < 16) throw new ImportError(BROKEN);
+  if (rec.length < 16) throw new ImportError(tt(BROKEN));
   const h: Header = {
     compression: u16(rec, 0),
     textLength: u32(rec, 4),
@@ -173,7 +174,7 @@ function decodeBytes(b: Uint8Array, codepage: number): string {
 }
 
 async function readText(records: Uint8Array[], h: Header, base: number, onTick: () => Promise<void>, report?: (done: number) => void): Promise<Uint8Array> {
-  if (h.encryption !== 0) throw new ImportError(KINDLE_DRM_MESSAGE);
+  if (h.encryption !== 0) throw new ImportError(tt(KINDLE_DRM_MESSAGE));
   let unpack: (r: Uint8Array) => Uint8Array;
   if (h.compression === COMPRESSION_PALMDOC) unpack = palmdocDecompress;
   else if (h.compression === COMPRESSION_NONE) unpack = (r) => r;
@@ -181,7 +182,7 @@ async function readText(records: Uint8Array[], h: Header, base: number, onTick: 
     const first = base + h.huffOffset;
     const huff = new HuffReader(records.slice(first, first + h.huffCount));
     unpack = (r) => huff.unpack(r);
-  } else throw new ImportError(BROKEN); // a value that is none of the three real ones is a damaged header
+  } else throw new ImportError(tt(BROKEN)); // a value that is none of the three real ones is a damaged header
 
   const last = Math.min(base + h.textRecords, records.length - 1);
   const pieces: Uint8Array[] = [];
@@ -296,25 +297,25 @@ function dropLeadingNoise(chapters: Chapter[]): Chapter[] {
 
 export async function importMobi(data: Uint8Array, sourceName: string, onProgress?: (fraction: number) => void): Promise<ImportedBook> {
   if (data.length > 4 && (tag(data, 0, 3) === 'TPZ' || tag(data, 0, 4) === '\xeaDRM')) {
-    throw new ImportError('This is a Kindle format Globereader cannot read (Topaz or KFX). Use a DRM-free EPUB instead.');
+    throw new ImportError(tt('This is a Kindle format Globereader cannot read (Topaz or KFX). Use a DRM-free EPUB instead.'));
   }
-  if (!looksLikeMobi(data)) throw new ImportError('This file is not a valid Kindle (MOBI or AZW3) book.');
+  if (!looksLikeMobi(data)) throw new ImportError(tt('This file is not a valid Kindle (MOBI or AZW3) book.'));
 
   const count = u16(data, 76);
-  if (count < 2) throw new ImportError(BROKEN);
+  if (count < 2) throw new ImportError(tt(BROKEN));
   const offsets: number[] = [];
   for (let i = 0; i < count; i++) {
     const at = 78 + i * 8;
-    if (at + 4 > data.length) throw new ImportError(BROKEN);
+    if (at + 4 > data.length) throw new ImportError(tt(BROKEN));
     const o = u32(data, at);
     // Records follow each other in the file; an offset that goes backwards (or repeats the first record's) means a damaged table.
-    if (i > 0 && o < offsets[i - 1]) throw new ImportError(BROKEN);
+    if (i > 0 && o < offsets[i - 1]) throw new ImportError(tt(BROKEN));
     offsets.push(o);
   }
-  if (offsets[1] === offsets[0]) throw new ImportError(BROKEN);
+  if (offsets[1] === offsets[0]) throw new ImportError(tt(BROKEN));
   const records: Uint8Array[] = offsets.map((o, i) => {
     const end = i + 1 < offsets.length ? offsets[i + 1] : data.length;
-    if (o > data.length) throw new ImportError(BROKEN);
+    if (o > data.length) throw new ImportError(tt(BROKEN));
     return data.subarray(o, Math.max(o, Math.min(end, data.length)));
   });
 
@@ -329,7 +330,7 @@ export async function importMobi(data: Uint8Array, sourceName: string, onProgres
   const rec0 = records[0];
   const h0 = readHeader(rec0);
   const exth0 = readExth(rec0, h0);
-  if (h0.encryption !== 0) throw new ImportError(KINDLE_DRM_MESSAGE);
+  if (h0.encryption !== 0) throw new ImportError(tt(KINDLE_DRM_MESSAGE));
 
   // ---- which half to read
   let kfBase = -1;
@@ -337,7 +338,7 @@ export async function importMobi(data: Uint8Array, sourceName: string, onProgres
   else if (exth0.kf8 !== undefined && exth0.kf8 > 0 && exth0.kf8 < records.length && tag(records[exth0.kf8 - 1], 0, 8) === 'BOUNDARY') kfBase = exth0.kf8;
   const h = kfBase >= 0 ? readHeader(records[kfBase]) : h0;
   const exth = kfBase > 0 ? readExth(records[kfBase], h) : exth0;
-  if (h.encryption !== 0) throw new ImportError(KINDLE_DRM_MESSAGE);
+  if (h.encryption !== 0) throw new ImportError(tt(KINDLE_DRM_MESSAGE));
   onProgress?.(0.03);
 
   const decode = (b: Uint8Array) => decodeBytes(b, h.codepage);
@@ -451,9 +452,9 @@ export async function importMobi(data: Uint8Array, sourceName: string, onProgres
         });
       }
     } catch {
-      throw new ImportError(BROKEN);
+      throw new ImportError(tt(BROKEN));
     }
-    if (!files.length) throw new ImportError(BROKEN);
+    if (!files.length) throw new ImportError(tt(BROKEN));
 
     // rebuild each XHTML file: the skeleton with its fragments put back
     const parts: string[] = [];

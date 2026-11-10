@@ -2,6 +2,7 @@
 import type { ImportedBook } from '../types';
 import { chaptersFromBlocks, paragraphsToBlocks } from './chapters';
 import { ImportError, pdfStartFailure } from './errors';
+import { tt, ttm } from '../i18n';
 import { countHan } from './han';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
 import { pagesToParagraphs, pdfCharacters, type PdfItem, type PdfPageItems } from './pdfLayout';
@@ -15,8 +16,8 @@ export interface PdfRuntime {
   cMapReaderFactory?: unknown;
 }
 
-export const SCANNED_MESSAGE =
-  'This PDF has no text layer (it is scanned images), so there is no text to read. Run it through OCR to make a searchable PDF, or find an EPUB or text version, then import that.';
+export const SCANNED_MESSAGE = ttm(
+  'This PDF has no text layer (it is scanned images), so there is no text to read. Run it through OCR to make a searchable PDF, or find an EPUB or text version, then import that.');
 
 // Chinese PDFs often use predefined CMaps (GBK-EUC-H, UniGB-UCS2-H, B5pc-H, Adobe-GB1-UCS2 ...) to map
 // font codes to characters. Bundle just those (only the URLs are in the code; each file is fetched on
@@ -113,9 +114,9 @@ export async function importPdf(
     pdf = await task.promise;
   } catch (e) {
     const name = (e as { name?: string }).name;
-    if (name === 'PasswordException') throw new ImportError('This PDF is password protected. Remove the password and import it again.');
+    if (name === 'PasswordException') throw new ImportError(tt('This PDF is password protected. Remove the password and import it again.'));
     if (isPdfHostFailure(e)) throw await pdfStartFailure();
-    throw new ImportError('This PDF could not be read. It may be damaged.');
+    throw new ImportError(tt('This PDF could not be read. It may be damaged.'));
   }
 
   try {
@@ -144,16 +145,16 @@ export async function importPdf(
       pages.push({ width: x1 - x0, height: y1 - y0, items });
       pageChars.push(items.reduce((k, it) => k + it.str.replace(/\s/g, '').length, 0));
       page.cleanup();
-      if (n === 10 && chars === 0) throw new ImportError(SCANNED_MESSAGE);
+      if (n === 10 && chars === 0) throw new ImportError(tt(SCANNED_MESSAGE));
       onProgress?.(0.9 * (n / pdf.numPages));
       if (n % 5 === 0) await tick();
     }
-    if (chars < 20) throw new ImportError(SCANNED_MESSAGE);
+    if (chars < 20) throw new ImportError(tt(SCANNED_MESSAGE));
 
     const paragraphs = pagesToParagraphs(pages);
     // Scanned pages with a line of real text on each (a library's watermark, a page number): once the lines repeated on every
     // page are gone, next to nothing is left, and the pages are pictures.
-    if (countHan(paragraphs.join('')) < 10 * pdf.numPages && (await mostlyImages(pdf, pageChars, pdfjs.OPS))) throw new ImportError(SCANNED_MESSAGE);
+    if (countHan(paragraphs.join('')) < 10 * pdf.numPages && (await mostlyImages(pdf, pageChars, pdfjs.OPS))) throw new ImportError(tt(SCANNED_MESSAGE));
     const meta = await pdf.getMetadata().catch(() => null);
     const info = (meta?.info ?? {}) as Record<string, unknown>;
     const fromFile = parseFilename(sourceName);

@@ -10,6 +10,7 @@ import { importEpub } from './epub';
 import { DAMAGED_MESSAGE } from './zip';
 import { importMobi, looksLikeMobi } from './mobi';
 import { ImportError, noTextMessage, pdfStartFailure } from './errors';
+import { tt, ttm } from '../i18n';
 import { countHan } from './han';
 import { finalizeChapters, joinSplitParagraphs, normalizePunctuation, totalHan } from './chapters';
 import { importHtml, importMarkdown, markdownToBlocks } from './html';
@@ -32,15 +33,15 @@ function extension(name: string): string {
 export { IMPORT_VERSION } from './version';
 
 export const MAX_FILE_BYTES = 200 * 1024 * 1024;
-export const FILE_TOO_BIG = 'This file is larger than 200 MB, which is too big to import. Try a smaller edition of the book.';
+export const FILE_TOO_BIG = ttm('This file is larger than 200 MB, which is too big to import. Try a smaller edition of the book.');
 
 async function readBytes(blob: Blob): Promise<Uint8Array> {
-  if (blob.size > MAX_FILE_BYTES) throw new ImportError(FILE_TOO_BIG);
+  if (blob.size > MAX_FILE_BYTES) throw new ImportError(tt(FILE_TOO_BIG));
   if (typeof blob.arrayBuffer === 'function') return new Uint8Array(await blob.arrayBuffer());
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
-    reader.onerror = () => reject(reader.error ?? new Error('Could not read the file.'));
+    reader.onerror = () => reject(reader.error ?? new Error(tt('Could not read the file.')));
     reader.readAsArrayBuffer(blob);
   });
 }
@@ -48,12 +49,12 @@ async function readBytes(blob: Blob): Promise<Uint8Array> {
 const startsWith = (b: Uint8Array, s: string): boolean => s.split('').every((c, i) => b[i] === c.charCodeAt(0));
 
 const UNSUPPORTED: Record<string, string> = {
-  kfx: 'Kindle (KFX) books are not supported. Use a DRM-free EPUB instead.',
-  djvu: 'DjVu files are scanned images, so there is no text to read. Find an EPUB, text or PDF version.',
-  doc: 'Word .doc files are not supported. Save the document as a text file or PDF, then import that.',
-  docx: 'Word documents are not supported. Save the document as a text file or PDF, then import that.',
-  rtf: 'RTF files are not supported. Save the document as a text file, then import that.',
-  zip: 'Zip archives are not supported. Unzip it and import the EPUB or text file inside.',
+  kfx: ttm('Kindle (KFX) books are not supported. Use a DRM-free EPUB instead.'),
+  djvu: ttm('DjVu files are scanned images, so there is no text to read. Find an EPUB, text or PDF version.'),
+  doc: ttm('Word .doc files are not supported. Save the document as a text file or PDF, then import that.'),
+  docx: ttm('Word documents are not supported. Save the document as a text file or PDF, then import that.'),
+  rtf: ttm('RTF files are not supported. Save the document as a text file, then import that.'),
+  zip: ttm('Zip archives are not supported. Unzip it and import the EPUB or text file inside.'),
 };
 
 function detectKind(name: string, bytes: Uint8Array): Kind {
@@ -61,24 +62,24 @@ function detectKind(name: string, bytes: Uint8Array): Kind {
   if (startsWith(bytes, '%PDF')) return 'pdf';
   if (looksLikeMobi(bytes)) return 'mobi';
   if (startsWith(bytes, 'TPZ') || startsWith(bytes, '\u00ea' + 'DRMION')) {
-    throw new ImportError('This is a Kindle format Globereader cannot read (Topaz or KFX). Use a DRM-free EPUB instead.');
+    throw new ImportError(tt('This is a Kindle format Globereader cannot read (Topaz or KFX). Use a DRM-free EPUB instead.'));
   }
   if (startsWith(bytes, 'PK\u0003\u0004') || startsWith(bytes, 'PK\u0005\u0006')) {
     // A zip under any other name is most likely an EPUB; the EPUB reader says so if it is not.
-    if (UNSUPPORTED[ext] && ext !== 'zip') throw new ImportError(UNSUPPORTED[ext]);
+    if (UNSUPPORTED[ext] && ext !== 'zip') throw new ImportError(tt(UNSUPPORTED[ext]));
     return 'epub';
   }
-  if (UNSUPPORTED[ext]) throw new ImportError(UNSUPPORTED[ext]);
+  if (UNSUPPORTED[ext]) throw new ImportError(tt(UNSUPPORTED[ext]));
   switch (ext) {
     case 'epub':
-      throw new ImportError(DAMAGED_MESSAGE);
+      throw new ImportError(tt(DAMAGED_MESSAGE));
     case 'mobi':
     case 'azw':
     case 'azw3':
     case 'prc':
-      throw new ImportError('This file is not a valid Kindle (MOBI or AZW3) book.');
+      throw new ImportError(tt('This file is not a valid Kindle (MOBI or AZW3) book.'));
     case 'pdf':
-      throw new ImportError('This file is not a valid PDF.');
+      throw new ImportError(tt('This file is not a valid PDF.'));
     case 'txt':
     case 'text':
       return 'txt';
@@ -94,7 +95,9 @@ function detectKind(name: string, bytes: Uint8Array): Kind {
   const head = decodeText(bytes.subarray(0, 4096)).text;
   if (/<\s*(?:!doctype html|html|body|p\b)/i.test(head)) return 'html';
   if (countHan(head) > 0) return 'txt';
-  throw new ImportError(`Files of type .${ext || 'unknown'} are not supported. Use EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown.`);
+  throw new ImportError(ext
+    ? tt('Files of type .{ext} are not supported. Use EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown.', { ext })
+    : tt('Files of type .unknown are not supported. Use EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown.'));
 }
 
 const BIDI_TEST = /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/;
@@ -184,7 +187,7 @@ export async function importFile(file: Blob & { name: string }, opts?: { onProgr
   onProgress?.(0);
   const name = file.name || 'book';
   const bytes = await readBytes(file);
-  if (!bytes.length) throw new ImportError('This file is empty.');
+  if (!bytes.length) throw new ImportError(tt('This file is empty.'));
   const kind = detectKind(name, bytes);
 
   let book: ImportedBook;
@@ -253,7 +256,7 @@ export const PASTED_TITLE = 'Pasted text';
  */
 export function importText(text: string, title?: string, author?: string, markdown = false): ImportedBook {
   const trimmed = text.trim();
-  if (!trimmed) throw new ImportError('There is no text to import.');
+  if (!trimmed) throw new ImportError(tt('There is no text to import.'));
   if (markdown) return finish(importClassic(trimmed, title, author));
   return finish(
     bookFromText(trimmed, {

@@ -8,6 +8,7 @@ import type { Settings, TranslateRequest, Translator } from '../types';
 import { CLAUDE_LIMITS, DEFAULT_CLAUDE_MODEL } from './claudePrompts';
 import { isChinese, langId } from '../lang/active';
 import { answeredInto, targetField } from './targets';
+import { tt, ttm } from '../i18n';
 
 export { buildUserMessage, CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL, SYSTEM_PROMPTS } from './claudePrompts';
 
@@ -67,8 +68,8 @@ export async function fetchClaudeStatus(opts: { signal?: AbortSignal; force?: bo
   try {
     const signal = opts.signal ? AbortSignal.any([opts.signal, AbortSignal.timeout(2500)]) : AbortSignal.timeout(2500);
     const response = await call('/api/claude/status', { signal });
-    if (response.status === 401) value = { ...DOWN, reachable: true, denied: true, problem: 'This device is signed out of sync. Sign in again to use Claude.' };
-    else if (response.status === 403) value = { ...DOWN, reachable: true, denied: true, problem: 'Your Mac did not accept this device. Sign in to Tailscale with the Mac owner\'s account.' };
+    if (response.status === 401) value = { ...DOWN, reachable: true, denied: true, problem: tt('This device is signed out of sync. Sign in again to use Claude.') };
+    else if (response.status === 403) value = { ...DOWN, reachable: true, denied: true, problem: tt(MAC_DENIED) };
     else if (!response.ok) value = DOWN;
     else {
       const data = await response.json() as Record<string, any>;
@@ -108,8 +109,9 @@ function noteFailure(code: string): void {
   cached = null;
 }
 
-const NETWORK = 'Could not reach your Mac. Keep it awake and connected to Tailscale.';
-const NETWORK_ACCOUNT = 'Could not reach the sync server. Check this device’s internet connection.';
+const NETWORK = ttm('Could not reach your Mac. Keep it awake and connected to Tailscale.');
+const NETWORK_ACCOUNT = ttm('Could not reach the sync server. Check this device’s internet connection.');
+const MAC_DENIED = ttm('Your Mac did not accept this device. Sign in to Tailscale with the Mac owner\'s account.');
 
 class ClaudeError extends Error {
   constructor(message: string, readonly code: string) { super(message); this.name = 'ClaudeError'; }
@@ -151,16 +153,16 @@ export function createClaudeTranslator(
   const where = () => (deps.fetch ? 'mac' : viaAccount() ? 'account' : 'mac');
   return {
     id: 'claude',
-    get label() { return where() === 'account' ? 'Claude (through your account)' : 'Claude (through your Mac)'; },
+    get label() { return where() === 'account' ? tt('Claude (through your account)') : tt('Claude (through your Mac)'); },
     async availability() {
       if (settings.localOnly || !bridge()) return 'no';
       if (blocked && Date.now() < blocked.until) return 'no';
       return (await fetchClaudeStatus({ fetch: call, hasBridge: bridge })).ready ? 'yes' : 'no';
     },
     async translate(req: TranslateRequest, opts) {
-      if (settings.localOnly) throw new Error('Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use Claude.');
-      if (!bridge()) throw new Error('Sign in, or connect this device to your Mac, in Settings to use Claude.');
-      if (req.text.trim().length > CLAUDE_LIMITS.text) throw new Error('That passage is too long for one request. Select a shorter one.');
+      if (settings.localOnly) throw new Error(tt('Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use Claude.'));
+      if (!bridge()) throw new Error(tt('Sign in, or connect this device to your Mac, in Settings to use Claude.'));
+      if (req.text.trim().length > CLAUDE_LIMITS.text) throw new Error(tt('That passage is too long for one request. Select a shorter one.'));
       if (opts?.signal?.aborted) throw new DOMException('Translation canceled', 'AbortError');
       let response: Response;
       try {
@@ -174,20 +176,23 @@ export function createClaudeTranslator(
       } catch (e) {
         if ((e as { name?: string })?.name === 'AbortError') throw e;
         noteFailure('unreachable');
-        throw new Error(where() === 'account' ? NETWORK_ACCOUNT : NETWORK);
+        throw new Error(tt(where() === 'account' ? NETWORK_ACCOUNT : NETWORK));
       }
       if (!response.ok) {
         const data = await response.json().catch(() => null) as { error?: string; code?: string } | null;
         if (response.status === 401) {
           noteFailure('denied');
-          throw new Error('This device is signed out of sync. Sign in again in Settings to use Claude.');
+          throw new Error(tt('This device is signed out of sync. Sign in again in Settings to use Claude.'));
         }
         if (response.status === 403) {
           noteFailure('denied');
-          throw new Error('Your Mac did not accept this device. Sign in to Tailscale with the Mac owner\'s account.');
+          throw new Error(tt(MAC_DENIED));
         }
         const code = data?.code ?? 'error';
-        const message = data?.error ?? `Claude through your ${where() === 'account' ? 'account' : 'Mac'} failed (${response.status}).`;
+        // The server's own message stays as it sent it.
+        const message = data?.error ?? (where() === 'account'
+          ? tt('Claude through your account failed ({status}).', { status: response.status })
+          : tt('Claude through your Mac failed ({status}).', { status: response.status }));
         noteFailure(code);
         throw new Error(message);
       }
@@ -201,15 +206,15 @@ export function createClaudeTranslator(
           try { event = JSON.parse(line); } catch { return; }
           if (event.type === 'text' && typeof event.text === 'string') { text += event.text; opts?.onDelta?.(text); }
           else if (event.type === 'done') { finished = true; stop = event.stop ?? null; into = event.to; }
-          else if (event.type === 'error') throw new ClaudeError(event.message || 'Claude failed partway through.', event.code ?? 'error');
+          else if (event.type === 'error') throw new ClaudeError(event.message || tt('Claude failed partway through.'), event.code ?? 'error');
         });
       } catch (e) {
         if (e instanceof ClaudeError) { noteFailure(e.code); throw e; }
         if ((e as { name?: string })?.name === 'AbortError') throw e;
-        throw new Error('The connection to your Mac ended before Claude finished. Try again.');
+        throw new Error(tt('The connection to your Mac ended before Claude finished. Try again.'));
       }
-      if (!finished) throw new Error('The connection to your Mac ended before Claude finished. Try again.');
-      if (!text.trim()) throw new Error('Claude sent back an empty answer. Try again.');
+      if (!finished) throw new Error(tt('The connection to your Mac ended before Claude finished. Try again.'));
+      if (!text.trim()) throw new Error(tt('Claude sent back an empty answer. Try again.'));
       const answered = answeredInto(req.to, into, langId());
       if (answered) opts?.onInto?.(answered);
       return stop === 'max_tokens' ? text.trim() + ' …' : text.trim();

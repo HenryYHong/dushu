@@ -5,11 +5,12 @@ import type { TranslateRequest, Translator } from '../types';
 import { chunkText } from './chunk';
 import { isChinese, lang, langId } from '../lang/active';
 import { chunkJoiner, targetFor, targetLanguage } from './targets';
+import { tt, ttm } from '../i18n';
 
 const ENDPOINT = 'https://api.mymemory.translated.net/get';
 const MAX_CHUNK = 500;
 
-export const QUOTA_MESSAGE = 'MyMemory\'s free daily limit is used up. Try again tomorrow, or pick a different translator in Settings.';
+export const QUOTA_MESSAGE = ttm('MyMemory\'s free daily limit is used up. Try again tomorrow, or pick a different translator in Settings.');
 
 interface MyMemoryReply {
   responseData?: { translatedText?: string };
@@ -40,22 +41,23 @@ async function translateChunk(
     res = await fetchFn(url, { signal });
   } catch (e) {
     if ((e as { name?: string })?.name === 'AbortError') throw e;
-    throw new Error('Could not reach MyMemory. Check your connection.');
+    throw new Error(tt('Could not reach MyMemory. Check your connection.'));
   }
-  if (res.status === 429) throw new Error(QUOTA_MESSAGE);
+  if (res.status === 429) throw new Error(tt(QUOTA_MESSAGE));
   let body: MyMemoryReply;
   try {
     body = await res.json();
   } catch {
-    throw new Error(`MyMemory sent a reply that could not be read (HTTP ${res.status}).`);
+    throw new Error(tt('MyMemory sent a reply that could not be read (HTTP {status}).', { status: res.status }));
   }
   const text = body.responseData?.translatedText ?? '';
   const status = Number(body.responseStatus ?? res.status);
   if (body.quotaFinished || status === 429 || /MYMEMORY WARNING/i.test(text) || /used all available free/i.test(body.responseDetails ?? '')) {
-    throw new Error(QUOTA_MESSAGE);
+    throw new Error(tt(QUOTA_MESSAGE));
   }
   if (status !== 200 || !res.ok) {
-    throw new Error('MyMemory could not translate this: ' + (body.responseDetails || `error ${status}`));
+    // MyMemory's own reason stays as it sent it.
+    throw new Error(tt('MyMemory could not translate this: {reason}', { reason: body.responseDetails || tt('error {status}', { status }) }));
   }
   return decodeEntities(text).trim();
 }
@@ -64,7 +66,7 @@ export function createMyMemoryTranslator(deps: { fetch?: typeof fetch } = {}): T
   const fetchFn = deps.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   return {
     id: 'mymemory',
-    label: 'MyMemory (online, free)',
+    get label() { return tt('MyMemory (online, free)'); },
     async availability() {
       return typeof navigator !== 'undefined' && navigator.onLine === false ? 'no' : 'yes';
     },

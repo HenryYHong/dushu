@@ -1,5 +1,6 @@
 // Kindle (MOBI / AZW3) text records: PalmDOC and HUFF/CDIC decompression, trailing-entry stripping.
 import { ImportError } from './errors';
+import { tt } from '../i18n';
 
 export const COMPRESSION_NONE = 1;
 export const COMPRESSION_PALMDOC = 2;
@@ -92,22 +93,22 @@ export class HuffReader {
   private dictionary: Phrase[] = [];
 
   constructor(records: Uint8Array[]) {
-    if (records.length < 2) throw new ImportError('This Kindle book is damaged: its compression tables are missing.');
+    if (records.length < 2) throw new ImportError(tt('This Kindle book is damaged: its compression tables are missing.'));
     this.loadHuff(records[0]);
     for (let i = 1; i < records.length; i++) this.loadCdic(records[i]);
   }
 
   private loadHuff(h: Uint8Array) {
-    if (h.length < 24 || String.fromCharCode(h[0], h[1], h[2], h[3]) !== 'HUFF') throw new ImportError('This Kindle book is damaged: bad compression table.');
+    if (h.length < 24 || String.fromCharCode(h[0], h[1], h[2], h[3]) !== 'HUFF') throw new ImportError(tt('This Kindle book is damaged: bad compression table.'));
     const off1 = u32(h, 8);
     const off2 = u32(h, 12);
-    if (off1 + 1024 > h.length || off2 + 256 > h.length) throw new ImportError('This Kindle book is damaged: bad compression table.');
+    if (off1 + 1024 > h.length || off2 + 256 > h.length) throw new ImportError(tt('This Kindle book is damaged: bad compression table.'));
     for (let i = 0; i < 256; i++) {
       const v = u32(h, off1 + i * 4);
       const codelen = v & 0x1f;
       const term = (v & 0x80) !== 0;
       let maxcode = Math.floor(v / 256);
-      if (codelen === 0) throw new ImportError('This Kindle book is damaged: bad compression table.');
+      if (codelen === 0) throw new ImportError(tt('This Kindle book is damaged: bad compression table.'));
       maxcode = (maxcode + 1) * pow2(32 - codelen) - 1;
       this.dict1.push({ codelen, term, maxcode });
     }
@@ -122,7 +123,7 @@ export class HuffReader {
   }
 
   private loadCdic(c: Uint8Array) {
-    if (c.length < 16 || String.fromCharCode(c[0], c[1], c[2], c[3]) !== 'CDIC') throw new ImportError('This Kindle book is damaged: bad compression dictionary.');
+    if (c.length < 16 || String.fromCharCode(c[0], c[1], c[2], c[3]) !== 'CDIC') throw new ImportError(tt('This Kindle book is damaged: bad compression dictionary.'));
     const phrases = u32(c, 8);
     const bits = u32(c, 12);
     const n = Math.min(2 ** bits, phrases - this.dictionary.length);
@@ -135,7 +136,7 @@ export class HuffReader {
   }
 
   unpack(data: Uint8Array, depth = 0): Uint8Array {
-    if (depth > 24) throw new ImportError('This Kindle book is damaged: compression dictionary loops.');
+    if (depth > 24) throw new ImportError(tt('This Kindle book is damaged: compression dictionary loops.'));
     const out = new Bytes(data.length * 4 + 64);
     const totalBits = data.length * 8;
     let bitPos = 0;
@@ -157,7 +158,7 @@ export class HuffReader {
       if (bitPos > totalBits) break;
       const r = Math.floor((maxcode - code) / pow2(32 - codelen));
       const phrase = this.dictionary[r];
-      if (!phrase) throw new ImportError('This Kindle book is damaged: bad compressed text.');
+      if (!phrase) throw new ImportError(tt('This Kindle book is damaged: bad compressed text.'));
       if (!phrase.done) {
         phrase.data = this.unpack(phrase.data, depth + 1);
         phrase.done = true;

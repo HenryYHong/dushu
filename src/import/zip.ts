@@ -7,6 +7,7 @@
 // entry, never unbounded memory.
 import { unzipSync } from 'fflate';
 import { ImportError } from './errors';
+import { tt, ttm } from '../i18n';
 
 export const ZIP_LIMITS = {
   /** All entries together, as declared. */
@@ -18,8 +19,8 @@ export const ZIP_LIMITS = {
   entries: 20000,
 };
 
-export const DAMAGED_MESSAGE = 'This file looks damaged or incomplete. Try downloading or exporting the book again.';
-export const TOO_BIG_MESSAGE = 'This book is too large to import (it would need more than 300 MB once unpacked). Try a smaller edition.';
+export const DAMAGED_MESSAGE = ttm('This file looks damaged or incomplete. Try downloading or exporting the book again.');
+export const TOO_BIG_MESSAGE = ttm('This book is too large to import (it would need more than 300 MB once unpacked). Try a smaller edition.');
 
 export interface ZipEntry {
   name: string;
@@ -39,20 +40,20 @@ export class Archive {
       // The filter sees each entry's header; returning false skips it, so nothing is inflated here.
       unzipSync(data, {
         filter: (f) => {
-          if (entries.length >= ZIP_LIMITS.entries) throw new ImportError(TOO_BIG_MESSAGE);
+          if (entries.length >= ZIP_LIMITS.entries) throw new ImportError(tt(TOO_BIG_MESSAGE));
           if (!f.name.endsWith('/')) entries.push({ name: f.name, size: f.originalSize });
           return false;
         },
       });
     } catch (e) {
       if (e instanceof ImportError) throw e;
-      throw new ImportError(DAMAGED_MESSAGE);
+      throw new ImportError(tt(DAMAGED_MESSAGE));
     }
     this.entries = entries;
     let total = 0;
     for (const e of entries) {
       total += e.size;
-      if (!Number.isFinite(e.size) || e.size < 0 || total > ZIP_LIMITS.totalBytes) throw new ImportError(TOO_BIG_MESSAGE);
+      if (!Number.isFinite(e.size) || e.size < 0 || total > ZIP_LIMITS.totalBytes) throw new ImportError(tt(TOO_BIG_MESSAGE));
       this.sizes.set(e.name, e.size);
       if (!this.lower.has(e.name.toLowerCase())) this.lower.set(e.name.toLowerCase(), e.name);
     }
@@ -92,7 +93,7 @@ export class Archive {
       const size = this.sizeOf(name);
       if (size > opts.maxBytes || size > budget) {
         if (opts.skipLarge) { skipped.push(name); continue; }
-        throw new ImportError(size > budget ? TOO_BIG_MESSAGE : 'One of the files inside this book is too large to import.');
+        throw new ImportError(size > budget ? tt(TOO_BIG_MESSAGE) : tt('One of the files inside this book is too large to import.'));
       }
       budget -= size;
       wanted.add(name);
