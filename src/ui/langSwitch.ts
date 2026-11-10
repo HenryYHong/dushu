@@ -9,6 +9,11 @@ import { getPlan } from '../core/plan';
 /** Set once this device has read a language other than Chinese: from then on the bar shows which language is open. */
 const USED_KEY = 'dushu.langs-used.v1';
 
+/** Shows the language chip from now on, for someone who skipped the welcome without picking a language: it is how they find one. */
+export function markLangChoice(): void {
+  try { localStorage.setItem(USED_KEY, '1'); } catch { /* the chip waits for another language */ }
+}
+
 function usedOther(): boolean {
   // Learning a language other than Chinese, or more than one (the welcome screen or Settings).
   const learning = getPlan().langs;
@@ -21,7 +26,10 @@ function usedOther(): boolean {
 
 /** A native select of every language, so a phone shows its own picker. Picking one opens that language's library. */
 export function langSelect(cls = ''): HTMLSelectElement {
-  const option = (id: LangId) => h('option', { value: id, selected: id === langId() }, `${LANGS[id].native} · ${LANGS[id].name}`);
+  const option = (id: LangId) => {
+    const L = LANGS[id];
+    return h('option', { value: id, selected: id === langId() }, L.native === L.name ? L.name : `${L.native} · ${L.name}`);
+  };
   // The languages being learned first, in the order chosen, then the rest.
   const learning = getPlan().langs;
   const rest = LANG_IDS.filter((id) => !learning.includes(id));
