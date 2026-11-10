@@ -5,8 +5,9 @@ import type { AppContext, Dictionary, Lexicon, Settings, Translator, TranslatorI
 import { chromeSupported, getTranslator, listTranslators, pickTranslator, type ChromeTranslator } from '../../translate';
 import { chromePairName } from '../../translate/chrome';
 import { DEFAULT_TARGET, targetFor, targetLanguage } from '../../translate/targets';
-import { claudeReadySync } from '../../translate/claude';
+import { claudeReadySync, fetchClaudeStatus, hasClaudeRoute, type ClaudeStatus } from '../../translate/claude';
 import { cloudBase, cloudSession } from '../../core/cloud';
+import { hasMacBridge } from '../../core/macBridge';
 import type { TranslateOptions, TranslationNote } from '../../translate/prompt';
 import { h, clear } from '../dom';
 import { isChinese, langId } from '../../lang/active';
@@ -113,7 +114,7 @@ const NOTES: Record<TranslatorId, { no: string; yes: string }> = {
   local: { no: 'Keep your Mac awake with Ollama and the private connection running', yes: 'Processed on your Mac; no cloud translation service' },
   chrome: { no: 'Not available in this browser', yes: 'On this device' },
   claude: { no: 'Needs your Mac with a Claude key on it', yes: 'Through your Mac' },
-  account: { no: 'Sign in, and turn off Local only', yes: 'Through your account' },
+  account: { no: 'Sign in to use it', yes: 'Through your account' },
   mymemory: { no: 'Not available', yes: 'Sends the text to MyMemory' },
   gloss: { no: 'Not available', yes: 'Offline, word by word' },
 };
@@ -160,10 +161,31 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
    */
   const settingsHere = (): Settings => ({ ...ctx.settings.get(), translateTo: to });
   /**
-   * Why a translator cannot run, for the error and the provider menu. Chrome with a translator that lacks this pair names the
-   * pair (Not available for Chinese to Filipino), so the reader picks another language or provider, not another browser.
+   * Why a translator cannot run, for the error and the provider menu, as things stand now (Settings' chips say the same).
+   * Chrome with a translator that lacks this pair names the pair (Not available for Chinese to Filipino), so the reader picks
+   * another language or provider, not another browser. Offline, the online ones say so rather than asking for a sign-in.
    */
-  const unavailable = (id: TranslatorId) => (id === 'chrome' && chromeSupported() ? `Not available for ${chromePairName(to)}` : NOTES[id].no);
+  const unavailable = (id: TranslatorId, claude: ClaudeStatus | null = null): string => {
+    if (id === 'chrome') return chromeSupported() ? `Not available for ${chromePairName(to)}` : NOTES.chrome.no;
+    const online = id === 'account' || id === 'mymemory' || id === 'claude';
+    if (online && typeof navigator !== 'undefined' && navigator.onLine === false) return 'You are offline';
+    if (online && ctx.settings.get().localOnly) return 'Local only is on';
+    if (id === 'account') return cloudSession() ? 'Used up for today' : NOTES.account.no;
+    if (id === 'claude') {
+      const account = !!cloudSession();
+      if (!hasClaudeRoute()) return 'Sign in, or connect this device to your Mac';
+      if (claude?.denied) return account ? 'This device is signed out' : 'Your Mac did not accept this device';
+      if (claude && !claude.reachable) return account ? 'The sync server did not answer' : 'Your Mac did not answer';
+      if (claude?.ownerOnly) return 'Only for the owner';
+      if (claude && !claude.configured) return 'No Claude key is set up';
+      if (claude?.limitMessage) return 'Today’s limit is used up';
+    }
+    return NOTES[id].no;
+  };
+  /** The note under an available translator: Claude goes through the account when signed in. */
+  const ready = (id: TranslatorId): string => (id === 'claude' && cloudSession() ? 'Through your account' : NOTES[id].yes);
+  /** Claude's last known status, for a note: cached by the availability check just made, so this asks nothing more. */
+  const claudeNow = (): Promise<ClaudeStatus | null> => fetchClaudeStatus().catch(() => null);
   const label = h('span.pp-tr-provider');
   const section = h('span.pp-section', null, into ? `${into.name} translation` : 'Translation');
   const body = h('div.pp-tr-body', { 'aria-live': 'polite', 'aria-atomic': 'false', 'aria-busy': 'false' });
@@ -265,7 +287,9 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     try { availability = await t.availability(); } catch { availability = 'no'; }
     if (mine !== seq) return;
     if (availability === 'no') {
-      showError(`${t.label} is not available. ${unavailable(t.id)}.`, null);
+      const claude = t.id === 'claude' ? await claudeNow() : null;
+      if (mine !== seq) return;
+      showError(`${t.label} is not available. ${unavailable(t.id, claude)}.`, null);
       return;
     }
     if (availability === 'download') { showDownload(t as ChromeTranslator, mode, id === null, mine); return; }
@@ -324,8 +348,9 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     const settings = h('a.pp-tr-link', { href: '#/settings' }, 'Settings');
     const noTranslator = typeof (globalThis as { Translator?: unknown }).Translator === 'undefined';
     if (automatic && cloudBase() && !cloudSession() && !ctx.settings.get().localOnly) {
+      // Accounts are by invite: sign-in is offered to someone who has one, never pitched to every visitor as open.
       const signIn = h('button.pp-tr-link', { type: 'button', onclick: () => void import('../signIn').then((m) => m.openSignIn()) }, 'Sign in');
-      body.appendChild(h('p', null, signIn, ' to translate whole sentences. It’s free.'));
+      body.appendChild(h('p', null, 'This browser has no sentence translator. Word by word is below. Have an account? ', signIn, ' to translate whole sentences.'));
     } else if (automatic) {
       body.appendChild(h('p', null,
         'No sentence translator is available right now. ',
@@ -434,13 +459,21 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     menuHost.appendChild(h('div.pp-muted', null, 'Checking…'));
     changed();
     const list = await listTranslators(settingsHere(), ctx.dictSync());
+    const claude = await claudeNow();
     if (destroyed || menuHost.hidden) return;
     clear(menuHost);
+    // Only what can work on this device: the model on the Mac needs the Mac, and Claude a Mac or the owner's account. The
+    // one in use always stays. What is ready comes first, so MyMemory and the gloss are not pushed below the fold.
+    const rank = { yes: 0, download: 1, no: 2 } as const;
+    const rows = list
+      .filter(({ translator: t }) => t.id === current?.id
+        || !((t.id === 'local' && !hasMacBridge()) || (t.id === 'claude' && (!hasClaudeRoute() || claude?.ownerOnly))))
+      .sort((a, b) => rank[a.availability] - rank[b.availability]);
     const menu = h('div.pp-menu', { role: 'menu' });
-    for (const { translator, availability } of list) {
-      const note = availability === 'no' ? unavailable(translator.id)
+    for (const { translator, availability } of rows) {
+      const note = availability === 'no' ? unavailable(translator.id, claude)
         : availability === 'download' ? 'Needs a one-time download'
-        : NOTES[translator.id].yes;
+        : ready(translator.id);
       const item = h('button.pp-menu-item', {
         role: 'menuitem',
         disabled: availability === 'no',

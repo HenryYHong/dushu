@@ -22,7 +22,7 @@ import { SYNCED_SETTINGS } from '../../src/core/syncKeys';
 import { createTranslationPanel } from '../../src/ui/popup/translation';
 import { eraseAllData } from '../../src/ui/settings/data';
 import { TARGET_KEY, createSettingsStore } from '../../src/store/settings';
-import { statusText } from '../../src/ui/settings/translation';
+import { statusText, targetControl } from '../../src/ui/settings/translation';
 import { cloud, signedIn } from '../cloud/helpers';
 import type { Env } from '../../cloud/src/worker';
 import type { AppContext, Dictionary, Settings, TranslateRequest } from '../../src/types';
@@ -340,6 +340,39 @@ describe('the setting', () => {
     expect(translateTarget(DEFAULT_SETTINGS)).toBe('en');
     expect(translateTarget({ translateTo: 'ko' })).toBe('ko');
     expect(SYNCED_SETTINGS).toContain('translateTo');
+  });
+
+  it('lists the library’s default first, then the rest by name: Chinese in the English library, English elsewhere', () => {
+    const first = (id: LangId) => {
+      setLangForTests(id);
+      const c = targetControl(createSettingsStore(localStorage, id));
+      const codes = [...c.el.querySelectorAll('option')].map((o) => o.value);
+      return { first: codes[0], rest: codes.slice(1) };
+    };
+    for (const [id, def] of [['en', 'zh'], ['zh', 'en'], ['es', 'en']] as const) {
+      const { first: head, rest } = first(id);
+      expect(head).toBe(def);
+      const names = rest.map((code) => TARGET_LANGUAGES.find((t) => t.code === code)!.name);
+      expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'en')));
+    }
+  });
+
+  it('in the English library, says English is used elsewhere only when the reader chose English', () => {
+    setLangForTests('en');
+    const settings = createSettingsStore(localStorage, 'en');
+    const c = targetControl(settings);
+    const note = c.el.querySelector<HTMLElement>('.set-help')!;
+    c.update(settings.get());
+    expect(settings.get().translateTo).toBe('en');
+    expect((c.el.querySelector('select') as HTMLSelectElement).value).toBe('zh');
+    expect(note.hidden).toBe(true);
+    // Chosen in another library: the shared choice has a time.
+    localStorage.setItem(TARGET_KEY, JSON.stringify({ to: 'en', at: 1_700_000_000_000 }));
+    const chose = createSettingsStore(localStorage, 'en');
+    const d = targetControl(chose);
+    d.update(chose.get());
+    expect(d.el.querySelector<HTMLElement>('.set-help')!.hidden).toBe(false);
+    expect(d.el.querySelector('.set-help')?.textContent).toBe('These books are in English, so they are translated into Chinese (Simplified). English is used for your other books.');
   });
 
   it('is kept by the sync server, which still drops names it does not know', async () => {

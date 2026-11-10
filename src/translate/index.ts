@@ -51,8 +51,8 @@ function withoutThirdParty(translator: Translator): Translator {
 /**
  * An explicit choice is honored as is. 'auto' prefers Claude (the owner's, unless Local only is on), then the evaluated
  * Qwen3.5 9B local model on the Mac, then Qwen through the account (anyone signed in, unless Local only is on), ready Chrome,
- * smaller local models, downloadable Chrome, and the dictionary gloss. It never picks MyMemory because that sends text to a
- * third party; the user has to choose it.
+ * smaller local models, downloadable Chrome (not offline, when the download cannot happen), and the dictionary gloss. It never
+ * picks MyMemory because that sends text to a third party; the user has to choose it.
  */
 export async function pickTranslator(settings: Settings, dict: Dictionary | null): Promise<Translator> {
   if (settings.translator !== 'auto') return getTranslator(settings.translator, settings, dict);
@@ -68,7 +68,7 @@ export async function pickTranslator(settings: Settings, dict: Dictionary | null
   const chromeState = await chrome.availability();
   if (chromeState === 'yes') return chrome;
   if (isChinese() && await local.availability() === 'yes') return local;
-  if (chromeState === 'download') return chrome;
+  if (chromeState === 'download' && !(typeof navigator !== 'undefined' && navigator.onLine === false)) return chrome;
   return getTranslator('gloss', settings, dict);
 }
 

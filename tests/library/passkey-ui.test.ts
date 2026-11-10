@@ -105,13 +105,27 @@ describe('the sign-in panel', () => {
     panel.dispose();
   });
 
-  it('keeps email first where the browser has no passkeys', () => {
+  it('keeps email first where the browser has no passkeys, and says accounts are by invite', () => {
     pk.supported = false;
     const panel = accountPanel();
     root.appendChild(panel.el);
     expect([...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Email me a code')!.classList.contains('btn-primary')).toBe(true);
     expect([...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Sign in with a passkey')!.hidden).toBe(true);
+    expect(text()).toContain('Accounts are by invite for now.');
     panel.dispose();
+  });
+
+  it('tells a stranger the server refuses how to make an account, instead of only that the email cannot sign in', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'That email cannot sign in here.' }), { status: 403, headers: { 'Content-Type': 'application/json' } })));
+    try {
+      const panel = accountPanel();
+      root.appendChild(panel.el);
+      root.querySelector<HTMLInputElement>('.set-cloud-email')!.value = 'someone@example.com';
+      [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Email me a code')!.click();
+      await until(() => !!root.querySelector('.set-cloud-result.set-bad'));
+      expect(root.querySelector('.set-cloud-result')?.textContent).toBe('Sign-in by email is closed here. To make an account, open the invite link you were sent.');
+      panel.dispose();
+    } finally { vi.unstubAllGlobals(); }
   });
 });
 

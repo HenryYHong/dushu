@@ -20,6 +20,8 @@ export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>): 
     id: 'account',
     label: 'Qwen (through your account)',
     async availability() {
+      // Offline it cannot reach the server: Automatic goes on to Chrome or the gloss instead of failing (as mymemory.ts does).
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'no';
       return !settings.localOnly && !!cloudSession() && Date.now() >= blockedUntil ? 'yes' : 'no';
     },
     async translate(req, opts) {

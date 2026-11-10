@@ -6,6 +6,19 @@ import { CLOUD_EVENT, accountLabel, cloudBase, cloudSession, deleteAccount, requ
 import { addPasskey, passkeyHere, passkeysSupported, signInWithPasskey } from '../../core/passkey';
 import { nextId, row } from './controls';
 
+/**
+ * Accounts are made from invite links; the email code is for someone who has one. The server refuses any other address with a
+ * 403 ("That email cannot sign in here."), which said nothing about why or what to do.
+ */
+export function codeRefusal(e: unknown): string {
+  const message = e instanceof Error ? e.message : '';
+  const status = (e as { status?: unknown } | null)?.status;
+  if (status === 403 || /^That email cannot sign in here\.?$/.test(message) || /answered 403\b/.test(message)) {
+    return 'Sign-in by email is closed here. To make an account, open the invite link you were sent.';
+  }
+  return message || 'The code could not be sent.';
+}
+
 export interface AccountPanel {
   el: HTMLElement;
   /** The email field's id, for a label. */
@@ -61,7 +74,7 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     status.textContent = s ? `Signed in as ${accountLabel(s)}.`
       : asked ? `A code was sent to ${asked}. It works for 10 minutes.`
       : passkeys ? 'New here? Open the invite link you were sent to make your account.'
-      : 'We only use your email to send you sign-in codes.';
+      : 'Accounts are by invite for now. We only use your email to send you sign-in codes.';
   }
 
   passkeyBtn.addEventListener('click', async () => {
@@ -96,7 +109,7 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
       paint();
       code.value = '';
       code.focus();
-    } catch (e) { say(e instanceof Error ? e.message : 'The code could not be sent.', 'bad'); }
+    } catch (e) { say(codeRefusal(e), 'bad'); }
     finally { sendBtn.disabled = false; }
   });
   signInBtn.addEventListener('click', async () => {

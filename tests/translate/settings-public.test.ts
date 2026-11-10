@@ -3,6 +3,7 @@
 // The Settings screen as the public copy of the app shows it: no Mac yet, then connected.
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CLOUD_EVENT } from '../../src/core/cloud';
 import { connectedMac } from '../../src/core/macBridge';
 import { openStore } from '../../src/store';
 import { createSettingsStore } from '../../src/store/settings';
@@ -74,10 +75,19 @@ describe('Settings on the public site', () => {
     expect(ctx.settings.get().claudeModel).toBe('claude-haiku-5-5');
   });
 
-  it('asks nothing of any Mac until one is connected, and says so', async () => {
+  it('asks nothing of any Mac until one is connected, and shows a visitor only what can work for them', async () => {
     cleanup = await mountSettings(root, {}, ctx);
     await until(() => [...root.querySelectorAll('.set-prov .set-chip')].every(c => c.textContent !== '…'));
     expect(asked.filter(a => a.url.includes('/api/'))).toEqual([]);
+    // No Mac and not the owner: no Claude box, no Claude or Mac model to pick, and Automatic names only what it can use.
+    expect(q('.set-claude').hidden).toBe(true);
+    const shown = [...root.querySelectorAll<HTMLElement>('.set-prov')].filter(r => !r.hidden).map(r => r.querySelector('.set-prov-name')?.textContent);
+    expect(shown).toEqual(['Automatic', 'Chrome on-device', 'Qwen (through your account)', 'MyMemory', 'Word-by-word gloss']);
+    expect(root.querySelector('.set-prov .set-help')?.textContent).toBe('Tries Qwen when you are signed in, then the browser’s translator, and last the word-by-word gloss.');
+    // Local only is in the Translation group itself, about this device, and covers Qwen and MyMemory too.
+    const localOnly = q<HTMLInputElement>('input[aria-label^="Local only"]');
+    expect(localOnly.getAttribute('aria-label')).toBe('Local only: keep every sentence on this device');
+    expect(localOnly.closest('.set-claude')).toBeNull();
     expect(statusLines().Mac).toMatch(/not connected to a Mac/);
     const claude = [...root.querySelectorAll('.set-prov')].find(r => r.querySelector('.set-prov-name')?.textContent?.startsWith('Claude'))!;
     expect(claude.querySelector('.set-chip')?.textContent).toBe('Sign in or connect your Mac');
@@ -166,6 +176,36 @@ describe('Settings on the public site', () => {
     toggle.dispatchEvent(new Event('change'));
     await until(() => chips()['Claude (through your Mac)'] === 'Ready');
     expect(button('Test Claude').disabled).toBe(false);
+  });
+
+  it('shows Claude once a Mac is connected, and follows a sign-out with its names', async () => {
+    localStorage.setItem('dushu.mac-bridge.v1', MAC);
+    localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: 't0ken', email: 'owner@example.com' }));
+    cleanup = await mountSettings(root, {}, ctx);
+    const claudeName = () => [...root.querySelectorAll('.set-prov-name')].find(n => n.textContent?.startsWith('Claude'))?.textContent;
+    expect(q('.set-claude').hidden).toBe(false);
+    expect(q('.set-claude-title').textContent).toBe('Claude through your account');
+    expect(claudeName()).toBe('Claude (through your account)');
+    localStorage.removeItem('dushu.cloud.v1');
+    window.dispatchEvent(new Event(CLOUD_EVENT));
+    expect(q('.set-claude-title').textContent).toBe('Claude through your Mac');
+    expect(claudeName()).toBe('Claude (through your Mac)');
+    expect(root.querySelector('.set-prov .set-help')?.textContent).toMatch(/^Tries Claude through your Mac, then the model on your Mac, then Qwen when you are signed in/);
+    // The Automatic chip names the provider as it reads now.
+    await until(() => q('.set-prov .set-chip').textContent === 'Using Claude (through your Mac)');
+  });
+
+  it('hides Claude from someone signed in to their own account', async () => {
+    localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: 't0ken', email: 'friend@example.com' }));
+    cleanup = await mountSettings(root, {}, ctx);
+    expect(q('.set-claude').hidden).toBe(true);
+    expect(root.querySelector('.set-prov .set-help')?.textContent).toBe('Tries Qwen through your account, then the browser’s translator, and last the word-by-word gloss.');
+    // The owner signed in off the Mac uses Claude through the account.
+    if (typeof cleanup === 'function') cleanup();
+    root.replaceChildren();
+    localStorage.setItem('dushu.cloud.owner.v1', 'friend@example.com');
+    cleanup = await mountSettings(root, {}, ctx);
+    expect(q('.set-claude').hidden).toBe(false);
   });
 
   it('tests Claude through the Mac with one short sentence', async () => {
