@@ -4,6 +4,9 @@
 //     previous build already stored is copied from its cache, not downloaded again.
 //   - data/, fonts/, samples/: cache first, in their own cache that survives app updates. The two small Newsreader files
 //     (the display face of the interface) are precached there too, so the app looks the same offline from the first visit.
+//     The Chinese dictionary and short classics are precached only on a device that reads Chinese (see install). On a first
+//     visit the page hands over the dictionary files it downloaded, in any language (main.ts), and each is filed in its
+//     language's cache, so the dictionary works offline after one visit and is not downloaded twice.
 //     Jigmo is not: it is large and only books with rare characters need it, so it is stored when first fetched. Nor are the
 //     name list (data/names.tsv.gz) and the name model (data/name-model.tsv.gz), which only name detection fetches, when a book
 //     is first read. The long
@@ -11,10 +14,18 @@
 //   - The bundled font slices (assets/*.woff2): cache first in a third cache that is never cleared by an update. Font slices are not precached (there are hundreds): each one is stored the
 //     first time a book needs it, so a page you have read once reads offline.
 //   - A new version installs in the background and waits; the page shows "Reload" and sends SKIP_WAITING.
-// The three __PLACEHOLDERS__ below are filled in by the build (see vite.config.ts); in dev this file is not used.
+// The __PLACEHOLDERS__ below are filled in by the build (see vite.config.ts); in dev this file is not used.
 const BUILD = '__BUILD__';
 const DATA_VERSION = '__DATA_VERSION__';
-const PRECACHE = __PRECACHE__;
+/** The app shell: the built assets, the icons and the manifest. Precached on every device. */
+const SHELL = __SHELL__;
+/** The Chinese dictionary (data/ at the top) and the short Chinese classics: precached only on a device that reads Chinese. */
+const ZH_STATIC = __ZH_STATIC__;
+/**
+ * The reading fonts' rules (assets/fonts-….css, 500 KB): only the libraries that show Chinese or Japanese load them. Kept by a
+ * device whose page did (handed over on a first visit, copied from the previous build's cache after), never downloaded ahead.
+ */
+const FONT_SHEETS = __FONT_SHEETS__;
 /** Each language other than Chinese: the version of its data and classics (vite.config.ts), naming its own cache. */
 const LANG_VERSIONS = __LANG_VERSIONS__;
 const UI_FONTS = ['fonts/newsreader-roman.woff2', 'fonts/newsreader-italic.woff2'];
@@ -56,28 +67,54 @@ self.addEventListener('install', (event) => {
       return true;
     };
     const fresh = [];
-    for (const p of PRECACHE.filter((q) => !isStatic(q))) if (!(await reuse(app, p).catch(() => false))) fresh.push(p);
+    for (const p of SHELL) if (!(await reuse(app, p).catch(() => false))) fresh.push(p);
     await add(app, ['./', ...fresh]);
+    for (const p of FONT_SHEETS) await reuse(app, p).catch(() => false);
     // A file the page already downloaded on a first visit, or that the previous offline copy kept (an update that changed
     // other files, such as the list of classics), is checked with the server (a tiny "not modified" when it is current) and
     // kept, instead of downloaded again. A changed file comes back whole and is stored instead.
     const handed = await caches.open(FIRST_VISIT_CACHE);
     const older = [];
     for (const name of await caches.keys()) if (name.startsWith('dushu-static-') && name !== STATIC_CACHE) older.push(await caches.open(name));
-    const takeOver = async (p) => {
+    const priorOf = async (p) => {
       let prior = await handed.match(p, MATCH);
       for (const c of older) prior = prior || await c.match(p, MATCH);
+      return prior;
+    };
+    const takeOver = async (cache, p, prior) => {
       const tag = prior && prior.headers.get('ETag');
       if (!tag) return false;
       const res = await fetch(new Request(p, { headers: { 'If-None-Match': tag }, cache: 'no-store' }));
-      if (res.status === 304) await stat.put(p, prior);
-      else if (res.ok) await stat.put(p, res);
+      if (res.status === 304) await cache.put(p, prior);
+      else if (res.ok) await cache.put(p, res);
       else return false;
       return true;
     };
-    const statics = [...PRECACHE.filter(isStatic), ...UI_FONTS];
-    const taken = await Promise.all(statics.map((p) => takeOver(p).catch(() => false)));
-    await add(stat, statics.filter((_, i) => !taken[i]));
+    // Everything the page handed over: the dictionary of whatever language it opened (data/es/ goes to that language's own
+    // cache, where the fetch handler looks for it), and for Chinese the top-level data/.
+    const handedPaths = [];
+    for (const req of await handed.keys()) {
+      const url = new URL(req.url);
+      if (url.origin !== self.location.origin || !url.pathname.startsWith(SCOPE)) continue;
+      const p = relPath(url);
+      if (isStatic(p)) handedPaths.push(p);
+      // A built file the page loaded (the reading fonts' rules): a hashed name always holds the same bytes, so it is kept as is.
+      else if (isHashed(p)) await app.put(p, await handed.match(req, MATCH)).catch(() => {});
+    }
+    const statics = [...new Set([...UI_FONTS, ...ZH_STATIC, ...handedPaths])];
+    const priors = await Promise.all(statics.map((p) => priorOf(p).catch(() => undefined)));
+    // The Chinese files are precached only on a device that reads Chinese: its page handed the Chinese dictionary over, or
+    // the previous offline copy kept it. A first visit in Spanish never downloads the 9 MB Chinese dictionary; if that device
+    // opens Chinese later, each file is stored the first time it is fetched.
+    const zh = new Set(ZH_STATIC);
+    const readsChinese = statics.some((p, i) => priors[i] && zh.has(p) && p.startsWith('data/'));
+    await Promise.all(statics.map(async (p, i) => {
+      if (!priors[i] && !UI_FONTS.includes(p) && !(readsChinese && zh.has(p))) return;
+      const id = langOf(p);
+      const cache = id ? await caches.open(langCache(id)) : stat;
+      // A copy the server cannot vouch for (no ETag) is asked for again: the browser's cache answers for one the page just got.
+      if (!(await takeOver(cache, p, priors[i]).catch(() => false))) await add(cache, [p]);
+    }));
     await caches.delete(FIRST_VISIT_CACHE).catch(() => {});
     // No skipWaiting here: the page decides when to switch (see the message handler), so an update never changes
     // the app under someone who is in the middle of a chapter.

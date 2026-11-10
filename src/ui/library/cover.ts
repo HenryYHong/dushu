@@ -34,7 +34,9 @@ export function generatedCover(title: string, author: string, size: 'md' | 'sm' 
 /** Puts a painting under a drawn cover, as its board; the slip, stitching or title stay on top. A picture that fails is
  * dropped, and the dyed board shows. */
 export function setCoverArt(cover: HTMLElement, url: string): void {
-  const img = h('img.lib-cover-art-img', { alt: '', decoding: 'async' }) as HTMLImageElement;
+  // Lazy: in the page at once, so it loads when it comes near the screen, and the classics far down the library leave the
+  // connection to the dictionary on a first visit.
+  const img = h('img.lib-cover-art-img', { alt: '', decoding: 'async', loading: 'lazy' }) as HTMLImageElement;
   const shade = cover.classList.contains('lib-cover-modern') ? h('span.lib-cover-shade') : null;
   img.addEventListener('error', () => { img.remove(); shade?.remove(); cover.classList.remove('lib-cover-art'); }, { once: true });
   img.src = url;

@@ -32,7 +32,9 @@ vi.mock('../../src/ui/vocab/vocab', () => ({
 }));
 vi.mock('../../src/ui/about/about', () => ({
   mount: (root: HTMLElement) => {
-    root.appendChild(Object.assign(document.createElement('div'), { className: 'about-page' }));
+    const page = Object.assign(document.createElement('div'), { className: 'about-page' });
+    page.appendChild(Object.assign(document.createElement('h1'), { textContent: 'About Globereader' }));
+    root.appendChild(page);
     return () => { spy.aboutCleanup.calls++; spy.aboutCleanup.routes.push(document.body.dataset.route); };
   },
 }));
@@ -89,5 +91,19 @@ describe('route teardown', () => {
     await libraryShown();
     expect(spy.aboutCleanup.calls).toBe(1);
     expect(spy.vocabCleanup.calls).toBe(1);
+  });
+
+  it('names each screen in the title, the reader the book, and moves the focus to the new screen\'s heading', async () => {
+    await go('#/about');
+    await vi.waitFor(() => expect(document.querySelector('.about-page')).not.toBeNull());
+    expect(document.title).toBe('About - Globereader');
+    expect(document.activeElement?.textContent).toBe('About Globereader');
+    await go(`#/read/${meta.id}`);
+    await readerDrawn();
+    expect(document.title).toBe('测试书 - Globereader');
+    await go('#/');
+    await libraryShown();
+    // The reader puts back the title it found, and the library's comes after it.
+    expect(document.title).toBe('Library - Globereader');
   });
 });

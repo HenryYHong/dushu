@@ -5,10 +5,12 @@
 
 /* The Jigmo and Newsreader @font-face rules are injected by src/main.ts so the URLs follow the base path.
    Noto Serif SC/TC and LXGW WenKai are bundled in slices (see main.ts): a page downloads only the slices it draws.
-   On a Mac the system Songti is used first, so nothing is downloaded there unless Songti lacks a character. */
+   On a Mac the system Songti is used first, so nothing is downloaded there unless Songti lacks a character.
+   The interface stays sans on Android and Linux: Roboto or Noto Sans for its English, the system's Noto Sans CJK for Chinese
+   and Japanese, both ahead of the bundled Noto Serif SC and of Jigmo (7 MB), which only a character none of them has needs. */
 
 :root {
-  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Serif SC', 'Jigmo', 'Jigmo2', 'Jigmo3', sans-serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Roboto, 'Noto Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Serif SC', 'Jigmo', 'Jigmo2', 'Jigmo3', sans-serif;
   --font-serif: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', 'Songti TC', 'Noto Serif TC', 'SimSun', 'Jigmo', 'Jigmo2', 'Jigmo3', serif;
   --font-serif-hant: 'Songti TC', 'Noto Serif TC', 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif TC', 'PMingLiU', 'Jigmo', 'Jigmo2', 'Jigmo3', serif;
   --font-sans: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Source Han Sans SC', 'PingFang TC', 'Microsoft YaHei', 'Noto Serif SC', 'Jigmo', 'Jigmo2', 'Jigmo3', sans-serif;

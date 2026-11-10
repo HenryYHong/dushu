@@ -3,8 +3,7 @@ import globeSvg from './ui/globe.svg?raw';
 import './styles/tokens.css';
 import './styles/base.css';
 import type { AppContext, Dictionary, MountFn, Settings, Store } from './types';
-import { fetchDataText, loadDictionary } from './core/dict';
-import { loadReadingModel } from './core/readingModel';
+import { byteMeter, dataSizes, fetchDataBytes, fetchDataText, type Keep } from './core/dataFetch';
 import { setDictBytes } from './core/dictProgress';
 import { openStore } from './store';
 import { createSettingsStore } from './store/settings';
@@ -60,6 +59,48 @@ function applyTheme(s: Settings): void {
 
 const parseHash = () => parseRoute(location.hash, (r) => Object.prototype.hasOwnProperty.call(ROUTES, r));
 
+/** Each screen's name in the browser's tab and history (the reader puts the book's title there itself). */
+const TITLES: Record<string, string> = { '': 'Library', vocab: 'Vocabulary', review: 'Review', settings: 'Settings', about: 'About', join: 'Join' };
+
+/** The libraries whose pages show Chinese or Japanese: they load the reading fonts (fonts.ts). */
+const CJK_LIBRARIES = new Set(['zh', 'ja', 'en']);
+
+/** What a browser says itself when a request fails, times out or is cut off (Chrome, Safari, Firefox): never shown as a reason. */
+const BROWSER_TEXT = /^(Failed to fetch|Load failed|NetworkError when attempting to fetch resource\.?|signal timed out|signal is aborted without reason|The (operation|user) (was aborted|timed out|aborted a request)\.?|.*dynamically imported module.*)$/i;
+
+/** How long a first visit waits for its downloads to reach the offline copy before installing it anyway. */
+const HANDOFF_WAIT_MS = 30_000;
+
+/**
+ * On a first visit (no service worker yet), every dictionary file the page downloads is also put in FIRST_VISIT_CACHE. The
+ * worker installs once they are all there, files each one in its language's cache and only asks the server whether it is
+ * current, so the dictionary works offline after one visit in every language and is not downloaded twice.
+ */
+function firstVisitHandoff(): { keep?: Keep; track: <T>(p: Promise<T>) => Promise<T>; keepUrl: (url: string) => void; settled: () => Promise<void> } {
+  const first = import.meta.env.PROD && 'serviceWorker' in navigator && !navigator.serviceWorker.controller && 'caches' in window;
+  const cache = first ? caches.open('dushu-first-visit') : null;
+  cache?.catch(() => {});
+  const pending = new Set<Promise<void>>();
+  const hold = (p: Promise<unknown>) => {
+    const q = p.then(() => {}, () => {});
+    pending.add(q);
+    void q.then(() => pending.delete(q));
+  };
+  return {
+    keep: cache ? (url, res) => hold(cache.then((c) => c.put(url, res))) : undefined,
+    /** A download that hands its file over once it starts: waited for too. */
+    track: (p) => { if (cache) hold(p); return p; },
+    /** A file the page has just loaded some other way (a stylesheet): asked for again, from the browser's cache, and kept. */
+    keepUrl: (url) => { if (cache) hold(fetch(url).then((res) => (res.ok ? cache.then((c) => c.put(url, res)) : undefined))); },
+    async settled() {
+      const until = Date.now() + HANDOFF_WAIT_MS;
+      while (pending.size && Date.now() < until) {
+        await Promise.race([Promise.all([...pending]), new Promise((r) => setTimeout(r, until - Date.now()))]);
+      }
+    },
+  };
+}
+
 async function boot(): Promise<void> {
   // Asked before anything is written: a device that has never been used is welcomed (ui/welcome.ts) before the dictionary
   // downloads, so someone learning Spanish never waits for the Chinese one.
@@ -91,15 +132,22 @@ async function boot(): Promise<void> {
   // Another language loads its own engine (src/lang/<id>) from data/<id>/; screens written for Chinese then see an empty
   // Chinese dictionary (lang/noChinese.ts) and the engine does the work (lang/active.ts activeEngine).
   const dictUrl = new URL(isChinese() ? 'data/' : `data/${L.id}/`, document.baseURI).href;
-  // On a first visit the files are also handed to the offline copy (sw.js, FIRST_VISIT_CACHE), which then only asks the
-  // server whether they are current instead of downloading all 9 MB again.
-  const handoff = import.meta.env.PROD && 'serviceWorker' in navigator && !navigator.serviceWorker.controller && 'caches' in window
-    ? caches.open('dushu-first-visit') : null;
-  handoff?.catch(() => {});
-  const keep = handoff ? (url: string, res: Response) => void handoff.then((c) => c.put(url, res)).catch(() => {}) : undefined;
-  const loadDict = (opts: Parameters<typeof loadDictionary>[1]): Promise<Dictionary> => {
-    if (isChinese()) return loadDictionary(dictUrl, opts);
-    return L.load!().then((m) => m.loadEngine(dictUrl)).then((engine) => {
+  // On a first visit the files are also handed to the offline copy (firstVisitHandoff).
+  const handoff = firstVisitHandoff();
+  const keep = handoff.keep;
+  // The Chinese dictionary's code is a chunk of its own (about 100 KB), so another language's first screen never waits for it.
+  const loadDict = (opts: { keep?: Keep; onBytes?: (loaded: number, total: number) => void }): Promise<Dictionary> => {
+    if (isChinese()) return import('./core/dict').then((m) => m.loadDictionary(dictUrl, opts));
+    // Each file the engine asks for counts toward the reader's "Downloading the dictionary: x of y MB" and is handed over.
+    // Only the ones it asks for at the start count: those are what it waits for. One asked for once the engine is ready
+    // (English pronunciations) would take the line back to "Downloading" after it said the dictionary was getting ready.
+    const meter = opts.onBytes ? byteMeter(opts.onBytes, handoff.track(dataSizes(dictUrl, opts.keep))) : null;
+    let atStart: boolean | null = null;
+    const fetchBytes = (name: string) => {
+      if (atStart === null) { atStart = true; setTimeout(() => { atStart = false; }, 0); }
+      return handoff.track(fetchDataBytes(dictUrl + name, opts.keep, atStart ? meter?.(name) : undefined));
+    };
+    return L.load!().then((m) => m.loadEngine(dictUrl, { fetchBytes })).then((engine) => {
       setActiveEngine(engine);
       return noChineseDictionary(engine);
     });
@@ -136,7 +184,8 @@ async function boot(): Promise<void> {
           store.setNormalizer((w) => d.toSimplified(w));
           // The reading model (core/readingModel.ts) follows the dictionary in the background. Until it arrives, and when it
           // cannot (offline with an old copy, a missing file), the rules alone give every reading.
-          void loadReadingModel((name) => fetchDataText(dictUrl + name)).then((m) => { if (m) d.setReadingModel?.(m); });
+          const model = import('./core/readingModel').then(({ loadReadingModel }) => loadReadingModel((name) => fetchDataText(dictUrl + name, keep)));
+          void handoff.track(model).then((m) => { if (m) d.setReadingModel?.(m); }, () => {});
         } else {
           const engine = activeEngine();
           if (engine) store.setNormalizer((w) => engine.normalize(w));
@@ -193,17 +242,21 @@ async function boot(): Promise<void> {
   if (cloudSession()) void accountInfo().catch(() => {});
   // Books in the account: this device's go up and the account's come down, on open, on sign-in, when the app comes back to
   // the front and every few minutes, and each run says what it did (or what went wrong, once).
-  const accountBooks = () => { if (cloudSession()) void syncBooks(store); };
+  // Not tried without a connection: the first run once it is back says what came down.
+  const accountBooks = () => { if (cloudSession() && navigator.onLine !== false) void syncBooks(store); };
   const toldErrors = new Set<string>();
   window.addEventListener(BOOKS_EVENT, (e) => {
     const r = (e as CustomEvent<BooksReport>).detail;
     const names = (t: string[]) => (t.length === 1 ? `“${scriptView(ctx.settings.get().script, ctx.dictSync()).text(t[0])}”` : `${t.length} books`);
     if (r.uploaded.length) ctx.toast(`Saved ${names(r.uploaded)} to your account.`, { ms: 5000 });
     if (r.added.length) ctx.toast(`Added ${names(r.added)} from your account.`, { ms: 6000 });
-    if (r.error && !toldErrors.has(r.error)) { toldErrors.add(r.error); ctx.toast(`Your books could not sync with your account: ${r.error}`, { ms: 9000 }); }
+    // Only what Globereader can say in its own words: a browser's own text for a dropped connection ("Failed to fetch") is not
+    // shown, and Settings → Sync already says when the server cannot be reached.
+    if (r.error && !BROWSER_TEXT.test(r.error) && !toldErrors.has(r.error)) { toldErrors.add(r.error); ctx.toast(`Your books could not sync with your account: ${r.error}`, { ms: 9000 }); }
   });
   accountBooks();
   window.addEventListener(CLOUD_EVENT, accountBooks);
+  window.addEventListener('online', accountBooks);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') accountBooks(); });
   setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, 5 * 60_000);
 
@@ -242,14 +295,25 @@ async function boot(): Promise<void> {
   store.onChange((what) => { if (what === 'books') void askPersist(); });
   void store.books.list().then((b) => { if (b.length) void askPersist(); }, () => {});
 
+  let badgeTimer: ReturnType<typeof setTimeout> | undefined;
+  let badgeSeq = 0;
   const refreshBadge = async () => {
+    const seq = ++badgeSeq;
+    const now = Date.now();
     // The due saved words and the looked-up words Review would add (review/learning.ts).
-    const n = await reviewCount(store);
+    const n = await reviewCount(store, now);
+    const next = (await store.vocab.list()).reduce((m, v) => (v.srs.due > now && v.srs.due < m ? v.srs.due : m), Infinity);
+    if (seq !== badgeSeq) return;
     reviewBadge.hidden = n === 0;
     reviewBadge.textContent = n > 99 ? '99+' : String(n);
+    // Again when the next card falls due (a ten-minute step, tomorrow's cards in a tab left open). The wait is capped at an
+    // hour: a timer of more than about 24 days would fire at once.
+    clearTimeout(badgeTimer);
+    if (next !== Infinity) badgeTimer = setTimeout(() => void refreshBadge(), Math.min(next - now + 500, 3_600_000));
   };
-  // Also fires for a save made in another tab.
+  // Also fires for a save made in another tab. A device that slept holds its timers, so coming back to the front counts too.
   store.onChange((what) => { if (what === 'vocab' || what === 'lookups' || what === 'known') void refreshBadge(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void refreshBadge(); });
   void refreshBadge();
 
   // Time in a book or in Review counts toward the day's goal (core/readingClock.ts); reaching it says so once.
@@ -271,6 +335,8 @@ async function boot(): Promise<void> {
     try { cleanup?.(); } catch (e) { console.error(e); }
     cleanup = undefined;
     document.body.dataset.route = route || 'library';
+    // After the old screen's cleanup, which puts back the title the reader replaced.
+    document.title = TITLES[route] ? `${TITLES[route]} - Globereader` : 'Globereader';
     clockFor(route);
     for (const a of nav.querySelectorAll<HTMLAnchorElement>('.app-navlink')) {
       a.toggleAttribute('aria-current', a.dataset.route === route);
@@ -298,16 +364,37 @@ async function boot(): Promise<void> {
     // The route moved on while this screen was mounting: put it away now, and keep the newer screen's cleanup for its turn.
     if (seq !== navSeq) { try { done?.(); } catch { /* ignore */ } return; }
     cleanup = done;
+    // A screen reader hears nothing when the hash changes: the new screen's heading takes the focus, unless the screen put it
+    // somewhere itself. The reader keeps its own.
+    if (moved && route !== 'read' && !screen.contains(document.activeElement)) {
+      const heading = screen.querySelector<HTMLElement>('h1');
+      if (heading) {
+        // Never in the Tab order, and drawn without a focus ring, as the welcome's title is (welcome.css): it is not a control.
+        if (!heading.hasAttribute('tabindex')) { heading.tabIndex = -1; heading.style.outline = 'none'; }
+        heading.focus({ preventScroll: true });
+      }
+    }
   };
-  window.addEventListener('hashchange', () => void render());
+  let moved = false;
+  window.addEventListener('hashchange', () => { moved = true; void render(); });
   await render();
-  // After the first screen: the reading fonts' rules are large and nothing needs them to paint.
-  void import('./fonts').catch(() => {});
 
+  // The dictionary has the connection first. After it, the reading fonts' rules (500 KB, only for libraries that show Chinese
+  // or Japanese) and, on a first visit, the offline copy, which installs once the dictionary's files are handed over so it
+  // reuses those downloads instead of fetching every file again alongside them.
+  const dictSettled = ctx.dict().then(() => {}, () => {});
+  if (CJK_LIBRARIES.has(L.id)) {
+    // The fonts' stylesheet is not precached for every device (vite.config.ts onlyFontFaces): a first visit hands it over.
+    const sheets = () => new Set([...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map((l) => l.href));
+    const fonts = dictSettled.then(async () => {
+      const before = sheets();
+      await import('./fonts');
+      for (const url of sheets()) if (!before.has(url)) handoff.keepUrl(url);
+    });
+    void handoff.track(fonts).catch(() => {});
+  }
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    // On a first visit the offline copy installs after the dictionary is in, so it reuses those downloads instead of
-    // fetching every file again alongside them.
-    const first = navigator.serviceWorker.controller ? Promise.resolve() : ctx.dict().then(() => {}, () => {});
+    const first = navigator.serviceWorker.controller ? Promise.resolve() : dictSettled.then(() => handoff.settled());
     void first.then(() => watchServiceWorker(ctx));
   }
 }

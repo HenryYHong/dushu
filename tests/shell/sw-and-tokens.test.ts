@@ -2,82 +2,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { loadWorker, swSource } from './swHarness';
 
 const root = join(__dirname, '..', '..');
-const swSource = readFileSync(join(root, 'public/sw.js'), 'utf8');
-
-type Handler = (event: unknown) => void;
-
-/** Loads sw.js with a fake browser. `strict` makes a cache lookup miss unless it passes ignoreVary, like a host that sends Vary: Origin. */
-function loadWorker(opts: { online: boolean; strict?: boolean; files?: Record<string, { type: string; body: string; etag?: string }>; precache?: string[] }) {
-  const handlers: Record<string, Handler> = {};
-  const stores = new Map<string, Map<string, Response>>();
-  const lookups: Array<Record<string, unknown> | undefined> = [];
-  const added: string[] = [];
-  const files = opts.files ?? {};
-  let fetched = 0;
-  const inits: (RequestInit | undefined)[] = [];
-  const key = (r: Request | string) => new URL(typeof r === 'string' ? r : r.url, 'https://app.test/').href;
-  const makeCache = (name: string) => {
-    if (!stores.has(name)) stores.set(name, new Map());
-    const m = stores.get(name)!;
-    return {
-      match: async (r: Request | string, o?: { ignoreVary?: boolean; ignoreSearch?: boolean }) => {
-        lookups.push(o);
-        if (opts.strict && !o?.ignoreVary) return undefined;
-        const k = key(r);
-        const hit = m.get(o?.ignoreSearch ? k.split('?')[0] : k) ?? m.get(k);
-        return hit?.clone();
-      },
-      put: async (r: Request | string, res: Response) => { m.set(key(r), res); },
-      add: async (r: Request | string) => { added.push(key(r)); },
-    };
-  };
-  const fakeCaches = {
-    open: async (n: string) => makeCache(n),
-    keys: async () => [...stores.keys()],
-    delete: async (n: string) => stores.delete(n),
-    match: async (r: Request | string, o?: { ignoreVary?: boolean }) => {
-      lookups.push(o);
-      if (opts.strict && !o?.ignoreVary) return undefined;
-      for (const m of stores.values()) { const h = m.get(key(r)); if (h) return h.clone(); }
-      return undefined;
-    },
-  };
-  const fakeFetch = async (r: Request | string, init?: RequestInit) => {
-    fetched++;
-    inits.push(init);
-    if (!opts.online) throw new TypeError('Failed to fetch');
-    const f = files[new URL(typeof r === 'string' ? r : r.url).pathname];
-    if (!f) return new Response('nope', { status: 404 });
-    const asked = new Headers(init?.headers ?? (typeof r === 'string' ? undefined : r.headers)).get('If-None-Match');
-    if (f.etag && asked === f.etag) return new Response(null, { status: 304 });
-    return new Response(f.body, { status: 200, headers: { 'content-type': f.type, ...(f.etag ? { ETag: f.etag } : {}) } });
-  };
-  const self = {
-    registration: { scope: 'https://app.test/' },
-    location: { origin: 'https://app.test' },
-    addEventListener: (t: string, fn: Handler) => { handlers[t] = fn; },
-    skipWaiting() {}, clients: { claim: async () => {} },
-  };
-  const src = swSource.replace('__BUILD__', 't').replace('__DATA_VERSION__', 'd').replace('__PRECACHE__', JSON.stringify(opts.precache ?? [])).replace('__LANG_VERSIONS__', '{}');
-  // A worker resolves a relative Request against its own URL.
-  const SwRequest = class extends Request { constructor(input: string, init?: RequestInit) { super(new URL(input, 'https://app.test/').href, init); } };
-  new Function('self', 'caches', 'fetch', 'Request', src)(self, fakeCaches, fakeFetch, SwRequest);
-  async function request(path: string, init: { navigate?: boolean } = {}): Promise<Response | undefined> {
-    const url = new URL(path, 'https://app.test/').href;
-    const mode = init.navigate ? 'navigate' : 'cors';
-    let answer: Promise<Response> | undefined;
-    handlers.fetch({ request: { method: 'GET', url, mode, headers: new Headers() }, respondWith: (p: Promise<Response>) => { answer = Promise.resolve(p); } });
-    return answer;
-  }
-  async function install(): Promise<void> {
-    let done: Promise<unknown> = Promise.resolve();
-    handlers.install({ waitUntil: (p: Promise<unknown>) => { done = p; } });
-    await done;
-  }
-  return { request, install, stores, lookups, added, handlers, inits, get fetched() { return fetched; } };
-}
 
 describe('service worker', () => {
   it('finds cached files even when the host sends Vary: Origin (every lookup ignores Vary)', async () => {
@@ -189,10 +116,11 @@ describe('service worker', () => {
     sw.stores.set('dushu-app-old', new Map([[`https://app.test/${worker}`, new Response('worker bytes')]]));
     await sw.install();
     expect(await sw.stores.get('dushu-app-t')!.get(`https://app.test/${worker}`)!.text()).toBe('worker bytes');
-    // Only what changed is downloaded: the shell and the new chunk, and the data into its own cache.
+    // Only what changed is downloaded: the shell and the new chunk. The Chinese dictionary is not: nothing says this device
+    // reads Chinese (no hand-off, no earlier copy), and it is stored the first time it is fetched.
     const appFiles = (w: typeof sw) => w.added.filter((u) => !/\/(data|fonts)\//.test(u));
     expect(appFiles(sw)).toEqual(['https://app.test/', 'https://app.test/assets/index-N3wHash1.js']);
-    expect(sw.added).toContain('https://app.test/data/cedict.tsv.gz');
+    expect(sw.added).not.toContain('https://app.test/data/cedict.tsv.gz');
     // A first install has nothing to copy, so it downloads everything.
     const first = loadWorker({ online: true, precache: [worker] });
     await first.install();
@@ -228,6 +156,19 @@ const lum = (hex: string) => {
   return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 };
 const ratio = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+
+describe('interface font', () => {
+  const ui = /--font-ui:\s*([^;]+);/.exec(tokens)![1].split(',').map((f) => f.trim().replace(/^'|'$/g, ''));
+  it('stays sans on Android and Linux: a sans face for English and the system Noto Sans CJK come before the bundled serif and Jigmo', () => {
+    for (const sans of ['Roboto', 'Noto Sans', 'Noto Sans CJK SC']) {
+      expect(ui.indexOf(sans), sans).toBeGreaterThanOrEqual(0);
+      expect(ui.indexOf(sans), sans).toBeLessThan(ui.indexOf('Noto Serif SC'));
+      expect(ui.indexOf(sans), sans).toBeLessThan(ui.indexOf('Jigmo'));
+    }
+    // The system faces of a Mac and Windows still come first.
+    expect(ui.slice(0, 3)).toEqual(['-apple-system', 'BlinkMacSystemFont', 'Segoe UI']);
+  });
+});
 
 describe('color tokens', () => {
   it('dark is a warm near-black, not pure black, and the book text a little dimmer than the interface', () => {

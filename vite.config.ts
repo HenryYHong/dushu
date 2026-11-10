@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { defineConfig, type Plugin } from 'vitest/config';
+import { SIZES_FILE } from './src/core/dataFetch';
 import { bridgeCsp } from './scripts/bridge-csp';
 import { claudeBridge } from './scripts/claude-bridge';
 import { localModelBridge } from './scripts/local-model';
@@ -54,7 +55,40 @@ export const LAZY_DATA = new Set(['names.tsv.gz', 'name-model.tsv.gz']);
 /** The largest classic downloaded ahead on a first visit, in bytes; longer ones are stored when first added. */
 export const SAMPLE_PRECACHE_MAX = 256 * 1024;
 
-/** Fills the placeholders in the built sw.js: a build id, the data version, and the files to precache. */
+/**
+ * A stylesheet of @font-face rules only: the reading fonts' (fonts.ts, 500 KB). It is not in the shell every device precaches,
+ * since only the libraries that show Chinese or Japanese load it (sw.js FONT_SHEETS).
+ */
+export function onlyFontFaces(css: string): boolean {
+  return /@font-face/.test(css) && css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/@font-face\s*\{[^}]*\}/g, '').trim() === '';
+}
+
+/**
+ * Writes each dictionary folder's file sizes into it (data/sizes.json for Chinese, data/<id>/sizes.json for the rest, with
+ * their subfolders: 'kuromoji/base.dat.gz'), so the reader's "Downloading the dictionary: x of y MB" has the whole total
+ * before the first byte arrives (core/dataFetch.ts byteMeter).
+ */
+export function writeDataSizes(dist: string): void {
+  const write = (dir: string, recursive: boolean) => {
+    const sizes: Record<string, number> = {};
+    const names = (readdirSync(dir, { recursive }) as string[]).map((f) => f.split(sep).join('/')).sort();
+    for (const f of names) {
+      if (f === SIZES_FILE || !statSync(join(dir, f)).isFile()) continue;
+      sizes[f] = statSync(join(dir, f)).size;
+    }
+    writeFileSync(join(dir, SIZES_FILE), JSON.stringify(sizes));
+  };
+  const data = join(dist, 'data');
+  if (!existsSync(data)) return;
+  write(data, false);
+  for (const id of OTHER_LANGS) if (existsSync(join(data, id))) write(join(data, id), true);
+}
+
+/**
+ * Fills the placeholders in the built sw.js: a build id, the data version, and the files to precache. The app shell goes on
+ * every device. The Chinese dictionary and short classics go only on a device that reads Chinese: sw.js precaches them when
+ * the page handed the Chinese dictionary over on a first visit, or the previous offline copy kept it.
+ */
 export function serviceWorker(): Plugin {
   let outDir = 'dist';
   return {
@@ -68,12 +102,15 @@ export function serviceWorker(): Plugin {
       const dist = outDir;
       const swPath = join(dist, 'sw.js');
       if (!existsSync(swPath)) return;
-      // Font slices are not precached: the ones a book uses are cached the first time they are fetched. The PDF worker
+      writeDataSizes(dist);
+      // Font slices are not precached: the ones a book uses are cached the first time they are fetched. Nor are the reading
+      // fonts' rules (fontSheets), which a device keeps once its page has loaded them. The PDF worker
       // (1.4 MB) and the Chinese CMaps (0.8 MB) are, so a PDF imports offline; sw.js copies unchanged hashed files from the
       // previous build's cache, so an update does not download them again.
       const assets = readdirSync(join(dist, 'assets')).filter((f) => /\.(js|mjs|css|bcmap)$/.test(f));
-      // Chinese data only: another language's folder is a directory here, and it is never downloaded ahead (it is stored the
-      // first time that language is opened, in a cache of its own named by its own contents, so a Chinese update keeps it).
+      // Chinese data only: another language's folder is a directory here, and it is never downloaded ahead (on a first visit
+      // the page hands the files it downloaded over; otherwise each is stored the first time that language is opened, in a
+      // cache of its own named by its own contents, so a Chinese update keeps it).
       // (The name list, names.tsv.gz, and the name model are not fetched ahead either: only name detection needs them, and they are
       // stored the first time.)
       const data = readdirSync(join(dist, 'data')).filter((f) => statSync(join(dist, 'data', f)).isFile() && !LAZY_DATA.has(f));
@@ -89,9 +126,12 @@ export function serviceWorker(): Plugin {
       const samples = existsSync(join(dist, 'samples'))
         ? readdirSync(join(dist, 'samples')).filter((f) => /\.(?:txt|json)$/.test(f) && statSync(join(dist, 'samples', f)).size <= SAMPLE_PRECACHE_MAX).map((f) => `samples/${f}`)
         : [];
-      const precache = [...assets.map((f) => `assets/${f}`), ...data.map((f) => `data/${f}`), ...samples, 'icon.svg', 'manifest.webmanifest', ...icons];
+      const fontSheets = assets.filter((f) => f.endsWith('.css') && onlyFontFaces(readFileSync(join(dist, 'assets', f), 'utf8'))).map((f) => `assets/${f}`);
+      const shell = [...assets.map((f) => `assets/${f}`).filter((p) => !fontSheets.includes(p)), 'icon.svg', 'manifest.webmanifest', ...icons];
+      const zhStatic = [...data.map((f) => `data/${f}`), ...samples];
       writeFileSync(swPath, readFileSync(swPath, 'utf8')
-        .replace('__BUILD__', build).replace('__DATA_VERSION__', dataVersion).replace('__PRECACHE__', JSON.stringify(precache))
+        .replace('__BUILD__', build).replace('__DATA_VERSION__', dataVersion)
+        .replace('__SHELL__', JSON.stringify(shell)).replace('__ZH_STATIC__', JSON.stringify(zhStatic)).replace('__FONT_SHEETS__', JSON.stringify(fontSheets))
         .replace('__LANG_VERSIONS__', JSON.stringify(langVersions)));
     },
   };

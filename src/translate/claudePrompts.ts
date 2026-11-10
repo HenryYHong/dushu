@@ -5,12 +5,7 @@ import { wordSenseHint } from './contextSense';
 import { translationMessage, translationSystem } from './prompt';
 import { intoName } from './targets';
 
-export const DEFAULT_CLAUDE_MODEL = 'claude-sonnet-5-5';
-/** Sonnet is the default and Haiku the cheaper option. Opus is never offered. */
-export const CLAUDE_MODELS: { value: string; label: string }[] = [
-  { value: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 (default)' },
-  { value: 'claude-haiku-5-5', label: 'Claude Haiku 5.5 (cheaper)' },
-];
+export { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from './claudeModels';
 
 /** Bounds the bridge enforces and the client respects, in UTF-16 units. */
 export const CLAUDE_LIMITS = { text: 8000, context: 3000, terms: 30, termField: 200 } as const;

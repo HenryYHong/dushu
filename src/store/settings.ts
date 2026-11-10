@@ -1,5 +1,5 @@
 // Settings in localStorage. Unknown keys are dropped, bad types reset, numbers clamped.
-import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../translate/claudePrompts';
+import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../translate/claudeModels';
 import { DEFAULT_TARGET, TARGET_CODES } from '../translate/targets';
 import type { Settings, SettingsStore } from '../types';
 import { cleanCovers } from '../core/covers';

@@ -9,6 +9,11 @@ import { CHAR_DEFAULTS, WORD_READINGS, firstCodePointOf, lastCodePoint, polyphon
 import { isHanCodePoint } from './text';
 import { compareReading } from './hskMatch';
 import type { ReadingChooser, ReadingSite } from './readingModel';
+import { byteMeter, dataSizes, fetchDataText, type Keep } from './dataFetch';
+import { UNSEEN_FLOOR } from './unseen';
+
+export { fetchDataText } from './dataFetch';
+export { UNSEEN_FLOOR } from './unseen';
 
 // ---------------------------------------------------------------- loading ---
 
@@ -21,8 +26,8 @@ interface LoadOptions {
   /** Called with (done, total) where total is always 100. Monotone. */
   onProgress?: (done: number, total: number) => void;
   /** Given each data file as downloaded (the default fetchText only), to keep a copy. */
-  keep?: (url: string, response: Response) => void;
-  /** Bytes downloaded so far and the total of the sizes known (default fetchText only). */
+  keep?: Keep;
+  /** Bytes downloaded so far and their total, from the build's list of sizes when it has come (default fetchText only). */
   onBytes?: (loaded: number, total: number) => void;
 }
 
@@ -30,47 +35,6 @@ const REQUIRED = ['cedict', 'chars', 'words', 'hsk', 't2s', 's2t', 'radicals'] a
 const CHUNK = 8000;
 /** Iterations of a derived-index loop between yields. */
 const INDEX_CHUNK = 40000;
-
-async function gunzipToText(bytes: Uint8Array): Promise<string> {
-  if (typeof DecompressionStream !== 'undefined') {
-    const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return new Response(stream).text();
-  }
-  const { gunzipSync, strFromU8 } = await import('fflate');
-  return strFromU8(gunzipSync(bytes));
-}
-
-/** Fetch one data file. Handles servers that gunzip for us and dev servers that answer 404s with index.html. */
-export async function fetchDataText(url: string, keep?: LoadOptions['keep'], count?: (size: number, read: number) => void): Promise<string> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-  if (keep && /gzip|json/.test(res.headers.get('content-type') ?? '')) keep(url, res.clone());
-  const bytes = count && res.body
-    ? await readCounting(res.body, Number(res.headers.get('content-length')) || 0, count)
-    : new Uint8Array(await res.arrayBuffer());
-  const text = bytes[0] === 0x1f && bytes[1] === 0x8b ? await gunzipToText(bytes) : new TextDecoder().decode(bytes);
-  if (/^\s*<(!doctype|html)/i.test(text.slice(0, 200))) throw new Error(`${url}: not a data file`);
-  return text;
-}
-
-/** The whole body, reporting its size (Content-Length, 0 when unknown) and then each piece as it arrives. */
-async function readCounting(body: ReadableStream<Uint8Array>, size: number, count: (size: number, read: number) => void): Promise<Uint8Array> {
-  count(size, 0);
-  const parts: Uint8Array[] = [];
-  let n = 0;
-  const reader = body.getReader();
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    parts.push(value);
-    n += value.length;
-    count(0, value.length);
-  }
-  const out = new Uint8Array(n);
-  let at = 0;
-  for (const p of parts) { out.set(p, at); at += p.length; }
-  return out;
-}
 
 let yieldChannel: MessageChannel | null = null;
 /**
@@ -111,11 +75,9 @@ async function eachLine(text: string, fn: (line: string) => void, onComment?: (l
 
 export async function loadDictionary(baseUrl: string, opts?: LoadOptions): Promise<Dictionary> {
   const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
-  let got = 0;
-  let size = 0;
-  const onBytes = opts?.onBytes;
-  const count = onBytes ? (more: number, read: number) => { size += more; got += read; onBytes(got, Math.max(size, got)); } : undefined;
-  const load = opts?.fetchText ?? ((name: string) => fetchDataText(base + name, opts?.keep, count));
+  // The reader's progress line (core/dictProgress.ts): the build's list of sizes gives the whole total before the first byte.
+  const meter = opts?.onBytes && !opts.fetchText ? byteMeter(opts.onBytes, dataSizes(base, opts.keep)) : null;
+  const load = opts?.fetchText ?? ((name: string) => fetchDataText(base + name, opts?.keep, meter?.(name)));
   let progress = 0;
   const report = (to: number) => {
     if (to > progress) { progress = to; opts?.onProgress?.(Math.min(100, Math.round(progress)), 100); }
@@ -162,11 +124,6 @@ export async function loadDictionary(baseUrl: string, opts?: LoadOptions): Promi
 
 const EMPTY: string[] = [];
 
-/**
- * Segmentation count of a CC-CEDICT or Wiktionary word that the jieba corpus never saw (文旅, 青蒿, 胶皮): enough to beat a split
- * into rare characters, never a split into common ones (有的 stays 有 + 的). Measured on the held-out corpus (scripts: diff of dumps).
- */
-export const UNSEEN_FLOOR = 5;
 /** A row that only points at another spelling, or that the dictionary marks as old or regional, gets no floor. */
 const NO_FLOOR_DEF = /^((old|archaic|obsolete|ancient|erroneous|unofficial|Japanese) )*variant of|^\((archaic|obsolete|dialect|Cantonese|Hokkien|Wu|Min)\b/i;
 /**

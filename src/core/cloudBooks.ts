@@ -135,9 +135,26 @@ export function unpackBook(bytes: Uint8Array): ImportedBook {
 
 // ---------------------------------------------------------------- the account ---
 
+/**
+ * The sync server could not be reached: no connection, one that dropped, or no answer in time. Not the book's fault, so it is
+ * not marked bad, and not told as an error: the next run tries again, and Settings → Sync says the server cannot be reached.
+ */
+class Unreachable extends Error {}
+
+/** A request to the sync server, or the reading of its answer, with a failure of the network turned into Unreachable. */
+async function reach<T>(p: Promise<T>): Promise<T> {
+  try {
+    return await p;
+  } catch (e) {
+    const name = (e as { name?: unknown } | null)?.name;
+    if (e instanceof TypeError || name === 'TimeoutError' || name === 'AbortError') throw new Unreachable('Could not reach the sync server.');
+    throw e;
+  }
+}
+
 async function ok(res: Promise<Response> | null): Promise<Response> {
   if (!res) throw new Error('This device is not signed in.');
-  const r = await res;
+  const r = await reach(res);
   if (!r.ok) {
     const why = await r.json().then((x: { error?: unknown }) => x?.error, () => undefined);
     throw new Error(typeof why === 'string' ? why : `The sync server answered ${r.status}.`);
@@ -150,7 +167,7 @@ const isEntry = (b: unknown): b is AccountBook => !!b && typeof b === 'object' &
 /** This library's books in the account, under their keys here (without a language's prefix). */
 export async function accountBooks(): Promise<AccountBook[]> {
   const prefix = langPrefix(langId());
-  const data = await (await ok(cloudFetch(prefix ? `/books?covers&lang=${langId()}` : '/books?covers', { signal: AbortSignal.timeout(20_000) }))).json() as unknown;
+  const data = await reach((await ok(cloudFetch(prefix ? `/books?covers&lang=${langId()}` : '/books?covers', { signal: AbortSignal.timeout(20_000) }))).json()) as unknown;
   if (!prefix) return Array.isArray(data) ? data.filter((b) => isEntry(b) && b.key[0] !== '@') : [];
   // A Worker that keeps each language's books answers a language with { lang, books }. One from before languages answers with
   // a bare list (its Chinese books), and nothing in it is this library's: nothing goes up or comes down until it is updated.
@@ -166,7 +183,7 @@ export async function accountBooks(): Promise<AccountBook[]> {
 async function upload(key: string, meta: BookMeta, bytes: Uint8Array): Promise<boolean> {
   const sha = await sha256(bytes);
   const json = { 'Content-Type': 'application/json' };
-  const start = await (await ok(cloudFetch('/books', { method: 'POST', headers: json, body: JSON.stringify({ key: keyThere(key), title: meta.title, author: meta.author, size: bytes.byteLength, sha }), signal: AbortSignal.timeout(20_000) }))).json() as { upload?: unknown; complete?: unknown };
+  const start = await reach((await ok(cloudFetch('/books', { method: 'POST', headers: json, body: JSON.stringify({ key: keyThere(key), title: meta.title, author: meta.author, size: bytes.byteLength, sha }), signal: AbortSignal.timeout(20_000) }))).json()) as { upload?: unknown; complete?: unknown };
   // The account has this very package already (another device put it there).
   if (start.complete === true) return true;
   const u = typeof start.upload === 'string' ? `&u=${encodeURIComponent(start.upload)}` : '';
@@ -175,7 +192,7 @@ async function upload(key: string, meta: BookMeta, bytes: Uint8Array): Promise<b
     const res = cloudFetch(`/books/chunk?key=${encodeURIComponent(keyThere(key))}&i=${i}${u}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: piece, signal: AbortSignal.timeout(60_000),
     });
-    if ((await res)?.status === 409) return false;
+    if ((res && await reach(res))?.status === 409) return false;
     await ok(res);
   }
   return true;
@@ -204,7 +221,7 @@ async function downloadBytes(book: AccountBook): Promise<Uint8Array> {
   let at = 0;
   for (let i = 0; i < book.chunks; i++) {
     const r = await ok(cloudFetch(`/books/chunk?key=${encodeURIComponent(keyThere(book.key))}&i=${i}`, { signal: AbortSignal.timeout(60_000) }));
-    const piece = new Uint8Array(await r.arrayBuffer());
+    const piece = new Uint8Array(await reach(r.arrayBuffer()));
     if (at + piece.byteLength > out.byteLength) throw new Error(`“${book.title}” in your account is damaged.`);
     out.set(piece, at);
     at += piece.byteLength;
@@ -234,7 +251,7 @@ export async function accountFileOf(meta: Pick<BookMeta, 'note'>, listing: () =>
   try {
     return new File([await downloadBytes(entry) as Uint8Array<ArrayBuffer>], entry.title);
   } catch (e) {
-    setBad(id, now);
+    if (!(e instanceof Unreachable)) setBad(id, now);
     throw e;
   }
 }
@@ -336,6 +353,8 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
             return store.books.add(imported);
           });
         } catch (e) {
+          // The connection went: the run stops here, and the book is tried again next time.
+          if (e instanceof Unreachable) throw e;
           setBad(id, now);
           error ??= e instanceof Error ? e.message : String(e);
           continue;
@@ -365,13 +384,14 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
           await store.books.setCover(book.id, new Blob([await downloadBytes(cover) as Uint8Array<ArrayBuffer>]), cover.sha);
           setBad(id, null);
         } catch (e) {
+          if (e instanceof Unreachable) throw e;
           setBad(id, now);
           error ??= e instanceof Error ? e.message : String(e);
         }
       }
     } catch (e) {
       console.warn('Globereader: books in your account', e);
-      error = e instanceof Error ? e.message : String(e);
+      if (!(e instanceof Unreachable)) error = e instanceof Error ? e.message : String(e);
     }
     if (added.length || up.length || error) {
       const detail: BooksReport = { added: added.map((m) => m.title), uploaded: up, ...(error ? { error } : {}) };

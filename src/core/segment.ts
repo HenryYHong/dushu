@@ -6,7 +6,7 @@ import type { Dictionary, Token, TokenKind, Lexicon, LexiconEntry, RubySpan } fr
 import { detectScript, isHanCodePoint } from './text';
 import { activeEngine } from '../lang/active';
 import { SURNAMES } from './names';
-import { UNSEEN_FLOOR } from './dict';
+import { UNSEEN_FLOOR } from './unseen';
 
 /** Used when the dictionary does not report the corpus size (jieba dict.txt.big). */
 const DEFAULT_TOTAL = 83_170_339;
