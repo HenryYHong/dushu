@@ -12,6 +12,7 @@ import { GOALS } from '../core/activity';
 import { getPlan, setPlan, type Plan } from '../core/plan';
 import { TARGET_LANGUAGES, isOwnLanguage, targetFor, targetLanguage } from '../translate/targets';
 import { markLangChoice } from './langSwitch';
+import { chooseUiLang, isUiLang, uiLang } from '../i18n';
 import type { SettingsStore } from '../types';
 
 /** What each library explains its language in, where that is not English. */
@@ -75,9 +76,13 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
       // A goal left as it was is not a new choice: a new device's untouched default must not replace the one the account has.
       setPlan({ langs, goal, ...(goal === plan.goal ? { goalAt: getPlan().goalAt } : {}), welcomed: Date.now() });
       if (target) settings.set({ translateTo: target });
+      // The reader's own language: the app is shown in it when it has it (src/i18n). A new language needs the page drawn again.
+      const reshow = !!target && isUiLang(target) && target !== uiLang();
+      if (target && isUiLang(target)) chooseUiLang(target);
       // From Settings the open library stays while it is still one being learned. The first visit opens the first one chosen.
       const next = opts.again ? (langs.includes(opts.current) ? undefined : langs[0]) : langs[0] !== opts.current ? langs[0] : undefined;
       if (next) { done = true; switchLang(next); return; }
+      if (reshow) { done = true; location.reload(); return; }
       close();
     };
     const skip = () => {
@@ -132,7 +137,7 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
     const stepTarget = () => {
       const langs = learning();
       const list = [...TARGET_LANGUAGES].sort((a, b) => a.name.localeCompare(b.name, 'en'));
-      const select = h('select.select.wel-select', { 'aria-label': 'Translate into' },
+      const select = h('select.select.wel-select', { 'aria-label': 'Your language' },
         list.map((t) => h('option', { value: t.code, selected: t.code === target }, t.native === t.name ? t.name : `${t.name} · ${t.native}`))) as HTMLSelectElement;
       // Picked by hand: kept, whatever languages come next.
       select.addEventListener('change', () => { target = select.value; suggested = ''; note(); });
@@ -148,8 +153,8 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
       };
       note();
       return [
-        h('h2.wel-q', null, 'Translate into'),
-        h('p.wel-help', null, 'Sentences you translate are shown in this language. Pick the one you know best. You can change it any time in Settings.'),
+        h('h2.wel-q', null, 'Your language'),
+        h('p.wel-help', null, 'The one you know best. Sentences you translate are shown in it, and so is the app when it has it. You can change it any time in Settings.'),
         select,
         warn,
         h('p.wel-help.wel-small', null, langs.includes('en') && langs.length === 1

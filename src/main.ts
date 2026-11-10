@@ -1,5 +1,6 @@
 // App shell: theme, fonts, nav, hash router, toasts, and the AppContext every screen receives.
 import globeSvg from './ui/globe.svg?raw';
+import { startI18n } from './i18n';
 import './styles/tokens.css';
 import './styles/base.css';
 import type { AppContext, Dictionary, MountFn, Settings, Store } from './types';
@@ -105,6 +106,8 @@ async function boot(): Promise<void> {
   // Asked before anything is written: a device that has never been used is welcomed (ui/welcome.ts) before the dictionary
   // downloads, so someone learning Spanish never waits for the Chinese one.
   const welcome = needsWelcome();
+  // The app's own words in the reader's language (src/i18n), before anything is drawn.
+  await startI18n();
   // A book opened with the installed app ("Open with") is kept for the library from the very start.
   listenForOpenedFiles();
   injectFonts();

@@ -98,6 +98,7 @@ export const mount: MountFn = (root, params, ctx) => {
   // reader is learning and the daily goal (core/plan.ts).
   const learning = learningControls(ctx);
   const language = group('Learning', null,
+    row('Your language', 'The app is shown in it, and sentences are translated into it.', learning.own, 'set-ui-lang'),
     row('Reading in', 'Each language keeps its own library, words and settings, and syncs them on its own.',
       { el: langSelect('select'), update: () => {} }),
     row('Languages you are learning', 'These come first when you switch languages.', learning.langs),
