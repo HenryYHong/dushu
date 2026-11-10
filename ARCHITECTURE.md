@@ -631,6 +631,11 @@ settings.sandhi is on (the caller decides).
   - Tests: `tests/import/suite.test.ts` builds 80 kinds of file (encodings, heading styles, wraps, site junk, EPUB layouts, Kindle, Mac
     PDFs, DRM) from public/samples in the test and checks the text each must give; kinds still short of it say what (`gap`).
     `tests/import/plan-fixes.test.ts` checks each fix on its own.
+- IMPORT_VERSION 4: Project Gutenberg books and others like them are cut differently. Printed title pages (any case, up to 16
+  lines, a year in brackets or an imprint, an author page before them), credit-only pages, contents lists made of links, contents
+  pages in plain lines and contents labels run together are dropped; drop-cap letters join their word and captions leave headings;
+  Gutenberg's header, footer and their leftovers go; its plain-text Chinese conversions are cut at their 第N回 lines or by size; a
+  `<p>` of indented lines is split at the indents; a chapter's number set before its heading joins it.
 - Raising `IMPORT_VERSION` re-imports the books the library can fetch again (`ui/library/upgrade.ts`): the Mac's books from the Mac (a
   device that cannot reach the Mac takes the file the Mac put in the sync account, `accountFileOf` in core/cloudBooks.ts) and
   the classics from the site, one at a time once the library has the Mac's list (a file from the account that does not import is not
@@ -682,7 +687,9 @@ settings.sandhi is on (the caller decides).
   Text size is saved per layout: Pages uses `fontSize` (22 px default), Scroll uses
   `scrollFontSize` (28 px default, also used when older settings lack the field).
 - Backup JSON: `{ app: 'dushu', version: 1, exportedAt, settings (the Mac address is not a setting and never appears; an import can never turn Local only off, and a key left by an older version is dropped),
-  vocab, known, progress, reviews, lexicon }` — books are not included (they can be big); say so in the UI.
+  vocab, known, progress, reviews, lexicon, bookmarks?, lookups? }` — books are not included (they can be big); say so in the UI.
+  Bookmarks carry their book's sync key, so one restored before its book comes back lands on the book when it is added; reading
+  activity is not in it. The file is named `globereader-<language>-backup-<local date>.json`; the JSON still says `app: 'dushu'`.
 
 ### 4.7 `translate/` — `getTranslator(id, settings, dict)`, `pickTranslator(settings, dict)`
 - `chrome`: the built-in on-device Translator API (`self.Translator`, Chrome 138+):
@@ -1617,10 +1624,15 @@ and opens it. Empty state explains what the app does in two sentences.
   the language translations go into (any of `translate/targets.ts`, 94), and a daily goal. Finishing opens the first language
   chosen; a device used before the screen existed is marked welcomed and never interrupted. Settings › Learning changes the
   languages and the goal and shows the screen again. The languages being learned come first in the language switcher.
-- The reading clock runs on the Read and Review routes (`main.ts`): time counts while the page is in front and there was input in
-  the last three minutes (or speech is playing), flushed every five seconds. Reaching the goal says so once, in a toast.
-- A day is won when its time reaches the goal in force that day (each record keeps it), so raising the goal never undoes a day.
-  The streak runs to today once today is won, else to yesterday.
+- needsWelcome writes the unfinished plan (`welcomed: 0`) at once, so a reload or a second tab during the welcome brings it back.
+  The welcome is a modal `<dialog>`. Skip keeps a language already picked; with none picked the bar keeps its language chip. From
+  Settings, Done stays in the open library unless that language was dropped, and Esc acts as Cancel.
+- The reading clock runs on the Read and Review routes (`main.ts`) and while Practice is open: time counts while the page is in
+  front and there was input in the last three minutes (or any voice is reading aloud), flushed every five seconds. Reaching the goal
+  says so once, in a toast.
+- A day is won when its time reaches the goal in force that day, so raising the goal never undoes a day. A past day is judged by
+  this device's own goal for it (its record, or the stamp the goal card writes), and by the easiest goal of the other devices only
+  when this device has no record for that day. The streak runs to today once today is won, else to yesterday.
 
 ### 5.4.2 Find a book (`ui/library/findBooks.ts`, `cloud/src/worker.ts` relayEpub)
 
@@ -1788,9 +1800,15 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   dictionary text never use it; definitions and translations use `--font-book` (Iowan Old Style, Palatino, Georgia: all have the tone letters).
 - Fonts: Noto Serif SC and TC (400, 700) and LXGW WenKai (regular) from the installed packages, woff2 slices only (a vite plugin strips the woff
   fallbacks from their CSS; `dist/assets` holds about 500 slices). The 527 KB of `@font-face` CSS lives in `src/fonts.ts`, a separate chunk
-  `main.ts` imports after the first render, with `font-display: swap`. `tokens.css` has the stacks `--font-serif`, `-serif-hant`, `-sans`,
+  `main.ts` imports after the dictionary, only for the zh, ja and en libraries, with `font-display: swap`. `tokens.css` has the stacks `--font-serif`, `-serif-hant`, `-sans`,
   `-sans-hant`, `-kai`, `-kai-hant` (Songti first on a Mac) and a Jigmo last resort; the plain ones switch to the Hant ones under `:lang(zh-Hant|zh-TW|zh-HK)`.
-- Service worker (`public/sw.js`; build id, data version and precache list are filled in by `serviceWorker()` in vite.config.ts): three caches.
+- Service worker (`public/sw.js`; build id, data version and three lists are filled in by `serviceWorker()` in vite.config.ts: SHELL
+  (assets, icons, manifest; every device), ZH_STATIC (top-level `data/` and the short Chinese classics; precached only when the page
+  handed the Chinese dictionary over on a first visit or an older `dushu-static` cache had it) and FONT_SHEETS (the `@font-face`-only
+  stylesheet; kept only when the page loaded it). On a first visit `main.ts` puts every dictionary file it downloads, in any language,
+  plus the reading fonts stylesheet, into `dushu-first-visit`; install files each one in `dushu-lang-<id>-<v>` or `dushu-static` after
+  an ETag check, then deletes that cache. Each dictionary folder in the build has a `sizes.json` (`writeDataSizes`) that the reader's
+  download line reads. Three caches:
   `dushu-app-<build>` (index.html network first, `assets/` cache first, the PDF worker and CMaps included; replaced on every build, but a hashed
   file the previous build stored is copied from its cache instead of downloaded), `dushu-static-<data version>` (`data/`, `samples/`,
   the two Newsreader files; survives app updates; the data version hashes the bytes of `data/`, `samples/` and `fonts/`, so a release that
@@ -1986,7 +2004,8 @@ exists.
   into (§4.7, `TranslateRequest.to`) is the reader's in every library; a choice of the book's own language means English there.
 - **Classics.** `public/samples/<id>/index.json` and Markdown texts (`# Title`, `## Chapter`), with public-domain paintings as covers.
 - **Offline.** Each language's data and classics live in a cache of their own (`sw.js`, `dushu-lang-<id>-<version>`), named by their
-  contents (`vite.config.ts` `__LANG_VERSIONS__`): stored the first time the language opens, kept through Chinese updates.
+  contents (`vite.config.ts` `__LANG_VERSIONS__`): handed over on the first visit (stored the first time the language opens
+  otherwise), kept through Chinese updates.
 - **Reading a word in its sentence (the spaced languages, `lang/spaced/core.ts`).** `segment()` reads each word alone (every entry it can
   be, scored by frequency, the treebank prior and its spelling), then reads the paragraph left to right, once, choosing among each word's
   readings from its neighbors. First it asks the language's own rules, `SpacedLang.context` (`lang/spaced/context.ts`):
