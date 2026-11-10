@@ -1,1 +1,8794 @@
-{}
+{
+ "6-digit code": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "<1m": {
+  "where": [
+   "src/core/srs.ts"
+  ]
+ },
+ "A book in your account is damaged.": {
+  "where": [
+   "src/core/cloudBooks.ts"
+  ]
+ },
+ "A code was sent to {email}. It works for 10 minutes.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "A dictionary meaning could not be confirmed from this paragraph. Use the sentence translation and compare the listed senses.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "A free online service, about 5,000 characters a day. Your sentence is sent to it.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "A guess by the AI. Check it against the passage.": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "A mark over the stressed vowel of each word, as in a learner’s dictionary.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "A name or term needs its characters.": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "A name. The dictionary has no entry for it.": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "A new version of Globereader is ready.": {
+  "where": [
+   "src/swUpdate.ts"
+  ]
+ },
+ "A saved word needs a headword.": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "A short meaning over every word": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "A short {language} meaning over each word. Unknown skips words you have marked as known; {scheme} also skips words up to your level.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "A to Z": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "A word read more than one way counts at its easiest reading, and is known in all of them (行 xíng is HSK 1, so 行 háng goes too).": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its furigana in the Unknown and {scheme} modes. Looking it up takes it back off.": {
+  "where": [
+   "src/lang/labels.ts"
+  ]
+ },
+ "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its hint in the Unknown and {scheme} modes. Looking it up takes it back off.": {
+  "where": [
+   "src/lang/labels.ts"
+  ]
+ },
+ "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its pinyin in the Unknown and HSK pinyin modes. Looking it up takes it back off.": {
+  "where": [
+   "src/core/autoKnown.ts",
+   "src/lang/labels.ts"
+  ]
+ },
+ "A word-by-word gloss in {language}, not a real translation. The first meanings may be wrong here.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "A word-by-word gloss, not a real translation. The first meanings may be wrong here.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "About": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "About Globereader": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "About {n} pages left in chapter": {
+  "one": "About {n} page left in chapter",
+  "where": [
+   "src/ui/reader/pagination.ts"
+  ]
+ },
+ "Account": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Account, {status}: signed in as {name}. {reason}": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Accounts are by invite for now. We only use your email to send you sign-in codes.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Add": {
+  "where": [
+   "src/ui/library/findBooks.ts",
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Add a passkey on this device": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Add and read": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Add and read “{title}”": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Add as a word…": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Add books from Mac": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Add the tones, as marks or numbers, like Guō Jìng or guo1 jing4.": {
+  "where": [
+   "src/core/lexicon.ts"
+  ]
+ },
+ "Add them": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "Add to Home Screen": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Add to library": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Add {n}": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Add “{title}”": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Added to the Home Screen, Globereader opens like an app and works offline.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Added {date}": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Added {n} books from your Mac.": {
+  "one": "Added {n} book from your Mac.",
+  "where": [
+   "src/ui/library/macBooks.ts"
+  ]
+ },
+ "Added {n} books from your account.": {
+  "one": "Added {n} book from your account.",
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Added {n} books.": {
+  "one": "Added {n} book.",
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Added {n} corrections.": {
+  "one": "Added {n} correction.",
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "Added {n} words, updated {updated}": {
+  "one": "Added {n} word, updated {updated}",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Added “{first}” and “{second}” from your Mac.": {
+  "where": [
+   "src/ui/library/macBooks.ts"
+  ]
+ },
+ "Added “{title}” from your Mac.": {
+  "where": [
+   "src/ui/library/macBooks.ts"
+  ]
+ },
+ "Added “{title}” from your account.": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Added “{title}”.": {
+  "where": [
+   "src/ui/library/findBooks.ts",
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Added “{title}”. The button now opens it.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Added, but {warning}": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Adding free books needs the sync server, which this copy of Globereader does not have.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Adding from Mac…": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Adding {title}": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Adding “{title}”": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Adding “{title}”…": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Adding…": {
+  "where": [
+   "src/ui/library/findBooks.ts",
+   "src/ui/library/library.ts",
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Address of your Mac": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Advanced": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Advanced books": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Again": {
+  "where": [
+   "src/ui/review/review.ts",
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Again, Hard, Good, Easy": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "All": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/reader/wordsTab.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "All books": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/popup/bookCard.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "All the dictionary meanings, not just the one used here.": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "All your cards are scheduled.": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "All {n} on the first try.": {
+  "one": "All {n} on the first try.",
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "All {n} words from {level} are already marked as known.": {
+  "one": "All {n} word from {level} are already marked as known.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Already in your library as “{title}”.": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Already in your library from your Mac.": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Also HSK {level} in another reading": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Also in {languages}": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Also {forms}": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Another email": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Answer": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Any EPUB or Kindle book you bought without DRM works too.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Any work on the {lang} Wikisource, made into a book with its chapters. Search by title; add the author to narrow it ({example}).": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Any work on the {lang} Wikisource, made into a book with its chapters. Search by title; add the author to narrow it.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Aozora Bunko": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Aozora Bunko's works are in {japanese}. Open the {japanese} library to add one; this one reads {lang}.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "As written": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Ask local AI about context": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Ask the browser to keep my data": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "At the end of a chapter, go to the next one": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "At the top of a chapter, go to the previous one": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Author": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Author (optional)": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Auto": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Auto follows your device.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Auto shows two pages on a wide screen held sideways.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Auto: two on a wide screen": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Automatic": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Automatic (Classic)": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Automatic (Modern)": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Automatic (best {language} voice)": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Automatic picks the best voice you have. On iPad you can add {language} voices in Settings > Accessibility > Read & Speak.": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Back": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/phraseView.ts",
+   "src/ui/popup/wordView.ts",
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Back to the library": {
+  "where": [
+   "src/ui/reader/pager.ts",
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Back to words": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Backup": {
+  "where": [
+   "src/ui/settings/data.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Backup saved to your downloads.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Best: {n} days": {
+  "one": "Best: {n} day",
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "Book": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "Book not found": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Book page. Press Enter to choose words with the arrow keys; Left and Right arrows turn the page.": {
+  "where": [
+   "src/ui/reader/pager.ts"
+  ]
+ },
+ "Book text. Press Enter to choose words with the arrow keys.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Bookmark removed": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Bookmark this page": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Bookmark this page (B)": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Bookmark this page, or take its bookmark away": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Bookmarks": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Books": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Books are laid out in pages. If you'd rather scroll, change Layout in Settings, or under Aa in the reader.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Books from gutenberg.org, free in the United States.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Books in {lang} matching “{query}”": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Books on your Mac reach every device by themselves. For other books, use Import book.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Books the Mac shares are added to the library by themselves and work offline after that. They can't be deleted, and if the browser clears them they come back.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Both aspects": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Built into Chrome 138 and newer on a computer. Free, and works offline after a one-time download.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "CC BY-SA 4.0 (Wikipedia; the books are public domain)": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "CC-CEDICT plus the HSK words it lacks": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Cancel": {
+  "where": [
+   "src/ui/library/dialogs.ts",
+   "src/ui/library/paste.ts",
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts",
+   "src/ui/vocab/confirm.ts",
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Capitals and tone marks are fine, or tone numbers like guo1 jing4": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Card {n} of {total}": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Casual": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Change them later under Corrections.": {
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "Chapter {chapter} of {count}": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Chapter {chapter} of “{title}” is missing on this device.": {
+  "where": [
+   "src/core/cloudBooks.ts"
+  ]
+ },
+ "Chapter {n}": {
+  "where": [
+   "src/ui/reader/pager.ts",
+   "src/ui/reader/reader.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Chapters": {
+  "where": [
+   "src/ui/reader/reader.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Chapters (C)": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Chapters are detected from headings like {example}.": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Character": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Characters": {
+  "where": [
+   "src/ui/popup/wordView.ts",
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Check again": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Check names": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Check names may ask about {word} again.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Check reference terms": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Checking private connection…": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Checking with your Mac…": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Checking your Mac…": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Checking your invite…": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Checking…": {
+  "where": [
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Chinese Wikipedia and Wikisource": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Chinese Wikisource": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Chinese characters": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Choose a starting word again; the text has changed.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Choose how much pinyin you want: none, all, only words you haven't marked as known, or only words above your HSK level.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Choose where furigana show: nowhere, over every word with kanji, over words you haven't marked as known, or over words above your JLPT level.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Choose your languages, translation language and goal again, step by step.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Chrome can translate on this device without sending text anywhere. It needs a one-time model download.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Chrome cannot translate {from} to {to} on this device.": {
+  "where": [
+   "src/translate/chrome.ts"
+  ]
+ },
+ "Chrome could not start its translator: {error}": {
+  "where": [
+   "src/translate/chrome.ts"
+  ]
+ },
+ "Chrome needs a click to download the translation model. Press the download button in Settings.": {
+  "where": [
+   "src/translate/chrome.ts"
+  ]
+ },
+ "Chrome on-device": {
+  "where": [
+   "src/translate/chrome.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Chrome's on-device translator is not available here.": {
+  "where": [
+   "src/translate/chrome.ts"
+  ]
+ },
+ "Classic": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Claude (through your Mac)": {
+  "where": [
+   "src/translate/claude.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Claude (through your account)": {
+  "where": [
+   "src/translate/claude.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Claude did not answer within 30 seconds.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Claude failed partway through.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "Claude goes through your account, wherever you are": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Claude is made by Anthropic. Only the sentence and a little of the text around it is sent, through your account or your Mac. The key never reaches your browser.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Claude key": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Claude model": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Claude sent back an empty answer. Try again.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "Claude through your Mac": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Claude through your Mac failed ({status}).": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "Claude through your account": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Claude through your account failed ({status}).": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "Claude translation is only for the owner of this site.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Clear all known words?": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Clear known words": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Clear learned words": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Clear search": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Clear words learned from reading?": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Cleared {n} known words.": {
+  "one": "Cleared {n} known word.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Cleared {n} words learned from reading.": {
+  "one": "Cleared {n} word learned from reading.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Click": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Click any word for its meaning, or drag across a sentence to translate it.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Click any word for its pinyin and meaning, or drag across a sentence to translate it.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Click any word for its reading and meaning, or drag across a sentence to translate it.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Click or tap": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Click {seal} at the top (or press P) to choose where furigana show: every word, words you don't know yet, or words above your JLPT level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Click {seal} at the top (or press P) to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Click {seal} at the top (or press P) to show short {language} hints over words: every word, words you don't know yet, or words above your level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Close": {
+  "where": [
+   "src/ui/library/dialogs.ts",
+   "src/ui/popup/fixView.ts",
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/phraseView.ts",
+   "src/ui/popup/wordView.ts",
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/shortcuts.ts",
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Close (Esc)": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/phraseView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Close chapters": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Close practice": {
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Close the open card or menu": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Code from the email": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Code point": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Color pinyin by tone": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Compatibility form of": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Connect": {
+  "where": [
+   "src/ui/settings/ipad.ts",
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Connect each device to your Mac once. Your words and reading places then sync through it.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Connect this device": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Connect this device to your Mac above, and your words and reading places sync through it.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Connect this device to {host}?": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Connected to {host}. Claude, the local model, Premium voices and your books use that Mac while it is awake.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Connected. Claude, the local model, Premium voices and your books now use your Mac ({host}).": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Connection": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Context": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Context clue: “{quote}”": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Continue": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Continue reading": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Converting between simplified and traditional characters.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Copied": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Copied the link for {name}.": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Copied.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Copy": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Copy link": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Copy text": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Copy translation": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Corrections": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Corrections of another book": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "Could not add that text.": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Could not add that text. {reason}": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Could not add the Mac books.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Could not add the books from your Mac.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Could not add “{title}”.": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Could not add “{title}”. {reason}": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Could not connect.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Could not copy. Select the text and press Ctrl+C.": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Could not create the backup.": {
+  "where": [
+   "src/ui/settings/data.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Could not delete that.": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "Could not delete the book.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Could not delete the data.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Could not display this chapter": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Could not download the book. Check your connection and try again.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Could not download the dictionary. Check your connection; Globereader will try again.": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Could not download “{title}”. Check your connection and try again.": {
+  "where": [
+   "src/ui/library/samples.ts"
+  ]
+ },
+ "Could not load more books. Try again.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Could not load the invite links.": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Could not look for names.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Could not make the link.": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Could not open the word card.": {
+  "where": [
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Could not prepare Premium audio.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "Could not reach MyMemory. Check your connection.": {
+  "where": [
+   "src/translate/mymemory.ts"
+  ]
+ },
+ "Could not reach the sync server to read aloud.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "Could not reach the sync server. Check this device’s internet connection.": {
+  "where": [
+   "src/core/cloud.ts",
+   "src/core/passkey.ts",
+   "src/translate/account.ts",
+   "src/translate/claude.ts",
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Could not reach your Mac. Check that Tailscale is on for this device and that the Mac is awake.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Could not reach your Mac. Keep it awake and connected to Tailscale.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "Could not read an image from the book": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "Could not read that file.": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "Could not read the file.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "Could not read the words you looked up.": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Could not read your vocabulary.": {
+  "where": [
+   "src/ui/review/review.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Could not read {name} from your Mac.": {
+  "where": [
+   "src/ui/library/macBooks.ts"
+  ]
+ },
+ "Could not remove that.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Could not remove the bookmark.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Could not remove the word.": {
+  "where": [
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Could not rename the book.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Could not save that review. Skipping this card.": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Could not save that.": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Could not save the bookmark.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Could not save the word.": {
+  "where": [
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Could not save {word}: {error}": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Could not sign in.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Could not stop the link.": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Could not update {word}: {error}": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Counting the words in this chapter…": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Cover": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Cover paintings and photographs (Wikimedia Commons)": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Covers": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Creative Commons Attribution-ShareAlike 4.0 license": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Cycle pinyin: off, all, unknown, HSK": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Cycle {aid}: off, all, unknown, {scheme}": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Daily goal": {
+  "where": [
+   "src/ui/goalCard.ts",
+   "src/ui/settings/learning.ts",
+   "src/ui/settings/settings.ts",
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Daily goal and streak": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "Daily goal reached: {n} minutes.": {
+  "one": "Daily goal reached: {n} minute.",
+  "where": [
+   "src/core/readingClock.ts"
+  ]
+ },
+ "Daily limit used": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Dark": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Data": {
+  "where": [
+   "src/ui/settings/data.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Data built {date}, Unicode {version}.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Data built {date}.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Data sources": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Data sources and licenses": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Delete": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Delete account…": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Delete all data": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Delete all data?": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Delete everything": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Delete my account": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Delete this book?": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Delete your correction of {word}": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Delete: {word} is not a name": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Deleted “{title}”.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Deleting…": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Details": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Devoted": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Dictionary details are not available right now.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Dictionary form {word}": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Dictionary not loaded": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Disconnect": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Disconnected. This device no longer uses your Mac.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Dismiss": {
+  "where": [
+   "src/main.ts",
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Display settings": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "DjVu files are scanned images, so there is no text to read. Find an EPUB, text or PDF version.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "Done": {
+  "where": [
+   "src/ui/library/dialogs.ts",
+   "src/ui/library/findBooks.ts",
+   "src/ui/reader/menus.ts",
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/vocab/practice.ts",
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Double-click": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Download failed.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Download model": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Download needed": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Download on-device translation": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Downloading the dictionary: {loaded} of {total} MB": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Downloading {percent}%": {
+  "where": [
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Downloading…": {
+  "where": [
+   "src/ui/library/importer.ts",
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Drag": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Drag across a sentence (Pages) or use the button (Scroll)": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Drag always works": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Drop to add to your library": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Due in {when}": {
+  "where": [
+   "src/ui/vocab/model.ts"
+  ]
+ },
+ "Due now": {
+  "where": [
+   "src/ui/vocab/model.ts"
+  ]
+ },
+ "Due soonest": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "EPUB, Kindle (MOBI or AZW3), TXT, PDF, HTML or Markdown": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "EPUB, Kindle without DRM, text and PDF files all work.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Each language is its own library, with its own books, words and settings, and each syncs with your account on its own. Switch languages in Settings or with the language menu at the top.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Each language keeps its own library, words and settings, and syncs them on its own.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Each word with its first dictionary meaning, in {language}. Works offline, but it is not a real translation.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Each word with its first dictionary meaning. Works offline, but it is not a real translation.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Easy": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Easy books": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Edit": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Edit entry": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Email": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Email me a code": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "End of chapter": {
+  "where": [
+   "src/ui/reader/pager.ts"
+  ]
+ },
+ "End of the book": {
+  "where": [
+   "src/ui/reader/pager.ts"
+  ]
+ },
+ "English word levels follow the Chinese exam word lists in ECDICT: 中考 (middle school), 高考 (high school), CET-4 and CET-6 (college English), IELTS/TOEFL (with 考研) and GRE. A word’s level is the first list it is on.": {
+  "where": [
+   "src/lang/registry.ts"
+  ]
+ },
+ "Enhanced": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "Enter the Tailscale address of your Mac, such as your-mac.your-tailnet.ts.net:8443.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Enter your email address.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Esc": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Estimated from six chapters of the book: the share of its words, counted each time they come up, that you have marked known. Names are left out.": {
+  "where": [
+   "src/ui/library/bookShare.ts"
+  ]
+ },
+ "Every character": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Every word in the chapter": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Every word this can be. The first fits best where it is used here.": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Every word you tap while reading is listed here by day, with the sentence it was in.": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Everywhere in this book": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Everywhere in this book (up to {n} places)": {
+  "one": "Everywhere in this book (up to {n} place)",
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Everywhere in this book ({n} places)": {
+  "one": "Everywhere in this book ({n} place)",
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Exam": {
+  "where": [
+   "src/lang/registry.ts"
+  ]
+ },
+ "Explain": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Explained in Chinese, for Chinese speakers": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Explaining…": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Export backup": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Export corrections": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Exported {n} words (current search).": {
+  "one": "Exported {n} word (current search).",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Exported {n} words.": {
+  "one": "Exported {n} word.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Files of type .unknown are not supported. Use EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "Files of type .{ext} are not supported. Use EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "Files with problems": {
+  "where": [
+   "src/ui/library/dialogs.ts"
+  ]
+ },
+ "Filter chapters": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Filter corrections": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Filter names and terms": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Filter words": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Find a book": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Find a free book": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Find a free book in {lang}, or import an EPUB, a Kindle file without DRM, a text file or a PDF.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Finding books": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Finish": {
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Finished": {
+  "where": [
+   "src/ui/library/format.ts"
+  ]
+ },
+ "Fix": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Fix this word": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Flip": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Font": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Found": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Free public-domain books in {lang} from Project Gutenberg. Add one and it opens like any other book.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Free when you’re signed in, up to a daily limit. Runs on Cloudflare.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "French Wikisource": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Friends": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "From {title}": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Full screen": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Full screen (F)": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Full screen on or off": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Furigana": {
+  "where": [
+   "src/lang/labels.ts"
+  ]
+ },
+ "Furigana on {percent} of this chapter's words": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "German Wikisource": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Getting the dictionary ready…": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Globereader can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Globereader cannot keep that correction.": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "Globereader cannot open your saved data": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Globereader is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Globereader is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Globereader is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN. You don't need a Globereader password or an email. After that, tap Sign in at the top and use your passkey.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Globereader is still finding the names in this book. Try again in a moment.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Globereader on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": {
+  "where": [
+   "src/core/sync.ts"
+  ]
+ },
+ "Globereader, library": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Glyphs for rare characters, so nothing shows as an empty box.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Go there": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Go to my library": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Goal": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "Goal met today": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "Good": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Got it": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/reader/reader.ts",
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Grade {grade}": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "HSK 1 to {n}": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "HSK 2.0 levels, word frequency on the HSK list, and the HSK words CC-CEDICT lacks.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "HSK 3.0 levels for each reading of a word, from the official 2021 list (GF0025-2021).": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "HSK 3.0 levels.": {
+  "where": [
+   "src/lang/registry.ts"
+  ]
+ },
+ "HSK {level}": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "HSK {level} as {reading}": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Haiku costs less.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Hard": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Here only": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Here, chapter {n}": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Hide words at or below a JLPT level": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Hide words at or below a level": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Hide words at or below an HSK level": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Hide words you marked as known": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Hides the browser bars (F)": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Higher level": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Hints": {
+  "where": [
+   "src/lang/labels.ts"
+  ]
+ },
+ "Hints on {percent} of this chapter's words": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Hover": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "How likely a character is to open, fill or end a name (from the name list), and which strings a book repeats are names, learned from Wikipedia text and public-domain books (read, not copied): 七斤, 四婶 and 周仓 read as one word.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "How many people": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "How to use it": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "How well did you remember it?": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "I know this word": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "I made Globereader to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "If you run Globereader on your own Mac, the website can use it over Tailscale for Premium voices, a translation model and the books on that Mac. Only the Mac's owner can do this.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Image not available": {
+  "where": [
+   "src/ui/reader/chapter.ts"
+  ]
+ },
+ "Imperfective": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Import a book (EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown), paste some text, or pick a classic in the library.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Import an EPUB, a Kindle file without DRM, a text file or a PDF.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Import backup": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Import book": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Import book, in the library": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Import corrections": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "In Safari: Share, then Add to Home Screen": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "In Safari: Share, then Add to Home Screen. Open Globereader from there to read without the browser bars.": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "In a word card": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "In all my books": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "In order": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "In the order they first come up": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "In this book": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "In this sentence": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "In use. Turn off to read the page without it.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "In your flashcards": {
+  "where": [
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "In your library": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Install": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Intense": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Intermediate": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Intermediate books": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Invite link for {name}": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Invite people": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "It answered but did not accept this device. Sign in to Tailscale with the Mac owner's account.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "It runs in your browser. Your books and words stay on this device, and in your account if you sign in, where only you can see them. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "It's a name": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "JLPT (old)": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "JLPT levels from Jonathan Waller’s word lists. N5 is the easiest.": {
+  "where": [
+   "src/lang/registry.ts"
+  ]
+ },
+ "Join": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Join Globereader": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Join as one word…": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Join with next": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Join with previous": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Joined": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Kai": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Kanji": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Keep going": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Keep it": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Keep your Mac awake with Ollama and the private connection running": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Keyboard shortcuts": {
+  "where": [
+   "src/ui/about/about.ts",
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Kindle (KFX) books are not supported. Use a DRM-free EPUB instead.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "Kinds of corrections": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Known up to": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Known up to HSK": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Known words": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Known words get no {aid} in the Unknown and HSK pinyin modes.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Known words get no {aid} in the Unknown and {scheme} modes.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Known, learned from reading": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Known. Click to unmark (K)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Known. Tap to undo.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Kun readings": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Language": {
+  "where": [
+   "src/ui/langSwitch.ts"
+  ]
+ },
+ "Language you are reading": {
+  "where": [
+   "src/ui/langSwitch.ts"
+  ]
+ },
+ "Languages you are learning": {
+  "where": [
+   "src/ui/settings/learning.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Larger (])": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Larger text": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Last 7 days": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Last page of chapter": {
+  "where": [
+   "src/ui/reader/pagination.ts"
+  ]
+ },
+ "Layout": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Learn known words as I read": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Learned from reading. Click to unmark (K)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Learning": {
+  "where": [
+   "src/ui/langSwitch.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Leave full screen": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Leave full screen (F)": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Level": {
+  "where": [
+   "src/lang/registry.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Level {level}": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Levels": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Library": {
+  "where": [
+   "src/main.ts",
+   "src/ui/library/library.ts",
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Light": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Limit": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Line spacing": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Link for your other devices": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Loading chapter titles…": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Loading dictionary details…": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Loading names and terms…": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Loading the dictionary…": {
+  "where": [
+   "src/ui/popup/popup.ts"
+  ]
+ },
+ "Loading…": {
+  "where": [
+   "src/main.ts",
+   "src/ui/about/about.ts",
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Local only": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Local only is on": {
+  "where": [
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Local only is on, so Claude is not used.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to translate it online.": {
+  "where": [
+   "src/translate/account.ts"
+  ]
+ },
+ "Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use Claude.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use this service.": {
+  "where": [
+   "src/translate/index.ts"
+  ]
+ },
+ "Local only: keep every sentence on this Mac": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Local only: keep every sentence on this device": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Longer": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Longer (Shift+Right)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Look": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Look up a word": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Look up a word (or hover, if you chose that)": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Look up a word by": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Look up on": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Look up words with": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Look up {word}": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Looked up": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Looking for voices…": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Lookup": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Lower level": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Mac address": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Mac not reachable": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Mac refused this device": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Machine translation can be wrong. If a sentence matters, check it against the word cards.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Machine translation. Check rare or odd words against the list below.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Made a link for {name}. Copy it and send it.": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Main": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Make a link": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Make my account": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Make the selection shorter or longer": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Making your passkey…": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Mark a whole JLPT level as known in Vocabulary.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Mark a whole level as known in Vocabulary.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Mark as a name…": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Mark as known": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Mark as known (K)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Mark in this book": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Mark in this book ({n} places)": {
+  "one": "Mark in this book ({n} place)",
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Mark the stressed vowel": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Mark the word as known": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Mark words you know with the check, or mark whole HSK levels as known in Vocabulary.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Mark words you know with the check, or mark whole JLPT levels as known in Vocabulary.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Mark words you know with the check, or mark whole levels as known in Vocabulary.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Mark {level} as known?": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Mark {word} as known": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Marked {n} names ({places}), and {words} as not a name.": {
+  "one": "Marked {n} name ({places}), and {words} as not a name.",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "Marked {n} names ({places}).": {
+  "one": "Marked {n} name ({places}).",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "Marked {n} words as known.": {
+  "one": "Marked {n} word as known.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Meaning": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Meanings": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Meanings and readings come from the dictionaries listed at the bottom. They're part of the app and work offline. Machine translation is only used for whole sentences.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Meanings come from the dictionaries listed at the bottom. They're part of the app and work offline. Machine translation is only used for whole sentences.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Measure word": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Menu": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Minutes of reading or review a day, in any language. Each day you reach it adds to your streak.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Minutes of reading or review a day. Each day you reach it adds a day to your streak.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Model": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Modern": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "More books": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "More languages": {
+  "where": [
+   "src/ui/langSwitch.ts"
+  ]
+ },
+ "Most often": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Move or resize the selection": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "MyMemory (online, free)": {
+  "where": [
+   "src/translate/mymemory.ts"
+  ]
+ },
+ "MyMemory could not translate this: {reason}": {
+  "where": [
+   "src/translate/mymemory.ts"
+  ]
+ },
+ "MyMemory is an online translator you can pick in Settings. It's never used unless you choose it.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "MyMemory sent a reply that could not be read (HTTP {status}).": {
+  "where": [
+   "src/translate/mymemory.ts"
+  ]
+ },
+ "MyMemory's free daily limit is used up. Try again tomorrow, or pick a different translator in Settings.": {
+  "where": [
+   "src/translate/mymemory.ts"
+  ]
+ },
+ "Name": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Names": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Names and terms": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Names in novels": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Names in this book?": {
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "Names {n}": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Needs a one-time download": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Needs your Mac with a Claude key on it": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Never send a sentence to an online translator.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "New": {
+  "where": [
+   "src/ui/reader/wordsTab.ts",
+   "src/ui/vocab/model.ts"
+  ]
+ },
+ "New here? Open the invite link you were sent to make your account.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Newest first": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Next": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Next chapter": {
+  "where": [
+   "src/ui/reader/pager.ts",
+   "src/ui/reader/reader.ts",
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Next word (Right arrow)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Next: {title}": {
+  "where": [
+   "src/ui/reader/pager.ts"
+  ]
+ },
+ "No": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "No Chinese characters found in this text.": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "No Chinese words in this chapter.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "No Claude key is set up": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "No bookmarks yet. Tap the bookmark at the top of a page to keep your place there.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "No books in {lang} match “{query}”.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "No books match your search.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "No books yet": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "No cards yet": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "No chapters match.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "No definition": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "No furigana": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "No hints": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "No key on the Mac": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "No key on the sync server": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "No meaning listed": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "No more names to check in this book.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "No names or terms found yet. Names of people and places in this book appear here once the book has been scanned.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "No names or terms were found in this book.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "No names yet. Tap a name in the text, then the pencil, and choose It's a name.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "No pinyin": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "No readings fixed yet. Tap a word in the text, then the pencil, and choose Reading.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "No saved words yet": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "No sentence translator is available right now. Safari and iPadOS have no on-device translator. See {settings}.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "No sentence translator is available right now. See {settings}.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "No streak right now": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "No streak yet": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "No supported Chinese-capable model is installed in Ollama on this Mac.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "No text": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "No text left to read in this chapter.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "No words fixed yet. Tap a word in the text, then the pencil, to split it or join it with a word beside it. Or select a few characters and choose Join as one word.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "No words in this chapter.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "No words looked up yet": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "No words match.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "No words to export.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "No {language} voice is available. Choose or install a {language} voice in Settings.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "No {language} voices found. Add one in your device’s Accessibility > Read & Speak settings, then reopen Settings.": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "No {lang} text found in this file. This library reads books written in {lang}.": {
+  "where": [
+   "src/import/errors.ts"
+  ]
+ },
+ "No {lang} text found in this text.": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "None": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "None of the {n} files could be added.": {
+  "one": "None of the {n} file could be added.",
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Not a name": {
+  "where": [
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Not a word": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Not asked about again": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Not available": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Not available for {pair}": {
+  "where": [
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Not available in this browser": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Not connected. Without a Mac, translation uses Chrome on-device or the dictionary, and voices use this device.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Not enough storage space on this device to save that. Free up space or delete a book, then try again.": {
+  "where": [
+   "src/store/db.ts"
+  ]
+ },
+ "Not in the CC-CEDICT word list. Reading and meaning from {source}.": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Not in the dictionary. Translate the sentence to see it in context.": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Not in use": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Not now": {
+  "where": [
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Not reachable. Keep it awake and connected to Tailscale.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Not read as one word": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Not set up on the Mac": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Not set up on the sync server": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Not started": {
+  "where": [
+   "src/ui/library/format.ts"
+  ]
+ },
+ "Not supported in this browser": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Not synced": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Not synced yet.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Not treated as a word": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Nothing due right now": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Nothing matches \"{query}\".": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Nothing matches.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Nothing new in that backup. Everything in it was already here.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Novels and older, richer language": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Novels are full of names no dictionary has, like 郭靖 or 桃花岛. Left alone they get split into single characters that make no sense.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Numbers": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Off": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Offline": {
+  "where": [
+   "src/ui/settings/translation.ts",
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Offline, word by word": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Old spellings": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Older spelling (旧仮名遣い)": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "On": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "On Automatic, Globereader tries Claude first if your account has it, then Qwen through your account if you're signed in, then the browser's own translator (Chrome has one, Safari doesn't), and last a word-by-word gloss. The panel says which one answered.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "On Automatic, Globereader tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you're signed in, then the browser's own translator (Chrome has one, Safari doesn't), and last a word-by-word gloss. The panel says which one answered.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "On a phone or iPad": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "On a wide screen held sideways, like an iPad in landscape, you get two pages side by side.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "On an iPhone, iPad or Mac, your passkey is on your other Apple devices too. On another device, sign in once with your phone (the browser offers it), then add a passkey there in Settings.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "On another device you are {percent} through this book.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "On readings": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "On the HSK list as {word}": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "On the HSK list as {word}. Also HSK {level} in another reading": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "On this device": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "One": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "One long column": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "One of the files inside this book is too large to import.": {
+  "where": [
+   "src/import/zip.ts"
+  ]
+ },
+ "One page": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Only do this if the link came from your own Globereader. After connecting, translation, voices and your books on this device use that Mac.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Only for the owner": {
+  "where": [
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Only you can see what's in your account. You can delete it in Settings, and this device keeps its own copy.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Open": {
+  "where": [
+   "src/ui/library/dialogs.ts",
+   "src/ui/library/findBooks.ts",
+   "src/ui/library/importer.ts",
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Open Globereader from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Open Globereader in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Open Review once a day. It brings back the words you starred or looked up, with longer gaps as you remember them.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Open Settings": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Open chapter list": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Open it": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Open private iPad link": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Open the chapter list": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Open the library": {
+  "where": [
+   "src/ui/join.ts",
+   "src/ui/review/review.ts",
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Open the names and terms of this book": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Open the words of this chapter": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Open this link once on a device that uses the public Globereader site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Open “{title}”": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Opened from the Home Screen, Globereader already reads without the browser bars.": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Opened from the Home Screen: no browser bars": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Opened from your Home Screen, Globereader already reads without the browser bars.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Opening the book…": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Opening your library…": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Opening “{title}”": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Opening…": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Optional": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Options for {title}": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Or get a code by email:": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Or {find}, {paste} or {import}.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Or {paste} or {import}.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Order": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Other dictionaries": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Other name": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Over 17,000 works out of copyright in Japan, with the readings the library prints over hard words. Search by title or author, in kanji or kana.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "PDF import needs a connection the first time. Connect once and try again.": {
+  "where": [
+   "src/import/errors.ts"
+  ]
+ },
+ "Page": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Page Down": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Page Up": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Page bookmarked. Find it under Bookmarks in the chapter list.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Page turn": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Page width": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Pages": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Pages and Scroll each keep their own.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Pages shown": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Pages slide by default. You can pick a page flip, or no animation, in Settings.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Parts": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Passkey added. Next time, sign in here the way you unlock this device.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Passkeys work only on Globereader’s own address.": {
+  "where": [
+   "src/core/passkey.ts"
+  ]
+ },
+ "Paste text": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Paste {lang} text here: a chapter, an article, song lyrics…": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Pasted text": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Pause": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Pause audio": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Pause reading": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Paused": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Perfective": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Person": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Person, place or other": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Phrase": {
+  "where": [
+   "src/ui/popup/phraseView.ts",
+   "src/ui/popup/popup.ts"
+  ]
+ },
+ "Pick a classic below, find a free book in {lang}, or import an EPUB, a Kindle file without DRM, a text file or a PDF.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Pick a classic below, or import an EPUB, a Kindle file without DRM, a text file or a PDF.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Pick one or more. Each has its own library of classics to start with.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Pinyin": {
+  "where": [
+   "src/lang/labels.ts",
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Pinyin A to Z": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Pinyin and meanings come from the dictionaries listed at the bottom. They're part of the app and work offline. Machine translation is only used for whole sentences.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Pinyin is hidden on characters you have met, with the same reading, in HSK words up to this level.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Pinyin on {percent} of this chapter's words": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Pinyin over every word": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Pinyin style": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Place": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Plain translation": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Play audio": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Play audio (P)": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Play the pronunciation": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Playing {language} voice sample…": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Portuguese Wikisource": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Practice": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Practice the last 7 days": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Practice the missed ones": {
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Practice: {title}": {
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Premium": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "Preparing audio…": {
+  "where": [
+   "src/ui/reader/reader.ts",
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Press and hold the link to copy it.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Prev": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Preview": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Preview sentence": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Previous chapter": {
+  "where": [
+   "src/ui/reader/reader.ts",
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Previous or next chapter, from anywhere": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Previous or next word": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Previous word (Left arrow)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Private Mac AI (Ollama)": {
+  "where": [
+   "src/translate/localMeaning.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Private address: {address}. Only the Mac owner's Tailscale account can connect.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Processed on your Mac; no cloud translation service": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Progress": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Progress in {title}": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Project Gutenberg book {number}": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Pronounce": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Pronounce (P)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Public domain": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Qwen (through your account)": {
+  "where": [
+   "src/translate/account.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Qwen is an open model from Alibaba. Signed in, it translates your sentences for free on Cloudflare, up to a daily limit. Again, only the sentence and a little of the text around it is sent.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Qwen3.5 9B, running on your Mac. The Mac has to be awake.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "RTF files are not supported. Save the document as a text file, then import that.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "Radical": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Reach your goal to start one": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "Reachable": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Read": {
+  "where": [
+   "src/main.ts",
+   "src/ui/library/findBooks.ts",
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Read Chinese books with me on Globereader": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Read aloud": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Read aloud (P)": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Read chapter aloud": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Read from here": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/phraseView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Read real books in the language you are learning, with every word a tap away.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Read these characters as one word": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Read today to keep it": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "Read “{title}”": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Read-aloud controls": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Read-aloud speed": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/reader/reader.ts",
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Reading": {
+  "where": [
+   "src/ui/about/about.ts",
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/menus.ts",
+   "src/ui/reader/toc.ts",
+   "src/ui/settings/settings.ts",
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Reading aloud": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Reading in": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Reading of {char}": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Readings": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Readings and definitions for rare characters Unihan has none for.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Readings in kana over words with kanji. Unknown skips words you have marked as known; JLPT also skips words up to your level.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Readings over every word with kanji": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Readings {n}": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Readings, definitions, radicals and strokes for single characters, across every Unicode block.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Reading… {percent}%": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Ready": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Recently added": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Recently read": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Red, green, blue, purple and gray for tones 1 to 5.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Regular": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Reload": {
+  "where": [
+   "src/swUpdate.ts"
+  ]
+ },
+ "Remembered": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Remove": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/toc.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Remove bookmark (B)": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Remove from saved words (S)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Remove from this day": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Remove the bookmark in {chapter}": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Remove the bookmark on this page": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Remove {word}": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Remove {word} from saved words": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Remove {word} from {day}": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Removed {word}": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Removed {word} from {day}.": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Removes books, words and settings from this browser.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Removes your {language} books, words and settings from this browser.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Rename": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Rename book": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Replay": {
+  "where": [
+   "src/ui/popup/writer.ts"
+  ]
+ },
+ "Restore": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Resume": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Resume audio": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Resume reading": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Reveal the answer": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Review": {
+  "where": [
+   "src/main.ts",
+   "src/ui/review/review.ts",
+   "src/ui/shortcuts.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Review progress": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Review {n}": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Right now every word has furigana. Mark a word as known in its card and its furigana goes away.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Right now every word has hints. Mark a word as known in its card and its hints goes away.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Right now every word has pinyin. Mark a word as known in its card and its pinyin goes away.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Run npm run ipad in Globereader on your Mac to set up the private address first.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Russian Wikisource": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Safari can delete a website's data if you don't open it for about a week. Sites on the Home Screen are safe from that. Globereader also asks the browser to keep its data once you add a book, and if you're signed in, your books come back from your account anyway.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Safari has no built-in translator. On an iPhone or iPad, sign in and your sentences are translated through your account. Signed out, you get a word-by-word gloss.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Sans": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Save": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Save the word to your flashcards": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Save to flashcards": {
+  "where": [
+   "src/ui/reader/wordsTab.ts",
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Save word": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Save word (S)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Save {word}": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Save {word} to flashcards": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Saved": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Saved {n} books to your account.": {
+  "one": "Saved {n} book to your account.",
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Saved {word} to your flashcards.": {
+  "where": [
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Saved “{title}” to your account.": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Saved. Tap to remove.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Saving…": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Say it": {
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Scroll": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Scroll puts each chapter in one long column.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Search for a book, or paste a link to one": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Search vocabulary": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Search words and meanings": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Search words, pinyin, meanings": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Search your library": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Searching…": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Secondary school": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Sections": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "See your words": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Select a phrase or sentence for a translation": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Select a phrase or sentence for pinyin and a translation": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Select some Chinese text to translate.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "Select some text to translate.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "Select the link and copy it.": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Select the translation and use Copy.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Send a link to people you want to use Globereader. They make an account with a passkey, with no email, and the link works for as many people as you set.": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Sending…": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Sends the text to MyMemory": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Sentences the reading model learned from, with public-domain books from Wikisource and readings labeled by hand: it picks the reading of 为 (wéi or wèi), 着 (zháo, zhuó), 长 (zhǎng), 中 (zhòng), 还 (huán), 种, 差, 少, 好, 藏, 数 and a few rarer characters (传 in a title, 相, 刹 …) where the rules fall back to their default.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Sepia": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Serif": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Serious": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Session complete": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Set a daily goal": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Set up on the Mac": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Set up on the Mac. {warning}": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Set up on the sync server": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Setting the pages…": {
+  "where": [
+   "src/ui/reader/pager.ts"
+  ]
+ },
+ "Settings": {
+  "where": [
+   "src/main.ts",
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Share": {
+  "where": [
+   "src/ui/settings/invites.ts",
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Shift": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Short and plain: a good first book": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Shorter": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Shorter (Shift+Left)": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Show": {
+  "where": [
+   "src/ui/reader/wordsTab.ts",
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Show all {n} words": {
+  "one": "Show all {n} word",
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Show answer": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Show books in simplified (简体) or traditional (繁體) characters.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Show furigana": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Show hints": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Show it again": {
+  "where": [
+   "src/ui/settings/learning.ts"
+  ]
+ },
+ "Show known words": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Show pinyin": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Show the shortcut sheet": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Show tone changes for yī and bù": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Show {aid}": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Sign in": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/account.ts",
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Sign in above, or connect this device to your Mac, and your words, reading places and bookmarks sync.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Sign in and your books, words and Claude go with your account. Connecting a device to your Mac only adds its voices and local AI.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Sign in and your books, words and places are the same on every device. Use your passkey, or get a code by email.": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Sign in and your books, words and places are the same on every device. We email you a 6-digit code. There’s no password.": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Sign in first.": {
+  "where": [
+   "src/core/passkey.ts"
+  ]
+ },
+ "Sign in on each device and your books, words and places are the same on all of them.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Sign in or connect your Mac": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Sign in to sync": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Sign in to translate sentences through your account.": {
+  "where": [
+   "src/translate/account.ts"
+  ]
+ },
+ "Sign in to use": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Sign in to use it": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Sign in with a passkey": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Sign in, or connect this device to your Mac": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Sign in, or connect this device to your Mac, in Settings to use Claude.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "Sign out": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Sign-in by email is closed here. To make an account, open the invite link you were sent.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Signed in as {account}.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Signed in as {name}. {reason}": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Signed in with your passkey.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Signed in, books are read aloud in your account's voice, up to a daily limit. Otherwise Globereader uses your device's own voices.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Signed in. Your books’ places, words and bookmarks are on their way.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Signed out": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Signed out. Everything stays on this device; it no longer syncs through your account.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Signing in…": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Simplified": {
+  "where": [
+   "src/ui/popup/wordView.ts",
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Skip": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Slide": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Smaller ([)": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Smaller and larger text": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Smaller text": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Sort": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Sort library": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Space": {
+  "where": [
+   "src/ui/review/review.ts",
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "Spanish Wikisource": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Speech": {
+  "where": [
+   "src/ui/settings/settings.ts",
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Spelling": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Split": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Split before {char}": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Star a word to study it later. Mark a word as known and its pinyin goes away.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Star a word to study it later. Mark a word as known and its {aid} go away.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Star a word to study it later. Mark a word as known and its {aid} goes away.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Start at this selection and continue to the end of the chapter": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Start at this word and continue to the end of the chapter": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Start reading": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Start reading “{title}”": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Start with a classic": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Starting…": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "Status": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Step {step} of {total}": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Still opening your library. If this does not finish, close any other Globereader tabs and reload this page.": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Stop": {
+  "where": [
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Stop audio": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Stop explanation": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Stop reading aloud": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Stop sample": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Stop translation": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Stopped.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Storage error": {
+  "where": [
+   "src/store/db.ts"
+  ]
+ },
+ "Stories for grown-up readers": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Stress marks": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Stress marks show which vowel to stress.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Strings this book repeats that may be names": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Stroke data, fetched when you open a character.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Stroke order": {
+  "where": [
+   "src/ui/popup/writer.ts"
+  ]
+ },
+ "Stroke-order animation.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Strokes": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Style": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Suggested by the AI, not taken from the dictionary.": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Swipe anywhere to turn the page, or use the arrow keys or Space. With a mouse you can click the left or right edge. Tap off the words to show or hide the controls.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Sync": {
+  "where": [
+   "src/ui/settings/ipad.ts",
+   "src/ui/settings/settings.ts",
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Sync account": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Sync did not finish: {reason}": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Sync is off for {language} on this device.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Sync is off on this device.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Sync now": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Sync off": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Sync server not reachable": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Synced": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Syncing…": {
+  "where": [
+   "src/ui/settings/sync.ts",
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Tap a word for its meaning, reading and kanji. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Tap a word for its meaning. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Tap a word for its pinyin, meaning and characters. Tap it twice for the whole sentence and its translation. With a mouse you can also drag across a sentence.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Tap a word while you read and press the star. It shows up here with the sentence you found it in, and goes into Review.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Tap any word for its meaning, and tap it twice for the whole sentence and its translation.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Tap any word for its pinyin and meaning, and tap it twice for the whole sentence and its translation.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Tap any word for its reading and meaning, and tap it twice for the whole sentence and its translation.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Tap between the characters where the words end.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Tap if this is a name. Press and hold to choose what kind.": {
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "Tap one to fix its pinyin or meaning, or to say it isn't a word. You can also add a name it missed.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Tap the ones that are names. Tap × on any that are not.": {
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "Tap {seal} at the top to choose where furigana show: every word, words you don't know yet, or words above your JLPT level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Tap {seal} at the top to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Tap {seal} at the top to show short {language} hints over words: every word, words you don't know yet, or words above your level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Taught": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Term": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Test Claude": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Test voice": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Testing…": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Text": {
+  "where": [
+   "src/ui/library/paste.ts",
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Text size": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "That Aozora Bunko work is not one Globereader can add: it may still be under copyright, or have no XHTML page.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "That address did not answer like Globereader on your Mac.": {
+  "where": [
+   "src/core/macBridge.ts"
+  ]
+ },
+ "That backup is from Globereader in {language}. Switch to {language} to restore it.": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "That backup was made by a newer version of Globereader. Update the app and try again.": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "That book is no longer in your library.": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "That cover is not a picture Globereader can show.": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "That did not work. Try again.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "That file has no corrections Globereader can use.": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "That file is not a Globereader backup (it is not valid JSON).": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "That file is not a Globereader backup.": {
+  "where": [
+   "src/store/index.ts",
+   "src/ui/settings/data.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "That file is not a Globereader corrections file.": {
+  "where": [
+   "src/core/fixes.ts"
+  ]
+ },
+ "That file is not a corrections file (it is not valid JSON).": {
+  "where": [
+   "src/core/fixes.ts"
+  ]
+ },
+ "That file was made by a newer version of Globereader. Update the app and try again.": {
+  "where": [
+   "src/core/fixes.ts"
+  ]
+ },
+ "That is {n} days in a row.": {
+  "one": "That is {n} day in a row.",
+  "where": [
+   "src/core/readingClock.ts"
+  ]
+ },
+ "That link did not hold a valid Mac address. Make a new one on your Mac.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "That page is on another language’s Wikisource, a language Globereader does not read yet.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "That page is on the {other} Wikisource, a language Globereader does not read yet.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "That page is on the {other} Wikisource. Open the {other} library to add it; this one reads {lang}.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "That passage is too long for one request. Select a shorter one.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "That passage is too long to translate at once. Select a shorter one.": {
+  "where": [
+   "src/translate/account.ts"
+  ]
+ },
+ "That word is no longer in your list.": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "The HSK list has {word} as {reading} (level {level}), not in this reading": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "The Hong Kong characters of a Big5 text file (Big5-HKSCS) that a decoder gives as private-use code points.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The Kai (brush) reading typeface.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The PDF reader could not start. This is a problem with how Globereader is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.": {
+  "where": [
+   "src/import/errors.ts"
+  ]
+ },
+ "The Premium voice could not prepare audio. Keep your Mac awake and connected, or choose an on-device Chinese voice in Settings.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "The account could not be deleted. Try again.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "The account voice could not prepare audio.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "The app is shown in it, and sentences are translated into it.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "The best translations, and it can explain grammar. Goes through your Mac, which has to be awake.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "The best translations, and it can explain grammar. Goes through your account.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "The book at that link": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "The book could not be downloaded ({status}).": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "The book typeface on devices without a system Song font (iPad, Windows, Android). Simplified and traditional shapes.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The books on your Mac are already in your library.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "The book’s picture": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "The browser could not save the book (it may be out of space).": {
+  "where": [
+   "src/store/db.ts"
+  ]
+ },
+ "The classics wear public-domain paintings and drawings.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The code could not be sent.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "The connection to your Mac ended before Claude finished. Try again.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "The covers of the classics: Guo Xi, Early Spring; Ma Yuan, Angler on a Wintry Lake; Sun Wen, the Garden of Grand View; Shang Xi, Guan Yu Captures General Pang De; Zhang Lin, Hua Rong from his Water Margin album; a Qing court painter, Sun Wukong from the Office of Great Peace opera album; an unknown Song painter, Gibbons Playing in a Loquat Tree; Confucius at leisure; and two photographs of Lu Xun.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The dictionaries are shared under their own licenses, listed here with each one. Their definitions are used and adapted under those licenses, and the dictionary data stays under them. Thanks to everyone who wrote them.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The dictionary": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The dictionary could not be loaded.": {
+  "where": [
+   "src/ui/popup/popup.ts"
+  ]
+ },
+ "The dictionary data could not be loaded, so words cannot be looked up. Reload the page to try again.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "The dictionary is not available.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "The dictionary is still loading. Try again in a moment.": {
+  "where": [
+   "src/translate/gloss.ts"
+  ]
+ },
+ "The download failed. Try again.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "The first dictionary meaning of each word, which may not be the one used here. Tap a word for all of them.": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "The first time you open a book, Globereader looks for names and terms that keep coming up and reads them as whole words. It takes a few seconds, on your device.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The language translations are written in. The app itself stays in English.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "The last seven days": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "The link for {name} no longer works. Accounts made with it stay.": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "The local database could not be opened.": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "The local language model is not available. Start Ollama on this Mac.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The local model could not answer ({status}).": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The local model could not answer.": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "The local model could not translate ({status}).": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The local model is uncertain. Compare the dictionary senses and translate the whole sentence.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The local model returned an unreadable answer.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The local model returned no meaning.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The local model returned no translation.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The local model stopped before finishing. Translate a shorter selection or try another provider.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The model contradicted a supplied reference after correction. Try another provider or compare the dictionary; this answer was withheld.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The model could not finish checking this meaning. Compare the dictionary senses.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The model is ready.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "The most read books in {lang}": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "The name list: people, places and organizations with a Chinese Wikipedia article, so a name seen once in a book reads as one word.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The name model, from Wikidata, Chinese Wikipedia and Wikisource": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The network did not answer. Check your connection and try again.": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "The one you know best. Sentences you translate are shown in it, and so is the app when it has it. You can change it any time in Settings.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "The passkey could not be added.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "The passkey did not work. Try again.": {
+  "where": [
+   "src/core/passkey.ts"
+  ]
+ },
+ "The passkey was not used. Try again when you’re ready.": {
+  "where": [
+   "src/core/passkey.ts"
+  ]
+ },
+ "The serif of the screen titles, folios and numbers (a Latin subset).": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The source list is not available right now.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "The speech voice could not play. Try another {language} voice in Settings.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "The stressed vowel of each word": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "The sync server answered {status}.": {
+  "where": [
+   "src/core/cloud.ts",
+   "src/core/cloudBooks.ts",
+   "src/core/passkey.ts",
+   "src/core/sync.ts"
+  ]
+ },
+ "The sync server did not answer": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "The sync server did not answer. Check this device’s internet connection.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "The sync server is older than this version of Globereader and does not keep {language} books yet. They stay on this device until it is updated.": {
+  "where": [
+   "src/core/cloudBooks.ts"
+  ]
+ },
+ "The sync server is older than this version of Globereader and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": {
+  "where": [
+   "src/core/sync.ts"
+  ]
+ },
+ "The sync server sent an answer Globereader did not understand.": {
+  "where": [
+   "src/core/cloud.ts",
+   "src/core/sync.ts"
+  ]
+ },
+ "The sync server sent back an empty translation. Try again.": {
+  "where": [
+   "src/translate/account.ts"
+  ]
+ },
+ "The test failed.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "The translation connection ended before completion. Please retry.": {
+  "where": [
+   "src/translate/localMeaning.ts"
+  ]
+ },
+ "The voice could not play. Tap Read again, or choose an iPad voice in Settings.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "The words that come up most first": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Theme": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Then click any word for its meaning, or drag across a sentence to translate it.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Then click any word for its pinyin and meaning, or drag across a sentence to translate it.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Then click any word for its reading and meaning, or drag across a sentence to translate it.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Then tap any word for its meaning, and tap it twice for the whole sentence and its translation.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Then tap any word for its pinyin and meaning, and tap it twice for the whole sentence and its translation.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Then tap any word for its reading and meaning, and tap it twice for the whole sentence and its translation.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "There are no Chinese words to gloss here.": {
+  "where": [
+   "src/translate/gloss.ts"
+  ]
+ },
+ "There are no words to gloss here.": {
+  "where": [
+   "src/translate/gloss.ts"
+  ]
+ },
+ "There is a daily limit, so the bill stays small.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "There is no text to import.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "These books are in {book}, so they are translated into {target}. {own} is used for your other books.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "These come first when you switch languages.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "These corrections are already here.": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "This EPUB has no readable content.": {
+  "where": [
+   "src/import/epub.ts"
+  ]
+ },
+ "This EPUB is damaged: its package document is missing.": {
+  "where": [
+   "src/import/epub.ts"
+  ]
+ },
+ "This EPUB is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.": {
+  "where": [
+   "src/import/epub.ts"
+  ]
+ },
+ "This Kindle book could not be read (the file is damaged or in a layout Globereader does not know).": {
+  "where": [
+   "src/import/mobi.ts"
+  ]
+ },
+ "This Kindle book is damaged: bad compressed text.": {
+  "where": [
+   "src/import/mobiText.ts"
+  ]
+ },
+ "This Kindle book is damaged: bad compression dictionary.": {
+  "where": [
+   "src/import/mobiText.ts"
+  ]
+ },
+ "This Kindle book is damaged: bad compression table.": {
+  "where": [
+   "src/import/mobiText.ts"
+  ]
+ },
+ "This Kindle book is damaged: compression dictionary loops.": {
+  "where": [
+   "src/import/mobiText.ts"
+  ]
+ },
+ "This Kindle book is damaged: its compression tables are missing.": {
+  "where": [
+   "src/import/mobiText.ts"
+  ]
+ },
+ "This Kindle book is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.": {
+  "where": [
+   "src/import/mobi.ts"
+  ]
+ },
+ "This PDF could not be read. It may be damaged.": {
+  "where": [
+   "src/import/pdf.ts"
+  ]
+ },
+ "This PDF has no text layer (it is scanned images), so there is no text to read. Run it through OCR to make a searchable PDF, or find an EPUB or text version, then import that.": {
+  "where": [
+   "src/import/pdf.ts"
+  ]
+ },
+ "This PDF is password protected. Remove the password and import it again.": {
+  "where": [
+   "src/import/pdf.ts"
+  ]
+ },
+ "This answer is in {answered}. The server that made it needs an update to translate into {language}.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "This book": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "This book has no corrections to export yet.": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "This book is not in your library. It may have been removed.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "This book is too large to import (it would need more than 300 MB once unpacked). Try a smaller edition.": {
+  "where": [
+   "src/import/zip.ts"
+  ]
+ },
+ "This book looks like it is in {found}, and this library is {here}. Switch to {found} (in Settings, or the language menu at the top) and add it there.": {
+  "where": [
+   "src/lang/detect.ts"
+  ]
+ },
+ "This book writes 底 for 的 and 那 for 哪, as many older books do. Read them that way?": {
+  "where": [
+   "src/ui/reader/oldSpellings.ts"
+  ]
+ },
+ "This book writes 底 for 的, as many older books do. Read it that way?": {
+  "where": [
+   "src/ui/reader/oldSpellings.ts"
+  ]
+ },
+ "This book writes 那 for 哪, as many older books do. Read it that way?": {
+  "where": [
+   "src/ui/reader/oldSpellings.ts"
+  ]
+ },
+ "This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open Globereader from there to read without the bars.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "This browser cannot speak text aloud.": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "This browser can’t make passkeys. Open the link in Safari or Chrome, on a phone or computer from the last few years.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "This browser could not start audio. Try another {language} voice in Settings.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "This browser has no built-in translator. Use Chrome 138 or newer on a computer.": {
+  "where": [
+   "src/translate/chrome.ts"
+  ]
+ },
+ "This browser has no sentence translator. Word by word is below. Have an account? {signIn} to translate whole sentences.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "This browser is blocking local storage, so books and words will be lost when you close the tab.": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "This browser is blocking local storage, so nothing here can sync.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "This browser is blocking local storage, so your books and words will be lost when you close the tab.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "This browser would not go full screen.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "This browser would not go full screen. In Safari: Share, then Add to Home Screen.": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "This browser would not keep the address. Allow site data for Globereader and try again.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "This browser would not keep the sign-in. Allow site data for Globereader and try again.": {
+  "where": [
+   "src/core/cloud.ts"
+  ]
+ },
+ "This chapter could not be read.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "This character has no entry of its own. The reading and meaning above come from a related character.": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "This combination is not in the dictionary as a word. Each character is shown below.": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "This copy of Globereader has no sync server.": {
+  "where": [
+   "src/core/cloud.ts"
+  ]
+ },
+ "This deletes your account and everything kept in it, and signs out every device. What is on this device stays here.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "This device already has a passkey for this account.": {
+  "where": [
+   "src/core/passkey.ts"
+  ]
+ },
+ "This device is already connected to {host}.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "This device is not connected to a Mac. Sign in, or connect it below.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "This device is not connected to your Mac. Connect it in Settings.": {
+  "where": [
+   "src/core/macBridge.ts"
+  ]
+ },
+ "This device is not signed in.": {
+  "where": [
+   "src/core/cloudBooks.ts"
+  ]
+ },
+ "This device is signed out": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "This device is signed out of sync. Sign in again in Settings to use Claude.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "This device is signed out of sync. Sign in again to use Claude.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "This device is signed out, so the account voice cannot read.": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "This device is signed out. Sign in again above.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "This device is signed out. Sign in again to translate sentences.": {
+  "where": [
+   "src/translate/account.ts"
+  ]
+ },
+ "This device was signed out of sync. Sign in again above.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "This file does not look like text (it may be a binary file with a .txt name), so Globereader did not import it.": {
+  "where": [
+   "src/import/encoding.ts"
+  ]
+ },
+ "This file holds the corrections of another book, not of “{title}”. Add them to this book anyway?": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "This file holds the corrections of “{other}”, not of “{title}”. Add them to this book anyway?": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "This file is empty.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "This file is larger than 200 MB, which is too big to import. Try a smaller edition of the book.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "This file is not a valid Kindle (MOBI or AZW3) book.": {
+  "where": [
+   "src/import/index.ts",
+   "src/import/mobi.ts"
+  ]
+ },
+ "This file is not a valid PDF.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "This file looks damaged or incomplete. Try downloading or exporting the book again.": {
+  "where": [
+   "src/import/zip.ts"
+  ]
+ },
+ "This invite link is not valid anymore. Ask for a new one.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "This is a Kindle format Globereader cannot read (Topaz or KFX). Use a DRM-free EPUB instead.": {
+  "where": [
+   "src/import/index.ts",
+   "src/import/mobi.ts"
+  ]
+ },
+ "This is not one word. Show it as separate words again.": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "This is the name of a person, a place or a thing": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "This is the public copy of Globereader. The private address is shown when you open Globereader from your Mac.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "This language's dictionary is not on this device yet. Connect to the internet once to finish setting it up.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "This link is missing its invite. Ask for the link again.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "This rare character has no reading or meaning in the dictionary. The facts below and the links at the bottom may help.": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "This removes every Chinese book, word, review record, reading place and setting from this browser, and it can’t be undone. Your other languages, your streak and your sign-in stay as they are. Books from your Mac come back the next time this device reaches it. Sync is turned off for Chinese here, so what your account or your Mac keeps of it stays there until you turn its sync back on.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Books from your Mac come back the next time this device reaches it. Sync is turned off here, so the words kept on your Mac stay there until you turn sync back on.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account or your Mac keeps of it stays there until you turn its sync back on.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "This removes {n} words from your known list. {aid} will show above them again. Saved flashcards are not changed.": {
+  "one": "This removes {n} word from your known list. {aid} will show above them again. Saved flashcards are not changed.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "This removes {n} words that reading marked as known, and starts counting again from nothing. Words you marked yourself stay known. Saved flashcards are not changed.": {
+  "one": "This removes {n} word that reading marked as known, and starts counting again from nothing. Words you marked yourself stay known. Saved flashcards are not changed.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "This screen could not be loaded.": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "This text is already in your library as “{title}”.": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "This text looks like it is in {found}, and this library is {here}. Switch to {found} (in Settings, or the language menu at the top) and add it there.": {
+  "where": [
+   "src/lang/detect.ts",
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "This zip archive is not an EPUB (no package document found).": {
+  "where": [
+   "src/import/epub.ts"
+  ]
+ },
+ "Through your Mac": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Through your account": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Title": {
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Title (optional)": {
+  "where": [
+   "src/ui/library/paste.ts"
+  ]
+ },
+ "Title or author": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Title, author, or a link to a book": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Title, or a link to a book": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "To add your own books, tap Import book and pick a file from the Files app.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "To connect a device, copy the connect link from Settings on the Mac and open it on the device, or type the Mac's address into Settings on the website. The address stays in that browser.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Today": {
+  "where": [
+   "src/ui/settings/translation.ts",
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "Today’s limit is used up": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Tone changes": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Tone changes for yī and bù": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Tone colors": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Tone marks": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Tone numbers, like guo1 jing4": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Traditional": {
+  "where": [
+   "src/ui/popup/wordView.ts",
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Translate into": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Translate paragraph": {
+  "where": [
+   "src/ui/reader/chapter.ts"
+  ]
+ },
+ "Translate paragraphs": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Translate sentence": {
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Translating…": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Translation": {
+  "where": [
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/settings.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Translation copied": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Translation failed.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Translation is set to word by word. Pick another below or in {settings}.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Translation plus notes on words and grammar": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Translation provider": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Translation through your account failed ({status}).": {
+  "where": [
+   "src/translate/account.ts"
+  ]
+ },
+ "Treat this as one word in this book, with your own pinyin and meaning": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Treated as a word. Turn off if this is not one.": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Tries Claude through your Mac, then Qwen when you are signed in, then the browser’s translator, and last the word-by-word gloss.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Tries Claude through your Mac, then the model on your Mac, then Qwen when you are signed in, then the browser’s translator, and last the word-by-word gloss.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Tries Claude through your account, then Qwen through your account, then the browser’s translator, and last the word-by-word gloss.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Tries Claude through your account, then the model on your Mac, then Qwen through your account, then the browser’s translator, and last the word-by-word gloss.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Tries Qwen through your account, then the browser’s translator, and last the word-by-word gloss.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Tries Qwen when you are signed in, then the browser’s translator, and last the word-by-word gloss.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Tries the model on your Mac, then Qwen through your account, then the browser’s translator, and last the word-by-word gloss.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Tries the model on your Mac, then Qwen when you are signed in, then the browser’s translator, and last the word-by-word gloss.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Try a shorter title or the author’s last name, or look on Wikisource.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Try a shorter title or the author’s last name.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Try again": {
+  "where": [
+   "src/main.ts",
+   "src/ui/library/findBooks.ts",
+   "src/ui/library/library.ts",
+   "src/ui/popup/translation.ts",
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Try another provider": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Try fewer characters, or the author’s name in pinyin.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Try fewer characters.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Try it": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Turn on Hints to see a short {language} meaning over hard words: every word, words you haven't marked as known, or words above your level.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Turn on Local only in Settings and nothing is sent to an online translator.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Turn on Tailscale on your Mac and run npm run ipad in Globereader to set up the private address.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Turn on Tailscale on your iPad with the same account as this Mac, then open the private link in Safari.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Turn pages like a book": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Two": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Two pages": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Type a title to search the {lang} Wikisource.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Type one syllable for each of the {n} characters, like Guō Jìng or guo1 jing4.": {
+  "one": "Type one syllable for each of the {n} characters, like Guō Jìng or guo1 jing4.",
+  "where": [
+   "src/core/lexicon.ts"
+  ]
+ },
+ "Type the six-digit code from the email.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Type your name.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Unavailable": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Undo": {
+  "where": [
+   "src/ui/popup/bookCard.ts",
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/bookFixes.ts",
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/reader/reader.ts",
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Unknown": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Unknown skips words you have marked as known. HSK also skips words up to your level.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Unverified: {detail}. Check the reference words below.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Up to date, synced {when}.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Use in": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Use your correction of {word}": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Use your own Mac": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Use {word} as a word": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Used in names": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Used up for today": {
+  "where": [
+   "src/ui/popup/translation.ts",
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Using {name}": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Variants": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Vocabulary": {
+  "where": [
+   "src/main.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Voice": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Voice sample finished.": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Voice sample stopped.": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "Welcome screen": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Welcome to Globereader": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Well-known works to start with": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "What do you want to learn?": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "What it is": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "What kind of name": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "What kind of name {word} is": {
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "What translates a sentence when you tap a word twice or drag across it.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "When you are signed in, books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Where to look": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Where to split": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Where to use it": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Where translations come from": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Who it’s for, like Mom’s class": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "Who the link is for": {
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "With a mouse, adds a translate button beside each paragraph in Scroll.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Word": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Word .doc files are not supported. Save the document as a text file or PDF, then import that.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "Word by word": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Word by word in {language}, in the meantime:": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Word by word, in English": {
+  "where": [
+   "src/translate/gloss.ts"
+  ]
+ },
+ "Word by word, in the meantime:": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Word cards explain English words in Chinese, whatever you pick here.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Word cards give short meanings in English (in Chinese for English books), whatever you pick here.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Word cards give short meanings in English, whatever you pick here.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Word counts read off their text (not copied), so old words such as 制台 and 辕门 read as one word, and old spellings such as 豫备 and 帐房 (from Wiktionary's redirects) show the meaning of the word they stand for.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Word documents are not supported. Save the document as a text file or PDF, then import that.": {
+  "where": [
+   "src/import/epub.ts",
+   "src/import/index.ts"
+  ]
+ },
+ "Word frequencies, which decide how a sentence is split into words.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Word-by-word (offline)": {
+  "where": [
+   "src/translate/gloss.ts"
+  ]
+ },
+ "Word-by-word gloss": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Word: {word}": {
+  "where": [
+   "src/ui/popup/popup.ts"
+  ]
+ },
+ "Words": {
+  "where": [
+   "src/ui/reader/pager.ts",
+   "src/ui/reader/toc.ts",
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Words and definitions come from {cedict}, shared under the {license}. Thanks to its contributors and to MDBG, who host it. The definitions in the app are used and adapted under that license, and the dictionary data stays under it.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Words in this chapter": {
+  "where": [
+   "src/ui/reader/pager.ts",
+   "src/ui/reader/reader.ts",
+   "src/ui/reader/toc.ts",
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Words to show": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Words you have not marked known": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Words you know. They get no {aid} in the Unknown and HSK pinyin modes.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Words you know. They get no {aid} in the Unknown and {scheme} modes.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Words you look up or star while reading turn up here as flashcards.": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Words you read past often lose their furigana": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Words you read past often lose their hints": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Words you read past often lose their pinyin": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "Words {n}": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "Words, lookups, bookmarks, your corrections and your place in each book, on every device connected to this Mac.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Words, lookups, bookmarks, your corrections and your place in each book. Changes made offline sync when you are back online.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Words, pinyin and English definitions.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Works from Aozora Bunko (aozora.gr.jp), out of copyright in Japan.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Works from Wikisource, free to read and share.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Works. “你好，世界。” came back as “{reply}”": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "Yes": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Yesterday": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "You are all caught up.": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "You are offline": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "You are offline, and this screen has not been downloaded yet.": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "You are offline. Connect once to add this classic.": {
+  "where": [
+   "src/ui/library/importer.ts",
+   "src/ui/library/samples.ts"
+  ]
+ },
+ "You are offline. Connect to the internet to add books.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "You are offline. Connect to the internet to find books.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "You are offline. {lang} classics and the {lang} dictionary download the first time you open {lang} online.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "You can also drop a file anywhere on this page.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "You can change it later under Corrections in the chapter list.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "You have reached the end of the book.": {
+  "where": [
+   "src/ui/reader/pager.ts",
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "You have reached the end.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "You know <1% of its words": {
+  "where": [
+   "src/ui/library/bookShare.ts"
+  ]
+ },
+ "You know every word in this chapter.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "You know {percent}% of its words": {
+  "where": [
+   "src/ui/library/bookShare.ts"
+  ]
+ },
+ "You opened Globereader from your Mac, so this device already uses it.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Your Mac adds Claude, its local model, Premium voices and your own books. It is reached over Tailscale, only by you.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Your Mac and iPad": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Your Mac answered but did not accept this device. Sign in to Tailscale with the same account as the Mac, then try again.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Your Mac answered but did not accept this device. Sign in to Tailscale with the same account as the Mac.": {
+  "where": [
+   "src/core/macBridge.ts"
+  ]
+ },
+ "Your Mac answered {status}.": {
+  "where": [
+   "src/core/sync.ts"
+  ]
+ },
+ "Your Mac did not accept this device": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Your Mac did not accept this device. Sign in to Tailscale with the Mac owner's account.": {
+  "where": [
+   "src/translate/claude.ts"
+  ]
+ },
+ "Your Mac did not accept this device. Sign in to Tailscale with the same account as the Mac.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Your Mac did not answer": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "Your Mac did not answer, so its books, translator and voices are paused. Wake the Mac and make sure Tailscale is on, then try again.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Your Mac did not answer. It may be asleep, or Tailscale is off on this device.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Your Mac did not answer. Wake it and try again.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Your Mac holds {words}, {known} and {places}.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Your Mac holds {words}, {known}, {bookmarks} and {places}.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Your Mac keeps a daily copy of your synced words for two weeks.": {
+  "where": [
+   "src/ui/settings/ipad.ts"
+  ]
+ },
+ "Your Mac sent an answer Globereader did not understand.": {
+  "where": [
+   "src/core/sync.ts"
+  ]
+ },
+ "Your Mac's Tailscale name with the port, shown in Settings on the private site.": {
+  "where": [
+   "src/ui/settings/mac.ts"
+  ]
+ },
+ "Your account": {
+  "where": [
+   "src/ui/about/about.ts",
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Your account holds {words}, {known} and {places}.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Your account holds {words}, {known}, {bookmarks} and {places}.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Your account is deleted. Everything on this device stays here; it no longer syncs.": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "Your books": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Your books and words are saved in this browser. Have an account? Sign in to have them on your other devices too.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Your books and words are saved in this browser. If you run Globereader on your own Mac, connect this device to it in Settings to use its translator, voices and books.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Your books could not sync with your account: {error}": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "Your books, saved words, lookups, bookmarks, reading places and settings follow you to any device you sign in on. A few things that depend on the screen, like one or two pages, stay with each device.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Your books, words and places are the same on every device signed in to this account.": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
+ "Your browser has agreed to keep your books and words, even when space runs low.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Your browser may clear your books and words if space runs low. Adding Globereader to the Home Screen and asking here makes that much less likely.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Your correction of {word} is deleted.": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "Your corrections": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Your first book": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Your language": {
+  "where": [
+   "src/ui/settings/learning.ts",
+   "src/ui/settings/settings.ts",
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Your languages": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Your library": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "Your name": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Your next card is due {when}.": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "Your own Mac": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Your phone or computer saves a passkey for Globereader. You unlock it the way you unlock the device: Face ID, a fingerprint, or your computer’s password or PIN. You don’t need a Globereader password or an email. On a shared computer, pick your phone instead and scan the code. On an iPhone or iPad the passkey is on your other Apple devices too.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Your place is saved by the text, not the page number, so a new text size or turning the screen keeps you on the same line. It stays through updates, and through deleting a book and adding it back.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "Your saved data was written by a newer version of Globereader. Update the app to open it.": {
+  "where": [
+   "src/store/index.ts"
+  ]
+ },
+ "Your saved flashcards are not changed.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Your streak has started.": {
+  "where": [
+   "src/core/readingClock.ts"
+  ]
+ },
+ "Your sync server is older than this version of Globereader.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "Your word": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Your words, known words, progress, bookmarks, looked-up words, review history and settings. Books are not included, so on another device import the same book files first.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Yours": {
+  "where": [
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "You’re already signed in as {name}. To make a new account, sign out in Settings first.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "You’re in, {name}. Your books, words and places now go with your account.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "You’re invited to Globereader ({label}). Make an account with a passkey: no password, no email.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "You’re invited to Globereader. Make an account with a passkey: no password, no email.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
+ "Zhuyin": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Zip archives are not supported. Unzip it and import the EPUB or text file inside.": {
+  "where": [
+   "src/import/index.ts"
+  ]
+ },
+ "added {n} bookmarks": {
+  "one": "added {n} bookmark",
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "added {n} known words": {
+  "one": "added {n} known word",
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "added {n} looked-up words": {
+  "one": "added {n} looked-up word",
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "added {n} reviews": {
+  "one": "added {n} review",
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "added {n} saved words": {
+  "one": "added {n} saved word",
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "adjective": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "adjective (archaic kari)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adjective (archaic ku)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adjective (archaic nari)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adjective (archaic shiku)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adjective (i)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adjective (i, いい/よい class)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adjective (na)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adjective (taru)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adverb": {
+  "where": [
+   "src/lang/ja/tags.ts",
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "adverb (takes と)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "adverbial noun": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "and {n} more": {
+  "one": "and {n} more",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "article": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "auxiliary": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "auxiliary adjective": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "auxiliary verb": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "common entries": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "conjunction": {
+  "where": [
+   "src/lang/ja/tags.ts",
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "contraction": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "copula": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "counter": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "descriptions": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "determiner": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "dictionary entries": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "entries": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "error {status}": {
+  "where": [
+   "src/translate/mymemory.ts"
+  ]
+ },
+ "every one in Unicode, rare ones included": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "expression": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "feminine": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "find a free book in {lang}": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "forms": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "furigana": {
+  "where": [
+   "src/lang/labels.ts"
+  ]
+ },
+ "glosses": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "hints": {
+  "where": [
+   "src/lang/labels.ts"
+  ]
+ },
+ "import a file": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "in under a minute": {
+  "where": [
+   "src/ui/review/queue.ts"
+  ]
+ },
+ "interjection": {
+  "where": [
+   "src/lang/ja/tags.ts",
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "intransitive": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "ipadic words": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "jlpt entries": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "jlpt rows": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "just now": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "kanji": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "kanji in jmdict": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "kept existing or unmatched progress for {n} books": {
+  "one": "kept existing or unmatched progress for {n} book",
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "keys": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "levels": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "looked up {n} times": {
+  "one": "looked up {n} time",
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "masculine": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "masculine or feminine": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "name": {
+  "where": [
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "neuter": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "noun": {
+  "where": [
+   "src/lang/ja/tags.ts",
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "noun (takes の)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "noun (time)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "noun used as a prefix": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "noun used as a suffix": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "now": {
+  "where": [
+   "src/ui/review/queue.ts"
+  ]
+ },
+ "number": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "numeral": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "on-device": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "online": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "paradigms": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "particle": {
+  "where": [
+   "src/lang/ja/tags.ts",
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "paste some text": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "phrase": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "phrases": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "pinyin": {
+  "where": [
+   "src/lang/labels.ts"
+  ]
+ },
+ "plural only": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "plus {n} more for rare characters": {
+  "one": "plus {n} more for rare characters",
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "postposition": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "pre-noun adjective": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "prefix": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "preposition": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "priors": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "pronoun": {
+  "where": [
+   "src/lang/ja/tags.ts",
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "pronunciations": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "proper noun": {
+  "where": [
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "ranked": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "reading in this sentence": {
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "restored progress for {n} books": {
+  "one": "restored progress for {n} book",
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "restored your settings": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "rules": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "senses": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "suffix": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "that text: {reason}": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "transitive": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "unknown error": {
+  "where": [
+   "src/translate/chrome.ts",
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "updated {n} saved words": {
+  "one": "updated {n} saved word",
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "used before nouns": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb": {
+  "where": [
+   "src/lang/ja/tags.ts",
+   "src/lang/spaced/core.ts"
+  ]
+ },
+ "verb (archaic す)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (archaic)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -ある honorific)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -う)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -う, special)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -うる)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -く)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -ぐ)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -す)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -つ)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -ぬ)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -ぶ)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -む)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -る)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, -る, irregular)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (godan, 行く class)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (ichidan)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (ichidan, -ずる)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (ichidan, くれる class)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (irregular, -ぬ)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (irregular, -り)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (irregular, する)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (irregular, 来る)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb (する, special)": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "verb with する": {
+  "where": [
+   "src/lang/ja/tags.ts"
+  ]
+ },
+ "with a pinyin reading": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "with an English definition": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "words the word splitter knows": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "you@example.com": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
+ "your Mac": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "your account": {
+  "where": [
+   "src/speech/tts.ts"
+  ]
+ },
+ "your place in {n} books": {
+  "one": "your place in {n} book",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{aid} are hidden on words up to this level.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "{aid}: {mode}": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "{aspect} · pairs {words}": {
+  "one": "{aspect} · pair {words}",
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "{a} or {b}": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "{a} to {b}": {
+  "where": [
+   "src/ui/shortcuts.ts"
+  ]
+ },
+ "{a}, {b}": {
+  "where": [
+   "src/ui/review/review.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{chapter} did not draw. Your place in the book is kept. You can read another chapter now.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "{day}: {m} of {goal} min": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{day}: {m} of {n} minutes": {
+  "one": "{day}: {m} of {n} minute",
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{day}: {m} of {n} minutes, goal met": {
+  "one": "{day}: {m} of {n} minute, goal met",
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{day}: {m} of {n} minutes, goal met, today": {
+  "one": "{day}: {m} of {n} minute, goal met, today",
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{day}: {m} of {n} minutes, today": {
+  "one": "{day}: {m} of {n} minute, today",
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{done} of {total} done": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "{first} of {total} on the first try. One word needed another look.": {
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "{first} of {total} on the first try. {n} words needed another look.": {
+  "one": "{first} of {total} on the first try. {n} word needed another look.",
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "{form} of {word}": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "{from} to {to}": {
+  "where": [
+   "src/translate/chrome.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{kind}, everywhere": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{kind}, here": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{language} translation": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "{language} words, lookups, bookmarks and your place in each book, on every device connected to this Mac.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{language} words, lookups, bookmarks and your place in each book. Changes made offline sync when you are back online.": {
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{lang} books are already in {lang}, so they are translated into {into} instead.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "{lang} word levels follow how common a word is in everyday {lang}: A1 is about the 500 most common words, A2 the next 700, B1 up to 2,500, B2 up to 5,000, C1 up to 10,000 and C2 up to 20,000. They are a guide, not an exam list.": {
+  "where": [
+   "src/lang/registry.ts"
+  ]
+ },
+ "{link} has Russian classics as EPUB and plain text.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has about 500 Chinese books as EPUB and plain text.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has carefully made EPUBs of public-domain English books.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has hundreds of Italian books as EPUB and plain text.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has hundreds of Portuguese books as EPUB and plain text.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has hundreds of Spanish books as EPUB and plain text.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has more than 17,000 Japanese books in the public domain, from Natsume Sōseki to Miyazawa Kenji, as text you can download.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has more than 60,000 free books, most of them in English, as EPUB and plain text.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has more, many as EPUB.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has thousands more, many as EPUB.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has thousands more.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has thousands of French books as EPUB and plain text.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has thousands of German books as EPUB and plain text.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has thousands of Italian books in the public domain.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{link} has thousands of public-domain texts, many as EPUB.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "{list}.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{list}. Settings restored.": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{min} min": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "{min} min a day": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{m} min today. Goal of {goal} min reached.": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{m} of {goal} min today": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{m} of {n} minutes today": {
+  "one": "{m} of {n} minute today",
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{n} answers": {
+  "one": "{n} answer",
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "{n} bookmarks": {
+  "one": "{n} bookmark",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{n} bookmarks added": {
+  "one": "{n} bookmark added",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{n} books": {
+  "one": "{n} book",
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "{n} cards": {
+  "one": "{n} card",
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "{n} changes from this device are waiting.": {
+  "one": "{n} change from this device is waiting.",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{n} changes from this device will sync when it can.": {
+  "one": "{n} change from this device will sync when it can.",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{n} changes here have not been sent.": {
+  "one": "{n} change here have not been sent.",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{n} chapters": {
+  "one": "{n} chapter",
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/reader/toc.ts"
+  ]
+ },
+ "{n} characters": {
+  "one": "{n} characters",
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "{n} characters could not be read and show as �.": {
+  "one": "{n} character could not be read and shows as �.",
+  "where": [
+   "src/import/encoding.ts"
+  ]
+ },
+ "{n} chars": {
+  "one": "{n} char",
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "{n} corrections saved to your downloads.": {
+  "one": "{n} correction saved to your downloads.",
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "{n} day streak": {
+  "one": "{n} day streak",
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
+ "{n} files could not be added.": {
+  "one": "{n} file could not be added.",
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "{n} files had problems.": {
+  "one": "{n} file had problems.",
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "{n} hours ago": {
+  "one": "{n} hour ago",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{n} known words": {
+  "one": "{n} known word",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{n} known words added": {
+  "one": "{n} known word added",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{n} left": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "{n} looked-up words added": {
+  "one": "{n} looked-up word added",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{n} matches of {total}": {
+  "one": "{n} match of {total}",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{n} min": {
+  "one": "{n} min",
+  "where": [
+   "src/ui/settings/learning.ts"
+  ]
+ },
+ "{n} minutes ago": {
+  "one": "{n} minute ago",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{n} more": {
+  "one": "{n} more",
+  "where": [
+   "src/ui/popup/langWordView.ts",
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "{n} more cards due now, and {fresh} new from words you looked up.": {
+  "one": "{n} more card due now, and {fresh} new from words you looked up.",
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "{n} more cards due now.": {
+  "one": "{n} more card due now.",
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "{n} new cards from words you looked up.": {
+  "one": "{n} new card from words you looked up.",
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "{n} new from words you looked up.": {
+  "one": "{n} new from words you looked up.",
+  "where": [
+   "src/ui/vocab/model.ts"
+  ]
+ },
+ "{n} new words": {
+  "one": "{n} new word",
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "{n} new words.": {
+  "one": "{n} new word.",
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "{n} of {max} joined": {
+  "one": "{n} of {max} joined",
+  "where": [
+   "src/ui/settings/invites.ts"
+  ]
+ },
+ "{n} of {total}": {
+  "where": [
+   "src/ui/vocab/practice.ts"
+  ]
+ },
+ "{n} pages left in chapter": {
+  "one": "{n} page left in chapter",
+  "where": [
+   "src/ui/reader/pagination.ts"
+  ]
+ },
+ "{n} places": {
+  "one": "{n} place",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "{n} requests, {input} input and {output} output tokens": {
+  "one": "{n} request, {input} input and {output} output tokens",
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "{n} requests, {input} input and {output} output tokens of {maxRequests} requests and {maxInput} input tokens": {
+  "one": "{n} request, {input} input and {output} output tokens of {maxRequests} requests and {maxInput} input tokens",
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
+ "{n} saved words": {
+  "one": "{n} saved word",
+  "where": [
+   "src/ui/settings/sync.ts"
+  ]
+ },
+ "{n} times": {
+  "one": "{n} time",
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "{n} times in this chapter": {
+  "one": "{n} time in this chapter",
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "{n} were already here.": {
+  "one": "{n} was already here.",
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "{n} words": {
+  "one": "{n} word",
+  "where": [
+   "src/ui/library/library.ts",
+   "src/ui/popup/phraseView.ts",
+   "src/ui/reader/nameCheck.ts",
+   "src/ui/vocab/lookups.ts",
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{n} words learned from reading.": {
+  "one": "{n} word learned from reading.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{n} words looked up, {week} in the last 7 days.": {
+  "one": "{n} word looked up, {week} in the last 7 days.",
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "{n} words marked as not a name.": {
+  "one": "{n} word marked as not a name.",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "{n} words saved, none due for review": {
+  "one": "{n} word saved, none due for review",
+  "where": [
+   "src/ui/vocab/model.ts"
+  ]
+ },
+ "{n} words saved, none due. {fresh} new from words you looked up.": {
+  "one": "{n} word saved, none due. {fresh} new from words you looked up.",
+  "where": [
+   "src/ui/vocab/model.ts"
+  ]
+ },
+ "{n} words saved, {due} due for review": {
+  "one": "{n} word saved, {due} due for review",
+  "where": [
+   "src/ui/vocab/model.ts"
+  ]
+ },
+ "{n} words saved, {due} due. {fresh} new from words you looked up.": {
+  "one": "{n} word saved, {due} due. {fresh} new from words you looked up.",
+  "where": [
+   "src/ui/vocab/model.ts"
+  ]
+ },
+ "{n} words will be added to your known words ({already} already known).": {
+  "one": "{n} word will be added to your known words ({already} already known).",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{n} words will be added to your known words.": {
+  "one": "{n} word will be added to your known words.",
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{n}%": {
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
+ "{n}d": {
+  "one": "{n}d",
+  "where": [
+   "src/core/srs.ts"
+  ]
+ },
+ "{n}h": {
+  "one": "{n}h",
+  "where": [
+   "src/core/srs.ts"
+  ]
+ },
+ "{n}m": {
+  "one": "{n}m",
+  "where": [
+   "src/core/srs.ts"
+  ]
+ },
+ "{n}mo": {
+  "one": "{n}mo",
+  "where": [
+   "src/core/srs.ts"
+  ]
+ },
+ "{n}y": {
+  "one": "{n}y",
+  "where": [
+   "src/core/srs.ts"
+  ]
+ },
+ "{percent} known": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "{percent} of the words in this chapter are ones you know.": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "{percent}%": {
+  "where": [
+   "src/ui/library/format.ts"
+  ]
+ },
+ "{progress}.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "{provider} is not available. {reason}.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
+ "{radical} ({char}), no. {num}, plus {n} strokes": {
+  "one": "{radical} ({char}), no. {num}, plus {n} stroke",
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "{radical}, no. {num}, plus {n} strokes": {
+  "one": "{radical}, no. {num}, plus {n} stroke",
+  "where": [
+   "src/ui/popup/wordView.ts"
+  ]
+ },
+ "{report}.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "{scheme} level": {
+  "where": [
+   "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "{screen} - Globereader": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "{shown} of {total}": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "{source} did not answer. Try again in a moment.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "{source} has no books in {lang} yet.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "{title} corrections": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "{voice} (not installed)": {
+  "where": [
+   "src/ui/settings/speech.ts"
+  ]
+ },
+ "{words}, {n} of them come up 3 or more times.": {
+  "one": "{words}, {n} of them comes up 3 or more times.",
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "{word} is": {
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "{word} is already in your flashcards.": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "{word} is in your flashcards": {
+  "where": [
+   "src/ui/vocab/lookups.ts"
+  ]
+ },
+ "{word} is known. Mark as not known": {
+  "where": [
+   "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "{word} is marked as a name ({n} places in the book).": {
+  "one": "{word} is marked as a name ({n} place in the book).",
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a name here.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a name in this book.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a name.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a person ({n} places in the book).": {
+  "one": "{word} is marked as a person ({n} place in the book).",
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a person here.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a person in this book.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a person.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a place ({n} places in the book).": {
+  "one": "{word} is marked as a place ({n} place in the book).",
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a place here.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a place in this book.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is marked as a place.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is no longer treated as one word.": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "{word} is not a name": {
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "{word} is one word everywhere in this book.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is one word here.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is one word in all your books.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is split here: {pieces}.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} is split into {pieces} everywhere in this book.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} reads {reading} everywhere in this book.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} reads {reading} here.": {
+  "where": [
+   "src/ui/popup/fixView.ts"
+  ]
+ },
+ "{word} will now be read as one word.": {
+  "where": [
+   "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "{word}, {n} places": {
+  "one": "{word}, {n} place",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "{word}, {n} places, marked as other name": {
+  "one": "{word}, {n} place, marked as other name",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "{word}, {n} places, marked as person": {
+  "one": "{word}, {n} place, marked as person",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "{word}, {n} places, marked as place": {
+  "one": "{word}, {n} place, marked as place",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "{word}, {n} places, not a name": {
+  "one": "{word}, {n} place, not a name",
+  "where": [
+   "src/ui/reader/nameCheck.ts"
+  ]
+ },
+ "“{title}” could not be added. {reason}": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "“{title}” did not download whole. Globereader will try again.": {
+  "where": [
+   "src/core/cloudBooks.ts"
+  ]
+ },
+ "“{title}” has no text to add": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "“{title}” in your account is damaged.": {
+  "where": [
+   "src/core/cloudBooks.ts"
+  ]
+ },
+ "“{title}” is already in your library from your Mac.": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "“{title}” is already in your library.": {
+  "where": [
+   "src/ui/library/findBooks.ts",
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "“{title}” is already in your library. The button opens it.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "“{title}” is not available right now.": {
+  "where": [
+   "src/ui/library/samples.ts"
+  ]
+ },
+ "“{title}” will be removed from this device and from your account. Your place in it, your saved words and your corrections stay: add it again and it opens where you left off.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "“{title}” will be removed from this device. Your place in it, your saved words and your corrections stay: add it again and it opens where you left off.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
+ "“{title}”: {reason}": {
+  "where": [
+   "src/ui/library/importer.ts"
+  ]
+ },
+ "一个 as yí gè, 不是 as bú shì.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "底 for 的": {
+  "where": [
+   "src/ui/reader/oldSpellings.ts"
+  ]
+ },
+ "我底书 reads wǒ de shū": {
+  "where": [
+   "src/ui/reader/oldSpellings.ts"
+  ]
+ },
+ "简体 or 繁體": {
+  "where": [
+   "src/ui/reader/menus.ts"
+  ]
+ },
+ "那 for 哪 in questions": {
+  "where": [
+   "src/ui/reader/oldSpellings.ts"
+  ]
+ },
+ "那里去？ reads nǎlǐ qù": {
+  "where": [
+   "src/ui/reader/oldSpellings.ts"
+  ]
+ }
+}
