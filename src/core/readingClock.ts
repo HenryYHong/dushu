@@ -5,6 +5,7 @@ import type { LangId } from '../lang/types';
 import { addSeconds, streak } from './activity';
 import { getPlan } from './plan';
 import { isReadingAloud } from '../speech/tts';
+import { tt, ttn } from '../i18n';
 
 const TICK_MS = 5_000;
 const IDLE_MS = 180_000;
@@ -12,7 +13,9 @@ const INPUTS = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'] as co
 
 /** What the app says when today's goal is reached: `days` in a row, today among them. */
 export function goalMessage(days: number, goal: number): string {
-  return days > 1 ? `Daily goal reached: ${goal} minutes. That is ${days} days in a row.` : `Daily goal reached: ${goal} minutes. Your streak has started.`;
+  const reached = ttn(goal, 'Daily goal reached: {n} minute.', 'Daily goal reached: {n} minutes.');
+  const streakLine = days > 1 ? ttn(days, 'That is {n} day in a row.', 'That is {n} days in a row.') : tt('Your streak has started.');
+  return `${reached} ${streakLine}`;
 }
 
 /** Starts counting for `lang`; `onGoal` hears when today's goal is reached. Returns the stop function. */

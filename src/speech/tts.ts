@@ -3,6 +3,7 @@ import { detectScript } from '../core/text';
 import { bridgeFetch, hasMacBridge } from '../core/macBridge';
 import { cloudFetch, cloudSession } from '../core/cloud';
 import { isChinese as readingChinese, lang as readingLang } from '../lang/active';
+import { langName, tt } from '../i18n';
 
 export interface SpeechOptions {
   rate?: number;
@@ -36,11 +37,16 @@ const quality = (v: SpeechSynthesisVoice) => {
   return /^(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley)\b/i.test(v.name) ? 3 : 2;
 };
 
+/** The language the books are read in, by name in the app's language, for what the voices say when they fail. */
+const readingName = (): string => langName(readingLang().id, readingChinese() ? 'Chinese' : readingLang().name);
+
 export function voiceLabel(v: SpeechSynthesisVoice): string {
   const tier = quality(v);
   const suffix = tier === 0 ? 'Premium' : tier === 1 ? 'Enhanced' : '';
-  const name = suffix && !v.name.toLowerCase().includes(suffix.toLowerCase()) ? `${v.name} (${suffix})` : v.name;
-  return `${name} · ${v.lang}${v.voiceURI.startsWith('dushu-mac:') ? ' · your Mac' : isAccountVoice(v) ? ' · your account' : v.localService ? ' · on-device' : ' · online'}`;
+  // The system names its voices in English ("Tingting (Premium)"): the tier is added only where the name lacks it.
+  const name = suffix && !v.name.toLowerCase().includes(suffix.toLowerCase()) ? `${v.name} (${tier === 0 ? tt('Premium') : tt('Enhanced')})` : v.name;
+  const where = v.voiceURI.startsWith('dushu-mac:') ? tt('your Mac') : isAccountVoice(v) ? tt('your account') : v.localService ? tt('on-device') : tt('online');
+  return `${name} · ${v.lang} · ${where}`;
 }
 
 /** Chrome fills getVoices() asynchronously; wait for voiceschanged, but never hang. */
@@ -277,7 +283,7 @@ async function renderNative(text: string, voice: SpeechSynthesisVoice, signal: A
     }
   } catch (error) {
     if (signal.aborted) throw error;
-    throw new Error('The Premium voice could not prepare audio. Keep your Mac awake and connected, or choose an on-device Chinese voice in Settings.');
+    throw new Error(tt('The Premium voice could not prepare audio. Keep your Mac awake and connected, or choose an on-device Chinese voice in Settings.'));
   }
 }
 
@@ -289,11 +295,11 @@ async function renderAccount(text: string, signal: AbortSignal): Promise<{ blob:
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
   } catch (error) {
     if (signal.aborted) throw error;
-    throw new Error('Could not reach the sync server to read aloud.');
+    throw new Error(tt('Could not reach the sync server to read aloud.'));
   }
-  if (!response) throw new Error('This device is signed out, so the account voice cannot read.');
+  if (!response) throw new Error(tt('This device is signed out, so the account voice cannot read.'));
   const data = await response.json().catch(() => null) as { audio?: unknown; error?: unknown } | null;
-  if (!response.ok || typeof data?.audio !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : 'The account voice could not prepare audio.');
+  if (!response.ok || typeof data?.audio !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : tt('The account voice could not prepare audio.'));
   const bin = atob(data.audio);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -386,7 +392,7 @@ function playNative(
     finishPending = cancel;
     audio.onplaying = () => { if (!done) { opts?.onStart?.(); follow(); } };
     audio.onended = () => finish(true);
-    const fail = () => { if (!done) opts?.onError?.('The voice could not play. Tap Read again, or choose an iPad voice in Settings.'); finish(false); };
+    const fail = () => { if (!done) opts?.onError?.(tt('The voice could not play. Tap Read again, or choose an iPad voice in Settings.')); finish(false); };
     audio.onerror = fail;
     if (!nativePaused) void audio.play().catch(fail);
     follow(); // the sentence's first word, as its audio starts
@@ -418,7 +424,7 @@ function speakPiece(
     u.onend = () => finish(true);
     u.onstart = () => { if (!done) opts?.onStart?.(); };
     u.onerror = e => {
-      if (!done && e.error !== 'canceled' && e.error !== 'interrupted') opts?.onError?.(`The speech voice could not play. Try another ${readingChinese() ? 'Chinese' : readingLang().name} voice in Settings.`);
+      if (!done && e.error !== 'canceled' && e.error !== 'interrupted') opts?.onError?.(tt('The speech voice could not play. Try another {language} voice in Settings.', { language: readingName() }));
       finish(false);
     };
     if (onBoundary) u.onboundary = (e) => onBoundary(e.charIndex, e.charLength || 1);
@@ -427,7 +433,7 @@ function speakPiece(
       if (nativePaused) speechSynthesis.pause();
       speechSynthesis.speak(u);
     } catch {
-      opts?.onError?.(`This browser could not start audio. Try another ${readingChinese() ? 'Chinese' : readingLang().name} voice in Settings.`);
+      opts?.onError?.(tt('This browser could not start audio. Try another {language} voice in Settings.', { language: readingName() }));
       finish(false);
     }
   });
@@ -449,8 +455,7 @@ export async function speakSequence(
   let voice = pickVoice(await loadVoices(), lang, opts?.voice);
   if (mine !== generation) return false;
   if (!voice) {
-    const name = readingChinese() ? 'Chinese' : readingLang().name;
-    opts?.onError?.(`No ${name} voice is available. Choose or install a ${name} voice in Settings.`);
+    opts?.onError?.(tt('No {language} voice is available. Choose or install a {language} voice in Settings.', { language: readingName() }));
     return false;
   }
   // The paragraph this browser's own voice reads from: 0, or where the account's voice stopped.
@@ -513,7 +518,7 @@ export async function speakSequence(
       const own = isAccountVoice(rendered) ? pickVoice(await browserVoices(), lang) : null;
       if (mine !== generation) return false;
       if (!own) {
-        opts?.onError?.(error instanceof Error ? error.message : 'Could not prepare Premium audio.');
+        opts?.onError?.(error instanceof Error ? error.message : tt('Could not prepare Premium audio.'));
         return false;
       }
       console.warn('Globereader: the account voice could not read, so this device’s voice reads instead', error);

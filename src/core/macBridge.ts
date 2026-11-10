@@ -2,6 +2,7 @@
 // On the private site (localhost or the Tailscale address) the bridge is the page's own origin. On the public copy of the
 // app the owner connects once per device: the Mac's private address is kept in this browser only, never in the build,
 // the settings or a backup. The server still decides who may use it (the owner's exact Tailscale identity).
+import { tt } from '../i18n';
 
 /** The Mac this device reaches, for every library on it (a Chinese "Delete all data" keeps it for the others). */
 export const STORE_KEY = 'dushu.mac-bridge.v1';
@@ -92,7 +93,7 @@ export function bridgeUrl(path: string): string | null {
 }
 
 export class BridgeUnavailable extends Error {
-  constructor() { super('This device is not connected to your Mac. Connect it in Settings.'); this.name = 'BridgeUnavailable'; }
+  constructor() { super(tt('This device is not connected to your Mac. Connect it in Settings.')); this.name = 'BridgeUnavailable'; }
 }
 
 /**
@@ -113,10 +114,10 @@ export async function probeMac(origin: string, signal?: AbortSignal): Promise<{ 
   const response = await fetch(`${origin}/api/private-status`, {
     credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(6000)]) : AbortSignal.timeout(6000),
   });
-  if (response.status === 403) throw new Error('Your Mac answered but did not accept this device. Sign in to Tailscale with the same account as the Mac.');
-  if (!response.ok) throw new Error('That address did not answer like Globereader on your Mac.');
+  if (response.status === 403) throw new Error(tt('Your Mac answered but did not accept this device. Sign in to Tailscale with the same account as the Mac.'));
+  if (!response.ok) throw new Error(tt('That address did not answer like Globereader on your Mac.'));
   const data = await response.json().catch(() => null) as { app?: string; url?: string | null } | null;
-  if (!data || data.app !== 'dushu') throw new Error('That address did not answer like Globereader on your Mac.');
+  if (!data || data.app !== 'dushu') throw new Error(tt('That address did not answer like Globereader on your Mac.'));
   return { url: typeof data.url === 'string' ? data.url : null };
 }
 

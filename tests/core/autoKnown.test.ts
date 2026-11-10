@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  AUTO_KNOWN_DAYS, AUTO_KNOWN_HELP, AUTO_KNOWN_PAGES, MIN_DWELL_MS, createAutoKnown, localDay, readingDwell, type AutoKnown, type ReadView,
+  AUTO_KNOWN_DAYS, AUTO_KNOWN_HELP, AUTO_KNOWN_PAGES, MIN_DWELL_MS, autoKnownHelpText, createAutoKnown, localDay, readingDwell, type AutoKnown, type ReadView,
 } from '../../src/core/autoKnown';
 import { newSrs } from '../../src/core/srs';
 import { openStore } from '../../src/store';
@@ -55,6 +55,8 @@ describe('what the help says', () => {
   // The pinyin modes are All, Unknown, HSK and Off; known words lose their pinyin in Unknown and HSK (render.ts pinyinVisible).
   it('names the pinyin modes that hide a known word\'s pinyin, and no mode that does not exist', () => {
     expect(AUTO_KNOWN_HELP).toMatch(/in the Unknown and HSK pinyin modes/);
+    // What a screen shows says the same in English.
+    expect(autoKnownHelpText()).toBe(AUTO_KNOWN_HELP);
     const vocab = readFileSync(join(__dirname, '..', '..', 'src', 'ui', 'vocab', 'vocab.ts'), 'utf8');
     expect(vocab).not.toMatch(/unknown words only/i);
     // Both lines name the modes through one helper, which says "HSK pinyin modes" for Chinese (and JLPT or Level modes for

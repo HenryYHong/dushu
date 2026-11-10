@@ -1,6 +1,6 @@
 // App shell: theme, fonts, nav, hash router, toasts, and the AppContext every screen receives.
 import globeSvg from './ui/globe.svg?raw';
-import { startI18n } from './i18n';
+import { num, startI18n, tt, ttm, ttn } from './i18n';
 import './styles/tokens.css';
 import './styles/base.css';
 import type { AppContext, Dictionary, MountFn, Settings, Store } from './types';
@@ -61,7 +61,7 @@ function applyTheme(s: Settings): void {
 const parseHash = () => parseRoute(location.hash, (r) => Object.prototype.hasOwnProperty.call(ROUTES, r));
 
 /** Each screen's name in the browser's tab and history (the reader puts the book's title there itself). */
-const TITLES: Record<string, string> = { '': 'Library', vocab: 'Vocabulary', review: 'Review', settings: 'Settings', about: 'About', join: 'Join' };
+const TITLES: Record<string, string> = { '': ttm('Library'), vocab: ttm('Vocabulary'), review: ttm('Review'), settings: ttm('Settings'), about: ttm('About'), join: ttm('Join') };
 
 /** The libraries whose pages show Chinese or Japanese: they load the reading fonts (fonts.ts). */
 const CJK_LIBRARIES = new Set(['zh', 'ja', 'en']);
@@ -124,11 +124,11 @@ async function boot(): Promise<void> {
 
   // If IndexedDB never answers, the page would stay empty. Say what is happening, and after a while what to try.
   const app = document.getElementById('app')!;
-  const opening = h('div.app-loading.app-opening', { role: 'status' }, h('div.app-spinner'), h('span', null, 'Opening your library…'));
+  const opening = h('div.app-loading.app-opening', { role: 'status' }, h('div.app-spinner'), h('span', null, tt('Opening your library…')));
   app.append(opening);
   const slow = setTimeout(() => {
     opening.replaceChildren(h('div.app-spinner'),
-      h('span', null, 'Still opening your library. If this does not finish, close any other Globereader tabs and reload this page.'));
+      h('span', null, tt('Still opening your library. If this does not finish, close any other Globereader tabs and reload this page.')));
   }, 5000);
 
   // The dictionary takes longest to be ready, so it starts first: its files download and parse while the library opens.
@@ -167,8 +167,8 @@ async function boot(): Promise<void> {
     clearTimeout(slow);
     opening.remove();
     app.append(h('main.app-fatal', null,
-      h('h1', null, 'Globereader cannot open your saved data'),
-      h('p', null, e instanceof Error ? e.message : 'The local database could not be opened.')));
+      h('h1', null, tt('Globereader cannot open your saved data')),
+      h('p', null, e instanceof Error ? e.message : tt('The local database could not be opened.'))));
     return;
   }
   clearTimeout(slow);
@@ -209,9 +209,11 @@ async function boot(): Promise<void> {
       const ms = opts?.ms ?? 3500;
       // The same message again, or a second "Added ... Read" while the first is still up, replaces the old one.
       // (Other actions, such as Undo, never replace each other: each one still undoes its own change.)
-      const coalesce = opts?.action?.label === 'Read';
+      // The label as the screens give it, in the app's language.
+      const read = tt('Read');
+      const coalesce = opts?.action?.label === read;
       for (const old of [...toasts.children] as HTMLElement[]) {
-        if (old.dataset.msg === message || (coalesce && old.dataset.action === 'Read')) old.dispatchEvent(new Event('dismiss'));
+        if (old.dataset.msg === message || (coalesce && old.dataset.action === read)) old.dispatchEvent(new Event('dismiss'));
       }
       const el = h('div.app-toast', { 'data-msg': message, 'data-action': opts?.action?.label ?? '' });
       const text = h('span.app-toast-text', { title: message }, message);
@@ -224,17 +226,17 @@ async function boot(): Promise<void> {
         el.appendChild(h('button.app-toast-action', { type: 'button', onclick: () => { a.run(); dismiss(); } }, a.label));
       }
       // A toast that stays a long time (errors, the update notice) can be put away.
-      if (ms > 6000) el.appendChild(h('button.app-toast-close', { type: 'button', 'aria-label': 'Dismiss', title: 'Dismiss', onclick: dismiss }, icon('close')));
+      if (ms > 6000) el.appendChild(h('button.app-toast-close', { type: 'button', 'aria-label': tt('Dismiss'), title: tt('Dismiss'), onclick: dismiss }, icon('close')));
       toasts.appendChild(el);
       while (toasts.children.length > 3) toasts.firstElementChild!.dispatchEvent(new Event('dismiss'));
       timer = setTimeout(dismiss, ms);
     },
   };
   if (store.backend === 'memory') {
-    ctx.toast('This browser is blocking local storage, so books and words will be lost when you close the tab.', { ms: 9000 });
+    ctx.toast(tt('This browser is blocking local storage, so books and words will be lost when you close the tab.'), { ms: 9000 });
   }
   // Start parsing the dictionary right away; the library does not wait for it.
-  ctx.dict().catch((e) => { console.error(e); ctx.toast('Could not download the dictionary. Check your connection; Globereader will try again.', { ms: 8000 }); });
+  ctx.dict().catch((e) => { console.error(e); ctx.toast(tt('Could not download the dictionary. Check your connection; Globereader will try again.'), { ms: 8000 }); });
   // Saved words, known words, reading places, lookups and bookmarks, kept the same on every device signed in to the sync
   // account (or connected to the Mac), each language's library apart. Signed in, a device also learns where the Mac is, for
   // the Mac's books.
@@ -250,12 +252,14 @@ async function boot(): Promise<void> {
   const toldErrors = new Set<string>();
   window.addEventListener(BOOKS_EVENT, (e) => {
     const r = (e as CustomEvent<BooksReport>).detail;
-    const names = (t: string[]) => (t.length === 1 ? `“${scriptView(ctx.settings.get().script, ctx.dictSync()).text(t[0])}”` : `${t.length} books`);
-    if (r.uploaded.length) ctx.toast(`Saved ${names(r.uploaded)} to your account.`, { ms: 5000 });
-    if (r.added.length) ctx.toast(`Added ${names(r.added)} from your account.`, { ms: 6000 });
+    const title = (t: string[]) => scriptView(ctx.settings.get().script, ctx.dictSync()).text(t[0]);
+    const up = r.uploaded.length;
+    const down = r.added.length;
+    if (up) ctx.toast(up === 1 ? tt('Saved “{title}” to your account.', { title: title(r.uploaded) }) : ttn(up, 'Saved {n} book to your account.', 'Saved {n} books to your account.'), { ms: 5000 });
+    if (down) ctx.toast(down === 1 ? tt('Added “{title}” from your account.', { title: title(r.added) }) : ttn(down, 'Added {n} book from your account.', 'Added {n} books from your account.'), { ms: 6000 });
     // Only what Globereader can say in its own words: a browser's own text for a dropped connection ("Failed to fetch") is not
     // shown, and Settings → Sync already says when the server cannot be reached.
-    if (r.error && !BROWSER_TEXT.test(r.error) && !toldErrors.has(r.error)) { toldErrors.add(r.error); ctx.toast(`Your books could not sync with your account: ${r.error}`, { ms: 9000 }); }
+    if (r.error && !BROWSER_TEXT.test(r.error) && !toldErrors.has(r.error)) { toldErrors.add(r.error); ctx.toast(tt('Your books could not sync with your account: {error}', { error: r.error }), { ms: 9000 }); }
   });
   accountBooks();
   window.addEventListener(CLOUD_EVENT, accountBooks);
@@ -273,13 +277,13 @@ async function boot(): Promise<void> {
   const reviewBadge = h('span.app-badge', { hidden: true });
   const navLink = (href: string, label: string, ic: string, extra?: Node) =>
     h('a.app-navlink', { href, title: label, 'aria-label': label, 'data-route': href.replace(/^#\/?/, '') }, icon(ic), h('span.app-navlabel', null, label), extra ?? null);
-  const nav = h('nav.app-nav', { 'aria-label': 'Main' },
-    h('a.app-brand', { href: '#/', 'aria-label': 'Globereader, library' }, brandMark(), h('span.app-brand-en', null, 'Globereader')),
+  const nav = h('nav.app-nav', { 'aria-label': tt('Main') },
+    h('a.app-brand', { href: '#/', 'aria-label': tt('Globereader, library') }, brandMark(), h('span.app-brand-en', null, 'Globereader')),
     langChip(),
-    navLink('#/', 'Library', 'library'),
-    navLink('#/vocab', 'Vocabulary', 'list'),
-    navLink('#/review', 'Review', 'cards', reviewBadge),
-    navLink('#/settings', 'Settings', 'settings'),
+    navLink('#/', tt('Library'), 'library'),
+    navLink('#/vocab', tt('Vocabulary'), 'list'),
+    navLink('#/review', tt('Review'), 'cards', reviewBadge),
+    navLink('#/settings', tt('Settings'), 'settings'),
     signInButton(),
   );
   const screen = h('main#screen');
@@ -308,7 +312,7 @@ async function boot(): Promise<void> {
     const next = (await store.vocab.list()).reduce((m, v) => (v.srs.due > now && v.srs.due < m ? v.srs.due : m), Infinity);
     if (seq !== badgeSeq) return;
     reviewBadge.hidden = n === 0;
-    reviewBadge.textContent = n > 99 ? '99+' : String(n);
+    reviewBadge.textContent = n > 99 ? `${num(99)}+` : num(n);
     // Again when the next card falls due (a ten-minute step, tomorrow's cards in a tab left open). The wait is capped at an
     // hour: a timer of more than about 24 days would fire at once.
     clearTimeout(badgeTimer);
@@ -338,14 +342,14 @@ async function boot(): Promise<void> {
     cleanup = undefined;
     document.body.dataset.route = route || 'library';
     // After the old screen's cleanup, which puts back the title the reader replaced.
-    document.title = TITLES[route] ? `${TITLES[route]} - Globereader` : 'Globereader';
+    document.title = TITLES[route] ? tt('{screen} - Globereader', { screen: tt(TITLES[route]) }) : 'Globereader';
     clockFor(route);
     for (const a of nav.querySelectorAll<HTMLAnchorElement>('.app-navlink')) {
       a.toggleAttribute('aria-current', a.dataset.route === route);
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page');
     }
     clear(screen);
-    screen.appendChild(h('div.app-loading', null, h('div.app-spinner'), 'Loading…'));
+    screen.appendChild(h('div.app-loading', null, h('div.app-spinner'), tt('Loading…')));
     let mod: { mount: MountFn };
     try {
       mod = await ROUTES[route]();
@@ -355,8 +359,8 @@ async function boot(): Promise<void> {
       if (seq !== navSeq) return;
       clear(screen);
       screen.appendChild(h('div.app-loading.app-load-failed', { role: 'alert' },
-        h('span', null, navigator.onLine === false ? 'You are offline, and this screen has not been downloaded yet.' : 'This screen could not be loaded.'),
-        h('button.btn', { type: 'button', onclick: () => void render() }, icon('refresh'), 'Try again')));
+        h('span', null, navigator.onLine === false ? tt('You are offline, and this screen has not been downloaded yet.') : tt('This screen could not be loaded.')),
+        h('button.btn', { type: 'button', onclick: () => void render() }, icon('refresh'), tt('Try again'))));
       return;
     }
     if (seq !== navSeq) return;

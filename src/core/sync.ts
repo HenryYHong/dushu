@@ -16,6 +16,7 @@ import type { Bookmark, BookMeta, Fix, LookupRow, Progress, Settings, SettingsSt
 import type { LangId } from '../lang/types';
 import { langId } from '../lang/active';
 import { LANGS } from '../lang/registry';
+import { langName, tt } from '../i18n';
 import { cleanBookmark, cleanLookup, cleanProgress, cleanVocab } from '../store';
 import { defaultsFor, sanitizePatch } from '../store/settings';
 import { moveByPercent } from './place';
@@ -584,13 +585,14 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       if (!response.ok) {
         // The Mac says why when it can: a server started without its sync folder answers that it does not sync.
         const why = await response.json().then((b: { error?: unknown } | null) => b?.error, () => undefined);
-        setStatus({ state: 'error', hub, message: typeof why === 'string' && why && why.length <= 300 ? why : `${hub === 'cloud' ? 'The sync server' : 'Your Mac'} answered ${response.status}.` });
+        const code = { status: response.status };
+        setStatus({ state: 'error', hub, message: typeof why === 'string' && why && why.length <= 300 ? why : hub === 'cloud' ? tt('The sync server answered {status}.', code) : tt('Your Mac answered {status}.', code) });
         return;
       }
       const reply = await response.json().catch(() => null) as Reply | null;
       if (stopped) return;
       if (!reply || typeof reply.epoch !== 'string' || !Number.isInteger(reply.version) || !Array.isArray(reply.records)) {
-        setStatus({ state: 'error', hub, message: `${hub === 'cloud' ? 'The sync server' : 'Your Mac'} sent an answer Globereader did not understand.` });
+        setStatus({ state: 'error', hub, message: hub === 'cloud' ? tt('The sync server sent an answer Globereader did not understand.') : tt('Your Mac sent an answer Globereader did not understand.') });
         return;
       }
       if (prefix && reply.lang !== lang) {
@@ -602,10 +604,12 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         if (meta.epoch && reply.epoch !== meta.epoch) await restart(reply.epoch);
         meta.asked = { epoch: reply.epoch, version: reply.version };
         await store.sync.write([{ key: META, at: 0, sig: '', held: meta }], [], rows);
-        const name = LANGS[lang].name;
+        const language = { language: langName(lang, LANGS[lang].name) };
         setStatus({
           state: 'outdated', hub, lastOk: undefined, counts: undefined, pending: owed(),
-          message: `${hub === 'cloud' ? 'The sync server is older than this version of Globereader' : 'Globereader on your Mac is older than this page'} and does not keep ${name} yet. Your ${name} words, places and bookmarks stay on this device and sync once it is updated.`,
+          message: hub === 'cloud'
+            ? tt('The sync server is older than this version of Globereader and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.', language)
+            : tt('Globereader on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.', language),
         });
         return;
       }

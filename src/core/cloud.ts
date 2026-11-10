@@ -1,10 +1,12 @@
 // The sync account online (cloud/): sign in with a passkey (core/passkey.ts) or an emailed code, and sync from anywhere without
 // Tailscale or the Mac. A device signed in syncs with the account instead of the Mac (core/sync.ts). The session is kept in
 // this browser only.
+import { tt } from '../i18n';
 import { OTHER_LANGS } from './syncKeys';
+import { CLOUD_URL } from './cloudUrl';
 
-/** The sync server. Empty: this build has none, and Settings does not offer to sign in. */
-export const CLOUD_URL = 'https://dushu-sync.henryhong.workers.dev';
+/** The sync server (cloudUrl.ts). Empty: this build has none, and Settings does not offer to sign in. */
+export { CLOUD_URL };
 /** The device's sign-in, shared by every library on it (a Chinese "Delete all data" keeps it for the others: settings/data.ts). */
 export const URL_KEY = 'dushu.cloud.url.v1';
 export const SESSION_KEY = 'dushu.cloud.v1';
@@ -56,7 +58,7 @@ export function forgetSession(): void {
 
 export async function post(path: string, body: unknown, token?: string): Promise<Response> {
   const base = cloudBase();
-  if (!base) throw new Error('This copy of Globereader has no sync server.');
+  if (!base) throw new Error(tt('This copy of Globereader has no sync server.'));
   let res: Response;
   try {
     res = await fetch(`${base}${path}`, {
@@ -65,11 +67,11 @@ export async function post(path: string, body: unknown, token?: string): Promise
       body: JSON.stringify(body),
     });
   } catch {
-    throw new Error('Could not reach the sync server. Check this device’s internet connection.');
+    throw new Error(tt('Could not reach the sync server. Check this device’s internet connection.'));
   }
   if (!res.ok) {
     const why = await res.json().then((b: { error?: unknown } | null) => b?.error, () => undefined);
-    throw Object.assign(new Error(typeof why === 'string' && why.length <= 300 ? why : `The sync server answered ${res.status}.`), { status: res.status });
+    throw Object.assign(new Error(typeof why === 'string' && why.length <= 300 ? why : tt('The sync server answered {status}.', { status: res.status })), { status: res.status });
   }
   return res;
 }
@@ -101,10 +103,10 @@ export async function signIn(email: string, code: string): Promise<CloudSession>
 /** Keeps the sign-in the sync server answered with (a code, or a passkey): this device is signed in. */
 export async function keepSession(res: Response): Promise<CloudSession> {
   const data = await res.json().catch(() => null) as Partial<CloudSession> | null;
-  if (!data || typeof data.token !== 'string' || typeof data.email !== 'string') throw new Error('The sync server sent an answer Globereader did not understand.');
+  if (!data || typeof data.token !== 'string' || typeof data.email !== 'string') throw new Error(tt('The sync server sent an answer Globereader did not understand.'));
   const session: CloudSession = { token: data.token, email: data.email, ...(typeof data.name === 'string' && data.name ? { name: data.name } : {}),
     ...(typeof data.created === 'string' && data.created ? { created: data.created } : {}) };
-  try { storage()?.setItem(SESSION_KEY, JSON.stringify(session)); } catch { throw new Error('This browser would not keep the sign-in. Allow site data for Globereader and try again.'); }
+  try { storage()?.setItem(SESSION_KEY, JSON.stringify(session)); } catch { throw new Error(tt('This browser would not keep the sign-in. Allow site data for Globereader and try again.')); }
   announce();
   return session;
 }
@@ -124,7 +126,7 @@ export async function accountInfo(): Promise<{ email: string; owner: boolean; ma
   const res = await cloudFetch('/me', { signal: AbortSignal.timeout(15_000) });
   if (!res) return null;
   if (res.status === 401) { forgetSession(); return null; }
-  if (!res.ok) throw new Error(`The sync server answered ${res.status}.`);
+  if (!res.ok) throw new Error(tt('The sync server answered {status}.', { status: res.status }));
   const data = await res.json() as { email?: unknown; owner?: unknown; mac?: unknown };
   const email = typeof data.email === 'string' ? data.email : '';
   const owner = data.owner === true;

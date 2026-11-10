@@ -12,6 +12,7 @@ import { TABLES, createIdbBackend, createMemoryBackend, friendlyError, type Back
 import { SETTINGS_KEY, defaultsFor, sanitizePatch, sanitizeSettings } from './settings';
 import { langId, langKey } from '../lang/active';
 import { LANGS, isLangId } from '../lang/registry';
+import { langName, tt } from '../i18n';
 
 export { QUOTA_MESSAGE } from './db';
 
@@ -51,7 +52,7 @@ export async function bytesOf(blob: Blob): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(r.result as ArrayBuffer);
-    r.onerror = () => reject(r.error ?? new Error('Could not read an image from the book'));
+    r.onerror = () => reject(r.error ?? new Error(tt('Could not read an image from the book')));
     r.readAsArrayBuffer(blob);
   });
 }
@@ -230,7 +231,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     try { void navigator.storage?.persist?.(); } catch { /* best effort */ }
   } catch (e) {
     if ((e as { name?: string } | null)?.name === 'VersionError') {
-      throw new Error('Your saved data was written by a newer version of Globereader. Update the app to open it.', { cause: e });
+      throw new Error(tt('Your saved data was written by a newer version of Globereader. Update the app to open it.'), { cause: e });
     }
     console.warn('Globereader: IndexedDB is unavailable, so books and words will be kept in memory only and lost on reload.', e);
     backend = createMemoryBackend();
@@ -436,7 +437,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         });
       },
       async upsert(scope, entry) {
-        if (!entry.word) throw new Error('A name or term needs its characters.');
+        if (!entry.word) throw new Error(tt('A name or term needs its characters.'));
         await write([{ op: 'put', table: 'lexicon', value: { ...entry, scope } }]);
       },
       async remove(scope, word) {
@@ -486,7 +487,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       },
       async replace(id, book) {
         const cur = await db.get<BookMeta>('books', id);
-        if (!cur) throw new Error('That book is no longer in your library.');
+        if (!cur) throw new Error(tt('That book is no longer in your library.'));
         // The reading place and the bookmarks move to the same character in the new chapters.
         const oldChapters = new Map<number, Chapter | undefined>();
         const oldChapter = async (i: number) => {
@@ -561,7 +562,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       },
       async update(id, patch) {
         const cur = await db.get<BookMeta>('books', id);
-        if (!cur) throw new Error('That book is no longer in your library.');
+        if (!cur) throw new Error(tt('That book is no longer in your library.'));
         const next: BookMeta = { ...cur, ...patch, id };
         // Marked as the Mac's book (or otherwise renamed for sync): a place kept under its new key lands now.
         const kept = bookKey(next) === bookKey(cur) ? [] : await keptPlace(next, async (i) => (await db.get<{ chapter: Chapter }>('chapters', [id, i]))?.chapter);
@@ -588,10 +589,10 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       },
       async setCover(id, image, from) {
         const cur = await db.get<BookMeta>('books', id);
-        if (!cur) throw new Error('That book is no longer in your library.');
+        if (!cur) throw new Error(tt('That book is no longer in your library.'));
         const data = await bytesOf(image);
         const type = sniffRaster(new Uint8Array(data, 0, Math.min(data.byteLength, 64)));
-        if (!type) throw new Error('That cover is not a picture Globereader can show.');
+        if (!type) throw new Error(tt('That cover is not a picture Globereader can show.'));
         // A new name for each picture, so a cached address for the old one is never shown for the new.
         const name = `cover-${from.replace(/[^\w.-]+/g, '-').slice(-40)}`;
         await write([
@@ -638,7 +639,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       list: () => db.getAll<VocabItem>('vocab'),
       get: (id) => db.get<VocabItem>('vocab', id),
       async put(item) {
-        if (!item.id) throw new Error('A saved word needs a headword.');
+        if (!item.id) throw new Error(tt('A saved word needs a headword.'));
         await write([{ op: 'put', table: 'vocab', value: item }]);
         addVocabKeys(item);
         emit('vocab');
@@ -658,7 +659,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
       review(id, grade: Grade, now) {
         return exclusive(async () => {
           const cur = await db.get<VocabItem>('vocab', id);
-          if (!cur) throw new Error('That word is no longer in your list.');
+          if (!cur) throw new Error(tt('That word is no longer in your list.'));
           const next: VocabItem = { ...cur, srs: schedule(cur.srs, grade, now) };
           const log: Omit<ReviewLog, 'id'> = { itemId: id, grade, at: now };
           await write([{ op: 'put', table: 'vocab', value: next }, { op: 'put', table: 'reviews', value: log }]);
@@ -887,13 +888,13 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     importBackup(json) {
       return exclusive(async () => {
         let data: unknown;
-        try { data = JSON.parse(json); } catch { throw new Error('That file is not a Globereader backup (it is not valid JSON).'); }
-        if (!isObj(data) || data.app !== 'dushu') throw new Error('That file is not a Globereader backup.');
+        try { data = JSON.parse(json); } catch { throw new Error(tt('That file is not a Globereader backup (it is not valid JSON).')); }
+        if (!isObj(data) || data.app !== 'dushu') throw new Error(tt('That file is not a Globereader backup.'));
         // A backup made while reading another language holds that language's words: they would be noise here.
         const from = isLangId(data.lang) ? data.lang : 'zh';
-        if (from !== langId()) throw new Error(`That backup is from Globereader in ${LANGS[from].name}. Switch to ${LANGS[from].name} to restore it.`);
+        if (from !== langId()) throw new Error(tt('That backup is from Globereader in {language}. Switch to {language} to restore it.', { language: langName(from, LANGS[from].name) }));
         if (typeof data.version === 'number' && data.version > 1) {
-          throw new Error('That backup was made by a newer version of Globereader. Update the app and try again.');
+          throw new Error(tt('That backup was made by a newer version of Globereader. Update the app and try again.'));
         }
         const report: BackupReport = {
           vocab: { added: 0, updated: 0, skipped: 0 }, known: { added: 0 },

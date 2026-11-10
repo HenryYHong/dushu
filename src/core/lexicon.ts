@@ -12,6 +12,7 @@ import { COMPOUND_SURNAMES, NOT_NICK_TAIL, SURNAMES } from './names';
 import { loadGazetteer, type Gazetteer, type GazetteerKind } from './gazetteer';
 import { loadNameModel, nameFeatures, nameShape, personThreshold, standOf, type NameModel, type NameSite } from './nameModel';
 import { isChinese } from '../lang/active';
+import { tt, ttn } from '../i18n';
 export { capitalizePinyin, pinyinGroups } from './names';
 
 /** Detection hands the main thread back after this much work (ms), so a slice stays within a frame. */
@@ -2591,8 +2592,9 @@ const toneless = (text: string): boolean => !/[\u0300\u0301\u0304\u030c1-5]/.tes
 /** What to tell the reader when parseEntryPinyin refuses `input` for `word`. */
 export function entryPinyinProblem(input: string, word: string): string {
   const n = [...word].length;
-  if (n > 1 && toneless(input) && entrySyllables(input, word)) return 'Add the tones, as marks or numbers, like Guō Jìng or guo1 jing4.';
-  return `Type one syllable for each of the ${n} characters, like Guō Jìng or guo1 jing4.`;
+  if (n > 1 && toneless(input) && entrySyllables(input, word)) return tt('Add the tones, as marks or numbers, like Guō Jìng or guo1 jing4.');
+  // The same English for one: what the reader has always been told.
+  return ttn(n, 'Type one syllable for each of the {n} characters, like Guō Jìng or guo1 jing4.', 'Type one syllable for each of the {n} characters, like Guō Jìng or guo1 jing4.');
 }
 
 /** Lexicon rows for the user's own words in the scope of every book. */

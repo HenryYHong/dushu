@@ -8,7 +8,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, extname, join } from 'node:path';
-import { CLOUD_URL } from '../src/core/cloud';
+import { CLOUD_URL } from '../src/core/cloudUrl';
 import { bookKey, olderKeys } from '../src/core/syncKeys';
 import { IMPORT_VERSION } from '../src/import/version';
 import { DROP_FOLDER, fileDigest, ownerBooks, type OwnerBook } from './local-books';

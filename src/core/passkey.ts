@@ -2,6 +2,7 @@
 // signing in costs nothing and has no daily limit. Someone the owner invites makes an account with a passkey on the invite
 // link (no email at all); anyone signed in can add a passkey for the next device. The browser's own WebAuthn does the work:
 // this module only turns the server's options into what navigator.credentials takes, and the passkey's answer back into JSON.
+import { tt } from '../i18n';
 import { CLOUD_EVENT, cloudBase, cloudSession, keepSession, post, type CloudSession } from './cloud';
 
 /** Whether this browser can make and use passkeys. */
@@ -33,10 +34,10 @@ interface RequestJSON { challenge: string; rpId: string; timeout: number; userVe
 /** Turns the browser's refusals into words: a passkey the person closed, or one this browser cannot make. */
 function why(e: unknown): Error {
   const name = (e as { name?: string })?.name;
-  if (name === 'NotAllowedError' || name === 'AbortError') return new Error('The passkey was not used. Try again when you’re ready.');
-  if (name === 'InvalidStateError') return new Error('This device already has a passkey for this account.');
-  if (name === 'SecurityError') return new Error('Passkeys work only on Globereader’s own address.');
-  return e instanceof Error ? e : new Error('The passkey did not work. Try again.');
+  if (name === 'NotAllowedError' || name === 'AbortError') return new Error(tt('The passkey was not used. Try again when you’re ready.'));
+  if (name === 'InvalidStateError') return new Error(tt('This device already has a passkey for this account.'));
+  if (name === 'SecurityError') return new Error(tt('Passkeys work only on Globereader’s own address.'));
+  return e instanceof Error ? e : new Error(tt('The passkey did not work. Try again.'));
 }
 
 /** Makes a passkey from the server's options, and gives back its answer as the server reads it (RegistrationResponseJSON). */
@@ -98,7 +99,7 @@ export async function signInWithPasskey(): Promise<CloudSession> {
 /** Adds a passkey on this device to the account it is signed in to. */
 export async function addPasskey(): Promise<void> {
   const s = cloudSession();
-  if (!s) throw new Error('Sign in first.');
+  if (!s) throw new Error(tt('Sign in first.'));
   const options = await (await post('/me/passkey/options', {}, s.token)).json() as CreationJSON;
   const response = await create(options);
   await (await post('/me/passkey', { challenge: options.challenge, response }, s.token)).text().catch(() => '');
@@ -124,15 +125,15 @@ export interface Invite { token: string; label: string; max: number; uses: numbe
 async function ownerCall(path: string, init: RequestInit = {}): Promise<Response> {
   const s = cloudSession();
   const base = cloudBase();
-  if (!s || !base) throw new Error('Sign in first.');
+  if (!s || !base) throw new Error(tt('Sign in first.'));
   let res: Response;
   try {
     res = await fetch(`${base}${path}`, { ...init, credentials: 'omit', signal: AbortSignal.timeout(15_000),
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.token}`, ...(init.headers as Record<string, string> | undefined) } });
-  } catch { throw new Error('Could not reach the sync server. Check this device’s internet connection.'); }
+  } catch { throw new Error(tt('Could not reach the sync server. Check this device’s internet connection.')); }
   if (!res.ok) {
     const data = await res.json().catch(() => null) as { error?: string } | null;
-    throw new Error(data?.error ?? `The sync server answered ${res.status}.`);
+    throw new Error(data?.error ?? tt('The sync server answered {status}.', { status: res.status }));
   }
   return res;
 }

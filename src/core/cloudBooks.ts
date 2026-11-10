@@ -20,6 +20,7 @@ import { bookKey, langPrefix, olderKeys } from './syncKeys';
 import { syncEnabled } from './sync';
 import { withBookLock } from './bookLock';
 import { lang, langId, langKey } from '../lang/active';
+import { langName, tt } from '../i18n';
 
 /** The server's piece size (cloud/src/account.ts BOOK_CHUNK). */
 export const BOOK_CHUNK = 1024 * 1024;
@@ -64,7 +65,7 @@ export async function packBook(store: Store, meta: BookMeta): Promise<Uint8Array
   const chapters: Chapter[] = [];
   for (let i = 0; i < meta.chapterCount; i++) {
     const ch = await store.books.chapter(meta.id, i);
-    if (!ch) throw new Error(`Chapter ${i + 1} of “${meta.title}” is missing on this device.`);
+    if (!ch) throw new Error(tt('Chapter {chapter} of “{title}” is missing on this device.', { chapter: i + 1, title: meta.title }));
     chapters.push(ch);
   }
   const names = new Set<string>();
@@ -105,9 +106,9 @@ export function unpackBook(bytes: Uint8Array): ImportedBook {
   const zip = new Archive(bytes);
   zip.inflate(['book.json'], { maxBytes: 64 * 1024 * 1024 });
   const raw = zip.get('book.json');
-  if (!raw) throw new Error('A book in your account is damaged.');
+  if (!raw) throw new Error(tt('A book in your account is damaged.'));
   const b = JSON.parse(strFromU8(raw)) as Record<string, unknown>;
-  if (b.v !== 1 || typeof b.title !== 'string' || !Array.isArray(b.chapters) || !b.chapters.length) throw new Error('A book in your account is damaged.');
+  if (b.v !== 1 || typeof b.title !== 'string' || !Array.isArray(b.chapters) || !b.chapters.length) throw new Error(tt('A book in your account is damaged.'));
   const chapters: Chapter[] = b.chapters.map((c) => {
     const ch = c as Record<string, unknown>;
     const blocks = Array.isArray(ch.blocks) ? ch.blocks.map(cleanBlock).filter((x): x is Block => !!x) : [];
@@ -153,11 +154,11 @@ async function reach<T>(p: Promise<T>): Promise<T> {
 }
 
 async function ok(res: Promise<Response> | null): Promise<Response> {
-  if (!res) throw new Error('This device is not signed in.');
+  if (!res) throw new Error(tt('This device is not signed in.'));
   const r = await reach(res);
   if (!r.ok) {
     const why = await r.json().then((x: { error?: unknown }) => x?.error, () => undefined);
-    throw new Error(typeof why === 'string' ? why : `The sync server answered ${r.status}.`);
+    throw new Error(typeof why === 'string' ? why : tt('The sync server answered {status}.', { status: r.status }));
   }
   return r;
 }
@@ -172,7 +173,7 @@ export async function accountBooks(): Promise<AccountBook[]> {
   // A Worker that keeps each language's books answers a language with { lang, books }. One from before languages answers with
   // a bare list (its Chinese books), and nothing in it is this library's: nothing goes up or comes down until it is updated.
   const named = data && typeof data === 'object' && (data as { lang?: unknown }).lang === langId() ? (data as { books?: unknown }).books : undefined;
-  if (!Array.isArray(named)) throw new Error(`The sync server is older than this version of Globereader and does not keep ${lang().name} books yet. They stay on this device until it is updated.`);
+  if (!Array.isArray(named)) throw new Error(tt('The sync server is older than this version of Globereader and does not keep {language} books yet. They stay on this device until it is updated.', { language: langName(langId(), lang().name) }));
   return named.filter((b): b is AccountBook => isEntry(b) && b.key.startsWith(prefix)).map((b) => ({ ...b, key: b.key.slice(prefix.length) }));
 }
 
@@ -222,11 +223,11 @@ async function downloadBytes(book: AccountBook): Promise<Uint8Array> {
   for (let i = 0; i < book.chunks; i++) {
     const r = await ok(cloudFetch(`/books/chunk?key=${encodeURIComponent(keyThere(book.key))}&i=${i}`, { signal: AbortSignal.timeout(60_000) }));
     const piece = new Uint8Array(await reach(r.arrayBuffer()));
-    if (at + piece.byteLength > out.byteLength) throw new Error(`“${book.title}” in your account is damaged.`);
+    if (at + piece.byteLength > out.byteLength) throw new Error(tt('“{title}” in your account is damaged.', { title: book.title }));
     out.set(piece, at);
     at += piece.byteLength;
   }
-  if (at !== book.size || await sha256(out) !== book.sha) throw new Error(`“${book.title}” did not download whole. Globereader will try again.`);
+  if (at !== book.size || await sha256(out) !== book.sha) throw new Error(tt('“{title}” did not download whole. Globereader will try again.', { title: book.title }));
   return out;
 }
 

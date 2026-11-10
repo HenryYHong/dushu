@@ -7,6 +7,7 @@ import type { Dictionary, Fix, FixAnchor, Lexicon, LexiconEntry, Token } from '.
 import { buildLexicon } from './lexicon';
 import { olderKeys } from './syncKeys';
 import { ANCHOR_SIDE, cleanFix, fixId, isObj } from './fixRecord';
+import { tt } from '../i18n';
 
 export { ANCHOR_SIDE, FIX_MAX_WORD, cleanFix, fixId, fixWire } from './fixRecord';
 
@@ -359,9 +360,9 @@ export function exportFixes(fixes: readonly Fix[], book: { title: string; key: s
  */
 export function importFixes(json: string, book: { id: string; key: string }): Fix[] {
   let data: unknown;
-  try { data = JSON.parse(json); } catch { throw new Error('That file is not a corrections file (it is not valid JSON).'); }
-  if (!isObj(data) || data.app !== 'dushu' || data.corrections === undefined || !Array.isArray(data.fixes)) throw new Error('That file is not a Globereader corrections file.');
-  if (typeof data.corrections === 'number' && data.corrections > 1) throw new Error('That file was made by a newer version of Globereader. Update the app and try again.');
+  try { data = JSON.parse(json); } catch { throw new Error(tt('That file is not a corrections file (it is not valid JSON).')); }
+  if (!isObj(data) || data.app !== 'dushu' || data.corrections === undefined || !Array.isArray(data.fixes)) throw new Error(tt('That file is not a Globereader corrections file.'));
+  if (typeof data.corrections === 'number' && data.corrections > 1) throw new Error(tt('That file was made by a newer version of Globereader. Update the app and try again.'));
   const out: Fix[] = [];
   for (const raw of data.fixes.slice(0, 5000)) {
     if (!isObj(raw)) continue;

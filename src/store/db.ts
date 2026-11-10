@@ -1,6 +1,7 @@
 // A tiny table backend with two implementations: IndexedDB (raw API) and in-memory (fallback
 // when IndexedDB is missing or refuses to open, e.g. some private-browsing modes).
 // All writes go through commit(), which is atomic.
+import { tt, ttm } from '../i18n';
 
 export type Table = 'books' | 'chapters' | 'assets' | 'progress' | 'vocab' | 'known' | 'reviews' | 'lexicon' | 'lexiconScopes' | 'sync' | 'seen' | 'lookups' | 'bookmarks' | 'fixes';
 
@@ -48,23 +49,23 @@ export interface Backend {
 }
 
 export const QUOTA_MESSAGE =
-  'Not enough storage space on this device to save that. Free up space or delete a book, then try again.';
+  ttm('Not enough storage space on this device to save that. Free up space or delete a book, then try again.');
 
 /** What a transaction that was aborted without saying why most often means: the browser ran out of room. */
-export const ABORT_MESSAGE = 'The browser could not save the book (it may be out of space).';
+export const ABORT_MESSAGE = ttm('The browser could not save the book (it may be out of space).');
 
 /** The error to show for an aborted transaction; `tx.error` is null when the browser aborts it for lack of space. */
 export function abortError(e: unknown): Error {
-  return e === null || e === undefined ? new Error(ABORT_MESSAGE) : friendlyError(e);
+  return e === null || e === undefined ? new Error(tt(ABORT_MESSAGE)) : friendlyError(e);
 }
 
 export function friendlyError(e: unknown): Error {
   const name = (e as { name?: string } | null)?.name;
   if (name === 'QuotaExceededError' || /quota/i.test(String((e as Error | null)?.message ?? ''))) {
-    return new Error(QUOTA_MESSAGE, { cause: e });
+    return new Error(tt(QUOTA_MESSAGE), { cause: e });
   }
   if (e instanceof Error) return e;
-  return new Error(String(e ?? 'Storage error'), { cause: e });
+  return new Error(e === null || e === undefined ? tt('Storage error') : String(e), { cause: e });
 }
 
 // ------------------------------------------------------------------ memory ---

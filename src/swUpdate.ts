@@ -1,6 +1,7 @@
 // Registers the service worker and brings in a new version. Found as Dushu opens or comes back to the front (nothing is being
 // read yet), it takes over at once; found later, while someone reads, it waits for "Reload".
 import type { AppContext } from './types';
+import { tt } from './i18n';
 
 /**
  * A worker is an update only when an older one is already active. On a first visit the worker installs, activates and claims
@@ -24,9 +25,9 @@ export function watchServiceWorker(
     if (now() < autoUntil) { worker.postMessage('SKIP_WAITING'); return; }
     if (updateOffered) return;
     updateOffered = true;
-    ctx.toast('A new version of Globereader is ready.', {
+    ctx.toast(tt('A new version of Globereader is ready.'), {
       ms: 24 * 3600 * 1000,
-      action: { label: 'Reload', run: () => waitingWorker?.postMessage('SKIP_WAITING') },
+      action: { label: tt('Reload'), run: () => waitingWorker?.postMessage('SKIP_WAITING') },
     });
   };
   let controlled = !!container.controller;

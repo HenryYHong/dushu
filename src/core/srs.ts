@@ -4,6 +4,7 @@
 // 1 minute then 10 minutes; the step is recovered from the gap between `last` and `due`, so
 // SrsState needs no extra field. Graduating gives 1 day (Good) or 4 days (Easy).
 import type { Grade, SrsState } from '../types';
+import { tt, ttn } from '../i18n';
 
 export const MINUTE = 60_000;
 export const DAY = 86_400_000;
@@ -99,16 +100,18 @@ export function schedule(s: SrsState, grade: Grade, now: number): SrsState {
 
 /** "10m", "3h", "4d", "1.5mo", "2y": a short label for a delay in ms. */
 export function formatInterval(ms: number): string {
-  if (ms < MINUTE) return '<1m';
+  // Each unit is a count (ttn), so a language can give it the form its number takes; English writes one form for all.
+  if (ms < MINUTE) return tt('<1m');
   const minutes = Math.round(ms / MINUTE);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return ttn(minutes, '{n}m', '{n}m');
   const hours = Math.round(ms / (60 * MINUTE));
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return ttn(hours, '{n}h', '{n}h');
   const days = Math.round(ms / DAY);
-  if (days < 31) return `${days}d`;
+  if (days < 31) return ttn(days, '{n}d', '{n}d');
   const months = Math.round((ms / DAY / 30.4) * 10) / 10;
-  if (months < 12) return `${months}mo`;
-  return `${Math.round((ms / DAY / 365) * 10) / 10}y`;
+  if (months < 12) return ttn(months, '{n}mo', '{n}mo');
+  const years = Math.round((ms / DAY / 365) * 10) / 10;
+  return ttn(years, '{n}y', '{n}y');
 }
 
 /** What each grade button would schedule, for the review UI: { again:'1m', hard:'6m', good:'10m', easy:'4d' }. */

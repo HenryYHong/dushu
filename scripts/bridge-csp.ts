@@ -1,9 +1,9 @@
 // The page's Content-Security-Policy must let the public copy reach the owner's Mac and the sync account's server
-// (core/cloud.ts CLOUD_URL), and the browser no longer calls Anthropic.
+// (core/cloudUrl.ts CLOUD_URL), and the browser no longer calls Anthropic.
 // The Mac's own name is never written here: a wildcard for Tailscale names covers it, and the app only ever connects to an
 // address the owner typed or carried over in a one-time link (parseMacUrl).
 import type { Plugin } from 'vite';
-import { CLOUD_URL } from '../src/core/cloud';
+import { CLOUD_URL } from '../src/core/cloudUrl';
 
 export const BRIDGE_CONNECT = 'https://*.ts.net:*';
 
