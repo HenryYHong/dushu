@@ -368,12 +368,16 @@ dialog.modal:focus { outline: none; }
   .app-brand-zh { width: 28px; height: 28px; font-size: 11.5px; }
   .app-brand-mark { width: 28px; height: 28px; }
 }
-/* Narrower still: the icons alone, each a 40 px target (the labels are their accessible names). */
+/* Narrower still: the icons alone, each a 40 px target (the labels are their accessible names). The same when a language's
+   labels do not fit the bar (main.ts fitNav). */
 @media (max-width: 349px) {
   .app-navlink { min-width: 40px; justify-content: center; margin: 0 1px; }
   .app-navlink .icon { display: inline-block; }
   .app-navlink span.app-navlabel { display: none; }
 }
+.app-nav.app-nav-tight .app-navlink { min-width: 40px; justify-content: center; margin: 0 1px; }
+.app-nav.app-nav-tight .app-navlink .icon { display: inline-block; }
+.app-nav.app-nav-tight .app-navlink span.app-navlabel { display: none; }
 .set-cloud-or { margin-top: var(--space-1); }
 .signin-dialog .set-cloud-row > .btn-primary:only-child { flex: 1; height: 40px; font-size: 14px; }
 

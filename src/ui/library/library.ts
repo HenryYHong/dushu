@@ -565,7 +565,7 @@ export const mount: MountFn = (root, _params, ctx) => {
         h('div.lib-start-kicker', null, tt('Your first book')),
         h('h2.lib-start-title.zh', { lang: bookLang() }, title),
         s.author ? h('div.lib-start-author', { lang: bookLang() }, sampleShown(s, 'author')) : null,
-        s.blurb ? h('p.lib-start-blurb', null, s.blurb) : null,
+        s.blurb ? h('p.lib-start-blurb', null, tt(s.blurb)) : null,
         h('p.lib-start-how', null, how),
         h('div.lib-start-actions', null, start),
         h('p.lib-start-other', null, others, ` ${tt('EPUB, Kindle without DRM, text and PDF files all work.')}`)));
@@ -627,7 +627,7 @@ export const mount: MountFn = (root, _params, ctx) => {
           h('div.lib-sample-title.zh', { lang: bookLang() }, title),
           h('span.lib-level-badge', { 'data-level': levelOf(s) }, tt(LEVELS.find((l) => l.key === levelOf(s))!.name))),
         s.author ? h('div.lib-sample-author', { lang: bookLang() }, sampleShown(s, 'author')) : null,
-        s.blurb ? h('p.lib-sample-blurb', null, s.blurb) : null,
+        s.blurb ? h('p.lib-sample-blurb', null, tt(s.blurb)) : null,
         h('div.lib-sample-foot', null,
           h('span.muted.lib-sample-size', null, existing ? tt('In your library') : size),
           go)));

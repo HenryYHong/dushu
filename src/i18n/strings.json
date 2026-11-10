@@ -1,4 +1,9 @@
 {
+ "108 outlaws gather at Liangshan Marsh. All 120 chapters of Water Margin.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
  "6-digit code": {
   "where": [
    "src/ui/settings/account.ts"
@@ -14,9 +19,39 @@
    "src/core/cloudBooks.ts"
   ]
  },
+ "A cat with no name watches his owner, a schoolteacher, and the odd visitors who come to the house.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
  "A code was sent to {email}. It works for 10 minutes.": {
   "where": [
    "src/ui/settings/account.ts"
+  ]
+ },
+ "A constable on the night boat out of Kyoto takes a prisoner into exile and wonders why the man looks so content.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
+ "A country gentleman reads so many tales of chivalry that he sets out as a knight errant, with Sancho Panza as his squire, and mistakes windmills for giants.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "A dead man tells his own life story, with jokes, in very short chapters.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "A deaf-mute serf in Moscow rescues a puppy and loves it, but his mistress has other plans.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "A diary of a man who becomes convinced that an invisible being has moved into his house.": {
+  "where": [
+   "public/samples/fr/index.json"
   ]
  },
  "A dictionary meaning could not be confirmed from this paragraph. Use the sentence translation and compare the listed senses.": {
@@ -24,9 +59,29 @@
    "src/translate/localMeaning.ts"
   ]
  },
+ "A doctor opens an asylum in a small Brazilian town and decides that nearly everyone belongs in it.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
  "A free online service, about 5,000 characters a day. Your sentence is sent to it.": {
   "where": [
    "src/ui/settings/translation.ts"
+  ]
+ },
+ "A gaucho sings his own life in verse: sent to the frontier, robbed of his home and family, he becomes an outlaw on the pampa. The national poem of Argentina.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "A girl from Kansas is swept away to the Land of Oz and follows the yellow brick road to find the Wizard. Short chapters in clear, direct sentences.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
+ "A girl who has always led a blind young man around a mining village fears what will happen when he can see.": {
+  "where": [
+   "public/samples/es/index.json"
   ]
  },
  "A guess by the AI. Check it against the passage.": {
@@ -34,9 +89,54 @@
    "src/ui/popup/wordView.ts"
   ]
  },
+ "A hot-headed Tokyo teacher is sent to a school in the countryside and makes trouble for everyone, himself included.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
+ "A jobless writer in a Shanghai slum and the young cigarette-factory worker in the next room. Yu Dafu's story of two poor people in 1920s Shanghai.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
+ "A lonely dreamer meets a young woman on four summer nights in St. Petersburg.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "A lonely, sour girl finds a locked garden at a big house on the Yorkshire moors. Easy to follow, with some Yorkshire dialect in the dialogue.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
+ "A lost dog is taken in by a circus clown and learns to perform.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "A man goes back to his hometown after twenty years and finds it changed, and his childhood friend too.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
+ "A man who is mistakenly declared dead decides to start a new life under a new name.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
  "A mark over the stressed vowel of each word, as in a learner’s dictionary.": {
   "where": [
    "src/ui/settings/settings.ts"
+  ]
+ },
+ "A miller, his clever wife, and a lecherous magistrate in a comic night of mistaken identities.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "A naive young man is thrown out of paradise and told that everything is for the best, while disaster follows him around the world.": {
+  "where": [
+   "public/samples/fr/index.json"
   ]
  },
  "A name or term needs its characters.": {
@@ -49,14 +149,69 @@
    "src/ui/popup/langWordView.ts"
   ]
  },
+ "A needle and a thread argue about which of them matters more. Two pages.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
  "A new version of Globereader is ready.": {
   "where": [
    "src/swUpdate.ts"
   ]
  },
+ "A nine-year-old boy gets a diary for his birthday and fills it with one disaster after another, most of them caused by trying to help. The first five weeks.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
+ "A poetic love story between an Indigenous woman of the Ceará coast and a Portuguese soldier.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "A poor Lisbon clerk rings a little bell, a mandarin dies in China, and the clerk inherits his millions. Then his conscience follows him.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "A poor boy serves a string of masters, from a blind beggar to a priest, and learns to live by his wits.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "A poor copying clerk in St. Petersburg saves for a new overcoat, and it changes his life.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "A poor tailor in a fine cloak is taken for a Polish count in a small Swiss town and never finds the right moment to tell the truth.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
+ "A quiet clerk is carried to the hospital after he suddenly loses his mind, and his colleagues try to understand why.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
+ "A red-haired boy works in a Sicilian sand mine, where everyone treats him as bad luck.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
  "A saved word needs a headword.": {
   "where": [
    "src/store/index.ts"
+  ]
+ },
+ "A servant waits out the rain under the ruined Rashomon gate in Kyoto and has to decide how to survive.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
+ "A short handbook on how a ruler wins power and keeps it, written in plain and direct Italian.": {
+  "where": [
+   "public/samples/it/index.json"
   ]
  },
  "A short meaning over every word": {
@@ -69,9 +224,49 @@
    "src/ui/settings/settings.ts"
   ]
  },
+ "A shy boy at a foreign school in Yokohama steals a classmate's paints. A kind teacher and a bunch of grapes help him set it right.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
+ "A spoiled princess whose father has never told her no meets three blind men who seem to see more than she does. A fairy tale.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "A student befriends an older man he calls Sensei and slowly learns what Sensei has hidden for years.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
+ "A stuffed rabbit in a nursery wants to become Real. A short, gentle story in clear, simple sentences.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
  "A to Z": {
   "where": [
    "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "A traveling monk tells of a mountain crossing one summer: a snake on the path, a forest of leeches, and a lovely woman in a lonely house.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
+ "A woman borrows a diamond necklace for one evening and loses it. A short story with a famous ending.": {
+  "where": [
+   "public/samples/fr/index.json"
+  ]
+ },
+ "A woman visits a fortune teller about her lover, and the answer she gets makes him laugh at her.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "A wooden puppet who lies, runs away and gets into every kind of trouble on his way to becoming a real boy.": {
+  "where": [
+   "public/samples/it/index.json"
   ]
  },
  "A word read more than one way counts at its easiest reading, and is known in all of them (行 xíng is HSK 1, so 行 háng goes too).": {
@@ -103,6 +298,46 @@
  "A word-by-word gloss, not a real translation. The first meanings may be wrong here.": {
   "where": [
    "src/ui/popup/translation.ts"
+  ]
+ },
+ "A young Brahmin leaves home in India to look for peace and finds it in an unexpected place.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
+ "A young man in old Luoyang is made rich three times by a hermit, then asked to keep silent through anything to become one himself.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
+ "A young man misses the omnibus by five minutes, rides the next one beside a veiled stranger, and follows her as far as Europe. Told in a letter.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "A young man waits up on Christmas Eve and talks with an older woman. He never quite understands the conversation.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "A young nihilist doctor spends a summer on his friend’s family estate, clashes with the older generation, and falls in love against his own principles.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "A young officer is sent to a remote fortress and ends up caught between his duty and the Pugachev rebellion.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "A young scientist brings a creature to life and then runs from it. Told through letters and stories inside stories, in formal nineteenth-century English.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
+ "A young woman marries an older Prussian official and pays for one mistake for the rest of her life.": {
+  "where": [
+   "public/samples/de/index.json"
   ]
  },
  "About": {
@@ -331,6 +566,11 @@
    "src/ui/shortcuts.ts"
   ]
  },
+ "Alice follows a White Rabbit down a hole into a world where the rules keep changing. Plain, funny prose, with a lot of everyday English in the talk.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
  "All": {
   "where": [
    "src/ui/reader/menus.ts",
@@ -390,6 +630,26 @@
  "Also {forms}": {
   "where": [
    "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "An aging, famous writer travels to Venice, falls under the spell of a beautiful boy, and stays on as cholera spreads through the city.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
+ "An old man remembers the girl he loved as a boy and the lake where they last met.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
+ "An older man writes down his life and tries to prove that his wife was unfaithful.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "An orphan grows up, becomes a governess at Thornfield Hall and finds a secret there. A first-person classic with long sentences and rich vocabulary.": {
+  "where": [
+   "public/samples/en/index.json"
   ]
  },
  "Another email": {
@@ -1455,6 +1715,11 @@
    "src/ui/settings/translation.ts"
   ]
  },
+ "Dante is led through the nine circles of hell by the poet Virgil. 34 cantos in verse.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
  "Dark": {
   "where": [
    "src/ui/reader/menus.ts",
@@ -1732,6 +1997,26 @@
    "src/ui/popup/bookCard.ts"
   ]
  },
+ "Eight animal stories from the forest of Misiones, written for children: a turtle, flamingos, a parrot and a war of alligators.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "Eight classic fairy tales, including Little Red Riding Hood, Cinderella and Sleeping Beauty, in short, clear sentences.": {
+  "where": [
+   "public/samples/fr/index.json"
+  ]
+ },
+ "Eight famous Tang poems, most of them four lines long. A good first read.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
+ "Elizabeth Bennet and the proud Mr. Darcy in a comedy about money, manners and marriage. Long, balanced Regency sentences make it a real step up.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
  "Email": {
   "where": [
    "src/ui/settings/account.ts"
@@ -1861,6 +2146,11 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
+ "Fifty fables in simple English, among them the fox and the grapes, the lion and the mouse and the shepherd boy who cried wolf. Each is a page or less and ends with a one-line lesson.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
  "Files of type .unknown are not supported. Use EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown.": {
   "where": [
    "src/import/index.ts"
@@ -1926,6 +2216,41 @@
    "src/ui/library/format.ts"
   ]
  },
+ "Five cases from The Adventures of Sherlock Holmes, from A Scandal in Bohemia to The Speckled Band. Each is a complete mystery with lively dialogue.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
+ "Five linked stories about Pechorin, a bored and charming officer in the Caucasus who hurts the people around him.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "Five of the monthly stories a teacher gives his class: brave children in war and in peace, and a boy from Genoa who crosses the ocean alone to find his mother.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
+ "Five short tales: a duel put off for years, a wedding in a snowstorm, an undertaker’s strange night, a stationmaster’s daughter, and a squire’s girl dressed as a peasant.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "Five stories by Clarín, led by his most famous: two children in Asturias, their old cow Cordera, and the railway that takes her away.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "Five stories from the villages and sheepfolds of Sardinia, with shepherds, old men, a young wild boar and a doe, by the Nobel Prize winner Grazia Deledda.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
+ "Five-year-old Heidi is brought up the mountain to live with her gruff grandfather and spends her first summer with the goats. The first three chapters.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
  "Fix": {
   "where": [
    "src/ui/popup/fixView.ts"
@@ -1948,9 +2273,44 @@
    "src/ui/settings/settings.ts"
   ]
  },
+ "Forty-five short fables in rhyming verse, including The Crow and the Fox and The Tortoise and the Hare. Animals talk, and each story has a moral.": {
+  "where": [
+   "public/samples/fr/index.json"
+  ]
+ },
+ "Forty-six short prose fables about foxes, ravens, wolves and donkeys, each with a sharp point. Most are only a few lines long.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
  "Found": {
   "where": [
    "src/ui/reader/toc.ts"
+  ]
+ },
+ "Four dark stories: a snakebite in the jungle, a feather pillow, a hen, and a sunstroke.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "Four of Zhu Ziqing's best-loved essays: on passing time, his father buying oranges at a station, a lotus pond by moonlight, and his five children.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
+ "Four short modern pieces Chinese children read at school: peanuts at a family supper, Mr. Close Enough, a rickshaw puller, and three cats.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
+ "Four very short stories Tolstoy wrote for children: the three bears, Filipok, a lion and a dog, and a jump from the mast.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "Four-year-old Sophie keeps getting into trouble at her family’s country house: a wax doll left in the sun, eyebrows cut off, stolen cream. The first twelve chapters.": {
+  "where": [
+   "public/samples/fr/index.json"
   ]
  },
  "Free public-domain books in {lang} from Project Gutenberg. Add one and it opens like any other book.": {
@@ -2099,6 +2459,11 @@
  "Grade {grade}": {
   "where": [
    "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "Gregor Samsa wakes up one morning as a giant insect and his family has to cope.": {
+  "where": [
+   "public/samples/de/index.json"
   ]
  },
  "HSK 1 to {n}": {
@@ -2619,6 +2984,16 @@
    "src/ui/settings/mac.ts"
   ]
  },
+ "Little King Buby loses his first tooth, and Ratón Pérez, the mouse who comes for children's teeth, takes him across Madrid to the home of a poor boy.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "Liu Bei, Cao Cao and Zhuge Liang fight over what is left of the Han. All 120 chapters of Romance of the Three Kingdoms.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
  "Loading chapter titles…": {
   "where": [
    "src/ui/reader/toc.ts"
@@ -2753,6 +3128,11 @@
  "Lower level": {
   "where": [
    "src/ui/reader/menus.ts"
+  ]
+ },
+ "Lu Xun's story of a failed scholar who drinks on credit at a village wine shop.": {
+  "where": [
+   "public/samples/index.json"
   ]
  },
  "Mac address": {
@@ -2943,6 +3323,11 @@
    "src/ui/welcome.ts"
   ]
  },
+ "Mirandolina runs an inn in Florence where her noble guests all court her, and she decides to make the one man who scorns women fall in love with her. A comedy.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
  "Model": {
   "where": [
    "src/ui/settings/translation.ts"
@@ -3083,6 +3468,21 @@
  "Next: {title}": {
   "where": [
    "src/ui/reader/pager.ts"
+  ]
+ },
+ "Nick Carraway watches his rich neighbor Jay Gatsby chase an old love on Long Island in the 1920s. A short novel, but dense and full of images.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
+ "Nine little animal tales: Peter Rabbit in Mr. McGregor’s garden, a cheeky squirrel, two mice in a doll’s house and more. Short sentences and everyday words.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
+ "Nine of the best-known fairy tales, from the Frog King and Hansel and Gretel to Snow White and Rumpelstiltskin.": {
+  "where": [
+   "public/samples/de/index.json"
   ]
  },
  "No": {
@@ -3499,6 +3899,11 @@
    "src/ui/reader/reader.ts"
   ]
  },
+ "On her name day a princess at a seaside dacha is sent a garnet bracelet by a poor clerk who has loved her in silence for years.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
  "On readings": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -3775,6 +4180,11 @@
    "src/ui/about/about.ts"
   ]
  },
+ "Paris in 1482: Quasimodo, the hunchbacked bell-ringer of Notre-Dame, the street dancer Esmeralda, and the priest who cannot stop thinking about her. A long novel.": {
+  "where": [
+   "public/samples/fr/index.json"
+  ]
+ },
  "Parts": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -3842,6 +4252,11 @@
  "Person, place or other": {
   "where": [
    "src/ui/popup/fixView.ts"
+  ]
+ },
+ "Phileas Fogg bets that he can circle the globe in eighty days, with his servant Passepartout and a detective on his trail.": {
+  "where": [
+   "public/samples/fr/index.json"
   ]
  },
  "Phrase": {
@@ -3933,6 +4348,11 @@
  "Playing {language} voice sample…": {
   "where": [
    "src/ui/settings/speech.ts"
+  ]
+ },
+ "Poems of Paris, love, boredom and death that changed French poetry. All 126 poems of the 1861 edition, in rich and difficult verse.": {
+  "where": [
+   "public/samples/fr/index.json"
   ]
  },
  "Portuguese Wikisource": {
@@ -4081,6 +4501,11 @@
  "RTF files are not supported. Save the document as a text file, then import that.": {
   "where": [
    "src/import/index.ts"
+  ]
+ },
+ "Rabbits, ducklings and a lonely chick: two stories Lu Xun wrote in Beijing in 1922, and a fable by his blind Russian friend Eroshenko in Lu Xun's translation.": {
+  "where": [
+   "public/samples/index.json"
   ]
  },
  "Radical": {
@@ -4424,6 +4849,11 @@
    "src/ui/about/about.ts"
   ]
  },
+ "Sandokan, the pirate known as the Tiger of Malaysia, falls in love with the niece of an English lord. An adventure novel of jungles, sea fights and escapes.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
  "Sans": {
   "where": [
    "src/ui/reader/menus.ts",
@@ -4667,6 +5097,21 @@
    "src/ui/settings/settings.ts"
   ]
  },
+ "Seven rhyming pranks by two naughty boys, and what finally happens to them.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
+ "Seven stories, from short comic sketches about clerks and a policeman to The Lady with the Dog, a love affair that begins on vacation in Yalta.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "Seventeen fairy tales and short stories, among them Snow White, Little Red Riding Hood and the Steadfast Tin Soldier, retold in Portuguese for children.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
  "Share": {
   "where": [
    "src/ui/settings/invites.ts",
@@ -4681,6 +5126,21 @@
  "Short and plain: a good first book": {
   "where": [
    "src/ui/library/library.ts"
+  ]
+ },
+ "Short rhymed warnings for children: the girl who plays with matches, the boy who will not eat his soup.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
+ "Short sketches of Provence written from an old windmill: shepherds, priests, smugglers and a goat who wants to be free.": {
+  "where": [
+   "public/samples/fr/index.json"
+  ]
+ },
+ "Short, gentle chapters about a poet and his small donkey in an Andalusian village.": {
+  "where": [
+   "public/samples/es/index.json"
   ]
  },
  "Shorter": {
@@ -4892,6 +5352,16 @@
    "src/ui/settings/settings.ts"
   ]
  },
+ "Six fairy tales told the old way, with kings and queens, poor children, magic gifts and a werewolf, full of lively dialogue and repeated rhymes.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
+ "Six short modern poems from the 1920s, among them Xu Zhimo's Saying Goodbye to Cambridge Again and Dai Wangshu's Rain Alley. Short, musical and good for reading aloud.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
  "Skip": {
   "where": [
    "src/ui/welcome.ts"
@@ -5061,6 +5531,11 @@
  "Storage error": {
   "where": [
    "src/store/db.ts"
+  ]
+ },
+ "Stories and poems José Martí wrote for the children of the Americas: three liberators, a rich boy and his poor cousin, a girl's old black doll, a magic shrimp and a pair of pink shoes.": {
+  "where": [
+   "public/samples/es/index.json"
   ]
  },
  "Stories for grown-up readers": {
@@ -5254,6 +5729,16 @@
    "src/ui/popup/langWordView.ts"
   ]
  },
+ "Ten short dreams, each strange and quiet. Most are only a page or two.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
+ "Ten stories about a bear of very little brain, Christopher Robin, Piglet and Eeyore. Mostly short dialogue, and the jokes work well for learners.": {
+  "where": [
+   "public/samples/en/index.json"
+  ]
+ },
  "Term": {
   "where": [
    "src/ui/popup/bookCard.ts",
@@ -5395,6 +5880,11 @@
    "src/store/index.ts"
   ]
  },
+ "The Buddha lowers a spider thread to a thief in hell. A short children's story about greed.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
  "The HSK list has {word} as {reading} (level {level}), not in this reading": {
   "where": [
    "src/ui/popup/wordView.ts"
@@ -5408,6 +5898,11 @@
  "The Kai (brush) reading typeface.": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "The Monkey King and the monk Tang Sanzang travel west for the scriptures. All 100 chapters of Journey to the West.": {
+  "where": [
+   "public/samples/index.json"
   ]
  },
  "The PDF reader could not start. This is a problem with how Globereader is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.": {
@@ -5495,6 +5990,11 @@
    "src/ui/about/about.ts"
   ]
  },
+ "The diary of a man who thinks everyone around him wants to eat him. The first modern short story in vernacular Chinese.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
  "The dictionaries are shared under their own licenses, listed here with each one. Their definitions are used and adapted under those licenses, and the dictionary data stays under them. Thanks to everyone who wrote them.": {
   "where": [
    "src/ui/about/about.ts"
@@ -5530,9 +6030,24 @@
    "src/ui/settings/translation.ts"
   ]
  },
+ "The first chapter of Journey to the West. The Monkey King is born from a stone and sets out to learn how to live forever.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
+ "The first chapter of the Analects: sixteen short sayings about learning, in classical Chinese.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
  "The first dictionary meaning of each word, which may not be the one used here. Tap a word for all of them.": {
   "where": [
    "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "The first part of In Search of Lost Time: childhood summers in Combray, a madeleine dipped in tea, and Swann’s jealous love for Odette. Famous for very long sentences.": {
+  "where": [
+   "public/samples/fr/index.json"
   ]
  },
  "The first time you open a book, Globereader looks for names and terms that keep coming up and reads them as whole words. It takes a few seconds, on your device.": {
@@ -5548,6 +6063,11 @@
  "The last seven days": {
   "where": [
    "src/ui/goalCard.ts"
+  ]
+ },
+ "The letters of a sensitive young man who falls in love with a woman who is already engaged.": {
+  "where": [
+   "public/samples/de/index.json"
   ]
  },
  "The link for {name} no longer works. Accounts made with it stay.": {
@@ -5660,6 +6180,16 @@
    "src/core/passkey.ts"
   ]
  },
+ "The rise and fall of the Jia family, and Baoyu and Daiyu. All 120 chapters of Dream of the Red Chamber.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
+ "The scholar Faust makes a wager with the devil Mephistopheles and wins the love of young Gretchen, with tragic results. A play in verse.": {
+  "where": [
+   "public/samples/de/index.json"
+  ]
+ },
  "The serif of the screen titles, folios and numbers (a Latin subset).": {
   "where": [
    "src/ui/about/about.ts"
@@ -5732,6 +6262,11 @@
  "The voice could not play. Tap Read again, or choose an iPad voice in Settings.": {
   "where": [
    "src/speech/tts.ts"
+  ]
+ },
+ "The wife of a country doctor looks for a more exciting life in affairs and debt.": {
+  "where": [
+   "public/samples/fr/index.json"
   ]
  },
  "The words that come up most first": {
@@ -6217,6 +6752,21 @@
    "src/import/epub.ts"
   ]
  },
+ "Three generations of a wealthy Lisbon family and a love affair that turns out to be a tragedy. A very long novel.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
+ "Three legends of Spain: green eyes in a spring, the haunted hill of souls, and a ray of moonlight.": {
+  "where": [
+   "public/samples/es/index.json"
+  ]
+ },
+ "Three of Lu Xun's memoirs of growing up: his nanny and the picture book she found him, the family garden and the old school, and his teacher in Japan.": {
+  "where": [
+   "public/samples/index.json"
+  ]
+ },
  "Through your Mac": {
   "where": [
    "src/ui/popup/translation.ts"
@@ -6272,6 +6822,11 @@
  "Today’s limit is used up": {
   "where": [
    "src/ui/popup/translation.ts"
+  ]
+ },
+ "Tokyo, 1880. A moneylender's kept woman falls quietly for a medical student who walks past her house every evening.": {
+  "where": [
+   "public/samples/ja/index.json"
   ]
  },
  "Tone changes": {
@@ -6486,14 +7041,44 @@
    "src/ui/reader/menus.ts"
   ]
  },
+ "Twenty-four short fables in verse about animals with human faults: a crow and a fox, a dragonfly and an ant, a monkey with glasses, and more.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "Twenty-nine short fables from Aesop, La Fontaine and Brazilian folklore, retold for children with Brazilian animals. Most are a page or two.": {
+  "where": [
+   "public/samples/pt/index.json"
+  ]
+ },
  "Two": {
   "where": [
    "src/ui/reader/menus.ts"
   ]
  },
+ "Two Russian officers are taken prisoner in the Caucasus mountains. Tolstoy wrote this escape story for children in short, plain sentences.": {
+  "where": [
+   "public/samples/ru/index.json"
+  ]
+ },
+ "Two hunters walk into a restaurant in the mountains where the rules keep getting stranger.": {
+  "where": [
+   "public/samples/ja/index.json"
+  ]
+ },
  "Two pages": {
   "where": [
    "src/ui/settings/settings.ts"
+  ]
+ },
+ "Two young lovers in 17th-century Lombardy are kept apart by a local tyrant, war and plague. A long novel.": {
+  "where": [
+   "public/samples/it/index.json"
+  ]
+ },
+ "Two young people from feuding families fall in love in Viseu, and it leads to prison, a convent and exile. Portugal’s Romeo and Juliet.": {
+  "where": [
+   "public/samples/pt/index.json"
   ]
  },
  "Type a title to search the {lang} Wikisource.": {

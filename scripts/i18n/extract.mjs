@@ -1,6 +1,6 @@
 // Collects the app's own words for translation: every tt('…'), ttm('…'), ttx('…', 'context') and ttn(n, '…', '…') in src/ (src/i18n/index.ts says
 // how they are written). Writes src/i18n/strings.json: each English string, its plural form if it is a count, and the files it
-// is in (context for whoever translates it). `--check` writes nothing and fails when the file is out of date.
+// is in (context for whoever translates it). Also the classics' descriptions, from public/samples/<lang>/index.json. `--check` writes nothing and fails when the file is out of date.
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,6 +40,14 @@ export function extract() {
     for (const m of src.matchAll(ONE)) add(value(m[2]), where);
     for (const m of src.matchAll(MANY)) add(value(m[2]), where, value(m[1]));
     for (const m of src.matchAll(CTX)) add(`${value(m[1])} [${value(m[2])}]`, where);
+  }
+  // The classics' one-line descriptions (public/samples/<lang>/index.json `blurb`): the library shows them through tt().
+  for (const dir of ['', ...readdirSync(join(ROOT, 'public/samples'))]) {
+    const f = join(ROOT, 'public/samples', dir, 'index.json');
+    let list;
+    try { list = JSON.parse(readFileSync(f, 'utf8')); } catch { continue; }
+    const items = Array.isArray(list) ? list : list.books ?? list.samples ?? [];
+    for (const b of items) if (typeof b.blurb === 'string' && b.blurb) add(b.blurb, `public/samples/${dir ? `${dir}/` : ''}index.json`);
   }
   const strings = {};
   for (const k of [...found.keys()].sort()) {

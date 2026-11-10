@@ -288,6 +288,14 @@ async function boot(): Promise<void> {
   );
   const screen = h('main#screen');
   app.append(nav, screen, toasts);
+  // Labels that do not fit (Einstellungen, Bibliothèque on a phone) give way to the icons, as on the narrowest screens; measured
+  // with the labels shown, so a wider screen or a shorter language brings them back.
+  const fitNav = () => {
+    nav.classList.remove('app-nav-tight');
+    if (nav.scrollWidth > nav.clientWidth + 1) nav.classList.add('app-nav-tight');
+  };
+  if (typeof ResizeObserver === 'function') new ResizeObserver(fitNav).observe(nav);
+  fitNav();
 
   // Ask the browser not to evict our data. Safari can clear the storage of sites that are not on the Home Screen, so this
   // is asked once the person has something worth keeping: after the first book is added.

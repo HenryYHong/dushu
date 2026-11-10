@@ -1674,6 +1674,22 @@ and opens it. Empty state explains what the app does in two sentences.
   The library takes either when it opens: files are imported (one opens), a link to a book opens Find a book on it, other text
   opens Paste text filled in. iOS offers neither.
 
+### 5.4.3 Your language (`src/i18n/`)
+
+- The app's own words are written in English in the code and shown through `tt()` (`ttn()` for a count, `ttx()` for one English
+  word with two meanings, `ttm()` to mark a string kept in a constant). The English is the key, so English needs no catalog and
+  reads exactly as written; a string a catalog lacks stays English.
+- `scripts/i18n/extract.mjs` collects every such string, and the classics' blurbs from `public/samples/**/index.json`, into
+  `src/i18n/strings.json` with the files each is in. `src/i18n/catalogs/<code>.json` translate them (a count by its CLDR forms).
+  `tests/i18n/catalogs.test.ts` fails when strings.json is out of date, a catalog drops or adds a `{value}`, or covers under 95%.
+- Ten languages besides English: zh, zh-Hant, ja, ko, es, fr, de, it, pt (Brazil), ru. A device starts in its browser's
+  language when the app has it; Settings › Learning › Your language (`dushu.ui.v1`, on this device) chooses one, sets
+  `translateTo` to it and reloads. The welcome's language step is the same choice. `main.ts` loads the catalog (a lazy chunk,
+  precached with the app) before anything is drawn and sets `<html lang>`.
+- Not translated: books, the dictionaries' meanings (English, Chinese in the English library), translations, and messages
+  that come from a server as they are.
+- The top bar measures itself: when a language's tab labels do not fit (German on a phone), it shows the icons alone.
+
 ### 5.5 Vocab and review (`ui/vocab/`, `ui/review/`)
 - Vocab: searchable/sortable table (word, pinyin, gloss, context sentence with the word bold,
   book, added date, due), click a row → word popup (reuse `openWordPopup`), remove, export

@@ -139,7 +139,7 @@ The translation panel says which one answered. You can stop a translation, switc
 
 **MyMemory** is a free online service. It is never used unless you choose it, because it sends the selected text to a third party. With **Local only** on, it is off, and every sentence stays on your Mac.
 
-Sentences can go into any of 94 languages: pick yours under **Settings › Translation** or on the welcome screen. Claude and MyMemory take them all; Chrome's on-device translator takes some and says when it cannot. Word cards keep their short meanings in English (in Chinese for English books).
+The app itself is shown in your language when it has it: English, Chinese (simplified and traditional), Japanese, Korean, Spanish, French, German, Italian, Portuguese or Russian. It starts in your browser's language; change it under **Settings › Learning › Your language**, which also sets the language translations go into. Sentences can go into any of 94 languages: pick one on its own under **Settings › Translation**, or on the welcome screen. Claude and MyMemory take them all; Chrome's on-device translator takes some and says when it cannot. Word cards keep their short meanings in English (in Chinese for English books).
 
 Machine translation is a help, not a proof. Names keep their readings, and the dictionary stays the source of truth for pinyin. A real-model evaluation script is in `scripts/evaluate-translations.mjs`.
 
