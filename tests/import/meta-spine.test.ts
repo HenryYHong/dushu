@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { importFile } from '../../src/import';
 import { cleanAuthorName, cleanAuthors, parseFilename, authorFromLine } from '../../src/import/meta';
-import { dropContentsPages, dropTitlePage } from '../../src/import/spine';
+import { chaptersFromSpine, dropContentsPages, dropTitlePage } from '../../src/import/spine';
+import type { Block } from '../../src/types';
 import { CONTAINER, asFile, makeEpub, ncxDoc, opf, prose, xhtml } from './helpers';
 
 describe('author names', () => {
@@ -124,6 +125,67 @@ describe('EPUB title page and heading spelling', () => {
     expect(dropTitlePage([ch('Marianela', ['Marianela', 'Benito Pérez Galdós', 'Se puso el sol.']), rest], 'Marianela', 'Benito Pérez Galdós')).toHaveLength(2);
   });
 
+  it('drops the title pages of popular Gutenberg books, whatever their case, length and imprint', () => {
+    const ch = (title: string, texts: string[]) => ({ title, blocks: texts.map((text): Block => (text === '---' ? { t: 'hr' } : { t: 'p', text })) });
+    const rest = ch('I', [prose(100)]);
+    // Die Verwandlung: in capitals.
+    expect(dropTitlePage([ch('DIE VERWANDLUNG', ['DIE VERWANDLUNG', 'VON', 'FRANZ KAFKA', 'KURT WOLFF VERLAG', 'LEIPZIG', '1917']), rest], 'Die Verwandlung', 'Franz Kafka')).toEqual([rest]);
+    // Madame Bovary: the year in brackets, a contents heading closing the page, and an author page before it.
+    expect(dropTitlePage([ch('MADAME BOVARY', ['MADAME BOVARY', '(1857)', 'Table des matières']), rest], 'Madame Bovary', 'Gustave Flaubert')).toEqual([rest]);
+    expect(dropTitlePage([ch('Madame Bovary', ['Gustave Flaubert']), ch('MADAME BOVARY', ['MADAME BOVARY', '(1857)']), rest], 'Madame Bovary', 'Gustave Flaubert')).toEqual([rest]);
+    // Dom Casmurro: 14 blocks with rules between them, and a publisher who is a "livreiro".
+    const casmurro = ['DOM CASMURRO', '---', 'POR', 'MACHADO DE ASSIS', 'DA ACADEMIA BRAZILEIRA', '---', 'H. GARNIER, LIVREIRO-EDITOR', '71, RUA MOREIRA CEZAR, 71',
+      'RIO DE JANEIRO', '---', '6, RUE DES SAINTS-PÈRES, 6', 'PARIS', '1899', 'Indice'];
+    expect(dropTitlePage([ch('DA ACADEMIA BRAZILEIRA', casmurro), rest], 'Dom Casmurro', 'Machado de Assis')).toEqual([rest]);
+    // Pinocchio: 19 blocks, imprint lines that end with a full stop, and the frontispiece after INDICE, which moves on.
+    const pinocchio: Block[] = [...ch('', ['LE AVVENTURE DI PINOCCHIO', '---', 'C. COLLODI', 'Le avventure di Pinocchio', 'STORIA DI UN BURATTINO', 'ILLUSTRATA DA E. MAZZANTI',
+      '---', 'FIRENZE', 'R. Bemporad & Figlio — Editori.', 'Via del Proconsolo, 7', '1902', '---', 'PROPRIETÀ LETTERARIA', '12 — 1902. — Tip. di Salvadore Landi, Firenze.',
+      '---', 'INDICE', '---']).blocks, { t: 'img', asset: 'front.png' }];
+    const first = { title: 'I. Come andò', blocks: [{ t: 'h', level: 2, text: 'I. Come andò' }, { t: 'p', text: prose(100) }] as Block[] };
+    expect(dropTitlePage([{ title: 'LE AVVENTURE DI PINOCCHIO', blocks: pinocchio }, first], 'Le avventure di Pinocchio', 'C. Collodi'))
+      .toEqual([{ ...first, blocks: [first.blocks[0], { t: 'img', asset: 'front.png' }, first.blocks[1]] }]);
+    // A page that only credits the e-text (羅生門).
+    expect(dropTitlePage([ch('羅生門', ['Produced by Rick Davis']), rest], '羅生門', 'Ryunosuke Akutagawa')).toEqual([rest]);
+    // 紅樓夢 with a credit after its colon, in any Chinese form.
+    expect(dropTitlePage([ch('紅樓夢', ['紅樓夢', '作者：曹雪芹', '上卷']), rest], '紅樓夢', 'Cao, Xueqin')).toEqual([rest]);
+  });
+
+  it('keeps a first poem headed with the book title, a Russian poem with a line opening "От", and 著名的故事', () => {
+    const ch = (title: string, texts: string[]) => ({ title, blocks: texts.map((text): Block => ({ t: 'p', text })) });
+    const rest = ch('I', [prose(100)]);
+    const lines = ['Al pie de la colina', 'donde duerme el viento', 'las flores del camino', 'esperan al pastor', 'y cantan en voz baja', 'las aguas del molino',
+      'la tarde se deshace', 'en luz de oro viejo', 'un perro ladra lejos', 'y vuelve la quietud', 'las cabras en el monte', 'se juntan al oscurecer',
+      'la madre llama al niño', 'que no quiere volver', 'y el humo de la casa', 'se pierde en el azul', 'la noche ya se acerca', 'con su paso de lana', 'y nadie dice nada', 'mañana volverá'];
+    // A 20-line poem of short lines under the book's title, with no author, year, credit or publisher.
+    expect(lines).toHaveLength(20);
+    expect(dropTitlePage([ch('Canciones del valle', ['CANCIONES DEL VALLE', ...lines]), rest], 'Canciones del valle', 'Ana Ruiz')).toHaveLength(2);
+    // Within the 16 lines a title page may have, too: nothing on it is printed matter.
+    expect(dropTitlePage([ch('Canciones del valle', ['CANCIONES DEL VALLE', ...lines.slice(0, 15)]), rest], 'Canciones del valle', 'Ana Ruiz')).toHaveLength(2);
+    expect(dropTitlePage([ch('Парус', ['Парус', 'Белеет парус одинокой', 'В тумане моря голубом', 'От бурь ища покоя', 'Под ним струя светлей лазури']), rest], 'Парус', 'Mikhail Lermontov')).toHaveLength(2);
+    expect(dropTitlePage([ch('紅樓夢', ['紅樓夢', '著名的故事', '上卷']), rest], '紅樓夢', 'Cao, Xueqin')).toHaveLength(2);
+  });
+
+  it('gives a chapter its number set as a heading of its own before the heading the contents points at', () => {
+    const doc = {
+      path: 'a.xhtml', skipped: false,
+      blocks: [{ t: 'h', level: 4, text: 'Do titulo.' }, { t: 'p', text: 'Uma noite destas.' }, { t: 'hr' }, { t: 'h', level: 5, text: 'II' },
+        { t: 'h', level: 4, text: 'Do livro.' }, { t: 'p', text: 'Agora que expliquei o titulo.' }] as Block[],
+      anchors: new Map([['c1', 0], ['c2', 4]]),
+    };
+    const chapters = chaptersFromSpine([doc], [{ doc: 0, frag: 'c1', title: 'Do titulo.' }, { doc: 0, frag: 'c2', title: 'Do livro.' }]);
+    expect(chapters).toEqual([
+      { title: 'Do titulo.', blocks: [{ t: 'h', level: 4, text: 'Do titulo.' }, { t: 'p', text: 'Uma noite destas.' }] },
+      { title: 'II. Do livro.', blocks: [{ t: 'h', level: 4, text: 'II. Do livro.' }, { t: 'p', text: 'Agora que expliquei o titulo.' }] },
+    ]);
+  });
+
+  it('titles a chapter by its heading when the contents label puts a picture caption before it, and only then', () => {
+    const one = (title: string, head: string) => chaptersFromSpine([{ path: 'a', skipped: false, blocks: [{ t: 'h', level: 2, text: head }, { t: 'p', text: 'Text.' }], anchors: new Map() }], [{ doc: 0, frag: '', title }])[0].title;
+    expect(one('I hope Mr. Bingley will like it. CHAPTER II.', 'CHAPTER II.')).toBe('CHAPTER II.');
+    expect(one('Chapter 1. The Beginning', 'The Beginning')).toBe('Chapter 1. The Beginning');
+    expect(one('Part One. Chapter 1.', 'Chapter 1.')).toBe('Part One. Chapter 1.');
+  });
+
   it('drops a contents page kept as a chapter, and keeps a short chapter that lists other things', () => {
     const ch = (title: string, texts: string[]) => ({ title, blocks: texts.map((text) => ({ t: 'p' as const, text })) });
     const body = ['-I- Perdido', '-II- Guiado', '-III- Un diálogo', '-IV- La familia de piedra'].map((t) => ch(t, [prose(100)]));
@@ -135,5 +197,30 @@ describe('EPUB title page and heading spelling', () => {
     // A chapter of short lines that are not the book's chapters, and no contents heading: a poem, kept.
     const poem = ch('Rima I', ['Yo sé un himno gigante y extraño', 'que anuncia en la noche del alma una aurora', 'y estas páginas son de ese himno', 'cadencias que el aire dilata en las sombras']);
     expect(dropContentsPages([poem, ...body])).toEqual([poem, ...body]);
+  });
+
+  it('matches contents lines to the end of a numbered title, and lets a few lines run long', () => {
+    const ch = (title: string, texts: string[]) => ({ title, blocks: texts.map((text): Block => ({ t: 'p', text })) });
+    const names = ['Que trata de la condición y ejercicio del famoso hidalgo', 'Que trata de la primera salida que hizo el ingenioso', 'Donde se cuenta la graciosa manera que tuvo en armarse',
+      'De lo que le sucedió a nuestro caballero cuando salió de la venta'];
+    const body = names.map((n, i) => ch(`Capítulo ${['primero', 'II', 'III', 'IV'][i]}. ${n}`, [prose(100)]));
+    const long = 'Que trata de la condición y ejercicio del famoso hidalgo don Quijote de la Mancha, con otras cosas que se dirán en su lugar y tiempo oportuno';
+    expect(long.length).toBeGreaterThan(120);
+    expect(dropContentsPages([ch('Índice', ['Índice', ...names, long]), ...body])).toEqual(body);
+  });
+
+  it('takes a contents label run together off the chapter it titles', () => {
+    const ch = (title: string, blocks: Block[]) => ({ title, blocks });
+    const squashed = 'PREMIÈRE PARTIE I II III DEUXIÈME PARTIE I II III';
+    const out = dropContentsPages([
+      ch(squashed, [{ t: 'h', level: 4, text: squashed }, { t: 'p', text: 'À' }, { t: 'p', text: 'Marie-Antoine-Jules Senard' }, { t: 'p', text: prose(50) }]),
+      ch('PREMIÈRE PARTIE', [{ t: 'h', level: 5, text: 'PREMIÈRE PARTIE' }, { t: 'p', text: prose(100) }]),
+      ch('II', [{ t: 'p', text: prose(100) }]), ch('III', [{ t: 'p', text: prose(100) }]), ch('DEUXIÈME PARTIE', [{ t: 'p', text: prose(100) }]),
+    ]);
+    expect(out[0].title).toBe('À Marie-Antoine-Jules Senard');
+    expect(out[0].blocks[0]).toEqual({ t: 'p', text: 'À' });
+    // A long real title is left alone, however long.
+    const real = 'Come andò che Maestro Ciliegia, falegname, trovò un pezzo di legno, che piangeva e rideva come un bambino, e altre cose ancora che si leggono qui';
+    expect(dropContentsPages([ch(real, [{ t: 'p', text: prose(100) }]), ch('II', [{ t: 'p', text: prose(100) }]), ch('III', [{ t: 'p', text: prose(100) }])])[0].title).toBe(real);
   });
 });

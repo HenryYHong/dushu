@@ -277,8 +277,9 @@ const OPENS_QUOTE = /^[“「『]/u;
  * paragraphs, this is the one sign of it.
  */
 export function wrapsOn(prev: string, next: string, width: number, nextStarts = false): boolean {
-  // A line longer than the width was not wrapped (a list of dates set out in full): it ends its paragraph.
-  if (nextStarts || cpLen(prev) > width || !joinable(prev, width)) return false;
+  // A line longer than the width was not wrapped (a list of dates set out in full): it ends its paragraph. Gutenberg's START
+  // and END lines are never part of one: glued to the line before ("Credits: …*** START OF …"), the header stayed in the book.
+  if (nextStarts || cpLen(prev) > width || !joinable(prev, width) || PG_MARK.test(prev) || PG_MARK.test(next)) return false;
   if (ENDS_SENTENCE.test(prev) && OPENS_QUOTE.test(next)) return false;
   return !detectHeadingLine(next) && !isRuleLine(next) && !isSiteJunk(next);
 }
@@ -529,6 +530,18 @@ function demoteContentsRuns(blocks: Block[]): Block[] {
   return out;
 }
 
+/**
+ * A plain line that opens like a chapter heading but is a sentence the wrap cut ("第一回是民國元年我初到北京的時候，當時一個朋友對",
+ * where 第一回 means "the first time"): a comma inside, its clauses of unequal length, and more text in the next paragraph. A
+ * chapter title with a comma is a couplet whose halves match (四海千山皆拱伏，九幽十類盡除名).
+ */
+function cutSentence(text: string, next: Block | undefined): boolean {
+  if (!/[，,]/.test(text) || next?.t !== 'p') return false;
+  const body = trimLine(text).replace(NUMBERED, '').replace(/^[\s\u3000：:]+/, '');
+  const clauses = body.split(/[，,]/).map((c) => cpLen(c.trim()));
+  return Math.max(...clauses) - Math.min(...clauses) > 1;
+}
+
 /** Indices where chapters start, choosing the most trustworthy signal. Mutates `blocks` when it promotes paragraphs. */
 /**
  * A heading element named by its start: "Глава третья. Новое, очень приятное знакомство" (Каштанка) is longer than a heading
@@ -572,7 +585,7 @@ function boundaries(blocks: Block[]): number[] | null {
 
   const promoted: number[] = [];
   blocks.forEach((b, i) => {
-    if (b.t === 'p' && detectHeadingLine(b.text)) promoted.push(i);
+    if (b.t === 'p' && detectHeadingLine(b.text) && !cutSentence(b.text, blocks[i + 1])) promoted.push(i);
   });
   if (level) {
     const idx: number[] = [];
@@ -815,30 +828,90 @@ function splitOversize(c: Chapter): Chapter[] {
   return out;
 }
 
-const PG_START = /^\*{3}\s*START OF (?:THE|THIS) PROJECT GUTENBERG/i;
-const PG_END = /^\*{3}\s*END OF (?:THE|THIS) PROJECT GUTENBERG/i;
+/** Gutenberg's START or END line, anywhere in a line ("Credits: …*** START OF THE PROJECT GUTENBERG EBOOK 吶喊 ***"). */
+const PG_MARK = /\*{3}\s*(?:START|END) OF (?:THE|THIS) PROJECT GUTENBERG/i;
+/** The whole START or END line where it sits in a block: up to its closing stars, or the end of the block. */
+const PG_START_LINE = /\*{3}\s*START OF (?:THE|THIS) PROJECT GUTENBERG[^*]*(?:\*{3}|$)/i;
+const PG_END_LINE = /\*{3}\s*END OF (?:THE|THIS) PROJECT GUTENBERG[^*]*(?:\*{3}|$)/i;
+/**
+ * The header's lines that a Gutenberg book made from a plain-text file repeats right after the header ("Produced by Han Huei
+ * Haung", "Language: Chinese", "Credits: …"): no part of the book.
+ */
+const GUTENBERG_LEFTOVER = /^(?:Language|Produced by|Credits|Character set encoding|E-?text prepared by)\b/i;
+/** The line such a book ends on, before the footer: "End of Project Gutenberg's Pang Huang, by …", "End of the Project Gutenberg EBook of …". */
+const GUTENBERG_END_NOTE = /^End of (?:the |this )?Project Gutenberg/i;
+
+/**
+ * Where a Gutenberg mark sits in a list of blocks: the block, and the text of it to keep (after a START line, before an END
+ * line). A mark is found anywhere in a paragraph, not only at its start.
+ */
+function findMark(blocks: Block[], line: RegExp, from = 0): { at: number; keep: string } | null {
+  for (let i = from; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (b.t !== 'p') continue;
+    const m = line.exec(b.text);
+    if (!m) continue;
+    const keep = line === PG_END_LINE ? b.text.slice(0, m.index) : b.text.slice(m.index + m[0].length);
+    return { at: i, keep: keep.trim() };
+  }
+  return null;
+}
+
+/** After a START line: the header's repeated lines go. Before an END line: the "End of Project Gutenberg's …" note goes. */
+function trimLeftovers(blocks: Block[], lead: boolean, tail: boolean): Block[] {
+  let from = 0;
+  // A credit that opens a title page stays with the page, which dropTitlePage takes as a whole ("Produced by …" is its sign
+  // that the page was printed); one right before the book's own text goes here.
+  const page = (bs: Block[]) => bs.filter((b) => b.t !== 'hr').length <= 16 && bs.reduce((n, b) => n + blockHan(b), 0) <= 80 * unitScale();
+  while (lead && from < blocks.length && (blocks[from].t === 'hr' || (blocks[from].t === 'p' && GUTENBERG_LEFTOVER.test(blockText(blocks[from]).trim())))) {
+    if (/^(?:Produced|E-?text)\b/i.test(blockText(blocks[from]).trim()) && page(blocks.slice(from + 1))) break;
+    from++;
+  }
+  let to = blocks.length;
+  while (tail && to > from && (blocks[to - 1].t === 'hr' || (blocks[to - 1].t === 'p' && GUTENBERG_END_NOTE.test(blockText(blocks[to - 1]).trim())))) to--;
+  return from || to < blocks.length ? blocks.slice(from, to) : blocks;
+}
+
+function dropEndNote(chapters: Chapter[]): Chapter[] {
+  const last = chapters[chapters.length - 1];
+  if (!last) return chapters;
+  let to = last.blocks.length;
+  while (to > 0 && last.blocks[to - 1].t === 'hr') to--;
+  const b = last.blocks[to - 1];
+  if (!b || b.t !== 'p' || !GUTENBERG_END_NOTE.test(b.text.trim())) return chapters;
+  return [...chapters.slice(0, -1), { ...last, blocks: last.blocks.slice(0, to - 1) }];
+}
 
 /**
  * Project Gutenberg files wrap the book in an English license header and footer. Drop everything
  * outside the START and END markers (when both or either is present).
  */
 export function stripGutenbergBlocks(blocks: Block[]): Block[] {
-  const start = blocks.findIndex((b) => b.t === 'p' && PG_START.test(b.text.trim()));
-  const end = blocks.findIndex((b, i) => i > start && b.t === 'p' && PG_END.test(b.text.trim()));
-  if (start < 0 && end < 0) return blocks;
-  return blocks.slice(start + 1, end < 0 ? undefined : end);
+  const start = findMark(blocks, PG_START_LINE);
+  const end = findMark(blocks, PG_END_LINE, start ? start.at : 0);
+  if (!start && !end) return blocks;
+  const out = blocks.slice(start ? start.at + 1 : 0, end ? end.at : undefined);
+  if (end?.keep) out.push({ t: 'p', text: end.keep });
+  if (start?.keep) out.unshift({ t: 'p', text: start.keep });
+  return trimLeftovers(out, !!start, !!end);
 }
 
-export function stripGutenberg(chapters: Chapter[], bookTitle: string): Chapter[] {
-  const isMark = (b: Block, re: RegExp) => b.t === 'p' && re.test(b.text.trim());
-  let startAt: [number, number] | null = null;
-  let endAt: [number, number] | null = null;
-  chapters.forEach((c, ci) =>
-    c.blocks.forEach((b, bi) => {
-      if (!startAt && isMark(b, PG_START)) startAt = [ci, bi];
-      else if (startAt && !endAt && isMark(b, PG_END)) endAt = [ci, bi];
-    }),
-  );
+export function stripGutenberg(input: Chapter[], bookTitle: string): Chapter[] {
+  // The note a Gutenberg book made from a plain-text file ends on ("End of Project Gutenberg's …") goes, wherever its footer is.
+  const chapters = dropEndNote(input);
+  let startAt: [number, number, string] | null = null;
+  let endAt: [number, number, string] | null = null;
+  for (let ci = 0; ci < chapters.length && !endAt; ci++) {
+    const blocks = chapters[ci].blocks;
+    if (!startAt) {
+      const m = findMark(blocks, PG_START_LINE);
+      if (m) startAt = [ci, m.at, m.keep];
+    }
+    // An END line counts also where no START was found (glued to another line, or left out): the license after it goes.
+    const from = startAt && startAt[0] === ci ? startAt[1] + 1 : 0;
+    const e = findMark(blocks, PG_END_LINE, from);
+    if (e) endAt = [ci, e.at, e.keep];
+  }
   if (!startAt && !endAt) return chapters;
   const out: Chapter[] = [];
   chapters.forEach((c, ci) => {
@@ -846,9 +919,15 @@ export function stripGutenberg(chapters: Chapter[], bookTitle: string): Chapter[
     if (endAt && ci > endAt[0]) return;
     let blocks = c.blocks;
     let title = c.title;
-    if (endAt && ci === endAt[0]) blocks = blocks.slice(0, endAt[1]);
+    if (endAt && ci === endAt[0]) {
+      blocks = blocks.slice(0, endAt[1]);
+      if (endAt[2]) blocks.push({ t: 'p', text: endAt[2] });
+      blocks = trimLeftovers(blocks, false, true);
+    }
     if (startAt && ci === startAt[0]) {
       blocks = blocks.slice(startAt[1] + 1);
+      if (startAt[2]) blocks.unshift({ t: 'p', text: startAt[2] });
+      blocks = trimLeftovers(blocks, true, false);
       const first = blocks[0];
       title = first && first.t === 'h' ? first.text : bookTitle;
     }
@@ -883,6 +962,12 @@ export function finalizeChapters(input: Chapter[]): Chapter[] {
       if (hasImg && !seenProse) continue; // cover or title-page picture
       if (!last && !hasImg) {
         carry = carry.concat(c.blocks);
+        continue;
+      }
+      // A closing line set as a chapter of its own at the very end ("FIM", "THE END") ends the chapter before it.
+      if (last && !hasImg && !carry.length && merged.length && seenProse) {
+        const prev = merged[merged.length - 1];
+        merged[merged.length - 1] = { ...prev, blocks: prev.blocks.concat(c.blocks) };
         continue;
       }
     }

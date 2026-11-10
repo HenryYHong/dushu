@@ -1,15 +1,15 @@
 // EPUB 2 and 3: zip, package document, spine, table of contents, content to blocks, cover.
 import type { Block, Chapter, ImportedBook } from '../types';
 import { AssetStore, dropAssets } from './assets';
-import { extractBlocks } from './blocks';
-import { chaptersByTextHeadings, finalizeChapters, stripGutenberg } from './chapters';
+import { extractBlocks, type BlockLinks } from './blocks';
+import { blockText, chapterHan, chaptersByTextHeadings, chaptersFromBlocks, finalizeChapters, splitBySize, stripGutenberg, stripGutenbergBlocks } from './chapters';
 import { langId } from '../lang/active';
 import { decodeText, sniffMarkupCharset, unreadableMessage, withHongKongCharacters } from './encoding';
 import { ImportError } from './errors';
 import { Archive, ZIP_LIMITS } from './zip';
 import { attr, byLocal, childrenByLocal, dirname, fragmentOf, localName, parseXhtml, parseXmlLoose, plainText, resolvePath } from './markup';
 import { cleanAuthors, cleanTitle, parseFilename } from './meta';
-import { chaptersFromSpine, dropContentsPages, dropTitlePage, firstHeading, type SpineDoc, type TocRef } from './spine';
+import { CONTENTS, chaptersFromSpine, dropContentsPages, dropTitlePage, firstHeading, titleFromText, type SpineDoc, type TocRef } from './spine';
 
 interface ManifestItem {
   id: string;
@@ -193,6 +193,135 @@ export function tidyWikisource(doc: Document, work = ''): { author: string; part
   return { author, part };
 }
 
+/**
+ * Contents entries that point into Gutenberg's own footer, or name its license: not chapters of the book. One that points into
+ * its header (the book's title) points at the start of the book's text.
+ */
+const GUTENBERG_FOOTER_ID = /^pg-(?:footer|end-separator)/;
+const GUTENBERG_HEADER_ID = /^pg-(?:header|machine-header|start-separator)/;
+const GUTENBERG_LICENSE = /FULL PROJECT GUTENBERG(?:™|\(TM\))? LICENSE/i;
+/** The heading of a list of the book's pictures, in words or as the alt of the picture it is drawn as. */
+const LIST_HEADING = /^(?:list of illustrations|illustrations|list of plates|liste des illustrations|índice de (?:ilustraciones|láminas)|indice delle illustrazioni|verzeichnis der (?:abbildungen|illustrationen))\.?$/i;
+
+/**
+ * A contents list made of links into the book (Gutenberg's a.pginternal, a ul or table of chapter names), wherever it sits: in
+ * a title-page chapter (Don Quijote), in a chapter of its own (Pinocchio's INDICE), as one line of links (Pride and Prejudice's
+ * "Chapter: I., II., …"). A run of blocks with three links or more, at least 70% of its text inside them, made of three blocks
+ * or more or holding a block of three links or more, goes, with a contents heading right before it. Short lines without a link
+ * between the entries ("I", "Pag. 5") belong to the run. What is around it stays (a title page, a preface). A chapter left with
+ * headings only goes too, and one titled as a contents page that keeps other text is titled from that text.
+ */
+export function dropLinkedRuns(chapters: Chapter[], linksOf: WeakMap<Block, BlockLinks>): Chapter[] {
+  let changed = false;
+  const out: Chapter[] = [];
+  for (const c of chapters) {
+    const bs = c.blocks;
+    const info = bs.map((b) => linksOf.get(b) ?? { share: 0, count: 0 });
+    const size = (b: Block) => (b.t === 'p' || b.t === 'h' || b.t === 'quote' ? b.text.replace(/\s+/g, '').length : 0);
+    const linky = (i: number) => info[i].share >= 0.7 && size(bs[i]) > 0;
+    const between = (i: number) => bs[i].t === 'hr' || bs[i].t === 'img' || (info[i].share === 0 && size(bs[i]) > 0 && size(bs[i]) <= 12);
+    const drop = new Set<number>();
+    for (let i = 0; i < bs.length;) {
+      if (!linky(i)) { i++; continue; }
+      let end = i;
+      let j = i;
+      while (j < bs.length && (linky(j) || between(j))) { if (linky(j)) end = j; j++; }
+      let from = i;
+      while (from > 0 && between(from - 1) && bs[from - 1].t !== 'img') from--;
+      // The last entry's page number ("276") after it.
+      while (end + 1 < bs.length && between(end + 1) && size(bs[end + 1]) > 0) end++;
+      let total = 0;
+      let linked = 0;
+      let count = 0;
+      let texts = 0;
+      let most = 0;
+      for (let k = from; k <= end; k++) {
+        const n = size(bs[k]);
+        total += n;
+        linked += n * info[k].share;
+        count += info[k].count;
+        most = Math.max(most, info[k].count);
+        if (n) texts++;
+      }
+      if (count >= 3 && total > 0 && linked / total >= 0.7 && (texts >= 3 || most >= 3)) {
+        for (let k = from; k <= end; k++) drop.add(k);
+        let h = from - 1;
+        while (h >= 0 && bs[h].t === 'hr') h--;
+        if (h >= 0 && CONTENTS.test(blockText(bs[h]).trim())) drop.add(h);
+      }
+      i = end + 1;
+    }
+    // A list of pictures or entries whose page numbers are the links (Pride and Prejudice's List of Illustrations: a caption,
+    // then "iv", "v", … linked): five such numbers or more, each after an entry of a line, with its heading before it.
+    const pageRef = (i: number) => linky(i) && size(bs[i]) <= 8 && /^[\p{N}ivxlcdm]+[\p{P}\p{S}]?$/iu.test(blockText(bs[i]).trim());
+    const entry = (i: number) => (bs[i].t === 'p' || bs[i].t === 'h') && info[i].share === 0 && size(bs[i]) > 0 && blockText(bs[i]).length <= 100;
+    for (let i = 0; i < bs.length;) {
+      if (drop.has(i) || !(pageRef(i) || entry(i))) { i++; continue; }
+      let j = i;
+      let refs = 0;
+      let entries = 0;
+      while (j < bs.length && !drop.has(j) && (pageRef(j) || entry(j) || bs[j].t === 'hr')) {
+        if (pageRef(j)) refs++;
+        else if (bs[j].t !== 'hr') entries++;
+        j++;
+      }
+      if (refs >= 5 && refs >= entries * 0.6) {
+        for (let k = i; k < j; k++) drop.add(k);
+        const h = i - 1;
+        if (h >= 0 && (CONTENTS.test(blockText(bs[h]).trim()) || LIST_HEADING.test(blockText(bs[h]).trim() || (bs[h].t === 'img' ? (bs[h] as { alt?: string }).alt ?? '' : '')))) drop.add(h);
+      }
+      i = Math.max(j, i + 1);
+    }
+    if (!drop.size) {
+      out.push(c);
+      continue;
+    }
+    changed = true;
+    const blocks = bs.filter((_, k) => !drop.has(k));
+    if (!blocks.some((b) => b.t === 'p' || b.t === 'quote' || b.t === 'img')) continue;
+    out.push({ ...c, title: CONTENTS.test(c.title.trim()) ? titleFromText(blocks) : c.title, blocks });
+  }
+  return changed ? out : chapters;
+}
+
+/**
+ * A book in Japanese, Chinese or Russian that opens on a transcriber's note in English (Gutenberg's 羅生門: "By AKUTAGAWA
+ * Ryunosuke", "A note from the digitizer", …) before its own title: the note is kept, as a quote at the end of the first
+ * chapter, and the chapter is titled by the book's own first line when its contents label is in Latin letters ("RASHOMON").
+ * Only a short note (eight lines and 1,500 characters at most) followed by a title in the book's own script: a novel that opens
+ * on a paragraph in French (War and Peace) goes on to its own prose, and is left as it is.
+ */
+export function transcriberNoteToEnd(chapters: Chapter[], script: RegExp): Chapter[] {
+  const first = chapters[0];
+  if (!first) return chapters;
+  const bs = first.blocks;
+  const latin = (b: Block) => (b.t === 'p' || b.t === 'h' || b.t === 'quote') && /\p{Script=Latin}/u.test(b.text) && !script.test(b.text);
+  let i = 0;
+  let chars = 0;
+  while (i < bs.length && (latin(bs[i]) || bs[i].t === 'hr')) chars += blockText(bs[i++]).length;
+  const own = bs[i];
+  const run = bs.slice(0, i).filter((b) => b.t !== 'hr');
+  const ownLine = own && (own.t === 'p' || own.t === 'h') ? own.text.trim() : '';
+  const titleLike = !!ownLine && script.test(ownLine) && [...ownLine].length <= 30 && !/[。！？.!?…]$/.test(ownLine);
+  if (!run.some((b) => b.t === 'p') || run.length > 8 || chars > 1500 || !titleLike) return chapters;
+  const sameText = (a: string, b: string) => a.replace(/\s+/g, '').toLocaleLowerCase() === b.replace(/\s+/g, '').toLocaleLowerCase();
+  const note: Block[] = run.filter((b) => !(b.t === 'h' && sameText(b.text, first.title))).map((b) => ({ t: 'quote', text: blockText(b) }));
+  let rest = bs.slice(i);
+  let title = first.title;
+  if (!script.test(title)) {
+    title = ownLine;
+    rest = [{ t: 'h', level: 1, text: ownLine }, ...rest.slice(1)];
+  }
+  return [{ ...first, title, blocks: [...rest, ...note] }, ...chapters.slice(1)];
+}
+
+/** The letters of the book's own script, for the languages that are not written in Latin letters. */
+function ownScript(lang: string): RegExp | null {
+  if (lang === 'ja' || lang === 'zh') return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+  if (lang === 'ru') return /\p{Script=Cyrillic}/u;
+  return null;
+}
+
 export async function importEpub(data: Uint8Array, sourceName: string, onProgress?: (fraction: number) => void): Promise<ImportedBook> {
   // List the archive first (declared sizes are checked there), then inflate only what the book needs.
   const archive = new Archive(data);
@@ -233,6 +362,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   // A Japanese book's printed readings (<ruby>) stay on its blocks, for the engine to take over its own guess.
   const japanese = langId() === 'ja' || byLocal(opf, 'language').some((el) => /^\s*ja\b/i.test(el.textContent ?? ''));
   const workTitle = byLocal(opf, 'title')[0]?.textContent?.trim() ?? '';
+  const bookLanguage = (byLocal(opf, 'language')[0]?.textContent ?? '').trim().toLowerCase();
   const isImagePath = (path: string) => IMAGE_EXT.has(extOf(path));
   // Inflate what the package lists, plus any image file (some books use pictures their manifest forgot). Other
   // entries (fonts, audio, stray files) are never inflated. A picture over the size cap is skipped, not fatal.
@@ -254,6 +384,10 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
       .map((path) => ({ id: path, path, mediaType: 'application/xhtml+xml', properties: [] }));
   }
   if (!spine.length) throw new ImportError('This EPUB has no readable content.');
+  // Project Gutenberg's conversion of a plain-text Chinese book (its files named …-0-1.txt.xhtml): one printed line per <p>, the
+  // lines with a capital letter set as h4 or h5, and a contents of only the title and the license. Its headings are lines of
+  // text, and its chapters are found in its text (第一回 …).
+  const gutenbergChinese = spine.some((m) => /\.txt\.xhtml$/i.test(m.path)) && (langId() === 'zh' || /^zh\b/.test(bookLanguage));
 
   // ---- assets
   const store = new AssetStore();
@@ -271,6 +405,10 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
 
   // ---- content
   const docs: SpineDoc[] = [];
+  /** Each block's links into the book, for dropLinkedRuns. */
+  const linksOf = new WeakMap<Block, BlockLinks>();
+  /** In a Gutenberg Chinese text, the anchors on the converter's h3 to h6 lines (its contents points at one): no chapters. */
+  const lineAnchors = new Set<string>();
   const unreadable = { n: 0 };
   let textDocs = 0;
   let encrypted = 0;
@@ -304,8 +442,15 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
       wikisourceAuthor ||= named.author;
       wikisourcePart = named.part;
     }
+    if (gutenbergChinese) {
+      for (const el of Array.from(markup.getElementsByTagName('*'))) {
+        const id = el.getAttribute('id');
+        if (id && /^h[3-6]$/.test(localName(el))) lineAnchors.add(`${item.path}#${id}`);
+      }
+    }
     const extracted = extractBlocks(markup, {
       ruby: japanese,
+      textHeadings: gutenbergChinese,
       resolveImage: (src) => {
         if (wikisource && WIKISOURCE_ICON.test(src)) return undefined;
         if (/^data:/i.test(src)) return store.addDataUri(src);
@@ -318,6 +463,7 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
     } else {
       doc.blocks = extracted.blocks;
       doc.anchors = extracted.anchors;
+      extracted.blocks.forEach((b, k) => { if (extracted.links[k]?.count || extracted.links[k]?.share) linksOf.set(b, extracted.links[k]); });
       // A Wikisource part whose title was only in the header gets it back as its heading.
       const top = doc.blocks.find((b) => b.t !== 'hr');
       if (wikisourcePart && !(top?.t === 'h' && wikisourcePart.includes(top.text.trim()))) {
@@ -343,7 +489,9 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   const refs: TocRef[] = [];
   for (const e of toc) {
     const doc = indexByPath.get(e.path);
-    if (doc !== undefined) refs.push({ doc, frag: e.frag, title: e.title });
+    if (doc === undefined || GUTENBERG_FOOTER_ID.test(e.frag) || GUTENBERG_LICENSE.test(e.title)) continue;
+    if (e.frag && lineAnchors.has(`${e.path}#${e.frag}`)) continue;
+    refs.push({ doc, frag: GUTENBERG_HEADER_ID.test(e.frag) ? '' : e.frag, title: e.title });
   }
   let chapters = chaptersFromSpine(docs, refs);
   // The whole book in one file under one contents entry (a converter's EPUB, the entry often "正文"): its chapters are found in
@@ -353,7 +501,19 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
   if (content.length === 1 && (refs.length <= 1 || wikisource)) {
     const byText = chaptersByTextHeadings(content[0].blocks, refs[0]?.title ?? '');
     if (byText) chapters = docs.flatMap((d) => (d === content[0] ? byText : !d.skipped && d.blocks.length ? [{ title: firstHeading(d.blocks), blocks: d.blocks }] : []));
+  } else if (gutenbergChinese && refs.length <= 1 && content.length > 1) {
+    // Gutenberg's Chinese text split over several files: the files are one text, cut by its own headings (西遊記's 第一回 to
+    // 第一百回), or into parts by size when it has none.
+    // Headings that hold only part of it do not make its chapters: a collection of stories where one story numbers its own
+    // chapters (吶喊's 阿Q正傳, 第一章 to 第九章) would open on a third of the book and end on another third. It is cut by size.
+    const joined = stripGutenbergBlocks(content.flatMap((d) => d.blocks));
+    const name = refs[0]?.title || cleanTitle(workTitle) || '';
+    const byText = chaptersByTextHeadings(joined, name);
+    const total = byText ? byText.reduce((n, c) => n + chapterHan(c), 0) : 0;
+    const spread = !!byText && (byText.length < 4 || (chapterHan(byText[0]) <= total / 3 && chapterHan(byText[byText.length - 1]) <= total / 3));
+    chapters = byText && spread ? byText : byText ? splitBySize(joined).map((p, i) => ({ title: `Part ${i + 1}`, blocks: p })) : chaptersFromBlocks(joined, { title: name });
   }
+  chapters = dropLinkedRuns(chapters, linksOf);
 
   // ---- metadata
   const dc = (name: string) => byLocal(opf, name).filter((el) => localName(el.parentElement ?? el) === 'metadata');
@@ -378,7 +538,10 @@ export async function importEpub(data: Uint8Array, sourceName: string, onProgres
 
   // SVG images become PNG here; any that cannot be converted are removed from the text and the cover.
   const dropped = await store.finalize();
-  const kept = dropAssets(dropTitlePage(dropContentsPages(finalizeChapters(stripGutenberg(chapters, title))), title, author), coverName, dropped);
+  let tidy = dropTitlePage(dropContentsPages(finalizeChapters(stripGutenberg(chapters, title))), title, author);
+  const script = ownScript(langId());
+  if (script) tidy = transcriberNoteToEnd(tidy, script);
+  const kept = dropAssets(tidy, coverName, dropped);
 
   onProgress?.(0.97);
   return {

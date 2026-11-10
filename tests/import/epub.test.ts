@@ -3,7 +3,10 @@ import { strToU8 } from 'fflate';
 import { afterEach, describe, expect, it } from 'vitest';
 import { importFile } from '../../src/import';
 import { setDefaultSvgRasterizer } from '../../src/import/assets';
-import { BIG_CHAPTER_HAN, chapterHan } from '../../src/import/chapters';
+import { BIG_CHAPTER_HAN, chapterHan, stripGutenberg, stripGutenbergBlocks, wrapsOn } from '../../src/import/chapters';
+import { extractBlocks } from '../../src/import/blocks';
+import { parseXhtml } from '../../src/import/markup';
+import { setLangForTests } from '../../src/lang/active';
 import { CONTAINER, PNG, SVG, asFile, makeEpub, navDoc, ncxDoc, opf, prose, xhtml } from './helpers';
 
 async function load(files: Parameters<typeof makeEpub>[0], name = 'book.epub') {
@@ -265,6 +268,37 @@ describe('block extraction', () => {
     expect(book.chapters[0].blocks.map((b) => b.t)).toEqual(['h', 'p', 'hr', 'quote', 'quote']);
   });
 
+  it('splits a paragraph element of indented lines into its paragraphs (Gutenberg\'s Japanese books), and only that', async () => {
+    const lines = ['　或日の暮方の事である。一人の男が門の下で', '雨やみを待っていた。　広い門の下には誰も', 'いない。', '　何故かと云うと、この二三年、京都には災い', 'がつづいて起こった。', '　その代り又鴉が何処からか集まって来た。'];
+    const book = await load(base(`<h1>雨の門</h1><p>${lines.join('\n')}</p>`));
+    expect(book.chapters[0].blocks.slice(1)).toEqual([
+      { t: 'p', text: '或日の暮方の事である。一人の男が門の下で雨やみを待っていた。' },
+      { t: 'p', text: '広い門の下には誰もいない。' },
+      { t: 'p', text: '何故かと云うと、この二三年、京都には災いがつづいて起こった。' },
+      { t: 'p', text: 'その代り又鴉が何処からか集まって来た。' },
+    ]);
+    // One indented line is no sign: the paragraph stays whole, as do wrapped lines with no indents.
+    const one = await load(base(`<h1>雨の門</h1><p>${lines.slice(0, 3).join('\n')}</p><p>It was a fine morning,\nand the whole family was\ngathered in the room.</p>`));
+    expect(one.chapters[0].blocks.slice(1).map((b) => (b as { text: string }).text)).toEqual(['或日の暮方の事である。一人の男が門の下で雨やみを待っていた。　広い門の下には誰もいない。', 'It was a fine morning, and the whole family was gathered in the room.']);
+  });
+
+  it('reads a letter drawn as a picture at the start of a paragraph as the start of its word, and only there', async () => {
+    setLangForTests('en');
+    const book = await load({
+      ...base(`<h2><img alt="" src="h.png"/><span class="caption">I hope Mr. Bingley will like it.</span><br/><br/>CHAPTER II.</h2>`
+        + `<p class="nind"><span class="letra">\n<img alt="M" src="m.png"/></span>R. BENNET was among the earliest of those who waited on Mr. Bingley.</p>`
+        + `<p>He looked at the map <img alt="A" src="a.png"/> and smiled.</p><div class="figcenter"><img alt="B" src="b.png"/></div>`),
+      'h.png': PNG, 'm.png': PNG, 'a.png': PNG, 'b.png': PNG,
+    });
+    const blocks = book.chapters[0].blocks;
+    expect(blocks[0]).toEqual({ t: 'h', level: 2, text: 'CHAPTER II.' });
+    expect(blocks[1]).toMatchObject({ t: 'img', alt: 'I hope Mr. Bingley will like it.' });
+    expect(blocks[2]).toEqual({ t: 'p', text: 'MR. BENNET was among the earliest of those who waited on Mr. Bingley.' });
+    // A letter picture in the middle of a paragraph, or in a figure of its own, is a picture.
+    expect(blocks.slice(3).map((b) => b.t)).toEqual(['p', 'img', 'p', 'img']);
+    setLangForTests(null);
+  });
+
   it('keeps deliberate spaces but drops source line breaks between Chinese characters', async () => {
     const book = await load(base(`<h1>第一章 开始</h1><p>你好\n    世界，\n  Hello\n  world。</p>`));
     expect(book.chapters[0].blocks).toEqual([
@@ -324,6 +358,39 @@ describe('Project Gutenberg books', () => {
     expect(book.chapters.map((c) => c.title)).toEqual(['狂人日記', 'Section 2']);
     expect(JSON.stringify(book.chapters)).not.toMatch(/Gutenberg|License/);
   });
+
+  it('cuts at an END line found without a START line, and at a mark inside a paragraph', () => {
+    const p = (text: string) => ({ t: 'p' as const, text });
+    // Longer than a title page: a credit right before it is a leftover of the header.
+    const story = prose(200);
+    // No START line (it was glued to another line, or never there): the license after END still goes.
+    expect(stripGutenberg([{ title: 'A', blocks: [p(story), p('*** END OF THE PROJECT GUTENBERG EBOOK 吶喊 ***'), p('License text.')] }], '吶喊'))
+      .toEqual([{ title: 'A', blocks: [p(story)] }]);
+    // A START line glued to the end of the Credits line: what follows the mark is the book, the header's leftovers go.
+    expect(stripGutenberg([
+      { title: 'Header', blocks: [p('This eBook is for the use of anyone anywhere.'), p('Credits: Produced by Han Huei Haung*** START OF THE PROJECT GUTENBERG EBOOK 吶喊 ***'), p('Produced by Han Huei Haung'), p(story)] },
+    ], '吶喊')).toEqual([{ title: '吶喊', blocks: [p(story)] }]);
+    expect(stripGutenbergBlocks([p('Title: 吶喊'), p('Language: Chinese *** START OF THE PROJECT GUTENBERG EBOOK 吶喊 *** 《吶喊》自序'), p(story), p("End of Project Gutenberg's Na Han, by Xun Lu"), p('*** END OF THE PROJECT GUTENBERG EBOOK 吶喊 ***')]))
+      .toEqual([p('《吶喊》自序'), p(story)]);
+  });
+
+  it('never joins a wrapped line into or out of a START or END line', () => {
+    const credit = 'Credits: Produced by Han Huei Haung';
+    expect(wrapsOn(credit, '*** START OF THE PROJECT GUTENBERG EBOOK 吶喊 ***', 36)).toBe(false);
+    expect(wrapsOn('*** END OF THE PROJECT GUTENBERG EBOOK 吶喊 ***', 'THE FULL PROJECT GUTENBERG LICENSE', 36)).toBe(false);
+    expect(wrapsOn(credit, 'and more of the same credit line here', 36)).toBe(true);
+  });
+
+  it("keeps Gutenberg's own header and footer out of the blocks, all but their START and END lines", () => {
+    const doc = parseXhtml(xhtml(`<header class="pg-boilerplate pgheader" id="pg-header"><h2 id="pg-header-heading">The Project Gutenberg eBook of 吶喊</h2>`
+      + `<p>Credits: Produced by Han Huei Haung</p><div id="pg-start-separator"><span>*** START OF THE PROJECT GUTENBERG EBOOK 吶喊 ***</span></div></header>`
+      + `<p id="a">${prose(30)}</p><footer class="pg-boilerplate pgheader" id="pg-footer"><div id="pg-end-separator"><span>*** END OF THE PROJECT GUTENBERG EBOOK 吶喊 ***</span></div>`
+      + '<h2 id="pg-footer-heading">THE FULL PROJECT GUTENBERG™ LICENSE</h2><p>License.</p></footer>'));
+    const { blocks } = extractBlocks(doc);
+    expect(blocks).toEqual([
+      { t: 'p', text: '*** START OF THE PROJECT GUTENBERG EBOOK 吶喊 ***' }, { t: 'p', text: prose(30) }, { t: 'p', text: '*** END OF THE PROJECT GUTENBERG EBOOK 吶喊 ***' },
+    ]);
+  });
 });
 
 describe('malformed markup and encodings', () => {
@@ -365,7 +432,7 @@ describe('malformed markup and encodings', () => {
   });
 });
 
-afterEach(() => setDefaultSvgRasterizer());
+afterEach(() => { setDefaultSvgRasterizer(); setLangForTests(null); });
 
 describe('images and cover', () => {
   const files = {
