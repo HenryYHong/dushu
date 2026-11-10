@@ -3,9 +3,10 @@
 // app the owner connects once per device: the Mac's private address is kept in this browser only, never in the build,
 // the settings or a backup. The server still decides who may use it (the owner's exact Tailscale identity).
 
-const STORE_KEY = 'dushu.mac-bridge.v1';
+/** The Mac this device reaches, for every library on it (a Chinese "Delete all data" keeps it for the others). */
+export const STORE_KEY = 'dushu.mac-bridge.v1';
 /** Set when the person disconnected this device from the Mac: signing in never connects it again by itself. */
-const DECLINED_KEY = 'dushu.mac-bridge.declined.v1';
+export const DECLINED_KEY = 'dushu.mac-bridge.declined.v1';
 /** Where the public copy of the app lives. The hand-off link opens it; nothing private is in this address. */
 export const PUBLIC_APP_URL = 'https://henryyhong.com/dushu/';
 /** Fired on window when the connected Mac changes, so open screens can try again. */

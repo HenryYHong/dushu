@@ -43,3 +43,66 @@ describe('cross-device progress and terms', () => {
     expect((await ipad.importBackup(await mac.exportBackup())).progress.skipped).toBe(1);
   });
 });
+
+describe('bookmarks and looked-up words in a backup', () => {
+  const mark = (bookId: string, id = 'm1') => ({ id, bookId, chapter: 0, block: 0, offset: 2, label: '第一页', createdAt: 5 });
+
+  it('come back after Delete all data, on the book once it is added again, in either order', async () => {
+    vi.stubGlobal('crypto', webcrypto);
+    const store = await open();
+    const original = await store.books.add(book());
+    await store.bookmarks.put(mark(original.id));
+    await store.lookups.log({ day: '2026-11-08', id: '读书', word: '读书', pinyin: 'du2 shu1', gloss: 'to read', context: { sentence: '我们读书。', bookId: original.id, chapter: 0 } }, 10);
+    const backup = await store.exportBackup();
+    const data = JSON.parse(backup) as { version: number; bookmarks: { bookKey?: string }[]; lookups: unknown[] };
+    expect(data.version).toBe(1);
+    expect(data.bookmarks).toHaveLength(1);
+    expect(data.bookmarks[0].bookKey).toMatch(/^b/);
+    expect(data.lookups).toHaveLength(1);
+
+    // The book added again first, then the backup: the bookmark lands on it by its content.
+    await store.wipe();
+    const again = await store.books.add(book());
+    const report = await store.importBackup(backup);
+    expect([report.bookmarks.added, report.lookups.added]).toEqual([1, 1]);
+    expect((await store.bookmarks.list(again.id)).map((b) => b.id)).toEqual(['m1']);
+    expect((await store.lookups.list()).map((l) => [l.id, l.context?.bookId])).toEqual([['读书', again.id]]);
+    // Imported twice: nothing new.
+    expect(await store.importBackup(backup)).toMatchObject({ bookmarks: { added: 0 }, lookups: { added: 0 } });
+
+    // The backup first, then the book: the bookmark waits under the book's key and lands when it is added.
+    await store.wipe();
+    expect((await store.importBackup(backup)).bookmarks.added).toBe(1);
+    const third = await store.books.add(book());
+    expect((await store.bookmarks.list(third.id)).map((b) => b.id)).toEqual(['m1']);
+  });
+
+  it('merges a looked-up word with the same word on the same day, and leaves a bookmark on another copy alone', async () => {
+    vi.stubGlobal('crypto', webcrypto);
+    const mac = await open(); const ipad = await open();
+    const a = await mac.books.add(book());
+    await mac.lookups.log({ day: '2026-11-08', id: '读书', word: '读书', pinyin: 'du2 shu1', gloss: 'to read' }, 10);
+    await ipad.lookups.log({ day: '2026-11-08', id: '读书', word: '读书', pinyin: '', gloss: '' }, 30);
+    await ipad.lookups.log({ day: '2026-11-08', id: '读书', word: '读书', pinyin: '', gloss: '' }, 40);
+    await mac.bookmarks.put(mark(a.id));
+    const backup = await mac.exportBackup();
+    const report = await ipad.importBackup(backup);
+    expect(report.lookups.added).toBe(0);
+    const [row] = await ipad.lookups.list();
+    expect([row.count, row.first, row.last, row.gloss]).toEqual([2, 10, 40, 'to read']);
+    // The bookmark's book is not on the iPad: kept under its key, and the iPad's copy added later gets it.
+    const copy = await ipad.books.add(book());
+    expect((await ipad.bookmarks.list(copy.id))).toHaveLength(1);
+    // A second copy added after: the bookmark stays on the first.
+    const second = await ipad.books.add(book());
+    expect(await ipad.bookmarks.list(second.id)).toEqual([]);
+  });
+
+  it('a backup from before them still imports', async () => {
+    const store = await open();
+    const old = JSON.stringify({ app: 'dushu', version: 1, exportedAt: '2026-10-01T00:00:00.000Z', vocab: [], known: ['读书'], progress: [], reviews: [] });
+    const report = await store.importBackup(old);
+    expect(report).toMatchObject({ known: { added: 1 }, bookmarks: { added: 0 }, lookups: { added: 0 } });
+    expect(await store.bookmarks.list()).toEqual([]);
+  });
+});

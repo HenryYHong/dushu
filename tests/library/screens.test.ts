@@ -599,11 +599,14 @@ describe('settings helpers', () => {
   });
 
   it('summarizes backup imports and names the file by date', () => {
-    expect(backupFileName(new Date(2026, 9, 5))).toBe('dushu-backup-2026-10-05.json');
-    const empty = { vocab: { added: 0, updated: 0, skipped: 0 }, known: { added: 0 }, progress: { added: 0, updated: 0, skipped: 0 }, reviews: { added: 0 } };
+    expect(backupFileName(new Date(2026, 9, 5))).toBe('globereader-chinese-backup-2026-10-05.json');
+    // The local day, not the UTC one: half past eleven at night is still that day.
+    expect(backupFileName(new Date(2026, 10, 9, 23, 30))).toBe('globereader-chinese-backup-2026-11-09.json');
+    const empty = { vocab: { added: 0, updated: 0, skipped: 0 }, known: { added: 0 }, progress: { added: 0, updated: 0, skipped: 0 }, reviews: { added: 0 }, bookmarks: { added: 0 }, lookups: { added: 0 } };
     expect(describeReport(empty)).toMatch(/Nothing new/);
     expect(describeReport({ ...empty, vocab: { added: 12, updated: 3, skipped: 0 } })).toBe('Added 12 saved words, updated 3 saved words.');
     expect(describeReport({ ...empty, known: { added: 1 }, settings: {} })).toBe('Added 1 known word, restored your settings.');
+    expect(describeReport({ ...empty, bookmarks: { added: 2 }, lookups: { added: 1 } })).toBe('Added 2 bookmarks, added 1 looked-up word.');
   });
 });
 

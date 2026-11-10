@@ -5,10 +5,11 @@ import { OTHER_LANGS } from './syncKeys';
 
 /** The sync server. Empty: this build has none, and Settings does not offer to sign in. */
 export const CLOUD_URL = 'https://dushu-sync.henryhong.workers.dev';
-const URL_KEY = 'dushu.cloud.url.v1';
-const SESSION_KEY = 'dushu.cloud.v1';
+/** The device's sign-in, shared by every library on it (a Chinese "Delete all data" keeps it for the others: settings/data.ts). */
+export const URL_KEY = 'dushu.cloud.url.v1';
+export const SESSION_KEY = 'dushu.cloud.v1';
 /** The email of the signed-in account when the server last said it is an owner's (Claude, the Mac settings). */
-const OWNER_KEY = 'dushu.cloud.owner.v1';
+export const OWNER_KEY = 'dushu.cloud.owner.v1';
 /** Fired on window when this device signs in or out. */
 export const CLOUD_EVENT = 'dushu:cloud';
 

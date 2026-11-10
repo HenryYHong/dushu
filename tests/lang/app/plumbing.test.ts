@@ -278,10 +278,57 @@ describe('another language leaves Chinese data alone', () => {
     // Its own sync is turned off, so the account's copy does not come straight back; Chinese sync is not.
     expect(Object.fromEntries(Object.keys(localStorage).sort().map((k) => [k, localStorage.getItem(k)]))).toEqual(
       Object.fromEntries(Object.entries({ ...keep, 'dushu.ja.sync.off.v1': '1' }).sort()));
-    // Chinese "Delete all data" takes every Chinese key and turns its sync off, as before, but not another language's keys.
+    // Chinese "Delete all data" takes every Chinese key and turns its sync off, as before, but not another language's keys, nor
+    // what they share with it while they are here: the sign-in, the Mac link, the language last open.
     setLangForTests('zh');
     await eraseAllData(ctx);
-    expect(Object.keys(localStorage).sort()).toEqual(['dushu.es.settings.v1', 'dushu.ja.sync.off.v1', 'dushu.sync.off.v1']);
+    expect(Object.keys(localStorage).sort()).toEqual(['dushu.cloud.v1', 'dushu.es.settings.v1', 'dushu.ja.sync.off.v1', 'dushu.lang.v1', 'dushu.mac-bridge.v1', 'dushu.sync.off.v1']);
+    localStorage.clear();
+  });
+
+  const shared = {
+    'dushu.activity.v1': JSON.stringify({ device: 'devaaaa001', days: { '2026-11-08': { devaaaa001: { s: { es: 900 }, g: 15, t: 1 } } } }),
+    'dushu.plan.v1': JSON.stringify({ langs: ['es', 'zh'], goal: 15, welcomed: 1 }),
+    'dushu.cloud.v1': JSON.stringify({ token: 't', email: 'reader@example.com' }),
+    'dushu.cloud.owner.v1': 'reader@example.com',
+    'dushu.passkey-here.v1': '1',
+    'dushu.langs-used.v1': '["es","zh"]',
+    'dushu.translate-to.v1': '{"to":"fr"}',
+    'dushu.local-only.v1': '1',
+  };
+  const zhOwn = { 'dushu.settings.v1': '{}', 'dushu.cloud.books-up.v1': '[]', 'dushu.settings.simplified.v1': '1' };
+
+  it('Chinese "Delete all data" beside a Spanish library keeps the streak, the plan and the sign-in', async () => {
+    const { eraseAllData } = await import('../../../src/ui/settings/data');
+    for (const [k, v] of Object.entries({ ...shared, ...zhOwn, 'dushu.es.sync.off.v1': '0' })) localStorage.setItem(k, v);
+    setLangForTests('zh');
+    await eraseAllData({ store: { wipe: async () => {} } } as never);
+    expect(Object.fromEntries(Object.keys(localStorage).sort().map((k) => [k, localStorage.getItem(k)]))).toEqual(
+      Object.fromEntries(Object.entries({ ...shared, 'dushu.es.sync.off.v1': '0', 'dushu.sync.off.v1': '1' }).sort()));
+    localStorage.clear();
+    // Another library known only by the plan, or by reading time in its language, counts too.
+    for (const [k, v] of Object.entries({ ...zhOwn, 'dushu.plan.v1': shared['dushu.plan.v1'], 'dushu.cloud.v1': shared['dushu.cloud.v1'] })) localStorage.setItem(k, v);
+    await eraseAllData({ store: { wipe: async () => {} } } as never);
+    expect(Object.keys(localStorage).sort()).toEqual(['dushu.cloud.v1', 'dushu.plan.v1', 'dushu.sync.off.v1']);
+    localStorage.clear();
+    for (const [k, v] of Object.entries({ ...zhOwn, 'dushu.activity.v1': shared['dushu.activity.v1'] })) localStorage.setItem(k, v);
+    await eraseAllData({ store: { wipe: async () => {} } } as never);
+    expect(Object.keys(localStorage).sort()).toEqual(['dushu.activity.v1', 'dushu.sync.off.v1']);
+    localStorage.clear();
+  });
+
+  it('Chinese "Delete all data" with no other library removes everything, the streak and the sign-in too', async () => {
+    const { eraseAllData } = await import('../../../src/ui/settings/data');
+    const chineseOnly = {
+      ...shared, ...zhOwn,
+      'dushu.activity.v1': JSON.stringify({ device: 'devaaaa001', days: { '2026-11-08': { devaaaa001: { s: { zh: 900 }, g: 15, t: 1 } } } }),
+      'dushu.plan.v1': JSON.stringify({ langs: ['zh'], goal: 15, welcomed: 1 }),
+      'dushu.langs-used.v1': undefined,
+    };
+    for (const [k, v] of Object.entries(chineseOnly)) if (v !== undefined) localStorage.setItem(k, v);
+    setLangForTests('zh');
+    await eraseAllData({ store: { wipe: async () => {} } } as never);
+    expect(Object.keys(localStorage)).toEqual(['dushu.sync.off.v1']);
     localStorage.clear();
   });
 

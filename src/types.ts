@@ -544,6 +544,9 @@ export interface BackupReport {
   known: { added: number };
   progress: { added: number; updated: number; skipped: number };
   reviews: { added: number };
+  /** Bookmarks and looked-up words (the Vocabulary's Looked up list) new to this device. */
+  bookmarks: { added: number };
+  lookups: { added: number };
   /** The backup's settings (validated, no API key). The caller applies them with settings.set(). */
   settings?: Partial<Settings>;
 }

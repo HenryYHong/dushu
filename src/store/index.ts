@@ -388,6 +388,20 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     return ops;
   }
 
+  /**
+   * Bookmarks kept for a book that is not here (restored from a backup, or the book deleted), named by its key: on the book
+   * added now when the key is its own, as sync puts them (core/sync.ts step 0), so a bookmark restored before the book was
+   * added again shows without signing in. A bookmark on another copy here stays where it is.
+   */
+  async function keptBookmarks(meta: BookMeta): Promise<Bookmark[]> {
+    const key = bookKey(meta);
+    const keys = new Set([key, ...olderKeys(key)]);
+    const marks = (await db.getAll<Bookmark>('bookmarks')).filter((m) => m.bookKey && keys.has(m.bookKey));
+    if (!marks.length) return [];
+    const here = new Set((await db.getAll<BookMeta>('books')).map((b) => b.id));
+    return marks.filter((m) => !here.has(m.bookId)).map((m) => ({ ...m, bookId: meta.id }));
+  }
+
   // ---- assets
   const urls = new Map<string, Promise<string | undefined>>();
   const urlKey = (bookId: string, name: string) => JSON.stringify([bookId, name]);
@@ -458,13 +472,16 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         if (book.sourceName !== undefined) meta.sourceName = book.sourceName;
         if (book.note !== undefined) meta.note = book.note;
         if (book.importVersion !== undefined) meta.importVersion = book.importVersion;
+        const marks = await keptBookmarks(meta);
         await write([
           { op: 'put', table: 'books', value: meta },
           ...book.chapters.map((chapter, index) => ({ op: 'put' as const, table: 'chapters' as const, value: { bookId: id, index, chapter } })),
           ...await assetRowsOf(id, book),
           ...await keptPlace(meta, (i) => book.chapters[i]),
+          ...marks.map((m) => ({ op: 'put' as const, table: 'bookmarks' as const, value: m })),
         ]);
         emit('books');
+        if (marks.length) emit('bookmarks');
         return meta;
       },
       async replace(id, book) {
@@ -837,10 +854,16 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
     },
 
     async exportBackup() {
-      const [vocab, progress, reviews, lexRows, fixes] = await Promise.all([
+      const [vocab, progress, reviews, lexRows, fixes, marks, lookups, books] = await Promise.all([
         db.getAll<VocabItem>('vocab'), db.getAll<Progress>('progress'), db.getAll<ReviewLog>('reviews'), db.getAll<LexRow>('lexicon'),
-        db.getAll<Fix>('fixes'),
+        db.getAll<Fix>('fixes'), db.getAll<Bookmark>('bookmarks'), db.getAll<LookupRow>('lookups'), db.getAll<BookMeta>('books'),
       ]);
+      // Each bookmark names its book by key too, so it finds the book again however it comes back (a new id each time).
+      const keyOf = new Map(books.map((b) => [b.id, bookKey(b)]));
+      const bookmarks = marks.map((m) => {
+        const key = m.bookKey ?? keyOf.get(m.bookId);
+        return key ? { ...m, bookKey: key } : m;
+      });
       // Detected names are cheap to find again; the user's own words and the ones they rejected are not.
       const lexicon = lexRows.filter((r) => r.origin === 'user' || !r.enabled);
       // Stable, content-based identities allow an independently imported iPad copy to receive
@@ -855,6 +878,9 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         app: 'dushu', version: 1, exportedAt: new Date().toISOString(), ...(langId() !== 'zh' ? { lang: langId() } : {}),
         settings, vocab, known: [...knownWords], knownAuto: [...autoWords], progress, reviews, lexicon, bookIdentities,
         ...(fixes.length ? { fixes } : {}),
+        // Added later, as keys of their own: an app from before them reads the rest of the file as it always did.
+        ...(bookmarks.length ? { bookmarks } : {}),
+        ...(lookups.length ? { lookups } : {}),
       });
     },
 
@@ -871,7 +897,7 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         }
         const report: BackupReport = {
           vocab: { added: 0, updated: 0, skipped: 0 }, known: { added: 0 },
-          progress: { added: 0, updated: 0, skipped: 0 }, reviews: { added: 0 },
+          progress: { added: 0, updated: 0, skipped: 0 }, reviews: { added: 0 }, bookmarks: { added: 0 }, lookups: { added: 0 },
         };
         const ops: Parameters<Backend['commit']>[0] = [];
         const bookMap = new Map<string, string>();
@@ -957,6 +983,41 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
           ops.push({ op: 'put', table: 'fixes', value: inc });
         }
 
+        // Bookmarks: on the book here that is the same one (its content, else its key), or kept under the book's key until it is
+        // added again (books.add puts it on the book then). One already here stays as it is.
+        const haveMark = new Set((await db.getAll<Bookmark>('bookmarks')).map((b) => b.id));
+        const idOfKey = new Map<string, string>();
+        if (Array.isArray(data.bookmarks) && data.bookmarks.length) {
+          for (const b of await db.getAll<BookMeta>('books')) {
+            const key = bookKey(b);
+            for (const k of [key, ...olderKeys(key)]) if (!idOfKey.has(k)) idOfKey.set(k, b.id);
+          }
+        }
+        for (const raw of Array.isArray(data.bookmarks) ? data.bookmarks : []) {
+          const inc = cleanBookmark(raw);
+          if (!inc || haveMark.has(inc.id)) continue;
+          const here = bookMap.get(inc.bookId) ?? (inc.bookKey ? idOfKey.get(inc.bookKey) : undefined);
+          if (here) inc.bookId = here;
+          haveMark.add(inc.id);
+          report.bookmarks.added++;
+          ops.push({ op: 'put', table: 'bookmarks', value: inc });
+        }
+
+        // Looked-up words: one already here for the same day is merged with it, as sync merges them.
+        const lookupRows = new Map<string, LookupRow>();
+        for (const raw of Array.isArray(data.lookups) ? data.lookups : []) {
+          const inc = cleanLookup(raw);
+          if (!inc) continue;
+          if (inc.context?.bookId && bookMap.has(inc.context.bookId)) inc.context = { ...inc.context, bookId: bookMap.get(inc.context.bookId)! };
+          const k = JSON.stringify([inc.day, inc.id]);
+          const before = lookupRows.get(k) ?? await db.get<LookupRow>('lookups', [inc.day, inc.id]);
+          const next = before ? mergeLookups(before, inc) : inc;
+          if (before && canonical(next) === canonical(before)) continue;
+          if (!before) report.lookups.added++;
+          lookupRows.set(k, next);
+        }
+        for (const value of lookupRows.values()) ops.push({ op: 'put', table: 'lookups', value });
+
         if (isObj(data.settings)) {
           const rest = sanitizePatch(data.settings);
           // Claude and MyMemory send the selected text to a third party; that is a choice made on this device, never
@@ -977,6 +1038,8 @@ export async function openStore(name = 'dushu', opts: { idbTimeoutMs?: number } 
         if (report.vocab.added + report.vocab.updated + report.reviews.added) emit('vocab');
         if (ops.some((o) => o.op === 'put' && o.table === 'fixes')) emit('fixes');
         if (report.known.added) emit('known');
+        if (report.bookmarks.added) emit('bookmarks');
+        if (lookupRows.size) emit('lookups');
         return report;
       });
     },
