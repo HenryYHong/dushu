@@ -70,7 +70,7 @@ export const mount: MountFn = (root, params, ctx) => {
 
   // Rows that only matter in one mode are hidden in the other (a dimmed row still looks like something you can change).
   const hskRow = row('Known up to', zh ? 'Pinyin is hidden on characters you have met, with the same reading, in HSK words up to this level.'
-    : `${aidName()} ${L.aid === 'furigana' ? 'are' : 'is'} hidden on words up to this level. ${L.levels.about}`, hsk);
+    : `${aidName()} are hidden on words up to this level. ${L.levels.about}`, hsk);
   const spreadRow = row('Pages shown', 'Auto shows two pages on a wide screen held sideways.', spread);
   const turnRow = row('Page turn', null, pageTurn);
   const reading = group('Reading', null,
@@ -137,7 +137,8 @@ export const mount: MountFn = (root, params, ctx) => {
     { id: 'set-lookup', label: 'Lookup', el: lookup },
     { id: 'set-translation', label: 'Translation', el: translation.el },
     { id: 'set-speech', label: 'Speech', el: speech.el },
-    { id: 'set-ipad', label: 'iPad', el: ipad.el },
+    // Named by the group's own heading: "Sync" for a visitor, "Your Mac and iPad" for the owner.
+    { id: 'set-ipad', label: ipad.el.querySelector('h2')?.textContent || 'Sync', el: ipad.el },
     { id: 'set-data', label: 'Data', el: data },
   ];
   for (const sec of sections) sec.el.id = sec.id;
@@ -200,5 +201,6 @@ export const mount: MountFn = (root, params, ctx) => {
     speech.dispose();
     translation.dispose();
     ipad.dispose();
+    learning.dispose();
   };
 };

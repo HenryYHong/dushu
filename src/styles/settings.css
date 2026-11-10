@@ -123,6 +123,8 @@
 .set-chip { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: var(--radius-xs); font-size: 11.5px; font-weight: 600; white-space: nowrap; background: var(--wash-2); color: var(--text-2); }
 .set-chip-ok { background: color-mix(in srgb, var(--ok) 13%, transparent); color: var(--ok); }
 .set-chip-warn { background: color-mix(in srgb, var(--warn) 13%, transparent); color: var(--warn); }
+/* Light only (tokens.css's :root, which sepia and dark override): --warn on its own 13% tint is under 4.5:1 at 11.5 px. */
+:root:not([data-theme='sepia']):not([data-theme='dark']) .set-chip-warn { color: #83570f; }
 .set-claude {
   margin: var(--space-2) calc(var(--space-5) * -1) 0; padding: var(--space-3) var(--space-5) 0;
   background: var(--wash); border-top: 1px solid var(--hairline); border-radius: 0 0 var(--radius) var(--radius);
@@ -177,6 +179,11 @@
 .set-cloud { align-items: flex-end; width: 420px; }
 .set-cloud-row { justify-content: flex-end; }
 .set-cloud-status { text-align: right; }
+/* "Use your own Mac" in the Sync group of someone who is not the owner (settings/ipad.ts): the Mac rows, folded. */
+.set-own-mac { border-top: 1px solid var(--hairline); }
+.set-own-mac-title { padding: 14px 0; font-size: 14px; font-weight: 560; cursor: pointer; }
+.set-own-mac-title:focus-visible { outline-offset: 2px; }
+.set-own-mac[open] > .set-own-mac-title { padding-bottom: 4px; }
 .set-pending { padding: var(--space-4) 0; border-top: 1px solid var(--hairline); }
 .set-pending[hidden] { display: none; }
 .set-pending .set-btn-row { justify-content: flex-start; margin-top: var(--space-3); }

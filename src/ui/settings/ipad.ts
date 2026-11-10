@@ -8,20 +8,23 @@ import { accountRow } from './account';
 import { invitesRow } from './invites';
 
 /**
- * The sync account, and the owner's Mac and iPad setup. Someone signed in who is not the owner (a friend, a student) sees only
- * the account, sync and how to install Dushu: the Mac, Tailscale and private link are the owner's alone. Signed out, the Mac
- * rows stay, so the owner can connect a new device (or follow the link the Mac's page gives) before signing in.
+ * The sync account, and the owner's Mac and iPad setup. Off the Mac's own page, with no Mac connected and not the owner's
+ * account, it is "Sync": the account, sync and how to install Globereader. The Mac, Tailscale and private link are the owner's.
+ * Someone signed in to their own account (a friend, a student) never sees them. Signed out, they wait folded under "Use your
+ * own Mac", so the owner can connect a new device before signing in; a link from the Mac's page (?connect) opens them.
  */
 export function ipadGroup(params: Record<string, string>): { el: HTMLElement; dispose(): void } {
   const account = accountRow();
   const sync = syncRow();
-  if (account && !isMacOrigin() && !connectedMac() && cloudSession() && !isAccountOwner()) {
+  if (!isMacOrigin() && !connectedMac() && !isAccountOwner()) {
+    const own = cloudSession() ? null : macRows(params);
     const el = group('Sync', null,
-      account.el,
+      account?.el ?? null,
       sync.el,
-      row('Install', 'Open Globereader from that icon and it works offline.', h('span', null, 'In Safari: Share, then Add to Home Screen')),
-      row('Books', 'Books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.', h('span', null, 'Import book, in the library')));
-    return { el, dispose() { sync.dispose(); account.dispose(); } };
+      row('Install', 'Added to the Home Screen, Globereader opens like an app and works offline.', h('span', null, 'In Safari: Share, then Add to Home Screen')),
+      row('Books', 'When you are signed in, books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.', h('span', null, 'Import book, in the library')),
+      own ? h('details.set-own-mac', { open: params.connect !== undefined }, h('summary.set-own-mac-title', null, 'Use your own Mac'), ...own.rows) : null);
+    return { el, dispose() { sync.dispose(); account?.dispose(); own?.dispose(); } };
   }
   const mac = macRows(params);
   // The owner's invite links (shown once the server has said this account is the owner's).
@@ -40,7 +43,7 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     status.textContent = `Private address: ${url.origin}. Only the Mac owner's Tailscale account can connect.`;
   }).catch(() => { status.textContent = 'Turn on Tailscale on your Mac and run npm run ipad in Globereader to set up the private address.'; });
   const el = group('Your Mac and iPad', account
-    ? 'Signed in, your books, words and Claude go with your account. Connecting a device to your Mac only adds its voices and local AI.'
+    ? 'Sign in and your books, words and Claude go with your account. Connecting a device to your Mac only adds its voices and local AI.'
     : 'Connect each device to your Mac once. Your words and reading places then sync through it.',
     account?.el ?? null,
     invites?.el ?? null,

@@ -21,13 +21,11 @@ export function row(label: string, help: string | null, control: Control | Node,
     h('div.set-row-ctrl', null, ctrl));
 }
 
-/** Segmented control (a radio group): one button per option. */
-export function segmented<K extends keyof Settings>(
-  key: K,
-  label: string,
-  options: { value: Settings[K]; label: string }[],
-  set: (v: Settings[K]) => void,
-): Control {
+/**
+ * A row of buttons that is one radio group: the arrow keys move the choice, and only the chosen button is a tab stop (a roving
+ * tabindex). `select` marks a value as chosen; the caller calls it whenever the value changes, wherever it is kept.
+ */
+export function radioGroup<T>(label: string, options: { value: T; label: string }[], set: (v: T) => void): { el: HTMLElement; select(v: T): void } {
   const buttons = options.map((o) => h('button.set-seg-btn', {
     type: 'button', role: 'radio', 'aria-checked': 'false',
     onclick: () => set(o.value),
@@ -44,14 +42,25 @@ export function segmented<K extends keyof Settings>(
   });
   return {
     el,
-    update(s) {
+    select(v) {
       options.forEach((o, i) => {
-        const on = s[key] === o.value;
+        const on = o.value === v;
         buttons[i].setAttribute('aria-checked', String(on));
         buttons[i].tabIndex = on ? 0 : -1;
       });
     },
   };
+}
+
+/** Segmented control for a setting (a radio group): one button per option. */
+export function segmented<K extends keyof Settings>(
+  key: K,
+  label: string,
+  options: { value: Settings[K]; label: string }[],
+  set: (v: Settings[K]) => void,
+): Control {
+  const group = radioGroup(label, options, set);
+  return { el: group.el, update(s) { group.select(s[key]); } };
 }
 
 export function toggle(key: keyof Settings & string, label: string, set: (v: boolean) => void): Control & { input: HTMLInputElement } {

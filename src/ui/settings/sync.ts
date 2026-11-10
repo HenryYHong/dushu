@@ -1,10 +1,10 @@
 // The Sync row in "Your Mac and iPad": the switch, what the last sync did, and Sync now.
-import { SYNC_EVENT, currentSyncer, setSyncEnabled, syncEnabled, type SyncStatus } from '../../core/sync';
+import { SYNC_EVENT, currentSyncer, hasSyncHub, setSyncEnabled, syncEnabled, type SyncStatus } from '../../core/sync';
 import { CLOUD_EVENT, cloudBase } from '../../core/cloud';
 import { isChinese, lang } from '../../lang/active';
 import { h } from '../dom';
 import { icon } from '../icons';
-import { row } from './controls';
+import { nextId, row } from './controls';
 
 const n = (k: number, one: string, many = `${one}s`) => `${k.toLocaleString('en-US')} ${k === 1 ? one : many}`;
 
@@ -35,7 +35,8 @@ export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date
   if (st.state === 'error') return `Sync did not finish: ${st.message ?? 'unknown error'}${waiting}`;
   // A hub from before this language synced: the records wait here (core/sync.ts says which hub and what to do).
   if (st.state === 'outdated') return `${st.message ?? 'Your sync server is older than this version of Globereader.'}${st.pending ? ` ${n(st.pending, 'change')} from this device ${st.pending === 1 ? 'is' : 'are'} waiting.` : ''}`;
-  if (st.state === 'syncing' && !st.lastOk) return 'Syncing with your Mac…';
+  // The first sync: the hub it goes to is known only once it answers, so it names none.
+  if (st.state === 'syncing' && !st.lastOk) return 'Syncing…';
   if (!st.lastOk) return 'Not synced yet.';
   const c = st.counts;
   const marks = c?.bookmarks ? `, ${n(c.bookmarks, 'bookmark')}` : '';
@@ -44,16 +45,19 @@ export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date
 }
 
 export function syncRow(): { el: HTMLElement; dispose(): void } {
-  const input = h('input.set-switch-input', { type: 'checkbox', role: 'switch', 'aria-label': 'Sync with your Mac' }) as HTMLInputElement;
+  // Named by the row's title (aria-labelledby, below): it syncs with the account or the Mac, whichever this device has.
+  const input = h('input.set-switch-input', { type: 'checkbox', role: 'switch' }) as HTMLInputElement;
   input.checked = syncEnabled();
   const toggle = h('label.set-switch', null, input, h('span.set-switch-track', null, h('span.set-switch-thumb')));
   const status = h('div.set-help.set-sync-status', { role: 'status', 'aria-live': 'polite' });
   const now = h('button.btn.btn-sm', { type: 'button' }, icon('refresh'), 'Sync now') as HTMLButtonElement;
   const show = () => {
     const syncer = currentSyncer();
+    const hub = hasSyncHub();
     const st: SyncStatus = syncer?.status() ?? { state: 'none', pending: 0 };
-    status.textContent = describeSync(st);
-    now.disabled = !syncer || !syncEnabled() || st.state === 'syncing' || st.state === 'memory';
+    // Nothing to sync with (signed out, no Mac): Sync now cannot do anything, and the line says to sign in.
+    status.textContent = describeSync(hub || st.state === 'memory' ? st : { ...st, state: 'none' });
+    now.disabled = !syncer || !hub || !syncEnabled() || st.state === 'syncing' || st.state === 'memory';
   };
   input.addEventListener('change', () => { setSyncEnabled(input.checked); show(); });
   now.addEventListener('click', () => { now.disabled = true; void currentSyncer()?.run().then(show); });
@@ -67,5 +71,7 @@ export function syncRow(): { el: HTMLElement; dispose(): void } {
       ? `${what}, lookups, bookmarks${isChinese() ? ', your corrections' : ''} and your place in each book. Changes made offline sync when you are back online.`
       : `${what}, lookups, bookmarks${isChinese() ? ', your corrections' : ''} and your place in each book, on every device connected to this Mac.`,
     h('div.set-sync', null, h('div.set-sync-top', null, toggle, now), status));
+  const title = el.querySelector<HTMLElement>('.set-label');
+  if (title) { title.id = nextId('sync-title'); input.setAttribute('aria-labelledby', title.id); }
   return { el, dispose() { window.removeEventListener(SYNC_EVENT, show); window.removeEventListener(CLOUD_EVENT, show); window.clearInterval(tick); } };
 }
