@@ -102,6 +102,11 @@ const PASSKEYS_PER_NETWORK = 300;
 /** Books one network may fetch from Project Gutenberg through the Worker in a day (gutenbergBook), and the largest one. */
 const BOOKS_PER_NETWORK = 200;
 const BOOK_MAX_BYTES = 40 * 1024 * 1024;
+/**
+ * Gutenberg books one network may ask about in a day (gutenbergCheck), past the week each answer is kept: a page of results
+ * asks only about the few Gutenberg lists as recordings, and the most read lists are the same for everyone.
+ */
+const CHECKS_PER_NETWORK = 1000;
 
 /**
  * The network a request came from, as the limits count it: an IPv4 address, or an IPv6 address's /64 (anyone holding one
@@ -529,7 +534,9 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
   const path = new URL(request.url).pathname;
   if (path === '/' && request.method === 'GET') return json(200, { app: 'dushu-sync' });
   const gutenberg = /^\/gutenberg\/([1-9]\d{0,5})$/.exec(path);
-  if (gutenberg && request.method === 'GET') return gutenbergBook(gutenberg[1], request, env, ctx);
+  if (gutenberg && request.method === 'GET') {
+    return new URL(request.url).searchParams.has('check') ? gutenbergCheck(gutenberg[1], request, env, ctx) : gutenbergBook(gutenberg[1], request, env, ctx);
+  }
   const wikisource = /^\/wikisource\/(zh|ja|es|fr|de|it|pt|ru|en)\/([^/]+)$/.exec(path);
   if (wikisource && request.method === 'GET') return wikisourceBook(wikisource[1], wikisource[2], request, env, ctx);
   const aozora = /^\/aozora\/(\d{6})\/(\d{1,7}_\d{1,7}\.html)$/.exec(path);
@@ -682,38 +689,54 @@ async function readCapped(res: Response, max: number): Promise<ArrayBuffer> {
 const isZip = (bytes: ArrayBuffer): boolean => { const b = new Uint8Array(bytes, 0, Math.min(4, bytes.byteLength)); return b[0] === 0x50 && b[1] === 0x4b; };
 
 /**
- * Fetches one book for a source below: the origin check, the per-network limit, the size cap, the check that it is a book of the
- * source's kind and the week in the Worker's cache are the same for all of them.
+ * Books are fetched for Globereader's own pages only. The Origin check only stops a page elsewhere from using this relay in a
+ * browser: a script can send any Origin. The real limits are the per-network counts and the week each answer stays in the
+ * cache. A Tailscale page counts only when it is one of BOOK_ORIGINS (a Worker setting, never in the source, naming the owner's
+ * own copy) once that is set.
  */
-async function relayEpub(cacheKey: string, urls: string[], request: Request, env: Env, ctx: ExecutionContext | undefined, missing: string,
-  kind: { isBook: (bytes: ArrayBuffer) => boolean; type: string } = { isBook: isZip, type: 'application/epub+zip' }): Promise<Response> {
-  // The Origin check only stops a page elsewhere from using this relay in a browser: a script can send any Origin. The real
-  // limits are the per-network count below and the week each book stays in the cache. A Tailscale page counts only when it is
-  // one of BOOK_ORIGINS (a Worker setting, never in the source, naming the owner's own copy) once that is set.
+function ownBookPage(request: Request, env: Env): void {
   const origin = request.headers.get('Origin') ?? '';
   const own = (env.BOOK_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
   const tailnet = /\.ts\.net(?::\d+)?$/.test(origin);
   if (!ORIGINS.some((r) => r.test(origin)) || (tailnet && own.length && !own.includes(origin))) {
     throw new CloudError(403, 'Books are fetched for Globereader’s own pages only.');
   }
-  const cache = typeof caches === 'undefined' ? undefined : (caches as unknown as { default?: Cache }).default;
+}
+
+/** The Worker's cache (none in tests or `wrangler dev` without one). */
+const bookCache = (): Cache | undefined => (typeof caches === 'undefined' ? undefined : (caches as unknown as { default?: Cache }).default);
+
+async function keepFor(cache: Cache, key: Request, res: Response, ctx: ExecutionContext | undefined): Promise<void> {
+  const put = cache.put(key, res.clone());
+  if (ctx) ctx.waitUntil(put); else await put;
+}
+
+/** One more book from the request's network today, or a refusal past BOOKS_PER_NETWORK. */
+const takeBook = (request: Request, env: Env): Promise<void> =>
+  perNetwork(request, env, 'books', BOOKS_PER_NETWORK, 'Too many books were added from this network today. Try again tomorrow.');
+
+const RELAY_HEADERS = { 'User-Agent': 'Globereader-sync/0.1 (personal reading app)' };
+const WEEK = 'public, max-age=604800';
+
+/**
+ * Fetches one book for a source below: the origin check, the per-network limit, the size cap, the check that it is a book of the
+ * source's kind and the week in the Worker's cache are the same for all of them.
+ */
+async function relayEpub(cacheKey: string, urls: string[], request: Request, env: Env, ctx: ExecutionContext | undefined, missing: string,
+  kind: { isBook: (bytes: ArrayBuffer) => boolean; type: string } = { isBook: isZip, type: 'application/epub+zip' }): Promise<Response> {
+  ownBookPage(request, env);
+  const cache = bookCache();
   const key = new Request(cacheKey);
   const hit = await cache?.match(key);
   if (hit) return hit;
-  const ip = request.headers.get('CF-Connecting-IP');
-  if (ip && !await takeShared(env, [{ name: `books:${await networkOf(ip)}`, n: 1, max: BOOKS_PER_NETWORK }])) {
-    throw new CloudError(429, 'Too many books were added from this network today. Try again tomorrow.');
-  }
+  await takeBook(request, env);
   for (const url of urls) {
-    const res = await fetch(url, { headers: { 'User-Agent': 'Globereader-sync/0.1 (personal reading app)' } });
+    const res = await fetch(url, { headers: RELAY_HEADERS });
     if (!res.ok) continue;
     const bytes = await readCapped(res, BOOK_MAX_BYTES);
     if (!kind.isBook(bytes)) continue;
-    const out = new Response(bytes, { headers: { 'Content-Type': kind.type, 'Cache-Control': 'public, max-age=604800' } });
-    if (cache) {
-      const put = cache.put(key, out.clone());
-      if (ctx) ctx.waitUntil(put); else await put;
-    }
+    const out = new Response(bytes, { headers: { 'Content-Type': kind.type, 'Cache-Control': WEEK } });
+    if (cache) await keepFor(cache, key, out, ctx);
     return out;
   }
   throw new CloudError(404, missing);
@@ -753,12 +776,93 @@ async function aozoraBook(card: string, file: string, request: Request, env: Env
  * A public-domain book from Project Gutenberg, by its number (ui/library/findBooks.ts). Gutenberg's search answers a page
  * directly, but its files do not let a page read them, so the Worker fetches the EPUB for Globereader's own pages: only a book
  * number, only from gutenberg.org, each kept a week in the Worker's cache, and a few hundred a day from one network. Nothing
- * about the reader is kept or passed on.
+ * about the reader is kept or passed on. A book too large with its pictures comes as the plain EPUB; one with no EPUB at all
+ * answers 404 with the code 'no-epub', which the dialog shows and does not offer again.
  */
 async function gutenbergBook(id: string, request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
-  // The EPUB 3 with its pictures (and cover) first, then the plain one older books have.
-  const files = [`pg${id}-images-3.epub`, `pg${id}-images.epub`, `pg${id}.epub`].map((f) => `https://www.gutenberg.org/cache/epub/${id}/${f}`);
-  return relayEpub(`https://gutenberg.books/${id}.epub`, files, request, env, ctx, 'Project Gutenberg has no EPUB of that book.');
+  ownBookPage(request, env);
+  const cache = bookCache();
+  const keys = gutenbergKeys(id);
+  const hit = await cache?.match(keys.book);
+  if (hit) return hit;
+  // A book Gutenberg has no EPUB of (most are its recordings) is remembered for a week, so asking again costs it nothing.
+  const known = await cache?.match(keys.check);
+  if (known && (await known.json().catch(() => null) as { epub?: unknown } | null)?.epub === false) throw new CloudError(404, NO_EPUB, 'no-epub');
+  const files = gutenbergFiles(id);
+  const plain = files.length - 1;
+  let counted = false;
+  let tooLarge = false;
+  // Every file answered "not here": then the book has none, and that is remembered.
+  let sure = true;
+  for (let i = 0; i < files.length; i++) {
+    const res = await fetch(files[i], { headers: RELAY_HEADERS });
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      if (res.status !== 404 && res.status !== 410) sure = false;
+      continue;
+    }
+    // The network's day counts a book found, never one Gutenberg does not have.
+    if (!counted) {
+      counted = true;
+      try { await takeBook(request, env); } catch (e) { await res.body?.cancel().catch(() => {}); throw e; }
+    }
+    let bytes: ArrayBuffer;
+    try { bytes = await readCapped(res, BOOK_MAX_BYTES); } catch (e) {
+      if (!(e instanceof CloudError) || e.status !== 413) throw e;
+      // Too large with its pictures: the plain EPUB has the same text, and -images.epub the same pictures, so the plain one next.
+      tooLarge = true;
+      if (i < plain) i = plain - 1;
+      continue;
+    }
+    if (!isZip(bytes)) { sure = false; continue; }
+    const out = new Response(bytes, { headers: { 'Content-Type': 'application/epub+zip', 'Cache-Control': WEEK } });
+    if (cache) await keepFor(cache, keys.book, out, ctx);
+    return out;
+  }
+  if (tooLarge) throw new CloudError(413, 'That book is too large to add.');
+  if (!sure) throw new CloudError(502, 'Project Gutenberg did not send the book. Try again in a moment.');
+  if (cache) await keepFor(cache, keys.check, checkAnswer(false), ctx);
+  throw new CloudError(404, NO_EPUB, 'no-epub');
+}
+
+/** What a book with no EPUB is: on Gutenberg, nearly always one of its recordings (an audiobook). */
+const NO_EPUB = 'Project Gutenberg has no text of this book to read. It is probably an audiobook.';
+/** The EPUB 3 with its pictures (and cover) first, then the older one with pictures, then the plain one. */
+const gutenbergFiles = (id: string): string[] =>
+  [`pg${id}-images-3.epub`, `pg${id}-images.epub`, `pg${id}.epub`].map((f) => `https://www.gutenberg.org/cache/epub/${id}/${f}`);
+const gutenbergKeys = (id: string) => ({ book: new Request(`https://gutenberg.books/${id}.epub`), check: new Request(`https://gutenberg.books/${id}.check`) });
+const checkAnswer = (epub: boolean): Response =>
+  new Response(JSON.stringify({ epub }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': WEEK } });
+
+/**
+ * Whether Gutenberg has an EPUB of a book, without fetching it: {"epub": true|false}. Find a book asks about the books Gutenberg
+ * lists as recordings (most have no text, a few do), so a book that cannot be added is never offered. By HEAD, kept a week, and
+ * not counted against the books a network may add.
+ */
+async function gutenbergCheck(id: string, request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+  ownBookPage(request, env);
+  const cache = bookCache();
+  const keys = gutenbergKeys(id);
+  const hit = await cache?.match(keys.check);
+  if (hit) return hit;
+  const kept = await cache?.match(keys.book);
+  if (kept) {
+    await kept.body?.cancel().catch(() => {});
+    return checkAnswer(true);
+  }
+  await perNetwork(request, env, 'book-checks', CHECKS_PER_NETWORK, 'Too many books were looked up from this network today. Try again tomorrow.');
+  let sure = true;
+  let epub = false;
+  for (const url of gutenbergFiles(id)) {
+    const res = await fetch(url, { method: 'HEAD', headers: RELAY_HEADERS });
+    await res.body?.cancel().catch(() => {});
+    if (res.ok) { epub = true; break; }
+    if (res.status !== 404 && res.status !== 410) sure = false;
+  }
+  if (!epub && !sure) throw new CloudError(502, 'Project Gutenberg did not answer. Try again in a moment.');
+  const out = checkAnswer(epub);
+  if (cache) await keepFor(cache, keys.check, out, ctx);
+  return out;
 }
 
 function failure(e: unknown): Response {

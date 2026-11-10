@@ -77,8 +77,10 @@ export function canonical(v: unknown): string {
 export type KeyedBook = Pick<BookMeta, 'note' | 'sourceName' | 'chapterCount' | 'charCount' | 'chapterTitles' | 'title' | 'importVersion'>;
 
 /**
- * The same book on every device: the Mac's books by their file's digest, the classics by their id, anything else by its
- * shape (chapter titles and size), which an import of the same file reproduces and a rename does not change.
+ * The same book on every device: the Mac's books by their file's digest, the classics by their id, pasted text by the text
+ * (sourceName 'paste:<hash>', since 2026-11-09: two short pastes of one length have one shape), anything else by its shape
+ * (chapter titles and size), which an import of the same file reproduces and a rename does not change. A text pasted before
+ * keeps its shape's key, so nothing kept under it moves.
  */
 export function bookKey(b: KeyedBook): string {
   // A book imported again by a newer importer may have its chapters cut differently: to sync it is another book, so a place
@@ -88,6 +90,8 @@ export function bookKey(b: KeyedBook): string {
   const mac = /^mac-book:([a-f0-9]{64})$/.exec(b.note ?? '');
   if (mac) return `m${mac[1].slice(0, 32)}${v}`;
   if (b.sourceName?.startsWith('sample:')) return `s${b.sourceName.slice(7, 80)}${v}`;
+  const paste = /^paste:([a-z0-9]{1,20})$/.exec(b.sourceName ?? '');
+  if (paste) return `t${paste[1]}`;
   return `b${hash(`${b.chapterCount}|${b.charCount}|${(b.chapterTitles ?? [b.title]).join('\u0001')}`)}`;
 }
 

@@ -93,6 +93,19 @@ export function confirmDialog(opts: {
   }).then((v) => v === true);
 }
 
+/**
+ * What happened to each file of a batch that did not all go in (importer.ts files): its name and the reason, with Open for a
+ * book that was already in the library.
+ */
+export function problemsDialog(items: { name: string; reason: string; open?: () => void }[]): Promise<void> {
+  return showModal<void>('Files with problems', (api) => ({
+    body: h('ol.lib-find-list', null, items.map((it) => h('li.lib-find-row', null,
+      h('div.lib-find-text', null, h('div.lib-find-title', null, it.name), h('div.lib-find-author', null, it.reason)),
+      it.open ? h('button.btn.btn-sm', { type: 'button', onclick: () => { api.close(); it.open!(); } }, 'Open') : null))),
+    footer: h('button.btn.btn-primary', { type: 'button', onclick: () => api.close() }, 'Done'),
+  }), { wide: true }).then(() => undefined);
+}
+
 export interface FieldSpec {
   name: string;
   label: string;
