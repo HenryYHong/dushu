@@ -16,7 +16,7 @@ import { scriptView } from '../vocab/render';
 import { cloudBase } from '../../core/cloud';
 import { LANGS, isLangId } from '../../lang/registry';
 import { targetLanguage } from '../../translate/targets';
-import { fetchDataText } from '../../core/dict';
+import { fetchDataText } from '../../core/dataFetch';
 import type { AppContext, BookMeta } from '../../types';
 import type { LangId } from '../../lang/types';
 import { isNetworkFailure, type Importer } from './importer';

@@ -150,6 +150,6 @@ export function loadGazetteer(fetchText?: () => Promise<string>): Promise<Gazett
 
 async function fetchListText(): Promise<string> {
   if (typeof document === 'undefined') throw new Error('no page to fetch the name list from');
-  const { fetchDataText } = await import('./dict');
+  const { fetchDataText } = await import('./dataFetch');
   return fetchDataText(new URL('data/names.tsv.gz', document.baseURI).href);
 }

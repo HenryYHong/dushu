@@ -37,7 +37,7 @@
 @media (hover: hover) { .ab-source-name:hover { text-decoration: underline; } }
 .ab-source-name .icon { width: 13px; height: 13px; opacity: 0.6; }
 .ab-source-use { margin-top: 2px; font-size: 13px; color: var(--text-3); }
-.ab-source-license { flex: none; font-size: 12.5px; color: var(--text-3); white-space: nowrap; }
+.ab-source-license { flex: 0 1 auto; min-width: 0; font-size: 12.5px; color: var(--text-3); overflow-wrap: anywhere; }
 
 @media (max-width: 640px) {
   .ab-lead { font-size: 17px; }

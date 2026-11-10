@@ -22,7 +22,7 @@ import { activeEngine, isChinese, lang, setActiveEngine, storeName } from './lan
 import { noChineseDictionary } from './lang/noChinese';
 import { langChip } from './ui/langSwitch';
 import { needsWelcome } from './core/plan';
-import { startReadingClock } from './core/readingClock';
+import { goalMessage, startReadingClock } from './core/readingClock';
 import { listenForOpenedFiles } from './ui/library/incoming';
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
@@ -318,8 +318,7 @@ async function boot(): Promise<void> {
 
   // Time in a book or in Review counts toward the day's goal (core/readingClock.ts); reaching it says so once.
   let stopClock: (() => void) | null = null;
-  const onGoal = (days: number, goal: number) =>
-    ctx.toast(days > 1 ? `Daily goal reached: ${goal} minutes. That is ${days} days in a row.` : `Daily goal reached: ${goal} minutes. Your streak has started.`, { ms: 6000 });
+  const onGoal = (days: number, goal: number) => ctx.toast(goalMessage(days, goal), { ms: 6000 });
   const clockFor = (route: string) => {
     stopClock?.();
     stopClock = route === 'read' || route === 'review' ? startReadingClock(L.id, onGoal) : null;

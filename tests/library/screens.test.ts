@@ -219,7 +219,7 @@ describe('library screen', () => {
     await until(() => !line().hidden && /You know \d+% of its words/.test(line().textContent ?? ''));
     const first = Number(/(\d+)%/.exec(line().textContent!)![1]);
     expect(first).toBeGreaterThan(0);
-    expect(root.querySelector(`.lib-card[data-id="${a.id}"] .lib-card-main`)!.getAttribute('aria-label')).toContain(`You know ${first}% of its words`);
+    expect(root.querySelector(`.lib-card[data-id="${a.id}"] .lib-card-main`)!.textContent).toContain(`You know ${first}% of its words`);
     await store.known.add(['天气', '很', '好', '去', '公园', '玩']);
     await until(() => Number(/(\d+)%/.exec(line().textContent ?? '')?.[1]) > first);
     // Kept on the device: a new library screen has the number without counting again.
@@ -238,7 +238,7 @@ describe('library screen', () => {
     const line = () => root.querySelector<HTMLElement>(`.lib-card[data-id="${a.id}"] .lib-card-known`);
     await until(() => /You know/.test(line()?.textContent ?? ''));
     expect(line()!.textContent).toBe('You know <1% of its words');
-    expect(root.querySelector(`.lib-card[data-id="${a.id}"] .lib-card-main`)!.getAttribute('aria-label')).toContain('You know <1% of its words');
+    expect(root.querySelector(`.lib-card[data-id="${a.id}"] .lib-card-main`)!.textContent).toContain('You know <1% of its words');
   });
 
   it('renames through the menu and dialog', async () => {

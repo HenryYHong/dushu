@@ -22,7 +22,7 @@ import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge';
 import { CLOUD_EVENT, accountInfo, accountMark, cloudFetch, cloudSession, forgetSession, isAccountOwner } from './cloud';
 import { FIX_KEY, SYNCED_SETTINGS, bookKey, canonical, fixKey, hash, isFixKey, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
-import { cleanFix, fixWire } from './fixes';
+import { cleanFix, fixWire } from './fixRecord';
 import { SYNC_DAYS, actKey, addDays, cleanDay, dayOf, isActKey, mergeRecord, parseActKey, syncRecords } from './activity';
 
 export { bookKey, canonical, hash };

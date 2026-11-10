@@ -89,7 +89,7 @@ describe('importFile routes PDFs', () => {
 
 describe('titles from the PDF\'s own data', () => {
   it('takes no page address for a title: Chrome writes the address of a page that has none, with or without its scheme', () => {
-    for (const t of ['about:blank', 'localhost:5375/a.html', '127.0.0.1:5379', 'www.example.com/novel/1', 'data:text/html,<p>Párrafo 1</p>', 'https://example.com/x', 'file:///Users/a/b.html']) {
+    for (const t of ['about:blank', 'localhost:5375/a.html', '127.0.0.1:5379', 'www.example.com/novel/1', 'data:text/html,<p>Párrafo 1</p>', 'https://example.com/x', 'file:///C:/books/b.html']) {
       expect(usableMetadata(t), t).toBe('');
     }
     for (const t of ['Un paseo', 'Vol.1', '三体:地球往事']) expect(usableMetadata(t), t).toBe(t);

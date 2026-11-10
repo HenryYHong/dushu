@@ -69,7 +69,7 @@ export async function post(path: string, body: unknown, token?: string): Promise
   }
   if (!res.ok) {
     const why = await res.json().then((b: { error?: unknown } | null) => b?.error, () => undefined);
-    throw new Error(typeof why === 'string' && why.length <= 300 ? why : `The sync server answered ${res.status}.`);
+    throw Object.assign(new Error(typeof why === 'string' && why.length <= 300 ? why : `The sync server answered ${res.status}.`), { status: res.status });
   }
   return res;
 }

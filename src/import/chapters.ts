@@ -8,6 +8,7 @@ import { lang } from '../lang/active';
 /** Whether the book is read in a language written with spaces (its wrapped lines join with a space, its headings are words). */
 const spacedLanguage = (): boolean => lang().spaced;
 import { normalizeNewlines } from './encoding';
+import { POEM_TITLE, VERSE_LINE } from '../core/verseLines';
 
 /** Target size of a section when a text has no chapter markers. */
 export const PART_HAN = 4000;
@@ -770,10 +771,6 @@ export function chaptersFromBlocks(input: Block[], opts: { title: string }): Cha
   });
 }
 
-/** "靜夜思　李白": a title, a wide space and the poet's name. */
-const POEM_TITLE = /^[\u3400-\u9fff]{1,12}[\u3000 ]+[\u3400-\u9fff]{2,4}$/u;
-/** A line of verse: short clauses, each closed by a mark, the last by a full stop. */
-const VERSE_LINE = /^(?:[\u3400-\u9fff]{1,9}[，、；：])+[\u3400-\u9fff]{1,9}[。！？]$/u;
 
 /**
  * Poems typed as plain text set each title and its poet on a line of their own over the verse. Two or more such lines,

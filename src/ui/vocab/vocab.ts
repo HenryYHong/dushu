@@ -192,6 +192,8 @@ export const mount: MountFn = (root, _params, ctx) => {
       if (r.settings && Object.keys(r.settings).length) { ctx.settings.set(r.settings); restored = true; }
       const bits = [`Added ${plural(r.vocab.added, 'word')}`, `updated ${r.vocab.updated}`];
       if (r.known.added) bits.push(`${plural(r.known.added, 'known word')} added`);
+      if (r.bookmarks.added) bits.push(`${plural(r.bookmarks.added, 'bookmark')} added`);
+      if (r.lookups.added) bits.push(`${plural(r.lookups.added, 'looked-up word')} added`);
       ctx.toast(bits.join(', ') + (restored ? '. Settings restored.' : '.'), { ms: 6000 });
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'That file is not a Globereader backup.', { ms: 6000 });

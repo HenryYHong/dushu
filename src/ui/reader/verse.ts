@@ -1,13 +1,11 @@
 // Chinese verse on the page: the lines of a poem typed as plain paragraphs (唐诗八首: 床前明月光，疑是地上霜。) are set with
 // no first-line indent, and break only between their clauses (render.ts). Found when the chapter is drawn, so books
 // imported before this need no new import.
-// POEM_TITLE and VERSE_LINE are the importer's patterns (src/import/chapters.ts, markPoemTitles); keep the two in step.
 import type { Block } from '../../types';
+import { POEM_TITLE, VERSE_LINE } from '../../core/verseLines';
 
-/** "靜夜思　李白": a title, a wide space and the poet's name. */
-export const POEM_TITLE = /^[㐀-鿿]{1,12}[　 ]+[㐀-鿿]{2,4}$/u;
-/** A line of verse: short clauses, each closed by a mark, the last by a full stop. */
-export const VERSE_LINE = /^(?:[㐀-鿿]{1,9}[，、；：])+[㐀-鿿]{1,9}[。！？]$/u;
+export { POEM_TITLE, VERSE_LINE };
+
 /** The marks a clause of verse ends with. */
 export const CLAUSE_MARKS = '，、；：。！？';
 

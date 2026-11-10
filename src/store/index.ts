@@ -4,7 +4,7 @@ import type {
 } from '../types';
 import { hanBefore, moveByPercent, placeAt, textHan } from '../core/place';
 import { bookKey, canonical, mergeLookups, olderKeys, progressWire } from '../core/syncKeys';
-import { cleanFix, fixId } from '../core/fixes';
+import { cleanFix, fixId } from '../core/fixRecord';
 import { sanitizeSrs, schedule } from '../core/srs';
 import { sniffRaster } from '../import/imageType';
 import { countHan as countLetters } from '../import/han';

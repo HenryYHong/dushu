@@ -19,7 +19,7 @@ import { accountMark, cloudBase, cloudFetch, cloudSession } from './cloud';
 import { bookKey, langPrefix, olderKeys } from './syncKeys';
 import { syncEnabled } from './sync';
 import { withBookLock } from './bookLock';
-import { isChinese, lang, langId, langKey } from '../lang/active';
+import { lang, langId, langKey } from '../lang/active';
 
 /** The server's piece size (cloud/src/account.ts BOOK_CHUNK). */
 export const BOOK_CHUNK = 1024 * 1024;
@@ -273,12 +273,11 @@ async function importMacFile(bytes: Uint8Array, book: AccountBook): Promise<Impo
 }
 
 /**
- * Whether this library's books go to and come from the account: signed in, and for a language other than Chinese, its Sync
- * switch on, so a library whose data was deleted (Settings → Delete all data turns its sync off) stays empty. Chinese books go
- * with the account whenever it is signed in, as they always have.
+ * Whether this library's books go to and come from the account: signed in, and its Sync switch on, so a library whose data was
+ * deleted (Settings → Delete all data turns its sync off) stays empty.
  */
 export function accountBooksHere(): boolean {
-  return !!cloudSession() && (isChinese() || syncEnabled());
+  return !!cloudSession() && syncEnabled();
 }
 
 /**
@@ -287,7 +286,7 @@ export function accountBooksHere(): boolean {
  */
 export function forgetBookInAccount(meta: BookMeta): void {
   // A library whose sync is off leaves the account alone, as it leaves its words (accountBooksHere).
-  if (!isChinese() && !syncEnabled()) return;
+  if (!syncEnabled()) return;
   const key = bookKey(meta);
   if (key.startsWith('s')) return;
   setList(REMOVED_KEY, [...list(REMOVED_KEY), key]);
@@ -305,8 +304,8 @@ let running: Promise<{ added: BookMeta[]; uploaded: number }> | null = null;
  * is tried again on the next call). Resolves with the books it added here and how many it uploaded.
  */
 export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: number }> {
-  // Another language's library with its sync off neither sends its books up nor takes the account's in (accountBooksHere).
-  if (!isChinese() && !syncEnabled()) return Promise.resolve({ added: [], uploaded: 0 });
+  // A library with its sync off neither sends its books up nor takes the account's in (accountBooksHere).
+  if (!syncEnabled()) return Promise.resolve({ added: [], uploaded: 0 });
   running ??= (async () => {
     const added: BookMeta[] = [];
     const up: string[] = [];
@@ -349,7 +348,10 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
           const imported = await download(book);
           // Added in the book lock, after one more look: the same book may have just come from the Mac (this tab or another).
           meta = await withBookLock(async () => {
-            if ((await store.books.list()).some((b) => sameBook(bookKey(b), book.key))) return null;
+            const here = await store.books.list();
+            if (here.some((b) => sameBook(bookKey(b), book.key))) return null;
+            // A pasted text an older app sent up under another key: the same paste is already here.
+            if (imported.sourceName?.startsWith('paste:') && here.some((b) => b.sourceName === imported.sourceName)) return null;
             return store.books.add(imported);
           });
         } catch (e) {

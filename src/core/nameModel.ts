@@ -110,7 +110,7 @@ export function loadNameModel(fetchText?: () => Promise<string>): Promise<NameMo
 
 async function fetchModelText(): Promise<string> {
   if (typeof document === 'undefined') throw new Error('no page to fetch the name model from');
-  const { fetchDataText } = await import('./dict');
+  const { fetchDataText } = await import('./dataFetch');
   return fetchDataText(new URL('data/name-model.tsv.gz', document.baseURI).href);
 }
 
