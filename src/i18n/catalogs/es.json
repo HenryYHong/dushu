@@ -32,7 +32,7 @@
  "This deletes your account and everything kept in it, and signs out every device. What is on this device stays here.": "Esto elimina tu cuenta y todo lo que contiene, y cierra la sesión en todos los dispositivos. Lo que hay en este dispositivo se queda aquí.",
  "Type the six-digit code from the email.": "Escribe el código de seis dígitos del correo.",
  "Your account is deleted. Everything on this device stays here; it no longer syncs.": "Se eliminó tu cuenta. Todo lo de este dispositivo se queda aquí; ya no se sincroniza.",
- "you@example.com": "tu@ejemplo.com",
+ "you@example.com": "tu@example.com",
  "<1m": "<1 min",
  "{n}d": {
   "one": "{n} d",
