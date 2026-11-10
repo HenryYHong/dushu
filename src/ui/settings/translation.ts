@@ -340,7 +340,7 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   const into = targetControl(settings);
   const el = group(tt('Translation'),
     tt('What translates a sentence when you tap a word twice or drag across it.'),
-    row(tt('Translate into'), tt('The language translations are written in. The app itself stays in English.'), into, into.id),
+    row(tt('Translate into'), tt('The language translations are written in.'), into, into.id),
     h('div.set-prov-wrap', null, list),
     row(tt('Local only'), tt('Never send a sentence to an online translator.'), localOnly),
     claudeBox);

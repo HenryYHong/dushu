@@ -11,7 +11,7 @@ import { icon } from '../icons';
 import { windowed } from './windowed';
 import { createWordsTab, type TocWords } from './wordsTab';
 import { lang } from '../../lang/active';
-import { tt, ttm, ttn, uiLocale } from '../../i18n';
+import { tt, ttm, ttn, ttx, uiLocale } from '../../i18n';
 
 export type TocTab = 'chapters' | 'words' | 'names' | 'bookmarks';
 
@@ -317,7 +317,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       const role = f.role ?? 'user';
       const kind: LexiconEntry['kind'] = f.kind === 'word' ? role : 'term';
       const scope = f.book === '*' ? tt('All books') : f.at ? tt('Here, chapter {n}', { n: f.at.chapter + 1 }) : tt('This book');
-      const label = f.kind === 'word' ? (role === 'user' ? tt('Joined') : role === 'term' ? tt('Other name') : tt(KIND_LABEL[role])) : f.kind === 'cut' ? tt('Split') : f.kind === 'reading' ? tt('Reading') : tt('Not a word');
+      const label = f.kind === 'word' ? (role === 'user' ? tt('Joined') : role === 'term' ? tt('Other name') : tt(KIND_LABEL[role])) : f.kind === 'cut' ? tt('Split') : f.kind === 'reading' ? ttx('Reading', 'pronunciation') : tt('Not a word');
       const note = f.kind === 'cut' ? cutPreview(f, text(f.word)) : f.kind === 'unword' ? tt('Not read as one word') : undefined;
       // A person, a place or an other name the reader marked is under Names, its pinyin with capitals (Xīyóushì'èchuán).
       const named = f.kind === 'word' && role !== 'user';

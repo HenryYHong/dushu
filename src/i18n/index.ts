@@ -8,6 +8,7 @@
 //   tt('Added {title}.', { title })             with a value: {name} marks where it goes, so a language can move it
 //   ttn(n, '{n} word', '{n} words')             a count: each language says which form a number takes (Intl.PluralRules)
 //   const LABEL = ttm('Casual'); … tt(LABEL)    a string kept in a constant: ttm marks it for the catalog, tt shows it
+//   ttx('Reading', 'pronunciation')             one English word with two meanings: the catalog keys it 'Reading [pronunciation]'
 //
 // A sentence is translated whole: never build one from pieces ('Added ' + n + ' words'), since word order differs.
 
@@ -121,6 +122,15 @@ export function ttn(n: number, one: string, other: string, vars?: Record<string,
   else if (typeof e === 'string' && e) s = e;
   else s = n === 1 ? one : other;
   return fill(s, { n: numbers.format(n), ...vars });
+}
+
+/**
+ * `src` where the same English means something else elsewhere ('Reading' the activity, 'Reading' a word's sound): the catalog
+ * keys it '<src> [<context>]', and English still reads `src`.
+ */
+export function ttx(src: string, context: string, vars?: Record<string, string | number>): string {
+  const e = catalog[`${src} [${context}]`];
+  return fill(typeof e === 'string' && e ? e : src, vars);
 }
 
 /** Marks a string kept in a constant for the catalog; show it with tt(). */

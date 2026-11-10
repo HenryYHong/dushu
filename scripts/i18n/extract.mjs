@@ -1,4 +1,4 @@
-// Collects the app's own words for translation: every tt('…'), ttm('…') and ttn(n, '…', '…') in src/ (src/i18n/index.ts says
+// Collects the app's own words for translation: every tt('…'), ttm('…'), ttx('…', 'context') and ttn(n, '…', '…') in src/ (src/i18n/index.ts says
 // how they are written). Writes src/i18n/strings.json: each English string, its plural form if it is a count, and the files it
 // is in (context for whoever translates it). `--check` writes nothing and fails when the file is out of date.
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
@@ -9,6 +9,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const OUT = join(ROOT, 'src/i18n/strings.json');
 const STR = String.raw`'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|\`(?:[^\`\\$]|\\.)*\``;
 const ONE = new RegExp(String.raw`\b(tt|ttm)\(\s*(${STR})`, 'g');
+const CTX = new RegExp(String.raw`\bttx\(\s*(${STR})\s*,\s*(${STR})`, 'g');
 const MANY = new RegExp(String.raw`\bttn\(\s*[^,()]+(?:\([^()]*\))?\s*,\s*(${STR})\s*,\s*(${STR})`, 'g');
 
 /** A string literal's value. Only literals reach here, and only from this repository. */
@@ -38,6 +39,7 @@ export function extract() {
     const where = relative(ROOT, f).replace(/\\/g, '/');
     for (const m of src.matchAll(ONE)) add(value(m[2]), where);
     for (const m of src.matchAll(MANY)) add(value(m[2]), where, value(m[1]));
+    for (const m of src.matchAll(CTX)) add(`${value(m[1])} [${value(m[2])}]`, where);
   }
   const strings = {};
   for (const k of [...found.keys()].sort()) {

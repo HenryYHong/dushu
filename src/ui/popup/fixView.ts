@@ -11,7 +11,7 @@ import { icon } from '../icons';
 import { leadGloss } from './defs';
 import type { PopupHost } from './host';
 import { pinyinSpans } from './pinyinText';
-import { tt, ttm, ttn } from '../../i18n';
+import { tt, ttm, ttn, ttx } from '../../i18n';
 
 /** A word on the page: as the book spells it (`word`), as the page shows it, and the reading shown. */
 export interface FixPiece { word: string; shown: string; pinyin: string[] }
@@ -149,7 +149,7 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
   // ---- what is fixed already: this word everywhere, or this place
   const mine = fixer.fixes().filter((f) => f.book !== '*' && f.kind !== 'spelling'
     && (f.at ? !!t.at && f.at.chapter === t.at.chapter && f.at.block === t.at.block && f.at.offset <= t.at.offset && f.at.offset + f.word.length >= t.at.offset + t.word.length : f.word === t.word));
-  const KIND_SAID: Record<Fix['kind'], string> = { word: tt('Joined'), unword: tt('Not a word'), cut: tt('Split'), reading: tt('Reading'), spelling: tt('Spelling') };
+  const KIND_SAID: Record<Fix['kind'], string> = { word: tt('Joined'), unword: tt('Not a word'), cut: tt('Split'), reading: ttx('Reading', 'pronunciation'), spelling: tt('Spelling') };
   /** What a correction is and where it holds (Person, here; Split, everywhere). */
   const haveSaid = (f: Fix) => {
     const kind = f.kind === 'word' && f.role && f.role !== 'user' ? (f.role === 'name' ? tt('Person') : f.role === 'place' ? tt('Place') : tt('Name')) : KIND_SAID[f.kind];
@@ -270,7 +270,7 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
   if (t.next) joinSection('next', t.next);
 
   // Reading: each character's readings as chips.
-  section(tt('Reading'), t.pinyin.map((s) => formatSyllable(s, style())).join(' '), () => {
+  section(ttx('Reading', 'pronunciation'), t.pinyin.map((s) => formatSyllable(s, style())).join(' '), () => {
     const chosen = [...t.pinyin];
     const book = cp(t.word);
     const scope = scopeButtons(fixer, t.word, { here: !!t.at, upTo: true }, (where) => {
