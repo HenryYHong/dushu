@@ -1,6 +1,7 @@
 // Review session state: which card is next, what has been graded, and the summary numbers.
 // Pure logic; the screen supplies the clock and does the actual store writes.
 import type { Grade, VocabItem } from '../../types';
+import { tt, uiLocale } from '../../i18n';
 
 /** A card that comes back within this long is shown again in the same session. */
 export const REQUEUE_WITHIN_MS = 20 * 60_000;
@@ -60,15 +61,18 @@ export class ReviewSession {
   }
 }
 
-/** "in 3 hours", "tomorrow at 9:00 AM" style text for the empty state. */
+/**
+ * "now", "in 3 hours": when the next card is due, for "Your next card is due {when}." The counts are Intl's relative times in
+ * the app's language ("dans 3 heures", "3 時間後"), which are made to sit inside a sentence.
+ */
 export function describeNextDue(due: number, now: number): string {
   const ms = due - now;
-  if (ms <= 0) return 'now';
-  if (ms < 60_000) return 'in under a minute';
+  if (ms <= 0) return tt('now');
+  if (ms < 60_000) return tt('in under a minute');
+  const rel = new Intl.RelativeTimeFormat(uiLocale(), { numeric: 'always' });
   const mins = Math.round(ms / 60_000);
-  if (mins < 60) return `in ${mins} minute${mins === 1 ? '' : 's'}`;
+  if (mins < 60) return rel.format(mins, 'minute');
   const hours = Math.round(ms / 3_600_000);
-  if (hours < 24) return `in ${hours} hour${hours === 1 ? '' : 's'}`;
-  const days = Math.round(ms / 86_400_000);
-  return `in ${days} day${days === 1 ? '' : 's'}`;
+  if (hours < 24) return rel.format(hours, 'hour');
+  return rel.format(Math.round(ms / 86_400_000), 'day');
 }

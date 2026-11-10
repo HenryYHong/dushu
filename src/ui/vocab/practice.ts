@@ -9,6 +9,7 @@ import { speak } from '../../speech/tts';
 import { goalMessage, startReadingClock } from '../../core/readingClock';
 import { langId } from '../../lang/active';
 import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
+import { tt, ttn } from '../../i18n';
 
 const nodes = (...list: (HTMLElement | null)[]): HTMLElement[] => list.filter((n): n is HTMLElement => n !== null);
 
@@ -29,8 +30,8 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
   const progress = h('span.prc-progress.muted');
   const body = h('div.prc-body');
   const foot = h('div.prc-foot');
-  const closeBtn = h('button.icon-btn.prc-close', { type: 'button', 'aria-label': 'Close practice', onclick: () => close() }, icon('close'));
-  const card = h('div.prc-card', { role: 'dialog', 'aria-modal': 'true', 'aria-label': `Practice: ${title}` },
+  const closeBtn = h('button.icon-btn.prc-close', { type: 'button', 'aria-label': tt('Close practice'), onclick: () => close() }, icon('close'));
+  const card = h('div.prc-card', { role: 'dialog', 'aria-modal': 'true', 'aria-label': tt('Practice: {title}', { title }) },
     h('div.prc-head', null, h('span.prc-title', null, title), progress, closeBtn), body, foot);
   const overlay = h('div.prc-overlay', null, card);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
@@ -62,7 +63,7 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
     const s = ctx.settings.get();
     const view = scriptView(s.script, ctx.dictSync());
     const word = view.text(r.word);
-    progress.textContent = `${done + 1} of ${total}`;
+    progress.textContent = tt('{n} of {total}', { n: done + 1, total });
     const ta = textAttrs();
     body.append(h('div', { class: `prc-word ${ta.cls}`, lang: ta.lang }, word));
     if (shown) {
@@ -71,15 +72,15 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
         r.gloss ? h('div.prc-gloss', null, r.gloss) : null,
         r.context?.sentence ? h('div', { class: `prc-ctx ${ta.cls}`, lang: ta.lang }, contextEl(view.text(r.context.sentence), [word, r.word, r.id], 'b', 120)) : null,
         h('div.prc-tools', null,
-          h('button.btn.btn-sm', { type: 'button', onclick: () => say(r) }, icon('speaker'), 'Say it'),
+          h('button.btn.btn-sm', { type: 'button', onclick: () => say(r) }, icon('speaker'), tt('Say it')),
           saveButton(r)),
       ));
       foot.append(
-        h('button.btn.prc-again', { type: 'button', onclick: () => answer(false) }, 'Again'),
-        h('button.btn.btn-primary.prc-got', { type: 'button', onclick: () => answer(true) }, 'Got it'),
+        h('button.btn.prc-again', { type: 'button', onclick: () => answer(false) }, tt('Again')),
+        h('button.btn.btn-primary.prc-got', { type: 'button', onclick: () => answer(true) }, tt('Got it')),
       );
     } else {
-      foot.append(h('button.btn.btn-primary.prc-show', { type: 'button', onclick: () => { shown = true; draw(); } }, 'Show'));
+      foot.append(h('button.btn.btn-primary.prc-show', { type: 'button', onclick: () => { shown = true; draw(); } }, tt('Show')));
     }
     (foot.querySelector('.btn-primary') as HTMLElement | null)?.focus({ preventScroll: true });
   }
@@ -87,7 +88,7 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
   function saveButton(r: LookupRow): HTMLElement {
     const saved = ctx.store.vocab.has(r.id);
     return h('button.btn.btn-sm.prc-save', { type: 'button', 'aria-pressed': String(saved), disabled: saved, onclick: () => void save(r) },
-      icon('star'), saved ? 'In your flashcards' : 'Save to flashcards');
+      icon('star'), saved ? tt('In your flashcards') : tt('Save to flashcards'));
   }
 
   async function save(r: LookupRow): Promise<void> {
@@ -95,10 +96,10 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
     try {
       const dict = await ctx.dict();
       await ctx.store.vocab.put(itemFromLookupRow(dict, r, Date.now(), { bookGloss: false }));
-      ctx.toast(`Saved ${r.id} to your flashcards.`);
+      ctx.toast(tt('Saved {word} to your flashcards.', { word: r.id }));
       if (overlay.isConnected) draw();
     } catch (e) {
-      ctx.toast(e instanceof Error ? e.message : 'Could not save the word.');
+      ctx.toast(e instanceof Error ? e.message : tt('Could not save the word.'));
     }
   }
 
@@ -121,16 +122,24 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
     const missedRows = words.filter((w) => missed.has(w.id));
     body.append(
       h('div.prc-end', null,
-        h('h2.prc-end-title', null, 'Done'),
-        h('p.muted', null, missed.size
-          ? `${total - missed.size} of ${total} on the first try. ${missed.size === 1 ? 'One word needed' : `${missed.size} words needed`} another look.`
-          : `All ${total} on the first try.`)),
+        h('h2.prc-end-title', null, tt('Done')),
+        h('p.muted', null, endLine())),
     );
     foot.append(...nodes(
-      missedRows.length ? h('button.btn', { type: 'button', onclick: () => restart(missedRows) }, 'Practice the missed ones') : null,
-      h('button.btn.btn-primary', { type: 'button', onclick: () => close() }, 'Finish'),
+      missedRows.length ? h('button.btn', { type: 'button', onclick: () => restart(missedRows) }, tt('Practice the missed ones')) : null,
+      h('button.btn.btn-primary', { type: 'button', onclick: () => close() }, tt('Finish')),
     ));
     (foot.querySelector('.btn-primary') as HTMLElement | null)?.focus({ preventScroll: true });
+  }
+
+  /** "3 of 4 on the first try. One word needed another look." */
+  function endLine(): string {
+    const misses = missed.size;
+    const first = total - misses;
+    if (!misses) return ttn(total, 'All {n} on the first try.', 'All {n} on the first try.');
+    // One is said in words; the count's own forms carry the number in every language.
+    if (misses === 1) return tt('{first} of {total} on the first try. One word needed another look.', { first, total });
+    return ttn(misses, '{first} of {total} on the first try. {n} word needed another look.', '{first} of {total} on the first try. {n} words needed another look.', { first, total });
   }
 
   function restart(list: LookupRow[]): void {

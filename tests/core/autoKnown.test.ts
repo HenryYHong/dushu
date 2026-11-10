@@ -58,9 +58,10 @@ describe('what the help says', () => {
     const vocab = readFileSync(join(__dirname, '..', '..', 'src', 'ui', 'vocab', 'vocab.ts'), 'utf8');
     expect(vocab).not.toMatch(/unknown words only/i);
     // Both lines name the modes through one helper, which says "HSK pinyin modes" for Chinese (and JLPT or Level modes for
-    // another language).
-    expect(vocab.match(/in the Unknown and \$\{modesName\(\)\}/g)).toHaveLength(2);
-    expect(vocab).toMatch(/isChinese\(\) \? 'HSK pinyin modes'/);
+    // another language), each line a whole sentence for translation (src/i18n).
+    expect(vocab.match(/\bnoAid\((true|false)\)/g)).toHaveLength(2);
+    expect(vocab.match(/in the Unknown and HSK pinyin modes\./g)).toHaveLength(2);
+    expect(vocab.match(/in the Unknown and \{scheme\} modes\./g)).toHaveLength(2);
   });
 });
 

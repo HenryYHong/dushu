@@ -8,6 +8,7 @@ import { passkeysSupported } from '../core/passkey';
 import { SYNC_EVENT, currentSyncer, syncEnabled, type Syncer, type SyncStatus } from '../core/sync';
 import { accountPanel } from './settings/account';
 import { describeSync } from './settings/sync';
+import { tt, ttm } from '../i18n';
 
 /** Opens the account dialog: the sign-in (it closes by itself once a code has signed this device in), or who is signed in. */
 export function openSignIn(): void {
@@ -20,17 +21,17 @@ export function openSignIn(): void {
   // the signed-in line names the account, never "this email".
   const paintHead = () => {
     const signedIn = !!cloudSession();
-    title.textContent = signedIn ? 'Your account' : 'Sign in';
+    title.textContent = signedIn ? tt('Your account') : tt('Sign in');
     intro.textContent = signedIn
-      ? 'Your books, words and places are the same on every device signed in to this account.'
+      ? tt('Your books, words and places are the same on every device signed in to this account.')
       : passkeysSupported()
-        ? 'Sign in and your books, words and places are the same on every device. Use your passkey, or get a code by email.'
-        : 'Sign in and your books, words and places are the same on every device. We email you a 6-digit code. There’s no password.';
+        ? tt('Sign in and your books, words and places are the same on every device. Use your passkey, or get a code by email.')
+        : tt('Sign in and your books, words and places are the same on every device. We email you a 6-digit code. There’s no password.');
   };
   paintHead();
   dlg.append(
     h('div.signin-body', null, title, intro, panel.el),
-    h('div.signin-actions', null, h('button.btn', { type: 'button', onclick: () => dlg.close() }, 'Close')),
+    h('div.signin-actions', null, h('button.btn', { type: 'button', onclick: () => dlg.close() }, tt('Close'))),
   );
   window.addEventListener(CLOUD_EVENT, paintHead);
   dlg.addEventListener('close', () => { window.removeEventListener(CLOUD_EVENT, paintHead); panel.dispose(); dlg.remove(); });
@@ -40,18 +41,25 @@ export function openSignIn(): void {
   panel.focus();
 }
 
+const SYNC_OFF = ttm('Sync off');
+const OFFLINE = ttm('Offline');
+const NOT_SYNCED = ttm('Not synced');
+const SYNCED = ttm('Synced');
+const SYNCING = ttm('Syncing…');
+
 /**
  * What the account button says while signed in, from this library's syncer and the connection. Only "Synced" (the green dot)
  * says the words here are on the other devices. A sync under way keeps what was shown before, so the label does not flicker
- * with each sync every 45 seconds; "Syncing…" shows only until the first sync has answered.
+ * with each sync every 45 seconds; "Syncing…" shows only until the first sync has answered. The label is in English, as
+ * `before` is: the button shows it through tt().
  */
 export function syncLabel(st: SyncStatus | null, enabled: boolean, online: boolean, before: string | null): string {
-  if (!enabled || st?.state === 'off') return 'Sync off';
-  if (!online || st?.state === 'asleep') return 'Offline';
-  if (!st || st.state === 'error' || st.state === 'outdated' || st.state === 'memory' || st.state === 'refused' || st.state === 'signedout') return 'Not synced';
-  if (st.state === 'idle' && st.lastOk) return 'Synced';
-  if (before && before !== 'Sync off') return before;
-  return st.lastOk ? 'Synced' : 'Syncing…';
+  if (!enabled || st?.state === 'off') return SYNC_OFF;
+  if (!online || st?.state === 'asleep') return OFFLINE;
+  if (!st || st.state === 'error' || st.state === 'outdated' || st.state === 'memory' || st.state === 'refused' || st.state === 'signedout') return NOT_SYNCED;
+  if (st.state === 'idle' && st.lastOk) return SYNCED;
+  if (before && before !== SYNC_OFF) return before;
+  return st.lastOk ? SYNCED : SYNCING;
 }
 
 /** The top bar's account button: "Sign in" while signed out, and what sync is doing once signed in (when the build has a sync server). */
@@ -67,9 +75,9 @@ export function signInButton(): HTMLElement {
     if (!s) {
       shown = null;
       btn.classList.remove('app-signin-on');
-      label.textContent = 'Sign in';
-      btn.title = 'Sign in to sync';
-      btn.setAttribute('aria-label', 'Sign in to sync');
+      label.textContent = tt('Sign in');
+      btn.title = tt('Sign in to sync');
+      btn.setAttribute('aria-label', tt('Sign in to sync'));
       return;
     }
     const syncer = currentSyncer();
@@ -82,12 +90,13 @@ export function signInButton(): HTMLElement {
     // Why, in the tooltip and for a screen reader: the Settings line, without what the account holds. Offline before the
     // syncer has noticed reads as it will once it has.
     const now: SyncStatus = st ?? { state: 'none', pending: 0 };
-    const why = text === 'Offline' && now.state !== 'asleep' && enabled ? { ...now, state: 'asleep' as const, hub: 'cloud' as const } : now;
-    const reason = text === 'Syncing…' && why.state !== 'syncing' ? 'Syncing…' : describeSync({ ...why, counts: undefined }, enabled);
-    btn.classList.toggle('app-signin-on', text === 'Synced');
-    label.textContent = text;
-    btn.title = `Signed in as ${accountLabel(s)}. ${reason}`;
-    btn.setAttribute('aria-label', `Account, ${text}: signed in as ${accountLabel(s)}. ${reason}`);
+    const why = text === OFFLINE && now.state !== 'asleep' && enabled ? { ...now, state: 'asleep' as const, hub: 'cloud' as const } : now;
+    const reason = text === SYNCING && why.state !== 'syncing' ? tt(SYNCING) : describeSync({ ...why, counts: undefined }, enabled);
+    btn.classList.toggle('app-signin-on', text === SYNCED);
+    label.textContent = tt(text);
+    const name = accountLabel(s);
+    btn.title = tt('Signed in as {name}. {reason}', { name, reason });
+    btn.setAttribute('aria-label', tt('Account, {status}: signed in as {name}. {reason}', { status: tt(text), name, reason }));
   };
   window.addEventListener(CLOUD_EVENT, paint);
   window.addEventListener(SYNC_EVENT, paint);

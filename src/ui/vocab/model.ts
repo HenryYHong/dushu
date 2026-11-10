@@ -7,6 +7,7 @@ import { activeEngine, isChinese, lang, langId } from '../../lang/active';
 import { LANGS } from '../../lang/registry';
 import type { LangId } from '../../lang/types';
 import type { PinyinStyle, VocabItem } from '../../types';
+import { num, tt, ttn } from '../../i18n';
 
 export type SortKey = 'added' | 'due' | 'pinyin';
 
@@ -79,12 +80,15 @@ export function filterAndSort(items: VocabItem[], query: string, sort: SortKey):
  * so it adds up to the Review button. "2 words saved, 2 due. 3 new from words you looked up."
  */
 export function reviewLine(saved: number, due: number, fresh: number): string {
-  const n = (k: number) => k.toLocaleString('en-US');
-  const words = `${n(saved)} ${saved === 1 ? 'word' : 'words'} saved`;
-  const added = fresh ? `${n(fresh)} new from words you looked up.` : '';
-  if (!saved) return added;
-  if (!fresh) return `${words}, ${due ? `${n(due)} due for review` : 'none due for review'}`;
-  return `${words}, ${due ? `${n(due)} due` : 'none due'}. ${added}`;
+  if (!saved) return fresh ? ttn(fresh, '{n} new from words you looked up.', '{n} new from words you looked up.') : '';
+  if (!fresh) {
+    return due
+      ? ttn(saved, '{n} word saved, {due} due for review', '{n} words saved, {due} due for review', { due: num(due) })
+      : ttn(saved, '{n} word saved, none due for review', '{n} words saved, none due for review');
+  }
+  return due
+    ? ttn(saved, '{n} word saved, {due} due. {fresh} new from words you looked up.', '{n} words saved, {due} due. {fresh} new from words you looked up.', { due: num(due), fresh: num(fresh) })
+    : ttn(saved, '{n} word saved, none due. {fresh} new from words you looked up.', '{n} words saved, none due. {fresh} new from words you looked up.', { fresh: num(fresh) });
 }
 
 export interface DueLabel { text: string; state: 'new' | 'due' | 'later' }
@@ -92,9 +96,9 @@ export interface DueLabel { text: string; state: 'new' | 'due' | 'later' }
 /** "New", "Due now" or "Due in 3d". */
 export function dueLabel(item: VocabItem, now: number): DueLabel {
   if (item.srs.due <= now) {
-    return item.srs.reps === 0 && !item.srs.last ? { text: 'New', state: 'new' } : { text: 'Due now', state: 'due' };
+    return item.srs.reps === 0 && !item.srs.last ? { text: tt('New'), state: 'new' } : { text: tt('Due now'), state: 'due' };
   }
-  return { text: `Due in ${formatInterval(item.srs.due - now)}`, state: 'later' };
+  return { text: tt('Due in {when}', { when: formatInterval(item.srs.due - now) }), state: 'later' };
 }
 
 export interface ContextParts { before: string; match: string; after: string }

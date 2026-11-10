@@ -1,6 +1,8 @@
 // A small confirm dialog built on <dialog class="modal">.
 import { h } from '../dom';
+import { tt } from '../../i18n';
 
+/** The title, body and button come in the app's language (tt()); Cancel is added here. */
 export interface ConfirmOptions {
   title: string;
   body: string;
@@ -13,7 +15,7 @@ export function confirmDialog(o: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => {
     let result = false;
     const dlg = h('dialog', { class: 'modal voc-dialog', tabindex: -1, 'aria-label': o.title });
-    const cancel = h('button.btn', { type: 'button', onclick: () => dlg.close() }, 'Cancel');
+    const cancel = h('button.btn', { type: 'button', onclick: () => dlg.close() }, tt('Cancel'));
     const ok = h('button.btn', { type: 'button', class: o.danger ? 'btn-danger-solid' : 'btn-primary', onclick: () => { result = true; dlg.close(); } }, o.confirmLabel);
     dlg.append(
       h('div.voc-dialog-body', null, h('h2.voc-dialog-title', null, o.title), h('p.voc-dialog-text', null, o.body)),
