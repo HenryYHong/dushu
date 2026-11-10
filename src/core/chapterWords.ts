@@ -4,7 +4,9 @@
 import type { Dictionary, Lexicon } from '../types';
 import { segment } from './segment';
 import { applyFixes, type HereFix } from './fixes';
+import { sentenceAround as sentenceSpan } from './text';
 import { isWord } from '../lang/token';
+import { lang } from '../lang/active';
 
 export interface ChapterWord {
   /** The counting form (simplified): one row per word, whichever script the chapter is shown in. */
@@ -32,24 +34,35 @@ export interface ChapterWords {
   names: number;
 }
 
-const SENTENCE_END = '。！？；!?;\n';
 const CLAUSE_END = '，、：,:';
-const CLOSERS = '”’」』）》】"\')';
-/** A sentence longer than this is cut down to the clause around the word. */
+/** Chinese and Japanese: a sentence longer than this is cut down to the clause around the word. */
 const LONG_SENTENCE = 90;
+/** With spaces between words the sentence is kept whole (the screens shorten it for show), up to this many characters. */
+const LONG_SPACED = 400;
 /** Characters segmented between pauses. */
 const SLICE_CHARS = 6000;
 
-/** The sentence around [start, end) in `text`: from after the previous sentence end to the next one (with its closing quote). */
-export function sentenceAround(text: string, start: number, end: number): string {
-  let a = start;
-  while (a > 0 && !SENTENCE_END.includes(text[a - 1])) a--;
-  // A closing quote right after the previous sentence's end belongs to that sentence.
-  while (a < start && CLOSERS.includes(text[a])) a++;
-  let b = end;
-  while (b < text.length && !SENTENCE_END.includes(text[b])) b++;
-  if (b < text.length && text[b] !== '\n') b++;
-  while (b < text.length && CLOSERS.includes(text[b])) b++;
+/**
+ * The sentence around [start, end) in `text`, found the way the word card finds it (core/text.ts), so a word saved from the
+ * Words tab and one saved from the card keep the same sentence. Without spaces between words (`spaced` false) a long one is
+ * cut down to the clause around the word. With spaces, it is kept whole unless it is very long; then it is cut between
+ * words, with … where it was cut.
+ */
+export function sentenceAround(text: string, start: number, end: number, spaced = false): string {
+  const sp = sentenceSpan(text, start);
+  let a = Math.min(sp.start, start);
+  let b = Math.max(sp.end, end);
+  if (spaced) {
+    if (b - a <= LONG_SPACED) return text.slice(a, b).trim();
+    const half = (LONG_SPACED - (end - start)) / 2;
+    let ca = Math.max(a, Math.floor(start - half));
+    let cb = Math.min(b, Math.ceil(end + half));
+    // Never inside a word: move each cut in to the nearest space.
+    while (ca > a && ca < start && !/\s/.test(text[ca - 1])) ca++;
+    while (cb < b && cb > end && !/\s/.test(text[cb])) cb--;
+    const out = text.slice(ca, cb).trim();
+    return `${ca > a ? '… ' : ''}${out}${cb < b ? ' …' : ''}`;
+  }
   if (b - a > LONG_SENTENCE) {
     let ca = start;
     while (ca > a && start - ca < LONG_SENTENCE / 2 && !CLAUSE_END.includes(text[ca - 1])) ca--;
@@ -76,6 +89,7 @@ const pauseForPage = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 /** Count the words of a chapter's paragraphs (`texts`, as the reader shows them). */
 export async function chapterWords(texts: readonly string[], dict: Dictionary, lexicon?: Lexicon, opts: ChapterWordsOptions = {}): Promise<ChapterWords> {
   const pause = opts.pause ?? pauseForPage;
+  const spaced = lang().spaced;
   const byKey = new Map<string, ChapterWord & { readings: Map<string, number> }>();
   let total = 0;
   let names = 0;
@@ -107,7 +121,7 @@ export async function chapterWords(texts: readonly string[], dict: Dictionary, l
       if (!row) {
         row = {
           key, word: other ? tok.lemma || tok.text : tok.text, count: 0, pinyin: other ? [] : tok.pinyin ?? [], first: total,
-          sentence: sentenceAround(text, tok.start, tok.end),
+          sentence: sentenceAround(text, tok.start, tok.end, spaced),
           prev: tokens[t - 1]?.text ?? '', next: tokens[t + 1]?.text ?? '',
           readings: new Map(),
         };

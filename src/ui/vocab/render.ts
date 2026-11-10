@@ -25,10 +25,17 @@ export function pinyinEl(numbered: string, style: PinyinStyle, toneColors: boole
   return el;
 }
 
-/** A context sentence with the saved word in bold (or marked), shortened around the word. */
-export function contextEl(sentence: string, words: string[], tag: 'b' | 'mark' = 'b', max = 80): HTMLElement {
-  const parts = splitContext(sentence, words);
-  if (!parts) return h('span', null, [...sentence].length > max ? [...sentence].slice(0, max).join('') + '…' : sentence);
+/**
+ * A context sentence with the saved word in bold (or marked), shortened around the word. `key`, a saved word's id, finds
+ * the word in a form other than its dictionary one (vivía for vivir) when none of `words` is in the sentence.
+ */
+export function contextEl(sentence: string, words: string[], tag: 'b' | 'mark' = 'b', max = 80, key?: string): HTMLElement {
+  const parts = splitContext(sentence, words, key);
+  if (!parts) {
+    if ([...sentence].length <= max) return h('span', null, sentence);
+    const cut = excerpt({ before: '', match: '', after: sentence }, max);
+    return h('span', null, cut.after);
+  }
   const p = excerpt(parts, max);
   return h('span', null, p.before, h(tag, null, p.match), p.after);
 }

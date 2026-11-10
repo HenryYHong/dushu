@@ -6,12 +6,13 @@ import { icon } from '../icons';
 import { pageTitle } from '../pageHead';
 import { openWordPopup } from '../popup/popup';
 import { confirmDialog } from './confirm';
-import { ankiTsv, dueLabel, filterAndSort, vocabCsv, type SortKey } from './model';
+import { ankiTsv, dueLabel, exportFileName, filterAndSort, reviewLine, vocabCsv, type SortKey } from './model';
 import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
 import { activeEngine, isChinese } from '../../lang/active';
 import { aidName, aidWord, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { createLookupsView } from './lookups';
-import { reviewCount } from '../review/learning';
+import { reviewParts } from '../review/learning';
+import { backupFileName } from '../settings/data';
 
 const SORT_LABELS: Record<SortKey, string> = { added: 'Newest first', due: 'Due soonest', pinyin: isChinese() ? 'Pinyin A to Z' : 'A to Z' };
 const SORT_KEY = 'dushu.vocab.sort';
@@ -43,7 +44,6 @@ function download(name: string, text: string, type: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
 const plural = (n: number, one: string, many = one + 's') => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -125,7 +125,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('div.voc-main', null,
         h('div.voc-line', null, word, pinyinEl(it.pinyin, settings.pinyinStyle, settings.toneColors, 'voc-py')),
         h('div.voc-gloss', null, it.gloss),
-        it.context?.sentence ? h('div', { class: `voc-ctx ${ta.cls}`, lang: ta.lang }, contextEl(view.text(it.context.sentence), [it.simp, it.trad], 'b', 90)) : null,
+        it.context?.sentence ? h('div', { class: `voc-ctx ${ta.cls}`, lang: ta.lang }, contextEl(view.text(it.context.sentence), [it.simp, it.trad], 'b', 90, it.id)) : null,
         h('div.voc-meta.muted', null, meta),
       ),
       h('div.voc-side', null,
@@ -166,15 +166,16 @@ export const mount: MountFn = (root, _params, ctx) => {
   function exportAs(kind: 'anki' | 'csv'): void {
     const rows = shown();
     if (!rows.length) { ctx.toast('No words to export.'); return; }
-    if (kind === 'anki') download(`dushu-anki-${today()}.txt`, ankiTsv(rows, settings.pinyinStyle), 'text/tab-separated-values;charset=utf-8');
-    else download(`dushu-vocab-${today()}.csv`, vocabCsv(rows, settings.pinyinStyle), 'text/csv;charset=utf-8');
+    if (kind === 'anki') download(exportFileName('anki'), ankiTsv(rows, settings.pinyinStyle), 'text/tab-separated-values;charset=utf-8');
+    else download(exportFileName('vocab'), vocabCsv(rows, settings.pinyinStyle), 'text/csv;charset=utf-8');
     ctx.toast(`Exported ${plural(rows.length, 'word')}${query.trim() ? ' (current search)' : ''}.`);
   }
 
   async function exportBackup(): Promise<void> {
     try {
-      download(`dushu-backup-${today()}.json`, await store.exportBackup(), 'application/json');
-      ctx.toast('Backup saved: your words, known words, progress and review history.', { ms: 5000 });
+      // The same name as Settings > Data gives the same backup.
+      download(backupFileName(), await store.exportBackup(), 'application/json');
+      ctx.toast('Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.', { ms: 5000 });
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : 'Could not create the backup.');
     }
@@ -204,7 +205,8 @@ export const mount: MountFn = (root, _params, ctx) => {
   // Another language marks its own levels (JLPT N5 up, or A1 up); Chinese keeps HSK 1 to 9.
   const levelName = (n: number) => !isChinese() ? (n === 1 ? levelLabel(1) : `${levelLabel(1)} to ${levelLabel(n)}`)
     : n === 1 ? 'HSK 1' : n === 7 ? 'HSK 1 to 9' : `HSK 1 to ${n}`;
-  const levelSel = h('select', { class: 'select voc-level', 'aria-label': `${levelScheme()} level` },
+  // "HSK level", "JLPT level"; the A1 to C2 levels are just "Level" ("Level level" said it twice).
+  const levelSel = h('select', { class: 'select voc-level', 'aria-label': levelScheme() === 'HSK' || levelScheme() === 'JLPT' ? `${levelScheme()} level` : 'Level' },
     Array.from({ length: isChinese() ? 7 : levelCount() }, (_, i) => i + 1).map((n) => h('option', { value: n }, levelName(n))));
   const knownList = h('div.voc-known-words');
   const knownDetails = h('details', { class: 'voc-known-details', ontoggle: () => renderKnownWords() },
@@ -334,6 +336,17 @@ export const mount: MountFn = (root, _params, ctx) => {
   const page = h('div.page.voc-page', null, head, tabs, savedPane, lookups.el);
   root.appendChild(page);
 
+  /** The button counts what Review will show: the saved words due and the looked-up words it adds (review/learning.ts). The
+   * line under the title says the same two numbers, so the two never disagree. */
+  async function refreshHead(): Promise<void> {
+    const parts = await reviewParts(store).catch(() => ({ due: 0, fresh: 0 }));
+    if (!alive) return;
+    sub.textContent = reviewLine(items.length, parts.due, parts.fresh);
+    const cards = parts.due + parts.fresh;
+    reviewLink.textContent = '';
+    reviewLink.append(icon('cards'), cards ? `Review ${cards}` : 'Review');
+  }
+
   async function load(): Promise<void> {
     try {
       items = await store.vocab.list();
@@ -341,15 +354,8 @@ export const mount: MountFn = (root, _params, ctx) => {
       ctx.toast(e instanceof Error ? e.message : 'Could not read your vocabulary.');
       return;
     }
-    // The button counts what Review will show: the saved words due and the looked-up words it adds (review/learning.ts).
-    const cards = await reviewCount(store).catch(() => 0);
+    await refreshHead();
     if (!alive) return;
-    const due = items.filter((i) => i.srs.due <= Date.now()).length;
-    sub.textContent = items.length
-      ? `${plural(items.length, 'word')} saved, ${due ? `${due.toLocaleString('en-US')} due for review` : 'none due for review'}`
-      : '';
-    reviewLink.textContent = '';
-    reviewLink.append(icon('cards'), cards ? `Review ${cards}` : 'Review');
     renderList();
     renderKnown();
     // With nothing saved yet, open on what was looked up (unless a tab was chosen before).
@@ -359,8 +365,8 @@ export const mount: MountFn = (root, _params, ctx) => {
   // Also fires for a change made in another tab (the store tells every tab), so words saved there show up here.
   const offChange = store.onChange((what) => {
     if (what === 'vocab') { void load(); lookups.render(); }
-    if (what === 'known') renderKnown();
-    if (what === 'lookups') void lookups.refresh();
+    if (what === 'known') { renderKnown(); void refreshHead(); }
+    if (what === 'lookups') { void lookups.refresh(); void refreshHead(); }
   });
   const offSettings = ctx.settings.subscribe((s) => { settings = s; renderList(); lookups.render(); });
   void load();

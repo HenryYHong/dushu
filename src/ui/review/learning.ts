@@ -19,11 +19,18 @@ export function wordsToLearn(rows: LookupRow[], saved: (w: string) => boolean, k
     .sort((a, b) => b.last - a.last);
 }
 
-/** How many cards Review has now: the due saved words and the new ones it would add (for the badge). */
-export async function reviewCount(store: Store, now = Date.now()): Promise<number> {
+/** What Review has now, in two parts: the saved words due, and the looked-up words it would add as new cards (at most
+ * NEW_PER_SESSION). Vocabulary says both, so its line adds up to its Review button. */
+export async function reviewParts(store: Store, now = Date.now()): Promise<{ due: number; fresh: number }> {
   const due = (await store.vocab.due(now)).length;
   const fresh = wordsToLearn(await store.lookups.list(), (w) => store.vocab.has(w), (w) => store.known.has(w)).length;
-  return due + Math.min(fresh, NEW_PER_SESSION);
+  return { due, fresh: Math.min(fresh, NEW_PER_SESSION) };
+}
+
+/** How many cards Review has now: the due saved words and the new ones it would add (for the badge). */
+export async function reviewCount(store: Store, now = Date.now()): Promise<number> {
+  const { due, fresh } = await reviewParts(store, now);
+  return due + fresh;
 }
 
 export interface ReviewCards {

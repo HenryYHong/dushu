@@ -101,3 +101,18 @@ describe('the words being learned', () => {
     cleanup();
   });
 });
+
+describe('what Review has, in two parts', () => {
+  it('splits the due saved words from the new looked-up ones, at most a session of those', async () => {
+    const { reviewParts } = await import('../../src/ui/review/learning');
+    const { store } = await setup();
+    const now = Date.now();
+    await store.vocab.put({ ...item('你好', 'ni3 hao3', 'hello'), srs: { ...item('你好', '', '').srs, due: now - 1000 } });
+    await store.vocab.put({ ...item('爱', 'ai4', 'to love'), srs: { ...item('爱', '', '').srs, due: now + 86_400_000 } });
+    for (let i = 0; i < NEW_PER_SESSION + 5; i++) await store.lookups.log({ day: '2026-10-24', id: `词${i}`, word: `词${i}`, pinyin: '', gloss: '' }, 1000 + i);
+    // A looked-up word that is saved is not new.
+    await store.lookups.log({ day: '2026-10-24', id: '爱', word: '爱', pinyin: '', gloss: '' }, 5000);
+    expect(await reviewParts(store, now)).toEqual({ due: 1, fresh: NEW_PER_SESSION });
+    expect(await reviewCount(store, now)).toBe(1 + NEW_PER_SESSION);
+  });
+});

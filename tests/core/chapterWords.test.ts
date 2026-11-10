@@ -1,7 +1,11 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { Dictionary } from '../../src/types';
 import { chapterWords, sentenceAround, wordShare } from '../../src/core/chapterWords';
+import { sentenceAround as cardSentence } from '../../src/core/text';
 import { buildLexicon } from '../../src/core/lexicon';
+import { setLangForTests } from '../../src/lang/active';
+import { noChineseDictionary } from '../../src/lang/noChinese';
+import { loadLang } from '../lang/spaced/load';
 import { loadTestDictionary } from '../helpers/data';
 import { measure, PERF_SLACK } from '../helpers/perf';
 
@@ -77,5 +81,54 @@ describe('wordShare', () => {
     expect(s.known).toBe(5);
     expect(s.fresh).toBe(got.words.length - 2);
     expect(s.freshOften).toBe(2); // 走 and 吧, three times each
+  });
+});
+
+describe('sentences in languages with spaces between words', () => {
+  afterEach(() => setLangForTests('zh'));
+  // Made-up paragraphs: several sentences each, one of them longer than the 90 characters Chinese is cut at.
+  const PARAS = {
+    es: 'Había una vez un hombre que vivía en una ciudad grande. Trabajaba mucho todos los días en una oficina con muchas ventanas. Pero un día se enfermó, y los médicos le dijeron que solamente yéndose al campo podría curarse. Entonces se fue al monte.',
+    fr: 'Il était une fois un roi et une reine qui vivaient dans un grand château. Ils étaient tristes, car ils n’avaient pas d’enfants, et ils allaient voir toutes les fées du pays pour en avoir un. Enfin la reine eut une fille.',
+    ru: 'Молодая собака бежала по улице. Она искала своего хозяина, который ушёл утром на рынок и не вернулся домой к обеду, хотя всегда возвращался вовремя. Вечером пошёл дождь.',
+  } as const;
+  const letter = /[\p{L}\p{M}\p{N}]/u;
+
+  for (const id of ['es', 'fr', 'ru'] as const) {
+    it(`keeps the sentence the word card keeps, whole, in ${id}`, async () => {
+      const engine = await loadLang(id);
+      setLangForTests(id, engine);
+      const para = PARAS[id];
+      const got = await chapterWords([para], noChineseDictionary(engine), undefined, { pause: async () => {} });
+      expect(got.words.length).toBeGreaterThan(20);
+      const toks = engine.segment(para).filter((t) => t.kind === 'word');
+      for (const w of got.words) {
+        const tok = toks.find((t) => (t.key || t.text) === w.key)!;
+        // The same sentence as the card's splitter, so both ways of saving keep the same one.
+        expect(w.sentence, w.key).toBe(cardSentence(para, tok.start).text);
+        // Never starts or ends inside a word.
+        const at = para.indexOf(w.sentence);
+        expect(at, w.key).toBeGreaterThanOrEqual(0);
+        expect(letter.test(para[at - 1] ?? ' ') && letter.test(w.sentence[0]), w.key).toBe(false);
+        expect(letter.test(para[at + w.sentence.length] ?? ' ') && letter.test(w.sentence.at(-1)!), w.key).toBe(false);
+      }
+      // Longer than 90 characters, and still whole.
+      const sick = got.words.find((w) => w.sentence.includes('médicos') || w.sentence.includes('fées') || w.sentence.includes('хозяина'))!;
+      expect(sick.sentence.length).toBeGreaterThan(90);
+      expect(sick.sentence).toMatch(/^[\p{Lu}]/u);
+      expect(sick.sentence).toMatch(/[.]$/);
+    }, 60000);
+  }
+
+  it('cuts a very long sentence between words, with … where it was cut', () => {
+    const words = Array.from({ length: 120 }, (_, i) => `palabra${i}`);
+    const text = `${words.join(' ')}.`;
+    const at = text.indexOf('palabra60');
+    const s = sentenceAround(text, at, at + 'palabra60'.length, true);
+    expect(s.length).toBeLessThanOrEqual(404);
+    expect(s).toMatch(/^… palabra\d+ /);
+    expect(s).toMatch(/ palabra\d+ …$/);
+    expect(s).toContain('palabra60');
+    for (const piece of s.replace(/…/g, '').trim().split(' ')) expect(words).toContain(piece);
   });
 });

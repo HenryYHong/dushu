@@ -253,3 +253,71 @@ describe('page heads', () => {
     cleanup();
   });
 });
+
+describe('review by keyboard and screen reader', () => {
+  it('moves focus to the answer when it is shown, and to the next card after a grade, never to Again', async () => {
+    const { ctx, root } = await setup([item('你好', 'ni3 hao3', 'hello'), item('爱', 'ai4', 'to love')]);
+    const outside = document.body.appendChild(document.createElement('button'));
+    outside.focus();
+    const cleanup = await mountReview(root, {}, ctx) as () => void;
+    await until(() => !!root.querySelector('.rev-word'));
+    // The first card does not take focus from where it was.
+    expect(document.activeElement).toBe(outside);
+    expect(root.querySelector('h1.rev-sr')!.textContent).toContain('Review');
+    expect(root.querySelector('[role="progressbar"]')!.getAttribute('aria-label')).toBe('Review progress');
+    expect(root.querySelector('.rev-card')!.getAttribute('aria-label')).toBe('Card 1 of 2');
+
+    // Enter on Show answer (a click): the button hides itself, so focus goes to the answer.
+    const reveal = root.querySelector<HTMLButtonElement>('.rev-reveal')!;
+    reveal.focus();
+    reveal.click();
+    expect(reveal.hidden).toBe(true);
+    expect(document.activeElement).toBe(root.querySelector('.rev-back'));
+    expect(document.activeElement?.classList.contains('rev-grade-again')).toBe(false);
+    // A second Enter on the answer grades nothing.
+    key('Enter'); await tick();
+    expect(root.querySelector('.rev-counter')!.textContent).toContain('0 of 2');
+
+    // Grading from a grade button: the screen is drawn again, and focus lands on the new card.
+    // Easy: Good keeps a new card in the session (10 minutes).
+    const easy = root.querySelector<HTMLButtonElement>('.rev-grade-easy')!;
+    easy.focus();
+    easy.click();
+    await until(() => root.querySelector('.rev-counter')!.textContent!.includes('1 of 2'));
+    const card = root.querySelector<HTMLElement>('.rev-card')!;
+    expect(document.activeElement).toBe(card);
+    expect(card.getAttribute('aria-label')).toBe('Card 2 of 2');
+
+    // Space from the card shows the answer, and focus follows it there.
+    key(' ');
+    expect(document.activeElement).toBe(root.querySelector('.rev-back'));
+    cleanup();
+    outside.remove();
+  });
+
+  it('leaves focus alone when it is somewhere else on the page', async () => {
+    const { ctx, root } = await setup([item('你好', 'ni3 hao3', 'hello'), item('爱', 'ai4', 'to love')]);
+    const cleanup = await mountReview(root, {}, ctx) as () => void;
+    await until(() => !!root.querySelector('.rev-word'));
+    const outside = document.body.appendChild(document.createElement('input'));
+    outside.focus();
+    root.querySelector<HTMLButtonElement>('.rev-reveal')!.click();
+    expect(document.activeElement).toBe(outside);
+    root.querySelector<HTMLButtonElement>('.rev-grade-easy')!.click();
+    await until(() => root.querySelector('.rev-counter')!.textContent!.includes('1 of 2'));
+    expect(document.activeElement).toBe(outside);
+    cleanup();
+    outside.remove();
+  });
+});
+
+describe('the Vocabulary line and the Review button agree', () => {
+  it('counts the looked-up words Review adds as new, apart from the saved words due', async () => {
+    const { store, ctx, root } = await setup([item('你好', 'ni3 hao3', 'hello'), item('爱', 'ai4', 'to love')]);
+    for (const [i, w] of ['山', '水', '火'].entries()) await store.lookups.log({ day: '2026-10-24', id: w, word: w, pinyin: '', gloss: '' }, 1000 + i);
+    const cleanup = await mountVocab(root, {}, ctx) as () => void;
+    await until(() => !!root.querySelector('.voc-row') && /Review 5/.test(root.querySelector('.voc-head-actions')!.textContent ?? ''));
+    expect(root.querySelector('.page-sub')!.textContent).toBe('2 words saved, 2 due. 3 new from words you looked up.');
+    cleanup();
+  });
+});

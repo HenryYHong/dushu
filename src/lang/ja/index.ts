@@ -1764,6 +1764,7 @@ class JaEngine implements LangEngine {
     this.printedNames.clear();
     this.printedByFirst.clear();
     this.normCache.clear();
+    this.sentenceCache.clear();
   }
 
   // ------------------------------------------------------------- lookup ---
@@ -1773,7 +1774,35 @@ class JaEngine implements LangEngine {
     let w = token ? this.words.get(token) : undefined;
     if (!w && token && token.kind === 'word') w = this.wordAlone(token.text, token);
     if (w) return this.lookupWord(surface, w, token);
+    // No token, but the sentence (a word in the Words tab, a looked-up word saved later): the word as the sentence reads it,
+    // so the particle は is not 歯 "tooth", に not 二 "two" and と not 戸 "door".
+    const inSentence = !token && ctx?.sentence ? this.tokenIn(ctx.sentence, surface) : undefined;
+    const sw = inSentence && this.words.get(inSentence);
+    if (inSentence && sw) {
+      const res = this.lookupWord(surface, sw, inSentence);
+      // Asked for the dictionary form (歩く), found inflected on the page (歩いていた): the page's form is not the one asked about.
+      if (inSentence.text !== surface) delete res.form;
+      return res;
+    }
     return this.lookupSpan(surface);
+  }
+
+  /** Sentences cut lately, for lookups by sentence (the Words tab asks for many words of the same few sentences). */
+  private sentenceCache = new Map<string, Token[]>();
+
+  /** The token for `surface` in `sentence`: the one keyed as the word is, else the one spelled so, else its dictionary form. */
+  private tokenIn(sentence: string, surface: string): Token | undefined {
+    const word = surface.trim();
+    if (!word || sentence.length > 2000) return undefined;
+    let toks = this.sentenceCache.get(sentence);
+    if (!toks) {
+      toks = this.segment(sentence).filter((t) => t.kind === 'word');
+      if (this.sentenceCache.size >= 200) this.sentenceCache.clear();
+      this.sentenceCache.set(sentence, toks);
+    }
+    const key = this.normalize(word);
+    return toks.find((t) => t.key === key && (t.text === word || t.lemma === word))
+      ?? toks.find((t) => t.text === word) ?? toks.find((t) => t.lemma === word) ?? toks.find((t) => t.key === key);
   }
 
   /** The word for a token analysed again on its own (a token from another session, or one rebuilt by the UI). */

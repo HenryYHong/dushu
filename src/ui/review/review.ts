@@ -10,7 +10,7 @@ import { contextEl, pinyinEl, scriptView, textAttrs } from '../vocab/render';
 import { isChinese } from '../../lang/active';
 import { pageTitle } from '../pageHead';
 import { describeNextDue, ReviewSession } from './queue';
-import { reviewCards, reviewCount } from './learning';
+import { reviewCards, reviewParts } from './learning';
 
 const GRADES: { grade: Grade; key: 'again' | 'hard' | 'good' | 'easy'; label: string }[] = [
   { grade: 0, key: 'again', label: 'Again' },
@@ -44,7 +44,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     return later.length ? Math.min(...later) : undefined;
   };
 
-  async function start(): Promise<void> {
+  /** `focus`: a session started from a button here (Keep going), so focus goes to its first card. */
+  async function start(focus = false): Promise<void> {
     clear(screen);
     let due: VocabItem[];
     try {
@@ -59,7 +60,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!due.length) { await showEmpty(); return; }
     session = new ReviewSession(due);
     revealed = false;
-    showCard();
+    showCard(focus);
   }
 
   // ------------------------------------------------------------ empty ---
@@ -79,10 +80,19 @@ export const mount: MountFn = (root, _params, ctx) => {
   }
 
   // -------------------------------------------------------------- card ---
-  function showCard(): void {
+  /**
+   * Draws the current card. `moveFocus` after a grade (or Keep going): focus goes to the new card, so a screen reader reads it
+   * and the keyboard carries on from it, unless focus was somewhere else on the page. A redraw (the dictionary loaded) keeps
+   * focus on the card when it was there, and the first card never takes it.
+   */
+  function showCard(moveFocus = false): void {
     if (!session) return;
     const cur = session.current;
     if (!cur) { void showSummary(); return; }
+    const was = document.activeElement;
+    const take = moveFocus
+      ? !was || was === document.body || screen.contains(was)
+      : !!was && !!screen.querySelector('.rev-card')?.contains(was);
     clear(screen);
 
     const view = scriptView(settings.script, ctx.dictSync());
@@ -90,7 +100,10 @@ export const mount: MountFn = (root, _params, ctx) => {
     const ta = textAttrs(word === cur.trad && cur.trad !== cur.simp);
     const lang = ta.lang;
     const len = [...word].length;
-    const progress = h('div.rev-progress', { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': session.total, 'aria-valuenow': session.done },
+    const progress = h('div.rev-progress', {
+      role: 'progressbar', 'aria-label': 'Review progress', 'aria-valuemin': 0, 'aria-valuemax': session.total, 'aria-valuenow': session.done,
+      'aria-valuetext': `${session.done} of ${session.total} done`,
+    },
       h('div.rev-progress-fill', { style: `width:${(session.done / session.total) * 100}%` }));
     const top = h('div.rev-top', null,
       h('a.rev-exit', { href: '#/vocab' }, icon('arrowLeft'), 'Words'),
@@ -101,10 +114,11 @@ export const mount: MountFn = (root, _params, ctx) => {
     const front = h('div.rev-front', null,
       h('div', { class: `rev-word ${ta.cls}${len > (isChinese() ? 4 : 12) ? ' rev-word-long' : len > (isChinese() ? 2 : 7) ? ' rev-word-mid' : ''}`, lang }, word),
       cur.context?.sentence
-        ? h('p', { class: `rev-ctx ${ta.cls}`, lang }, contextEl(view.text(cur.context.sentence), [cur.simp, cur.trad], 'mark', 70))
+        ? h('p', { class: `rev-ctx ${ta.cls}`, lang }, contextEl(view.text(cur.context.sentence), [cur.simp, cur.trad], 'mark', 70, cur.id))
         : null,
     );
-    const back = h('div.rev-back', { hidden: !revealed },
+    // Focus lands on the answer when it is shown (never on Again: a second Enter would grade the card).
+    const back = h('div.rev-back', { hidden: !revealed, tabindex: -1, role: 'group', 'aria-label': 'Answer' },
       h('div.rev-answer', null,
         pinyinEl(cur.pinyin, settings.pinyinStyle, settings.toneColors, 'rev-py'),
         canSpeak() ? h('button.icon-btn.rev-speak', { type: 'button', title: 'Play audio (P)', 'aria-label': 'Play audio', onclick: (e: Event) => { e.stopPropagation(); speakNow(); } }, icon('speaker')) : null,
@@ -122,16 +136,26 @@ export const mount: MountFn = (root, _params, ctx) => {
         h('span.rev-grade-iv', null, iv[g.key]),
         h('span.rev-grade-key.kbd', null, String(g.grade + 1)))));
 
-    const card = h('div.card.rev-card', { onclick: () => { if (!revealed) reveal_(); } }, front, back);
-    screen.append(top, progress, card, reveal, grades);
+    const card = h('div.card.rev-card', {
+      tabindex: -1, role: 'group', 'aria-label': `Card ${session.done + 1} of ${session.total}`,
+      onclick: () => { if (!revealed) reveal_(); },
+    }, front, back);
+    // The screen's title, for screen readers: a session shows only the card.
+    screen.append(pageTitle('review', 'Review', 'h1', 'rev-sr'), top, progress, card, reveal, grades);
+    if (take) (revealed ? back : card).focus({ preventScroll: true });
 
     function reveal_(): void {
       if (revealed) return;
+      // Show answer hides itself: focus would fall to the page, so it goes to the answer instead (when it was on the card,
+      // the button, or nowhere).
+      const a = document.activeElement;
+      const takeFocus = !a || a === reveal || a === document.body || card.contains(a);
       revealed = true;
       back.hidden = false;
       reveal.hidden = true;
       grades.hidden = false;
       card.classList.add('rev-card-revealed');
+      if (takeFocus) back.focus({ preventScroll: true });
     }
     // Used by the key handler through the DOM so it always acts on the card on screen.
     screen.dataset.state = revealed ? 'back' : 'front';
@@ -171,7 +195,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     }
     if (!alive) return;
     revealed = false;
-    showCard();
+    showCard(true);
   }
 
   // ----------------------------------------------------------- summary ---
@@ -179,7 +203,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!session) return;
     const s = session.summary();
     const next = await nextDueAmongAll();
-    const dueNow = await reviewCount(store);
+    const parts = await reviewParts(store);
+    const dueNow = parts.due + parts.fresh;
     if (!alive) return;
     clear(screen);
     const stat = (value: string, label: string) => h('div.rev-stat', null, h('div.rev-stat-value', null, value), h('div.rev-stat-label', null, label));
@@ -190,11 +215,14 @@ export const mount: MountFn = (root, _params, ctx) => {
         stat(pct(s.recall), 'Remembered'),
         ...GRADES.map((g) => stat(String(s.grades[g.grade]), g.label)),
       ),
-      h('p.rev-next', null, dueNow
-        ? `${count(dueNow, 'more card')} due now.`
+      // Looked-up words are new cards, not due ones: said apart, as Vocabulary says them.
+      h('p.rev-next', null, parts.due && parts.fresh
+        ? `${count(parts.due, 'more card')} due now, and ${parts.fresh.toLocaleString('en-US')} new from words you looked up.`
+        : parts.due ? `${count(parts.due, 'more card')} due now.`
+        : parts.fresh ? `${count(parts.fresh, 'new card')} from words you looked up.`
         : next ? `Your next card is due ${describeNextDue(next, Date.now())}.` : 'All your cards are scheduled.'),
       h('div.rev-summary-actions', null,
-        dueNow ? h('button.btn.btn-primary', { type: 'button', onclick: () => void start() }, 'Keep going') : null,
+        dueNow ? h('button.btn.btn-primary', { type: 'button', onclick: () => void start(true) }, 'Keep going') : null,
         h('a.btn', { href: '#/vocab' }, icon('list'), 'Back to words'),
         h('a.btn.btn-ghost', { href: '#/' }, 'Library'),
       ),

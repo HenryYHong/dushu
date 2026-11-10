@@ -12,6 +12,7 @@ import { windowed, type Windowed } from './windowed';
 import { activeEngine, lang } from '../../lang/active';
 import { levelLabel, levelScheme } from '../../lang/labels';
 import { langVocabItem, safeLookup, shortGlossOf } from '../../lang/words';
+import { foldSearch } from '../vocab/model';
 import type { WordLookup } from '../../lang/types';
 
 /** What the Words tab needs from the reader. */
@@ -61,11 +62,12 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
   const isKnown = (w: ChapterWord) => store.known.has(w.key) || store.known.has(w.word);
   const isSaved = (w: ChapterWord) => store.vocab.has(w.key) || store.vocab.has(w.word);
   const engine = activeEngine();
-  /** Another language: each word's lookup once (its meaning, reading and level). */
+  /** Another language: each word's lookup once (its meaning, reading and level), read in the sentence it first comes up in,
+   * as the word card reads it there (Japanese は is the particle there, not 歯 "tooth"). */
   const lookups = new Map<string, WordLookup>();
   const lookupOf = (w: ChapterWord) => {
     let lu = lookups.get(w.key);
-    if (!lu && engine) { lu = safeLookup(engine, w.word); lookups.set(w.key, lu); }
+    if (!lu && engine) { lu = safeLookup(engine, w.word, undefined, w.sentence); lookups.set(w.key, lu); }
     return lu;
   };
   const pinyinOf = (w: ChapterWord) => {
@@ -206,20 +208,33 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
         ? `${plural(s.fresh, 'new word')}${s.freshOften ? `, ${fmt(s.freshOften)} of them ${s.freshOften === 1 ? 'comes' : 'come'} up 3 or more times` : ''}.`
         : 'You know every word in this chapter.'),
     );
-    if (!store.known.count()) share.appendChild(h('p.rd-words-note', null, `Mark words you know with the check, or mark whole ${levelScheme()} levels in Vocabulary.`));
+    if (!store.known.count()) {
+      // HSK and JLPT are names of levels; elsewhere the scheme is just "Level" (A1 to C2), and "Level levels" says it twice.
+      const s = levelScheme();
+      const levels = s === 'HSK' || s === 'JLPT' ? `${s} levels` : 'levels';
+      share.appendChild(h('p.rd-words-note', null, `Mark words you know with the check, or mark whole ${levels} as known in Vocabulary.`));
+    }
   }
 
   function paint(): void {
     summary();
     list.querySelector('.rd-toc-none')?.remove();
     if (!data) { tab.window.set(0, opts.rowH); return; }
-    const q = filter.value.trim().toLowerCase();
+    const raw = filter.value.trim();
+    const q = raw.toLowerCase();
+    // Case and accents do not count (German nouns are capitalized, and a phone types "tambien" for también); the pinyin with
+    // numbers stays as typed.
+    const f = foldSearch(raw);
+    // An inflected form finds its word (Kindern finds Kind).
+    let asKey = '';
+    if (engine && f) { try { asKey = foldSearch(engine.normalize(raw)); } catch { /* no key for it */ } }
     const numbered = (w: ChapterWord) => w.pinyin.join('').toLowerCase().replace(/[0-5]/g, '');
     shown = data.words.filter((w) => {
       if (show === 'new' && isKnown(w)) return false;
       if (!q) return true;
-      return w.word.includes(q) || w.key.includes(q) || text(w.word).includes(q) || numbered(w).includes(q.replace(/\s+/g, ''))
-        || pinyinOf(w).toLowerCase().includes(q) || gloss(w).toLowerCase().includes(q);
+      const key = foldSearch(w.key);
+      return foldSearch(w.word).includes(f) || key.includes(f) || foldSearch(text(w.word)).includes(f) || (!!asKey && key === asKey)
+        || numbered(w).includes(q.replace(/\s+/g, '')) || foldSearch(pinyinOf(w)).includes(f) || foldSearch(gloss(w)).includes(f);
     });
     shown.sort(order === 'often' ? (a, b) => b.count - a.count || a.first - b.first : (a, b) => a.first - b.first);
     tab.rove = Math.max(0, Math.min(tab.rove, shown.length - 1));

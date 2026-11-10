@@ -2,9 +2,15 @@
 // The chapter drawer's Words tab: what it lists, the share of the chapter known, and saving / marking known from a row.
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { BookMeta, Dictionary } from '../../src/types';
+import type { LangEngine, LangId } from '../../src/lang/types';
 import { chapterWords } from '../../src/core/chapterWords';
 import { createToc } from '../../src/ui/reader/toc';
+import { setLangForTests } from '../../src/lang/active';
+import { noChineseDictionary } from '../../src/lang/noChinese';
+import { loadJa } from '../lang/ja/load';
+import { loadLang } from '../lang/spaced/load';
 import { makeCtx, stubBrowser, tick } from './helpers';
+import { Blob as NodeBlob } from 'node:buffer';
 
 beforeAll(() => stubBrowser());
 afterEach(() => { document.body.innerHTML = ''; });
@@ -123,4 +129,82 @@ describe('Words tab', () => {
     expect((document.querySelector('.rd-toc-list:not(.rd-words)') as HTMLElement).hidden).toBe(true);
     toc.dispose();
   });
+});
+
+describe('Words tab in other languages', () => {
+  afterEach(() => setLangForTests('zh'));
+  // The engines unzip their data with Blob.stream(), which jsdom's Blob lacks: they load with Node's.
+  let ja: LangEngine;
+  let de: LangEngine;
+  let es: LangEngine;
+  beforeAll(async () => {
+    const jsdomBlob = globalThis.Blob;
+    globalThis.Blob = NodeBlob as unknown as typeof Blob;
+    try { [ja, de, es] = await Promise.all([loadJa(), loadLang('de'), loadLang('es')]); } finally { globalThis.Blob = jsdomBlob; }
+  }, 60000);
+
+  async function setupLang(id: LangId, engine: LangEngine, chapter: string) {
+    setLangForTests(id, engine);
+    const { ctx } = await makeCtx();
+    const book = {
+      id: 'b2', title: 'Book', author: '', format: 'paste', script: 'original', addedAt: 0,
+      chapterCount: 1, charCount: chapter.length, chapterOffsets: [], chapterTitles: ['One'],
+    } as unknown as BookMeta;
+    const toc = createToc(ctx, book, () => {}, undefined, {
+      words: { load: () => chapterWords([chapter], noChineseDictionary(engine), undefined, { pause: async () => {} }), onWord: () => {} },
+    });
+    return { ctx, toc };
+  }
+  const glossOf = (w: string) => rowOf(w).querySelector('.rd-word-gloss')!.textContent ?? '';
+  const filterBy = (q: string) => {
+    const filter = document.querySelector<HTMLInputElement>('.rd-words-filter')!;
+    filter.value = q;
+    filter.dispatchEvent(new Event('input'));
+    return rows().map((r) => r.querySelector('.rd-name-word')!.textContent);
+  };
+
+  it('Japanese: gives the particles their meaning in the sentence, and saves them as particles', async () => {
+    const { ctx, toc } = await setupLang('ja', ja, 'お釈迦様は池のふちを歩いていた。男は門の前に立って、友と話した。');
+    toc.open(0, 'words');
+    await vi.waitFor(() => expect(rowOf('は')).toBeTruthy());
+    expect(glossOf('は')).toMatch(/topic/);
+    expect(glossOf('は')).not.toMatch(/tooth/);
+    expect(glossOf('に')).not.toMatch(/two/);
+    expect(glossOf('と')).not.toMatch(/door/);
+    rowOf('は').querySelector<HTMLButtonElement>('[data-k="save"]')!.click();
+    await vi.waitFor(async () => expect(await ctx.store.vocab.get('は')).toBeTruthy());
+    const item = (await ctx.store.vocab.get('は'))!;
+    expect(item.simp).toBe('は');
+    expect(item.gloss).toMatch(/topic/);
+    toc.dispose();
+  }, 60000);
+
+  it('German and Spanish: the filter finds a word whatever its case and accents, and by a form of it', async () => {
+    const a = await setupLang('de', de, 'Ach, was muß man oft von bösen Kindern hören oder lesen! Das Vorwort ist kurz. Das Kind liest.');
+    a.toc.open(0, 'words');
+    await vi.waitFor(() => expect(rowOf('Vorwort')).toBeTruthy());
+    [...document.querySelectorAll<HTMLButtonElement>('.rd-words-chip')].find((b) => b.textContent === 'All')!.click();
+    for (const q of ['Vorwort', 'vorwort', 'Vorw', 'VORWORT']) expect(filterBy(q), q).toContain('Vorwort');
+    expect(filterBy('kind')).toContain('Kind');
+    expect(filterBy('Kindern')).toContain('Kind');
+    expect(filterBy('bose')).toContain('böse');
+    a.toc.dispose();
+    document.body.innerHTML = '';
+
+    const b = await setupLang('es', es, 'También vino el médico. Después se fue.');
+    b.toc.open(0, 'words');
+    await vi.waitFor(() => expect(rowOf('también')).toBeTruthy());
+    expect(filterBy('tambien')).toEqual(['también']);
+    expect(filterBy('MEDICO')).toEqual(['médico']);
+    b.toc.dispose();
+  }, 60000);
+
+  it('says how to mark whole levels without naming the scheme twice', async () => {
+    const { toc } = await setupLang('es', es, 'Había una vez un hombre.');
+    toc.open(0, 'words');
+    await vi.waitFor(() => expect(share()).toMatch(/Mark words you know/));
+    expect(share()).toContain('or mark whole levels as known in Vocabulary.');
+    expect(share()).not.toMatch(/Level levels/);
+    toc.dispose();
+  }, 60000);
 });

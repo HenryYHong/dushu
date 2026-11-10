@@ -197,3 +197,32 @@ describe('levels, hints, meta', () => {
     for (const s of ja.meta.sources) { expect(s.license).toBeTruthy(); expect(s.url).toMatch(/^https?:\/\//); }
   });
 });
+
+describe('lookup by sentence, with no token (the Words tab, a looked-up word saved later)', () => {
+  const S = 'お釈迦様は池のふちを歩いていた。男は門の前に立って、友と話した。';
+  const gloss = (l: WordLookup) => first(l).senses[0].glosses.join('; ');
+
+  it('reads a particle as the particle the sentence has, not a noun spelled the same', () => {
+    // Alone, the noun comes first: は 歯 "tooth", に 二 "two", と 戸 "door".
+    expect(first(ja.lookup('は')).head).toBe('歯');
+    const wa = ja.lookup('は', { sentence: S });
+    expect(first(wa).head).toBe('は');
+    expect(gloss(wa)).toMatch(/topic/);
+    expect(wa.key).toBe('は');
+    expect(first(ja.lookup('に', { sentence: S })).head).toBe('に');
+    expect(first(ja.lookup('に', { sentence: S })).head).not.toBe('二');
+    expect(first(ja.lookup('と', { sentence: S })).head).not.toBe('戸');
+    expect(gloss(ja.lookup('と', { sentence: S }))).not.toMatch(/door/);
+  });
+
+  it('finds a word by its dictionary form, and says no inflection for a form not asked about', () => {
+    const walk = ja.lookup('歩く', { sentence: S });
+    expect(first(walk).head).toBe('歩く');
+    expect(walk.key).toBe('歩く');
+    expect(walk.form).toBeUndefined();
+    // Asked as the page spells it, the form is explained.
+    expect(ja.lookup('歩いていた', { sentence: S }).form).toBe('progressive (te iru), past');
+    // A word the sentence does not have is looked up on its own.
+    expect(first(ja.lookup('食べる', { sentence: S })).head).toBe('食べる');
+  });
+});
