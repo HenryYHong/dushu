@@ -6,34 +6,36 @@ import { canSpeak, listChineseVoices, listVoicesFor, speak, stopSpeaking, voiceL
 import { isChinese, lang } from '../../lang/active';
 import { SAMPLE_SENTENCES } from '../../lang/samples';
 import { group, nextId, row, slider } from './controls';
+import { langName, tt, uiLocale } from '../../i18n';
 
 export const TEST_SENTENCE = '你好，欢迎使用读书。今天我们一起读一本书。';
-const langName = () => (isChinese() ? 'Chinese' : lang().name);
+/** The language the voices speak, by its name in the app's language. */
+const voiceLang = () => (isChinese() ? langName('zh', 'Chinese') : langName(lang().id, lang().name));
 
-/** The read-aloud speed as the reader's menu and audio strip show it: 0.9×, 1×, 1.25×. */
-export const rateLabel = (n: number): string => `${Number(n.toFixed(2))}×`;
+/** The read-aloud speed as the reader's menu and audio strip show it: 0.9×, 1×, 1.25× (0,9× in French). */
+export const rateLabel = (n: number): string => `${new Intl.NumberFormat(uiLocale(), { maximumFractionDigits: 2 }).format(n)}×`;
 
 export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Settings): void; dispose(): void } {
   const { settings } = ctx;
   const voiceId = nextId('voice');
-  const select = h('select.select', { id: voiceId, 'aria-label': 'Voice' }) as HTMLSelectElement;
+  const select = h('select.select', { id: voiceId, 'aria-label': tt('Voice') }) as HTMLSelectElement;
   const note = h('div.set-help.set-voice-note');
   let voices: SpeechSynthesisVoice[] = [];
   let listed = false;
 
   const fill = (current: string) => {
-    const opts = [h('option', { value: '' }, `Automatic (best ${langName()} voice)`)];
+    const opts = [h('option', { value: '' }, tt('Automatic (best {language} voice)', { language: voiceLang() }))];
     for (const v of voices) opts.push(h('option', { value: v.voiceURI }, voiceLabel(v)));
     // A saved voice that is not installed here (another machine) stays visible instead of silently resetting.
-    if (current && !voices.some((v) => v.voiceURI === current || v.name === current)) opts.push(h('option', { value: current }, `${current} (not installed)`));
+    if (current && !voices.some((v) => v.voiceURI === current || v.name === current)) opts.push(h('option', { value: current }, tt('{voice} (not installed)', { voice: current })));
     select.replaceChildren(...opts);
     select.value = current;
   };
   select.addEventListener('change', () => settings.set({ ttsVoice: select.value }));
 
-  const rate = slider('ttsRate', 'Read-aloud speed', { min: 0.5, max: 2, step: 0.05, format: rateLabel }, (v) => settings.set({ ttsRate: v }));
+  const rate = slider('ttsRate', tt('Read-aloud speed'), { min: 0.5, max: 2, step: 0.05, format: rateLabel }, (v) => settings.set({ ttsRate: v }));
 
-  const test = h('button.btn.btn-sm', { type: 'button' }, icon('speaker'), 'Test voice') as HTMLButtonElement;
+  const test = h('button.btn.btn-sm', { type: 'button' }, icon('speaker'), tt('Test voice')) as HTMLButtonElement;
   const testStatus = h('div.set-help', { role: 'status', 'aria-live': 'polite' });
   let playing = false;
   let testRun = 0;
@@ -42,25 +44,25 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
       testRun++;
       stopSpeaking();
       playing = false;
-      test.replaceChildren(icon('speaker'), 'Test voice');
-      testStatus.textContent = 'Voice sample stopped.';
+      test.replaceChildren(icon('speaker'), tt('Test voice'));
+      testStatus.textContent = tt('Voice sample stopped.');
       return;
     }
     const s = settings.get();
     const mine = ++testRun;
     playing = true;
-    test.replaceChildren(icon('stop'), 'Stop sample');
-    testStatus.textContent = 'Preparing audio…';
+    test.replaceChildren(icon('stop'), tt('Stop sample'));
+    testStatus.textContent = tt('Preparing audio…');
     let failed = false;
     void speak(isChinese() ? TEST_SENTENCE : SAMPLE_SENTENCES[lang().id], {
       voice: s.ttsVoice || undefined, rate: s.ttsRate,
-      onStart: () => { if (mine === testRun) testStatus.textContent = `Playing ${langName()} voice sample…`; },
+      onStart: () => { if (mine === testRun) testStatus.textContent = tt('Playing {language} voice sample…', { language: voiceLang() }); },
       onError: message => { failed = true; if (mine === testRun) testStatus.textContent = message; },
     }).then(completed => {
       if (mine !== testRun) return;
       playing = false;
-      test.replaceChildren(icon('speaker'), 'Test voice');
-      if (!failed) testStatus.textContent = completed ? 'Voice sample finished.' : 'Voice sample stopped.';
+      test.replaceChildren(icon('speaker'), tt('Test voice'));
+      if (!failed) testStatus.textContent = completed ? tt('Voice sample finished.') : tt('Voice sample stopped.');
     });
   });
 
@@ -78,8 +80,8 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
       listed = true;
       fill(settings.get().ttsVoice);
       note.textContent = list.length
-        ? `Automatic picks the best voice you have. On iPad you can add ${langName()} voices in Settings > Accessibility > Read & Speak.`
-        : `No ${langName()} voices found. Add one in your device’s Accessibility > Read & Speak settings, then reopen Settings.`;
+        ? tt('Automatic picks the best voice you have. On iPad you can add {language} voices in Settings > Accessibility > Read & Speak.', { language: voiceLang() })
+        : tt('No {language} voices found. Add one in your device’s Accessibility > Read & Speak settings, then reopen Settings.', { language: voiceLang() });
     }).catch(() => {
       if (mine !== listRun) return;
       listed = true;
@@ -89,17 +91,17 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
   if (!supported) {
     select.disabled = true;
     test.disabled = true;
-    note.textContent = 'This browser cannot speak text aloud.';
+    note.textContent = tt('This browser cannot speak text aloud.');
   } else {
-    note.textContent = 'Looking for voices…';
+    note.textContent = tt('Looking for voices…');
     relist();
     speechSynthesis.addEventListener('voiceschanged', relist);
   }
 
-  const el = group('Speech', null,
-    row('Voice', null, h('div.set-voice', null, select, note), voiceId),
-    row('Read-aloud speed', null, rate),
-    row('Try it', null, h('div', null, test, testStatus)));
+  const el = group(tt('Speech'), null,
+    row(tt('Voice'), null, h('div.set-voice', null, select, note), voiceId),
+    row(tt('Read-aloud speed'), null, rate),
+    row(tt('Try it'), null, h('div', null, test, testStatus)));
   fill('');
 
   return {

@@ -5,43 +5,63 @@ import { isChinese, lang } from '../../lang/active';
 import { h } from '../dom';
 import { icon } from '../icons';
 import { nextId, row } from './controls';
-
-const n = (k: number, one: string, many = `${one}s`) => `${k.toLocaleString('en-US')} ${k === 1 ? one : many}`;
+import { langName, tt, ttn, uiLocale } from '../../i18n';
 
 export function ago(ms: number, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - ms) / 1000));
-  if (s < 45) return 'just now';
+  if (s < 45) return tt('just now');
   const m = Math.round(s / 60);
-  if (m < 60) return `${n(m, 'minute')} ago`;
+  if (m < 60) return ttn(m, '{n} minute ago', '{n} minutes ago');
   const hours = Math.round(m / 60);
-  if (hours < 24) return `${n(hours, 'hour')} ago`;
-  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (hours < 24) return ttn(hours, '{n} hour ago', '{n} hours ago');
+  return new Date(ms).toLocaleDateString(uiLocale(), { month: 'short', day: 'numeric' });
+}
+
+/** What the account or the Mac holds: one sentence for each, with and without bookmarks. */
+function heldSentence(c: NonNullable<SyncStatus['counts']>, cloud: boolean): string {
+  const marks = c.bookmarks ?? 0;
+  const vars = {
+    words: ttn(c.words, '{n} saved word', '{n} saved words'),
+    known: ttn(c.known, '{n} known word', '{n} known words'),
+    places: ttn(c.places, 'your place in {n} book', 'your place in {n} books'),
+    bookmarks: ttn(marks, '{n} bookmark', '{n} bookmarks'),
+  };
+  if (cloud) {
+    return marks ? tt('Your account holds {words}, {known}, {bookmarks} and {places}.', vars)
+      : tt('Your account holds {words}, {known} and {places}.', vars);
+  }
+  return marks ? tt('Your Mac holds {words}, {known}, {bookmarks} and {places}.', vars)
+    : tt('Your Mac holds {words}, {known} and {places}.', vars);
 }
 
 /** One or two sentences about the sync status, for the Settings row. */
 export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date.now()): string {
-  const waiting = st.pending ? ` ${n(st.pending, 'change')} from this device will sync when it can.` : '';
-  if (st.state === 'memory') return 'This browser is blocking local storage, so nothing here can sync.';
+  const waiting = st.pending ? ` ${ttn(st.pending, '{n} change from this device will sync when it can.', '{n} changes from this device will sync when it can.')}` : '';
+  if (st.state === 'memory') return tt('This browser is blocking local storage, so nothing here can sync.');
   // Each language has its own switch: say which one is off, outside Chinese.
-  if (!enabled || st.state === 'off') return `Sync is off ${isChinese() ? 'on this device' : `for ${lang().name} on this device`}.${st.pending ? ` ${n(st.pending, 'change')} here have not been sent.` : ''}`;
+  if (!enabled || st.state === 'off') {
+    const off = isChinese() ? tt('Sync is off on this device.') : tt('Sync is off for {language} on this device.', { language: langName(lang().id, lang().name) });
+    return `${off}${st.pending ? ` ${ttn(st.pending, '{n} change here have not been sent.', '{n} changes here have not been sent.')}` : ''}`;
+  }
   if (st.state === 'none') return cloudBase()
-    ? 'Sign in above, or connect this device to your Mac, and your words, reading places and bookmarks sync.'
-    : 'Connect this device to your Mac above, and your words and reading places sync through it.';
-  if (st.state === 'signedout') return 'This device was signed out of sync. Sign in again above.';
+    ? tt('Sign in above, or connect this device to your Mac, and your words, reading places and bookmarks sync.')
+    : tt('Connect this device to your Mac above, and your words and reading places sync through it.');
+  if (st.state === 'signedout') return tt('This device was signed out of sync. Sign in again above.');
   if (st.state === 'asleep') return st.hub === 'cloud'
-    ? `Could not reach the sync server. Check this device’s internet connection.${waiting}`
-    : `Your Mac did not answer. It may be asleep, or Tailscale is off on this device.${waiting}`;
-  if (st.state === 'refused') return 'Your Mac did not accept this device. Sign in to Tailscale with the same account as the Mac.';
-  if (st.state === 'error') return `Sync did not finish: ${st.message ?? 'unknown error'}${waiting}`;
+    ? `${tt('Could not reach the sync server. Check this device’s internet connection.')}${waiting}`
+    : `${tt('Your Mac did not answer. It may be asleep, or Tailscale is off on this device.')}${waiting}`;
+  if (st.state === 'refused') return tt('Your Mac did not accept this device. Sign in to Tailscale with the same account as the Mac.');
+  if (st.state === 'error') return `${tt('Sync did not finish: {reason}', { reason: st.message ?? tt('unknown error') })}${waiting}`;
   // A hub from before this language synced: the records wait here (core/sync.ts says which hub and what to do).
-  if (st.state === 'outdated') return `${st.message ?? 'Your sync server is older than this version of Globereader.'}${st.pending ? ` ${n(st.pending, 'change')} from this device ${st.pending === 1 ? 'is' : 'are'} waiting.` : ''}`;
+  if (st.state === 'outdated') {
+    const why = st.message ?? tt('Your sync server is older than this version of Globereader.');
+    return `${why}${st.pending ? ` ${ttn(st.pending, '{n} change from this device is waiting.', '{n} changes from this device are waiting.')}` : ''}`;
+  }
   // The first sync: the hub it goes to is known only once it answers, so it names none.
-  if (st.state === 'syncing' && !st.lastOk) return 'Syncing…';
-  if (!st.lastOk) return 'Not synced yet.';
-  const c = st.counts;
-  const marks = c?.bookmarks ? `, ${n(c.bookmarks, 'bookmark')}` : '';
-  const held = c ? ` ${st.hub === 'cloud' ? 'Your account' : 'Your Mac'} holds ${n(c.words, 'saved word')}, ${n(c.known, 'known word')}${marks} and your place in ${n(c.places, 'book')}.` : '';
-  return `Up to date, synced ${ago(st.lastOk, now)}.${held}${waiting}`;
+  if (st.state === 'syncing' && !st.lastOk) return tt('Syncing…');
+  if (!st.lastOk) return tt('Not synced yet.');
+  const held = st.counts ? ` ${heldSentence(st.counts, st.hub === 'cloud')}` : '';
+  return `${tt('Up to date, synced {when}.', { when: ago(st.lastOk, now) })}${held}${waiting}`;
 }
 
 export function syncRow(): { el: HTMLElement; dispose(): void } {
@@ -50,7 +70,7 @@ export function syncRow(): { el: HTMLElement; dispose(): void } {
   input.checked = syncEnabled();
   const toggle = h('label.set-switch', null, input, h('span.set-switch-track', null, h('span.set-switch-thumb')));
   const status = h('div.set-help.set-sync-status', { role: 'status', 'aria-live': 'polite' });
-  const now = h('button.btn.btn-sm', { type: 'button' }, icon('refresh'), 'Sync now') as HTMLButtonElement;
+  const now = h('button.btn.btn-sm', { type: 'button' }, icon('refresh'), tt('Sync now')) as HTMLButtonElement;
   const show = () => {
     const syncer = currentSyncer();
     const hub = hasSyncHub();
@@ -65,12 +85,16 @@ export function syncRow(): { el: HTMLElement; dispose(): void } {
   window.addEventListener(CLOUD_EVENT, show);
   const tick = window.setInterval(show, 30_000);
   show();
-  const what = isChinese() ? 'Words' : `${lang().name} words`;
-  const el = row('Sync',
-    cloudBase()
-      ? `${what}, lookups, bookmarks${isChinese() ? ', your corrections' : ''} and your place in each book. Changes made offline sync when you are back online.`
-      : `${what}, lookups, bookmarks${isChinese() ? ', your corrections' : ''} and your place in each book, on every device connected to this Mac.`,
-    h('div.set-sync', null, h('div.set-sync-top', null, toggle, now), status));
+  // What syncs: Chinese adds the reader's corrections, and another language is named.
+  const language = langName(lang().id, lang().name);
+  const help = cloudBase()
+    ? isChinese()
+      ? tt('Words, lookups, bookmarks, your corrections and your place in each book. Changes made offline sync when you are back online.')
+      : tt('{language} words, lookups, bookmarks and your place in each book. Changes made offline sync when you are back online.', { language })
+    : isChinese()
+      ? tt('Words, lookups, bookmarks, your corrections and your place in each book, on every device connected to this Mac.')
+      : tt('{language} words, lookups, bookmarks and your place in each book, on every device connected to this Mac.', { language });
+  const el = row(tt('Sync'), help, h('div.set-sync', null, h('div.set-sync-top', null, toggle, now), status));
   const title = el.querySelector<HTMLElement>('.set-label');
   if (title) { title.id = nextId('sync-title'); input.setAttribute('aria-labelledby', title.id); }
   return { el, dispose() { window.removeEventListener(SYNC_EVENT, show); window.removeEventListener(CLOUD_EVENT, show); window.clearInterval(tick); } };

@@ -5,6 +5,7 @@ import { h } from '../dom';
 import { CLOUD_EVENT, accountLabel, cloudBase, cloudSession, deleteAccount, requestCode, signIn, signOut } from '../../core/cloud';
 import { addPasskey, passkeyHere, passkeysSupported, signInWithPasskey } from '../../core/passkey';
 import { nextId, row } from './controls';
+import { tt } from '../../i18n';
 
 /**
  * Accounts are made from invite links; the email code is for someone who has one. The server refuses any other address with a
@@ -14,9 +15,9 @@ export function codeRefusal(e: unknown): string {
   const message = e instanceof Error ? e.message : '';
   const status = (e as { status?: unknown } | null)?.status;
   if (status === 403 || /^That email cannot sign in here\.?$/.test(message) || /answered 403\b/.test(message)) {
-    return 'Sign-in by email is closed here. To make an account, open the invite link you were sent.';
+    return tt('Sign-in by email is closed here. To make an account, open the invite link you were sent.');
   }
-  return message || 'The code could not be sent.';
+  return message || tt('The code could not be sent.');
 }
 
 export interface AccountPanel {
@@ -31,29 +32,29 @@ export interface AccountPanel {
 export function accountPanel(onSignedIn?: () => void): AccountPanel {
   const emailId = nextId('cloud-email');
   const email = h('input.input.set-cloud-input.set-cloud-email', { id: emailId, type: 'email', inputmode: 'email', autocomplete: 'email', autocapitalize: 'none',
-    spellcheck: 'false', placeholder: 'you@example.com', 'aria-label': 'Email' }) as HTMLInputElement;
+    spellcheck: 'false', placeholder: tt('you@example.com'), 'aria-label': tt('Email') }) as HTMLInputElement;
   // With passkeys, the passkey is the one filled button; the email is the owner's way in, and a way back for anyone.
   const passkeys = passkeysSupported();
-  const passkeyBtn = h(passkeys ? 'button.btn.btn-sm.btn-primary' : 'button.btn.btn-sm', { type: 'button', hidden: !passkeys }, 'Sign in with a passkey') as HTMLButtonElement;
-  const addKeyBtn = h('button.btn.btn-sm', { type: 'button', hidden: true }, 'Add a passkey on this device') as HTMLButtonElement;
-  const sendBtn = h(passkeys ? 'button.btn.btn-sm' : 'button.btn.btn-sm.btn-primary', { type: 'button' }, 'Email me a code') as HTMLButtonElement;
+  const passkeyBtn = h(passkeys ? 'button.btn.btn-sm.btn-primary' : 'button.btn.btn-sm', { type: 'button', hidden: !passkeys }, tt('Sign in with a passkey')) as HTMLButtonElement;
+  const addKeyBtn = h('button.btn.btn-sm', { type: 'button', hidden: true }, tt('Add a passkey on this device')) as HTMLButtonElement;
+  const sendBtn = h(passkeys ? 'button.btn.btn-sm' : 'button.btn.btn-sm.btn-primary', { type: 'button' }, tt('Email me a code')) as HTMLButtonElement;
   const code = h('input.input.set-cloud-input.set-cloud-code', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6,
-    placeholder: '6-digit code', 'aria-label': 'Code from the email' }) as HTMLInputElement;
-  const signInBtn = h('button.btn.btn-sm.btn-primary', { type: 'button' }, 'Sign in') as HTMLButtonElement;
-  const againBtn = h('button.btn.btn-sm', { type: 'button' }, 'Another email') as HTMLButtonElement;
-  const signOutBtn = h('button.btn.btn-sm', { type: 'button' }, 'Sign out') as HTMLButtonElement;
-  const deleteBtn = h('button.btn.btn-sm.btn-ghost', { type: 'button' }, 'Delete account…') as HTMLButtonElement;
-  const confirmBtn = h('button.btn.btn-sm.btn-danger-solid', { type: 'button' }, 'Delete my account') as HTMLButtonElement;
-  const keepBtn = h('button.btn.btn-sm', { type: 'button' }, 'Keep it') as HTMLButtonElement;
+    placeholder: tt('6-digit code'), 'aria-label': tt('Code from the email') }) as HTMLInputElement;
+  const signInBtn = h('button.btn.btn-sm.btn-primary', { type: 'button' }, tt('Sign in')) as HTMLButtonElement;
+  const againBtn = h('button.btn.btn-sm', { type: 'button' }, tt('Another email')) as HTMLButtonElement;
+  const signOutBtn = h('button.btn.btn-sm', { type: 'button' }, tt('Sign out')) as HTMLButtonElement;
+  const deleteBtn = h('button.btn.btn-sm.btn-ghost', { type: 'button' }, tt('Delete account…')) as HTMLButtonElement;
+  const confirmBtn = h('button.btn.btn-sm.btn-danger-solid', { type: 'button' }, tt('Delete my account')) as HTMLButtonElement;
+  const keepBtn = h('button.btn.btn-sm', { type: 'button' }, tt('Keep it')) as HTMLButtonElement;
   const status = h('div.set-help.set-cloud-status', { role: 'status', 'aria-live': 'polite' });
   const result = h('div.set-test-out.set-cloud-result', { role: 'status', 'aria-live': 'polite' });
   const passkeyRow = h('div.set-cloud-row', { hidden: !passkeys }, passkeyBtn);
-  const orEmail = h('div.set-help.set-cloud-or', { hidden: !passkeys }, 'Or get a code by email:');
+  const orEmail = h('div.set-help.set-cloud-or', { hidden: !passkeys }, tt('Or get a code by email:'));
   const emailRow = h('div.set-cloud-row', null, email, sendBtn);
   const codeRow = h('div.set-cloud-row', null, code, signInBtn, againBtn);
   const outRow = h('div.set-cloud-row', null, addKeyBtn, signOutBtn, deleteBtn);
   const deleteRow = h('div.set-cloud-delete', { hidden: true },
-    h('p.set-help', null, 'This deletes your account and everything kept in it, and signs out every device. What is on this device stays here.'),
+    h('p.set-help', null, tt('This deletes your account and everything kept in it, and signs out every device. What is on this device stays here.')),
     h('div.set-cloud-row', null, confirmBtn, keepBtn));
   let asked = ''; // the email a code was sent to
 
@@ -71,10 +72,10 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     outRow.hidden = !s;
     addKeyBtn.hidden = !s || !passkeys || passkeyHere();
     if (!s) deleteRow.hidden = true;
-    status.textContent = s ? `Signed in as ${accountLabel(s)}.`
-      : asked ? `A code was sent to ${asked}. It works for 10 minutes.`
-      : passkeys ? 'New here? Open the invite link you were sent to make your account.'
-      : 'Accounts are by invite for now. We only use your email to send you sign-in codes.';
+    status.textContent = s ? tt('Signed in as {account}.', { account: accountLabel(s) })
+      : asked ? tt('A code was sent to {email}. It works for 10 minutes.', { email: asked })
+      : passkeys ? tt('New here? Open the invite link you were sent to make your account.')
+      : tt('Accounts are by invite for now. We only use your email to send you sign-in codes.');
   }
 
   passkeyBtn.addEventListener('click', async () => {
@@ -82,9 +83,9 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     say('');
     try {
       await signInWithPasskey();
-      say('Signed in. Your books’ places, words and bookmarks are on their way.', 'good');
+      say(tt('Signed in. Your books’ places, words and bookmarks are on their way.'), 'good');
       onSignedIn?.();
-    } catch (e) { say(e instanceof Error ? e.message : 'Could not sign in.', 'bad'); }
+    } catch (e) { say(e instanceof Error ? e.message : tt('Could not sign in.'), 'bad'); }
     finally { passkeyBtn.disabled = false; paint(); }
   });
   addKeyBtn.addEventListener('click', async () => {
@@ -92,16 +93,16 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     say('');
     try {
       await addPasskey();
-      say('Passkey added. Next time, sign in here the way you unlock this device.', 'good');
-    } catch (e) { say(e instanceof Error ? e.message : 'The passkey could not be added.', 'bad'); }
+      say(tt('Passkey added. Next time, sign in here the way you unlock this device.'), 'good');
+    } catch (e) { say(e instanceof Error ? e.message : tt('The passkey could not be added.'), 'bad'); }
     finally { addKeyBtn.disabled = false; paint(); }
   });
 
   sendBtn.addEventListener('click', async () => {
     const value = email.value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { say('Enter your email address.', 'bad'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { say(tt('Enter your email address.'), 'bad'); return; }
     sendBtn.disabled = true;
-    say('Sending…');
+    say(tt('Sending…'));
     try {
       await requestCode(value);
       asked = value;
@@ -114,15 +115,15 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
   });
   signInBtn.addEventListener('click', async () => {
     const digits = code.value.replace(/\D/g, '');
-    if (digits.length !== 6) { say('Type the six-digit code from the email.', 'bad'); return; }
+    if (digits.length !== 6) { say(tt('Type the six-digit code from the email.'), 'bad'); return; }
     signInBtn.disabled = true;
-    say('Signing in…');
+    say(tt('Signing in…'));
     try {
       await signIn(asked, digits);
       asked = '';
-      say('Signed in. Your books’ places, words and bookmarks are on their way.', 'good');
+      say(tt('Signed in. Your books’ places, words and bookmarks are on their way.'), 'good');
       onSignedIn?.();
-    } catch (e) { say(e instanceof Error ? e.message : 'Could not sign in.', 'bad'); }
+    } catch (e) { say(e instanceof Error ? e.message : tt('Could not sign in.'), 'bad'); }
     finally { signInBtn.disabled = false; paint(); }
   });
   againBtn.addEventListener('click', () => { asked = ''; say(''); paint(); email.focus(); });
@@ -130,19 +131,19 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     signOutBtn.disabled = true;
     await signOut();
     signOutBtn.disabled = false;
-    say('Signed out. Everything stays on this device; it no longer syncs through your account.');
+    say(tt('Signed out. Everything stays on this device; it no longer syncs through your account.'));
     paint();
   });
   deleteBtn.addEventListener('click', () => { deleteRow.hidden = false; confirmBtn.focus(); });
   keepBtn.addEventListener('click', () => { deleteRow.hidden = true; deleteBtn.focus(); });
   confirmBtn.addEventListener('click', async () => {
     confirmBtn.disabled = true;
-    say('Deleting…');
+    say(tt('Deleting…'));
     try {
       await deleteAccount();
       deleteRow.hidden = true;
-      say('Your account is deleted. Everything on this device stays here; it no longer syncs.', 'good');
-    } catch (e) { say(e instanceof Error ? e.message : 'The account could not be deleted. Try again.', 'bad'); }
+      say(tt('Your account is deleted. Everything on this device stays here; it no longer syncs.'), 'good');
+    } catch (e) { say(e instanceof Error ? e.message : tt('The account could not be deleted. Try again.'), 'bad'); }
     finally { confirmBtn.disabled = false; paint(); }
   });
   email.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') sendBtn.click(); });
@@ -165,7 +166,7 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
 export function accountRow(): { el: HTMLElement; dispose(): void } | null {
   if (!cloudBase()) return null;
   const panel = accountPanel();
-  const el = row('Sync account', 'Sign in on each device and your books, words and places are the same on all of them.',
+  const el = row(tt('Sync account'), tt('Sign in on each device and your books, words and places are the same on all of them.'),
     panel.el, panel.emailId);
   el.id = 'sync-account';
   return { el, dispose: panel.dispose };

@@ -7,12 +7,12 @@ import { langId } from '../../lang/active';
 import { ACTIVITY_EVENT, GOALS } from '../../core/activity';
 import { getPlan, setPlan } from '../../core/plan';
 import { radioGroup } from './controls';
-import { UI_LANGS, UI_NAMES, chooseUiLang, uiLang } from '../../i18n';
+import { UI_LANGS, UI_NAMES, chooseUiLang, langName, tt, ttn, uiLang } from '../../i18n';
 
 export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HTMLElement; goal: HTMLElement; welcome: HTMLElement; dispose(): void } {
   // The app is shown in it, and sentences are translated into it (Translation › Translate into changes only that). The page
   // reloads, so every screen is drawn again in the new language.
-  const own = h('select.select', { id: 'set-ui-lang', 'aria-label': 'Your language' },
+  const own = h('select.select', { id: 'set-ui-lang', 'aria-label': tt('Your language') },
     UI_LANGS.map((code) => h('option', { value: code, selected: code === uiLang(), lang: code }, UI_NAMES[code]))) as HTMLSelectElement;
   own.addEventListener('change', () => {
     const code = own.value as (typeof UI_LANGS)[number];
@@ -22,7 +22,7 @@ export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HT
   });
 
   const chips = LANG_IDS.map((id) => {
-    const b = h('button.set-learn-chip', { type: 'button', 'aria-pressed': 'false', lang: LANGS[id].tag, title: LANGS[id].name },
+    const b = h('button.set-learn-chip', { type: 'button', 'aria-pressed': 'false', lang: LANGS[id].tag, title: langName(id, LANGS[id].name) },
       LANGS[id].native) as HTMLButtonElement;
     b.addEventListener('click', () => {
       const langs = getPlan().langs;
@@ -30,14 +30,14 @@ export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HT
     });
     return b;
   });
-  const langs = h('div.set-learn', { role: 'group', 'aria-label': 'Languages you are learning' }, chips);
+  const langs = h('div.set-learn', { role: 'group', 'aria-label': tt('Languages you are learning') }, chips);
 
   // The goal is the plan's, not a setting: the same radio group as the settings' segmented controls (arrow keys, one tab stop).
-  const goal = radioGroup('Daily goal', GOALS.map((g) => ({ value: g as number, label: `${g} min` })), (g) => setPlan({ goal: g }));
+  const goal = radioGroup(tt('Daily goal'), GOALS.map((g) => ({ value: g as number, label: ttn(g, '{n} min', '{n} min') })), (g) => setPlan({ goal: g }));
 
   const welcome = h('button.btn', { type: 'button', onclick: () => {
     void import('../welcome').then((m) => m.showWelcome(ctx.settings, { current: langId(), again: true }));
-  } }, 'Show it again');
+  } }, tt('Show it again'));
 
   // Redrawn when the plan changes here, in another tab or from another device.
   const draw = () => {
