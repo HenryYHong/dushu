@@ -5,6 +5,7 @@ import { loadSampleBook, sampleSourceName, type Sample } from './samples';
 import { problemsDialog } from './dialogs';
 import { isMacBook } from './macBooks';
 import { scriptView } from '../vocab/render';
+import { num, tt, ttm, ttn, uiLang } from '../../i18n';
 
 /** Same list as ACCEPT in src/import, kept here so the library does not load the importers up front. */
 export const ACCEPT = '.epub,.mobi,.azw3,.azw,.prc,.txt,.text,.pdf,.html,.htm,.xhtml,.md';
@@ -20,23 +21,49 @@ export function prefetchImporters(): void {
   else setTimeout(run, 800);
 }
 
-export const OFFLINE_MESSAGE = 'You are offline. Connect once to add this classic.';
+export const OFFLINE_MESSAGE = ttm('You are offline. Connect once to add this classic.');
 
 /** True for what a browser reports when a request got no answer: "Failed to fetch", "Load failed", a service worker's respondWith error. */
 export function isNetworkFailure(e: unknown): boolean {
   return e instanceof Error && e.name !== 'ImportError' && /failed to fetch|load failed|networkerror|network request failed|respondwith/i.test(e.message);
 }
 
-export function errorText(e: unknown, label: string, ImportError?: ImportModule['ImportError']): string {
-  if (ImportError && e instanceof ImportError) return label === 'that text' ? e.message : `${label}: ${e.message}`;
+/** The label of pasted text, which has no title to be named by. A job's other labels are a title in quotes: “title”. */
+const PASTED = 'that text';
+/** The title in a job's label, or null for pasted text. Each message puts the title in its own language's quotes. */
+const titleIn = (label: string): string | null => (label === PASTED ? null : /^“([\s\S]*)”$/.exec(label)?.[1] ?? label);
+
+/** "“title”: what happened", a message about one book. */
+function about(label: string, reason: string): string {
+  const title = titleIn(label);
+  return title === null ? tt('that text: {reason}', { reason }) : tt('“{title}”: {reason}', { title, reason });
+}
+
+/** "Could not add “title”.", and the reason after it when there is one. */
+function couldNotAdd(label: string, reason: string): string {
+  const title = titleIn(label);
+  if (title === null) return reason ? tt('Could not add that text. {reason}', { reason }) : tt('Could not add that text.');
+  return reason ? tt('Could not add “{title}”. {reason}', { title, reason }) : tt('Could not add “{title}”.', { title });
+}
+
+/** What went wrong adding `label`: the whole message, and the reason alone (a batch's Details, a row of Find a book). */
+export function problemOf(e: unknown, label: string, ImportError?: ImportModule['ImportError']): { message: string; reason: string } {
+  if (ImportError && e instanceof ImportError) return { message: label === PASTED ? e.message : about(label, e.message), reason: e.message };
   // Never show a raw browser message such as "FetchEvent.respondWith received an error: TypeError: Load failed".
   if (isNetworkFailure(e)) {
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
-    return `Could not add ${label}. ${offline ? OFFLINE_MESSAGE : 'The network did not answer. Check your connection and try again.'}`;
+    const reason = offline ? tt(OFFLINE_MESSAGE) : tt('The network did not answer. Check your connection and try again.');
+    return { message: couldNotAdd(label, reason), reason };
   }
   const msg = e instanceof Error && e.message ? e.message : '';
-  if (/^(Could not|You are offline)/.test(msg)) return msg.startsWith('Could not') ? msg : `Could not add ${label}. ${msg}`;
-  return msg ? `Could not add ${label}. ${msg}` : `Could not add ${label}.`;
+  // A message that is whole already ("Could not download …", or one marked `whole` because in another language it starts
+  // otherwise) is said as it is.
+  if (/^Could not/.test(msg) || (e as { whole?: unknown } | null)?.whole === true) return { message: msg, reason: msg.replace(/^Could not add “[^”]*”\.\s*/, '') };
+  return { message: couldNotAdd(label, msg), reason: msg };
+}
+
+export function errorText(e: unknown, label: string, ImportError?: ImportModule['ImportError']): string {
+  return problemOf(e, label, ImportError).message;
 }
 
 const nextFrame = () => new Promise<void>((r) => setTimeout(r, 30));
@@ -55,9 +82,9 @@ export interface Job {
 /** What the pending card says under the title: "Downloading", "Starting", "Reading 42%", "Saving". */
 export function jobStage(job: Pick<Job, 'fraction' | 'stage'>): string {
   if (job.stage) return job.stage;
-  if (job.fraction < 0.02) return 'Starting…';
-  if (job.fraction >= 0.9) return 'Saving…';
-  return `Reading… ${Math.round((job.fraction / 0.9) * 100)}%`;
+  if (job.fraction < 0.02) return tt('Starting…');
+  if (job.fraction >= 0.9) return tt('Saving…');
+  return tt('Reading… {percent}%', { percent: num(Math.round((job.fraction / 0.9) * 100)) });
 }
 
 /** A readable title from a file name: no extension, underscores as spaces. */
@@ -98,13 +125,14 @@ export const pasteSourceName = (text: string): string => `paste:${hash(text.trim
  * `quiet` skips the "Added" toast, for a caller that says it once for a whole batch. `mac` is for the Mac's own books
  * (syncMacBooks): they are always added, even beside a copy imported by hand. `onProblem` hears what would have been a toast
  * (a book that could not be read, or one already in the library), for a caller whose dialog covers the toasts, with what went
- * wrong (an Error with a `code` the sync server gave). `who` names the book on its card and in messages when the caller knows
- * it and the file's name is not for people (gutenberg-1342.epub): the file keeps its name, which the book is kept under.
+ * wrong (an Error with a `code` the sync server gave) and the reason alone, without the book's name. `who` names the book on
+ * its card and in messages when the caller knows it and the file's name is not for people (gutenberg-1342.epub): the file keeps
+ * its name, which the book is kept under.
  */
 export interface FileOpts {
   quiet?: boolean;
   mac?: boolean;
-  onProblem?: (message: string, twin?: BookMeta, error?: unknown) => void;
+  onProblem?: (message: string, twin?: BookMeta, error?: unknown, reason?: string) => void;
   who?: { title: string; author?: string };
 }
 
@@ -159,8 +187,9 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       const twin = await twinOf?.(book, m);
       if (twin) {
         if (opts.onTwin) { opts.onTwin(twin); return null; }
-        if (onProblem) { onProblem(`“${shown(twin.title)}” is already in your library.`, twin); return null; }
-        ctx.toast(`“${shown(twin.title)}” is already in your library.`, { action: { label: 'Open', run: read(twin) }, ms: 7000 });
+        const said = tt('“{title}” is already in your library.', { title: shown(twin.title) });
+        if (onProblem) { onProblem(said, twin); return null; }
+        ctx.toast(said, { action: { label: tt('Open'), run: read(twin) }, ms: 7000 });
         return null;
       }
       job.fraction = 0.92;
@@ -171,12 +200,13 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       const meta = await ctx.store.books.add(book);
       // What went wrong in an import that still worked (bad bytes in the file) is said once, beside the "Added" notice.
       for (const w of book.warnings ?? []) {
-        if (opts.onWarning) opts.onWarning(w); else ctx.toast(`${label}: ${w}`, { ms: 9000 });
+        if (opts.onWarning) opts.onWarning(w); else ctx.toast(about(label, w), { ms: 9000 });
       }
       return meta;
     } catch (e) {
-      if (onProblem) onProblem(errorText(e, label, m?.ImportError), undefined, e);
-      else ctx.toast(errorText(e, label, m?.ImportError), { ms: 9000 });
+      const p = problemOf(e, label, m?.ImportError);
+      if (onProblem) onProblem(p.message, undefined, e, p.reason);
+      else ctx.toast(p.message, { ms: 9000 });
       return null;
     } finally {
       jobs.splice(jobs.indexOf(job), 1);
@@ -184,7 +214,7 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
     }
   }
 
-  const say = (p: Problem) => ctx.toast(p.message, p.twin && p.action ? { action: { label: p.action, run: read(p.twin) }, ms: 7000 } : { ms: 9000 });
+  const say = (p: Problem) => ctx.toast(p.message, p.twin && p.action ? { action: { label: tt(p.action), run: read(p.twin) }, ms: 7000 } : { ms: 9000 });
 
   return {
     jobs,
@@ -198,7 +228,10 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
         // The Mac's own copy of this file is already here, with its progress.
         const existing = macCopyOf(f, have);
         if (existing) {
-          const p: Problem = { name: f.name, message: `“${shown(existing.title)}” is already in your library from your Mac.`, reason: 'Already in your library from your Mac.', twin: existing, action: 'Read' };
+          const p: Problem = {
+            name: f.name, message: tt('“{title}” is already in your library from your Mac.', { title: shown(existing.title) }),
+            reason: tt('Already in your library from your Mac.'), twin: existing, action: ttm('Read'),
+          };
           if (gather) problems.push(p); else say(p);
           continue;
         }
@@ -208,10 +241,17 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
         const label = `“${opts?.who?.title ?? f.name}”`;
         const who = opts?.who ?? { title: titleFromFileName(f.name) };
         const meta = await run(label, who, (m, onProgress) => m.importFile(f, { onProgress }), twinOf,
-          gather ? (message) => problems.push({ name: f.name, message, reason: message.replace(/^“[^”]*”:\s*|^Could not add “[^”]*”\.\s*/, '') }) : opts?.onProblem,
+          gather ? (message, _twin, _e, reason) => problems.push({ name: f.name, message, reason: reason ?? message }) : opts?.onProblem,
           gather ? {
-            onTwin: (twin) => problems.push({ name: f.name, message: `“${shown(twin.title)}” is already in your library.`, reason: `Already in your library as “${shown(twin.title)}”.`, twin, action: 'Open' }),
-            onWarning: (w) => problems.push({ name: f.name, message: `${label}: ${w}`, reason: `Added, but ${w[0].toLowerCase()}${w.slice(1)}`, added: true }),
+            onTwin: (twin) => problems.push({
+              name: f.name, message: tt('“{title}” is already in your library.', { title: shown(twin.title) }),
+              reason: tt('Already in your library as “{title}”.', { title: shown(twin.title) }), twin, action: ttm('Open'),
+            }),
+            // English goes on in lower case ("Added, but some characters…"); another language takes the warning as it is.
+            onWarning: (w) => problems.push({
+              name: f.name, message: about(label, w),
+              reason: tt('Added, but {warning}', { warning: uiLang() === 'en' ? `${w[0].toLowerCase()}${w.slice(1)}` : w }), added: true,
+            }),
           } : {});
         if (meta) { added.push(meta); have.push(meta); }
       }
@@ -222,10 +262,11 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
       // One problem in a batch is said as it would have been on its own.
       for (const p of problems) say(p);
       if (opts?.quiet) return added;
-      if (added.length === 1) {
-        ctx.toast(`Added “${shown(added[0].title)}”.`, { action: { label: 'Read', run: read(added[0]) }, ms: 7000 });
-      } else if (added.length > 1) {
-        ctx.toast(`Added ${added.length} books.`);
+      const n = added.length;
+      if (n === 1) {
+        ctx.toast(tt('Added “{title}”.', { title: shown(added[0].title) }), { action: { label: tt('Read'), run: read(added[0]) }, ms: 7000 });
+      } else if (n > 1) {
+        ctx.toast(ttn(n, 'Added {n} book.', 'Added {n} books.'));
       }
       return added;
     },
@@ -240,15 +281,15 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
         // A book with no title or author of its own takes the ones it was asked for, never its file's name (gutenberg-1342).
         const named = !book.title || book.title === titleFromFileName(f.name) || book.title === f.name.replace(/\.[a-z0-9]{1,5}$/i, '');
         return { ...book, title: named ? who.title : book.title, author: book.author || who.author || '' };
-      },async (book, m) => sameBookIn(book, m.countHan, await ctx.store.books.list().catch(() => [] as BookMeta[])), opts?.onProblem, { stage: 'Downloading…' });
-      if (meta && !opts?.quiet) ctx.toast(`Added “${shown(meta.title)}”.`, { action: { label: 'Read', run: read(meta) }, ms: 7000 });
+      },async (book, m) => sameBookIn(book, m.countHan, await ctx.store.books.list().catch(() => [] as BookMeta[])), opts?.onProblem, { stage: tt('Downloading…') });
+      if (meta && !opts?.quiet) ctx.toast(tt('Added “{title}”.', { title: shown(meta.title) }), { action: { label: tt('Read'), run: read(meta) }, ms: 7000 });
       return meta;
     },
     async text(text, title, author) {
       const sourceName = pasteSourceName(text);
       let twin: BookMeta | undefined;
       // Same words as PASTED_TITLE in src/import, which names the saved book when the text has no title of its own.
-      const meta = await run('that text', { title: title.trim() || 'Pasted text', author }, (m) => ({ ...m.importText(text, title, author), sourceName }),
+      const meta = await run(PASTED, { title: title.trim() || tt('Pasted text'), author }, (m) => ({ ...m.importText(text, title, author), sourceName }),
         async (book, m) => {
           const have = await ctx.store.books.list().catch(() => [] as BookMeta[]);
           const same = have.find((b) => b.sourceName === sourceName);
@@ -290,12 +331,13 @@ export function createImporter(ctx: AppContext, onJobs: () => void): Importer {
   /** One notice for a batch with several problems, with the whole list behind Details. */
   function summarize(count: number, added: BookMeta[], problems: Problem[]): void {
     const failed = problems.filter((p) => !p.added).length;
-    const books = (n: number) => `${n} ${n === 1 ? 'book' : 'books'}`;
-    const files = (n: number) => `${n} ${n === 1 ? 'file' : 'files'}`;
-    const message = !added.length ? `None of the ${count} files could be added.`
-      : failed ? `Added ${books(added.length)}. ${files(failed)} could not be added.`
-      : `Added ${books(added.length)}. ${files(problems.length)} had problems.`;
-    ctx.toast(message, { action: { label: 'Details', run: () => void problemsDialog(problems.map((p) => ({
+    const n = added.length;
+    const had = problems.length;
+    // Two sentences, each with its own count.
+    const message = !n ? ttn(count, 'None of the {n} file could be added.', 'None of the {n} files could be added.')
+      : `${ttn(n, 'Added {n} book.', 'Added {n} books.')} ${failed ? ttn(failed, '{n} file could not be added.', '{n} files could not be added.')
+        : ttn(had, '{n} file had problems.', '{n} files had problems.')}`;
+    ctx.toast(message, { action: { label: tt('Details'), run: () => void problemsDialog(problems.map((p) => ({
       name: p.name, reason: p.reason, ...(p.twin ? { open: read(p.twin) } : {}),
     }))) }, ms: 12000 });
   }

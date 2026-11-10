@@ -6,6 +6,7 @@ import type { BookMeta } from '../../types';
 import { bridgeFetch, hasMacBridge, isCrossOriginBridge } from '../../core/macBridge';
 import { withBookLock } from '../../core/bookLock';
 import { bookKey } from '../../core/syncKeys';
+import { tt, ttn } from '../../i18n';
 
 export interface MacBook { id: string; name: string; size?: number; sha256?: string }
 
@@ -35,7 +36,7 @@ export async function fetchMacBooks(): Promise<MacListing> {
 /** The EPUB itself, as a File named like the original so the importer reads its title and author as usual. */
 export async function fetchMacBookFile(item: MacBook): Promise<File> {
   const response = await bridgeFetch(`/api/local-books/${encodeURIComponent(item.id)}`);
-  if (!response.ok) throw new Error(`Could not read ${item.name} from your Mac.`);
+  if (!response.ok) throw new Error(tt('Could not read {name} from your Mac.', { name: item.name }));
   return new File([await response.blob()], item.name, { type: 'application/epub+zip' });
 }
 
@@ -137,7 +138,8 @@ async function runSync(items: MacBook[], deps: SyncDeps): Promise<SyncResult> {
 
 /** "Added 围城 and 天龙八部 from your Mac." */
 export function addedMessage(added: BookMeta[], shown: (title: string) => string = (t) => t): string {
-  if (added.length === 1) return `Added “${shown(added[0].title)}” from your Mac.`;
-  if (added.length === 2) return `Added “${shown(added[0].title)}” and “${shown(added[1].title)}” from your Mac.`;
-  return `Added ${added.length} books from your Mac.`;
+  if (added.length === 1) return tt('Added “{title}” from your Mac.', { title: shown(added[0].title) });
+  if (added.length === 2) return tt('Added “{first}” and “{second}” from your Mac.', { first: shown(added[0].title), second: shown(added[1].title) });
+  const n = added.length;
+  return ttn(n, 'Added {n} book from your Mac.', 'Added {n} books from your Mac.');
 }

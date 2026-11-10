@@ -5,6 +5,7 @@ import type { AppContext, BookMeta } from '../../types';
 import { buildLexicon } from '../../core/lexicon';
 import { cachedSample, keepSample, knownShare, readCache, sampleBook, sampleKey, type BookSample } from '../../core/bookWords';
 import { h } from '../dom';
+import { num, tt, ttm } from '../../i18n';
 
 export interface BookShares {
   /** The line for a card (filled now if the book has been sampled, later otherwise). */
@@ -18,7 +19,7 @@ export interface BookShares {
   dispose(): void;
 }
 
-const TITLE = 'Estimated from six chapters of the book: the share of its words, counted each time they come up, that you have marked known. Names are left out.';
+const TITLE = ttm('Estimated from six chapters of the book: the share of its words, counted each time they come up, that you have marked known. Names are left out.');
 
 export function createBookShares(ctx: AppContext, opts: { delayMs?: number } = {}): BookShares {
   const store = ctx.store;
@@ -44,7 +45,7 @@ export function createBookShares(ctx: AppContext, opts: { delayMs?: number } = {
     const v = knownShare(s, isKnown);
     if (v === null) return '';
     // A few known words in a long book are under 1%, but not none.
-    return `You know ${v > 0 && v < 0.01 ? '<1' : Math.floor(v * 100)}% of its words`;
+    return v > 0 && v < 0.01 ? tt('You know <1% of its words') : tt('You know {percent}% of its words', { percent: num(Math.floor(v * 100)) });
   }
 
   function fill(el: HTMLElement, bookId: string): void {
@@ -90,7 +91,7 @@ export function createBookShares(ctx: AppContext, opts: { delayMs?: number } = {
 
   return {
     line(b) {
-      const el = h('div.lib-card-known', { title: TITLE, hidden: true });
+      const el = h('div.lib-card-known', { title: tt(TITLE), hidden: true });
       let set = lines.get(b.id);
       if (!set) lines.set(b.id, (set = new Set()));
       set.add(el);

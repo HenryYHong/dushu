@@ -21,6 +21,7 @@ import type { AppContext, BookMeta } from '../../types';
 import type { LangId } from '../../lang/types';
 import { isNetworkFailure, type Importer } from './importer';
 import { hash } from '../../core/syncKeys';
+import { langName, tt, ttm, uiLang, uiLocale } from '../../i18n';
 
 const GUTENBERG_SEARCH = 'https://www.gutenberg.org/ebooks/search.opds/';
 
@@ -95,7 +96,7 @@ const loadAozora = (): Promise<AozoraWork[]> => {
 const AOZORA_PAGE = 25;
 const aozoraBook = (w: AozoraWork): FoundBook => ({
   source: 'aozora', key: w.path, title: w.title, author: w.authors, also: [], file: aozoraFile(w.id),
-  ...(w.modern ? {} : { note: 'Older spelling (旧仮名遣い)' }),
+  ...(w.modern ? {} : { note: tt('Older spelling (旧仮名遣い)') }),
 });
 
 /**
@@ -259,9 +260,9 @@ const nameOrder = (s: string) => { const m = /^([^,]+),\s*([^,]+)$/.exec(s.trim(
 
 /** The book a pasted link names, with its title and author when its library says them. Throws with a reason a reader can act on. */
 export async function bookFromLink(link: { source: SourceId; key: string; lang?: string }, code: LangId, signal?: AbortSignal): Promise<FoundBook> {
-  const name = code === 'zh' ? 'Chinese' : lang().name;
+  const name = langName(code, code === 'zh' ? 'Chinese' : lang().name);
   if (link.source === 'gutenberg') {
-    let title = `Project Gutenberg book ${link.key}`;
+    let title = tt('Project Gutenberg book {number}', { number: link.key });
     let author = '';
     try {
       const res = await fetch(`https://www.gutenberg.org/ebooks/${link.key}.opds`, { signal });
@@ -276,16 +277,20 @@ export async function bookFromLink(link: { source: SourceId; key: string; lang?:
   }
   if (link.source === 'wikisource') {
     if (link.lang && link.lang !== code) {
-      const other = LANGS[link.lang as LangId]?.name ?? targetLanguage(link.lang)?.name;
+      const english = LANGS[link.lang as LangId]?.name ?? targetLanguage(link.lang)?.name;
+      const other = english ? langName(link.lang, english) : '';
       throw new Error(other && isLangId(link.lang)
-        ? `That page is on the ${other} Wikisource. Open the ${other} library to add it; this one reads ${name}.`
-        : `That page is on ${other ? `the ${other}` : 'another language’s'} Wikisource, a language Globereader does not read yet.`);
+        ? tt('That page is on the {other} Wikisource. Open the {other} library to add it; this one reads {lang}.', { other, lang: name })
+        : other ? tt('That page is on the {other} Wikisource, a language Globereader does not read yet.', { other })
+          : tt('That page is on another language’s Wikisource, a language Globereader does not read yet.'));
     }
     return { source: 'wikisource', key: link.key, title: link.key, author: '', also: [] };
   }
-  if (code !== 'ja') throw new Error(`Aozora Bunko's works are in Japanese. Open the Japanese library to add one; this one reads ${name}.`);
+  if (code !== 'ja') {
+    throw new Error(tt("Aozora Bunko's works are in {japanese}. Open the {japanese} library to add one; this one reads {lang}.", { japanese: langName('ja', 'Japanese'), lang: name }));
+  }
   const work = (await loadAozora()).find((w) => w.id === link.key);
-  if (!work) throw new Error('That Aozora Bunko work is not one Globereader can add: it may still be under copyright, or have no XHTML page.');
+  if (!work) throw new Error(tt('That Aozora Bunko work is not one Globereader can add: it may still be under copyright, or have no XHTML page.'));
   return aozoraBook(work);
 }
 
@@ -295,24 +300,24 @@ export class FoundError extends Error {
 }
 
 /** What a download that got no answer says (never the browser's own "Failed to fetch"). */
-export const DOWNLOAD_FAILED = 'Could not download the book. Check your connection and try again.';
+export const DOWNLOAD_FAILED = ttm('Could not download the book. Check your connection and try again.');
 
 /** The book's EPUB, through the sync server. Throws with the server's own words when it says why it could not. */
 export async function fetchFound(b: FoundBook, code: string, signal?: AbortSignal): Promise<File> {
   const base = cloudBase();
-  if (!base) throw new Error('Adding free books needs the sync server, which this copy of Globereader does not have.');
+  if (!base) throw new Error(tt('Adding free books needs the sync server, which this copy of Globereader does not have.'));
   const url = b.source === 'gutenberg' ? `${base}/gutenberg/${b.key}`
     : b.source === 'aozora' ? `${base}/aozora/${b.key}`
     : `${base}/wikisource/${code}/${encodeURIComponent(b.key)}`;
   // A request with no answer (the server down or out of reach, or an error page without CORS) says so plainly.
   const unanswered = (e: unknown): never => {
     if (e instanceof DOMException && e.name === 'AbortError') throw e;
-    throw new FoundError(DOWNLOAD_FAILED);
+    throw new FoundError(tt(DOWNLOAD_FAILED));
   };
   const res = await fetch(url, { signal }).catch(unanswered);
   if (!res.ok) {
     const why = await res.json().then((x: { error?: unknown; code?: unknown }) => x, () => null) as { error?: unknown; code?: unknown } | null;
-    throw new FoundError(typeof why?.error === 'string' && why.error ? why.error : `The book could not be downloaded (${res.status}).`,
+    throw new FoundError(typeof why?.error === 'string' && why.error ? why.error : tt('The book could not be downloaded ({status}).', { status: res.status }),
       typeof why?.code === 'string' ? why.code : undefined);
   }
   const body = await res.blob().catch(unanswered);
@@ -350,9 +355,6 @@ interface Adding { done: Promise<AddOutcome>; rows: Set<{ live: () => boolean; s
  */
 const adding = new Map<string, Adding>();
 
-/** The row's own words for what went wrong: the book's title, which the row shows, taken off. */
-const rowMessage = (message: string): string => message.replace(/^“[^”]*”:\s*/, '').replace(/^Could not add “[^”]*”\.\s*/, '');
-
 function addFound(ctx: AppContext, importer: Importer, b: FoundBook, code: LangId, who: { title: string; author: string }): Adding {
   const key = fileOf(b, code);
   const running = adding.get(key);
@@ -364,17 +366,17 @@ function addFound(ctx: AppContext, importer: Importer, b: FoundBook, code: LangI
     let why: string | undefined;
     const meta = await importer.remote(who, () => fetchFound(b, code), {
       quiet: true,
-      onProblem: (m, t, e) => {
+      // The row's own words for what went wrong: the reason alone, without the book's title, which the row shows.
+      onProblem: (m, t, e, reason) => {
         if (t) twin = t;
-        else { message = m; why = e instanceof FoundError ? e.code : undefined; }
+        else { message = reason ?? m; why = e instanceof FoundError ? e.code : undefined; }
       },
     });
     if (meta) return { meta };
     if (twin) return { twin };
-    message = rowMessage(message);
     // The browser's own words never show ("Failed to fetch"); offline says so.
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) message = 'You are offline. Connect to the internet to add books.';
-    else if (!message || isNetworkFailure(new Error(message))) message = DOWNLOAD_FAILED;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) message = tt('You are offline. Connect to the internet to add books.');
+    else if (!message || isNetworkFailure(new Error(message))) message = tt(DOWNLOAD_FAILED);
     return { message, ...(why ? { code: why } : {}) };
   })();
   const entry: Adding = { done, rows };
@@ -385,9 +387,9 @@ function addFound(ctx: AppContext, importer: Importer, b: FoundBook, code: LangI
     if (live.length) { for (const r of live) r.settle(o); return; }
     const shown = (t: string) => scriptView(ctx.settings.get().script, ctx.dictSync()).text(t);
     const open = (m: BookMeta) => () => ctx.navigate(`/read/${encodeURIComponent(m.id)}`);
-    if (o.meta) ctx.toast(`Added “${shown(o.meta.title)}”.`, { action: { label: 'Read', run: open(o.meta) }, ms: 7000 });
-    else if (o.twin) ctx.toast(`“${shown(o.twin.title)}” is already in your library.`, { action: { label: 'Open', run: open(o.twin) }, ms: 7000 });
-    else ctx.toast(`“${who.title}” could not be added. ${o.message}`, { ms: 9000 });
+    if (o.meta) ctx.toast(tt('Added “{title}”.', { title: shown(o.meta.title) }), { action: { label: tt('Read'), run: open(o.meta) }, ms: 7000 });
+    else if (o.twin) ctx.toast(tt('“{title}” is already in your library.', { title: shown(o.twin.title) }), { action: { label: tt('Open'), run: open(o.twin) }, ms: 7000 });
+    else ctx.toast(tt('“{title}” could not be added. {reason}', { title: who.title, reason: o.message ?? '' }), { ms: 9000 });
   });
   return entry;
 }
@@ -398,11 +400,21 @@ export const fetchGutenberg = (id: number, signal?: AbortSignal): Promise<File> 
 
 export const canFindBooks = (): boolean => !!cloudBase();
 
+/** Each library's own name, and the line that credits it (shown with tt). */
 const SOURCES: Record<SourceId, { name: string; credit: string }> = {
-  aozora: { name: '青空文庫', credit: 'Works from Aozora Bunko (aozora.gr.jp), out of copyright in Japan.' },
-  gutenberg: { name: 'Project Gutenberg', credit: 'Books from gutenberg.org, free in the United States.' },
-  wikisource: { name: 'Wikisource', credit: 'Works from Wikisource, free to read and share.' },
+  aozora: { name: '青空文庫', credit: ttm('Works from Aozora Bunko (aozora.gr.jp), out of copyright in Japan.') },
+  gutenberg: { name: 'Project Gutenberg', credit: ttm('Books from gutenberg.org, free in the United States.') },
+  wikisource: { name: 'Wikisource', credit: ttm('Works from Wikisource, free to read and share.') },
 };
+
+/** A language Gutenberg names in English ("Spanish"), in the app's language when it is one the app reads. */
+const gutenbergName = (english: string): string => {
+  const L = Object.values(LANGS).find((l) => l.name === english);
+  return L ? langName(L.id, english) : english;
+};
+/** "Spanish and English": the languages a book is also in, as the app's language lists them. */
+const listed = (names: string[]): string =>
+  uiLang() === 'en' ? names.join(' and ') : new Intl.ListFormat(uiLocale(), { type: 'conjunction' }).format(names.map(gutenbergName));
 
 /** The sources offered for a language, the first one open: Japanese reads Aozora Bunko first, Chinese Wikisource. */
 export const sourcesFor = (code: LangId): SourceId[] =>
@@ -415,11 +427,11 @@ const HAN = /\p{Script=Han}/u;
 export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { query?: string } = {}): Promise<BookMeta | undefined> {
   const L = lang();
   const code = langId();
-  const name = code === 'zh' ? 'Chinese' : L.name;
-  return showModal<BookMeta>('Find a free book', (api) => {
+  const name = langName(code, code === 'zh' ? 'Chinese' : L.name);
+  return showModal<BookMeta>(tt('Find a free book'), (api) => {
     const offered = sourcesFor(code);
     let source: SourceId = offered[0];
-    const input = h('input.input.lib-find-input', { type: 'search', 'aria-label': 'Search for a book, or paste a link to one', autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
+    const input = h('input.input.lib-find-input', { type: 'search', 'aria-label': tt('Search for a book, or paste a link to one'), autocomplete: 'off', enterkeyhint: 'search' }) as HTMLInputElement;
     // Titles in the reader's script (a Chinese reader on simplified sees 呐喊 for 吶喊); the key stays as the library spells it.
     const shown = (t: string) => scriptView(ctx.settings.get().script, ctx.dictSync()).text(t);
     // What happens to a book being added, said aloud (the button's own text changes are not announced).
@@ -427,18 +439,18 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
     const intro = h('p.lib-find-intro.muted');
     const heading = h('div.lib-find-heading', { role: 'status', 'aria-live': 'polite' });
     const list = h('ol.lib-find-list');
-    const MORE = 'More books';
+    const MORE = tt('More books');
     const more = h('button.btn.lib-find-more', { type: 'button', hidden: true }, MORE) as HTMLButtonElement;
     // A page after the first that did not come, said beside the button that asks for it again.
     const moreError = h('div.lib-find-error', { role: 'alert', hidden: true });
     const credit = h('span.lib-find-credit.muted');
     // Two or three places to look: toggle buttons (as the welcome screen's), not tabs, so nothing promises arrow keys.
     const tabs = offered.map((id) => {
-      const b = h('button.lib-find-tab', { type: 'button', 'aria-pressed': 'false', ...(id === 'aozora' ? { title: 'Aozora Bunko' } : {}) }, SOURCES[id].name) as HTMLButtonElement;
+      const b = h('button.lib-find-tab', { type: 'button', 'aria-pressed': 'false', ...(id === 'aozora' ? { title: tt('Aozora Bunko') } : {}) }, SOURCES[id].name) as HTMLButtonElement;
       b.addEventListener('click', () => { if (source !== id) { source = id; showSource(); void load(false); } });
       return b;
     });
-    const tabBar = h('div.lib-find-tabs', { role: 'group', 'aria-label': 'Where to look' }, tabs);
+    const tabBar = h('div.lib-find-tabs', { role: 'group', 'aria-label': tt('Where to look') }, tabs);
     let have: BookMeta[] = [];
     void ctx.store.books.list().then((b) => { have = b; for (const row of list.children) (row as Row).sync?.(); }, () => {});
     const inLibrary = (b: FoundBook) => have.find((m) => m.sourceName === fileOf(b, code));
@@ -458,18 +470,18 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
       const sync = () => {
         added ??= inLibrary(b);
         if (none && !added) {
-          btn.replaceChildren('No text');
+          btn.replaceChildren(tt('No text'));
           btn.classList.remove('btn-primary');
           btn.removeAttribute('aria-disabled');
-          btn.setAttribute('aria-label', `“${title()}” has no text to add`);
+          btn.setAttribute('aria-label', tt('“{title}” has no text to add', { title: title() }));
           btn.disabled = true;
           return;
         }
-        btn.replaceChildren(...(added ? ['Read'] : busy ? ['Adding…'] : [icon('plus'), 'Add']));
+        btn.replaceChildren(...(added ? [tt('Read')] : busy ? [tt('Adding…')] : [icon('plus'), tt('Add')]));
         btn.classList.toggle('btn-primary', !!added);
         // Not disabled while busy: a disabled button drops the keyboard's focus to the page. A second press does nothing.
         btn.setAttribute('aria-disabled', String(busy));
-        btn.setAttribute('aria-label', `${added ? 'Read' : busy ? 'Adding' : 'Add'} “${title()}”${busy ? '…' : ''}`);
+        btn.setAttribute('aria-label', added ? tt('Read “{title}”', { title: title() }) : busy ? tt('Adding “{title}”…', { title: title() }) : tt('Add “{title}”', { title: title() }));
       };
       // Again once the dictionary is in, for a Chinese reader on simplified who opened the dialog before it was.
       const paint = () => {
@@ -482,10 +494,10 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
         if (o.meta) {
           added = o.meta;
           have.push(o.meta);
-          said.textContent = `Added “${title()}”. The button now opens it.`;
+          said.textContent = tt('Added “{title}”. The button now opens it.', { title: title() });
         } else if (o.twin) {
           added = o.twin;
-          said.textContent = `“${title()}” is already in your library. The button opens it.`;
+          said.textContent = tt('“{title}” is already in your library. The button opens it.', { title: title() });
         } else {
           none = o.code === 'no-epub';
           // The button is about to be disabled: the keyboard goes on to the next book rather than to the page.
@@ -503,14 +515,14 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
         busy = true;
         err.hidden = true;
         sync();
-        said.textContent = `Adding “${title()}”…`;
+        said.textContent = tt('Adding “{title}”…', { title: title() });
         watch(addFound(ctx, importer, b, code, { title: title(), author: shown(b.author) }));
       });
       const li = h('li.lib-find-row', null,
         h('div.lib-find-text', null,
           titleEl,
           authorEl,
-          b.also.length ? h('div.lib-find-note', null, `Also in ${b.also.join(' and ')}`) : null,
+          b.also.length ? h('div.lib-find-note', null, tt('Also in {languages}', { languages: listed(b.also) })) : null,
           b.note ? h('div.lib-find-note', null, b.note) : null,
           err),
         btn) as Row;
@@ -547,25 +559,29 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
     let retry = false;
     const showSource = () => {
       tabs.forEach((t, i) => t.setAttribute('aria-pressed', String(offered[i] === source)));
-      input.placeholder = source === 'wikisource' ? 'Title, or a link to a book' : 'Title, author, or a link to a book';
-      credit.textContent = SOURCES[source].credit;
+      input.placeholder = source === 'wikisource' ? tt('Title, or a link to a book') : tt('Title, author, or a link to a book');
+      credit.textContent = tt(SOURCES[source].credit);
       intro.textContent = source === 'gutenberg'
-        ? `Free public-domain books in ${name} from Project Gutenberg. Add one and it opens like any other book.`
+        ? tt('Free public-domain books in {lang} from Project Gutenberg. Add one and it opens like any other book.', { lang: name })
         : source === 'aozora'
-          ? 'Over 17,000 works out of copyright in Japan, with the readings the library prints over hard words. Search by title or author, in kanji or kana.'
-          : `Any work on the ${name} Wikisource, made into a book with its chapters. Search by title; add the author to narrow it${code === 'zh' ? ' (吶喊 魯迅)' : ''}.`;
+          ? tt('Over 17,000 works out of copyright in Japan, with the readings the library prints over hard words. Search by title or author, in kanji or kana.')
+          : code === 'zh'
+            ? tt('Any work on the {lang} Wikisource, made into a book with its chapters. Search by title; add the author to narrow it ({example}).', { lang: name, example: '吶喊 魯迅' })
+            : tt('Any work on the {lang} Wikisource, made into a book with its chapters. Search by title; add the author to narrow it.', { lang: name });
     };
     /** The line over the list: what it shows, or that nothing matched and what to try. The query as the reader typed it. */
     const headingText = (link: boolean): string => {
       if (list.childElementCount) {
-        return link ? 'The book at that link' : query ? `Books in ${name} matching “${query}”` : source === 'wikisource' ? 'Well-known works to start with' : `The most read books in ${name}`;
+        return link ? tt('The book at that link') : query ? tt('Books in {lang} matching “{query}”', { lang: name, query })
+          : source === 'wikisource' ? tt('Well-known works to start with') : tt('The most read books in {lang}', { lang: name });
       }
-      if (!query) return `${SOURCES[source].name} has no books in ${name} yet.`;
+      if (!query) return tt('{source} has no books in {lang} yet.', { source: SOURCES[source].name, lang: name });
       // Chinese: the last name alone is often one character, which matches nothing; the name in pinyin finds Gutenberg's books.
       const tip = code === 'zh'
-        ? `Try fewer characters${source === 'gutenberg' ? ', or the author’s name in pinyin' : ''}`
-        : `Try a shorter title or the author’s last name${source === 'gutenberg' && WIKISOURCE_STARTERS[code] === undefined ? ', or look on Wikisource' : ''}`;
-      return `No books in ${name} match “${query}”. ${tip}.`;
+        ? (source === 'gutenberg' ? tt('Try fewer characters, or the author’s name in pinyin.') : tt('Try fewer characters.'))
+        : source === 'gutenberg' && WIKISOURCE_STARTERS[code] === undefined ? tt('Try a shorter title or the author’s last name, or look on Wikisource.')
+          : tt('Try a shorter title or the author’s last name.');
+      return `${tt('No books in {lang} match “{query}”.', { lang: name, query })} ${tip}`;
     };
     /** The button under the list: the next page, or the first one again after it did not come. */
     const showMore = (label: string, visible: boolean) => {
@@ -582,11 +598,11 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
       const signal = ctrl.signal;
       moreError.hidden = true;
       retry = false;
-      if (!append) { list.replaceChildren(); next = null; showMore(MORE, false); heading.textContent = 'Searching…'; }
+      if (!append) { list.replaceChildren(); next = null; showMore(MORE, false); heading.textContent = tt('Searching…'); }
       // More stays where it is while the next page comes (hiding it would drop the keyboard's focus to the page).
       more.setAttribute('aria-busy', String(append));
       more.setAttribute('aria-disabled', String(append));
-      if (append) more.textContent = 'Loading…';
+      if (append) more.textContent = tt('Loading…');
       const before = list.childElementCount;
       const link = parseBookLink(query);
       try {
@@ -602,7 +618,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
         } else if (source === 'wikisource' && !query) {
           const starters = WIKISOURCE_STARTERS[code];
           if (!starters) {
-            heading.textContent = `Type a title to search the ${name} Wikisource.`;
+            heading.textContent = tt('Type a title to search the {lang} Wikisource.', { lang: name });
             return;
           }
           page = { books: starters.map((t) => ({ source: 'wikisource', key: t, title: t, author: '', also: [] })), next: null };
@@ -644,16 +660,16 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
         const offline = navigator.onLine === false;
         if (append) {
           // The books already listed stay, and so does the line over them: the button asks for the same page again.
-          moreError.textContent = offline ? 'You are offline. Connect to the internet to find books.' : 'Could not load more books. Try again.';
+          moreError.textContent = offline ? tt('You are offline. Connect to the internet to find books.') : tt('Could not load more books. Try again.');
           moreError.hidden = false;
           showMore(MORE, !!next);
           return;
         }
-        heading.textContent = offline ? 'You are offline. Connect to the internet to find books.'
+        heading.textContent = offline ? tt('You are offline. Connect to the internet to find books.')
           : link && e instanceof Error ? e.message
-          : `${SOURCES[source].name} did not answer. Try again in a moment.`;
+          : tt('{source} did not answer. Try again in a moment.', { source: SOURCES[source].name });
         retry = true;
-        showMore('Try again', true);
+        showMore(tt('Try again'), true);
       }
     };
     // Chinese and Japanese are typed through an input method: nothing is searched for while a word is being composed ("lu xun"
@@ -688,7 +704,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
     void load(false);
     return {
       body: h('div.lib-find', null, tabBar, intro, h('div.lib-find-search', null, icon('search'), input), heading, list, more, moreError, said),
-      footer: [credit, h('button.btn', { type: 'button', onclick: () => api.close() }, 'Done')],
+      footer: [credit, h('button.btn', { type: 'button', onclick: () => api.close() }, tt('Done'))],
       focus: input,
     };
   }, { wide: true });

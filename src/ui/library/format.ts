@@ -1,5 +1,6 @@
 // Small pure helpers for the library: cover tint, title size, progress labels.
 import type { Progress } from '../../types';
+import { num, tt, uiLang, uiLocale } from '../../i18n';
 
 /** FNV-1a, 32 bit. Same title always gets the same cover. */
 export function hashString(s: string): number {
@@ -111,9 +112,9 @@ function horizontalSize(units: number, sizes: number[]): number {
  */
 export function progressLabel(p: (Pick<Progress, 'percent'> & Partial<Pick<Progress, 'chapter' | 'block' | 'offset'>>) | undefined): string {
   const v = p?.percent ?? 0;
-  if (v >= 0.995) return 'Finished';
-  if (v < 0.005) return (p?.chapter ?? 0) > 0 || (p?.block ?? 0) > 0 || (p?.offset ?? 0) > 0 ? '1%' : 'Not started';
-  return `${Math.min(99, Math.max(1, Math.round(v * 100)))}%`;
+  if (v >= 0.995) return tt('Finished');
+  const pct = v < 0.005 ? ((p?.chapter ?? 0) > 0 || (p?.block ?? 0) > 0 || (p?.offset ?? 0) > 0 ? 1 : 0) : Math.min(99, Math.max(1, Math.round(v * 100)));
+  return pct ? tt('{percent}%', { percent: num(pct) }) : tt('Not started');
 }
 
 export function progressFraction(p: Pick<Progress, 'percent'> | undefined): number {
@@ -121,14 +122,16 @@ export function progressFraction(p: Pick<Progress, 'percent'> | undefined): numb
   return Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
 }
 
-/** 589256 -> "589k", 20858 -> "21k", 4200 -> "4.2k", 800 -> "800". */
+/** 589256 -> "589k", 20858 -> "21k", 4200 -> "4.2k", 800 -> "800". Another language writes it its own way (59万, 589 k). */
 export function compactCount(n: number): string {
+  if (uiLang() !== 'en') return new Intl.NumberFormat(uiLocale(), { notation: 'compact' }).format(n);
   if (n >= 100_000) return `${Math.round(n / 1000)}k`;
   if (n >= 10_000) return `${Math.round(n / 1000)}k`;
   if (n >= 1000) return `${(Math.round(n / 100) / 10).toString()}k`;
   return String(n);
 }
 
+/** English only: words the app shows go through ttn (src/i18n) instead. */
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 }

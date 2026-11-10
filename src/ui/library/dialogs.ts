@@ -2,6 +2,7 @@
 import '../../styles/library.css';
 import { h } from '../dom';
 import { icon } from '../icons';
+import { tt } from '../../i18n';
 
 export interface ModalApi<T> {
   close(result?: T): void;
@@ -62,7 +63,7 @@ export function showModal<T>(
     dlg.append(
       h('div.lib-dlg-head', null,
         h('h2.lib-dlg-title', null, title),
-        h('button.icon-btn', { type: 'button', 'aria-label': 'Close', onclick: () => close() }, icon('close'))),
+        h('button.icon-btn', { type: 'button', 'aria-label': tt('Close'), onclick: () => close() }, icon('close'))),
       h('div.lib-dlg-body', null, parts.body),
     );
     if (parts.footer) dlg.append(h('div.lib-dlg-foot', null, parts.footer));
@@ -88,7 +89,7 @@ export function confirmDialog(opts: {
     const ok = h('button.btn' + (opts.danger ? '.btn-danger-solid' : '.btn-primary'), { type: 'button', onclick: () => api.close(true) }, opts.confirmLabel);
     return {
       body: h('p.lib-dlg-text', null, opts.message),
-      footer: [h('button.btn', { type: 'button', onclick: () => api.close(false) }, 'Cancel'), ok],
+      footer: [h('button.btn', { type: 'button', onclick: () => api.close(false) }, tt('Cancel')), ok],
     };
   }).then((v) => v === true);
 }
@@ -98,11 +99,11 @@ export function confirmDialog(opts: {
  * book that was already in the library.
  */
 export function problemsDialog(items: { name: string; reason: string; open?: () => void }[]): Promise<void> {
-  return showModal<void>('Files with problems', (api) => ({
+  return showModal<void>(tt('Files with problems'), (api) => ({
     body: h('ol.lib-find-list', null, items.map((it) => h('li.lib-find-row', null,
       h('div.lib-find-text', null, h('div.lib-find-title', null, it.name), h('div.lib-find-author', null, it.reason)),
-      it.open ? h('button.btn.btn-sm', { type: 'button', onclick: () => { api.close(); it.open!(); } }, 'Open') : null))),
-    footer: h('button.btn.btn-primary', { type: 'button', onclick: () => api.close() }, 'Done'),
+      it.open ? h('button.btn.btn-sm', { type: 'button', onclick: () => { api.close(); it.open!(); } }, tt('Open')) : null))),
+    footer: h('button.btn.btn-primary', { type: 'button', onclick: () => api.close() }, tt('Done')),
   }), { wide: true }).then(() => undefined);
 }
 
@@ -136,7 +137,7 @@ export function formDialog(opts: {
       opts.intro ? h('p.lib-dlg-text', null, opts.intro) : null,
       opts.fields.map((f, i) => h('label.lib-dlg-field', null, h('span', null, f.label), inputs[i])),
       h('div.lib-dlg-foot-inline', null,
-        h('button.btn', { type: 'button', onclick: () => api.close() }, 'Cancel'),
+        h('button.btn', { type: 'button', onclick: () => api.close() }, tt('Cancel')),
         h('button.btn.btn-primary', { type: 'submit' }, opts.submitLabel)),
     );
     inputs[0].select?.();

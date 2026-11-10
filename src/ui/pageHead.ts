@@ -1,6 +1,7 @@
-// The bilingual title of a screen: the Chinese name leads (书架, 生词, 复习, 设置, 关于, 加入) and the English title follows.
-// The Chinese is real text (lang="zh-Hans") for sighted readers, hidden from screen readers so the heading is announced
-// once, by its English name. Styled in base.css (.page-title, .page-title-zh, .page-title-en).
+// The bilingual title of a screen: the Chinese name leads (书架, 生词, 复习, 设置, 关于, 加入) and the title in the app's language
+// follows (the caller passes it through tt). The Chinese is real text (lang="zh-Hans") for sighted readers, hidden from screen
+// readers so the heading is announced once, by the app's name for it; when the two are the same word (the app in Chinese, in
+// the Chinese library) it is shown once. Styled in base.css (.page-title, .page-title-zh, .page-title-en).
 import { h } from './dom';
 import { lang } from '../lang/active';
 import type { LangId } from '../lang/types';
@@ -31,11 +32,12 @@ const SCREEN_NAMES: Record<Exclude<LangId, 'zh'>, Record<ScreenName, string>> = 
 };
 
 /** `<h1 class="page-title"><span lang="zh-Hans" aria-hidden="true">书架</span><span>Library</span></h1>` */
-export function pageTitle(screen: ScreenName, english: string, tag: 'h1' | 'h2' = 'h1', cls = 'page-title'): HTMLElement {
+export function pageTitle(screen: ScreenName, title: string, tag: 'h1' | 'h2' = 'h1', cls = 'page-title'): HTMLElement {
   const L = lang();
   const native = L.id === 'zh' ? SCREEN_ZH[screen] : SCREEN_NAMES[L.id][screen];
   const zh = L.id === 'zh' || L.id === 'en';
   return h(`${tag}.${cls}`, null,
-    h(zh || L.id === 'ja' ? 'span.page-title-zh' : 'span.page-title-zh.page-title-native', { lang: zh ? 'zh-Hans' : L.tag, 'aria-hidden': 'true' }, native),
-    h('span.page-title-en', null, english));
+    native.toLowerCase() === title.toLowerCase() ? null
+      : h(zh || L.id === 'ja' ? 'span.page-title-zh' : 'span.page-title-zh.page-title-native', { lang: zh ? 'zh-Hans' : L.tag, 'aria-hidden': 'true' }, native),
+    h('span.page-title-en', null, title));
 }

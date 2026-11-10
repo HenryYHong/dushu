@@ -10,14 +10,19 @@ import type { LangId } from '../lang/types';
 import { switchLang } from '../lang/active';
 import { GOALS } from '../core/activity';
 import { getPlan, setPlan, type Plan } from '../core/plan';
-import { TARGET_LANGUAGES, isOwnLanguage, targetFor, targetLanguage } from '../translate/targets';
+import { TARGET_LANGUAGES, isOwnLanguage, targetFor, targetLanguage, type TargetLanguage } from '../translate/targets';
 import { markLangChoice } from './langSwitch';
-import { chooseUiLang, isUiLang, uiLang } from '../i18n';
+import { chooseUiLang, isUiLang, langName, num, tt, ttm, uiLang, uiLocale } from '../i18n';
 import type { SettingsStore } from '../types';
 
-/** What each library explains its language in, where that is not English. */
-const EXPLAINED: Partial<Record<LangId, string>> = { en: 'Explained in Chinese, for Chinese speakers' };
-const GOAL_NAMES: Record<number, string> = { 5: 'Casual', 10: 'Regular', 15: 'Serious', 20: 'Intense', 30: 'Devoted' };
+/** What each library explains its language in, where that is not English. Shown with tt. */
+const EXPLAINED: Partial<Record<LangId, string>> = { en: ttm('Explained in Chinese, for Chinese speakers') };
+const GOAL_NAMES: Record<number, string> = { 5: ttm('Casual'), 10: ttm('Regular'), 15: ttm('Serious'), 20: ttm('Intense'), 30: ttm('Devoted') };
+
+/** A translation language named in the app's language: `english` as the list or a sentence has it ("Simplified Chinese"). */
+const targetName = (t: TargetLanguage, english = t.name): string => langName(t.code === 'zh' ? 'zh-Hans' : t.code, english);
+/** Two names said once when they are the same ("English · English", "Español · español"). */
+const same = (a: string, b: string): boolean => a.toLocaleLowerCase() === b.toLocaleLowerCase();
 
 /** The translation language this browser's own languages suggest: zh-TW is Traditional Chinese, pt-BR Portuguese. */
 export function suggestedTarget(learning: readonly LangId[], prefs: readonly string[] = navigator.languages ?? [navigator.language]): string {
@@ -59,7 +64,7 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
     };
 
     const box = h('div.wel-box');
-    const dlg = h('dialog.wel', { 'aria-label': 'Welcome to Globereader' }, box) as HTMLDialogElement;
+    const dlg = h('dialog.wel', { 'aria-label': tt('Welcome to Globereader') }, box) as HTMLDialogElement;
     const mark = () => { const el = h('span.wel-mark', { 'aria-hidden': 'true' }); el.innerHTML = globeSvg; return el; };
 
     const close = () => {
@@ -97,21 +102,23 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
     };
 
     const foot = (canGo: boolean, last: boolean, onGo: () => void) => h('div.wel-foot', null,
-      step > 0 ? h('button.btn', { type: 'button', onclick: () => { step--; draw(); } }, icon('arrowLeft'), 'Back')
-        : h('button.btn.btn-ghost.wel-skip', { type: 'button', onclick: opts.again ? close : skip }, opts.again ? 'Cancel' : 'Skip'),
-      h('span.wel-sr', null, `Step ${step + 1} of 3`),
+      step > 0 ? h('button.btn', { type: 'button', onclick: () => { step--; draw(); } }, icon('arrowLeft'), tt('Back'))
+        : h('button.btn.btn-ghost.wel-skip', { type: 'button', onclick: opts.again ? close : skip }, opts.again ? tt('Cancel') : tt('Skip')),
+      h('span.wel-sr', null, tt('Step {step} of {total}', { step: num(step + 1), total: num(3) })),
       h('span.wel-steps', { 'aria-hidden': 'true' }, [0, 1, 2].map((i) => h(i === step ? 'span.wel-dot.on' : 'span.wel-dot'))),
       h('button.btn.btn-primary', { type: 'button', disabled: !canGo, onclick: onGo },
-        last ? (opts.again ? 'Done' : 'Go to my library') : 'Continue', last ? null : icon('chevronRight')));
+        last ? (opts.again ? tt('Done') : tt('Go to my library')) : tt('Continue'), last ? null : icon('chevronRight')));
 
     const stepLangs = () => {
       const cards = LANG_IDS.map((id) => {
         const L = LANGS[id];
+        const name = langName(id, L.name);
+        const note = EXPLAINED[id];
         const b = h('button.wel-lang', { type: 'button', 'aria-pressed': String(chosen.has(id)) },
           h('span.wel-lang-native', { lang: L.tag }, L.native),
-          // English is English in English too: said once.
-          L.name !== L.native ? h('span.wel-lang-name', null, L.name) : null,
-          EXPLAINED[id] ? h('span.wel-lang-note', null, EXPLAINED[id]) : null,
+          // English is English in English too, and Español Spanish in Spanish: said once.
+          !same(name, L.native) ? h('span.wel-lang-name', null, name) : null,
+          note ? h('span.wel-lang-note', null, tt(note)) : null,
           h('span.wel-lang-check', { 'aria-hidden': 'true' }, icon('check'))) as HTMLButtonElement;
         b.addEventListener('click', () => {
           if (chosen.has(id)) { chosen.delete(id); order = order.filter((l) => l !== id); } else { chosen.add(id); order.push(id); }
@@ -125,10 +132,10 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
       const go = f.querySelector<HTMLButtonElement>('.btn-primary')!;
       return [
         h('div.wel-head', null, mark(), h('div', null,
-          h('h1.wel-title', null, opts.again ? 'Your languages' : 'Welcome to Globereader'),
-          h('p.wel-lede', null, 'Read real books in the language you are learning, with every word a tap away.'))),
-        h('h2.wel-q', null, 'What do you want to learn?'),
-        h('p.wel-help', null, 'Pick one or more. Each has its own library of classics to start with.'),
+          h('h1.wel-title', null, opts.again ? tt('Your languages') : tt('Welcome to Globereader')),
+          h('p.wel-lede', null, tt('Read real books in the language you are learning, with every word a tap away.')))),
+        h('h2.wel-q', null, tt('What do you want to learn?')),
+        h('p.wel-help', null, tt('Pick one or more. Each has its own library of classics to start with.')),
         h('div.wel-langs', null, cards),
         f,
       ];
@@ -136,9 +143,10 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
 
     const stepTarget = () => {
       const langs = learning();
-      const list = [...TARGET_LANGUAGES].sort((a, b) => a.name.localeCompare(b.name, 'en'));
-      const select = h('select.select.wel-select', { 'aria-label': 'Your language' },
-        list.map((t) => h('option', { value: t.code, selected: t.code === target }, t.native === t.name ? t.name : `${t.name} · ${t.native}`))) as HTMLSelectElement;
+      // By name in the app's language, then each in its own ("German · Deutsch").
+      const list = TARGET_LANGUAGES.map((t) => ({ t, name: targetName(t) })).sort((a, b) => a.name.localeCompare(b.name, uiLocale()));
+      const select = h('select.select.wel-select', { 'aria-label': tt('Your language') },
+        list.map(({ t, name }) => h('option', { value: t.code, selected: t.code === target }, same(name, t.native) ? name : `${name} · ${t.native}`))) as HTMLSelectElement;
       // Picked by hand: kept, whatever languages come next.
       select.addEventListener('change', () => { target = select.value; suggested = ''; note(); });
       const warn = h('p.wel-help.wel-warn', { role: 'status' });
@@ -147,19 +155,21 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         warn.hidden = !own.length;
         if (!own.length) { warn.textContent = ''; return; }
         // What the translator really does with a book in the language picked (translate/targets.ts targetFor).
-        const name = LANGS[own[0]].name;
+        const name = langName(own[0], LANGS[own[0]].name);
         const into = targetLanguage(targetFor(target, own[0]));
-        warn.textContent = `${name} books are already in ${name}, so they are translated into ${into?.prompt ?? into?.name ?? 'English'} instead.`;
+        warn.textContent = tt('{lang} books are already in {lang}, so they are translated into {into} instead.',
+          { lang: name, into: into ? targetName(into, into.prompt ?? into.name) : langName('en', 'English') });
       };
       note();
       return [
-        h('h2.wel-q', null, 'Your language'),
-        h('p.wel-help', null, 'The one you know best. Sentences you translate are shown in it, and so is the app when it has it. You can change it any time in Settings.'),
+        h('h2.wel-q', null, tt('Your language')),
+        h('p.wel-help', null, tt('The one you know best. Sentences you translate are shown in it, and so is the app when it has it. You can change it any time in Settings.')),
         select,
         warn,
         h('p.wel-help.wel-small', null, langs.includes('en') && langs.length === 1
-          ? 'Word cards explain English words in Chinese, whatever you pick here.'
-          : `Word cards give short meanings in English${langs.includes('en') ? ' (in Chinese for English books)' : ''}, whatever you pick here.`),
+          ? tt('Word cards explain English words in Chinese, whatever you pick here.')
+          : langs.includes('en') ? tt('Word cards give short meanings in English (in Chinese for English books), whatever you pick here.')
+            : tt('Word cards give short meanings in English, whatever you pick here.')),
         foot(true, false, () => { step = 2; draw(); }),
       ];
     };
@@ -167,14 +177,14 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
     const stepGoal = () => {
       const at = Math.max(0, GOALS.indexOf(goal as (typeof GOALS)[number]));
       const buttons = GOALS.map((g, i) => h('button.wel-goal', { type: 'button', role: 'radio', 'aria-checked': String(i === at), tabindex: i === at ? 0 : -1 },
-        h('span.wel-goal-min', null, `${g} min`), h('span.wel-goal-name', null, GOAL_NAMES[g] ?? '')) as HTMLButtonElement);
+        h('span.wel-goal-min', null, tt('{min} min', { min: num(g) })), h('span.wel-goal-name', null, GOAL_NAMES[g] ? tt(GOAL_NAMES[g]) : '')) as HTMLButtonElement);
       const pick = (i: number) => {
         goal = GOALS[i];
         keep({ goal });
         buttons.forEach((b, j) => { b.setAttribute('aria-checked', String(j === i)); b.tabIndex = j === i ? 0 : -1; });
       };
       buttons.forEach((b, i) => b.addEventListener('click', () => pick(i)));
-      const group = h('div.wel-goals', { role: 'radiogroup', 'aria-label': 'Daily goal' }, buttons);
+      const group = h('div.wel-goals', { role: 'radiogroup', 'aria-label': tt('Daily goal') }, buttons);
       // A radio group: one tab stop, and the arrows move the choice.
       group.addEventListener('keydown', (ev) => {
         const e = ev as KeyboardEvent;
@@ -190,8 +200,8 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         buttons[to].focus();
       });
       return [
-        h('h2.wel-q', null, 'Set a daily goal'),
-        h('p.wel-help', null, 'Minutes of reading or review a day. Each day you reach it adds a day to your streak.'),
+        h('h2.wel-q', null, tt('Set a daily goal')),
+        h('p.wel-help', null, tt('Minutes of reading or review a day. Each day you reach it adds a day to your streak.')),
         group,
         foot(true, true, finish),
       ];

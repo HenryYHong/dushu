@@ -5,6 +5,7 @@ import { LANGS, LANG_IDS } from '../lang/registry';
 import { isChinese, langId, switchLang } from '../lang/active';
 import type { LangId } from '../lang/types';
 import { getPlan } from '../core/plan';
+import { langName, tt } from '../i18n';
 
 /** Set once this device has read a language other than Chinese: from then on the bar shows which language is open. */
 const USED_KEY = 'dushu.langs-used.v1';
@@ -28,14 +29,16 @@ function usedOther(): boolean {
 export function langSelect(cls = ''): HTMLSelectElement {
   const option = (id: LangId) => {
     const L = LANGS[id];
-    return h('option', { value: id, selected: id === langId() }, L.native === L.name ? L.name : `${L.native} · ${L.name}`);
+    // Its own name, then its name in the app's language (said once when they are the same: English in English, 中文 in Chinese).
+    const name = langName(id, L.name);
+    return h('option', { value: id, selected: id === langId() }, L.native.toLowerCase() === name.toLowerCase() ? L.native : `${L.native} · ${name}`);
   };
   // The languages being learned first, in the order chosen, then the rest.
   const learning = getPlan().langs;
   const rest = LANG_IDS.filter((id) => !learning.includes(id));
-  const sel = h('select', { class: cls || null, 'aria-label': 'Language you are reading' },
+  const sel = h('select', { class: cls || null, 'aria-label': tt('Language you are reading') },
     ...(learning.length && rest.length
-      ? [h('optgroup', { label: 'Learning' }, learning.map(option)), h('optgroup', { label: 'More languages' }, rest.map(option))]
+      ? [h('optgroup', { label: tt('Learning') }, learning.map(option)), h('optgroup', { label: tt('More languages') }, rest.map(option))]
       : LANG_IDS.map(option)));
   sel.addEventListener('change', () => { if (sel.value !== langId()) switchLang(sel.value as LangId); });
   return sel;
@@ -48,7 +51,7 @@ export function langSelect(cls = ''): HTMLSelectElement {
 export function langChip(): HTMLElement | null {
   if (!usedOther()) return null;
   const L = LANGS[langId()];
-  return h('label.app-lang', { title: 'Language' },
+  return h('label.app-lang', { title: tt('Language') },
     h('span.app-lang-name', { lang: L.tag }, L.native), h('span.app-lang-short', { 'aria-hidden': 'true' }, langId().toUpperCase()),
     icon('chevronDown'), langSelect('app-lang-select'));
 }

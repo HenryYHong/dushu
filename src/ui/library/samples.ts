@@ -2,6 +2,7 @@
 // Everything here tolerates the files being absent (or a dev server answering with index.html).
 import type { ImportedBook, Script } from '../../types';
 import { isChinese, langId } from '../../lang/active';
+import { tt } from '../../i18n';
 
 export interface Sample {
   id: string;
@@ -110,6 +111,10 @@ export async function sampleCover(s: Pick<Sample, 'cover'>): Promise<Blob | null
 /** Marks a stored book as coming from a sample, so the list can show "In your library". */
 export const sampleSourceName = (id: string): string => `sample:${id}`;
 
+/** A whole message (importer.ts errorText shows it as it is, in any language), not a reason to put after "Could not add". */
+const couldNotDownload = (title: string): Error =>
+  Object.assign(new Error(tt('Could not download “{title}”. Check your connection and try again.', { title })), { whole: true });
+
 /** Downloads one sample and turns it into a book (format 'sample', title and author from the index). */
 export async function loadSampleBook(
   s: Sample,
@@ -123,13 +128,13 @@ export async function loadSampleBook(
     res = await fetchFn(baseUrl() + encodeURIComponent(s.file));
   } catch {
     // The request never got an answer: offline, and this classic was not stored by an earlier visit.
-    throw new Error(typeof navigator !== 'undefined' && navigator.onLine === false
-      ? 'You are offline. Connect once to add this classic.'
-      : `Could not download “${shownTitle}”. Check your connection and try again.`);
+    throw typeof navigator !== 'undefined' && navigator.onLine === false
+      ? new Error(tt('You are offline. Connect once to add this classic.'))
+      : couldNotDownload(shownTitle);
   }
-  if (!res.ok) throw new Error(`Could not download “${shownTitle}”. Check your connection and try again.`);
+  if (!res.ok) throw couldNotDownload(shownTitle);
   const text = await res.text();
-  if (/^\s*<(?:!doctype|html)/i.test(text)) throw new Error(`“${shownTitle}” is not available right now.`);
+  if (/^\s*<(?:!doctype|html)/i.test(text)) throw new Error(tt('“{title}” is not available right now.', { title: shownTitle }));
   const book = importText(text, s.title, s.author, /\.md$/i.test(s.file));
   // The classic's painting comes along as its cover. Without it (offline, not stored yet) the book still adds, drawn.
   const cover = s.cover ? await sampleCover(s) : null;

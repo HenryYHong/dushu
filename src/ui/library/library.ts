@@ -12,7 +12,7 @@ import { coverChoice, withCoverChoice, type CoverChoice } from './coverStyle';
 import { bookEra } from './era';
 import { pageTitle } from '../pageHead';
 import { confirmDialog, formDialog } from './dialogs';
-import { compactCount, plural, progressFraction, progressLabel } from './format';
+import { compactCount, progressFraction, progressLabel } from './format';
 import { ACCEPT, createImporter, jobStage, loadImporters, prefetchImporters, type Importer, type Job } from './importer';
 import { pasteDialog } from './paste';
 import { fetchSamples, hasSamplePainting, loadSampleBook, sampleCover, sampleSourceName, type Sample, sampleUrl } from './samples';
@@ -27,14 +27,50 @@ import { openSignIn } from '../signIn';
 import { isStandalone, onIPhoneOrIPad } from '../fullscreen';
 import { accountBooks as accountBooksList, accountFileOf, accountBooksHere, forgetBookInAccount, syncBooks, type AccountBook } from '../../core/cloudBooks';
 import { isChinese, lang } from '../../lang/active';
+import { langName, num, tt, ttm, ttn } from '../../i18n';
 
 /**
  * A book's length as a reader thinks of it: characters for Chinese and Japanese, words for the languages written with spaces
  * (the stored count is letters there, lang/units: about six letters and a space to a word). `short`: "chars" on a card.
  */
 function sizeLabel(count: number, short: boolean): string {
-  if (lang().spaced) return `${compactCount(Math.round(count / 5.6))} words`;
-  return `${compactCount(count)} ${short ? 'chars' : 'characters'}`;
+  if (lang().spaced) {
+    const words = Math.round(count / 5.6);
+    return ttn(words, '{n} word', '{n} words', { n: compactCount(words) });
+  }
+  // {n} is the count as the library writes it short (21k): the form of the word still follows the whole number.
+  return short ? ttn(count, '{n} char', '{n} chars', { n: compactCount(count) }) : ttn(count, '{n} character', '{n} characters', { n: compactCount(count) });
+}
+
+/** The language being read, named in the app's language ("Spanish"). */
+const readingName = (): string => langName(lang().id, isChinese() ? 'Chinese' : lang().name);
+
+/** A sentence with buttons in it: each {name} in `template` is the element of that name, the rest is text. */
+function withParts(template: string, parts: Record<string, Node>): (string | Node)[] {
+  return template.split(/\{(\w+)\}/).map((piece, i) => (i % 2 ? parts[piece] ?? `{${piece}}` : piece)).filter((x) => x !== '');
+}
+
+/**
+ * How to look up a word in a first book, by touch or with a mouse, and what a word gives in this language: Chinese its pinyin,
+ * Japanese its reading, the others their meaning. `then`: after the ways to add a book.
+ */
+const HOW: Record<string, string> = {
+  'tap|pinyin': ttm('Tap any word for its pinyin and meaning, and tap it twice for the whole sentence and its translation.'),
+  'tap|reading': ttm('Tap any word for its reading and meaning, and tap it twice for the whole sentence and its translation.'),
+  'tap|meaning': ttm('Tap any word for its meaning, and tap it twice for the whole sentence and its translation.'),
+  'click|pinyin': ttm('Click any word for its pinyin and meaning, or drag across a sentence to translate it.'),
+  'click|reading': ttm('Click any word for its reading and meaning, or drag across a sentence to translate it.'),
+  'click|meaning': ttm('Click any word for its meaning, or drag across a sentence to translate it.'),
+  'then|tap|pinyin': ttm('Then tap any word for its pinyin and meaning, and tap it twice for the whole sentence and its translation.'),
+  'then|tap|reading': ttm('Then tap any word for its reading and meaning, and tap it twice for the whole sentence and its translation.'),
+  'then|tap|meaning': ttm('Then tap any word for its meaning, and tap it twice for the whole sentence and its translation.'),
+  'then|click|pinyin': ttm('Then click any word for its pinyin and meaning, or drag across a sentence to translate it.'),
+  'then|click|reading': ttm('Then click any word for its reading and meaning, or drag across a sentence to translate it.'),
+  'then|click|meaning': ttm('Then click any word for its meaning, or drag across a sentence to translate it.'),
+};
+function howToRead(touch: boolean, then: boolean): string {
+  const gives = isChinese() ? 'pinyin' : lang().aid === 'furigana' ? 'reading' : 'meaning';
+  return tt(HOW[`${then ? 'then|' : ''}${touch ? 'tap' : 'click'}|${gives}`]);
 }
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
@@ -42,7 +78,7 @@ const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
 const VISUALLY_HIDDEN = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap';
 
 function progressBar(fraction: number, label?: string): HTMLElement {
-  const bar = h('div.lib-bar', { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(fraction * 100), 'aria-label': label ?? 'Progress' },
+  const bar = h('div.lib-bar', { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(fraction * 100), 'aria-label': label ?? tt('Progress') },
     h('div.lib-bar-fill', { style: `width:${(fraction * 100).toFixed(1)}%` }));
   return bar;
 }
@@ -124,11 +160,11 @@ function closeMenu(): void { disposeMenu?.(); disposeMenu = null; }
 
 // ------------------------------------------------------------------ mount ---
 
-/** The levels of the classics, easiest first. The index files say Beginner, Intermediate or Advanced (public/samples). */
+/** The levels of the classics, easiest first. The index files say Beginner, Intermediate or Advanced (public/samples). Shown with tt. */
 const LEVELS = [
-  { key: 'easy', name: 'Easy', note: 'Short and plain: a good first book' },
-  { key: 'intermediate', name: 'Intermediate', note: 'Stories for grown-up readers' },
-  { key: 'advanced', name: 'Advanced', note: 'Novels and older, richer language' },
+  { key: 'easy', name: ttm('Easy'), books: ttm('Easy books'), note: ttm('Short and plain: a good first book') },
+  { key: 'intermediate', name: ttm('Intermediate'), books: ttm('Intermediate books'), note: ttm('Stories for grown-up readers') },
+  { key: 'advanced', name: ttm('Advanced'), books: ttm('Advanced books'), note: ttm('Novels and older, richer language') },
 ] as const;
 type LevelKey = (typeof LEVELS)[number]['key'];
 const levelOf = (s: Sample): LevelKey => (/^(beginner|easy)/i.test(s.level ?? '') ? 'easy' : /^intermediate/i.test(s.level ?? '') ? 'intermediate' : 'advanced');
@@ -161,39 +197,39 @@ export const mount: MountFn = (root, _params, ctx) => {
     fileInput.value = '';
     if (files.length) void importer.files(files);
   });
-  const importBtn = () => h('button.btn.btn-primary', { type: 'button', onclick: () => fileInput.click() }, icon('upload'), 'Import book');
-  const pasteBtn = () => h('button.btn', { type: 'button', onclick: () => void openPaste() }, icon('text'), 'Paste text');
-  const findBtn = () => (canFindBooks() ? h('button.btn', { type: 'button', onclick: () => void openFind() }, icon('search'), 'Find a book') : null);
+  const importBtn = () => h('button.btn.btn-primary', { type: 'button', onclick: () => fileInput.click() }, icon('upload'), tt('Import book'));
+  const pasteBtn = () => h('button.btn', { type: 'button', onclick: () => void openPaste() }, icon('text'), tt('Paste text'));
+  const findBtn = () => (canFindBooks() ? h('button.btn', { type: 'button', onclick: () => void openFind() }, icon('search'), tt('Find a book')) : null);
 
   const headActions = h('div.lib-actions', null, findBtn(), pasteBtn(), importBtn());
-  const macBooks = h('button.btn', { type: 'button', hidden: true, onclick: () => void addMacBooks() }, icon('download'), 'Add books from Mac') as HTMLButtonElement;
+  const macBooks = h('button.btn', { type: 'button', hidden: true, onclick: () => void addMacBooks() }, icon('download'), tt('Add books from Mac')) as HTMLButtonElement;
   headActions.appendChild(macBooks);
   // What this device knows about the Mac: set by refreshMac(), which runs when the library opens and when the connection changes.
   let macState: MacState = 'none';
   let macItems: MacBook[] = [];
   const macNote = h('div.lib-mac-note.card', { role: 'status', hidden: true });
   const head = h('div.page-head', null,
-    h('div', null, pageTitle('library', 'Library')),
+    h('div', null, pageTitle('library', tt('Library'))),
     headActions);
   const continueEl = h('div.lib-continue-slot');
-  const libraryTitle = h('h2', null, 'Your books');
+  const libraryTitle = h('h2', null, tt('Your books'));
   const libraryCount = h('span.lib-count', { role: 'status', 'aria-live': 'polite' });
   // A short placeholder: on a phone the field is about 200 px wide beside the sort menu, and a long one was cut off.
-  const search = h('input.input.lib-search', { type: 'search', placeholder: 'Title or author', 'aria-label': 'Search your library', autocomplete: 'off' }) as HTMLInputElement;
+  const search = h('input.input.lib-search', { type: 'search', placeholder: tt('Title or author'), 'aria-label': tt('Search your library'), autocomplete: 'off' }) as HTMLInputElement;
   search.addEventListener('input', () => { query = search.value.trim().toLocaleLowerCase(); renderGrid(); });
-  const sort = h('select.select.lib-sort', { 'aria-label': 'Sort library' },
-    h('option', { value: 'recent' }, 'Recently read'),
-    h('option', { value: 'title' }, 'Title'),
-    h('option', { value: 'added' }, 'Recently added')) as HTMLSelectElement;
+  const sort = h('select.select.lib-sort', { 'aria-label': tt('Sort library') },
+    h('option', { value: 'recent' }, tt('Recently read')),
+    h('option', { value: 'title' }, tt('Title')),
+    h('option', { value: 'added' }, tt('Recently added'))) as HTMLSelectElement;
   sort.addEventListener('change', () => { order = sort.value as typeof order; renderGrid(); });
-  const libraryTools = h('section.lib-toolbar', { 'aria-label': 'Your library' },
+  const libraryTools = h('section.lib-toolbar', { 'aria-label': tt('Your library') },
     h('div.lib-toolbar-head', null, libraryTitle, libraryCount),
     h('div.lib-filters', null, h('div.lib-search-wrap', null, icon('search'), search), sort));
   libraryTools.hidden = true;
   const gridEl = h('div.lib-body');
   const samplesEl = h('div.lib-samples');
   const drop = h('div.lib-drop', { hidden: true, 'aria-hidden': 'true' },
-    h('div.lib-drop-box', null, icon('upload', 'icon lib-drop-icon'), h('div.lib-drop-title', null, 'Drop to add to your library'), h('div.muted', null, 'EPUB, Kindle (MOBI or AZW3), TXT, PDF, HTML or Markdown')));
+    h('div.lib-drop-box', null, icon('upload', 'icon lib-drop-icon'), h('div.lib-drop-title', null, tt('Drop to add to your library')), h('div.muted', null, tt('EPUB, Kindle (MOBI or AZW3), TXT, PDF, HTML or Markdown'))));
   const goal = goalCard();
   const page = h('div.page.lib-page', null, head, goal.el, macNote, continueEl, libraryTools, gridEl, samplesEl, fileInput);
   root.append(page, drop);
@@ -273,18 +309,19 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(continueEl);
     const opened = books.filter((b) => b.lastOpenedAt).sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0))[0];
     // The grid below lists every book, this one included, so its heading says "All books" while this card is up.
-    libraryTitle.textContent = opened ? 'All books' : 'Your books';
+    libraryTitle.textContent = opened ? tt('All books') : tt('Your books');
     if (!opened) return;
     const p = progress.get(opened.id);
     const frac = progressFraction(p);
-    const where = p && opened.chapterCount > 1 ? `Chapter ${Math.min(opened.chapterCount, p.chapter + 1)} of ${opened.chapterCount} · ` : '';
-    continueEl.appendChild(h('section.lib-continue.card', { 'aria-label': 'Continue reading' },
+    const where = p && opened.chapterCount > 1
+      ? `${tt('Chapter {chapter} of {count}', { chapter: num(Math.min(opened.chapterCount, p.chapter + 1)), count: num(opened.chapterCount) })} · ` : '';
+    continueEl.appendChild(h('section.lib-continue.card', { 'aria-label': tt('Continue reading') },
       h('a.lib-continue-cover', { href: readHref(opened.id), tabindex: -1, 'aria-hidden': 'true' }, bookCover(opened, store, 'sm', ctx.settings.get().covers, labelOf(opened))),
       h('div.lib-continue-info', null,
         h('h2.lib-continue-title.zh', { lang: bookLang() }, shown(opened.title)),
         opened.author ? h('div.lib-continue-author', { lang: bookLang() }, shown(opened.author)) : null,
-        h('div.lib-continue-progress', null, progressBar(frac, `Progress in ${opened.title}`), h('span.muted', null, `${where}${progressLabel(p)}`))),
-      h('a.btn.btn-primary.lib-continue-go', { href: readHref(opened.id) }, 'Continue', icon('chevronRight'))));
+        h('div.lib-continue-progress', null, progressBar(frac, tt('Progress in {title}', { title: opened.title })), h('span.muted', null, `${where}${progressLabel(p)}`))),
+      h('a.btn.btn-primary.lib-continue-go', { href: readHref(opened.id) }, tt('Continue'), icon('chevronRight'))));
   }
 
   // ---- grid ----
@@ -308,11 +345,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     startShown = null;
     if (!loaded && !jobs.length) return;
     if (empty) {
-      const gives = isChinese() ? 'its pinyin and meaning' : lang().aid === 'furigana' ? 'its reading and meaning' : 'its meaning';
       if (first) {
-        const card = startCard(first, touch
-          ? `Tap any word for ${gives}, and tap it twice for the whole sentence and its translation.`
-          : `Click any word for ${gives}, or drag across a sentence to translate it.`);
+        const card = startCard(first, howToRead(touch, false));
         startShown = { key: startKey, ...card };
         gridEl.appendChild(card.el);
         settleFocus();
@@ -325,21 +359,19 @@ export const mount: MountFn = (root, _params, ctx) => {
         gridEl.appendChild(h('div.card.lib-start-wait', { 'aria-busy': 'true', style: `min-height: ${narrow ? 520 : 310}px` }));
         return;
       }
-      const name = isChinese() ? 'Chinese' : lang().name;
-      const ways = [
-        samples.length ? 'pick a classic below' : '',
-        canFindBooks() ? `find a free book in ${name}` : '',
-        'import an EPUB, a Kindle file without DRM, a text file or a PDF',
-      ].filter(Boolean);
-      const said = ways.length > 1 ? `${ways.slice(0, -1).join(', ')}, or ${ways[ways.length - 1]}` : ways[0];
+      const name = readingName();
+      // The ways to add a book, in one sentence: a classic below and a free book when there are any, a file always.
+      const find = canFindBooks();
+      const ways = samples.length && find ? tt('Pick a classic below, find a free book in {lang}, or import an EPUB, a Kindle file without DRM, a text file or a PDF.', { lang: name })
+        : samples.length ? tt('Pick a classic below, or import an EPUB, a Kindle file without DRM, a text file or a PDF.')
+        : find ? tt('Find a free book in {lang}, or import an EPUB, a Kindle file without DRM, a text file or a PDF.', { lang: name })
+        : tt('Import an EPUB, a Kindle file without DRM, a text file or a PDF.');
       const offline = !samples.length && typeof navigator !== 'undefined' && navigator.onLine === false;
       gridEl.appendChild(h('section.lib-empty.card', null,
-        h('h2.lib-empty-title', null, 'No books yet'),
-        offline ? h('p', null, `You are offline. ${name} classics and the ${name} dictionary download the first time you open ${name} online.`) : null,
-        h('p', null, `${said[0].toUpperCase()}${said.slice(1)}.${touch ? '' : ' You can also drop a file anywhere on this page.'}`),
-        h('p', null, touch
-          ? `Then tap any word for ${gives}, and tap it twice for the whole sentence and its translation.`
-          : `Then click any word for ${gives}, or drag across a sentence to translate it.`),
+        h('h2.lib-empty-title', null, tt('No books yet')),
+        offline ? h('p', null, tt('You are offline. {lang} classics and the {lang} dictionary download the first time you open {lang} online.', { lang: name })) : null,
+        h('p', null, touch ? ways : `${ways} ${tt('You can also drop a file anywhere on this page.')}`),
+        h('p', null, howToRead(touch, true)),
         h('div.lib-actions.lib-empty-actions', null, findBtn(), importBtn(), pasteBtn(), macBooks)));
       settleFocus();
       return;
@@ -349,11 +381,12 @@ export const mount: MountFn = (root, _params, ctx) => {
     matched.sort((a, b) => order === 'title' ? a.title.localeCompare(b.title, isChinese() ? 'zh-Hans-CN' : lang().tag)
       : order === 'added' ? b.addedAt - a.addedAt
       : (b.lastOpenedAt ?? b.addedAt) - (a.lastOpenedAt ?? a.addedAt));
-    libraryCount.textContent = query ? `${matched.length} of ${books.length}` : plural(books.length, 'book');
+    const total = books.length;
+    libraryCount.textContent = query ? tt('{shown} of {total}', { shown: num(matched.length), total: num(total) }) : ttn(total, '{n} book', '{n} books');
     if (!matched.length && !jobs.length) {
       gridEl.appendChild(h('div.lib-no-results', null,
-        h('p', null, 'No books match your search.'),
-        h('button.btn.btn-sm', { type: 'button', onclick: () => { search.value = ''; query = ''; renderGrid(); search.focus(); } }, 'Clear search')));
+        h('p', null, tt('No books match your search.')),
+        h('button.btn.btn-sm', { type: 'button', onclick: () => { search.value = ''; query = ''; renderGrid(); search.focus(); } }, tt('Clear search'))));
       settleFocus();
       return;
     }
@@ -386,7 +419,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const s = sampleOfJob(job);
     const title = s ? sampleShown(s, 'title') : shown(job.title);
     const author = s ? sampleShown(s, 'author') : job.author ? shown(job.author) : '';
-    const bar = progressBar(job.fraction, `Adding ${title}`);
+    const bar = progressBar(job.fraction, tt('Adding {title}', { title }));
     setJobBar(bar, job);
     return h('article.lib-card.lib-card-pending', { 'aria-busy': 'true', 'data-job': job.id },
       h('div.lib-cover-wrap.lib-cover-wrap-md', null,
@@ -412,24 +445,24 @@ export const mount: MountFn = (root, _params, ctx) => {
   function bookCard(b: BookMeta): HTMLElement {
     const p = progress.get(b.id);
     const menuBtn = h('button.lib-card-menu', {
-      type: 'button', 'aria-label': `Options for ${shown(b.title)}`, 'aria-haspopup': 'menu', 'aria-expanded': 'false',
+      type: 'button', 'aria-label': tt('Options for {title}', { title: shown(b.title) }), 'aria-haspopup': 'menu', 'aria-expanded': 'false',
       onclick: (e: Event) => {
         e.preventDefault();
         // The Mac's books are always in the library, so they have no Delete.
         const fromMac = isMacBook(b) || !!macItemFor(b, macItems);
         const chosen = coverChoice(ctx.settings.get().covers, b);
         // A book that came with a picture shows it unless a drawn cover is picked; one without is drawn in its era's style.
-        const auto = b.cover && !hasSamplePainting(b) ? 'The book’s picture' : `Automatic (${bookEra(b) === 'classic' ? 'Classic' : 'Modern'})`;
+        const auto = b.cover && !hasSamplePainting(b) ? tt('The book’s picture') : bookEra(b) === 'classic' ? tt('Automatic (Classic)') : tt('Automatic (Modern)');
         const pick = (c: CoverChoice) => ({
-          label: c === 'auto' ? auto : c === 'classic' ? 'Classic' : 'Modern',
+          label: c === 'auto' ? auto : c === 'classic' ? tt('Classic') : tt('Modern'),
           checked: chosen === c,
           // A setting that syncs: the pick shows on every device (the settings listener below draws it here).
           run: () => ctx.settings.set({ covers: withCoverChoice(ctx.settings.get().covers, b, c) }),
         });
         openMenu(menuBtn, [
-          { label: 'Rename', icon: 'pen', run: () => void rename(b) },
-          ...(fromMac ? [] : [{ label: 'Delete', icon: 'trash' as const, danger: true, run: () => void remove(b) }]),
-          { heading: 'Cover', options: [pick('auto'), pick('classic'), pick('modern')] },
+          { label: tt('Rename'), icon: 'pen', run: () => void rename(b) },
+          ...(fromMac ? [] : [{ label: tt('Delete'), icon: 'trash' as const, danger: true, run: () => void remove(b) }]),
+          { heading: tt('Cover'), options: [pick('auto'), pick('classic'), pick('modern')] },
         ], card);
       },
     }, icon('more'));
@@ -444,7 +477,7 @@ export const mount: MountFn = (root, _params, ctx) => {
           h('div.lib-card-title.zh', { lang: bookLang() }, shown(b.title)),
           b.author ? h('div.lib-card-author', { lang: bookLang() }, shown(b.author)) : h('div.lib-card-author', { 'aria-hidden': 'true' }, ' '),
           bar,
-          h('span', { style: VISUALLY_HIDDEN }, `${progressLabel(p)}.`),
+          h('span', { style: VISUALLY_HIDDEN }, tt('{progress}.', { progress: progressLabel(p) })),
           h('div.lib-card-meta', { 'aria-hidden': 'true' }, h('span', null, progressLabel(p)), h('span', null, sizeLabel(b.charCount, true))),
           shares.line(b))),
       menuBtn);
@@ -460,27 +493,27 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   async function rename(b: BookMeta): Promise<void> {
     const v = await formDialog({
-      title: 'Rename book',
-      submitLabel: 'Save',
+      title: tt('Rename book'),
+      submitLabel: tt('Save'),
       fields: [
-        { name: 'title', label: 'Title', value: b.title, required: true },
-        { name: 'author', label: 'Author', value: b.author },
+        { name: 'title', label: tt('Title'), value: b.title, required: true },
+        { name: 'author', label: tt('Author'), value: b.author },
       ],
     });
     if (!alive) return;
     if (!v || (v.title === b.title && v.author === b.author)) { backToMenu(b.id); return; }
     // The card is drawn again with the new name: focus follows it to its new menu button.
     refocus = { id: b.id, until: Date.now() + 4000 };
-    try { await store.books.update(b.id, { title: v.title, author: v.author }); } catch (e) { refocus = null; backToMenu(b.id); ctx.toast(e instanceof Error ? e.message : 'Could not rename the book.'); }
+    try { await store.books.update(b.id, { title: v.title, author: v.author }); } catch (e) { refocus = null; backToMenu(b.id); ctx.toast(e instanceof Error ? e.message : tt('Could not rename the book.')); }
   }
 
   async function remove(b: BookMeta): Promise<void> {
     const ok = await confirmDialog({
-      title: 'Delete this book?',
+      title: tt('Delete this book?'),
       message: accountBooksHere()
-        ? `“${shown(b.title)}” will be removed from this device and from your account. Your place in it, your saved words and your corrections stay: add it again and it opens where you left off.`
-        : `“${shown(b.title)}” will be removed from this device. Your place in it, your saved words and your corrections stay: add it again and it opens where you left off.`,
-      confirmLabel: 'Delete',
+        ? tt('“{title}” will be removed from this device and from your account. Your place in it, your saved words and your corrections stay: add it again and it opens where you left off.', { title: shown(b.title) })
+        : tt('“{title}” will be removed from this device. Your place in it, your saved words and your corrections stay: add it again and it opens where you left off.', { title: shown(b.title) }),
+      confirmLabel: tt('Delete'),
       danger: true,
     });
     if (!alive) return;
@@ -492,9 +525,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     try {
       await store.books.remove(b.id);
       forgetBookInAccount(b);
-      if (alive) ctx.toast(`Deleted “${shown(b.title)}”.`);
+      if (alive) ctx.toast(tt('Deleted “{title}”.', { title: shown(b.title) }));
     } catch (e) {
-      ctx.toast(e instanceof Error ? e.message : 'Could not delete the book.');
+      ctx.toast(e instanceof Error ? e.message : tt('Could not delete the book.'));
     }
   }
 
@@ -507,8 +540,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     const start = h('button.btn.btn-primary.lib-start-go', { type: 'button' }) as HTMLButtonElement;
     const paint = (busy: boolean) => {
       start.disabled = busy;
-      start.setAttribute('aria-label', busy ? `Opening “${title}”` : `Start reading “${title}”`);
-      start.replaceChildren(...(busy ? ['Opening…'] : ['Start reading', icon('chevronRight')]));
+      start.setAttribute('aria-label', busy ? tt('Opening “{title}”', { title }) : tt('Start reading “{title}”', { title }));
+      start.replaceChildren(...(busy ? [tt('Opening…')] : [tt('Start reading'), icon('chevronRight')]));
     };
     paint(importer.jobs.some((j) => j.label === `“${s.title}”`));
     start.addEventListener('click', async () => {
@@ -519,21 +552,23 @@ export const mount: MountFn = (root, _params, ctx) => {
       else paint(false);
     });
     const link = (label: string, run: () => void) => h('button.lib-start-link', { type: 'button', onclick: run }, label);
-    const others = [
-      canFindBooks() ? link(`find a free book in ${isChinese() ? 'Chinese' : lang().name}`, () => void openFind()) : null,
-      link('paste some text', () => void openPaste()),
-      link('import a file', () => fileInput.click()),
-    ].filter((x): x is HTMLElement => !!x);
-    const el = h('section.lib-start.card', { 'aria-label': 'Your first book' },
+    // One sentence with the links in it, so each language puts them where its word order wants them.
+    const links = {
+      find: link(tt('find a free book in {lang}', { lang: readingName() }), () => void openFind()),
+      paste: link(tt('paste some text'), () => void openPaste()),
+      import: link(tt('import a file'), () => fileInput.click()),
+    };
+    const others = withParts(canFindBooks() ? tt('Or {find}, {paste} or {import}.') : tt('Or {paste} or {import}.'), links);
+    const el = h('section.lib-start.card', { 'aria-label': tt('Your first book') },
       h('div.lib-start-cover', null, sampleCoverEl(s)),
       h('div.lib-start-body', null,
-        h('div.lib-start-kicker', null, 'Your first book'),
+        h('div.lib-start-kicker', null, tt('Your first book')),
         h('h2.lib-start-title.zh', { lang: bookLang() }, title),
         s.author ? h('div.lib-start-author', { lang: bookLang() }, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-start-blurb', null, s.blurb) : null,
         h('p.lib-start-how', null, how),
         h('div.lib-start-actions', null, start),
-        h('p.lib-start-other', null, 'Or ', others.flatMap((el, i) => (i ? [i === others.length - 1 ? ' or ' : ', ', el] : [el])), '. EPUB, Kindle without DRM, text and PDF files all work.')));
+        h('p.lib-start-other', null, others, ` ${tt('EPUB, Kindle without DRM, text and PDF files all work.')}`)));
     return { el, paint };
   }
 
@@ -544,14 +579,14 @@ export const mount: MountFn = (root, _params, ctx) => {
     const have = new Map(books.filter((b) => b.sourceName?.startsWith('sample:')).map((b) => [b.sourceName!, b]));
     const card = (s: Sample) => sampleCard(s, have.get(sampleSourceName(s.id)));
 
-    samplesEl.appendChild(h('h2.lib-samples-title', null, 'Start with a classic'));
+    samplesEl.appendChild(h('h2.lib-samples-title', null, tt('Start with a classic')));
     // By level, easiest first, so a reader picks a first book by how hard it is; a named set (the four great novels) stays
     // together inside its level.
     for (const level of LEVELS) {
       const here = samples.filter((s) => levelOf(s) === level.key);
       if (!here.length) continue;
-      const section = h('section.lib-level', { 'data-level': level.key, 'aria-label': `${level.name} books` },
-        h('h3.lib-level-title', null, h('span.lib-level-name', null, level.name), h('span.lib-level-note', null, level.note)));
+      const section = h('section.lib-level', { 'data-level': level.key, 'aria-label': tt(level.books) },
+        h('h3.lib-level-title', null, h('span.lib-level-name', null, tt(level.name)), h('span.lib-level-note', null, tt(level.note))));
       const loose = here.filter((s) => !s.group);
       if (loose.length) section.appendChild(h('div.lib-sample-grid', null, loose.map(card)));
       const groups = new Map<string, Sample[]>();
@@ -566,15 +601,16 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   function sampleCard(s: Sample, existing: BookMeta | undefined): HTMLElement {
     const busy = importer.jobs.some((j) => j.label === `“${s.title}”`);
-    const size = [s.chapters && plural(s.chapters, 'chapter'), s.chars && sizeLabel(s.chars, false)].filter(Boolean).join(' · ');
+    const chapters = s.chapters ?? 0;
+    const size = [chapters && ttn(chapters, '{n} chapter', '{n} chapters'), s.chars && sizeLabel(s.chars, false)].filter(Boolean).join(' · ');
     // Each button names its book: a list of a dozen "Add and read" says nothing to a screen reader.
     const title = sampleShown(s, 'title');
     const go = existing
-      ? h('a.btn.btn-sm', { href: readHref(existing.id), 'aria-label': `Open “${title}”` }, 'Open')
+      ? h('a.btn.btn-sm', { href: readHref(existing.id), 'aria-label': tt('Open “{title}”', { title }) }, tt('Open'))
       : h('button.btn.btn-sm.lib-add', {
           type: 'button',
           disabled: busy,
-          'aria-label': busy ? `Adding “${title}”` : `Add and read “${title}”`,
+          'aria-label': busy ? tt('Adding “{title}”', { title }) : tt('Add and read “{title}”', { title }),
           onclick: async (e: Event) => {
             const btn = e.currentTarget as HTMLButtonElement;
             btn.disabled = true;
@@ -583,17 +619,17 @@ export const mount: MountFn = (root, _params, ctx) => {
             if (meta) ctx.navigate(readHref(meta.id));
             else btn.disabled = false;
           },
-        }, busy ? 'Adding…' : 'Add and read');
+        }, busy ? tt('Adding…') : tt('Add and read'));
     return h('article.lib-sample.card', null,
       h('div.lib-sample-cover', null, existing ? bookCover(existing, store, 'sm', ctx.settings.get().covers, sampleLabel(s)) : sampleCoverEl(s)),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
           h('div.lib-sample-title.zh', { lang: bookLang() }, title),
-          h('span.lib-level-badge', { 'data-level': levelOf(s) }, LEVELS.find((l) => l.key === levelOf(s))!.name)),
+          h('span.lib-level-badge', { 'data-level': levelOf(s) }, tt(LEVELS.find((l) => l.key === levelOf(s))!.name))),
         s.author ? h('div.lib-sample-author', { lang: bookLang() }, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-sample-blurb', null, s.blurb) : null,
         h('div.lib-sample-foot', null,
-          h('span.muted.lib-sample-size', null, existing ? 'In your library' : size),
+          h('span.muted.lib-sample-size', null, existing ? tt('In your library') : size),
           go)));
   }
 
@@ -656,27 +692,27 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(macNote);
     if (homeTip) {
       macNote.append(
-        h('p', null, 'Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.'),
-        h('div.lib-actions', null, h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.home-note.v1') }, 'Got it')));
+        h('p', null, tt('Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.')),
+        h('div.lib-actions', null, h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.home-note.v1') }, tt('Got it'))));
       return;
     }
     if (publicCopy) {
       macNote.append(
         h('p', null, cloudBase()
-          ? 'Your books and words are saved in this browser. Have an account? Sign in to have them on your other devices too.'
-          : 'Your books and words are saved in this browser. If you run Globereader on your own Mac, connect this device to it in Settings to use its translator, voices and books.'),
+          ? tt('Your books and words are saved in this browser. Have an account? Sign in to have them on your other devices too.')
+          : tt('Your books and words are saved in this browser. If you run Globereader on your own Mac, connect this device to it in Settings to use its translator, voices and books.')),
         h('div.lib-actions', null,
           cloudBase()
-            ? h('button.btn.btn-sm', { type: 'button', onclick: () => openSignIn() }, 'Sign in')
-            : h('a.btn.btn-sm', { href: '#/settings' }, 'Open Settings'),
-          h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.public-note.v1') }, 'Dismiss')));
+            ? h('button.btn.btn-sm', { type: 'button', onclick: () => openSignIn() }, tt('Sign in'))
+            : h('a.btn.btn-sm', { href: '#/settings' }, tt('Open Settings')),
+          h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.public-note.v1') }, tt('Dismiss'))));
       return;
     }
     macNote.append(
       h('p', null, macState === 'refused'
-        ? 'Your Mac answered but did not accept this device. Sign in to Tailscale with the same account as the Mac, then try again.'
-        : 'Your Mac did not answer, so its books, translator and voices are paused. Wake the Mac and make sure Tailscale is on, then try again.'),
-      h('div.lib-actions', null, h('button.btn.btn-sm', { type: 'button', onclick: () => void refreshMac(true) }, 'Try again')));
+        ? tt('Your Mac answered but did not accept this device. Sign in to Tailscale with the same account as the Mac, then try again.')
+        : tt('Your Mac did not answer, so its books, translator and voices are paused. Wake the Mac and make sure Tailscale is on, then try again.')),
+      h('div.lib-actions', null, h('button.btn.btn-sm', { type: 'button', onclick: () => void refreshMac(true) }, tt('Try again'))));
   }
 
   /** Asks the Mac what it has. With `auto`, adds what this device is missing; the person never has to ask. */
@@ -699,20 +735,20 @@ export const mount: MountFn = (root, _params, ctx) => {
   async function addMacBooks(): Promise<void> {
     if (macBooks.disabled || !alive) return;
     macBooks.disabled = true;
-    macBooks.textContent = 'Adding from Mac…';
+    macBooks.textContent = tt('Adding from Mac…');
     try {
       if (!loaded) await load();
       await refreshMac(false);
-      if (macState !== 'ready') { ctx.toast('Your Mac did not answer. Wake it and try again.', { ms: 9000 }); return; }
+      if (macState !== 'ready') { ctx.toast(tt('Your Mac did not answer. Wake it and try again.'), { ms: 9000 }); return; }
       const { added, failed } = await syncMacBooks(macItems, syncDeps);
       if (added.length) ctx.toast(addedMessage(added, shown));
-      else if (failed) ctx.toast('Could not add the books from your Mac.', { ms: 9000 });
-      else ctx.toast('The books on your Mac are already in your library.');
+      else if (failed) ctx.toast(tt('Could not add the books from your Mac.'), { ms: 9000 });
+      else ctx.toast(tt('The books on your Mac are already in your library.'));
     } catch (e) {
-      if (alive) ctx.toast(e instanceof Error ? e.message : 'Could not add the Mac books.', { ms: 9000 });
+      if (alive) ctx.toast(e instanceof Error ? e.message : tt('Could not add the Mac books.'), { ms: 9000 });
     } finally {
       macBooks.disabled = false;
-      macBooks.replaceChildren(icon('download'), 'Add books from Mac');
+      macBooks.replaceChildren(icon('download'), tt('Add books from Mac'));
     }
   }
   // A slow network: after 2.5 s the empty library says how else to add a book. The list, when it comes, still brings the
