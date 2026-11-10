@@ -23,6 +23,7 @@ import { properGroups } from '../../core/names';
 import type { WordPopupOptions } from './popup';
 import { entriesForReading } from '../../core/reading';
 import { headwordsFor, vocabItemFor } from './saveWord';
+import { cardMeanings, type CardMeanings } from './meanings';
 import { tt, ttn } from '../../i18n';
 
 interface View {
@@ -56,6 +57,8 @@ export function mountWordView(
   const refreshers: (() => void)[] = [];
   let speaking = false;
   let meaningCtl: AbortController | null = null;
+  /** The meanings of the view on screen in the reader's language (meanings.ts), made with it. */
+  let meanings: CardMeanings | null = null;
 
   const top = () => stack[stack.length - 1];
   const push = (v: View) => { stack.push(v); show(); };
@@ -145,12 +148,15 @@ export function mountWordView(
       tt('HSK {level} as {reading}', { level: band(other.hsk3), reading: said }));
   }
 
-  function renderDef(def: string): HTMLElement {
-    const li = h('li');
+  /** A sense as the dictionary has it (its cross-references a tap away), and as plain text for the reader's language. */
+  function renderDef(def: string, m: CardMeanings, shown: boolean): HTMLElement {
+    const src = h('span.pp-def-src');
     for (const part of parseDefinition(def)) {
-      if (part.t === 'text') li.appendChild(document.createTextNode(part.s));
-      else li.appendChild(refLink(part.simp, part.pinyin));
+      if (part.t === 'text') src.appendChild(document.createTextNode(part.s));
+      else src.appendChild(refLink(part.simp, part.pinyin));
     }
+    const li = h('li', null, src);
+    m.sense(li, plainDefinition(def), shown);
     return li;
   }
 
@@ -166,7 +172,7 @@ export function mountWordView(
   /** Definitions beyond this many sit behind a "more" button. */
   const DEF_LIMIT = 4;
 
-  function readingBlock(g: ReadingGroup, headTrad: string, inSentence: boolean, showPinyin: boolean): HTMLElement {
+  function readingBlock(g: ReadingGroup, headTrad: string, inSentence: boolean, showPinyin: boolean, m: CardMeanings): HTMLElement {
     const { rest, classifiers } = splitClassifiers(g.defs);
     const block = h('section.pp-reading');
     // The reading in this sentence is already the line under the headword; saying it again just adds height.
@@ -178,7 +184,7 @@ export function mountWordView(
       block.appendChild(head);
     }
     if (rest.length) {
-      const items = rest.map(renderDef);
+      const items = rest.map((d, i) => renderDef(d, m, i < DEF_LIMIT));
       const list = h('ol.pp-defs', null, items.slice(0, DEF_LIMIT));
       block.appendChild(list);
       if (items.length > DEF_LIMIT) {
@@ -187,6 +193,7 @@ export function mountWordView(
         more.addEventListener('click', () => {
           list.append(...items.slice(DEF_LIMIT));
           more.remove();
+          m.reveal(items.slice(DEF_LIMIT));
           host.reposition();
         });
         block.appendChild(more);
@@ -422,7 +429,8 @@ export function mountWordView(
       }
     }
 
-    // Definitions per reading
+    // Definitions per reading, then (for a reader whose language is not English) the line that puts them into it.
+    const m = (meanings = cardMeanings(ctx, () => host.reposition()));
     if (entries.length) {
       const ordered = orderGroups(groupByReading(entriesForReading(entries, syllables, v.word, aroundOf(v))), v.reading ? splitSyllables(v.reading) : syllables);
       const hasContext = !!(o.context?.sentence || o.prev || o.next) && stack.length === 1;
@@ -431,8 +439,9 @@ export function mountWordView(
       ordered.groups.forEach((g, i) => {
         // With one reading, the pinyin under the headword is that reading: do not print it a second time.
         const repeated = ordered.groups.length === 1 && sameReading(g.pinyin, syllables);
-        body.appendChild(readingBlock(g, trad, flag && i === 0, !repeated));
+        body.appendChild(readingBlock(g, trad, flag && i === 0, !repeated, m));
       });
+      if (m.el) body.appendChild(m.el);
       if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note', null, tt('All the dictionary meanings, not just the one used here.')));
     } else if (info) {
       const note = sourceNote(info, false);
@@ -442,9 +451,14 @@ export function mountWordView(
           sec.appendChild(h('div.pp-reading-head', null, ...info.readings.map((r) => h('span.pp-py', null, h('span.pp-syl', { class: `tone-${toneOf(r)}` }, formatSyllable(markedToNumbered(r), ctx.settings.get().pinyinStyle))))));
         }
         if (info.definition) {
-          sec.appendChild(h('ol.pp-defs', null, info.definition.split(/;\s*/).filter(Boolean).map((d) => h('li', null, d))));
+          sec.appendChild(h('ol.pp-defs', null, info.definition.split(/;\s*/).filter(Boolean).map((d) => {
+            const li = h('li', null, h('span.pp-def-src', null, d));
+            m.sense(li, d);
+            return li;
+          })));
         }
         body.appendChild(sec);
+        if (m.el) body.appendChild(m.el);
       }
       if (note) body.appendChild(note);
     } else if (!single && !own) {
@@ -520,9 +534,11 @@ export function mountWordView(
   function show() {
     meaningCtl?.abort();
     meaningCtl = null;
+    meanings?.dispose();
     refreshers.length = 0;
     clear(host.content);
     host.content.appendChild(build(top()));
+    meanings?.start();
     host.scroller.scrollTop = 0;
     // A view that replaced the element holding focus (drilling in, Back) keeps focus inside the dialog.
     if (!host.el.contains(document.activeElement)) host.focus();
@@ -547,6 +563,7 @@ export function mountWordView(
     },
     dispose() {
       meaningCtl?.abort();
+      meanings?.dispose();
       off();
       if (speaking) stopSpeaking();
     },

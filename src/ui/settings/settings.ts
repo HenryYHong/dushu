@@ -15,6 +15,7 @@ import { aidName, aidWord, autoKnownHelp, glossLanguage, levelCount, levelLabel,
 import { langSelect } from '../langSwitch';
 import { learningControls } from './learning';
 import { tt, uiLocale } from '../../i18n';
+import { meaningsTarget } from '../../translate/meanings';
 
 export const mount: MountFn = (root, params, ctx) => {
   const { settings, store } = ctx;
@@ -70,6 +71,9 @@ export const mount: MountFn = (root, params, ctx) => {
     { value: 'click', label: tt('Click or tap') }, { value: 'hover', label: tt('Hover') },
   ], set('lookupTrigger')));
   const paragraph = add(toggle('paragraphTranslate', tt('Translate paragraphs'), set('paragraphTranslate')));
+  const meanings = add(segmented('translateMeanings', tt('Meanings in your language'), [
+    { value: 'auto', label: tt('Automatic') }, { value: 'always', label: tt('Always') }, { value: 'ask', label: tt('When I ask') }, { value: 'never', label: tt('Never') },
+  ], set('translateMeanings')));
 
   // Rows that only matter in one mode are hidden in the other (a dimmed row still looks like something you can change).
   // The level scheme's own words (L.levels.about) follow the sentence: two whole sentences, joined.
@@ -109,8 +113,11 @@ export const mount: MountFn = (root, params, ctx) => {
     row(tt('Languages you are learning'), tt('These come first when you switch languages.'), learning.langs),
     row(tt('Daily goal'), tt('Minutes of reading or review a day, in any language. Each day you reach it adds to your streak.'), learning.goal),
     row(tt('Welcome screen'), tt('Choose your languages, translation language and goal again, step by step.'), learning.welcome));
+  // The word cards' meanings in the reader's language (translate/meanings.ts). Shown only when that is not the dictionary's.
+  const meaningsRow = row(tt('Meanings in your language'), tt('Word cards translate the dictionary’s {original} into your language and keep the {original} under each meaning. Automatic uses Chrome’s free on-device translator, and an online one (Qwen through your account, Claude or MyMemory) only when you press the button on the card. Always uses any of them without asking.', { original: glossLanguage() }), meanings);
   const lookup = group(tt('Lookup'), null,
     row(tt('Look up a word by'), null, trigger),
+    meaningsRow,
     row(tt('Translate paragraphs'), tt('With a mouse, adds a translate button beside each paragraph in Scroll.'), paragraph));
 
   const translation = translationGroup(ctx);
@@ -132,6 +139,7 @@ export const mount: MountFn = (root, params, ctx) => {
     hsk.input.disabled = s.pinyin !== 'hsk';
     hskRow.hidden = s.pinyin !== 'hsk';
     for (const r of [spreadRow, turnRow]) r.hidden = s.layout !== 'pages';
+    meaningsRow.hidden = meaningsTarget({ translateTo: s.translateTo, translateMeanings: 'auto' }) === null;
     drawPreview();
   };
 

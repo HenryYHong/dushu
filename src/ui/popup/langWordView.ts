@@ -13,6 +13,7 @@ import type { PopupHost } from './host';
 import type { WordPopupOptions } from './popup';
 import type { WordView } from './wordView';
 import { withNodes } from './defs';
+import { cardMeanings, type CardMeanings } from './meanings';
 import { tt, ttm, ttn } from '../../i18n';
 
 interface View {
@@ -82,6 +83,8 @@ export function mountLangWordView(
   const stack: View[] = [{ word: o.word, token: o.token }];
   const refreshers: (() => void)[] = [];
   let speaking = false;
+  /** The meanings of the view on screen in the reader's language (meanings.ts), made with it. */
+  let meanings: CardMeanings | null = null;
 
   const top = () => stack[stack.length - 1];
   const push = (v: View) => { stack.push(v); show(); };
@@ -111,7 +114,7 @@ export function mountLangWordView(
   }
 
   /** One entry: its headword (when it is not the word on the page, or has a reading to show), part of speech, senses. */
-  function entryBlock(e: WordEntry, v: View, many: boolean, said?: string): HTMLElement {
+  function entryBlock(e: WordEntry, v: View, many: boolean, m: CardMeanings, said?: string): HTMLElement {
     const block = h('section.pp-reading.pp-lang-entry');
     const showHead = many || e.head !== v.word || (e.reading && e.reading !== e.head);
     const chips: (Node | null)[] = [];
@@ -142,8 +145,11 @@ export function mountLangWordView(
     for (const s of e.senses) {
       const label = s.pos && s.pos !== lastPos ? h('span.pp-pos', null, s.pos) : null;
       lastPos = s.pos ?? lastPos;
-      items.push(h('li', null, label, label ? ' ' : null, s.glosses.join('; '),
+      // The part of speech and the notes are labels, not meanings: only the glosses are put into the reader's language.
+      const li = h('li', null, label, label ? ' ' : null, h('span.pp-def-src', null, s.glosses.join('; '),
         s.notes?.length ? h('span.pp-sense-note', null, ` (${s.notes.join(', ')})`) : null));
+      m.sense(li, s.glosses.join('; '), items.length < SENSE_LIMIT);
+      items.push(li);
     }
     if (items.length) {
       const list = h('ol.pp-defs', null, items.slice(0, SENSE_LIMIT));
@@ -151,7 +157,12 @@ export function mountLangWordView(
       if (items.length > SENSE_LIMIT) {
         const hidden = items.length - SENSE_LIMIT;
         const more = h('button.pp-more-btn', { type: 'button', 'aria-expanded': 'false' }, ttn(hidden, '{n} more', '{n} more')) as HTMLButtonElement;
-        more.addEventListener('click', () => { list.append(...items.slice(SENSE_LIMIT)); more.remove(); host.reposition(); });
+        more.addEventListener('click', () => {
+          list.append(...items.slice(SENSE_LIMIT));
+          more.remove();
+          m.reveal(items.slice(SENSE_LIMIT));
+          host.reposition();
+        });
         block.appendChild(more);
       }
     }
@@ -245,9 +256,11 @@ export function mountLangWordView(
     const body = h('div.pp-body');
     root.appendChild(body);
 
+    const m = (meanings = cardMeanings(ctx, () => host.reposition()));
     if (lu.entries.length) {
       const many = lu.entries.length > 1;
-      lu.entries.slice(0, 6).forEach((e) => body.appendChild(entryBlock(e, v, many, lu.sound)));
+      lu.entries.slice(0, 6).forEach((e) => body.appendChild(entryBlock(e, v, many, m, lu.sound)));
+      if (m.el) body.appendChild(m.el);
       if (many && (o.context?.sentence || v.token)) body.appendChild(h('p.pp-note', null, tt('Every word this can be. The first fits best where it is used here.')));
     } else {
       body.appendChild(h('p.pp-note', null, lu.name || v.token?.name
@@ -304,9 +317,11 @@ export function mountLangWordView(
   }
 
   function show() {
+    meanings?.dispose();
     refreshers.length = 0;
     clear(host.content);
     host.content.appendChild(build(top()));
+    meanings?.start();
     measureHeadword(host.content.querySelector<HTMLElement>('.pp-lang-word'));
     host.scroller.scrollTop = 0;
     if (!host.el.contains(document.activeElement)) host.focus();
@@ -329,6 +344,7 @@ export function mountLangWordView(
     },
     dispose() {
       off();
+      meanings?.dispose();
       if (speaking) stopSpeaking();
     },
   };

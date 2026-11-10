@@ -28,13 +28,19 @@ function decodeEntities(s: string): string {
   });
 }
 
+/** The book's language as MyMemory spells it. */
+const bookSource = (): string => (isChinese() ? 'zh-CN' : lang().tag);
+
+/** A targets.ts code as MyMemory spells it (zh-CN, zh-TW). */
+const myMemoryCode = (code: string): string => targetLanguage(code)?.mymemory ?? code;
+
 async function translateChunk(
   chunk: string,
+  from: string,
   to: string,
   signal: AbortSignal | undefined,
   fetchFn: typeof fetch,
 ): Promise<string> {
-  const from = isChinese() ? 'zh-CN' : lang().tag;
   const url = `${ENDPOINT}?q=${encodeURIComponent(chunk)}&langpair=${encodeURIComponent(`${from}|${to}`)}`;
   let res: Response;
   try {
@@ -79,10 +85,19 @@ export function createMyMemoryTranslator(deps: { fetch?: typeof fetch } = {}): T
       const parts: string[] = [];
       for (const chunk of chunkText(req.text, MAX_CHUNK)) {
         if (opts?.signal?.aborted) throw new DOMException('Translation canceled', 'AbortError');
-        parts.push(await translateChunk(chunk, to, opts?.signal, fetchFn));
+        parts.push(await translateChunk(chunk, bookSource(), to, opts?.signal, fetchFn));
         opts?.onDelta?.(parts.join(joiner));
       }
       return parts.join(joiner);
     },
   };
+}
+
+/**
+ * One short text from `from` into `to` (targets.ts codes: 'en', 'zh', 'fr'), whatever the book: a word card's meaning, which is in
+ * the dictionary's language (translate/meanings.ts). At most MAX_CHUNK characters; the caller sends each meaning on its own.
+ */
+export function myMemoryText(text: string, from: string, to: string, opts: { signal?: AbortSignal; fetch?: typeof fetch } = {}): Promise<string> {
+  const fetchFn = opts.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  return translateChunk(text.slice(0, MAX_CHUNK), myMemoryCode(from), myMemoryCode(to), opts.signal, fetchFn);
 }

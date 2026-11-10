@@ -748,6 +748,36 @@ keeps any `o:` record a hub did not echo unsent until a hub keeps it. Servers ec
 an answer with no echo to a request that sent `to` came from a server older than the choice and is labeled as English. Into a
 Latin-script language Chinese names are pinyin, except Vietnamese, which reads them the Sino-Vietnamese way (`pinyinNames: false`).
 
+**A word card's meanings in the reader's language** (`translate/meanings.ts`, `ui/popup/meanings.ts`). The dictionaries explain words in
+English (CC-CEDICT, JMdict, Wiktionary), or in Chinese in the English library (ECDICT, `dictionaryLanguage`). When the reader's language
+(the sentences' target, `targetFor(settings.translateTo, lang)`) is another one, each sense line the card shows gets a machine
+translation of its glosses on top, `span.pp-def-tl` with the target's `lang` (and `dir` for a right-to-left one), and the dictionary's
+own words stay in the line as `span.pp-def-src`, set small and muted under it, cross-references still links: the original is the
+authority, since a one-word gloss can be put into the wrong sense. A line under the meanings (`.pp-mt`) says "Machine translation into
+French by Chrome on-device. The dictionary's English is under each meaning", or carries the button, the progress or the error with Try
+again. The part of speech, the notes in parentheses, levels, gender, readings and the headword are never sent; only the glosses. The
+pair is the dictionary's language into the reader's (en>fr for a French reader of Spanish books, zh>ko for a Korean reader of English
+ones), not the book's: `chromePair(source, target)` and `myMemoryText(text, from, to)` take it, and the Claude and account translators
+take a `source` (`ClaudeDeps.source`, `createAccountTranslator(settings, source)`) and send it as a book in that language would (`lang:
+'en'`, none for Chinese), with `to`. Nothing changes on the servers: they already take `lang: 'en'` and `to`. Nothing is translated when
+the reader's language is the dictionary's (English for an English reader of Spanish; Chinese, either script, in the English library).
+- Translators, in order (`meaningOrder`): Chrome on the device (free, private), the reader's chosen online one, Qwen through the
+  account, Claude (the owner's, which costs money). MyMemory only when it is the chosen sentence translator, as Automatic never picks it.
+  Local only leaves Chrome alone. The Mac's Ollama model and the gloss are not used.
+- When (`settings.translateMeanings`, Settings › Lookup › Meanings in your language; this device's, not synced, since it depends on
+  what the browser has): `auto` (the default) translates at once only with Chrome when its pair is ready, and offers any other (or
+  Chrome's one-time download, which needs a click) on a button, "Meanings in French"; `always` runs the first ready one at once, online
+  too; `ask` always waits for the button; `never` shows the dictionary as it is and asks no translator anything. A click on the
+  button counts for the rest of that card: senses shown later go to the same translator without asking again.
+- Batches: senses behind "N more" are translated when shown, not before. Chrome translates each sense in its own call (on the device,
+  no requests to save). MyMemory too: its limit counts characters, not requests, and its memory matches whole segments. Claude and
+  the account get one request per card, the senses as numbered lines (`numbered`, split back by `unnumbered`, which accepts the
+  numbers in any digits and refuses an answer that merged, dropped or repeated a sense), in runs under the account's 600 characters.
+  An answer in another language than asked (a server from before `to`) is refused.
+- Cache: `dushu.meanings.v1` in localStorage, [key, translation] pairs by translator, pair and text, at most 2,000 entries and 150,000
+  characters, the oldest dropped first and a meaning used again moved to the end. A card fills from it at once, from any translator's
+  earlier answer (they cost nothing to show again), before it opens. Storage blocked keeps it for the visit.
+
 Translation glossary records carry optional `kind: name|term|idiom`; name readings are not confused with rare object descriptions.
 The local translator performs at most one corrective retry for narrowly detected wine-shop/hotel sense contradictions and
 raw tone-numbered pinyin in an ordinary dictionary term. These checked chunks are buffered until accepted; repeated contradictions
@@ -1473,7 +1503,8 @@ K = known, P = play audio.
   stroke-order animation via hanzi-writer (data fetched from jsdelivr on demand; hide quietly if
   unavailable), and links (MDBG, Wiktionary, zdic 汉典). If the word is not in CEDICT, say which
   source the info came from. Footer: "Translate sentence" (opens the phrase popup for
-  `context.sentence`).
+  `context.sentence`). A reader whose language is not the dictionary's gets each sense in it, the dictionary's words under it (§4.7,
+  "A word card's meanings"); so does the card of another language (`langWordView.ts`).
 - **Shell** (`host.ts`): the card (`.pp-pop`) is a labelled `role=dialog` with `tabindex=-1`; focus moves into it on open and returns to the word (or
   `restoreFocus()`) on close unless the user already moved it. It does not clip, so a 10 px caret (`data-side`, `--pp-caret`) can point at the word;
   the scrolling is done by `.pp-scroll` inside it, and a scroll inside the popup never triggers a placement (it used to reset `scrollTop`). The
@@ -1715,7 +1746,8 @@ and opens it. Empty state explains what the app does in two sentences.
   `translateTo` to it and reloads. The welcome's language step is the same choice. `main.ts` loads the catalog (a lazy chunk,
   precached with the app) before anything is drawn and sets `<html lang>`.
 - Not translated: books, the dictionaries' meanings (English, Chinese in the English library), translations, and messages
-  that come from a server as they are.
+  that come from a server as they are. The word card machine-translates the meanings it shows into the reader's language, marked as
+  a translation, with the dictionary's own words under each (§4.7, "A word card's meanings").
 - The top bar measures itself: when a language's tab labels do not fit (German on a phone), it shows the icons alone.
 
 ### 5.5 Vocab and review (`ui/vocab/`, `ui/review/`)
@@ -1743,7 +1775,8 @@ and opens it. Empty state explains what the app does in two sentences.
 
 ### 5.6 Settings and About
 Settings: every `Settings` field grouped (Reading, Pinyin, Lookup, Translation, Speech, Data),
-live preview sentence rendered with the reader's renderer if exported, otherwise simple ruby.
+live preview sentence rendered with the reader's renderer if exported, otherwise simple ruby. Lookup has "Meanings in your language"
+(Automatic, Always, When I ask, Never: `translateMeanings`, §4.7), shown only when the reader's language is not the dictionary's.
 Translation: provider select with live availability status per provider, a Claude model select (Sonnet 5.5, Haiku 5.5), a "Local only"
 switch, a live status block (Mac reachable, key configured on the Mac, usage today and the limits) with "Check again" and "Test Claude";
 there is no key field, the key lives only on the Mac. "Your Mac and iPad": the connection state; on the private site a one-time hand-off

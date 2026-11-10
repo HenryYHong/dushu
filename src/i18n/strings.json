@@ -632,6 +632,11 @@
    "src/ui/popup/langWordView.ts"
   ]
  },
+ "Always": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
  "An aging, famous writer travels to Venice, falls under the spell of a beautiful boy, and stays on as cholera spreads through the city.": {
   "where": [
    "public/samples/de/index.json"
@@ -747,6 +752,7 @@
  },
  "Automatic": {
   "where": [
+   "src/ui/settings/settings.ts",
    "src/ui/settings/translation.ts"
   ]
  },
@@ -1086,6 +1092,7 @@
  "Chrome on-device": {
   "where": [
    "src/translate/chrome.ts",
+   "src/translate/meanings.ts",
    "src/ui/settings/translation.ts"
   ]
  },
@@ -1901,6 +1908,7 @@
  },
  "Downloading {percent}%": {
   "where": [
+   "src/ui/popup/meanings.ts",
    "src/ui/popup/translation.ts",
    "src/ui/settings/translation.ts"
   ]
@@ -1908,6 +1916,7 @@
  "Downloading…": {
   "where": [
    "src/ui/library/importer.ts",
+   "src/ui/popup/meanings.ts",
    "src/ui/popup/translation.ts"
   ]
  },
@@ -3150,9 +3159,19 @@
    "src/ui/settings/translation.ts"
   ]
  },
+ "Machine translation": {
+  "where": [
+   "src/ui/popup/meanings.ts"
+  ]
+ },
  "Machine translation can be wrong. If a sentence matters, check it against the word cards.": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "Machine translation into {language} by {provider}. The dictionary’s {original} is under each meaning.": {
+  "where": [
+   "src/ui/popup/meanings.ts"
   ]
  },
  "Machine translation. Check rare or odd words against the list below.": {
@@ -3303,6 +3322,16 @@
    "src/ui/about/about.ts"
   ]
  },
+ "Meanings in your language": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Meanings in {language}": {
+  "where": [
+   "src/ui/popup/meanings.ts"
+  ]
+ },
  "Measure word": {
   "where": [
    "src/ui/popup/wordView.ts"
@@ -3361,6 +3390,7 @@
  },
  "MyMemory (online, free)": {
   "where": [
+   "src/translate/meanings.ts",
    "src/translate/mymemory.ts"
   ]
  },
@@ -3423,6 +3453,11 @@
  "Needs your Mac with a Claude key on it": {
   "where": [
    "src/ui/popup/translation.ts"
+  ]
+ },
+ "Never": {
+  "where": [
+   "src/ui/settings/settings.ts"
   ]
  },
  "Never send a sentence to an online translator.": {
@@ -6195,6 +6230,11 @@
    "src/ui/about/about.ts"
   ]
  },
+ "The server that translates these needs an update to translate into your language.": {
+  "where": [
+   "src/translate/meanings.ts"
+  ]
+ },
  "The source list is not available right now.": {
   "where": [
    "src/ui/about/about.ts"
@@ -6257,6 +6297,11 @@
  "The translation connection ended before completion. Please retry.": {
   "where": [
    "src/translate/localMeaning.ts"
+  ]
+ },
+ "The translation did not keep the meanings apart. Try again.": {
+  "where": [
+   "src/translate/meanings.ts"
   ]
  },
  "The voice could not play. Tap Read again, or choose an iPad voice in Settings.": {
@@ -6885,6 +6930,16 @@
    "src/ui/popup/wordView.ts"
   ]
  },
+ "Translate the meanings with {provider}": {
+  "where": [
+   "src/ui/popup/meanings.ts"
+  ]
+ },
+ "Translating the meanings into {language}…": {
+  "where": [
+   "src/ui/popup/meanings.ts"
+  ]
+ },
  "Translating…": {
   "where": [
    "src/ui/popup/translation.ts"
@@ -6904,6 +6959,7 @@
  },
  "Translation failed.": {
   "where": [
+   "src/ui/popup/meanings.ts",
    "src/ui/popup/translation.ts"
   ]
  },
@@ -6992,6 +7048,7 @@
    "src/main.ts",
    "src/ui/library/findBooks.ts",
    "src/ui/library/library.ts",
+   "src/ui/popup/meanings.ts",
    "src/ui/popup/translation.ts",
    "src/ui/reader/reader.ts"
   ]
@@ -7242,6 +7299,11 @@
    "src/ui/settings/translation.ts"
   ]
  },
+ "When I ask": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
  "When you are signed in, books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.": {
   "where": [
    "src/ui/settings/ipad.ts"
@@ -7340,6 +7402,11 @@
  "Word cards give short meanings in English, whatever you pick here.": {
   "where": [
    "src/ui/welcome.ts"
+  ]
+ },
+ "Word cards translate the dictionary’s {original} into your language and keep the {original} under each meaning. Automatic uses Chrome’s free on-device translator, and an online one (Qwen through your account, Claude or MyMemory) only when you press the button on the card. Always uses any of them without asking.": {
+  "where": [
+   "src/ui/settings/settings.ts"
   ]
  },
  "Word counts read off their text (not copied), so old words such as 制台 and 辕门 read as one word, and old spellings such as 豫备 and 帐房 (from Wiktionary's redirects) show the meaning of the word they stand for.": {

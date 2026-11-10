@@ -4,7 +4,8 @@
 import { CLOUD_EVENT, cloudFetch, cloudSession } from '../core/cloud';
 import type { Settings, Translator } from '../types';
 import { ACCOUNT_TEXT } from './prompt';
-import { isChinese, langId } from '../lang/active';
+import { langId } from '../lang/active';
+import type { LangId } from '../lang/types';
 import { answeredInto, targetField } from './targets';
 import { tt } from '../i18n';
 
@@ -16,7 +17,12 @@ let blockedUntil = 0;
 export function resetAccountTranslator(): void { blockedUntil = 0; }
 globalThis.addEventListener?.(CLOUD_EVENT, resetAccountTranslator);
 
-export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>): Translator {
+/**
+ * `source`: the language of the text when it is not the book's (a word card's meanings, in the dictionary's language:
+ * translate/meanings.ts). The request names it as a book in it would.
+ */
+export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>, source?: LangId): Translator {
+  const from = (): LangId => source ?? langId();
   return {
     id: 'account',
     get label() { return tt('Qwen (through your account)'); },
@@ -31,8 +37,8 @@ export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>): 
       const sent = cloudFetch('/ai/translate', {
         method: 'POST', signal: opts?.signal,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(isChinese() ? {} : { lang: langId() }),
-          ...targetField(req.to, langId()) }),
+        body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(from() === 'zh' ? {} : { lang: from() }),
+          ...targetField(req.to, from()) }),
       });
       if (!sent) throw new Error(tt('Sign in to translate sentences through your account.'));
       let response: Response;
@@ -50,7 +56,7 @@ export function createAccountTranslator(settings: Pick<Settings, 'localOnly'>): 
       const text = data?.text?.trim();
       if (!text) throw new Error(tt('The sync server sent back an empty translation. Try again.'));
       if (data?.unverified) opts?.onNote?.({ kind: 'unverified', detail: data.unverified });
-      const answered = answeredInto(req.to, data?.to, langId());
+      const answered = answeredInto(req.to, data?.to, from());
       if (answered) opts?.onInto?.(answered);
       opts?.onDelta?.(text);
       return text;

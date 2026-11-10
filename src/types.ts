@@ -459,6 +459,13 @@ export interface Settings {
    * language, so it follows them into every language's library (store/settings.ts TARGET_KEY).
    */
   translateTo: string;
+  /**
+   * A word card's meanings in the reader's language (translate/meanings.ts), when that is not the dictionary's: 'auto' translates
+   * them at once with Chrome's free on-device translator and offers a button for an online one; 'always' translates them at once
+   * with any; 'ask' only from the button; 'never' shows the dictionary as it is. This device's (it depends on what the browser
+   * has), so it does not sync.
+   */
+  translateMeanings: 'auto' | 'always' | 'ask' | 'never';
   ttsVoice: string;
   ttsRate: number;
   /** scroll = one long column per chapter; pages = paginated like a printed book (Apple Books style). */

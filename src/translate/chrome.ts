@@ -107,6 +107,9 @@ async function rawAvailability(source: Source, target: Target): Promise<'yes' | 
  */
 const instances = new Map<string, Promise<ChromeTranslatorInstance>>();
 
+/** The language a model translates from, named in the app's language: the book's, or the dictionary's for a word card's meanings. */
+const sourceName = (source: Source): string => (source === baseSource() || (isChinese() && source === 'zh-Hant') ? fromName() : toName(source));
+
 function create(source: Source, target: Target, onProgress?: (fraction: number) => void): Promise<ChromeTranslatorInstance> {
   const t = api();
   if (!t) return Promise.reject(new Error(tt('This browser has no built-in translator. Use Chrome 138 or newer on a computer.')));
@@ -122,7 +125,7 @@ function create(source: Source, target: Target, onProgress?: (fraction: number) 
     instances.delete(pair); // let the next click try again
     const name = (e as { name?: string })?.name;
     if (name === 'NotAllowedError') throw new Error(tt('Chrome needs a click to download the translation model. Press the download button in Settings.'));
-    if (name === 'NotSupportedError') throw new Error(tt('Chrome cannot translate {from} to {to} on this device.', { from: fromName(), to: toName(target) }));
+    if (name === 'NotSupportedError') throw new Error(tt('Chrome cannot translate {from} to {to} on this device.', { from: sourceName(source), to: toName(target) }));
     // Chrome's own message stays as it gave it.
     throw new Error(tt('Chrome could not start its translator: {error}', { error: (e as Error)?.message ?? tt('unknown error') }));
   });
@@ -197,6 +200,31 @@ export function createChromeTranslator(to: string = DEFAULT_TARGET): ChromeTrans
         opts?.onDelta?.(done);
       }
       return done;
+    },
+  };
+}
+
+/** One language pair, whatever the book: what a word card's meanings need (translate/meanings.ts). */
+export interface ChromePair {
+  availability(): Promise<'yes' | 'download' | 'no'>;
+  /** Call from a click handler when availability is 'download'. */
+  prepare(onProgress?: (fraction: number) => void): Promise<void>;
+  translate(text: string, signal?: AbortSignal): Promise<string>;
+}
+
+/**
+ * `source` into `target`, both as Chrome takes them ('en', 'zh', 'fr', 'zh-Hant'). A word card's meanings are in the dictionary's
+ * language (English, or Chinese in the English library), not the book's, so they need a pair of their own: en>fr for a French
+ * reader of Spanish books. It shares the downloaded models and instances above with the sentences.
+ */
+export function chromePair(source: string, target: string): ChromePair {
+  return {
+    availability: () => rawAvailability(source, target),
+    async prepare(onProgress) { await create(source, target, onProgress); },
+    async translate(text, signal) {
+      if (signal?.aborted) aborted();
+      const tr = await create(source, target);
+      return (await tr.translate(text, { signal })).trim();
     },
   };
 }

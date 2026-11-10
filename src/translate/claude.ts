@@ -6,7 +6,8 @@ import { bridgeFetch, hasMacBridge } from '../core/macBridge';
 import { CLOUD_EVENT, cloudFetch, cloudSession } from '../core/cloud';
 import type { Settings, TranslateRequest, Translator } from '../types';
 import { CLAUDE_LIMITS, DEFAULT_CLAUDE_MODEL } from './claudePrompts';
-import { isChinese, langId } from '../lang/active';
+import { langId } from '../lang/active';
+import type { LangId } from '../lang/types';
 import { answeredInto, targetField } from './targets';
 import { tt, ttm } from '../i18n';
 
@@ -34,6 +35,11 @@ export interface ClaudeDeps {
   /** A bridge fetch; tests pass a fake. */
   fetch?: (path: string, init?: RequestInit) => Promise<Response>;
   hasBridge?: () => boolean;
+  /**
+   * The language of the text when it is not the book's: a word card's meanings are in the dictionary's (English, or Chinese in
+   * the English library; translate/meanings.ts). The request then names that language, as a book in it would.
+   */
+  source?: LangId;
 }
 
 const DOWN: ClaudeStatus = { reachable: false, denied: false, configured: false, ready: false };
@@ -151,6 +157,7 @@ export function createClaudeTranslator(
   const call = deps.fetch ?? claudeFetch;
   const bridge = deps.hasBridge ?? hasClaudeRoute;
   const where = () => (deps.fetch ? 'mac' : viaAccount() ? 'account' : 'mac');
+  const source = (): LangId => deps.source ?? langId();
   return {
     id: 'claude',
     get label() { return where() === 'account' ? tt('Claude (through your account)') : tt('Claude (through your Mac)'); },
@@ -170,8 +177,8 @@ export function createClaudeTranslator(
           method: 'POST', signal: opts?.signal,
           headers: { 'Content-Type': 'application/json' },
           // `to` only for a language other than English, so a request into English is the one the Mac has always had.
-          body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(isChinese() ? {} : { lang: langId() }),
-            ...targetField(req.to, langId()), model: settings.claudeModel || DEFAULT_CLAUDE_MODEL }),
+          body: JSON.stringify({ text: req.text, context: req.context, mode: req.mode, terms: req.terms, ...(source() === 'zh' ? {} : { lang: source() }),
+            ...targetField(req.to, source()), model: settings.claudeModel || DEFAULT_CLAUDE_MODEL }),
         });
       } catch (e) {
         if ((e as { name?: string })?.name === 'AbortError') throw e;
@@ -215,7 +222,7 @@ export function createClaudeTranslator(
       }
       if (!finished) throw new Error(tt('The connection to your Mac ended before Claude finished. Try again.'));
       if (!text.trim()) throw new Error(tt('Claude sent back an empty answer. Try again.'));
-      const answered = answeredInto(req.to, into, langId());
+      const answered = answeredInto(req.to, into, source());
       if (answered) opts?.onInto?.(answered);
       return stop === 'max_tokens' ? text.trim() + ' …' : text.trim();
     },

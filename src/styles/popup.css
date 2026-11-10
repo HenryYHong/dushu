@@ -96,6 +96,18 @@
 .pp-defs { margin: 0; padding-left: 1.4em; font: 400 16px/1.5 var(--font-book); }
 .pp-defs li { margin: 3px 0; padding-left: 2px; }
 .pp-defs li::marker { color: var(--text-3); font: italic 400 13px var(--font-display); }
+/* A meaning in the reader's language (meanings.ts): the translation where the meaning was, the dictionary's own words kept
+   under it in small type, so a wrong sense is caught at a glance. */
+.pp-defs li.pp-def-tl-on > .pp-def-src { display: block; font-size: 13.5px; line-height: 1.45; color: var(--text-3); }
+.pp-defs li.pp-def-tl-on > .pp-def-src .pp-xref { color: var(--text-2); }
+.pp-mt { display: flex; flex-direction: column; gap: 6px; margin-top: -6px; }
+.pp-mt-note { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--text-3); }
+.pp-mt-action { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--text-3); }
+.pp-mt-action .btn { height: 32px; min-height: 32px; padding: 0 11px; border-radius: var(--radius-s); background: var(--wash); box-shadow: none; font-size: 13px; font-weight: 560; }
+.pp-mt-action .btn .icon { width: 15px; height: 15px; color: var(--text-2); }
+@media (hover: hover) { .pp-mt-action .btn:hover:not(:disabled) { background: var(--wash-2); } }
+@media (pointer: coarse) { .pp-mt-action .btn { min-height: 44px; } }
+.pp-mt-error { color: var(--danger, #a3262a); }
 .pp-more-btn {
   margin: 2px 0 0 calc(1.4em + 2px); padding: 2px 0; border: 0; background: transparent; cursor: pointer;
   color: var(--text-2); font: inherit; font-size: 13px; text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px;
