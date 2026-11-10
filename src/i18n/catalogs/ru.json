@@ -2230,5 +2230,16 @@
  "那 for 哪 in questions": "那 вместо 哪 в вопросах",
  "那里去？ reads nǎlǐ qù": "那里去？ читается nǎlǐ qù",
  "The language translations are written in.": "Язык, на который переводятся предложения.",
- "Reading [pronunciation]": "Произношение"
+ "Reading [pronunciation]": "Произношение",
+ "This page has no text to read yet.": "На этой странице пока нет текста для чтения.",
+ "This page lists several editions or works with the same name, not one book. Search for the one you want.": "Это список изданий или произведений с одним названием, а не книга. Найдите то, что вам нужно.",
+ "This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.": {
+  "one": "Произведение слишком длинное, чтобы добавить его целиком. Добавлено первых частей: {n}, остальное — в Викитеке.",
+  "few": "Произведение слишком длинное, чтобы добавить его целиком. Добавлено первых частей: {n}, остальное — в Викитеке.",
+  "many": "Произведение слишком длинное, чтобы добавить его целиком. Добавлено первых частей: {n}, остальное — в Викитеке.",
+  "other": "Произведение слишком длинное, чтобы добавить его целиком. Добавлено первых частей: {n}, остальное — в Викитеке."
+ },
+ "Wikisource did not answer as expected ({status}). Try again in a moment.": "Викитека ответила не так, как ожидалось ({status}). Попробуйте ещё раз чуть позже.",
+ "Wikisource has no page with that title. It may have been renamed or deleted.": "В Викитеке нет страницы с таким названием. Возможно, её переименовали или удалили.",
+ "Wikisource is busy right now. Try again in a minute.": "Викитека сейчас занята. Попробуйте ещё раз через минуту."
 }

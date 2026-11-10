@@ -1893,5 +1893,13 @@
  "那 for 哪 in questions": "疑問句中「那」作「哪」",
  "那里去？ reads nǎlǐ qù": "「那里去？」讀作 nǎlǐ qù",
  "The language translations are written in.": "譯文所使用的語言。",
- "Reading [pronunciation]": "讀音"
+ "Reading [pronunciation]": "讀音",
+ "This page has no text to read yet.": "這一頁還沒有可讀的正文。",
+ "This page lists several editions or works with the same name, not one book. Search for the one you want.": "這一頁列出的是同名的多個版本或作品，不是一本書。請搜尋你要的那一個。",
+ "This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.": {
+  "other": "這部作品太長，無法整本加入。已加入前 {n} 部分，其餘的在維基文庫上。"
+ },
+ "Wikisource did not answer as expected ({status}). Try again in a moment.": "維基文庫的回應不正常（{status}）。請稍後再試。",
+ "Wikisource has no page with that title. It may have been renamed or deleted.": "維基文庫上沒有這個標題的頁面，可能已改名或刪除。",
+ "Wikisource is busy right now. Try again in a minute.": "維基文庫現在很忙，請過一分鐘再試。"
 }

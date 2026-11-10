@@ -1897,5 +1897,13 @@
  "那 for 哪 in questions": "疑問文の那＝哪",
  "那里去？ reads nǎlǐ qù": "那里去？は nǎlǐ qù と読む",
  "The language translations are written in.": "翻訳に使う言語です。",
- "Reading [pronunciation]": "読み"
+ "Reading [pronunciation]": "読み",
+ "This page has no text to read yet.": "このページにはまだ読める本文がありません。",
+ "This page lists several editions or works with the same name, not one book. Search for the one you want.": "このページは同じ名前の版や作品の一覧で、一冊の本ではありません。読みたいものを検索してください。",
+ "This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.": {
+  "other": "この作品は長すぎて全体を追加できません。最初の {n} 部分を追加しました。残りはウィキソースにあります。"
+ },
+ "Wikisource did not answer as expected ({status}). Try again in a moment.": "ウィキソースから想定外の応答がありました（{status}）。少ししてからもう一度お試しください。",
+ "Wikisource has no page with that title. It may have been renamed or deleted.": "ウィキソースにその題名のページはありません。名前が変わったか、削除された可能性があります。",
+ "Wikisource is busy right now. Try again in a minute.": "ウィキソースが混み合っています。1分ほどしてからもう一度お試しください。"
 }

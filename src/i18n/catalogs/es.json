@@ -2111,5 +2111,15 @@
  "in under a minute": "en menos de un minuto",
  "now": "ahora",
  "The language translations are written in.": "El idioma en el que se escriben las traducciones. El idioma de la app se elige en Tu idioma, en Aprendizaje.",
- "Reading [pronunciation]": "Pronunciación"
+ "Reading [pronunciation]": "Pronunciación",
+ "This page has no text to read yet.": "Esta página todavía no tiene texto para leer.",
+ "This page lists several editions or works with the same name, not one book. Search for the one you want.": "Esta página es una lista de ediciones u obras con el mismo nombre, no un libro. Busca la que quieres.",
+ "This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.": {
+  "one": "Esta obra es demasiado larga para añadirla entera. Se añadió su primera parte; el resto está en Wikisource.",
+  "many": "Esta obra es demasiado larga para añadirla entera. Se añadieron sus primeras {n} partes; el resto está en Wikisource.",
+  "other": "Esta obra es demasiado larga para añadirla entera. Se añadieron sus primeras {n} partes; el resto está en Wikisource."
+ },
+ "Wikisource did not answer as expected ({status}). Try again in a moment.": "Wikisource no respondió como se esperaba ({status}). Inténtalo de nuevo en un momento.",
+ "Wikisource has no page with that title. It may have been renamed or deleted.": "Wikisource no tiene ninguna página con ese título. Puede que la hayan renombrado o borrado.",
+ "Wikisource is busy right now. Try again in a minute.": "Wikisource está ocupado ahora mismo. Inténtalo de nuevo en un minuto."
 }

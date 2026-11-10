@@ -1903,5 +1903,13 @@
  "那 for 哪 in questions": "의문문에서 哪 대신 那",
  "那里去？ reads nǎlǐ qù": "那里去？는 nǎlǐ qù로 읽어요",
  "The language translations are written in.": "번역에 쓰이는 언어예요. 앱 자체의 언어는 학습 아래의 내 언어에서 정해요.",
- "Reading [pronunciation]": "발음"
+ "Reading [pronunciation]": "발음",
+ "This page has no text to read yet.": "이 페이지에는 아직 읽을 본문이 없어요.",
+ "This page lists several editions or works with the same name, not one book. Search for the one you want.": "이 페이지는 같은 이름의 여러 판본이나 작품 목록이에요. 책 한 권이 아니에요. 원하는 작품을 검색해 주세요.",
+ "This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.": {
+  "other": "작품이 너무 길어서 전체를 추가할 수 없어요. 처음 {n}개 부분을 추가했고, 나머지는 위키문헌에 있어요."
+ },
+ "Wikisource did not answer as expected ({status}). Try again in a moment.": "위키문헌이 예상과 다르게 응답했어요({status}). 잠시 후 다시 시도해 주세요.",
+ "Wikisource has no page with that title. It may have been renamed or deleted.": "위키문헌에 그 제목의 페이지가 없어요. 이름이 바뀌었거나 삭제되었을 수 있어요.",
+ "Wikisource is busy right now. Try again in a minute.": "지금 위키문헌이 바빠요. 1분 후에 다시 시도해 주세요."
 }

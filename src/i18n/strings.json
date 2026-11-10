@@ -4167,11 +4167,15 @@
  "Reading": {
   "where": [
    "src/ui/about/about.ts",
-   "src/ui/popup/fixView.ts",
    "src/ui/reader/menus.ts",
-   "src/ui/reader/toc.ts",
    "src/ui/settings/settings.ts",
    "src/ui/shortcuts.ts"
+  ]
+ },
+ "Reading [pronunciation]": {
+  "where": [
+   "src/ui/popup/fixView.ts",
+   "src/ui/reader/toc.ts"
   ]
  },
  "Reading aloud": {
@@ -5536,7 +5540,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "The language translations are written in. The app itself stays in English.": {
+ "The language translations are written in.": {
   "where": [
    "src/ui/settings/translation.ts"
   ]
@@ -6144,6 +6148,16 @@
    "src/ui/join.ts"
   ]
  },
+ "This page has no text to read yet.": {
+  "where": [
+   "src/ui/library/wikisourceBook.ts"
+  ]
+ },
+ "This page lists several editions or works with the same name, not one book. Search for the one you want.": {
+  "where": [
+   "src/ui/library/wikisourceBook.ts"
+  ]
+ },
  "This rare character has no reading or meaning in the dictionary. The facts below and the links at the bottom may help.": {
   "where": [
    "src/ui/popup/wordView.ts"
@@ -6190,6 +6204,12 @@
   "where": [
    "src/lang/detect.ts",
    "src/ui/library/paste.ts"
+  ]
+ },
+ "This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.": {
+  "one": "This work is too long to add whole. Its first {n} part was added; the rest is on Wikisource.",
+  "where": [
+   "src/ui/library/findBooks.ts"
   ]
  },
  "This zip archive is not an EPUB (no package document found).": {
@@ -6670,6 +6690,21 @@
  "Who the link is for": {
   "where": [
    "src/ui/settings/invites.ts"
+  ]
+ },
+ "Wikisource did not answer as expected ({status}). Try again in a moment.": {
+  "where": [
+   "src/ui/library/wikisourceBook.ts"
+  ]
+ },
+ "Wikisource has no page with that title. It may have been renamed or deleted.": {
+  "where": [
+   "src/ui/library/wikisourceBook.ts"
+  ]
+ },
+ "Wikisource is busy right now. Try again in a minute.": {
+  "where": [
+   "src/ui/library/wikisourceBook.ts"
   ]
  },
  "With a mouse, adds a translate button beside each paragraph in Scroll.": {

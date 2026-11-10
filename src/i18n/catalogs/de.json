@@ -2009,5 +2009,14 @@
  "那 for 哪 in questions": "那 für 哪 in Fragen",
  "那里去？ reads nǎlǐ qù": "那里去？ wird nǎlǐ qù gelesen",
  "The language translations are written in.": "Die Sprache, in die übersetzt wird. Die Sprache der App selbst legst du unter „Deine Sprache“ fest.",
- "Reading [pronunciation]": "Aussprache"
+ "Reading [pronunciation]": "Aussprache",
+ "This page has no text to read yet.": "Diese Seite hat noch keinen Text zum Lesen.",
+ "This page lists several editions or works with the same name, not one book. Search for the one you want.": "Diese Seite listet mehrere Ausgaben oder Werke mit demselben Namen auf, kein einzelnes Buch. Suche nach dem, das du willst.",
+ "This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.": {
+  "one": "Dieses Werk ist zu lang, um es ganz hinzuzufügen. Sein erster Teil wurde hinzugefügt, der Rest ist auf Wikisource.",
+  "other": "Dieses Werk ist zu lang, um es ganz hinzuzufügen. Seine ersten {n} Teile wurden hinzugefügt, der Rest ist auf Wikisource."
+ },
+ "Wikisource did not answer as expected ({status}). Try again in a moment.": "Wikisource hat nicht wie erwartet geantwortet ({status}). Versuch es gleich noch einmal.",
+ "Wikisource has no page with that title. It may have been renamed or deleted.": "Wikisource hat keine Seite mit diesem Titel. Vielleicht wurde sie umbenannt oder gelöscht.",
+ "Wikisource is busy right now. Try again in a minute.": "Wikisource ist gerade ausgelastet. Versuch es in einer Minute noch einmal."
 }

@@ -2120,5 +2120,15 @@
  "那 for 哪 in questions": "那 em vez de 哪 em perguntas",
  "那里去？ reads nǎlǐ qù": "那里去？ se lê nǎlǐ qù",
  "The language translations are written in.": "O idioma em que as traduções são escritas. O idioma do próprio app é definido em Seu idioma, na seção Aprendizado.",
- "Reading [pronunciation]": "Pronúncia"
+ "Reading [pronunciation]": "Pronúncia",
+ "This page has no text to read yet.": "Esta página ainda não tem texto para ler.",
+ "This page lists several editions or works with the same name, not one book. Search for the one you want.": "Esta página lista várias edições ou obras com o mesmo nome, não um livro. Busque a que você quer.",
+ "This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.": {
+  "one": "Esta obra é longa demais para ser adicionada inteira. A primeira parte foi adicionada; o resto está na Wikisource.",
+  "many": "Esta obra é longa demais para ser adicionada inteira. As primeiras {n} partes foram adicionadas; o resto está na Wikisource.",
+  "other": "Esta obra é longa demais para ser adicionada inteira. As primeiras {n} partes foram adicionadas; o resto está na Wikisource."
+ },
+ "Wikisource did not answer as expected ({status}). Try again in a moment.": "A Wikisource não respondeu como esperado ({status}). Tente de novo daqui a pouco.",
+ "Wikisource has no page with that title. It may have been renamed or deleted.": "A Wikisource não tem nenhuma página com esse título. Ela pode ter sido renomeada ou apagada.",
+ "Wikisource is busy right now. Try again in a minute.": "A Wikisource está ocupada agora. Tente de novo daqui a um minuto."
 }
