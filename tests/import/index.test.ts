@@ -42,6 +42,7 @@ describe('importFile dispatch', () => {
 
   it('rejects empty files and files with no Chinese', async () => {
     await expect(importFile(asFile(new Uint8Array(), 'a.txt'))).rejects.toThrow(/empty/);
+    // Too few common words to tell the language: only that there is no Chinese (tests/import/language-check.test.ts has the rest).
     await expect(importFile(asFile(enc('Plain English text only. '.repeat(50)), 'a.txt'))).rejects.toThrow(/No Chinese text/);
   });
 

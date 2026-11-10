@@ -3,7 +3,7 @@
 import type { ImportedBook } from '../types';
 import { detectScript } from '../core/text';
 import { isChinese, langId } from '../lang/active';
-import { wrongLanguage } from '../lang/detect';
+import { wrongLanguageOf } from '../lang/detect';
 import { takeAozoraRuby } from './aozora';
 import { decodeText, stripBidi, withHongKongCharacters } from './encoding';
 import { importEpub } from './epub';
@@ -134,25 +134,41 @@ function mendRadicalsIn(book: ImportedBook): ImportedBook {
   return { ...book, title: mend(book.title), chapters };
 }
 
+/** Samples of a book's text for telling its language: up to 12 pieces of about 4,000 characters, spread through it. */
+const SAMPLE_CHARS = 4000;
+const SAMPLES = 12;
+
+function languageSamples(text: string): string[] {
+  if (text.length <= SAMPLE_CHARS * 1.5) return [text];
+  const k = Math.min(SAMPLES, Math.max(2, Math.ceil(text.length / SAMPLE_CHARS)));
+  return Array.from({ length: k }, (_, i) => {
+    const at = Math.floor((i * (text.length - SAMPLE_CHARS)) / Math.max(k - 1, 1));
+    return text.slice(at, at + SAMPLE_CHARS);
+  });
+}
+
 /** Last checks and the fields every importer leaves blank: reject non-Chinese files, detect the script. */
 function finish(input: ImportedBook): ImportedBook {
   const book = mendRadicalsIn(input);
   let chapters = tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0)));
   // A Japanese text from Aozora Bunko (or written the same way) keeps its publisher's readings beside the text.
   if (langId() === 'ja') chapters = takeAozoraRuby(chapters);
+  const paragraphs: string[] = [];
+  for (const c of chapters) for (const b of c.blocks) if (b.t === 'p' || b.t === 'quote') paragraphs.push(b.text);
+  const text = paragraphs.join('\n');
+  const samples = languageSamples(text);
+  const sample = text.slice(0, 60000);
   const han = totalHan(chapters);
   let letters = 0;
   for (const c of chapters) for (const b of c.blocks) if (b.t === 'p' || b.t === 'h' || b.t === 'quote') letters += b.text.replace(/\s/g, '').length;
-  if (han < 5 || (han < 500 && han / Math.max(letters, 1) < 0.02)) throw new ImportError(noTextMessage());
+  // Too little of the library's own letters. A file in another script says where it belongs (a Chinese book dropped in the
+  // Spanish library, an English one in the Chinese library); a Japanese file still reaches the Chinese library's own check.
+  if (han < 5 || (han < 500 && han / Math.max(letters, 1) < 0.02)) throw new ImportError(wrongLanguageOf(samples, langId()) ?? noTextMessage());
 
-  let sample = '';
-  for (const c of chapters) {
-    for (const b of c.blocks) if (b.t === 'p' || b.t === 'quote') sample += b.text;
-    if (sample.length > 60000) break;
-  }
-  // Another language's library takes books in that language only (a Chinese library keeps taking what it always took).
+  // Another language's library takes books in that language only (a Chinese library keeps taking what it always took). The
+  // whole book decides, not its first pages: a learner's edition opens on a long introduction in English.
   if (!isChinese()) {
-    const wrong = wrongLanguage(sample, langId());
+    const wrong = wrongLanguageOf(samples, langId());
     if (wrong) throw new ImportError(wrong);
     const title = capChars(book.title) || 'Untitled';
     return { ...book, title, author: capChars(book.author), chapters, script: 'unknown', importVersion: IMPORT_VERSION };

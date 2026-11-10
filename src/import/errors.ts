@@ -8,7 +8,7 @@ export class ImportError extends Error {
   }
 }
 
-export const NO_CHINESE = 'No Chinese text found in this file. Globereader reads books written in Chinese characters.';
+export const NO_CHINESE = 'No Chinese text found in this file. This library reads books written in Chinese.';
 
 /** The same, for the language being read (lang/active.ts). */
 export function noTextMessage(): string {

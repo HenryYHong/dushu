@@ -57,9 +57,18 @@ async function loadRuntime(): Promise<PdfRuntime> {
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 
-function usableMetadata(raw: unknown): string {
+/** A page address, with its scheme ("about:blank", "data:text/html,…") or without it, as Chrome writes one ("localhost:5375/a.html"). */
+const ADDRESS = /^(?:about|data|blob|file|chrome|https?):/i;
+const BARE_ADDRESS = /^(?:localhost|\d{1,3}(?:\.\d{1,3}){3}|(?:[a-z0-9-]+\.)+[a-z]{2,})(?::\d+)?(?:\/\S*)?$/i;
+
+/**
+ * A title or author from the PDF's own data, or '' when it is no name: empty, a placeholder ("Untitled"), a file name, or the
+ * address of the page a browser printed it from (Chrome puts that in the title of a page that has none).
+ */
+export function usableMetadata(raw: unknown): string {
   const s = typeof raw === 'string' ? raw.trim() : '';
   if (!s || s.includes('\ufffd') || /^(?:untitled|microsoft word)/i.test(s) || /\.(?:docx?|indd|pdf|tex|pages)$/i.test(s)) return '';
+  if (ADDRESS.test(s) || BARE_ADDRESS.test(s)) return '';
   return s;
 }
 

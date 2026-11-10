@@ -53,9 +53,32 @@ function tryUtf8(bytes: Uint8Array): string | null {
   }
 }
 
-function isAscii(bytes: Uint8Array): boolean {
-  for (let i = 0; i < bytes.length; i++) if (bytes[i] > 0x7f) return false;
-  return true;
+/**
+ * Whether bytes with no byte-order mark can be UTF-16 in this byte order: text in UTF-16 has zero bytes on the side of the
+ * pair its line breaks and ASCII characters put them (0A 00 little-endian, 00 0A big-endian). Single-byte text has none, and
+ * read as UTF-16 it is a page of nonsense characters (a Windows-1252 file in the Chinese library). Which order it is, the
+ * scores decide: 一 (U+4E00) puts a zero on the other side, and is common.
+ */
+function utf16Fits(sample: Uint8Array, label: string): boolean {
+  for (let i = label === 'utf-16le' ? 1 : 0; i < sample.length; i += 2) if (sample[i] === 0) return true;
+  return false;
+}
+
+/**
+ * Text in a Western single-byte encoding (Windows-1252, Latin-1): no zero bytes, and most bytes above ASCII stand alone
+ * between ASCII ones (é, ’), where GBK and Big5 set theirs in pairs.
+ */
+function westernSingleByte(sample: Uint8Array): boolean {
+  let high = 0;
+  let alone = 0;
+  for (let i = 0; i < sample.length; i++) {
+    const b = sample[i];
+    if (b === 0) return false;
+    if (b < 0x80) continue;
+    high++;
+    if ((i === 0 || sample[i - 1] < 0x80) && (i + 1 === sample.length || sample[i + 1] < 0x80)) alone++;
+  }
+  return high > 0 && alone > high * 0.8;
 }
 
 /** Share of decoded Han characters that are common ones, penalizing replacement characters and stray scripts. */
@@ -103,6 +126,9 @@ export function scoreFor(text: string, id: LangId): number {
     else if ((cp >= 0xa0 && cp <= 0xbf) || (cp >= 0x2000 && cp <= 0x206f) || cp === 0x20ac) { /* neutral */ }
     else bad++;
   }
+  // Text in Latin letters whose only characters past ASCII are quotes, dashes and the like (an English file in Windows-1252)
+  // reads as well as text can.
+  if (id !== 'ja' && id !== 'ru' && seen && !bad) return 1;
   return seen ? good / (good + bad * 2 + 1) : 1;
 }
 
@@ -203,12 +229,14 @@ export function decodeText(bytes: Uint8Array, hint?: string): Decoded {
   const declared = normalizeCharset(hint);
   const id = langId();
   if (id !== 'zh') return decodeOther(bytes, sample, declared, id);
+  // A Spanish or English file saved in Windows-1252, dropped in the Chinese library: read as what it is, so the library can
+  // say which language it is in, as for the same text in UTF-8.
+  if (westernSingleByte(sample)) return { text: decodeWith(bytes, 'windows-1252'), encoding: 'windows-1252' };
   const candidates = ['gb18030', 'big5', 'utf-16le', 'utf-16be'];
   if (declared && !candidates.includes(declared) && declared !== 'utf-8') candidates.push(declared);
   let best = { label: 'gb18030', score: -1 };
   for (const label of candidates) {
-    // UTF-16 decodes of single-byte data are noise; require plenty of zero bytes (ASCII mixed in) or an even length.
-    if (label.startsWith('utf-16') && sample.length % 2 === 1 && isAscii(sample)) continue;
+    if (label.startsWith('utf-16') && !utf16Fits(sample, label)) continue;
     let score = scoreDecoding(decodeWith(sample, label));
     if (label === declared) score += 0.05;
     if (score > best.score) best = { label, score };
@@ -220,11 +248,13 @@ export function decodeText(bytes: Uint8Array, hint?: string): Decoded {
 
 /** A book in another language: its legacy encodings (Shift_JIS, Windows-1251, Windows-1252 …) scored by how they read. */
 function decodeOther(bytes: Uint8Array, sample: Uint8Array, declared: string | undefined, id: LangId): Decoded {
+  // A Western file in the Japanese or Russian library is read as Windows-1252 too, not as Shift_JIS or Windows-1251 nonsense.
+  if ((id === 'ja' || id === 'ru') && westernSingleByte(sample)) return { text: decodeWith(bytes, 'windows-1252'), encoding: 'windows-1252' };
   const candidates = [...(LEGACY[id] ?? ['windows-1252', 'iso-8859-15']), 'utf-16le', 'utf-16be'];
   if (declared && !candidates.includes(declared) && declared !== 'utf-8') candidates.push(declared);
   let best = { label: candidates[0], score: -1 };
   for (const label of candidates) {
-    if (label.startsWith('utf-16') && sample.length % 2 === 1 && isAscii(sample)) continue;
+    if (label.startsWith('utf-16') && !utf16Fits(sample, label)) continue;
     let text: string;
     try { text = decodeWith(sample, label); } catch { continue; }
     let score = scoreFor(text, id);
@@ -283,5 +313,8 @@ export function plausibleText(bytes: Uint8Array, decoded: Decoded): boolean {
   for (const ch of text) if (ch.codePointAt(0)! > 0x7f) high++;
   if (high < 20) return true; // nearly all ASCII: the content check after import decides
   const id = langId();
+  // Western text read in the Chinese, Japanese or Russian library: scored as the Latin letters it is, so the import can say
+  // which language it is in.
+  if ((id === 'zh' || id === 'ja' || id === 'ru') && decoded.encoding === 'windows-1252') return scoreFor(text, 'en') >= 0.3;
   return id === 'zh' ? scoreDecoding(text) >= 0.3 : scoreFor(text, id) >= 0.3;
 }

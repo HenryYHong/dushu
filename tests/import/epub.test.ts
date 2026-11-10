@@ -594,7 +594,7 @@ describe('DRM and bad files', () => {
         'content.opf': opf({ title: 'English', manifest: [['a', 'a.xhtml', 'application/xhtml+xml']], spine: ['a'] }),
         'a.xhtml': xhtml('<p>This book is written entirely in English, with no Chinese at all. '.repeat(20) + '</p>'),
       }),
-    ).rejects.toThrow(/No Chinese text/);
+    ).rejects.toThrow(/looks like it is in English, and this library is Chinese/);
   });
 
   it('says so for a zip that is not an EPUB', async () => {

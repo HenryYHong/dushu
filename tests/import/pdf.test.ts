@@ -1,6 +1,6 @@
 // Real PDFs, built in the test, read with the legacy pdf.js build in Node (CJK text through predefined CMaps).
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { importPdf, SCANNED_MESSAGE, type PdfRuntime } from '../../src/import/pdf';
+import { importPdf, SCANNED_MESSAGE, usableMetadata, type PdfRuntime } from '../../src/import/pdf';
 import { NodeCMapReaderFactory, makePdf, type PdfLine } from './pdfhelpers';
 
 let runtime: PdfRuntime;
@@ -84,5 +84,14 @@ describe('importFile routes PDFs', () => {
     expect(calls).toEqual(['book.dat']);
     expect(book.script).not.toBe('');
     vi.doUnmock('../../src/import/pdf');
+  });
+});
+
+describe('titles from the PDF\'s own data', () => {
+  it('takes no page address for a title: Chrome writes the address of a page that has none, with or without its scheme', () => {
+    for (const t of ['about:blank', 'localhost:5375/a.html', '127.0.0.1:5379', 'www.example.com/novel/1', 'data:text/html,<p>Párrafo 1</p>', 'https://example.com/x', 'file:///Users/a/b.html']) {
+      expect(usableMetadata(t), t).toBe('');
+    }
+    for (const t of ['Un paseo', 'Vol.1', '三体:地球往事']) expect(usableMetadata(t), t).toBe(t);
   });
 });

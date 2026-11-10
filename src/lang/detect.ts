@@ -6,7 +6,9 @@ import type { LangId } from './types';
 const STOPWORDS: Record<string, string[]> = {
   en: ['the', 'and', 'of', 'to', 'was', 'he', 'that', 'it', 'his', 'with', 'had', 'you', 'for', 'she', 'her', 'which', 'were', 'have'],
   es: ['el', 'la', 'que', 'de', 'y', 'los', 'del', 'las', 'por', 'con', 'una', 'su', 'para', 'como', 'pero', 'sus', 'más', 'muy'],
-  fr: ['le', 'la', 'les', 'et', 'des', 'du', 'est', 'une', 'il', 'qui', 'dans', 'pas', 'au', 'avec', 'ce', 'sur', 'elle', 'mais'],
+  // French shares le, la, il, un, si, non and ma with Italian: its own je, pour, était, vous, nous, aux, ses and cette keep a short
+  // French text from reading as a near tie.
+  fr: ['le', 'la', 'les', 'et', 'des', 'du', 'est', 'une', 'il', 'qui', 'dans', 'pas', 'au', 'avec', 'ce', 'sur', 'elle', 'mais', 'je', 'pour', 'était', 'vous', 'nous', 'aux', 'ses', 'cette'],
   de: ['der', 'die', 'und', 'das', 'nicht', 'ist', 'ich', 'sie', 'zu', 'den', 'mit', 'sich', 'des', 'auf', 'ein', 'dem', 'auch', 'aber'],
   it: ['il', 'di', 'che', 'la', 'e', 'non', 'per', 'un', 'una', 'del', 'della', 'con', 'si', 'gli', 'le', 'era', 'ma', 'anche'],
   pt: ['o', 'a', 'que', 'de', 'e', 'do', 'da', 'não', 'em', 'um', 'uma', 'os', 'as', 'com', 'para', 'se', 'mais', 'ao'],
@@ -53,6 +55,28 @@ export function guessLanguage(sample: string): string | null {
 export function wrongLanguage(sample: string, here: LangId): string | null {
   const found = guessLanguage(sample);
   if (!found || found === here) return null;
+  return elsewhere(found, here);
+}
+
+function elsewhere(found: string, here: LangId): string {
   const name = NAMES[found] ?? found;
   return `This book looks like it is in ${name}, and this library is ${NAMES[here]}. Switch to ${name} (in Settings, or the language menu at the top) and add it there.`;
+}
+
+/**
+ * The same for a whole book, from samples taken through it (import/index.ts): a learner's edition with a long English
+ * introduction and an English glossary around Spanish stories belongs in the Spanish library. The book is refused only when the
+ * library's language is nearly absent (under a fifth of the samples whose language shows) and one other language takes at
+ * least half of the rest, the one the message names.
+ */
+export function wrongLanguageOf(samples: string[], here: LangId): string | null {
+  const guesses = samples.map(guessLanguage).filter((g): g is string => !!g);
+  const home = guesses.filter((g) => g === here).length;
+  if (!guesses.length || home >= guesses.length * 0.2) return null;
+  const counts = new Map<string, number>();
+  for (const g of guesses) if (g !== here) counts.set(g, (counts.get(g) ?? 0) + 1);
+  let top: string | null = null;
+  let most = 0;
+  for (const [g, n] of counts) if (n > most) { top = g; most = n; }
+  return top && most * 2 >= guesses.length - home ? elsewhere(top, here) : null;
 }
