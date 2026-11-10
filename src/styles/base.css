@@ -73,9 +73,10 @@ a { color: var(--ink); }
   display: inline-flex; align-items: center; justify-content: center;
 }
 body[data-route='read'] .app-nav { display: none; }
-/* Sign in (ui/signIn.ts): at the end of the bar while this device is signed out of sync. */
+/* Sign in (ui/signIn.ts): at the end of the bar while this device is signed out of sync. Never squeezed or wrapped: the
+   links give way first (the phone rules below). */
 .app-signin {
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; margin-left: 12px; padding: 0 12px;
+  display: inline-flex; flex: none; align-items: center; gap: 6px; height: 32px; margin-left: 12px; padding: 0 12px; white-space: nowrap;
   border: 1px solid var(--rule); border-radius: 16px; background: transparent; color: var(--text);
   font: 500 13.5px/1 var(--font-ui); cursor: pointer;
 }
@@ -120,8 +121,10 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) .app-toasts { bottom: c
   box-shadow: var(--shadow-pop);
   font-size: 13.5px; font-weight: 500; line-height: 1.4; animation: app-toast-in var(--dur-pop) var(--ease-pop);
 }
-/* A long title or error never grows the toast past two lines; the full text is in its title attribute. */
+/* A long title never grows the toast past two lines; the full text is in its title attribute. An error (a toast that stays
+   long enough to have a close button, and has no action such as Read or Undo) puts its advice last: it gets room for all of it. */
 .app-toast-text { min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.app-toast:has(.app-toast-close):not(:has(.app-toast-action)) .app-toast-text { -webkit-line-clamp: 6; }
 .app-toast button {
   flex: none; background: none; border: 0; border-radius: var(--radius-s); padding: 4px 6px; margin: -4px -6px -4px 0;
   color: var(--bg); font-weight: 700; cursor: pointer;
@@ -350,14 +353,16 @@ dialog.modal:focus { outline: none; }
   .app-signin { width: 34px; height: 34px; margin-left: 6px; padding: 0; justify-content: center; }
   .app-signin-label { display: none; }
   .app-badge { min-width: 16px; height: 16px; font-size: 10px; }
+  /* Review's count sits on the link's corner instead of beside it, so a count of 99+ takes no room from the bar. */
+  .app-navlink .app-badge { position: absolute; top: 4px; right: -6px; margin: 0; }
   .app-toasts { bottom: calc(16px + var(--safe-b)); }
   .page { padding: var(--space-6) var(--space-4) var(--space-6); }
   .page-head { margin-bottom: var(--space-5); }
   .page-title { font-size: 38px; }
   .page-title-zh { font-size: 22px; margin-bottom: 10px; }
 }
-/* An iPhone mini or SE: the four labels still fit, a little tighter. */
-@media (max-width: 384px) {
+/* Most phones (an iPhone SE to a Plus or Max at 414 px): the four labels still fit, a little tighter. */
+@media (max-width: 419px) {
   .app-nav { padding-left: var(--space-3); padding-right: var(--space-2); }
   .app-navlink { margin: 0 4px; font-size: 12.5px; }
   .app-brand-zh { width: 28px; height: 28px; font-size: 11.5px; }
@@ -390,9 +395,17 @@ dialog.modal:focus { outline: none; }
   .app-lang-short { display: inline; }
   .app-nav:has(.app-lang) .app-navlink { margin: 0 4px; }
 }
-@media (min-width: 350px) and (max-width: 384px) {
+@media (min-width: 350px) and (max-width: 419px) {
   .app-nav:has(.app-lang) .app-navlink { margin: 0 3px; font-size: 12px; }
   .app-nav:has(.app-lang) .app-signin { margin-left: 3px; }
+}
+@media (min-width: 350px) and (max-width: 359px) {
+  .app-nav:has(.app-lang) .app-navlink { margin: 0 2px; }
+  .app-nav:has(.app-lang) .app-navlink .app-badge { right: -4px; }
+}
+/* Just wider than a phone (a phone on its side, a window at 200% zoom): the full labels and Sign in need the name's room. */
+@media (min-width: 641px) and (max-width: 779px) {
+  .app-nav:has(.app-lang) .app-brand-en { display: none; }
 }
 
 /* A language other than Chinese (main.ts sets data-lang on the page): text marked .zh across the app (titles, covers, saved
