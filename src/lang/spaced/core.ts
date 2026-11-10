@@ -218,6 +218,11 @@ function caseMisfit(head: string, word: string, keepCase: boolean): number {
 }
 const upperFirst = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const isUpper = (ch: string): boolean => ch !== ch.toLowerCase() && ch === ch.toUpperCase();
+/** Pronunciations as the card shows them: /lɪv/, /laɪv/. */
+const soundText = (said: string[]): string => [...new Set(said)].map((v) => `/${v}/`).join(', ');
+
+/** A sense that is only the heading of the senses after it: "[with prepositional]", "[with accusative]". */
+const CASE_HEADING = /^\[with [^\]]*\]$/;
 
 // ----------------------------------------------------------------------------------------------------- loading ---
 
@@ -458,7 +463,7 @@ class Data {
   /** How a folded word is said, as the card shows it: /lɪv/, /laɪv/. */
   soundOf(word: string): string | undefined {
     const s = this.soundOfWord.get(word);
-    return s ? s.split('|').map((v) => `/${v}/`).join(', ') : undefined;
+    return s ? soundText(s.split('|')) : undefined;
   }
 
   /** A key's level: from levels.tsv.gz when the language has one, else by its frequency rank. */
@@ -491,7 +496,9 @@ class Data {
         notes = rest.slice(1, close).split(', ').filter(Boolean);
         rest = rest.slice(close + 1);
       }
-      const glosses = rest.split('|').filter(Boolean);
+      // A grammar heading kept as a sense of its own ("[with prepositional]" over в's meanings) is no meaning: each sense under
+      // it names its case already. Dictionaries built before scripts/lang/wikt/build.py dropped them still have them.
+      const glosses = rest.split('|').filter((g) => g && !CASE_HEADING.test(g));
       if (!glosses.length) continue;
       const sense: Sense = { pos: pos || undefined, glosses };
       if (notes?.length) sense.notes = notes;
@@ -713,6 +720,8 @@ interface Chosen {
   noPhrase?: boolean;
   /** A verb with its subject hyphened after it (vois-je, faites-vous): the subject pronoun of the inversion. */
   inverted?: string;
+  /** The word starts a sentence: a capital there says nothing of a name (the card's sound, soundHere). */
+  start?: boolean;
 }
 
 /** A word of a paragraph as segment() hands it to the context passes. */
@@ -2013,7 +2022,7 @@ export class SpacedEngine implements LangEngine {
       const inverted = this.inversion(w.t.text, () => question(w.at)
         || (!!prevC && !this.lang.coordinators?.includes(prevKey) && d.pos[prevC.e] !== 'interjection'));
       const reflexive = !!choice && (said?.reflexive ?? this.isReflexive(choice, w.a, prevKey, () => !!inverted));
-      const chosen: Chosen = { a: w.a, c: choice, reflexive };
+      const chosen: Chosen = { a: w.a, c: choice, reflexive, start: w.start };
       if (inverted) chosen.inverted = inverted;
       // The rule's hint holds for the reading it preferred; a reading it did not prefer kept its own (too far below to win).
       if (said?.hint && choice) {
@@ -2543,9 +2552,28 @@ export class SpacedEngine implements LangEngine {
       }
     }
     if (a.name || named || (named === undefined && !entries.length && isUpper(surface[0] ?? ''))) out.name = true;
-    const sound = d.soundOf(this.fold(surface));
+    const sound = this.soundHere(surface, out, known?.start);
     if (sound) out.sound = sound;
     return out;
+  }
+
+  /**
+   * How the word is said where it stands. A word said two ways (read, wound, close, use: ipa.tsv.gz gives both) is said the
+   * way of the form the lookup read it as, when a "form>lemma" row names it (wound as the past tense of wind: /waʊnd/), else
+   * both ways: the part of speech the card leads with is too often wrong for these words to pick one by it. A capital in
+   * mid-sentence takes the capitalized word's sound (Polish /ˈpəʊlɪʃ/, not polish's); at a sentence's start, both.
+   */
+  private soundHere(surface: string, out: WordLookup, start: boolean | undefined): string | undefined {
+    const d = this.data;
+    const folded = this.fold(surface);
+    if (out.form && out.key) {
+      const own = d.soundOfWord.get(`${folded}>${out.key}`);
+      if (own) return soundText(own.split('|'));
+    }
+    const lower = d.soundOfWord.get(folded);
+    const capital = surface !== folded && isUpper(surface[0] ?? '') && surface.slice(1) === surface.slice(1).toLowerCase() ? d.soundOfWord.get(surface) : undefined;
+    if (capital) return soundText(start === false || !lower ? capital.split('|') : [...lower.split('|'), ...capital.split('|')]);
+    return lower ? soundText(lower.split('|')) : undefined;
   }
 
   /**

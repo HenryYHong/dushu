@@ -568,6 +568,9 @@ def contraction_sense(gloss):
     return ['contraction of ' + pieces.replace(' + ', ' + ')], [meaning]
 
 
+CASE_HEADING = re.compile(r'^\[with [^\]]*\]$')
+
+
 def construction_note(raw):
     """"to have to [with que (+ infinitive)]" -> "with que + infinitive"."""
     m = re.search(r'\[([^\[\]]{2,60})\]\s*$', raw or '')
@@ -585,7 +588,9 @@ def sense_rows(code, senses, pos=''):
         tags = s.get('tags') or []
         gl = [clean_gloss(g) for g in (s.get('glosses') or [])]
         gl = [g for g in gl if g and not JUNK_GLOSS.match(g)]
-        if not gl:
+        # A case heading listed as a sense of its own ("[with prepositional]" before в's "in, at, on") is no meaning: the senses
+        # under it carry their case already ({with prepositional}), and as a first sense it was в's short gloss.
+        if not gl or (len(gl) == 1 and CASE_HEADING.match(gl[0])):
             continue
         raw = s.get('raw_glosses') or []
         con = contraction_sense(gl[-1])

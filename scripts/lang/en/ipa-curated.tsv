@@ -1,0 +1,30 @@
+# How words said two ways are said (build_en.py reads it into public/data/en/ipa.tsv.gz). ECDICT gives one sound for each
+# spelling, often the wrong one for the sentence: read is /riːd/ and /red/, wound /wuːnd/ and /waʊnd/.
+#   word	IPA	(| between two sounds) replaces ECDICT's; a capitalized word is a row of its own, used in mid-sentence
+#   form	IPA	lemma	the form's one sound when the engine reads it as a form of lemma (wound as the past tense of wind)
+read	riːd|red
+use	juːs|juːz
+uses	ˈjuːsɪz|ˈjuːzɪz
+used	juːst|juːzd
+used	juːzd	use
+close	kləʊs|kləʊz
+wind	wɪnd|waɪnd
+winds	wɪndz|waɪndz
+wound	wuːnd|waʊnd
+wound	waʊnd	wind
+lives	lɪvz|laɪvz
+lives	lɪvz	live
+lives	laɪvz	life
+tears	tɪəz|teəz
+lead	liːd|led
+live	lɪv|laɪv
+tear	tɪə|teə
+bow	bəʊ|baʊ
+row	rəʊ|raʊ
+present	ˈpreznt|prɪˈzent
+record	ˈrekɔːd|rɪˈkɔːd
+object	ˈɒbdʒɪkt|əbˈdʒekt
+content	ˈkɒntent|kənˈtent
+minute	ˈmɪnɪt|maɪˈnjuːt
+polish	ˈpɒlɪʃ
+Polish	ˈpəʊlɪʃ

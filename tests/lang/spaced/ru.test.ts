@@ -75,3 +75,18 @@ describe('Russian keys, levels and hints', () => {
     expect(ru.meta.counts.entries).toBeGreaterThan(40000);
   });
 });
+
+describe('Russian prepositions', () => {
+  it('give their meanings, not the case headings Wiktionary sets over them', async () => {
+    const { shortGlossOf } = await import('../../../src/lang/words');
+    const ru = await loadLang('ru');
+    const lu = (text: string, word: string) => ru.lookup(word, { token: tok(ru, text, word), sentence: text });
+    const v = lu('Девочка пришла в лесу к старому дубу.', 'в');
+    const o = lu('Он долго думал о сестре.', 'о');
+    expect(shortGlossOf(v.entries)).toBe('in, at, on');
+    expect(shortGlossOf(o.entries)).toBe('about, of, on');
+    for (const l of [v, o, lu('Он стоял за домом.', 'за'), lu('Он пришёл с братом.', 'с')]) {
+      expect(l.entries.flatMap((e) => e.senses.flatMap((s) => s.glosses)).filter((g) => /^\[with [^\]]*\]$/.test(g))).toEqual([]);
+    }
+  });
+});

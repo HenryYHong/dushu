@@ -74,3 +74,49 @@ describe('English in older books', () => {
     expect(tok(en, 'I will come to-morrow.', 'to-morrow').key).toBe('tomorrow');
   });
 });
+
+describe('English sounds', () => {
+  const sound = async (text: string, word: string) => lookupIn(await loadLang('en'), text, word).sound ?? '';
+
+  it('says a word spelled two ways both ways, or the way of the form it is read as', async () => {
+    // Past-tense read: /red/ is there, never /riːd/ alone.
+    expect(await sound('She read the letter yesterday and smiled.', 'read')).toContain('/red/');
+    // wound as the past tense of wind: /waʊnd/, and the wind entry shows both of wind's sounds.
+    const en = await loadLang('en');
+    const wound = lookupIn(en, 'He wound the clock.', 'wound');
+    expect(wound.form).toMatch(/past tense/);
+    expect(wound.sound).toBe('/waʊnd/');
+    expect(wound.entries.find((e) => e.head === 'wind')?.sound).toBe('/wɪnd/, /waɪnd/');
+    expect(await sound('We use it every day.', 'use')).toContain('/juːz/');
+    expect(await sound('He sat close to the fire.', 'close')).toContain('/kləʊs/');
+    expect(await sound('I used a knife.', 'used')).toBe('/juːzd/');
+  });
+
+  it('says a capitalized word in mid-sentence as the capitalized word, and both ways at a sentence start', async () => {
+    expect(await sound('The Polish soldiers marched.', 'Polish')).toBe('/ˈpəʊlɪʃ/');
+    expect(await sound('She will polish the silver.', 'polish')).toBe('/ˈpɒlɪʃ/');
+    expect(await sound('Polish the silver now.', 'Polish')).toBe('/ˈpɒlɪʃ/, /ˈpəʊlɪʃ/');
+  });
+
+  it('says consider /kənˈsɪdə/', async () => {
+    const lu = lookupIn(await loadLang('en'), 'He considered the matter.', 'considered');
+    expect(lu.entries.find((e) => e.head === 'consider')?.sound).toBe('/kənˈsɪdə/');
+  });
+
+  it('has no sound with a consonant before ŋ, nor one ending on ŋ where the spelling does not', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { gunzipSync } = await import('node:zlib');
+    const { join } = await import('node:path');
+    const lines = gunzipSync(readFileSync(join(__dirname, '..', '..', '..', 'public', 'data', 'en', 'ipa.tsv.gz'))).toString('utf8').split('\n');
+    const bad: string[] = [];
+    for (const line of lines) {
+      if (!line || line.startsWith('#')) continue;
+      const [word, said] = line.split('\t');
+      for (const v of said.split('|')) {
+        const end = v.endsWith('ŋ') && !/(?:ngs?|ngue|ngh|on|an|ant|ent|en|in|ain|ein|oin|un|mps)$/.test(word.split('>')[0].toLowerCase());
+        if (/[bdfgɡklmpstvzθðʃʒ]ŋ/.test(v) || end) bad.push(`${word} ${v}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});

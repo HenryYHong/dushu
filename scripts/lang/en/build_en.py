@@ -115,6 +115,43 @@ def ipa(raw):
     return out[:2]
 
 
+# ECDICT's own typos in its phonetics, which ipa() reads faithfully: consider's kәn'sidŋ, brandish's 'brændiŋ, a d left off
+# dinged and its like, a line cut short (tranquilize). The checks after the build (assert_sounds) find rows like these.
+IPA_FIX = {
+    'consider': ['kənˈsɪdə'], 'brandish': ['ˈbrændɪʃ'], 'caroline': ['ˈkærəlaɪn'], 'gangly': ['ˈɡæŋɡli'],
+    'broodingly': ['ˈbruːdɪŋli'], 'dinged': ['dɪŋd'], 'dunged': ['dʌŋd'], 'kinged': ['kɪŋd'], 'slanged': ['slæŋd'],
+    'thonged': ['θɒŋd'], 'operationalization': ['ˌɒpəˌreɪʃənəlaɪˈzeɪʃn'], 'tranquilize': ['ˈtræŋkwəlaɪz'],
+    'doyenne': ['dɔɪˈen'], 'venezuelan': ['ˌvenəˈzweɪlən'],
+}
+# A spelling that may end on ŋ: -ng, and the French nasals English keeps (restaurant, salon, moulin, contretemps).
+NG_END = re.compile(r"(?:ngs?|ngue|ngh|on|an|ant|ent|en|in|ain|ein|oin|un|mps)$")
+
+
+def assert_sounds(said):
+    """Every pronunciation is plausible: no consonant right before ŋ, and ŋ at the end only where the spelling allows it."""
+    bad = [(w, v) for w, vs in said.items() for v in vs
+           if re.search('[bdfgɡklmpstvzθðʃʒ]ŋ', v) or (v.endswith('ŋ') and not NG_END.search(w.split('>')[0].lower()))]
+    if bad:
+        sys.exit(f'implausible pronunciations (add them to IPA_FIX): {bad[:20]}')
+
+
+def load_ipa_curated(path):
+    """scripts/lang/en/ipa-curated.tsv: `word\tIPA` replaces ECDICT's sound of the word (a capitalized word is a row of its
+    own); `form\tIPA\tlemma` is the form's sound when it is read as a form of lemma (the engine's "form>lemma" row)."""
+    words, forms = {}, {}
+    with open(path, encoding='utf-8') as f:
+        for line in f:
+            line = line.rstrip('\n')
+            if not line or line.startswith('#'):
+                continue
+            c = line.split('\t')
+            if len(c) >= 3 and c[2]:
+                forms[f'{fold(c[0])}>{fold(c[2])}'] = c[1].split('|')
+            else:
+                words[c[0] if c[0] != c[0].lower() else fold(c[0])] = c[1].split('|')
+    return words, forms
+
+
 def fold(s):
     """The matching key; must agree with foldKey() in src/lang/spaced/core.ts for a language that does not keep case."""
     s = unicodedata.normalize('NFC', s or '').strip()
@@ -452,8 +489,16 @@ def main(argv):
     write_gz(os.path.join(OUT, 'phrases.tsv.gz'), '# Globereader English fixed phrases, from ECDICT (MIT): words folded lower-case, hint, senses.\n'
              + '\n'.join('\t'.join([w, h, *s]) for _, _, w, h, s in plines) + '\n')
 
-    # How the words and their forms are said (the card shows it): `word\tIPA`, two pronunciations split by |.
+    # How the words and their forms are said (the card shows it): `word\tIPA`, two pronunciations split by |. Then, from
+    # ipa-curated.tsv, a capitalized word said otherwise than its lower-case spelling (`Polish\tˈpəʊlɪʃ`), and a form said one
+    # way as a form of one lemma (`wound>wind\twaʊnd`), for the engine (core.ts soundHere).
+    phonetic.update({fold(k): v for k, v in IPA_FIX.items()})
+    curated_words, curated_forms = load_ipa_curated(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ipa-curated.tsv'))
+    phonetic.update({w: v for w, v in curated_words.items() if w == fold(w)})
     said = {w: phonetic[w] for w in known | form_words if w in phonetic}
+    said.update({w: v for w, v in curated_words.items() if w != fold(w)})
+    said.update(curated_forms)
+    assert_sounds(said)
     write_gz(os.path.join(OUT, 'ipa.tsv.gz'), '# word\tIPA (| between two pronunciations), from ECDICT\'s phonetics in the current British notation\n'
              + '\n'.join(f'{w}\t{"|".join(v)}' for w, v in sorted(said.items())) + '\n')
     write_gz(os.path.join(OUT, 'levels.tsv.gz'), '# key\tlevel (1 中考, 2 高考, 3 CET-4, 4 CET-6, 5 IELTS/TOEFL/考研, 6 GRE), from ECDICT\'s exam tags\n'
