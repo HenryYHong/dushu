@@ -6,6 +6,8 @@ import { closePopup, openWordPopup } from '../../src/ui/popup/popup';
 import { buildLexicon } from '../../src/core/lexicon';
 import type { LexiconEntry } from '../../src/types';
 import { anchorRect, makeCtx, stubBrowser } from '../reader/helpers';
+import { setLangForTests } from '../../src/lang/active';
+import { fakeEngine } from '../lang/app/fakeEngine';
 
 beforeAll(() => stubBrowser());
 afterEach(() => { closePopup(); document.body.innerHTML = ''; });
@@ -193,5 +195,39 @@ describe('里 after a number', () => {
     closePopup();
     openWordPopup({ ctx, word: '里', prev: '家', next: '。', anchor: anchorRect() });
     expect(text('.pp-defs li')).toMatch(/in|inside/i);
+  });
+});
+
+describe('the card of another language on a phone', () => {
+  const touchPhone = (on: boolean) => {
+    if (on) {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true, value: (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} }),
+      });
+    } else delete (window as { matchMedia?: unknown }).matchMedia;
+  };
+  afterEach(() => { touchPhone(false); setLangForTests('zh'); });
+  const context = { sentence: 'El hidalgo fue a la casa.', paragraph: 'El hidalgo fue a la casa.' };
+
+  it('sizes the headword by its length, in letters (not UTF-16 units)', async () => {
+    setLangForTests('es', fakeEngine('es'));
+    const { ctx } = await makeCtx();
+    openWordPopup({ ctx, word: 'hidalgo', anchor: anchorRect(), context });
+    expect(q('.pp-lang .pp-title')!.style.getPropertyValue('--len')).toBe('7');
+    closePopup();
+    openWordPopup({ ctx, word: 'Ñandú', anchor: anchorRect() });
+    expect(q('.pp-lang .pp-title')!.style.getPropertyValue('--len')).toBe('5');
+  });
+
+  it('leaves the Translate icon out of the header on a touch phone, where the body has the same button', async () => {
+    setLangForTests('es', fakeEngine('es'));
+    const { ctx } = await makeCtx();
+    openWordPopup({ ctx, word: 'hidalgo', anchor: anchorRect(), context });
+    expect(q('.pp-head .pp-translate')).not.toBeNull(); // a mouse keeps it
+    closePopup();
+    touchPhone(true);
+    openWordPopup({ ctx, word: 'hidalgo', anchor: anchorRect(), context });
+    expect(q('.pp-head .pp-translate')).toBeNull();
+    expect(all('.pp-reading-actions .btn').map((b) => b.textContent)).toContain('Translate sentence');
   });
 });

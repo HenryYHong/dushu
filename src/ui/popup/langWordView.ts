@@ -44,6 +44,25 @@ function links(head: string): HTMLElement {
 }
 
 const ASPECT: Record<'pf' | 'impf' | 'both', string> = { pf: 'Perfective', impf: 'Imperfective', both: 'Both aspects' };
+/** A phone held upright: a touch screen too narrow for five buttons and the word on one row. */
+const narrowTouch = (): boolean =>
+  typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse) and (max-width: 480px)').matches;
+
+/**
+ * How wide the headword is per px of type, so popup.css can size it to fit the room beside the buttons on one line. Its
+ * length (--len) stands in until this runs, and wherever there is no layout; letters differ (Kindern, медвежонок).
+ */
+function measureHeadword(el: HTMLElement | null): void {
+  if (!el?.parentElement) return;
+  const probe = el.cloneNode(true) as HTMLElement;
+  probe.style.cssText += ';position:absolute;visibility:hidden;white-space:nowrap;font-size:100px;width:auto;max-width:none;min-width:0';
+  el.parentElement.appendChild(probe);
+  const w = probe.getBoundingClientRect().width;
+  probe.remove();
+  // A little to spare, so a word that just fits is not broken by rounding.
+  if (w > 0) el.parentElement.style.setProperty('--em', (w / 100 * 1.03 + 0.02).toFixed(3));
+}
+
 /** A stress-marked word as the book prints it (узна́ть → узнать); й and ё keep their marks. */
 const unstressed = (w: string): string => w.normalize('NFD').replace(/\u0301/g, '').normalize('NFC');
 
@@ -182,7 +201,8 @@ export function mountLangWordView(
       ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement, v.word), title: 'Pronounce (P)', 'aria-label': 'Pronounce' }, icon('speaker'))
       : null;
     const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('close'));
-    const translateBtn = o.context?.sentence && stack.length === 1
+    // A phone has the same Translate sentence button in the body; the header's would take the room the word needs.
+    const translateBtn = o.context?.sentence && stack.length === 1 && !narrowTouch()
       ? h('button.icon-btn.pp-translate', { type: 'button', title: 'Translate sentence', 'aria-label': 'Translate sentence',
         onclick: (e: Event) => openPhrase(o.context!.sentence, (e.currentTarget as HTMLElement).getBoundingClientRect(), o.context?.paragraph ?? o.context!.sentence) },
       icon('translate'))
@@ -192,7 +212,8 @@ export function mountLangWordView(
     const tokReading = v.token?.reading && v.token.reading !== v.word ? v.token.reading : '';
     root.appendChild(h('header.pp-head', null,
       showBack ? h('button.icon-btn.pp-back', { onclick: back, title: 'Back', 'aria-label': 'Back' }, icon('arrowLeft')) : null,
-      h('div.pp-title', null, h('span.pp-word.pp-lang-word', { lang: L.tag }, v.word)),
+      // Its length sets its size (popup.css), so a long word gets smaller instead of breaking in the middle.
+      h('div.pp-title', { style: `--len:${[...v.word].length}` }, h('span.pp-word.pp-lang-word', { lang: L.tag }, v.word)),
       h('div.pp-head-actions', null, speakBtn, translateBtn, saveBtn, knownBtn, closeBtn)));
 
     const line = h('div.pp-pyline');
@@ -275,6 +296,7 @@ export function mountLangWordView(
     refreshers.length = 0;
     clear(host.content);
     host.content.appendChild(build(top()));
+    measureHeadword(host.content.querySelector<HTMLElement>('.pp-lang-word'));
     host.scroller.scrollTop = 0;
     if (!host.el.contains(document.activeElement)) host.focus();
     host.placeNow();

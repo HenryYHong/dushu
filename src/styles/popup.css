@@ -158,7 +158,8 @@
   content: ''; position: absolute; left: 0; right: 0; top: -25px; height: 24px; pointer-events: none;
   background: linear-gradient(to bottom, transparent, var(--elev));
 }
-/* On a short sheet the stepping bar would cover a third of what is visible: it scrolls with the content instead. */
+/* On a short sheet, or a bubble squeezed by a short screen (a phone on its side), the stepping bar would cover a third of
+   what is visible: it scrolls with the content instead. */
 .pp-short .pp-foot { position: static; }
 .pp-short.pp-more .pp-foot::before { display: none; }
 .pp-tools { display: flex; flex-wrap: wrap; gap: 2px; }
@@ -309,8 +310,21 @@
 }
 
 /* ---------- word card for a language other than Chinese (langWordView.ts) ---------- */
-.pp-lang .pp-word.pp-lang-word { letter-spacing: 0; word-break: normal; overflow-wrap: anywhere; }
+/* The word stays on one line: it is set smaller, down to 20 px, to fit the room beside the buttons. --em is its width per
+   px of type, measured in langWordView.ts, and --len its length in letters, which stands in until then; both are set on
+   .pp-title. A word too long for that room even at 20 px (a long compound on a 320 px phone) takes a row of its own under
+   the buttons; only a word too long for that breaks. */
+.pp-lang .pp-word.pp-lang-word { min-width: 0; max-width: 100%; letter-spacing: 0; word-break: normal; overflow-wrap: break-word; }
 :root:not([data-lang='ja']) .pp-lang .pp-word.pp-lang-word { font-size: 32px; font-family: var(--font-book, var(--font-display)); }
+@supports (width: 1cqi) {
+  /* wrap-reverse puts a row that wraps above the word; under it flex-end is the top, as flex-start was. */
+  .pp-lang .pp-head { flex-wrap: wrap-reverse; align-items: flex-end; }
+  .pp-lang .pp-head-actions { margin-left: auto; }
+  .pp-lang .pp-title { --pp-em: var(--em, calc(var(--len, 1) * 0.56)); container-type: inline-size; min-width: min(100%, calc(20px * var(--pp-em))); }
+  :root[data-lang='ja'] .pp-lang .pp-title { --pp-em: var(--em, calc(var(--len, 1) * 1.05)); }
+  :root:not([data-lang='ja']) .pp-lang .pp-word.pp-lang-word { font-size: clamp(20px, calc(100cqi / var(--pp-em)), 32px); }
+  :root[data-lang='ja'] .pp-lang .pp-word.pp-lang-word { font-size: clamp(20px, calc(100cqi / var(--pp-em)), 40px); }
+}
 .pp-lang-reading { font-size: 15px; color: var(--text-2); }
 .pp-lang-reading-main { font-size: 17px; }
 .pp-lang-form { font-size: 13.5px; color: var(--text-2); }

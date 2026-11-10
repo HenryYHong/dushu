@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { anchorOf, BUBBLE_MAX_HEIGHT, computePlacement, PHONE_SHEET_SHARE, type Rect } from '../../src/ui/popup/position';
+import { anchorOf, BUBBLE_MAX_HEIGHT, computePlacement, PHONE_SHEET_SHARE, SHORT_FLOAT, type Rect } from '../../src/ui/popup/position';
 
 const rect = (left: number, top: number, w = 40, h = 30): Rect => ({ left, top, right: left + w, bottom: top + h, width: w, height: h });
 
@@ -49,6 +49,25 @@ describe('tablet', () => {
     if (p.mode !== 'float') throw new Error('float');
     expect(p.caret).not.toBeNull();
     expect(p.left + (p.caret ?? 0)).toBeCloseTo(520, -1); // under the middle of the 40 px word
+  });
+});
+
+describe('a short screen', () => {
+  it('squeezes a bubble at a word mid-page on a phone held sideways under SHORT_FLOAT', () => {
+    for (const vp of [{ w: 844, h: 390 }, { w: 667, h: 375 }]) {
+      const p = computePlacement(rect(300, vp.h / 2 - 15), 600, vp, { coarse: true });
+      if (p.mode !== 'float') throw new Error(`float at ${vp.w}x${vp.h}`);
+      expect(p.maxHeight).toBeLessThan(SHORT_FLOAT);
+    }
+  });
+  it('never squeezes a tablet bubble with a long entry under it, wherever the word is', () => {
+    for (const vp of [{ w: 1194, h: 834 }, { w: 820, h: 1180 }, { w: 1024, h: 768 }]) {
+      for (let top = 20; top < vp.h - 40; top += 60) {
+        const p = computePlacement(rect(300, top), 1500, vp, { coarse: true, canShift: true });
+        if (p.mode !== 'float') throw new Error('float');
+        expect(p.maxHeight).toBeGreaterThanOrEqual(SHORT_FLOAT);
+      }
+    }
   });
 });
 

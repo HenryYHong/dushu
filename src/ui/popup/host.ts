@@ -1,7 +1,7 @@
 // The popup shell: one at a time, placed next to an anchor (or a bottom sheet on narrow screens),
 // closed by Esc, an outside press, or a route change. Views fill it with content.
 import { h } from '../dom';
-import { anchorGone, computePlacement, SHORT_SHEET, type Insets, type Rect } from './position';
+import { anchorGone, computePlacement, SHORT_FLOAT, SHORT_SHEET, type Insets, type Rect } from './position';
 
 export interface HostOptions {
   kind: 'word' | 'phrase';
@@ -141,7 +141,7 @@ export function createHost(o: HostOptions): PopupHost {
     el.classList.toggle('pp-sheet', sheet);
     el.classList.toggle('pp-float', !sheet);
     el.classList.toggle('pp-sheet-tablet', sheet && p.variant === 'tablet');
-    el.classList.toggle('pp-short', sheet && p.maxHeight < SHORT_SHEET);
+    el.classList.toggle('pp-short', sheet ? p.maxHeight < SHORT_SHEET : p.maxHeight < SHORT_FLOAT);
     if (p.mode === 'sheet') {
       delete el.dataset.side;
       Object.assign(el.style, {

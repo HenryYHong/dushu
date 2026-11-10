@@ -73,6 +73,33 @@ describe('short sheets', () => {
     expect(q('.pp-pop')!.classList.contains('pp-short')).toBe(false);
     if (inner) Object.defineProperty(window, 'innerHeight', inner);
   });
+
+  it('marks a bubble squeezed by a phone on its side as short too, and leaves a tablet bubble alone', async () => {
+    const { ctx } = await makeCtx();
+    const had = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true, value: (q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }),
+    });
+    try {
+      Object.defineProperty(window, 'innerWidth', { value: 844, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { value: 390, configurable: true });
+      openWordPopup({ ctx, word: '银行', anchor: new DOMRect(400, 180, 40, 30), onStep: () => {}, onResize: () => {} });
+      const card = q('.pp-pop')!;
+      expect(card.classList.contains('pp-float')).toBe(true);
+      expect(card.classList.contains('pp-short')).toBe(true); // 164 px of room under the word
+      closePopup();
+      Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { value: 768, configurable: true });
+      openWordPopup({ ctx, word: '银行', anchor: new DOMRect(400, 370, 40, 30), onStep: () => {}, onResize: () => {} });
+      expect(q('.pp-pop')!.classList.contains('pp-float')).toBe(true);
+      expect(q('.pp-pop')!.classList.contains('pp-short')).toBe(false); // capped at 340, with room for it
+    } finally {
+      if (had) Object.defineProperty(window, 'matchMedia', had);
+      else delete (window as { matchMedia?: unknown }).matchMedia;
+      Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true });
+      Object.defineProperty(window, 'innerHeight', { value: 768, configurable: true });
+    }
+  });
 });
 
 describe('focus', () => {

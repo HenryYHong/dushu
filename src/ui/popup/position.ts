@@ -17,6 +17,8 @@ const BUBBLE_MAX_WIDTH = 360;
 export const PHONE_SHEET_SHARE = 0.45;
 /** A sheet shorter than this is "short": the stepping bar scrolls with the content instead of covering it. */
 export const SHORT_SHEET = 420;
+/** A bubble squeezed under this by a short screen (a phone on its side) is short too: the bar would cover the first meaning. */
+export const SHORT_FLOAT = 280;
 const CARET = 10;
 
 export interface PlacementOptions {
