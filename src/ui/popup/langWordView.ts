@@ -12,6 +12,8 @@ import { icon } from '../icons';
 import type { PopupHost } from './host';
 import type { WordPopupOptions } from './popup';
 import type { WordView } from './wordView';
+import { withNodes } from './defs';
+import { tt, ttm, ttn } from '../../i18n';
 
 interface View {
   word: string;
@@ -22,7 +24,9 @@ interface View {
 /** Senses beyond this many (per entry) sit behind a "more" button. */
 const SENSE_LIMIT = 4;
 
-const GENDER: Record<string, string> = { m: 'masculine', f: 'feminine', n: 'neuter', 'm/f': 'masculine or feminine', pl: 'plural only' };
+const GENDER: Record<string, string> = {
+  m: ttm('masculine'), f: ttm('feminine'), n: ttm('neuter'), 'm/f': ttm('masculine or feminine'), pl: ttm('plural only'),
+};
 
 /** Other dictionaries for the language, by the word's dictionary form. */
 function links(head: string): HTMLElement {
@@ -38,12 +42,12 @@ function links(head: string): HTMLElement {
     ru: [`https://ru.wiktionary.org/wiki/${w}`, 'Викисловарь'],
   };
   const extra = own[lang().id];
-  return h('nav.pp-links', { 'aria-label': 'Other dictionaries' },
+  return h('nav.pp-links', { 'aria-label': tt('Other dictionaries') },
     a(`https://en.wiktionary.org/wiki/${w}#${encodeURIComponent(lang().name)}`, 'Wiktionary'),
     extra ? a(extra[0], extra[1]) : null);
 }
 
-const ASPECT: Record<'pf' | 'impf' | 'both', string> = { pf: 'Perfective', impf: 'Imperfective', both: 'Both aspects' };
+const ASPECT: Record<'pf' | 'impf' | 'both', string> = { pf: ttm('Perfective'), impf: ttm('Imperfective'), both: ttm('Both aspects') };
 /** A phone held upright: a touch screen too narrow for five buttons and the word on one row. */
 const narrowTouch = (): boolean =>
   typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse) and (max-width: 480px)').matches;
@@ -111,7 +115,7 @@ export function mountLangWordView(
     const block = h('section.pp-reading.pp-lang-entry');
     const showHead = many || e.head !== v.word || (e.reading && e.reading !== e.head);
     const chips: (Node | null)[] = [];
-    if (e.gender && GENDER[e.gender]) chips.push(h('span.chip', { title: GENDER[e.gender] }, e.gender === 'm/f' ? 'm/f' : e.gender));
+    if (e.gender && GENDER[e.gender]) chips.push(h('span.chip', { title: tt(GENDER[e.gender]) }, e.gender === 'm/f' ? 'm/f' : e.gender));
     // One entry: its level is on the line under the word already.
     if (e.level && many) chips.push(h('span.chip', null, levelLabel(e.level)));
     if (showHead || chips.length) {
@@ -120,14 +124,17 @@ export function mountLangWordView(
         showHead && e.reading && e.reading !== e.head ? h('span.pp-lang-reading', { lang: L.tag }, e.reading) : null,
         // English: how the headword is said, when it is not what the line under the word already says (went: go /ɡəʊ/).
         showHead && e.sound && e.sound !== said ? h('span.pp-lang-reading.pp-lang-ipa', { lang: 'en-fonipa' }, e.sound) : null,
-        e.alts?.length ? h('span.pp-trad-note', null, 'Also ', h('span', { lang: L.tag }, e.alts.slice(0, 4).join(', '))) : null,
+        e.alts?.length ? h('span.pp-trad-note', null, withNodes(tt('Also {forms}'), { forms: h('span', { lang: L.tag }, e.alts.slice(0, 4).join(', ')) })) : null,
         ...chips));
     }
     // A Russian verb's aspect and its pair (взять: perfective, pair брать), the pair a tap away.
     if (e.aspect) {
       const pairs = (e.partners ?? []).slice(0, 3).map((p, i) => [i ? ', ' : null,
         h('button.pp-xref', { type: 'button', onclick: () => push({ word: unstressed(p) }) }, h('span', { lang: L.tag }, p))]);
-      block.appendChild(h('p.pp-lang-aspect', null, ASPECT[e.aspect], pairs.length ? [pairs.length > 1 ? ' · pairs ' : ' · pair ', ...pairs.flat()] : null));
+      const aspect = tt(ASPECT[e.aspect]);
+      block.appendChild(h('p.pp-lang-aspect', null, pairs.length
+        ? withNodes(ttn(pairs.length, '{aspect} · pair {words}', '{aspect} · pairs {words}', { aspect }), { words: pairs.flat() })
+        : aspect));
     }
     // Senses with the same part of speech run on under one label, as a printed dictionary sets them.
     const items: HTMLElement[] = [];
@@ -142,7 +149,8 @@ export function mountLangWordView(
       const list = h('ol.pp-defs', null, items.slice(0, SENSE_LIMIT));
       block.appendChild(list);
       if (items.length > SENSE_LIMIT) {
-        const more = h('button.pp-more-btn', { type: 'button', 'aria-expanded': 'false' }, `${items.length - SENSE_LIMIT} more`) as HTMLButtonElement;
+        const hidden = items.length - SENSE_LIMIT;
+        const more = h('button.pp-more-btn', { type: 'button', 'aria-expanded': 'false' }, ttn(hidden, '{n} more', '{n} more')) as HTMLButtonElement;
         more.addEventListener('click', () => { list.append(...items.slice(SENSE_LIMIT)); more.remove(); host.reposition(); });
         block.appendChild(more);
       }
@@ -153,23 +161,24 @@ export function mountLangWordView(
   /** A kanji of a Japanese word as a chip: the character, a reading, a few words of meaning. Opens the kanji. */
   function kanjiCard(k: KanjiInfo): HTMLElement {
     const reading = k.kun[0] ?? k.on[0] ?? '';
-    return h('button.pp-card', { type: 'button', onclick: () => push({ word: k.char }), title: `Look up ${k.char}` },
+    return h('button.pp-card', { type: 'button', onclick: () => push({ word: k.char }), title: tt('Look up {word}', { word: k.char }) },
       h('span.pp-card-glyph', { lang: 'ja' }, k.char),
       reading ? h('span.pp-py', { lang: 'ja' }, reading) : null,
-      h('span.pp-card-gloss', null, k.meanings.slice(0, 3).join(', ') || 'No meaning listed'));
+      h('span.pp-card-gloss', null, k.meanings.slice(0, 3).join(', ') || tt('No meaning listed')));
   }
 
   /** The facts of a single kanji (opened from a word's kanji). */
   function kanjiFacts(k: KanjiInfo): HTMLElement {
-    const rows: [string, string][] = [];
-    if (k.meanings.length) rows.push(['Meanings', k.meanings.join(', ')]);
-    if (k.on.length) rows.push(['On readings', k.on.join('、')]);
-    if (k.kun.length) rows.push(['Kun readings', k.kun.join('、')]);
-    if (k.strokes) rows.push(['Strokes', String(k.strokes)]);
-    if (k.grade) rows.push(['Taught', k.grade <= 6 ? `Grade ${k.grade}` : k.grade === 8 ? 'Secondary school' : 'Used in names']);
-    if (k.jlpt) rows.push(['JLPT (old)', `Level ${k.jlpt}`]);
+    // [label, value, the value is Japanese (the readings)]
+    const rows: [string, string, boolean?][] = [];
+    if (k.meanings.length) rows.push([tt('Meanings'), k.meanings.join(', ')]);
+    if (k.on.length) rows.push([tt('On readings'), k.on.join('、'), true]);
+    if (k.kun.length) rows.push([tt('Kun readings'), k.kun.join('、'), true]);
+    if (k.strokes) rows.push([tt('Strokes'), String(k.strokes)]);
+    if (k.grade) rows.push([tt('Taught'), k.grade <= 6 ? tt('Grade {grade}', { grade: k.grade }) : k.grade === 8 ? tt('Secondary school') : tt('Used in names')]);
+    if (k.jlpt) rows.push([tt('JLPT (old)'), tt('Level {level}', { level: k.jlpt })]);
     const dl = h('dl.pp-facts');
-    for (const [a, b] of rows) dl.append(h('dt', null, a), h('dd', { lang: a.includes('reading') ? 'ja' : null }, b));
+    for (const [a, b, ja] of rows) dl.append(h('dt', null, a), h('dd', { lang: ja ? 'ja' : null }, b));
     return dl;
   }
 
@@ -178,32 +187,32 @@ export function mountLangWordView(
     const { head, reading } = headOf(lu, v.token);
     const root = h('div.pp-word-view.pp-lang');
 
-    const saveBtn = h('button.icon-btn.pp-save', { onclick: () => void toggleSave(v, lu), title: 'Save word (S)', 'aria-label': 'Save word' });
-    const knownBtn = h('button.icon-btn.pp-known', { onclick: () => void toggleKnown(lu), title: 'Mark as known (K)', 'aria-label': 'Mark as known' });
+    const saveBtn = h('button.icon-btn.pp-save', { onclick: () => void toggleSave(v, lu), title: tt('Save word (S)'), 'aria-label': tt('Save word') });
+    const knownBtn = h('button.icon-btn.pp-known', { onclick: () => void toggleKnown(lu), title: tt('Mark as known (K)'), 'aria-label': tt('Mark as known') });
     const sync = () => {
       const saved = store.vocab.has(lu.key);
       saveBtn.replaceChildren(icon(saved ? 'starFill' : 'star'));
       saveBtn.setAttribute('aria-pressed', String(saved));
-      saveBtn.title = saved ? 'Remove from saved words (S)' : 'Save word (S)';
+      saveBtn.title = saved ? tt('Remove from saved words (S)') : tt('Save word (S)');
       const known = store.known.has(lu.key);
       const learned = known && store.known.isAuto(lu.key);
       knownBtn.replaceChildren(icon('checkCircle'));
       knownBtn.setAttribute('aria-pressed', String(known));
       knownBtn.classList.toggle('pp-learned', learned);
-      knownBtn.title = learned ? 'Learned from reading. Click to unmark (K)' : known ? 'Known. Click to unmark (K)' : 'Mark as known (K)';
-      knownBtn.setAttribute('aria-label', learned ? 'Known, learned from reading' : 'Mark as known');
+      knownBtn.title = learned ? tt('Learned from reading. Click to unmark (K)') : known ? tt('Known. Click to unmark (K)') : tt('Mark as known (K)');
+      knownBtn.setAttribute('aria-label', learned ? tt('Known, learned from reading') : tt('Mark as known'));
     };
     sync();
     refreshers.push(sync);
 
     const showBack = stack.length > 1 || !!o.onBack;
     const speakBtn = canSpeak()
-      ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement, v.word), title: 'Pronounce (P)', 'aria-label': 'Pronounce' }, icon('speaker'))
+      ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement, v.word), title: tt('Pronounce (P)'), 'aria-label': tt('Pronounce') }, icon('speaker'))
       : null;
-    const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('close'));
+    const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: tt('Close (Esc)'), 'aria-label': tt('Close') }, icon('close'));
     // A phone has the same Translate sentence button in the body; the header's would take the room the word needs.
     const translateBtn = o.context?.sentence && stack.length === 1 && !narrowTouch()
-      ? h('button.icon-btn.pp-translate', { type: 'button', title: 'Translate sentence', 'aria-label': 'Translate sentence',
+      ? h('button.icon-btn.pp-translate', { type: 'button', title: tt('Translate sentence'), 'aria-label': tt('Translate sentence'),
         onclick: (e: Event) => openPhrase(o.context!.sentence, (e.currentTarget as HTMLElement).getBoundingClientRect(), o.context?.paragraph ?? o.context!.sentence) },
       icon('translate'))
       : null;
@@ -211,7 +220,7 @@ export function mountLangWordView(
     // The word as the book has it; its reading (kana, or the stressed spelling) under it.
     const tokReading = v.token?.reading && v.token.reading !== v.word ? v.token.reading : '';
     root.appendChild(h('header.pp-head', null,
-      showBack ? h('button.icon-btn.pp-back', { onclick: back, title: 'Back', 'aria-label': 'Back' }, icon('arrowLeft')) : null,
+      showBack ? h('button.icon-btn.pp-back', { onclick: back, title: tt('Back'), 'aria-label': tt('Back') }, icon('arrowLeft')) : null,
       // Its length sets its size (popup.css), so a long word gets smaller instead of breaking in the middle.
       h('div.pp-title', { style: `--len:${[...v.word].length}` }, h('span.pp-word.pp-lang-word', { lang: L.tag }, v.word)),
       h('div.pp-head-actions', null, speakBtn, translateBtn, saveBtn, knownBtn, closeBtn)));
@@ -221,14 +230,16 @@ export function mountLangWordView(
     if (shownReading) line.appendChild(h('span.pp-lang-reading.pp-lang-reading-main', { lang: L.tag }, shownReading));
     // English: how the word on the page is said, in IPA.
     else if (lu.sound) line.appendChild(h('span.pp-lang-reading.pp-lang-reading-main.pp-lang-ipa', { lang: 'en-fonipa' }, lu.sound));
+    // The dictionary form, a tap away; {word} marks where the sentence puts it.
+    const toHead = () => h('button.pp-xref', { type: 'button', onclick: () => push({ word: head }) }, h('span', { lang: L.tag }, head));
     if (lu.form) {
-      line.appendChild(h('span.pp-lang-form', null, lu.form, head !== v.word ? [' of ', h('button.pp-xref', { type: 'button', onclick: () => push({ word: head }) }, h('span', { lang: L.tag }, head))] : null));
+      line.appendChild(h('span.pp-lang-form', null, head !== v.word ? withNodes(tt('{form} of {word}', { form: lu.form }), { word: toHead() }) : lu.form));
     } else if (head !== v.word && lu.entries.length) {
-      line.appendChild(h('span.pp-lang-form', null, 'Dictionary form ', h('button.pp-xref', { type: 'button', onclick: () => push({ word: head }) }, h('span', { lang: L.tag }, head))));
+      line.appendChild(h('span.pp-lang-form', null, withNodes(tt('Dictionary form {word}'), { word: toHead() })));
     }
     const lvl = lu.entries[0]?.level ?? engine.level(lu.key);
     if (lvl && lu.entries.length <= 1) line.appendChild(h('span.chip', null, levelLabel(lvl)));
-    if (lu.name || v.token?.name) line.appendChild(h('span.chip', null, 'Name'));
+    if (lu.name || v.token?.name) line.appendChild(h('span.chip', null, tt('Name')));
     if (line.childElementCount) root.appendChild(line);
 
     const body = h('div.pp-body');
@@ -237,23 +248,23 @@ export function mountLangWordView(
     if (lu.entries.length) {
       const many = lu.entries.length > 1;
       lu.entries.slice(0, 6).forEach((e) => body.appendChild(entryBlock(e, v, many, lu.sound)));
-      if (many && (o.context?.sentence || v.token)) body.appendChild(h('p.pp-note', null, 'Every word this can be. The first fits best where it is used here.'));
+      if (many && (o.context?.sentence || v.token)) body.appendChild(h('p.pp-note', null, tt('Every word this can be. The first fits best where it is used here.')));
     } else {
       body.appendChild(h('p.pp-note', null, lu.name || v.token?.name
-        ? 'A name. The dictionary has no entry for it.'
-        : 'Not in the dictionary. Translate the sentence to see it in context.'));
+        ? tt('A name. The dictionary has no entry for it.')
+        : tt('Not in the dictionary. Translate the sentence to see it in context.')));
     }
 
     // Pieces: a word made of several (clitics, elision, a compound) can be looked up one piece at a time.
     if (lu.parts?.length) {
       const cards = h('div.pp-cards');
       for (const p of lu.parts) {
-        cards.appendChild(h('button.pp-card', { type: 'button', onclick: () => push({ word: p.text }), title: `Look up ${p.text}` },
+        cards.appendChild(h('button.pp-card', { type: 'button', onclick: () => push({ word: p.text }), title: tt('Look up {word}', { word: p.text }) },
           h('span.pp-card-glyph.pp-lang-part', { lang: L.tag }, p.text),
           p.reading ? h('span.pp-py', { lang: L.tag }, p.reading) : null,
           h('span.pp-card-gloss', null, p.gloss || '')));
       }
-      body.appendChild(h('section.pp-chars', null, h('span.pp-section', null, 'Parts'), cards));
+      body.appendChild(h('section.pp-chars', null, h('span.pp-section', null, tt('Parts')), cards));
     }
 
     const actions = h('div.pp-reading-actions');
@@ -261,19 +272,19 @@ export function mountLangWordView(
       const sentence = o.context.sentence;
       actions.appendChild(h('button.btn.btn-sm', { type: 'button',
         onclick: (e: Event) => openPhrase(sentence, (e.currentTarget as HTMLElement).getBoundingClientRect(), o.context?.paragraph ?? sentence),
-      }, icon('translate'), 'Translate sentence'));
+      }, icon('translate'), tt('Translate sentence')));
     }
     if (stack.length === 1 && o.onReadFromHere && canSpeak()) actions.appendChild(h('span.pp-read-from', null,
-      h('button.btn.btn-sm', { type: 'button', title: 'Start at this word and continue to the end of the chapter',
-        onclick: () => { host.close(); o.onReadFromHere!(); } }, icon('play'), 'Read from here')));
+      h('button.btn.btn-sm', { type: 'button', title: tt('Start at this word and continue to the end of the chapter'),
+        onclick: () => { host.close(); o.onReadFromHere!(); } }, icon('play'), tt('Read from here'))));
     if (actions.childElementCount) body.appendChild(actions);
 
     // Japanese: the kanji of a word, or the facts of one kanji.
     if (lu.chars?.length) {
       if ([...v.word].length === 1 && lu.chars.length === 1 && lu.chars[0].char === v.word) {
-        body.appendChild(h('section.pp-char-facts', null, h('span.pp-section', null, 'Kanji'), kanjiFacts(lu.chars[0])));
+        body.appendChild(h('section.pp-char-facts', null, h('span.pp-section', null, tt('Kanji')), kanjiFacts(lu.chars[0])));
       } else {
-        body.appendChild(h('section.pp-chars', null, h('span.pp-section', null, 'Kanji'), h('div.pp-cards', null, lu.chars.map(kanjiCard))));
+        body.appendChild(h('section.pp-chars', null, h('span.pp-section', null, tt('Kanji')), h('div.pp-cards', null, lu.chars.map(kanjiCard))));
       }
     }
 
@@ -283,9 +294,9 @@ export function mountLangWordView(
     if (stack.length === 1 && (o.onStep || o.onResize)) {
       const seg = (label: string, title: string, run: () => void, lead: Node | null, trail: Node | null) =>
         h('button.pp-seg-btn', { type: 'button', onclick: run, title }, lead, h('span', null, label), trail);
-      const tools = h('div.pp-tools.pp-seg', { role: 'group', 'aria-label': 'Move or resize the selection' });
-      if (o.onStep) tools.append(seg('Prev', 'Previous word (Left arrow)', () => o.onStep!(-1), icon('chevronLeft'), null), seg('Next', 'Next word (Right arrow)', () => o.onStep!(1), null, icon('chevronRight')));
-      if (o.onResize) tools.append(seg('Shorter', 'Shorter (Shift+Left)', () => o.onResize!(-1), icon('minus'), null), seg('Longer', 'Longer (Shift+Right)', () => o.onResize!(1), icon('plus'), null));
+      const tools = h('div.pp-tools.pp-seg', { role: 'group', 'aria-label': tt('Move or resize the selection') });
+      if (o.onStep) tools.append(seg(tt('Prev'), tt('Previous word (Left arrow)'), () => o.onStep!(-1), icon('chevronLeft'), null), seg(tt('Next'), tt('Next word (Right arrow)'), () => o.onStep!(1), null, icon('chevronRight')));
+      if (o.onResize) tools.append(seg(tt('Shorter'), tt('Shorter (Shift+Left)'), () => o.onResize!(-1), icon('minus'), null), seg(tt('Longer'), tt('Longer (Shift+Right)'), () => o.onResize!(1), icon('plus'), null));
       foot.appendChild(tools);
     }
     if (foot.childElementCount) root.appendChild(foot);

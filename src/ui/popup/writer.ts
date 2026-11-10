@@ -2,6 +2,7 @@
 // the session; if it cannot be fetched (offline, or a character the data does not cover) the section stays hidden.
 import { h } from '../dom';
 import { icon } from '../icons';
+import { tt } from '../../i18n';
 
 const DATA_URL = 'https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1/';
 const cache = new Map<string, Promise<unknown>>();
@@ -34,7 +35,7 @@ export function loadStrokes(ch: string): Promise<unknown> {
  */
 export function createStrokeOrder(ch: string, onShown: () => void): HTMLElement {
   const box = h('div.pp-stroke-box');
-  const section = h('section.pp-stroke', { hidden: true }, h('span.pp-section', null, 'Stroke order'), box);
+  const section = h('section.pp-stroke', { hidden: true }, h('span.pp-section', null, tt('Stroke order')), box);
   if (!strokeDataPossible(ch) || (typeof navigator !== 'undefined' && navigator.onLine === false)) return section;
 
   void (async () => {
@@ -56,7 +57,7 @@ export function createStrokeOrder(ch: string, onShown: () => void): HTMLElement 
         delayBetweenStrokes: 220,
         charDataLoader: (_c: string, onComplete: (d: never) => void) => onComplete(data as never),
       });
-      const replay = h('button.btn.btn-sm.btn-ghost', { onclick: () => { void writer.animateCharacter(); } }, icon('refresh'), 'Replay');
+      const replay = h('button.btn.btn-sm.btn-ghost', { onclick: () => { void writer.animateCharacter(); } }, icon('refresh'), tt('Replay'));
       section.appendChild(replay);
       void writer.animateCharacter();
       onShown();

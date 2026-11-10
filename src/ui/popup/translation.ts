@@ -16,6 +16,8 @@ import { icon } from '../icons';
 import { formatSyllable } from '../../core/pinyin';
 import { segment } from '../../core/segment';
 import { entriesForReading } from '../../core/reading';
+import { withNodes } from './defs';
+import { langName, num, tt, ttm } from '../../i18n';
 
 export interface TranslationPanelOptions {
   ctx: AppContext;
@@ -110,14 +112,18 @@ export function translationTerms(text: string, lexicon?: Lexicon, dict?: Diction
   return terms;
 }
 
+/** Why each translator cannot run, and what it does when it can (shown with tt). */
 const NOTES: Record<TranslatorId, { no: string; yes: string }> = {
-  local: { no: 'Keep your Mac awake with Ollama and the private connection running', yes: 'Processed on your Mac; no cloud translation service' },
-  chrome: { no: 'Not available in this browser', yes: 'On this device' },
-  claude: { no: 'Needs your Mac with a Claude key on it', yes: 'Through your Mac' },
-  account: { no: 'Sign in to use it', yes: 'Through your account' },
-  mymemory: { no: 'Not available', yes: 'Sends the text to MyMemory' },
-  gloss: { no: 'Not available', yes: 'Offline, word by word' },
+  local: { no: ttm('Keep your Mac awake with Ollama and the private connection running'), yes: ttm('Processed on your Mac; no cloud translation service') },
+  chrome: { no: ttm('Not available in this browser'), yes: ttm('On this device') },
+  claude: { no: ttm('Needs your Mac with a Claude key on it'), yes: ttm('Through your Mac') },
+  account: { no: ttm('Sign in to use it'), yes: ttm('Through your account') },
+  mymemory: { no: ttm('Not available'), yes: ttm('Sends the text to MyMemory') },
+  gloss: { no: ttm('Not available'), yes: ttm('Offline, word by word') },
 };
+
+/** The language the dictionaries explain words in (glossLanguage), named in the app's language. */
+const glossName = (): string => langName(langId() === 'en' ? 'zh' : 'en', glossLanguage());
 
 /** Tiny safe formatter for model output: paragraphs, "- " bullets and **bold**. No HTML is ever parsed. */
 export function renderRichText(text: string): HTMLElement {
@@ -166,28 +172,31 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
    * another language or provider, not another browser. Offline, the online ones say so rather than asking for a sign-in.
    */
   const unavailable = (id: TranslatorId, claude: ClaudeStatus | null = null): string => {
-    if (id === 'chrome') return chromeSupported() ? `Not available for ${chromePairName(to)}` : NOTES.chrome.no;
+    if (id === 'chrome') return chromeSupported() ? tt('Not available for {pair}', { pair: chromePairName(to) }) : tt(NOTES.chrome.no);
     const online = id === 'account' || id === 'mymemory' || id === 'claude';
-    if (online && typeof navigator !== 'undefined' && navigator.onLine === false) return 'You are offline';
-    if (online && ctx.settings.get().localOnly) return 'Local only is on';
-    if (id === 'account') return cloudSession() ? 'Used up for today' : NOTES.account.no;
+    if (online && typeof navigator !== 'undefined' && navigator.onLine === false) return tt('You are offline');
+    if (online && ctx.settings.get().localOnly) return tt('Local only is on');
+    if (id === 'account') return cloudSession() ? tt('Used up for today') : tt(NOTES.account.no);
     if (id === 'claude') {
       const account = !!cloudSession();
-      if (!hasClaudeRoute()) return 'Sign in, or connect this device to your Mac';
-      if (claude?.denied) return account ? 'This device is signed out' : 'Your Mac did not accept this device';
-      if (claude && !claude.reachable) return account ? 'The sync server did not answer' : 'Your Mac did not answer';
-      if (claude?.ownerOnly) return 'Only for the owner';
-      if (claude && !claude.configured) return 'No Claude key is set up';
-      if (claude?.limitMessage) return 'Today’s limit is used up';
+      if (!hasClaudeRoute()) return tt('Sign in, or connect this device to your Mac');
+      if (claude?.denied) return account ? tt('This device is signed out') : tt('Your Mac did not accept this device');
+      if (claude && !claude.reachable) return account ? tt('The sync server did not answer') : tt('Your Mac did not answer');
+      if (claude?.ownerOnly) return tt('Only for the owner');
+      if (claude && !claude.configured) return tt('No Claude key is set up');
+      if (claude?.limitMessage) return tt('Today’s limit is used up');
     }
-    return NOTES[id].no;
+    return tt(NOTES[id].no);
   };
   /** The note under an available translator: Claude goes through the account when signed in. */
-  const ready = (id: TranslatorId): string => (id === 'claude' && cloudSession() ? 'Through your account' : NOTES[id].yes);
+  const ready = (id: TranslatorId): string => (id === 'claude' && cloudSession() ? tt('Through your account') : tt(NOTES[id].yes));
   /** Claude's last known status, for a note: cached by the availability check just made, so this asks nothing more. */
   const claudeNow = (): Promise<ClaudeStatus | null> => fetchClaudeStatus().catch(() => null);
   const label = h('span.pp-tr-provider');
-  const section = h('span.pp-section', null, into ? `${into.name} translation` : 'Translation');
+  /** "Spanish translation", or just "Translation" for English (the default, as before the choice). */
+  const heading = (t: { code: string; name: string } | undefined) =>
+    t ? tt('{language} translation', { language: langName(t.code, t.name) }) : tt('Translation');
+  const section = h('span.pp-section', null, heading(into ?? undefined));
   const body = h('div.pp-tr-body', { 'aria-live': 'polite', 'aria-atomic': 'false', 'aria-busy': 'false' });
   const actions = h('div.pp-tr-actions');
   const menuHost = h('div.pp-tr-menuhost');
@@ -223,24 +232,24 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     label.textContent = t ? t.label : '';
     // The gloss is English whatever the choice, so it is not called a Spanish translation.
     const lang = code === DEFAULT_TARGET ? undefined : targetLanguage(code);
-    section.textContent = lang && t?.id !== 'gloss' ? `${lang.name} translation` : 'Translation';
+    section.textContent = heading(t?.id !== 'gloss' ? lang : undefined);
   };
 
   function appendReferences(t: Translator): void {
     if (t.id === 'gloss') {
       // The dictionaries only give English, whatever language the reader translates into.
-      body.appendChild(h('p.pp-tr-note', null, into ? `A word-by-word gloss in ${glossLanguage()}, not a real translation. The first meanings may be wrong here.`
-        : 'A word-by-word gloss, not a real translation. The first meanings may be wrong here.'));
+      body.appendChild(h('p.pp-tr-note', null, into ? tt('A word-by-word gloss in {language}, not a real translation. The first meanings may be wrong here.', { language: glossName() })
+        : tt('A word-by-word gloss, not a real translation. The first meanings may be wrong here.')));
       return;
     }
-    body.appendChild(h('p.pp-tr-note', null, 'Machine translation. Check rare or odd words against the list below.'));
+    body.appendChild(h('p.pp-tr-note', null, tt('Machine translation. Check rare or odd words against the list below.')));
     const references = translationTerms(o.text, o.lexicon, ctx.dictSync(), { tagged: true });
     if (!references.length) return;
     const list = h('dl.pp-tr-references');
     for (const term of references) list.append(
       h('dt', null, h('span.zh', null, term.word), ' · ', term.pinyin.split(/\s+/).map(s => formatSyllable(s.toLowerCase(), ctx.settings.get().pinyinStyle)).join(' ')),
       h('dd', null, term.gloss));
-    body.appendChild(h('details.pp-tr-reference-box', null, h('summary', null, 'Check reference terms'), list));
+    body.appendChild(h('details.pp-tr-reference-box', null, h('summary', null, tt('Check reference terms')), list));
   }
 
   const showError = (message: string, retry: (() => void) | null, extra?: Node) => {
@@ -263,7 +272,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     setBusy(true);
     resultText = '';
     clear(body);
-    body.appendChild(h('div.pp-tr-loading', null, h('span.app-spinner'), mode === 'explain' ? 'Explaining…' : 'Translating…'));
+    body.appendChild(h('div.pp-tr-loading', null, h('span.app-spinner'), mode === 'explain' ? tt('Explaining…') : tt('Translating…')));
     renderActions(null);
     menuHost.hidden = true;
     changed();
@@ -289,7 +298,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     if (availability === 'no') {
       const claude = t.id === 'claude' ? await claudeNow() : null;
       if (mine !== seq) return;
-      showError(`${t.label} is not available. ${unavailable(t.id, claude)}.`, null);
+      showError(tt('{provider} is not available. {reason}.', { provider: t.label, reason: unavailable(t.id, claude) }), null);
       return;
     }
     if (availability === 'download') { showDownload(t as ChromeTranslator, mode, id === null, mine); return; }
@@ -323,16 +332,18 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
       setBusy(false);
       if (mode === 'translate') plainResult = { text: final, provider: t, into: answered };
       if (into && answered !== to) {
+        const got = targetLanguage(answered);
         body.appendChild(h('p.pp-tr-note', { 'data-other-language': '' },
-          `This answer is in ${targetLanguage(answered)?.name ?? 'English'}. The server that made it needs an update to translate into ${into.name}.`));
+          tt('This answer is in {answered}. The server that made it needs an update to translate into {language}.', {
+            answered: got ? langName(got.code, got.name) : langName('en', 'English'), language: langName(into.code, into.name) })));
       }
       // The checks could not confirm every detail: say so plainly instead of presenting a confident answer.
-      if (note) body.appendChild(h('p.pp-tr-note', { 'data-unverified': '' }, `Unverified: ${(note as TranslationNote).detail}. Check the reference words below.`));
+      if (note) body.appendChild(h('p.pp-tr-note', { 'data-unverified': '' }, tt('Unverified: {detail}. Check the reference words below.', { detail: (note as TranslationNote).detail })));
       appendReferences(t);
       renderActions(null);
     } catch (e) {
       if (mine !== seq || (e as { name?: string }).name === 'AbortError') return;
-      showError((e as Error).message || 'Translation failed.', () => void run(id, mode));
+      showError((e as Error).message || tt('Translation failed.'), () => void run(id, mode));
     }
   }
 
@@ -345,19 +356,18 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     resultText = '';
     el.classList.add('pp-tr-quiet');
     clear(body);
-    const settings = h('a.pp-tr-link', { href: '#/settings' }, 'Settings');
+    const settings = h('a.pp-tr-link', { href: '#/settings' }, tt('Settings'));
     const noTranslator = typeof (globalThis as { Translator?: unknown }).Translator === 'undefined';
     if (automatic && cloudBase() && !cloudSession() && !ctx.settings.get().localOnly) {
       // Accounts are by invite: sign-in is offered to someone who has one, never pitched to every visitor as open.
-      const signIn = h('button.pp-tr-link', { type: 'button', onclick: () => void import('../signIn').then((m) => m.openSignIn()) }, 'Sign in');
-      body.appendChild(h('p', null, 'This browser has no sentence translator. Word by word is below. Have an account? ', signIn, ' to translate whole sentences.'));
+      const signIn = h('button.pp-tr-link', { type: 'button', onclick: () => void import('../signIn').then((m) => m.openSignIn()) }, tt('Sign in'));
+      body.appendChild(h('p', null, withNodes(tt('This browser has no sentence translator. Word by word is below. Have an account? {signIn} to translate whole sentences.'), { signIn })));
     } else if (automatic) {
-      body.appendChild(h('p', null,
-        'No sentence translator is available right now. ',
-        noTranslator ? 'Safari and iPadOS have no on-device translator. ' : '',
-        'See ', settings, '.'));
+      body.appendChild(h('p', null, withNodes(noTranslator
+        ? tt('No sentence translator is available right now. Safari and iPadOS have no on-device translator. See {settings}.')
+        : tt('No sentence translator is available right now. See {settings}.'), { settings })));
     } else {
-      body.appendChild(h('p', null, 'Translation is set to word by word. Pick another below or in ', settings, '.'));
+      body.appendChild(h('p', null, withNodes(tt('Translation is set to word by word. Pick another below or in {settings}.'), { settings })));
     }
     renderActions(null);
     changed();
@@ -370,19 +380,19 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     const btn = h('button.btn.btn-primary.btn-sm', {
       onclick: async () => {
         btn.disabled = true;
-        status.textContent = 'Downloading…';
+        status.textContent = tt('Downloading…');
         try {
-          await t.prepare((f) => { status.textContent = `Downloading ${Math.round(f * 100)}%`; });
+          await t.prepare((f) => { status.textContent = tt('Downloading {percent}%', { percent: num(Math.round(f * 100)) }); });
           void run('chrome', mode);
         } catch (e) {
           btn.disabled = false;
-          status.textContent = (e as Error).message || 'Download failed.';
+          status.textContent = (e as Error).message || tt('Download failed.');
           changed();
         }
       },
-    }, icon('download'), 'Download on-device translation') as HTMLButtonElement;
+    }, icon('download'), tt('Download on-device translation')) as HTMLButtonElement;
     body.append(
-      h('p.pp-tr-note', null, 'Chrome can translate on this device without sending text anywhere. It needs a one-time model download.'),
+      h('p.pp-tr-note', null, tt('Chrome can translate on this device without sending text anywhere. It needs a one-time model download.')),
       h('div.pp-tr-dl', null, btn, status),
     );
     renderActions(null);
@@ -393,7 +403,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     void gloss.translate({ text: o.text, mode: 'translate' }).then((g) => {
       if (mine !== seq || destroyed || !g) return;
       resultText = g;
-      body.append(h('p.pp-tr-note', null, into ? `Word by word in ${glossLanguage()}, in the meantime:` : 'Word by word, in the meantime:'), h('div.pp-tr-text', null, g));
+      body.append(h('p.pp-tr-note', null, into ? tt('Word by word in {language}, in the meantime:', { language: glossName() }) : tt('Word by word, in the meantime:')), h('div.pp-tr-text', null, g));
       renderActions(retryAction);
       changed();
     }, () => { /* the gloss is a bonus */ });
@@ -406,24 +416,24 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     const hasClaude = claudeReadySync(ctx.settings.get());
     if (busy) {
       actions.appendChild(h('button.btn.btn-sm', {
-        'aria-label': lastMode === 'explain' ? 'Stop explanation' : 'Stop translation',
+        'aria-label': lastMode === 'explain' ? tt('Stop explanation') : tt('Stop translation'),
         onclick: () => {
           abort?.abort();
           seq++;
           setBusy(false);
           if (!resultText) clear(body);
-          body.appendChild(h('p.pp-tr-note', null, 'Stopped.'));
+          body.appendChild(h('p.pp-tr-note', null, tt('Stopped.')));
           renderActions(() => void run(current?.id ?? null, lastMode));
           changed();
         },
-      }, icon('stop'), 'Stop'));
+      }, icon('stop'), tt('Stop')));
     }
-    if (retry) actions.appendChild(h('button.btn.btn-sm', { onclick: retry }, icon('refresh'), 'Try again'));
+    if (retry) actions.appendChild(h('button.btn.btn-sm', { onclick: retry }, icon('refresh'), tt('Try again')));
     // Explained by whichever model translated it (the Mac's, or Qwen through the account), else Claude, else the Mac's model.
     const explainer = current?.id === 'local' || current?.id === 'account' ? current.id : hasClaude ? 'claude' : 'local';
     if (!busy && (hasClaude || localReady || current?.id === 'local' || current?.id === 'account') && lastMode === 'translate') {
-      actions.appendChild(h('button.btn.btn-sm', { onclick: () => void run(explainer, 'explain'), title: 'Translation plus notes on words and grammar' },
-        icon('sparkle'), 'Explain'));
+      actions.appendChild(h('button.btn.btn-sm', { onclick: () => void run(explainer, 'explain'), title: tt('Translation plus notes on words and grammar') },
+        icon('sparkle'), tt('Explain')));
     }
     if (lastMode === 'explain') {
       actions.appendChild(h('button.btn.btn-sm', { onclick: () => {
@@ -440,23 +450,23 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
         appendReferences(current);
         renderActions(null);
         changed();
-      } }, 'Plain translation'));
+      } }, tt('Plain translation')));
     }
     if (!busy && resultText.trim()) actions.appendChild(h('button.btn.btn-sm', {
       onclick: async () => {
-        try { await navigator.clipboard.writeText(resultText); ctx.toast('Translation copied'); }
-        catch { ctx.toast('Select the translation and use Copy.'); }
+        try { await navigator.clipboard.writeText(resultText); ctx.toast(tt('Translation copied')); }
+        catch { ctx.toast(tt('Select the translation and use Copy.')); }
       },
-    }, icon('copy'), 'Copy translation'));
+    }, icon('copy'), tt('Copy translation')));
     actions.appendChild(h('button.btn.btn-sm.btn-ghost', { onclick: () => void toggleMenu(), 'aria-haspopup': 'menu' },
-      'Try another provider', icon('chevronDown')));
+      tt('Try another provider'), icon('chevronDown')));
   }
 
   async function toggleMenu() {
     if (!menuHost.hidden && menuHost.childElementCount) { menuHost.hidden = true; changed(); return; }
     clear(menuHost);
     menuHost.hidden = false;
-    menuHost.appendChild(h('div.pp-muted', null, 'Checking…'));
+    menuHost.appendChild(h('div.pp-muted', null, tt('Checking…')));
     changed();
     const list = await listTranslators(settingsHere(), ctx.dictSync());
     const claude = await claudeNow();
@@ -472,7 +482,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     const menu = h('div.pp-menu', { role: 'menu' });
     for (const { translator, availability } of rows) {
       const note = availability === 'no' ? unavailable(translator.id, claude)
-        : availability === 'download' ? 'Needs a one-time download'
+        : availability === 'download' ? tt('Needs a one-time download')
         : ready(translator.id);
       const item = h('button.pp-menu-item', {
         role: 'menuitem',

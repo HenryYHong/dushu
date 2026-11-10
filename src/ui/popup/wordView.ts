@@ -11,7 +11,7 @@ import { h, clear } from '../dom';
 import { icon } from '../icons';
 import {
   codePointLabel, groupByReading, leadGloss, orderGroups, parseDefinition, plainDefinition, shortGloss, splitClassifiers, sameReading,
-  type Classifier, type ReadingGroup,
+  withNodes, type Classifier, type ReadingGroup,
 } from './defs';
 import type { PopupHost } from './host';
 import { addWordControl, bookCard, type BookCardEnv } from './bookCard';
@@ -23,6 +23,7 @@ import { properGroups } from '../../core/names';
 import type { WordPopupOptions } from './popup';
 import { entriesForReading } from '../../core/reading';
 import { headwordsFor, vocabItemFor } from './saveWord';
+import { tt, ttn } from '../../i18n';
 
 interface View {
   word: string;
@@ -111,7 +112,7 @@ export function mountWordView(
   // ---- small builders
 
   const glyphLink = (ch: string, v?: Partial<View>) =>
-    h('button.pp-glyph-link.zh', { onclick: () => push({ word: ch, ...v }), title: `Look up ${ch}` }, ch);
+    h('button.pp-glyph-link.zh', { onclick: () => push({ word: ch, ...v }), title: tt('Look up {word}', { word: ch }) }, ch);
 
   const refLink = (simp: string, pinyin: string) =>
     h('button.pp-xref', { onclick: () => push({ word: simp, reading: pinyin.toLowerCase() }) },
@@ -129,15 +130,19 @@ export function mountWordView(
     const band = (n: number) => (n >= 7 ? '7-9' : String(n));
     if (hsk.hsk3) {
       const easiest = dict.hsk(simp)?.hsk3;
-      const notes = [hsk.of ? `On the HSK list as ${hsk.of}` : '', easiest && easiest < hsk.hsk3 ? `Also HSK ${band(easiest)} in another reading` : ''];
-      return h('span.chip', { title: notes.filter(Boolean).join('. ') || null }, `HSK ${band(hsk.hsk3)}`);
+      const also = easiest && easiest < hsk.hsk3 ? band(easiest) : '';
+      // Each note alone, or both as one string, so a language words them together its own way.
+      const note = hsk.of && also ? tt('On the HSK list as {word}. Also HSK {level} in another reading', { word: hsk.of, level: also })
+        : hsk.of ? tt('On the HSK list as {word}', { word: hsk.of })
+        : also ? tt('Also HSK {level} in another reading', { level: also }) : null;
+      return h('span.chip', { title: note }, tt('HSK {level}', { level: band(hsk.hsk3) }));
     }
     const other = hsk.elsewhere?.[0];
     if (!other) return null;
     const style = ctx.settings.get().pinyinStyle;
     const said = other.pinyin.map((s) => formatSyllable(s.toLowerCase(), style)).join(style === 'zhuyin' ? ' ' : '');
-    return h('span.chip.pp-hsk-other', { title: `The HSK list has ${simp} as ${said} (level ${band(other.hsk3)}), not in this reading` },
-      `HSK ${band(other.hsk3)} as ${said}`);
+    return h('span.chip.pp-hsk-other', { title: tt('The HSK list has {word} as {reading} (level {level}), not in this reading', { word: simp, reading: said, level: band(other.hsk3) }) },
+      tt('HSK {level} as {reading}', { level: band(other.hsk3), reading: said }));
   }
 
   function renderDef(def: string): HTMLElement {
@@ -150,7 +155,7 @@ export function mountWordView(
   }
 
   function classifierLine(cls: Classifier[]): HTMLElement {
-    const line = h('p.pp-cl', null, h('span.pp-cl-label', null, 'Measure word'));
+    const line = h('p.pp-cl', null, h('span.pp-cl-label', null, tt('Measure word')));
     cls.forEach((c, i) => {
       if (i > 0) line.appendChild(document.createTextNode(','));
       line.append(' ', refLink(c.simp, c.pinyin));
@@ -169,7 +174,7 @@ export function mountWordView(
       const head = h('div.pp-reading-head');
       if (showPinyin) head.appendChild(pinyinSpans(ctx, splitSyllables(g.pinyin)));
       if (g.trad !== headTrad && g.trad !== g.simp) head.appendChild(h('span.pp-reading-trad.zh', null, g.trad));
-      if (inSentence) head.appendChild(h('span.chip.chip-accent', null, 'reading in this sentence'));
+      if (inSentence) head.appendChild(h('span.chip.chip-accent', null, tt('reading in this sentence')));
       block.appendChild(head);
     }
     if (rest.length) {
@@ -177,7 +182,8 @@ export function mountWordView(
       const list = h('ol.pp-defs', null, items.slice(0, DEF_LIMIT));
       block.appendChild(list);
       if (items.length > DEF_LIMIT) {
-        const more = h('button.pp-more-btn', { type: 'button', 'aria-expanded': 'false' }, `${items.length - DEF_LIMIT} more`) as HTMLButtonElement;
+        const hidden = items.length - DEF_LIMIT;
+        const more = h('button.pp-more-btn', { type: 'button', 'aria-expanded': 'false' }, ttn(hidden, '{n} more', '{n} more')) as HTMLButtonElement;
         more.addEventListener('click', () => {
           list.append(...items.slice(DEF_LIMIT));
           more.remove();
@@ -193,10 +199,10 @@ export function mountWordView(
   /** One character of a word as a compact chip: glyph, its reading, a few words of meaning. Opens the character. */
   function charCard(ch: string, syl: string, v: View): HTMLElement {
     const gloss = firstGloss(ch, syl);
-    return h('button.pp-card', { onclick: () => push(v), title: `Look up ${ch}` },
+    return h('button.pp-card', { onclick: () => push(v), title: tt('Look up {word}', { word: ch }) },
       h('span.pp-card-glyph.zh', null, ch),
       syl ? pinyinSpans(ctx, [syl]) : h('span.pp-py'),
-      h('span.pp-card-gloss', null, gloss || 'No definition'),
+      h('span.pp-card-gloss', null, gloss || tt('No definition')),
     );
   }
 
@@ -205,18 +211,22 @@ export function mountWordView(
     if (info.radical) {
       const r = info.radical;
       const shown = r.radicalChar || r.char;
-      const unified = r.char && r.char !== shown ? ` (${r.char})` : '';
-      rows.push(['Radical', h('span', null, h('span.zh', null, shown), `${unified}, no. ${r.num}, plus ${r.residual} stroke${r.residual === 1 ? '' : 's'}`)]);
+      const strokes = r.residual;
+      // The radical as written in the facts is an element (Chinese type); {radical} marks where it goes in the sentence.
+      const said = r.char && r.char !== shown
+        ? ttn(strokes, '{radical} ({char}), no. {num}, plus {n} stroke', '{radical} ({char}), no. {num}, plus {n} strokes', { char: r.char, num: r.num })
+        : ttn(strokes, '{radical}, no. {num}, plus {n} stroke', '{radical}, no. {num}, plus {n} strokes', { num: r.num });
+      rows.push([tt('Radical'), h('span', null, withNodes(said, { radical: h('span.zh', null, shown) }))]);
     }
-    if (info.strokes !== null) rows.push(['Strokes', String(info.strokes)]);
+    if (info.strokes !== null) rows.push([tt('Strokes'), String(info.strokes)]);
     const links = (label: string, chars: string[]) => {
       if (chars.length) rows.push([label, h('span.pp-glyphs', null, chars.map((c) => glyphLink(c, { prev: v.prev, next: v.next })))]);
     };
-    links('Simplified', info.simplified);
-    links('Traditional', info.traditional);
-    links('Variants', info.variants);
-    if (info.compatOf) rows.push(['Compatibility form of', glyphLink(info.compatOf)]);
-    rows.push(['Code point', `${codePointLabel(info.char)}, ${info.block}`]);
+    links(tt('Simplified'), info.simplified);
+    links(tt('Traditional'), info.traditional);
+    links(tt('Variants'), info.variants);
+    if (info.compatOf) rows.push([tt('Compatibility form of'), glyphLink(info.compatOf)]);
+    rows.push([tt('Code point'), `${codePointLabel(info.char)}, ${info.block}`]);
     const dl = h('dl.pp-facts');
     for (const [k, val] of rows) dl.append(h('dt', null, k), h('dd', null, val));
     return dl;
@@ -224,20 +234,20 @@ export function mountWordView(
 
   function sourceNote(info: CharInfo, hasCedict: boolean): HTMLElement | null {
     if (info.source === 'variant') {
-      return h('p.pp-note', null, 'This character has no entry of its own. The reading and meaning above come from a related character.');
+      return h('p.pp-note', null, tt('This character has no entry of its own. The reading and meaning above come from a related character.'));
     }
     if (info.source === 'none' && !hasCedict) {
-      return h('p.pp-note', null, 'This rare character has no reading or meaning in the dictionary. The facts below and the links at the bottom may help.');
+      return h('p.pp-note', null, tt('This rare character has no reading or meaning in the dictionary. The facts below and the links at the bottom may help.'));
     }
     if (hasCedict) return null;
     const from = info.source === 'wiktionary' ? 'Wiktionary' : info.source === 'cedict' ? 'CC-CEDICT' : 'Unihan';
-    return h('p.pp-note', null, `Not in the CC-CEDICT word list. Reading and meaning from ${from}.`);
+    return h('p.pp-note', null, tt('Not in the CC-CEDICT word list. Reading and meaning from {source}.', { source: from }));
   }
 
   function links(word: string): HTMLElement {
     const w = encodeURIComponent(word);
     const a = (href: string, text: string) => h('a', { href, target: '_blank', rel: 'noopener noreferrer' }, text, icon('external'));
-    return h('nav.pp-links', { 'aria-label': 'Other dictionaries' },
+    return h('nav.pp-links', { 'aria-label': tt('Other dictionaries') },
       a(`https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb=${w}`, 'MDBG'),
       a(`https://en.wiktionary.org/wiki/${w}`, 'Wiktionary'),
       a(`https://www.zdic.net/hans/${w}`, '汉典'),
@@ -292,39 +302,39 @@ export function mountWordView(
     const root = h('div.pp-word-view');
 
     // Header
-    const saveBtn = h('button.icon-btn.pp-save', { onclick: () => void toggleSave(v), title: 'Save word (S)', 'aria-label': 'Save word' });
-    const knownBtn = h('button.icon-btn.pp-known', { onclick: () => void toggleKnown(v), title: 'Mark as known (K)', 'aria-label': 'Mark as known' });
+    const saveBtn = h('button.icon-btn.pp-save', { onclick: () => void toggleSave(v), title: tt('Save word (S)'), 'aria-label': tt('Save word') });
+    const knownBtn = h('button.icon-btn.pp-known', { onclick: () => void toggleKnown(v), title: tt('Mark as known (K)'), 'aria-label': tt('Mark as known') });
     const sync = () => {
       const saved = store.vocab.has(simp) || store.vocab.has(v.word);
       saveBtn.replaceChildren(icon(saved ? 'starFill' : 'star'));
       saveBtn.setAttribute('aria-pressed', String(saved));
-      saveBtn.title = saved ? 'Remove from saved words (S)' : 'Save word (S)';
+      saveBtn.title = saved ? tt('Remove from saved words (S)') : tt('Save word (S)');
       const known = store.known.has(simp) || store.known.has(v.word);
       // Learned from reading (settings.autoKnown) rather than marked by hand: said so, and the button looks a little lighter.
       const learned = known && (store.known.isAuto(simp) || store.known.isAuto(v.word));
       knownBtn.replaceChildren(icon('checkCircle'));
       knownBtn.setAttribute('aria-pressed', String(known));
       knownBtn.classList.toggle('pp-learned', learned);
-      knownBtn.title = learned ? 'Learned from reading. Click to unmark (K)' : known ? 'Known. Click to unmark (K)' : 'Mark as known (K)';
-      knownBtn.setAttribute('aria-label', learned ? 'Known, learned from reading' : 'Mark as known');
+      knownBtn.title = learned ? tt('Learned from reading. Click to unmark (K)') : known ? tt('Known. Click to unmark (K)') : tt('Mark as known (K)');
+      knownBtn.setAttribute('aria-label', learned ? tt('Known, learned from reading') : tt('Mark as known'));
     };
     sync();
     refreshers.push(sync);
 
     const showBack = stack.length > 1 || !!o.onBack;
     const speakBtn = canSpeak()
-      ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement, v), title: 'Pronounce (P)', 'aria-label': 'Pronounce' }, icon('speaker'))
+      ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement, v), title: tt('Pronounce (P)'), 'aria-label': tt('Pronounce') }, icon('speaker'))
       : null;
-    const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('close'));
+    const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: tt('Close (Esc)'), 'aria-label': tt('Close') }, icon('close'));
     // The pencil: fix how the page cuts or reads this word (the reader's word, at the root of the card).
     const target = o.fix?.target;
     const fixBtn = target && stack.length === 1 && /\p{Script=Han}/u.test(v.word)
-      ? h('button.icon-btn.pp-fix-btn', { type: 'button', title: 'Fix this word', 'aria-label': 'Fix this word',
+      ? h('button.icon-btn.pp-fix-btn', { type: 'button', title: tt('Fix this word'), 'aria-label': tt('Fix this word'),
         onclick: () => mountFixView(host, ctx, dict, { fixer: o.fix!.fixer, target }, () => show()) }, icon('pen'))
       : null;
     // Translate sits beside Pronounce, Save and Known so it is found on a page of dense text, in a sheet or a card.
     const translateBtn = o.context?.sentence && stack.length === 1
-      ? h('button.icon-btn.pp-translate', { type: 'button', title: 'Translate sentence', 'aria-label': 'Translate sentence',
+      ? h('button.icon-btn.pp-translate', { type: 'button', title: tt('Translate sentence'), 'aria-label': tt('Translate sentence'),
         onclick: (e: Event) => openPhrase(o.context!.sentence, (e.currentTarget as HTMLElement).getBoundingClientRect(), o.context?.paragraph ?? o.context!.sentence) },
       icon('translate'))
       : null;
@@ -332,7 +342,7 @@ export function mountWordView(
     // The headword is spelled the way the book spells it; the other script is the small one beside it.
     const otherForm = !single ? (v.word === simp ? (trad && trad !== simp ? trad : '') : (simp && simp !== v.word ? simp : '')) : '';
     root.appendChild(h('header.pp-head', null,
-      showBack ? h('button.icon-btn.pp-back', { onclick: back, title: 'Back', 'aria-label': 'Back' }, icon('arrowLeft')) : null,
+      showBack ? h('button.icon-btn.pp-back', { onclick: back, title: tt('Back'), 'aria-label': tt('Back') }, icon('arrowLeft')) : null,
       h('div.pp-title', null,
         h(`span.pp-word.zh${fixBtn && [...v.word].length === 3 ? '.pp-word-3' : fixBtn && [...v.word].length > 3 ? '.pp-word-4' : ''}`, null, v.word),
         otherForm ? h('span.pp-trad.zh', null, otherForm) : null,
@@ -354,7 +364,7 @@ export function mountWordView(
       const known = entries.length > 0;
       const toSimp = v.word !== simp;
       const forms = known ? (matched ? others : []) : (toSimp ? [simp] : info?.traditional.length ? info.traditional : info?.simplified ?? []);
-      const label = known ? (toSimp ? 'Simplified' : 'Traditional') : (toSimp || (!info?.traditional.length && info?.simplified.length) ? 'Simplified' : 'Traditional');
+      const label = known ? (toSimp ? tt('Simplified') : tt('Traditional')) : (toSimp || (!info?.traditional.length && info?.simplified.length) ? tt('Simplified') : tt('Traditional'));
       if (forms.length) pyLine.appendChild(h('span.pp-trad-note', null, label + ' ', h('span.zh', null, forms.join(' '))));
     }
     root.appendChild(pyLine);
@@ -374,19 +384,19 @@ export function mountWordView(
     // The dictionary meanings are what the card is for, so they come first. The context tools wait below them.
     const contextTools: HTMLElement[] = [];
     if (contextual) contextTools.push(h('section.pp-context', null,
-      h('span.pp-section', null, 'In this sentence'), h('strong', null, contextual.meaning), h('p.pp-muted', null, contextual.reason)));
+      h('span.pp-section', null, tt('In this sentence')), h('strong', null, contextual.meaning), h('p.pp-muted', null, contextual.reason)));
 
     // A local model on the Mac can suggest a contextual sense, but the dictionary stays visible for checking it. It is offered
     // once the Mac answers with its model, so a device away from the Mac (Tailscale off, the Mac asleep) is not offered it.
     if (!contextual && hasTargetContext && o.context?.sentence && o.context.paragraph && hasMacBridge()) {
       if (senses.length) {
         const result = h('div.pp-context-result');
-        const btn = h('button.btn.btn-sm', { type: 'button' }, icon('sparkle'), 'Ask local AI about context') as HTMLButtonElement;
+        const btn = h('button.btn.btn-sm', { type: 'button' }, icon('sparkle'), tt('Ask local AI about context')) as HTMLButtonElement;
         btn.addEventListener('click', async () => {
           meaningCtl?.abort();
           const ctl = (meaningCtl = new AbortController());
           btn.disabled = true;
-          result.replaceChildren(h('span.app-spinner'), ' Checking with your Mac…');
+          result.replaceChildren(h('span.app-spinner'), ' ' + tt('Checking with your Mac…'));
           host.reposition();
           try {
             const suggestion = await suggestMeaning(v.word, o.context!.sentence, o.context!.paragraph!, senses, ctl.signal);
@@ -395,18 +405,18 @@ export function mountWordView(
               h('strong', null, suggestion.meaning),
               // The English rationale can invent subjects. Show the exact dictionary sense
               // and checked source quote, not a second, unverifiable AI paraphrase.
-              ...(suggestion.evidence ? [h('p.pp-muted.zh', null, `Context clue: “${suggestion.evidence}”`)] : []),
-              h('p.pp-muted', null, suggestion.confidence === 'medium' ? 'A guess by the AI. Check it against the passage.' : 'Suggested by the AI, not taken from the dictionary.'),
+              ...(suggestion.evidence ? [h('p.pp-muted.zh', null, tt('Context clue: “{quote}”', { quote: suggestion.evidence }))] : []),
+              h('p.pp-muted', null, suggestion.confidence === 'medium' ? tt('A guess by the AI. Check it against the passage.') : tt('Suggested by the AI, not taken from the dictionary.')),
             );
           } catch (e) {
             if (ctl.signal.aborted) return;
-            result.textContent = e instanceof Error ? e.message : 'The local model could not answer.';
+            result.textContent = e instanceof Error ? e.message : tt('The local model could not answer.');
             btn.disabled = false;
           }
           host.reposition();
         });
         // The suggestion carries its own "AI suggestion" line once there is one; nothing is said before that.
-        const section = h('section.pp-context', { hidden: true }, h('span.pp-section', null, 'Context'), btn, result);
+        const section = h('section.pp-context', { hidden: true }, h('span.pp-section', null, tt('Context')), btn, result);
         contextTools.push(section);
         void qualityLocalAvailable().then((ok) => { if (ok && section.isConnected) { section.hidden = false; host.reposition(); } });
       }
@@ -423,7 +433,7 @@ export function mountWordView(
         const repeated = ordered.groups.length === 1 && sameReading(g.pinyin, syllables);
         body.appendChild(readingBlock(g, trad, flag && i === 0, !repeated));
       });
-      if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note', null, 'All the dictionary meanings, not just the one used here.'));
+      if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note', null, tt('All the dictionary meanings, not just the one used here.')));
     } else if (info) {
       const note = sourceNote(info, false);
       if (info.readings.length || info.definition) {
@@ -438,7 +448,7 @@ export function mountWordView(
       }
       if (note) body.appendChild(note);
     } else if (!single && !own) {
-      body.appendChild(h('p.pp-note', null, 'This combination is not in the dictionary as a word. Each character is shown below.'));
+      body.appendChild(h('p.pp-note', null, tt('This combination is not in the dictionary as a word. Each character is shown below.')));
       const add = env ? addWordControl(env, { word: v.word, pinyin: contextSyllables(v).join(' ') }) : null;
       if (add) body.appendChild(add);
     }
@@ -453,11 +463,11 @@ export function mountWordView(
       const sentence = o.context.sentence;
       readingActions.appendChild(h('button.btn.btn-sm', { type: 'button',
         onclick: (e: Event) => openPhrase(sentence, (e.currentTarget as HTMLElement).getBoundingClientRect(), o.context?.paragraph ?? sentence),
-      }, icon('translate'), 'Translate sentence'));
+      }, icon('translate'), tt('Translate sentence')));
     }
     if (stack.length === 1 && o.onReadFromHere && canSpeak()) readingActions.appendChild(h('span.pp-read-from', null,
-      h('button.btn.btn-sm', { type: 'button', title: 'Start at this word and continue to the end of the chapter',
-        onclick: () => { host.close(); o.onReadFromHere!(); } }, icon('play'), 'Read from here')));
+      h('button.btn.btn-sm', { type: 'button', title: tt('Start at this word and continue to the end of the chapter'),
+        onclick: () => { host.close(); o.onReadFromHere!(); } }, icon('play'), tt('Read from here'))));
     if (readingActions.childElementCount) body.appendChild(readingActions);
     body.append(...contextTools);
 
@@ -471,12 +481,12 @@ export function mountWordView(
         const syl = py[i] || (dict.char(ch)?.readings[0] ? markedToNumbered(dict.char(ch)!.readings[0]) : '');
         cards.appendChild(charCard(ch, syl, { word: ch, prev: i > 0 ? codePoints[i - 1] : v.prev, next: i < codePoints.length - 1 ? codePoints[i + 1] : v.next }));
       });
-      body.appendChild(h('section.pp-chars', null, h('span.pp-section', null, 'Characters'), cards));
+      body.appendChild(h('section.pp-chars', null, h('span.pp-section', null, tt('Characters')), cards));
     }
 
     // Single-character facts and stroke order
     if (single && info) {
-      body.appendChild(h('section.pp-char-facts', null, h('span.pp-section', null, 'Character'), facts(info, v)));
+      body.appendChild(h('section.pp-char-facts', null, h('span.pp-section', null, tt('Character')), facts(info, v)));
       body.appendChild(createStrokeOrder(v.word, () => host.reposition()));
     }
 
@@ -488,17 +498,17 @@ export function mountWordView(
     if (atRoot && (o.onStep || o.onResize)) {
       const seg = (label: string, title: string, run: () => void, lead: Node | null, trail: Node | null) =>
         h('button.pp-seg-btn', { type: 'button', onclick: run, title }, lead, h('span', null, label), trail);
-      const tools = h('div.pp-tools.pp-seg', { role: 'group', 'aria-label': 'Move or resize the selection' });
+      const tools = h('div.pp-tools.pp-seg', { role: 'group', 'aria-label': tt('Move or resize the selection') });
       if (o.onStep) {
         tools.append(
-          seg('Prev', 'Previous word (Left arrow)', () => o.onStep!(-1), icon('chevronLeft'), null),
-          seg('Next', 'Next word (Right arrow)', () => o.onStep!(1), null, icon('chevronRight')),
+          seg(tt('Prev'), tt('Previous word (Left arrow)'), () => o.onStep!(-1), icon('chevronLeft'), null),
+          seg(tt('Next'), tt('Next word (Right arrow)'), () => o.onStep!(1), null, icon('chevronRight')),
         );
       }
       if (o.onResize) {
         tools.append(
-          seg('Shorter', 'Shorter (Shift+Left)', () => o.onResize!(-1), icon('minus'), null),
-          seg('Longer', 'Longer (Shift+Right)', () => o.onResize!(1), icon('plus'), null),
+          seg(tt('Shorter'), tt('Shorter (Shift+Left)'), () => o.onResize!(-1), icon('minus'), null),
+          seg(tt('Longer'), tt('Longer (Shift+Right)'), () => o.onResize!(1), icon('plus'), null),
         );
       }
       foot.appendChild(tools);

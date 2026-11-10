@@ -11,6 +11,7 @@ import { icon } from '../icons';
 import { leadGloss } from './defs';
 import type { PopupHost } from './host';
 import { pinyinSpans } from './pinyinText';
+import { tt, ttm, ttn } from '../../i18n';
 
 /** A word on the page: as the book spells it (`word`), as the page shows it, and the reading shown. */
 export interface FixPiece { word: string; shown: string; pinyin: string[] }
@@ -41,9 +42,30 @@ export interface Fixer {
 export interface FixEnv { fixer: Fixer; target: FixTarget }
 
 type Role = LexiconEntry['kind'];
-const ROLE_NAME: Record<Role, string> = { name: 'a person', place: 'a place', term: 'a name', user: 'one word' };
+/** A kind of name: a person, a place or another name. */
+type NameRole = Exclude<Role, 'user'>;
 const cp = (s: string) => [...s];
-const places = (n: number) => `${n.toLocaleString('en-US')} place${n === 1 ? '' : 's'}`;
+
+/** The toast for a word joined and marked as a name, here or in the whole book: one whole sentence for each kind and place. */
+const MARKED: Record<NameRole, { here: string; book: string }> = {
+  name: { here: ttm('{word} is marked as a person here.'), book: ttm('{word} is marked as a person in this book.') },
+  place: { here: ttm('{word} is marked as a place here.'), book: ttm('{word} is marked as a place in this book.') },
+  term: { here: ttm('{word} is marked as a name here.'), book: ttm('{word} is marked as a name in this book.') },
+};
+
+/** The toast for a word the name form marks in the book, with the places it is in when they were counted (`n`). */
+function markedSaid(role: NameRole, word: string, n: number): string {
+  if (role === 'place') {
+    return n ? ttn(n, '{word} is marked as a place ({n} place in the book).', '{word} is marked as a place ({n} places in the book).', { word })
+      : tt('{word} is marked as a place.', { word });
+  }
+  if (role === 'term') {
+    return n ? ttn(n, '{word} is marked as a name ({n} place in the book).', '{word} is marked as a name ({n} places in the book).', { word })
+      : tt('{word} is marked as a name.', { word });
+  }
+  return n ? ttn(n, '{word} is marked as a person ({n} place in the book).', '{word} is marked as a person ({n} places in the book).', { word })
+    : tt('{word} is marked as a person.', { word });
+}
 
 /**
  * Saves `fix` (or several, as one change) and says so with Undo (which puts back the fixes they replaced, or takes them away, and
@@ -53,12 +75,12 @@ export async function saveWithUndo(ctx: AppContext, fixer: Fixer, fix: Fix | Fix
   const list = Array.isArray(fix) ? fix : [fix];
   const was: (Fix | undefined)[] = [];
   try { for (const f of list) was.push(await fixer.save(f)); } catch (e) {
-    ctx.toast(e instanceof Error ? e.message : 'Could not save that.');
+    ctx.toast(e instanceof Error ? e.message : tt('Could not save that.'));
     return false;
   }
   ctx.toast(said, {
     ms: 7000,
-    action: { label: 'Undo', run: () => { onUndo?.(); void Promise.all(list.map((f, k) => { const w = was[k]; return w ? fixer.save(w) : fixer.remove(f.id); })).catch(() => {}); } },
+    action: { label: tt('Undo'), run: () => { onUndo?.(); void Promise.all(list.map((f, k) => { const w = was[k]; return w ? fixer.save(w) : fixer.remove(f.id); })).catch(() => {}); } },
   });
   return true;
 }
@@ -66,12 +88,17 @@ export async function saveWithUndo(ctx: AppContext, fixer: Fixer, fix: Fix | Fix
 /**
  * The two scope buttons; the second learns its count of places when the book has been counted. `upTo`: the count is of the word in
  * the text, and the fix acts only where the page shows the word whole (掌柜 inside 掌柜的 stays), so it is said as "up to".
+ * `mark`: the second button marks a name in the book (Mark in this book) rather than fixing it everywhere.
  */
-function scopeButtons(fixer: Fixer, word: string, o: { here: boolean; hereLabel?: string; everyLabel?: string; upTo?: boolean }, go: (where: 'here' | 'book') => void): { el: HTMLElement; enable(on: boolean): void } {
-  const every = o.everyLabel ?? 'Everywhere in this book';
+function scopeButtons(fixer: Fixer, word: string, o: { here: boolean; mark?: boolean; upTo?: boolean }, go: (where: 'here' | 'book') => void): { el: HTMLElement; enable(on: boolean): void } {
+  const every = o.mark ? tt('Mark in this book') : tt('Everywhere in this book');
+  // With its count, each label is one whole string: where the number goes differs between languages.
+  const counted = (n: number) => o.mark ? ttn(n, 'Mark in this book ({n} place)', 'Mark in this book ({n} places)')
+    : o.upTo && n > 1 ? ttn(n, 'Everywhere in this book (up to {n} place)', 'Everywhere in this book (up to {n} places)')
+    : ttn(n, 'Everywhere in this book ({n} place)', 'Everywhere in this book ({n} places)');
   const bookBtn = h('button.btn.pp-fix-go', { type: 'button', onclick: () => go('book') }, every) as HTMLButtonElement;
-  const hereBtn = o.here ? h('button.btn.pp-fix-go', { type: 'button', onclick: () => go('here') }, o.hereLabel ?? 'Here only') as HTMLButtonElement : null;
-  void fixer.places(word).then((n) => { if (n > 0) bookBtn.textContent = `${every} (${o.upTo && n > 1 ? 'up to ' : ''}${places(n)})`; }, () => {});
+  const hereBtn = o.here ? h('button.btn.pp-fix-go', { type: 'button', onclick: () => go('here') }, tt('Here only')) as HTMLButtonElement : null;
+  void fixer.places(word).then((n) => { if (n > 0) bookBtn.textContent = counted(n); }, () => {});
   return {
     el: h('div.pp-fix-scope', null, hereBtn, bookBtn),
     enable(on) { bookBtn.disabled = !on; if (hereBtn) hereBtn.disabled = !on; },
@@ -122,16 +149,21 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
   // ---- what is fixed already: this word everywhere, or this place
   const mine = fixer.fixes().filter((f) => f.book !== '*' && f.kind !== 'spelling'
     && (f.at ? !!t.at && f.at.chapter === t.at.chapter && f.at.block === t.at.block && f.at.offset <= t.at.offset && f.at.offset + f.word.length >= t.at.offset + t.word.length : f.word === t.word));
-  const KIND_SAID: Record<Fix['kind'], string> = { word: 'Joined', unword: 'Not a word', cut: 'Split', reading: 'Reading', spelling: 'Spelling' };
+  const KIND_SAID: Record<Fix['kind'], string> = { word: tt('Joined'), unword: tt('Not a word'), cut: tt('Split'), reading: tt('Reading'), spelling: tt('Spelling') };
+  /** What a correction is and where it holds (Person, here; Split, everywhere). */
+  const haveSaid = (f: Fix) => {
+    const kind = f.kind === 'word' && f.role && f.role !== 'user' ? (f.role === 'name' ? tt('Person') : f.role === 'place' ? tt('Place') : tt('Name')) : KIND_SAID[f.kind];
+    return f.at ? tt('{kind}, here', { kind }) : tt('{kind}, everywhere', { kind });
+  };
   const already = mine.length ? h('section.pp-fix-have', null,
-    h('span.pp-section', null, 'Your corrections'),
+    h('span.pp-section', null, tt('Your corrections')),
     ...mine.map((f) => h('div.pp-fix-have-row', null,
       h('span.zh', null, f.word === t.word ? t.shown : f.word),
-      h('span.pp-muted', null, `${f.kind === 'word' && f.role && f.role !== 'user' ? (f.role === 'name' ? 'Person' : f.role === 'place' ? 'Place' : 'Name') : KIND_SAID[f.kind]}, ${f.at ? 'here' : 'everywhere'}`),
+      h('span.pp-muted', null, haveSaid(f)),
       h('button.btn.btn-sm.pp-fix-undo', { type: 'button', onclick: () => {
-        void fixer.remove(f.id).then(() => { host.close(); ctx.toast(`Your correction of ${f.word === t.word ? t.shown : f.word} is deleted.`, { ms: 7000, action: { label: 'Undo', run: () => { void fixer.save(f).catch(() => {}); } } }); },
-          (e) => ctx.toast(e instanceof Error ? e.message : 'Could not remove that.'));
-      } }, 'Remove')))) : null;
+        void fixer.remove(f.id).then(() => { host.close(); ctx.toast(tt('Your correction of {word} is deleted.', { word: f.word === t.word ? t.shown : f.word }), { ms: 7000, action: { label: tt('Undo'), run: () => { void fixer.save(f).catch(() => {}); } } }); },
+          (e) => ctx.toast(e instanceof Error ? e.message : tt('Could not remove that.')));
+      } }, tt('Remove'))))) : null;
 
   // ---- the sections; one is open at a time
   const sections: { row: HTMLButtonElement; panel: HTMLElement; build: () => HTMLElement }[] = [];
@@ -165,16 +197,17 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
 
   // Split: tap the gaps between the characters.
   if (n >= 2) {
-    section('Split', cp(t.shown).join(' | '), () => {
+    section(tt('Split'), cp(t.shown).join(' | '), () => {
       const chars = cp(t.shown);
       const cuts = new Set<number>();
       const preview = h('div.pp-fix-pieces');
-      const strip = h('div.pp-fix-strip.zh', { role: 'group', 'aria-label': 'Where to split' });
+      const strip = h('div.pp-fix-strip.zh', { role: 'group', 'aria-label': tt('Where to split') });
       const scope = scopeButtons(fixer, t.word, { here: !!t.at, upTo: true }, (where) => {
         const at = [...cuts].sort((a, b) => a - b);
         const pieces = cutWord(t.shown, at);
         void done(make({ kind: 'cut', word: t.word, cuts: at }, where, t.at),
-          where === 'here' ? `${t.shown} is split here: ${pieces.join(' ')}.` : `${t.shown} is split into ${pieces.join(' ')} everywhere in this book.`);
+          where === 'here' ? tt('{word} is split here: {pieces}.', { word: t.shown, pieces: pieces.join(' ') })
+            : tt('{word} is split into {pieces} everywhere in this book.', { word: t.shown, pieces: pieces.join(' ') }));
       });
       const paint = () => {
         preview.replaceChildren();
@@ -188,7 +221,7 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
       };
       chars.forEach((ch, i) => {
         if (i > 0) {
-          const gap = h('button.pp-fix-gap', { type: 'button', 'aria-pressed': 'false', 'aria-label': `Split before ${ch}` }, h('span.pp-fix-gap-line')) as HTMLButtonElement;
+          const gap = h('button.pp-fix-gap', { type: 'button', 'aria-pressed': 'false', 'aria-label': tt('Split before {char}', { char: ch }) }, h('span.pp-fix-gap-line')) as HTMLButtonElement;
           gap.addEventListener('click', () => {
             if (cuts.has(i)) cuts.delete(i); else cuts.add(i);
             gap.setAttribute('aria-pressed', String(cuts.has(i)));
@@ -199,7 +232,7 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
         strip.appendChild(h('span.pp-fix-ch', null, ch));
       });
       paint();
-      return h('div.pp-fix-body', null, h('p.pp-fix-help', null, 'Tap between the characters where the words end.'), strip, preview, scope.el);
+      return h('div.pp-fix-body', null, h('p.pp-fix-help', null, tt('Tap between the characters where the words end.')), strip, preview, scope.el);
     }, true);
   }
 
@@ -207,7 +240,7 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
   const joinSection = (side: 'prev' | 'next', other: FixPiece) => {
     const word = side === 'prev' ? other.word + t.word : t.word + other.word;
     const shown = side === 'prev' ? other.shown + t.shown : t.shown + other.shown;
-    section(side === 'prev' ? 'Join with previous' : 'Join with next', shown, () => {
+    section(side === 'prev' ? tt('Join with previous') : tt('Join with next'), shown, () => {
       const inDict = dict.hasWord(shown);
       const parts = side === 'prev' ? [...other.pinyin, ...t.pinyin] : [...t.pinyin, ...other.pinyin];
       let py = inDict ? dict.pinyinFor(shown, {}) : parts;
@@ -217,19 +250,19 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
       const paintPy = () => pyLine.replaceChildren(pinyinSpans(ctx, role === 'user' ? py : pinyinOf(word, role, dict).split(' '), { kind: role, word }));
       paintPy();
       const gloss = inDict ? glossOf(dict, shown, py) : '';
-      const meaning = h<'input'>('input.input', { type: 'text', autocomplete: 'off', placeholder: 'Optional', 'aria-label': 'Meaning' });
+      const meaning = h<'input'>('input.input', { type: 'text', autocomplete: 'off', placeholder: tt('Optional'), 'aria-label': tt('Meaning') });
       const scope = scopeButtons(fixer, word, { here: !!t.at, upTo: role === 'user' }, (where) => {
         const pinyin = role === 'user' ? py.join(' ') : pinyinOf(word, role, dict);
         const g = meaning.value.trim() || (role === 'user' ? gloss : '');
         void done(make({ kind: 'word', word, pinyin, role, ...(g ? { gloss: g } : {}) }, where, t.at ? joinedAnchor(t.at, side, other) : undefined),
           role === 'user'
-            ? (where === 'here' ? `${shown} is one word here.` : `${shown} is one word everywhere in this book.`)
-            : `${shown} is marked as ${ROLE_NAME[role]}${where === 'here' ? ' here' : ' in this book'}.`);
+            ? (where === 'here' ? tt('{word} is one word here.', { word: shown }) : tt('{word} is one word everywhere in this book.', { word: shown }))
+            : tt(MARKED[role][where], { word: shown }));
       });
       return h('div.pp-fix-body', null,
         h('div.pp-fix-joined', null, h('span.pp-word-big.zh', null, shown), pyLine),
-        gloss ? h('p.pp-fix-gloss', null, gloss) : field('Meaning', meaning),
-        chips<Role>('What it is', [['user', 'Word'], ['name', 'Person'], ['place', 'Place'], ['term', 'Other name']], role, (v) => { role = v; paintPy(); }),
+        gloss ? h('p.pp-fix-gloss', null, gloss) : field(tt('Meaning'), meaning),
+        chips<Role>(tt('What it is'), [['user', tt('Word')], ['name', tt('Person')], ['place', tt('Place')], ['term', tt('Other name')]], role, (v) => { role = v; paintPy(); }),
         scope.el);
     }, true);
   };
@@ -237,20 +270,21 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
   if (t.next) joinSection('next', t.next);
 
   // Reading: each character's readings as chips.
-  section('Reading', t.pinyin.map((s) => formatSyllable(s, style())).join(' '), () => {
+  section(tt('Reading'), t.pinyin.map((s) => formatSyllable(s, style())).join(' '), () => {
     const chosen = [...t.pinyin];
     const book = cp(t.word);
     const scope = scopeButtons(fixer, t.word, { here: !!t.at, upTo: true }, (where) => {
       const shown = chosen.map((s) => formatSyllable(s, 'marks')).join(' ');
       void done(make({ kind: 'reading', word: t.word, pinyin: chosen.join(' ') }, where, t.at),
-        where === 'here' ? `${t.shown} reads ${shown} here.` : `${t.shown} reads ${shown} everywhere in this book.`);
+        where === 'here' ? tt('{word} reads {reading} here.', { word: t.shown, reading: shown })
+          : tt('{word} reads {reading} everywhere in this book.', { word: t.shown, reading: shown }));
     });
     scope.enable(false);
     const grid = h('div.pp-fix-reads');
     cp(t.shown).forEach((ch, i) => {
       const options = readingsOf(dict, book[i] ?? ch, t.pinyin[i]);
       const row = h('div.pp-fix-read', null, h('span.pp-fix-ch.zh', null, ch));
-      const box = h('div.pp-fix-chips', { role: 'radiogroup', 'aria-label': `Reading of ${ch}` });
+      const box = h('div.pp-fix-chips', { role: 'radiogroup', 'aria-label': tt('Reading of {char}', { char: ch }) });
       const paint = () => box.querySelectorAll<HTMLElement>('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === chosen[i])));
       for (const syl of options) {
         box.appendChild(h('button.pp-fix-chip.pp-fix-chip-py', { type: 'button', role: 'radio', 'data-v': syl, onclick: () => {
@@ -268,13 +302,13 @@ export function mountFixView(host: PopupHost, ctx: AppContext, dict: Dictionary,
 
   // It's a name: a person, a place or another name, everywhere in the book. (One character alone is no word of the book: join it with
   // the character beside it instead.)
-  if (n >= 2) section("It's a name", 'Person, place or other', () => nameForm(ctx, dict, fixer, { word: t.word, shown: t.shown }, (fix, said) => void done(fix, said)));
+  if (n >= 2) section(tt("It's a name"), tt('Person, place or other'), () => nameForm(ctx, dict, fixer, { word: t.word, shown: t.shown }, (fix, said) => void done(fix, said)));
 
   host.content.replaceChildren(
     h('header.pp-head', null,
-      h('button.icon-btn.pp-back', { type: 'button', onclick: back, title: 'Back', 'aria-label': 'Back' }, icon('arrowLeft')),
-      h('div.pp-title', null, h('span.pp-kind', null, 'Fix'), h('span.pp-word.pp-fix-word.zh', null, t.shown)),
-      h('div.pp-head-actions', null, h('button.icon-btn.pp-close', { type: 'button', onclick: () => host.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('close')))),
+      h('button.icon-btn.pp-back', { type: 'button', onclick: back, title: tt('Back'), 'aria-label': tt('Back') }, icon('arrowLeft')),
+      h('div.pp-title', null, h('span.pp-kind', null, tt('Fix')), h('span.pp-word.pp-fix-word.zh', null, t.shown)),
+      h('div.pp-head-actions', null, h('button.icon-btn.pp-close', { type: 'button', onclick: () => host.close(), title: tt('Close (Esc)'), 'aria-label': tt('Close') }, icon('close')))),
     h('div.pp-body.pp-fix', null, already, list),
   );
   host.scroller.scrollTop = 0;
@@ -302,13 +336,13 @@ export function readingsOf(dict: Dictionary, ch: string, current?: string): stri
 
 /** The "It's a name" form: Person, Place or Other name, the pinyin to edit (surname readings and capitals), an optional meaning. */
 function nameForm(ctx: AppContext, dict: Dictionary, fixer: Fixer, w: { word: string; shown: string }, save: (fix: Fix, said: string) => void): HTMLElement {
-  let role: Role = 'name';
+  let role: NameRole = 'name';
   let edited = false;
-  const py = h<'input'>('input.input', { type: 'text', value: nameInput(dict, w.word, role), autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Pinyin' });
+  const py = h<'input'>('input.input', { type: 'text', value: nameInput(dict, w.word, role), autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false', 'aria-label': tt('Pinyin') });
   py.addEventListener('input', () => { edited = true; });
-  const meaning = h<'input'>('input.input', { type: 'text', autocomplete: 'off', placeholder: 'Optional', 'aria-label': 'Meaning' });
+  const meaning = h<'input'>('input.input', { type: 'text', autocomplete: 'off', placeholder: tt('Optional'), 'aria-label': tt('Meaning') });
   const err = h('p.pp-field-error', { role: 'alert' });
-  const scope = scopeButtons(fixer, w.word, { here: false, everyLabel: 'Mark in this book' }, () => {
+  const scope = scopeButtons(fixer, w.word, { here: false, mark: true }, () => {
     const parsed = parseEntryPinyin(py.value, w.word);
     if (!parsed) {
       err.textContent = entryPinyinProblem(py.value, w.word);
@@ -318,16 +352,16 @@ function nameForm(ctx: AppContext, dict: Dictionary, fixer: Fixer, w: { word: st
     void fixer.places(w.word).then((n) => {
       const g = meaning.value.trim();
       save(makeFix({ book: fixer.book.key, bookId: fixer.book.id, kind: 'word', word: w.word, pinyin: parsed, role, ...(g ? { gloss: g } : {}), ...(n ? { n } : {}) }),
-        `${w.shown} is marked as ${ROLE_NAME[role]}${n ? ` (${places(n)} in the book)` : ''}.`);
+        markedSaid(role, w.shown, n));
     }, () => {});
   });
   return h('div.pp-fix-body', null,
-    chips<Role>('What kind of name', [['name', 'Person'], ['place', 'Place'], ['term', 'Other name']], role, (v) => {
+    chips<NameRole>(tt('What kind of name'), [['name', tt('Person')], ['place', tt('Place')], ['term', tt('Other name')]], role, (v) => {
       role = v;
       if (!edited) py.value = nameInput(dict, w.word, role);
     }),
-    field('Pinyin', py, 'Capitals and tone marks are fine, or tone numbers like guo1 jing4'),
-    field('Meaning', meaning),
+    field(tt('Pinyin'), py, tt('Capitals and tone marks are fine, or tone numbers like guo1 jing4')),
+    field(tt('Meaning'), meaning),
     err,
     scope.el);
 }
@@ -355,14 +389,14 @@ export function phraseFixControls(ctx: AppContext, dict: Dictionary, host: Popup
   };
   const buttons = () => {
     root.replaceChildren(h('div.pp-fix-phrase-btns', null,
-      h('button.btn.btn-sm.pp-fix-open', { type: 'button', onclick: join, title: 'Read these characters as one word' }, icon('plus'), 'Join as one word…'),
-      h('button.btn.btn-sm.pp-fix-open', { type: 'button', onclick: name, title: 'This is the name of a person, a place or a thing' }, icon('user'), 'Mark as a name…')));
+      h('button.btn.btn-sm.pp-fix-open', { type: 'button', onclick: join, title: tt('Read these characters as one word') }, icon('plus'), tt('Join as one word…')),
+      h('button.btn.btn-sm.pp-fix-open', { type: 'button', onclick: name, title: tt('This is the name of a person, a place or a thing') }, icon('user'), tt('Mark as a name…'))));
     host.reposition();
   };
-  const cancel = h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: () => buttons() }, 'Cancel');
+  const cancel = h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: () => buttons() }, tt('Cancel'));
   function join() {
-    const py = h<'input'>('input.input', { type: 'text', value: t.pinyin.join(' '), autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Pinyin' });
-    const meaning = h<'input'>('input.input', { type: 'text', autocomplete: 'off', placeholder: 'Optional', 'aria-label': 'Meaning' });
+    const py = h<'input'>('input.input', { type: 'text', value: t.pinyin.join(' '), autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false', 'aria-label': tt('Pinyin') });
+    const meaning = h<'input'>('input.input', { type: 'text', autocomplete: 'off', placeholder: tt('Optional'), 'aria-label': tt('Meaning') });
     const err = h('p.pp-field-error', { role: 'alert' });
     const go = (where: 'here' | 'book' | 'all') => {
       const parsed = parseEntryPinyin(py.value, t.word);
@@ -374,17 +408,18 @@ export function phraseFixControls(ctx: AppContext, dict: Dictionary, host: Popup
       // Where the page cuts across the selection (酒店|里 for 店里), a word for the book only joins where the page shows its characters
       // as whole words: this place is joined too, so the page changes where the reader asked.
       const also = where !== 'here' && t.crosses && t.at ? [word({ book: fixer.book.key, bookId: fixer.book.id, at: t.at })] : [];
-      void done([fix, ...also], where === 'here' ? `${t.shown} is one word here.` : all ? `${t.shown} is one word in all your books.` : `${t.shown} is one word everywhere in this book.`);
+      void done([fix, ...also], where === 'here' ? tt('{word} is one word here.', { word: t.shown })
+        : all ? tt('{word} is one word in all your books.', { word: t.shown }) : tt('{word} is one word everywhere in this book.', { word: t.shown }));
     };
     const scope = scopeButtons(fixer, t.word, { here: !!t.at, upTo: true }, (where) => go(where));
     root.replaceChildren(h('form.pp-lex-form', { onsubmit: (e: Event) => { e.preventDefault(); go('book'); } },
       h('div.pp-word-line', null, h('span.pp-word-big.zh', null, t.shown)),
-      field('Pinyin', py, 'Tone numbers, like guo1 jing4'),
-      field('Meaning', meaning),
+      field(tt('Pinyin'), py, tt('Tone numbers, like guo1 jing4')),
+      field(tt('Meaning'), meaning),
       err,
       scope.el,
       h('div.pp-fix-scope', null,
-        h('button.btn.btn-ghost.pp-fix-go', { type: 'button', onclick: () => go('all') }, 'In all my books'),
+        h('button.btn.btn-ghost.pp-fix-go', { type: 'button', onclick: () => go('all') }, tt('In all my books')),
         cancel)));
     reveal();
   }

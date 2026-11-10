@@ -16,6 +16,7 @@ import { createTranslationPanel } from './translation';
 import { entriesForReading } from '../../core/reading';
 import { activeEngine, lang } from '../../lang/active';
 import { safeLookup, shortGlossOf } from '../../lang/words';
+import { tt, ttn } from '../../i18n';
 
 export interface PhraseView {
   onKey(e: KeyboardEvent): boolean;
@@ -71,7 +72,7 @@ export function mountPhraseView(
       ta.remove();
     }
     btn.classList.toggle('pp-on', ok);
-    ctx.toast(ok ? 'Copied' : 'Could not copy. Select the text and press Ctrl+C.', { ms: 1600 });
+    ctx.toast(ok ? tt('Copied') : tt('Could not copy. Select the text and press Ctrl+C.'), { ms: 1600 });
     setTimeout(() => btn.classList.remove('pp-on'), 1200);
   };
 
@@ -84,15 +85,17 @@ export function mountPhraseView(
   };
 
   const speakBtn = canSpeak()
-    ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement), title: 'Read aloud (P)', 'aria-label': 'Read aloud' }, icon('speaker'))
+    ? h('button.icon-btn.pp-speak', { onclick: (e: Event) => playToggle(e.currentTarget as HTMLElement), title: tt('Read aloud (P)'), 'aria-label': tt('Read aloud') }, icon('speaker'))
     : null;
-  const copyBtn = h('button.icon-btn.pp-copy', { onclick: (e: Event) => void copy(e.currentTarget as HTMLElement), title: 'Copy text', 'aria-label': 'Copy text' }, icon('copy'));
-  const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: 'Close (Esc)', 'aria-label': 'Close' }, icon('close'));
+  const copyBtn = h('button.icon-btn.pp-copy', { onclick: (e: Event) => void copy(e.currentTarget as HTMLElement), title: tt('Copy text'), 'aria-label': tt('Copy text') }, icon('copy'));
+  const closeBtn = h('button.icon-btn.pp-close', { onclick: () => host.close(), title: tt('Close (Esc)'), 'aria-label': tt('Close') }, icon('close'));
 
+  // A language with spaces counts words; Chinese and Japanese count characters.
+  const chars = [...o.text.replace(/\s/g, '')].length;
   const head = h('header.pp-head', null,
-    o.onBack ? h('button.icon-btn.pp-back', { onclick: () => o.onBack!(), title: 'Back', 'aria-label': 'Back' }, icon('arrowLeft')) : null,
-    h('div.pp-title', null, h('span.pp-kind', null, 'Phrase'), h('span.pp-muted', null, engine && L.spaced
-      ? `${rows.length} word${rows.length === 1 ? '' : 's'}` : `${[...o.text.replace(/\s/g, '')].length} characters`)),
+    o.onBack ? h('button.icon-btn.pp-back', { onclick: () => o.onBack!(), title: tt('Back'), 'aria-label': tt('Back') }, icon('arrowLeft')) : null,
+    h('div.pp-title', null, h('span.pp-kind', null, tt('Phrase')), h('span.pp-muted', null, engine && L.spaced
+      ? ttn(rows.length, '{n} word', '{n} words') : ttn(chars, '{n} characters', '{n} characters'))),
     h('div.pp-head-actions', null, speakBtn, copyBtn, closeBtn),
   );
 
@@ -110,7 +113,7 @@ export function mountPhraseView(
         list.appendChild(h('button.pp-wbw', { onclick: (e: Event) => openWord(r, (e.currentTarget as HTMLElement).getBoundingClientRect()) },
           h('span.pp-wbw-word', { lang: L.tag }, r.word),
           reading ? h('span.pp-py', { lang: L.tag }, reading) : h('span.pp-py'),
-          h('span.pp-wbw-gloss', null, shortGlossOf(lu.entries, 60) || (lu.name || r.token?.name ? 'name' : ''))));
+          h('span.pp-wbw-gloss', null, shortGlossOf(lu.entries, 60) || (lu.name || r.token?.name ? tt('name') : ''))));
         return;
       }
       const first = entriesForReading(dict.lookup(r.word), r.syllables, r.word, { prev: r.prev, next: r.next })[0];
@@ -132,7 +135,7 @@ export function mountPhraseView(
     });
     if (rows.length > upTo) {
       list.appendChild(h('button.btn.btn-sm.btn-ghost.pp-wbw-more', { onclick: () => { renderRows(rows.length); host.reposition(); } },
-        `Show all ${rows.length} words`));
+        ttn(rows.length, 'Show all {n} word', 'Show all {n} words')));
     }
   };
   renderRows(MAX_ROWS);
@@ -163,12 +166,12 @@ export function mountPhraseView(
       translation.el,
       textBox,
       o.onReadFromHere && canSpeak() ? h('div.pp-read-from', null,
-        h('button.btn.btn-sm', { type: 'button', title: 'Start at this selection and continue to the end of the chapter',
-          onclick: () => { host.close(); o.onReadFromHere!(); } }, icon('play'), 'Read from here')) : null,
+        h('button.btn.btn-sm', { type: 'button', title: tt('Start at this selection and continue to the end of the chapter'),
+          onclick: () => { host.close(); o.onReadFromHere!(); } }, icon('play'), tt('Read from here'))) : null,
       addWord,
       rows.length ? h('section.pp-wbw-sec', null,
-        h('span.pp-section', null, 'Word by word'),
-        h('p.pp-wbw-note.muted', null, 'The first dictionary meaning of each word, which may not be the one used here. Tap a word for all of them.'),
+        h('span.pp-section', null, tt('Word by word')),
+        h('p.pp-wbw-note.muted', null, tt('The first dictionary meaning of each word, which may not be the one used here. Tap a word for all of them.')),
         list) : null,
     ),
   );

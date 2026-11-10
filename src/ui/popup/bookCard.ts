@@ -6,6 +6,7 @@ import type { Fixer } from './fixView';
 import { pinyinSpans } from './pinyinText';
 import { h } from '../dom';
 import { icon } from '../icons';
+import { tt, ttm, ttn } from '../../i18n';
 
 export interface BookCardEnv {
   ctx: AppContext;
@@ -27,7 +28,7 @@ function wordFix(fixer: Fixer, entry: LexiconEntry, all = false) {
     ...(entry.enabled ? { pinyin: entry.pinyin, role: entry.kind, ...(entry.gloss ? { gloss: entry.gloss } : {}), ...(entry.count ? { n: entry.count } : {}) } : {}) });
 }
 
-const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: 'Person', place: 'Place', term: 'Term', user: 'Your word' };
+const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: ttm('Person'), place: ttm('Place'), term: ttm('Term'), user: ttm('Your word') };
 
 /** Numbered pinyin as colored spans in the user's style (a name or a place with capitals; `kind` says how, when not the entry's). */
 function pinyinLine(ctx: AppContext, entry: LexiconEntry, kind: LexiconEntry['kind'] = entry.kind): HTMLElement {
@@ -50,26 +51,26 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
   const draw = () => {
     root.replaceChildren(
       h('div.pp-book-head', null,
-        h('span.pp-section', null, 'In this book'),
+        h('span.pp-section', null, tt('In this book')),
         // (Corrections and the name check call it Other name, its pinyin with capitals: Sūn Bāyé.)
-        h('span.chip.chip-accent', null, markedOther(env, current) ? 'Other name' : KIND_LABEL[current.kind]),
-        current.count ? h('span.pp-muted', null, `${current.count.toLocaleString('en-US')} time${current.count === 1 ? '' : 's'}`) : null,
+        h('span.chip.chip-accent', null, markedOther(env, current) ? tt('Other name') : tt(KIND_LABEL[current.kind])),
+        current.count ? h('span.pp-muted', null, ttn(current.count, '{n} time', '{n} times')) : null,
       ),
       h('div.pp-book-main', null,
         current.pinyin ? pinyinLine(ctx, current, markedOther(env, current) ? 'name' : current.kind) : null,
         current.gloss ? h('span.pp-book-gloss', null, current.gloss) : null,
       ),
       h('div.pp-book-actions', null,
-        h('button.btn.btn-sm', { onclick: edit }, icon('pen'), 'Edit'),
-        h('button.btn.btn-sm.btn-ghost', { onclick: () => void reject(), title: 'This is not one word. Show it as separate words again.' }, 'Not a word'),
+        h('button.btn.btn-sm', { onclick: edit }, icon('pen'), tt('Edit')),
+        h('button.btn.btn-sm.btn-ghost', { onclick: () => void reject(), title: tt('This is not one word. Show it as separate words again.') }, tt('Not a word')),
       ),
     );
     env.reposition();
   };
 
   const edit = () => {
-    const py = h<'input'>('input.input', { type: 'text', value: current.pinyin, autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Pinyin' });
-    const gloss = h<'input'>('input.input', { type: 'text', value: current.gloss, autocomplete: 'off', 'aria-label': 'Meaning' });
+    const py = h<'input'>('input.input', { type: 'text', value: current.pinyin, autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false', 'aria-label': tt('Pinyin') });
+    const gloss = h<'input'>('input.input', { type: 'text', value: current.gloss, autocomplete: 'off', 'aria-label': tt('Meaning') });
     const err = h('p.pp-field-error', { role: 'alert' });
     const save = async () => {
       const parsed = parseEntryPinyin(py.value, current.word);
@@ -83,7 +84,7 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
         if (env.fixer) await env.fixer.save(wordFix(env.fixer, next));
         else await ctx.store.lexicon.upsert(env.bookId, next);
       } catch (e) {
-        err.textContent = e instanceof Error ? e.message : 'Could not save that.';
+        err.textContent = e instanceof Error ? e.message : tt('Could not save that.');
         env.reposition();
         return;
       }
@@ -92,15 +93,15 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
       draw();
     };
     const form = h('form.pp-lex-form', { onsubmit: (e: Event) => { e.preventDefault(); void save(); } },
-      field('Pinyin', py, 'Tone numbers, like guo1 jing4'),
-      field('Meaning', gloss),
+      field(tt('Pinyin'), py, tt('Tone numbers, like guo1 jing4')),
+      field(tt('Meaning'), gloss),
       err,
       h('div.pp-book-actions', null,
-        h('button.btn.btn-sm.btn-primary', { type: 'submit' }, 'Save'),
-        h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: draw }, 'Cancel'),
+        h('button.btn.btn-sm.btn-primary', { type: 'submit' }, tt('Save')),
+        h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: draw }, tt('Cancel')),
       ),
     );
-    root.replaceChildren(h('div.pp-book-head', null, h('span.pp-section', null, 'Edit entry')), form);
+    root.replaceChildren(h('div.pp-book-head', null, h('span.pp-section', null, tt('Edit entry'))), form);
     env.reposition();
     py.focus();
     py.select();
@@ -115,14 +116,14 @@ export function bookCard(env: BookCardEnv, entry: LexiconEntry): HTMLElement {
       if (fixer && fix) was = await fixer.save(fix);
       else await ctx.store.lexicon.upsert(env.bookId, off);
     } catch (e) {
-      ctx.toast(e instanceof Error ? e.message : 'Could not save that.');
+      ctx.toast(e instanceof Error ? e.message : tt('Could not save that.'));
       return;
     }
     env.onLexiconChange?.();
     env.close();
-    ctx.toast(`${current.word} is no longer treated as one word.`, {
+    ctx.toast(tt('{word} is no longer treated as one word.', { word: current.word }), {
       action: {
-        label: 'Undo',
+        label: tt('Undo'),
         run: () => {
           if (fixer && fix) void (was ? fixer.save(was) : fixer.remove(fix.id)).catch(() => {});
           else void ctx.store.lexicon.upsert(env.bookId, { ...current, enabled: true }).then(() => env.onLexiconChange?.());
@@ -149,15 +150,15 @@ export function addWordControl(env: BookCardEnv, o: AddWordOptions): HTMLElement
   if (env.lexicon?.has(o.word)) return null;
   const root = h('div.pp-addword');
   const showButton = () => {
-    root.replaceChildren(h('button.btn.btn-sm', { onclick: openForm, title: 'Treat this as one word in this book, with your own pinyin and meaning' }, icon('plus'), 'Add as a word…'));
+    root.replaceChildren(h('button.btn.btn-sm', { onclick: openForm, title: tt('Treat this as one word in this book, with your own pinyin and meaning') }, icon('plus'), tt('Add as a word…')));
     env.reposition();
   };
   const openForm = () => {
-    const py = h<'input'>('input.input', { type: 'text', value: o.pinyin ?? '', autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Pinyin' });
-    const gloss = h<'input'>('input.input', { type: 'text', autocomplete: 'off', placeholder: 'Optional', 'aria-label': 'Meaning' });
-    const scope = h<'select'>('select.select', { 'aria-label': 'Where to use it' },
-      h('option', { value: 'book' }, 'This book'),
-      h('option', { value: 'all' }, 'All books'),
+    const py = h<'input'>('input.input', { type: 'text', value: o.pinyin ?? '', autocapitalize: 'off', autocomplete: 'off', spellcheck: 'false', 'aria-label': tt('Pinyin') });
+    const gloss = h<'input'>('input.input', { type: 'text', autocomplete: 'off', placeholder: tt('Optional'), 'aria-label': tt('Meaning') });
+    const scope = h<'select'>('select.select', { 'aria-label': tt('Where to use it') },
+      h('option', { value: 'book' }, tt('This book')),
+      h('option', { value: 'all' }, tt('All books')),
     );
     const err = h('p.pp-field-error', { role: 'alert' });
     const save = async () => {
@@ -179,23 +180,23 @@ export function addWordControl(env: BookCardEnv, o: AddWordOptions): HTMLElement
           if (scope.value === 'all') await env.ctx.store.lexicon.upsert(env.bookId, entry);
         }
       } catch (e) {
-        err.textContent = e instanceof Error ? e.message : 'Could not save that.';
+        err.textContent = e instanceof Error ? e.message : tt('Could not save that.');
         env.reposition();
         return;
       }
       env.onLexiconChange?.();
       env.close();
-      env.ctx.toast(`${o.word} will now be read as one word.`, { ms: 3500 });
+      env.ctx.toast(tt('{word} will now be read as one word.', { word: o.word }), { ms: 3500 });
     };
     root.replaceChildren(h('form.pp-lex-form', { onsubmit: (e: Event) => { e.preventDefault(); void save(); } },
       h('div.pp-word-line', null, h('span.pp-word-big.zh', null, o.word)),
-      field('Pinyin', py, 'Tone numbers, like guo1 jing4'),
-      field('Meaning', gloss),
-      field('Use in', scope),
+      field(tt('Pinyin'), py, tt('Tone numbers, like guo1 jing4')),
+      field(tt('Meaning'), gloss),
+      field(tt('Use in'), scope),
       err,
       h('div.pp-book-actions', null,
-        h('button.btn.btn-sm.btn-primary', { type: 'submit' }, 'Add'),
-        h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: showButton }, 'Cancel'),
+        h('button.btn.btn-sm.btn-primary', { type: 'submit' }, tt('Add')),
+        h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: showButton }, tt('Cancel')),
       ),
     ));
     env.reposition();

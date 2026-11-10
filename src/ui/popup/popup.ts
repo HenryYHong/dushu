@@ -8,6 +8,7 @@ import { closeActivePopup, createHost } from './host';
 import { mountPhraseView } from './phraseView';
 import { mountWordView } from './wordView';
 import type { FixEnv, Fixer, FixTarget } from './fixView';
+import { tt } from '../../i18n';
 
 export interface WordContext { sentence: string; paragraph?: string; bookId?: string; bookTitle?: string; chapter?: number }
 
@@ -90,14 +91,14 @@ export interface PopupHandle { el: HTMLElement; close(): void }
 
 /** Stands in until the dictionary has loaded. */
 function loadingNote(): HTMLElement {
-  return h('div.pp-loading', null, h('span.app-spinner'), 'Loading the dictionary…');
+  return h('div.pp-loading', null, h('span.app-spinner'), tt('Loading the dictionary…'));
 }
 
 export function openWordPopup(o: WordPopupOptions): PopupHandle {
   let view: { onKey(e: KeyboardEvent): boolean; dispose(): void } | null = null;
   const host = createHost({
     kind: 'word',
-    label: `Word: ${o.word}`,
+    label: tt('Word: {word}', { word: o.word }),
     anchor: o.anchor,
     getAnchor: o.getAnchor,
     keepAnchorVisible: o.keepAnchorVisible,
@@ -132,7 +133,7 @@ export function openWordPopup(o: WordPopupOptions): PopupHandle {
     o.ctx.dict().then(start).catch(() => {
       if (host.closed) return;
       host.content.textContent = '';
-      host.content.appendChild(h('p.pp-note', null, 'The dictionary could not be loaded.'));
+      host.content.appendChild(h('p.pp-note', null, tt('The dictionary could not be loaded.')));
     });
   }
   return { el: host.el, close: () => host.close() };
@@ -142,7 +143,7 @@ export function openPhrasePopup(o: PhrasePopupOptions): PopupHandle {
   let view: { onKey(e: KeyboardEvent): boolean; dispose(): void } | null = null;
   const host = createHost({
     kind: 'phrase',
-    label: 'Phrase',
+    label: tt('Phrase'),
     anchor: o.anchor,
     getAnchor: o.getAnchor,
     keepAnchorVisible: o.keepAnchorVisible,
@@ -175,7 +176,7 @@ export function openPhrasePopup(o: PhrasePopupOptions): PopupHandle {
     o.ctx.dict().then(start).catch(() => {
       if (host.closed) return;
       host.content.textContent = '';
-      host.content.appendChild(h('p.pp-note', null, 'The dictionary could not be loaded.'));
+      host.content.appendChild(h('p.pp-note', null, tt('The dictionary could not be loaded.')));
     });
   }
   return { el: host.el, close: () => host.close() };

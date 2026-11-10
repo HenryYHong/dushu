@@ -1,5 +1,5 @@
 // Parsing CC-CEDICT definition text: cross-references ("瞭|了[liao3]"), classifier lines ("CL:個|个[ge4]"),
-// plain-text glosses, and grouping dictionary rows by reading.
+// plain-text glosses, and grouping dictionary rows by reading. Also the cards' sentences that hold an element (withNodes).
 import type { DictEntry } from '../../types';
 import { defWeakness, rankEntries, rankedDefs } from '../../core/reading';
 
@@ -152,6 +152,27 @@ export function orderGroups(groups: ReadingGroup[], inContext: string[]): { grou
   const i = groups.findIndex((g) => sameReading(g.pinyin, inContext));
   if (i <= 0) return { groups, matched: i === 0 };
   return { groups: [groups[i], ...groups.slice(0, i), ...groups.slice(i + 1)], matched: true };
+}
+
+type Part = Node | string | null;
+
+/**
+ * A sentence of the app (already through tt) with elements in it: each {name} that `nodes` has becomes that element (a button, a
+ * link, a word in the book's language), wherever the language put it. Other text stays as it is.
+ */
+export function withNodes(text: string, nodes: Record<string, Part | Part[]>): Part[] {
+  const out: Part[] = [];
+  let last = 0;
+  for (const m of text.matchAll(/\{(\w+)\}/g)) {
+    if (!Object.prototype.hasOwnProperty.call(nodes, m[1])) continue;
+    const at = m.index ?? 0;
+    if (at > last) out.push(text.slice(last, at));
+    const node = nodes[m[1]];
+    out.push(...(Array.isArray(node) ? node : [node]));
+    last = at + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
 }
 
 /** "U+20000" style code point label. */
