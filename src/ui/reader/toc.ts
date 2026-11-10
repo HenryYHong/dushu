@@ -11,6 +11,7 @@ import { icon } from '../icons';
 import { windowed } from './windowed';
 import { createWordsTab, type TocWords } from './wordsTab';
 import { lang } from '../../lang/active';
+import { tt, ttm, ttn, uiLocale } from '../../i18n';
 
 export type TocTab = 'chapters' | 'words' | 'names' | 'bookmarks';
 
@@ -84,14 +85,17 @@ export interface TocBookmarks {
 /** Book metadata may carry titles already (optional field); otherwise they are read from the chapters. */
 type MetaWithTitles = BookMeta & { chapterTitles?: string[] };
 
-const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: 'Person', place: 'Place', term: 'Term', user: 'Yours' };
+// The labels below are in English (ttm) and shown with tt().
+const KIND_LABEL: Record<LexiconEntry['kind'], string> = { name: ttm('Person'), place: ttm('Place'), term: ttm('Term'), user: ttm('Yours') };
 
 type FixSeg = 'names' | 'words' | 'readings';
-const SEG_LABEL: Record<FixSeg, string> = { names: 'Names', words: 'Words', readings: 'Readings' };
+const SEG_LABEL: Record<FixSeg, string> = { names: ttm('Names'), words: ttm('Words'), readings: ttm('Readings') };
+/** The same with how many rows each part has. */
+const SEG_COUNT: Record<FixSeg, string> = { names: ttm('Names {n}'), words: ttm('Words {n}'), readings: ttm('Readings {n}') };
 const EMPTY_SEG: Record<FixSeg, string> = {
-  names: 'No names yet. Tap a name in the text, then the pencil, and choose It\'s a name.',
-  words: 'No words fixed yet. Tap a word in the text, then the pencil, to split it or join it with a word beside it. Or select a few characters and choose Join as one word.',
-  readings: 'No readings fixed yet. Tap a word in the text, then the pencil, and choose Reading.',
+  names: ttm('No names yet. Tap a name in the text, then the pencil, and choose It\'s a name.'),
+  words: ttm('No words fixed yet. Tap a word in the text, then the pencil, to split it or join it with a word beside it. Or select a few characters and choose Join as one word.'),
+  readings: ttm('No readings fixed yet. Tap a word in the text, then the pencil, and choose Reading.'),
 };
 
 /** One row of the Corrections tab: a name or term found in the book, or one of the reader's fixes. */
@@ -127,6 +131,8 @@ const plainPinyin = (s: string) => s.normalize('NFD').replace(/[\u0300\u0301\u03
 
 export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: number) => void, names?: TocNames, opts: TocOptions = {}): TocDrawer {
   const text = (s: string): string => (opts.text ? opts.text(s) : s);
+  // The number as English always wrote it here (no thousands separator), in each language's form of the phrase.
+  const chapterCount = () => ttn(book.chapterCount, '{n} chapter', '{n} chapters', { n: book.chapterCount });
   /** A row's pinyin as the word card writes it (Xiàhóu Dūn, Táohuā Dǎo); a term stays lowercase. */
   const namePinyin = (entry: Pick<LexiconEntry, 'word' | 'pinyin' | 'kind'>, style: PinyinStyle): string => capitalizePinyin(
     entry.pinyin.split(/\s+/).filter(Boolean).map((s) => formatSyllable(s, style)), entry.kind, entry.word,
@@ -164,15 +170,16 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   const chapterRowH = coarse ? 50 : 44;
   const nameRowH = coarse ? 68 : 60;
 
-  const list = h('div.rd-toc-list', { role: 'list', 'aria-label': 'Chapters' });
-  const filter = h('input.input.rd-toc-filter', { type: 'search', placeholder: 'Filter chapters', 'aria-label': 'Filter chapters' }) as HTMLInputElement;
+  const list = h('div.rd-toc-list', { role: 'list', 'aria-label': tt('Chapters') });
+  const filter = h('input.input.rd-toc-filter', { type: 'search', placeholder: tt('Filter chapters'), 'aria-label': tt('Filter chapters') }) as HTMLInputElement;
   const fx = names?.fixes;
-  const nameFilter = h('input.input.rd-toc-filter', { type: 'search', placeholder: fx ? 'Filter corrections' : 'Filter names and terms', 'aria-label': fx ? 'Filter corrections' : 'Filter names and terms' }) as HTMLInputElement;
-  const nameList = h('div.rd-toc-list.rd-names', { role: 'list', 'aria-label': fx ? 'Corrections' : 'Names and terms' });
+  const nameFilterLabel = fx ? tt('Filter corrections') : tt('Filter names and terms');
+  const nameFilter = h('input.input.rd-toc-filter', { type: 'search', placeholder: nameFilterLabel, 'aria-label': nameFilterLabel }) as HTMLInputElement;
+  const nameList = h('div.rd-toc-list.rd-names', { role: 'list', 'aria-label': fx ? tt('Corrections') : tt('Names and terms') });
   // Corrections: Names, Words and Readings; the old spellings above them; Export and Import below.
   const segBtns = (['names', 'words', 'readings'] as FixSeg[]).map((k) => h('button.rd-fix-seg', { type: 'button', 'aria-pressed': 'false', 'data-seg': k,
-    onclick: () => { seg = k; segPicked = true; order = null; roveName = 0; paintNames(); } }, SEG_LABEL[k]) as HTMLButtonElement);
-  const segBar = fx ? h('div.rd-fix-segs', { role: 'group', 'aria-label': 'Kinds of corrections' }, ...segBtns) : null;
+    onclick: () => { seg = k; segPicked = true; order = null; roveName = 0; paintNames(); } }, tt(SEG_LABEL[k])) as HTMLButtonElement);
+  const segBar = fx ? h('div.rd-fix-segs', { role: 'group', 'aria-label': tt('Kinds of corrections') }, ...segBtns) : null;
   const spellBox = h('div.rd-fix-spell', { hidden: true });
   const fileIn = h('input', { type: 'file', accept: '.json,application/json', hidden: true, 'aria-hidden': 'true', tabindex: '-1' }) as HTMLInputElement;
   fileIn.addEventListener('change', () => {
@@ -181,28 +188,28 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (f && fx) void fx.importFile(f).then(() => loadNames());
   });
   const fixFoot = fx ? h('div.rd-fix-foot', null,
-    fx.checkNames ? h('button.btn.btn-sm.rd-fix-file.rd-fix-names', { type: 'button', onclick: () => fx.checkNames?.(), title: 'Strings this book repeats that may be names' }, icon('user'), 'Check names') : null,
-    h('button.btn.btn-sm.rd-fix-file', { type: 'button', onclick: () => void fx.exportFile() }, icon('download'), 'Export corrections'),
-    h('button.btn.btn-sm.rd-fix-file', { type: 'button', onclick: () => fileIn.click() }, icon('upload'), 'Import corrections'),
+    fx.checkNames ? h('button.btn.btn-sm.rd-fix-file.rd-fix-names', { type: 'button', onclick: () => fx.checkNames?.(), title: tt('Strings this book repeats that may be names') }, icon('user'), tt('Check names')) : null,
+    h('button.btn.btn-sm.rd-fix-file', { type: 'button', onclick: () => void fx.exportFile() }, icon('download'), tt('Export corrections')),
+    h('button.btn.btn-sm.rd-fix-file', { type: 'button', onclick: () => fileIn.click() }, icon('upload'), tt('Import corrections')),
     fileIn) : null;
   const status = h('div.rd-toc-status', { role: 'status' });
-  const tabChapters = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('chapters') }, 'Chapters') as HTMLButtonElement;
-  const tabWords = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('words') }, 'Words') as HTMLButtonElement;
-  const tabNames = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('names') }, fx ? 'Corrections' : 'Names') as HTMLButtonElement;
+  const tabChapters = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('chapters') }, tt('Chapters')) as HTMLButtonElement;
+  const tabWords = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('words') }, tt('Words')) as HTMLButtonElement;
+  const tabNames = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('names') }, fx ? tt('Corrections') : tt('Names')) as HTMLButtonElement;
   const marks = opts.bookmarks;
-  const tabMarks = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('bookmarks') }, 'Bookmarks') as HTMLButtonElement;
-  const markList = h('div.rd-toc-list.rd-marks', { role: 'list', 'aria-label': 'Bookmarks' });
-  const label = (i: number) => text(titles[i] || `Chapter ${i + 1}`);
+  const tabMarks = h('button.rd-toc-tab', { type: 'button', role: 'tab', onclick: () => setTab('bookmarks') }, tt('Bookmarks')) as HTMLButtonElement;
+  const markList = h('div.rd-toc-list.rd-marks', { role: 'list', 'aria-label': tt('Bookmarks') });
+  const label = (i: number) => text(titles[i] || tt('Chapter {n}', { n: i + 1 }));
   const words = opts.words
-    ? createWordsTab(ctx, book, opts.words, { text, rowH: nameRowH, chapterTitle: (i) => titles[i] || `Chapter ${i + 1}` })
+    ? createWordsTab(ctx, book, opts.words, { text, rowH: nameRowH, chapterTitle: (i) => titles[i] || tt('Chapter {n}', { n: i + 1 }) })
     : null;
   const tabs = names || words || marks
     ? h('div.rd-toc-tabs', { role: 'tablist' }, tabChapters, words ? tabWords : null, marks ? tabMarks : null, names ? tabNames : null)
     : null;
-  const closeBtn = h('button.icon-btn', { type: 'button', 'aria-label': 'Close chapters', onclick: () => close() }, icon('close'));
-  const panel = h('aside.rd-toc', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Chapters', tabindex: '-1' },
+  const closeBtn = h('button.icon-btn', { type: 'button', 'aria-label': tt('Close chapters'), onclick: () => close() }, icon('close'));
+  const panel = h('aside.rd-toc', { role: 'dialog', 'aria-modal': 'true', 'aria-label': tt('Chapters'), tabindex: '-1' },
     h('div.rd-toc-head', null,
-      h('div', null, h('div.rd-toc-book', null, text(book.title)), h('div.rd-toc-count', null, `${book.chapterCount} chapter${book.chapterCount === 1 ? '' : 's'}`)),
+      h('div', null, h('div.rd-toc-book', null, text(book.title)), h('div.rd-toc-count', null, chapterCount())),
       closeBtn),
     tabs,
     book.chapterCount > 12 ? filter : null,
@@ -245,7 +252,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     rove = Math.max(0, Math.min(rove, shown.length - 1));
     if (q === '' && at >= 0) rove = at;
     chapterWindow.set(shown.length, chapterRowH);
-    if (!shown.length) list.appendChild(h('div.rd-toc-none', null, 'No chapters match.'));
+    if (!shown.length) list.appendChild(h('div.rd-toc-none', null, tt('No chapters match.')));
   }
 
   // ------------------------------------------------------- corrections tab
@@ -255,7 +262,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     const r = shownNames[pos];
     const style = ctx.settings.get().pinyinStyle;
     const word = text(r.word);
-    const on = h('input.rd-sw-input', { type: 'checkbox', role: 'switch', 'aria-label': r.fix ? `Use your correction of ${word}` : `Use ${word} as a word` }) as HTMLInputElement;
+    const on = h('input.rd-sw-input', { type: 'checkbox', role: 'switch', 'aria-label': r.fix ? tt('Use your correction of {word}', { word }) : tt('Use {word} as a word', { word }) }) as HTMLInputElement;
     on.checked = r.on;
     on.addEventListener('change', async () => {
       on.disabled = true;
@@ -278,16 +285,16 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
         await fx.askAgain?.(r.word);
         buildRows();
         paintNames();
-        ctx.toast(`Check names may ask about ${word} again.`);
+        ctx.toast(tt('Check names may ask about {word} again.', { word }));
       };
       return h('div.rd-toc-row.rd-name', { role: 'listitem' }, main, h('span.rd-name-switch-none', { 'aria-hidden': 'true' }),
-        h('button.icon-btn.rd-fix-del', { type: 'button', 'aria-label': `Delete: ${word} is not a name`, title: 'Delete', onclick: () => void del() }, icon('trash')));
+        h('button.icon-btn.rd-fix-del', { type: 'button', 'aria-label': tt('Delete: {word} is not a name', { word }), title: tt('Delete'), onclick: () => void del() }, icon('trash')));
     }
     return h('div.rd-toc-row.rd-name', { role: 'listitem', 'data-off': r.on ? null : '' }, main,
-      h('label.rd-name-switch', { title: r.fix ? (r.on ? 'In use. Turn off to read the page without it.' : 'Not in use') : r.on ? 'Treated as a word. Turn off if this is not one.' : 'Not treated as a word' }, on,
+      h('label.rd-name-switch', { title: r.fix ? (r.on ? tt('In use. Turn off to read the page without it.') : tt('Not in use')) : r.on ? tt('Treated as a word. Turn off if this is not one.') : tt('Not treated as a word') }, on,
         h('span.rd-sw-track', null, h('span.rd-sw-thumb'))),
       fx ? (r.fix
-        ? h('button.icon-btn.rd-fix-del', { type: 'button', 'aria-label': `Delete your correction of ${word}`, title: 'Delete', onclick: () => void fx.remove(r.fix!) }, icon('trash'))
+        ? h('button.icon-btn.rd-fix-del', { type: 'button', 'aria-label': tt('Delete your correction of {word}', { word }), title: tt('Delete'), onclick: () => void fx.remove(r.fix!) }, icon('trash'))
         : h('span.rd-fix-del-none', { 'aria-hidden': 'true' })) : null);
   }
   const nameWindow = windowed(nameList, nameRow, () => roveName);
@@ -302,16 +309,16 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     const out: FixRow[] = [];
     for (const e of rows) {
       if (told.has(e.word)) continue;
-      out.push({ key: `e:${e.word}`, word: e.word, pinyin: e.pinyin, kind: e.kind, label: KIND_LABEL[e.kind], seg: e.kind === 'name' || e.kind === 'place' ? 'names' : 'words',
-        count: e.count, scope: e.origin === 'user' ? 'Yours' : 'Found', on: e.enabled && !unword.has(e.word), entry: e, gloss: e.gloss });
+      out.push({ key: `e:${e.word}`, word: e.word, pinyin: e.pinyin, kind: e.kind, label: tt(KIND_LABEL[e.kind]), seg: e.kind === 'name' || e.kind === 'place' ? 'names' : 'words',
+        count: e.count, scope: e.origin === 'user' ? tt('Yours') : tt('Found'), on: e.enabled && !unword.has(e.word), entry: e, gloss: e.gloss });
     }
     for (const f of fixes) {
       if (f.kind === 'spelling' || (f.kind === 'unword' && found.has(f.word) && everywhere(f))) continue;
       const role = f.role ?? 'user';
       const kind: LexiconEntry['kind'] = f.kind === 'word' ? role : 'term';
-      const scope = f.book === '*' ? 'All books' : f.at ? `Here, chapter ${f.at.chapter + 1}` : 'This book';
-      const label = f.kind === 'word' ? (role === 'user' ? 'Joined' : role === 'term' ? 'Other name' : KIND_LABEL[role]) : f.kind === 'cut' ? 'Split' : f.kind === 'reading' ? 'Reading' : 'Not a word';
-      const note = f.kind === 'cut' ? cutPreview(f, text(f.word)) : f.kind === 'unword' ? 'Not read as one word' : undefined;
+      const scope = f.book === '*' ? tt('All books') : f.at ? tt('Here, chapter {n}', { n: f.at.chapter + 1 }) : tt('This book');
+      const label = f.kind === 'word' ? (role === 'user' ? tt('Joined') : role === 'term' ? tt('Other name') : tt(KIND_LABEL[role])) : f.kind === 'cut' ? tt('Split') : f.kind === 'reading' ? tt('Reading') : tt('Not a word');
+      const note = f.kind === 'cut' ? cutPreview(f, text(f.word)) : f.kind === 'unword' ? tt('Not read as one word') : undefined;
       // A person, a place or an other name the reader marked is under Names, its pinyin with capitals (Xīyóushì'èchuán).
       const named = f.kind === 'word' && role !== 'user';
       out.push({ key: `f:${f.id}`, word: f.word, pinyin: f.kind === 'word' || f.kind === 'reading' ? f.pinyin ?? '' : '', kind, label, note,
@@ -321,7 +328,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     // (水生: a dictionary word said not to be a name changes nothing on the page; it is kept so the name check does not ask again.)
     for (const w of fx?.notNames?.() ?? []) {
       if (found.has(w) || out.some((r) => r.word === w)) continue;
-      out.push({ key: `n:${w}`, word: w, pinyin: '', kind: 'term', label: 'Not a name', note: 'Not asked about again', seg: 'words', scope: 'This book', on: true, gloss: '', notName: true });
+      out.push({ key: `n:${w}`, word: w, pinyin: '', kind: 'term', label: tt('Not a name'), note: tt('Not asked about again'), seg: 'words', scope: tt('This book'), on: true, gloss: '', notName: true });
     }
     fixRows = out;
     // Opened on a part with nothing in it while another has rows: the first part with rows, until the reader picks one.
@@ -339,7 +346,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       segBtns.forEach((b) => {
         const k = b.dataset.seg as FixSeg;
         b.setAttribute('aria-pressed', String(k === seg));
-        b.textContent = `${SEG_LABEL[k]} ${n(k)}`;
+        b.textContent = tt(SEG_COUNT[k], { n: n(k) });
       });
     }
     const pq = plainPinyin(q);
@@ -357,11 +364,11 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     nameList.querySelector('.rd-toc-none')?.remove();
     if (!shownNames.length) {
       nameList.appendChild(h('div.rd-toc-none', null,
-        fixRows.length && !fx ? 'Nothing matches.'
-          : !namesLoaded ? 'Loading names and terms…'
-            : fx && fixRows.length ? (q ? 'Nothing matches.' : EMPTY_SEG[seg])
-              : isDetecting(book.id) ? 'No names or terms found yet. Names of people and places in this book appear here once the book has been scanned.'
-                : fx ? EMPTY_SEG[seg] : 'No names or terms were found in this book.'));
+        fixRows.length && !fx ? tt('Nothing matches.')
+          : !namesLoaded ? tt('Loading names and terms…')
+            : fx && fixRows.length ? (q ? tt('Nothing matches.') : tt(EMPTY_SEG[seg]))
+              : isDetecting(book.id) ? tt('No names or terms found yet. Names of people and places in this book appear here once the book has been scanned.')
+                : fx ? tt(EMPTY_SEG[seg]) : tt('No names or terms were found in this book.')));
     }
     paintSpellings();
     // The places of a fix's word, counted in the book's text once (they show as the rows come back).
@@ -378,7 +385,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     const list = fx?.spellings?.() ?? [];
     spellBox.hidden = !list.length;
     if (!list.length) { spellBox.replaceChildren(); return; }
-    spellBox.replaceChildren(h('div.rd-fix-spell-title', null, 'Old spellings'), ...list.map((sw) => {
+    spellBox.replaceChildren(h('div.rd-fix-spell-title', null, tt('Old spellings')), ...list.map((sw) => {
       const input = h('input.rd-sw-input', { type: 'checkbox', role: 'switch', 'aria-label': sw.label }) as HTMLInputElement;
       input.checked = sw.on;
       input.addEventListener('change', async () => {
@@ -425,7 +432,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (fixFoot) fixFoot.hidden = !isNames;
     if (!isNames) spellBox.hidden = true;
     if (words) { words.head.hidden = !isWords; words.list.hidden = !isWords; words.setVisible(isWords && !root.hidden); }
-    panel.setAttribute('aria-label', isNames ? (fx ? 'Corrections' : 'Names and terms') : isWords ? 'Words in this chapter' : isMarks ? 'Bookmarks' : 'Chapters');
+    panel.setAttribute('aria-label', isNames ? (fx ? tt('Corrections') : tt('Names and terms')) : isWords ? tt('Words in this chapter') : isMarks ? tt('Bookmarks') : tt('Chapters'));
     if (isMarks) void paintMarks();
     else if (isNames) { paintNames(); void loadNames(); }
     else if (isWords) words!.show(currentIndex);
@@ -438,11 +445,11 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
       const need: number[] = [];
       for (let i = 0; i < book.chapterCount; i++) if (!titles[i]) need.push(i);
       if (!need.length) return;
-      status.textContent = 'Loading chapter titles…';
+      status.textContent = tt('Loading chapter titles…');
       for (let k = 0; k < need.length && !disposed; k += 20) {
         await Promise.all(need.slice(k, k + 20).map(async (i) => {
           const c = await ctx.store.books.chapter(book.id, i).catch(() => undefined);
-          titles[i] = c?.title?.trim() || `Chapter ${i + 1}`;
+          titles[i] = c?.title?.trim() || tt('Chapter {n}', { n: i + 1 });
         }));
         // Redraw the window in place: the row the reader is on keeps its focus.
         if (!root.hidden && tab === 'chapters') chapterWindow.repaint();
@@ -510,17 +517,17 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (tab !== 'bookmarks') return;
     clear(markList);
     if (!list.length) {
-      markList.appendChild(h('div.rd-toc-empty', null, 'No bookmarks yet. Tap the bookmark at the top of a page to keep your place there.'));
+      markList.appendChild(h('div.rd-toc-empty', null, tt('No bookmarks yet. Tap the bookmark at the top of a page to keep your place there.')));
       return;
     }
     for (const b of list) {
-      const date = new Date(b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const date = new Date(b.createdAt).toLocaleDateString(uiLocale(), { month: 'short', day: 'numeric' });
       markList.appendChild(h('div.rd-mark', { role: 'listitem' },
         h('button.rd-mark-go', { type: 'button', onclick: () => { close(); marks.pick(b); } },
           h('span.rd-mark-chapter', null, label(b.chapter)),
           h('span.rd-mark-label.zh', { lang: lang().tag }, text(b.label) || '…'),
           h('span.rd-mark-date', null, date)),
-        h('button.icon-btn.rd-mark-remove', { type: 'button', 'aria-label': `Remove the bookmark in ${label(b.chapter)}`, title: 'Remove',
+        h('button.icon-btn.rd-mark-remove', { type: 'button', 'aria-label': tt('Remove the bookmark in {chapter}', { chapter: label(b.chapter) }), title: tt('Remove'),
           onclick: () => { marks.remove(b); void paintMarks(); } }, icon('trash'))));
     }
   }

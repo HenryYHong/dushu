@@ -12,13 +12,14 @@ import { h } from '../dom';
 import { icon } from '../icons';
 import { saveWithUndo } from '../popup/fixView';
 import type { BookFixes } from './bookFixes';
+import { num, tt, ttm, ttn } from '../../i18n';
 
 /** What the book keeps of the name check: the card answered or not, the candidates found, the dictionary words said not to be
  * names (水生: "not one word" would not be true of them). */
 export type NameCheckState = NonNullable<BookMeta['nameCheck']>;
 
 type Role = 'name' | 'place' | 'term';
-const ROLE_LABEL: Record<Role, string> = { name: 'Person', place: 'Place', term: 'Other name' };
+const ROLE_LABEL: Record<Role, string> = { name: ttm('Person'), place: ttm('Place'), term: ttm('Other name') };
 const LONG_PRESS_MS = 500;
 
 export interface NameCheck {
@@ -47,7 +48,17 @@ async function chapterTexts(ctx: AppContext, book: BookMeta): Promise<string[]> 
   return out;
 }
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
+/** A chip's name for a screen reader: the word, how often the book has it (written as English always wrote it), and the answer so far. */
+function chipLabel(word: string, count: number, answer: Role | 'no' | ''): string {
+  const v = { word, n: count };
+  switch (answer) {
+    case 'name': return ttn(count, '{word}, {n} place, marked as person', '{word}, {n} places, marked as person', v);
+    case 'place': return ttn(count, '{word}, {n} place, marked as place', '{word}, {n} places, marked as place', v);
+    case 'term': return ttn(count, '{word}, {n} place, marked as other name', '{word}, {n} places, marked as other name', v);
+    case 'no': return ttn(count, '{word}, {n} place, not a name', '{word}, {n} places, not a name', v);
+    default: return ttn(count, '{word}, {n} place', '{word}, {n} places', v);
+  }
+}
 
 /**
  * The name check of the open book. `found` gives the book's names and terms as detection and the store have them (before the
@@ -105,20 +116,20 @@ export function createNameCheck(ctx: AppContext, book: BookMeta, dict: Dictionar
         const pick = picks.get(c.word)!;
         const word = shown(c.word);
         const label = h('span.rd-nc-kind');
-        const main = h('button.rd-nc-word', { type: 'button', 'aria-pressed': 'false', title: 'Tap if this is a name. Press and hold to choose what kind.' },
+        const main = h('button.rd-nc-word', { type: 'button', 'aria-pressed': 'false', title: tt('Tap if this is a name. Press and hold to choose what kind.') },
           h('span.rd-nc-check', { 'aria-hidden': 'true' }, icon('check')),
           h('span.rd-nc-text.zh', null, word),
-          h('span.rd-nc-count', null, `${c.count.toLocaleString('en-US')}×`), label) as HTMLButtonElement;
-        const kind = h('button.rd-nc-more', { type: 'button', 'aria-label': `What kind of name ${word} is`, 'aria-haspopup': 'menu', title: 'What kind of name' }, icon('chevronDown')) as HTMLButtonElement;
-        const no = h('button.rd-nc-no', { type: 'button', 'aria-pressed': 'false', 'aria-label': `${word} is not a name`, title: 'Not a name' }, icon('close')) as HTMLButtonElement;
+          h('span.rd-nc-count', null, `${num(c.count)}×`), label) as HTMLButtonElement;
+        const kind = h('button.rd-nc-more', { type: 'button', 'aria-label': tt('What kind of name {word} is', { word }), 'aria-haspopup': 'menu', title: tt('What kind of name') }, icon('chevronDown')) as HTMLButtonElement;
+        const no = h('button.rd-nc-no', { type: 'button', 'aria-pressed': 'false', 'aria-label': tt('{word} is not a name', { word }), title: tt('Not a name') }, icon('close')) as HTMLButtonElement;
         const el = h('div.rd-nc-chip', { role: 'group', 'aria-label': word }, main, kind, no);
         const paint = () => {
           el.dataset.state = pick.state;
           main.setAttribute('aria-pressed', String(pick.state === 'yes'));
           no.setAttribute('aria-pressed', String(pick.state === 'no'));
-          label.textContent = pick.state === 'yes' ? ROLE_LABEL[pick.role] : '';
+          label.textContent = pick.state === 'yes' ? tt(ROLE_LABEL[pick.role]) : '';
           kind.hidden = pick.state !== 'yes';
-          main.setAttribute('aria-label', `${word}, ${c.count} places${pick.state === 'yes' ? `, marked as ${ROLE_LABEL[pick.role].toLowerCase()}` : pick.state === 'no' ? ', not a name' : ''}`);
+          main.setAttribute('aria-label', chipLabel(word, c.count, pick.state === 'yes' ? pick.role : pick.state));
           paintDone();
         };
         const openMenu = (byPress = false) => {
@@ -126,10 +137,10 @@ export function createNameCheck(ctx: AppContext, book: BookMeta, dict: Dictionar
           pick.state = 'yes';
           paint();
           if (byPress) quietUntil = Date.now() + 1000;
-          menu = h('div.rd-nc-menu', { role: 'menu', 'aria-label': `${word} is` }, ...(['name', 'place', 'term'] as Role[]).map((r) =>
+          menu = h('div.rd-nc-menu', { role: 'menu', 'aria-label': tt('{word} is', { word }) }, ...(['name', 'place', 'term'] as Role[]).map((r) =>
             h('button.rd-nc-menu-item', { type: 'button', role: 'menuitemradio', 'aria-checked': String(r === pick.role), onclick: () => {
               pick.role = r; closeMenu(); paint(); kind.focus({ preventScroll: true });
-            } }, ROLE_LABEL[r])));
+            } }, tt(ROLE_LABEL[r]))));
           // A row of its own right after the chip, inside the card (a menu floating over it would run off a small card).
           menu.dataset.for = c.word;
           menu.addEventListener('keydown', (e) => {
@@ -184,20 +195,20 @@ export function createNameCheck(ctx: AppContext, book: BookMeta, dict: Dictionar
         return el;
       };
 
-      const doneBtn = h('button.btn.btn-sm.btn-primary.rd-nc-done', { type: 'button' }, 'Done') as HTMLButtonElement;
+      const doneBtn = h('button.btn.btn-sm.btn-primary.rd-nc-done', { type: 'button' }, tt('Done')) as HTMLButtonElement;
       function paintDone() {
         const n = [...picks.values()].filter((p) => p.state).length;
-        doneBtn.textContent = n ? 'Done' : 'Not now';
+        doneBtn.textContent = n ? tt('Done') : tt('Not now');
         doneBtn.classList.toggle('btn-primary', n > 0);
       }
-      const box = h('div.rd-coach.rd-name-ask', { role: 'dialog', 'aria-label': 'Names in this book?', 'data-rd-ui': '' },
+      const box = h('div.rd-coach.rd-name-ask', { role: 'dialog', 'aria-label': tt('Names in this book?'), 'data-rd-ui': '' },
         h('div.rd-nc-head', null,
           h('div', null,
-            h('p.rd-nc-title', null, 'Names in this book?'),
-            h('p.rd-nc-help', null, 'Tap the ones that are names. Tap × on any that are not.')),
-          h('button.icon-btn.rd-nc-close', { type: 'button', 'aria-label': 'Close', title: 'Close', onclick: () => finish(true) }, icon('close'))),
+            h('p.rd-nc-title', null, tt('Names in this book?')),
+            h('p.rd-nc-help', null, tt('Tap the ones that are names. Tap × on any that are not.'))),
+          h('button.icon-btn.rd-nc-close', { type: 'button', 'aria-label': tt('Close'), title: tt('Close'), onclick: () => finish(true) }, icon('close'))),
         h('div.rd-nc-chips', null, ...list.map(chip)),
-        h('div.rd-nc-foot', null, h('span.rd-nc-note', null, 'Change them later under Corrections.'), doneBtn));
+        h('div.rd-nc-foot', null, h('span.rd-nc-note', null, tt('Change them later under Corrections.')), doneBtn));
       doneBtn.addEventListener('click', () => finish(true));
       box.addEventListener('click', (e) => { if (Date.now() < quietUntil) { quietUntil = 0; e.stopPropagation(); e.preventDefault(); } }, true);
       paintDone();
@@ -236,13 +247,16 @@ export function createNameCheck(ctx: AppContext, book: BookMeta, dict: Dictionar
         await keep({ asked: true, no });
         if (!out.length && !newNo.length) return;
         const notNames = out.length - yes + newNo.length;
-        const said = yes
-          ? `Marked ${plural(yes, 'name')} (${plural(places, 'place')})${notNames ? `, and ${plural(notNames, 'word')} as not a name` : ''}.`
-          : `${plural(notNames, 'word')} marked as not a name.`;
+        // One sentence per shape; the other counts go in as whole phrases ("38 places", "1 word").
+        const where = { places: ttn(places, '{n} place', '{n} places') };
+        const said = yes && notNames
+          ? ttn(yes, 'Marked {n} name ({places}), and {words} as not a name.', 'Marked {n} names ({places}), and {words} as not a name.', { ...where, words: ttn(notNames, '{n} word', '{n} words') })
+          : yes ? ttn(yes, 'Marked {n} name ({places}).', 'Marked {n} names ({places}).', where)
+            : ttn(notNames, '{n} word marked as not a name.', '{n} words marked as not a name.');
         // (Undo also asks about the dictionary words again.)
         const undoNo = () => { if (newNo.length) void keep({ no: (state?.no ?? []).filter((w) => !newNo.includes(w)) }); };
         if (out.length) await saveWithUndo(ctx, fixes, out, said, undoNo);
-        else ctx.toast(said, { ms: 7000, action: { label: 'Undo', run: undoNo } });
+        else ctx.toast(said, { ms: 7000, action: { label: tt('Undo'), run: undoNo } });
       }
       card = box;
       closeCard = () => remove();

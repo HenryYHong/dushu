@@ -17,6 +17,7 @@ import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang, langId } from '../../lang/active';
 import { sliceRuby } from '../../import/aozora';
 import { verseLines } from './verse';
+import { tt } from '../../i18n';
 
 export interface BlockState {
   index: number;
@@ -273,7 +274,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
             img.addEventListener('load', () => o.onResize?.(), { once: true });
             img.src = url;
           }
-          else { img.remove(); el.appendChild(h('span.rd-img-missing', null, block.alt || 'Image not available')); }
+          else { img.remove(); el.appendChild(h('span.rd-img-missing', null, block.alt || tt('Image not available'))); }
         });
         break;
       }
@@ -333,8 +334,8 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     const btn = h('button.rd-pt-btn', {
       'data-rd-ui': '',
       type: 'button',
-      title: 'Translate paragraph',
-      'aria-label': 'Translate paragraph',
+      title: tt('Translate paragraph'),
+      'aria-label': tt('Translate paragraph'),
       'aria-pressed': 'false',
       onclick: (e: Event) => { e.stopPropagation(); toggleTranslation(b); },
     }, icon('translate')) as HTMLButtonElement;

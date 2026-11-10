@@ -9,7 +9,8 @@ import { openShortcuts } from '../shortcuts';
 import { fullscreenSupported, isFullscreen, isStandalone, setFullscreen } from '../fullscreen';
 import { rateLabel } from '../settings/speech';
 import { isChinese, lang } from '../../lang/active';
-import { aidName, aidWord, autoKnownHelp, levelCount, levelLabel, levelScheme } from '../../lang/labels';
+import { autoKnownHelp, levelCount, levelLabel, levelScheme } from '../../lang/labels';
+import { tt, ttm, uiLocale } from '../../i18n';
 
 export interface Popover { el: HTMLElement; anchor: HTMLElement; close(): void }
 
@@ -34,7 +35,7 @@ export interface PopoverOptions {
 }
 
 /** A panel under `anchor` (or a bottom sheet). Clicking the anchor again, pressing Esc or clicking elsewhere closes it. */
-export function openPopover(anchor: HTMLElement, content: HTMLElement, onClose?: () => void, opts: PopoverOptions = { label: 'Menu' }): Popover {
+export function openPopover(anchor: HTMLElement, content: HTMLElement, onClose?: () => void, opts: PopoverOptions = { label: tt('Menu') }): Popover {
   closePopover();
   const el = h('div.rd-pop', { role: 'dialog', 'aria-label': opts.label, tabindex: '-1' });
   let sheet = false;
@@ -96,7 +97,7 @@ export function openPopover(anchor: HTMLElement, content: HTMLElement, onClose?:
   };
   /** The top of a sheet: a grabber to drag down, a title and a Done button. */
   function grabber(): HTMLElement {
-    const done = h('button.btn.btn-sm', { type: 'button', onclick: () => pop.close() }, 'Done');
+    const done = h('button.btn.btn-sm', { type: 'button', onclick: () => pop.close() }, tt('Done'));
     const bar = h('div.rd-grab', null, h('span.rd-grab-title', null, opts.label), done) as HTMLElement;
     let y0 = 0;
     let dy = 0;
@@ -203,27 +204,43 @@ export function slider(min: number, max: number, step: number, get: () => number
   return { el, sync };
 }
 
+/** The pinyin modes, in English (ttm): aidModes() gives them in the app's language. */
 export const PINYIN_MODES: { value: PinyinMode; label: string; hint: string }[] = [
-  { value: 'off', label: 'Off', hint: 'No pinyin' },
-  { value: 'all', label: 'All', hint: 'Pinyin over every word' },
-  { value: 'unknown', label: 'Unknown', hint: 'Hide words you marked as known' },
-  { value: 'hsk', label: 'HSK', hint: 'Hide words at or below an HSK level' },
+  { value: 'off', label: ttm('Off'), hint: ttm('No pinyin') },
+  { value: 'all', label: ttm('All'), hint: ttm('Pinyin over every word') },
+  { value: 'unknown', label: ttm('Unknown'), hint: ttm('Hide words you marked as known') },
+  { value: 'hsk', label: 'HSK', hint: ttm('Hide words at or below an HSK level') },
 ];
 
 /** The modes as this language says them: the same four choices, about furigana or hints instead of pinyin. */
 export function aidModes(): { value: PinyinMode; label: string; hint: string }[] {
-  if (isChinese()) return PINYIN_MODES;
+  if (isChinese()) return PINYIN_MODES.map((m) => ({ ...m, label: tt(m.label), hint: tt(m.hint) }));
   const furigana = lang().aid === 'furigana';
   return [
-    { value: 'off', label: 'Off', hint: furigana ? 'No furigana' : 'No hints' },
-    { value: 'all', label: 'All', hint: furigana ? 'Readings over every word with kanji' : 'A short meaning over every word' },
-    { value: 'unknown', label: 'Unknown', hint: 'Hide words you marked as known' },
-    { value: 'hsk', label: levelScheme(), hint: `Hide words at or below a ${levelScheme() === 'JLPT' ? 'JLPT level' : 'level'}` },
+    { value: 'off', label: tt('Off'), hint: furigana ? tt('No furigana') : tt('No hints') },
+    { value: 'all', label: tt('All'), hint: furigana ? tt('Readings over every word with kanji') : tt('A short meaning over every word') },
+    { value: 'unknown', label: tt('Unknown'), hint: tt('Hide words you marked as known') },
+    { value: 'hsk', label: levelScheme(), hint: levelScheme() === 'JLPT' ? tt('Hide words at or below a JLPT level') : tt('Hide words at or below a level') },
   ];
 }
 
 export function pinyinModeLabel(m: PinyinMode): string {
-  return aidModes().find((p) => p.value === m)?.label ?? 'Off';
+  return aidModes().find((p) => p.value === m)?.label ?? tt('Off');
+}
+
+/** "Show pinyin", "Show furigana" or "Show hints", whole for each aid (a language puts the words in its own order). */
+function showAid(): string {
+  const a = lang().aid;
+  return a === 'pinyin' ? tt('Show pinyin') : a === 'furigana' ? tt('Show furigana') : tt('Show hints');
+}
+
+/** The share of the chapter's words that show the aid (a whole percent), as the pinyin menu says it. */
+function aidShare(pct: number): string {
+  const a = lang().aid;
+  const v = { percent: new Intl.NumberFormat(uiLocale(), { style: 'percent' }).format(pct / 100) };
+  return a === 'pinyin' ? tt("Pinyin on {percent} of this chapter's words", v)
+    : a === 'furigana' ? tt("Furigana on {percent} of this chapter's words", v)
+      : tt("Hints on {percent} of this chapter's words", v);
 }
 
 /**
@@ -243,10 +260,10 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const level = h('span.rd-level-val');
   const top = zh ? 7 : levelCount();
   const stepper = h('div.rd-stepper', null,
-    h('span.rd-row-label', null, zh ? 'Known up to HSK' : 'Known up to'),
-    h('button.rd-step', { type: 'button', 'aria-label': 'Lower level', onclick: () => set({ hskThreshold: get().hskThreshold - 1 }) }, icon('minus')),
+    h('span.rd-row-label', null, zh ? tt('Known up to HSK') : tt('Known up to')),
+    h('button.rd-step', { type: 'button', 'aria-label': tt('Lower level'), onclick: () => set({ hskThreshold: get().hskThreshold - 1 }) }, icon('minus')),
     level,
-    h('button.rd-step', { type: 'button', 'aria-label': 'Higher level', onclick: () => set({ hskThreshold: Math.min(top, get().hskThreshold + 1) }) }, icon('plus')));
+    h('button.rd-step', { type: 'button', 'aria-label': tt('Higher level'), onclick: () => set({ hskThreshold: Math.min(top, get().hskThreshold + 1) }) }, icon('plus')));
   const style = add(segmented<Settings['pinyinStyle']>(
     [{ value: 'marks', label: 'hǎo' }, { value: 'numbers', label: 'hao3' }, { value: 'zhuyin', label: 'ㄏㄠˇ' }],
     () => get().pinyinStyle, (v) => set({ pinyinStyle: v })));
@@ -255,14 +272,17 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const learn = add(toggle(() => get().autoKnown, (v) => set({ autoKnown: v })));
   learn.el.title = autoKnownHelp();
   // Learning from reading changes what Unknown hides, so it sits under the modes while Unknown is the one chosen.
-  const learnRow = row('Learn known words as I read', learn.el, `Words you read past often lose their ${aidWord()}`);
-  const modes = h('div.rd-menu', { role: 'menu', 'aria-label': `Show ${aidWord()}` }, items, stepper);
+  const aid = lang().aid;
+  const learnHint = aid === 'pinyin' ? tt('Words you read past often lose their pinyin')
+    : aid === 'furigana' ? tt('Words you read past often lose their furigana') : tt('Words you read past often lose their hints');
+  const learnRow = row(tt('Learn known words as I read'), learn.el, learnHint);
+  const modes = h('div.rd-menu', { role: 'menu', 'aria-label': showAid() }, items, stepper);
   const share = h('p.rd-share', { 'aria-live': 'polite' });
   const stress = add(toggle(() => get().stress ?? true, (v) => set({ stress: v })));
-  const look = zh ? section('Look', row('Style', style.el), row('Tone colors', tones.el), row('Tone changes', sandhi.el, 'yí gè, bú shì'))
-    : lang().stress ? section('Look', row('Stress marks', stress.el, 'The stressed vowel of each word')) : null;
+  const look = zh ? section(tt('Look'), row(tt('Style'), style.el), row(tt('Tone colors'), tones.el), row(tt('Tone changes'), sandhi.el, 'yí gè, bú shì'))
+    : lang().stress ? section(tt('Look'), row(tt('Stress marks'), stress.el, tt('The stressed vowel of each word'))) : null;
   const el = h('div.rd-menu.rd-pinyin-menu', null,
-    section(`Show ${aidWord()}`, modes, share, learnRow),
+    section(showAid(), modes, share, learnRow),
     look);
   const sync = () => {
     const s = get();
@@ -274,12 +294,15 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
     learnRow.hidden = !filtered;
     const c = filtered ? coverage?.() : null;
     share.hidden = !c?.words;
-    if (c?.words) share.textContent = `${aidName()} on ${Math.round((100 * c.shown) / c.words)}% of this chapter's words`;
+    if (c?.words) share.textContent = aidShare(Math.round((100 * c.shown) / c.words));
     syncs.forEach((f) => f());
   };
   sync();
   return { el, sync };
 }
+
+/** A line spacing as the app's language writes it, with one decimal (1.8, or 1,8 in French). */
+const oneDecimal = (v: number): string => new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Number(v.toFixed(1)));
 
 /** Content of the Aa menu: text, page and reading. (How the pinyin looks lives in the pinyin menu.) */
 export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): void } {
@@ -292,72 +315,72 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
   const sizeVal = h('span.rd-size-val');
   const sizeKey = () => readingFontSizeKey(get());
   const size = h('div.rd-size', null,
-    h('button.rd-step.rd-step-lg', { type: 'button', 'aria-label': 'Smaller text', title: 'Smaller ([)', onclick: () => set({ [sizeKey()]: get()[sizeKey()] - 2 }) }, h('span', { style: 'font-size:13px' }, 'A')),
+    h('button.rd-step.rd-step-lg', { type: 'button', 'aria-label': tt('Smaller text'), title: tt('Smaller ([)'), onclick: () => set({ [sizeKey()]: get()[sizeKey()] - 2 }) }, h('span', { style: 'font-size:13px' }, 'A')),
     sizeVal,
-    h('button.rd-step.rd-step-lg', { type: 'button', 'aria-label': 'Larger text', title: 'Larger (])', onclick: () => set({ [sizeKey()]: get()[sizeKey()] + 2 }) }, h('span', { style: 'font-size:20px' }, 'A')));
+    h('button.rd-step.rd-step-lg', { type: 'button', 'aria-label': tt('Larger text'), title: tt('Larger (])'), onclick: () => set({ [sizeKey()]: get()[sizeKey()] + 2 }) }, h('span', { style: 'font-size:20px' }, 'A')));
   syncs.push(() => { sizeVal.textContent = `${get()[sizeKey()]} px`; });
 
   const font = add(segmented<Settings['fontFamily']>(isChinese()
-    ? [{ value: 'serif', label: '宋体', title: 'Serif', cls: 'rd-f-serif' }, { value: 'sans', label: '黑体', title: 'Sans', cls: 'rd-f-sans' }, { value: 'kai', label: '楷体', title: 'Kai', cls: 'rd-f-kai' }]
-    : [{ value: 'serif', label: 'Serif', title: 'Serif' }, { value: 'sans', label: 'Sans', title: 'Sans' }],
+    ? [{ value: 'serif', label: '宋体', title: tt('Serif'), cls: 'rd-f-serif' }, { value: 'sans', label: '黑体', title: tt('Sans'), cls: 'rd-f-sans' }, { value: 'kai', label: '楷体', title: tt('Kai'), cls: 'rd-f-kai' }]
+    : [{ value: 'serif', label: tt('Serif'), title: tt('Serif') }, { value: 'sans', label: tt('Sans'), title: tt('Sans') }],
     () => get().fontFamily, (v) => set({ fontFamily: v })));
-  const lh = add(slider(1.4, 3, 0.1, () => get().lineHeight, (v) => set({ lineHeight: v }), (v) => v.toFixed(1)));
+  const lh = add(slider(1.4, 3, 0.1, () => get().lineHeight, (v) => set({ lineHeight: v }), (v) => oneDecimal(v)));
   const width = add(slider(480, 1200, 20, () => get().pageWidth, (v) => set({ pageWidth: v }), (v) => `${v}px`));
   const theme = add(segmented<Settings['theme']>(
-    [{ value: 'system', label: 'Auto' }, { value: 'light', label: 'Light' }, { value: 'sepia', label: 'Sepia' }, { value: 'dark', label: 'Dark' }],
+    [{ value: 'system', label: tt('Auto') }, { value: 'light', label: tt('Light') }, { value: 'sepia', label: tt('Sepia') }, { value: 'dark', label: tt('Dark') }],
     () => get().theme, (v) => set({ theme: v })));
   const script = add(segmented<Settings['script']>(
-    [{ value: 'original', label: 'As written' }, { value: 'simplified', label: 'Simplified', title: '简体' }, { value: 'traditional', label: 'Traditional', title: '繁體' }],
+    [{ value: 'original', label: tt('As written') }, { value: 'simplified', label: tt('Simplified'), title: '简体' }, { value: 'traditional', label: tt('Traditional'), title: '繁體' }],
     () => get().script, (v) => set({ script: v })));
   const trigger = add(segmented<Settings['lookupTrigger']>(
-    [{ value: 'click', label: 'Click' }, { value: 'hover', label: 'Hover' }],
+    [{ value: 'click', label: tt('Click') }, { value: 'hover', label: tt('Hover') }],
     () => get().lookupTrigger, (v) => set({ lookupTrigger: v })));
   const ptrans = add(toggle(() => get().paragraphTranslate, (v) => set({ paragraphTranslate: v })));
   const layout = add(segmented<Settings['layout']>(
-    [{ value: 'pages', label: 'Pages', title: 'Turn pages like a book' }, { value: 'scroll', label: 'Scroll', title: 'One long column' }],
+    [{ value: 'pages', label: tt('Pages'), title: tt('Turn pages like a book') }, { value: 'scroll', label: tt('Scroll'), title: tt('One long column') }],
     () => get().layout, (v) => set({ layout: v })));
   const spread = add(segmented<Settings['spread']>(
-    [{ value: 'auto', label: 'Auto' }, { value: 'single', label: 'One' }, { value: 'double', label: 'Two' }],
+    [{ value: 'auto', label: tt('Auto') }, { value: 'single', label: tt('One') }, { value: 'double', label: tt('Two') }],
     () => get().spread, (v) => set({ spread: v })));
   const turn = add(segmented<Settings['pageTurn']>(
-    [{ value: 'slide', label: 'Slide' }, { value: 'flip', label: 'Flip' }, { value: 'none', label: 'None' }],
+    [{ value: 'slide', label: tt('Slide') }, { value: 'flip', label: tt('Flip') }, { value: 'none', label: tt('None') }],
     () => get().pageTurn, (v) => set({ pageTurn: v })));
   const rate = add(slider(0.5, 2, 0.05, () => get().ttsRate, v => set({ ttsRate: v }), rateLabel));
 
   // Rows that do not apply are not shown (a dimmed row still looks like something you can change).
-  const spreadRow = row('Pages shown', spread.el, 'Auto: two on a wide screen');
-  const turnRow = row('Page turn', turn.el);
-  const widthRow = row('Page width', width.el);
-  const lookRow = row('Look up on', trigger.el, 'Drag always works');
+  const spreadRow = row(tt('Pages shown'), spread.el, tt('Auto: two on a wide screen'));
+  const turnRow = row(tt('Page turn'), turn.el);
+  const widthRow = row(tt('Page width'), width.el);
+  const lookRow = row(tt('Look up on'), trigger.el, tt('Drag always works'));
   // Full screen where the browser can do it (Safari on an iPad, a computer); a Home Screen app already has no browser bars,
   // and says so; elsewhere (an iPhone), say how.
   const full = add(toggle(isFullscreen, (v) => {
     void setFullscreen(v)
-      .catch(() => ctx.toast(isStandalone() ? 'Opened from the Home Screen, Globereader already reads without the browser bars.' : 'This browser would not go full screen. In Safari: Share, then Add to Home Screen.'))
+      .catch(() => ctx.toast(isStandalone() ? tt('Opened from the Home Screen, Globereader already reads without the browser bars.') : tt('This browser would not go full screen. In Safari: Share, then Add to Home Screen.')))
       .finally(() => full.sync());
   }));
   const fullRow = fullscreenSupported()
-    ? row('Full screen', full.el, 'Hides the browser bars (F)')
-    : isStandalone() ? row('Full screen', h('span.rd-row-note', null, 'On'), 'Opened from the Home Screen: no browser bars')
-    : row('Full screen', h('span.rd-row-note', null, 'Add to Home Screen'), 'In Safari: Share, then Add to Home Screen. Open Globereader from there to read without the browser bars.');
+    ? row(tt('Full screen'), full.el, tt('Hides the browser bars (F)'))
+    : isStandalone() ? row(tt('Full screen'), h('span.rd-row-note', null, tt('On')), tt('Opened from the Home Screen: no browser bars'))
+    : row(tt('Full screen'), h('span.rd-row-note', null, tt('Add to Home Screen')), tt('In Safari: Share, then Add to Home Screen. Open Globereader from there to read without the browser bars.'));
   const el = h('div.rd-menu.rd-display', null,
-    section('Text',
-      row('Text size', size),
-      row('Font', font.el),
-      row('Line spacing', lh.el),
-      row('Theme', theme.el)),
-    section('Page',
-      row('Layout', layout.el),
+    section(tt('Text'),
+      row(tt('Text size'), size),
+      row(tt('Font'), font.el),
+      row(tt('Line spacing'), lh.el),
+      row(tt('Theme'), theme.el)),
+    section(tt('Page'),
+      row(tt('Layout'), layout.el),
       spreadRow,
       turnRow,
       widthRow,
       fullRow),
-    section('Reading',
-      isChinese() ? row('Characters', script.el, '简体 or 繁體') : null,
+    section(tt('Reading'),
+      isChinese() ? row(tt('Characters'), script.el, tt('简体 or 繁體')) : null,
       touch ? null : lookRow,
       // The switch only shows the hover button beside each paragraph; a touch screen has no hover (a double tap translates anyway).
-      touch ? null : row('Translate paragraphs', ptrans.el, 'Drag across a sentence (Pages) or use the button (Scroll)'),
-      row('Read-aloud speed', rate.el)),
+      touch ? null : row(tt('Translate paragraphs'), ptrans.el, tt('Drag across a sentence (Pages) or use the button (Scroll)')),
+      row(tt('Read-aloud speed'), rate.el)),
   );
   syncs.push(() => {
     const s = get();

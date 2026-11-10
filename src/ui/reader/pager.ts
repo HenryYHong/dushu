@@ -20,6 +20,7 @@ import {
 } from './pagination';
 import { POS_SEL } from './render';
 import { isChinese } from '../../lang/active';
+import { tt } from '../../i18n';
 
 /** A reading position that survives re-pagination: a block and a UTF-16 offset inside it. */
 export interface Anchor { block: number; offset: number }
@@ -197,8 +198,8 @@ export function createPager(o: PagerOptions): Pager {
   const spine = h('div.rd-spine', { 'aria-hidden': 'true' });
   const hf = h('div.rd-hf');
   const stash = h('div.rd-pager');
-  const busy = h('div.rd-stage-busy', { hidden: true, role: 'status' }, h('span.app-spinner'), h('span', null, 'Setting the pages…'));
-  const stage: HTMLElement = h('div.rd-stage', { 'data-rd-stage': '', tabindex: '0', role: 'region', 'aria-label': 'Book page. Press Enter to choose words with the arrow keys; Left and Right arrows turn the page.' },
+  const busy = h('div.rd-stage-busy', { hidden: true, role: 'status' }, h('span.app-spinner'), h('span', null, tt('Setting the pages…')));
+  const stage: HTMLElement = h('div.rd-stage', { 'data-rd-stage': '', tabindex: '0', role: 'region', 'aria-label': tt('Book page. Press Enter to choose words with the arrow keys; Left and Right arrows turn the page.') },
     stash, spine, hf, busy, probe);
 
   // ---------------------------------------------------------------- state
@@ -511,14 +512,14 @@ export function createPager(o: PagerOptions): Pager {
   }
 
   function chapterName(l: Layout): string {
-    const t = l.view.title || book.chapterTitles?.[l.index] || `Chapter ${l.index + 1}`;
+    const t = l.view.title || book.chapterTitles?.[l.index] || tt('Chapter {n}', { n: l.index + 1 });
     // A one-chapter book (a poem, a pasted page) would show its title twice.
     return book.chapterCount === 1 && t === book.title ? '' : text(t);
   }
 
   function goNextChapterLabel(l: Layout): string {
     const t = titleOf(l.index + 1);
-    return t ? `Next: ${t}` : 'Next chapter';
+    return t ? tt('Next: {title}', { title: t }) : tt('Next chapter');
   }
 
   /** The blank page after a chapter's last page: a quiet end mark and the way on. */
@@ -526,11 +527,11 @@ export function createPager(o: PagerOptions): Pager {
     const last = l.index >= book.chapterCount - 1;
     const card = h('div.rd-endcard', { 'data-rd-ui': '' },
       h('div.rd-endmark', { 'aria-hidden': 'true' }),
-      h('p.rd-endnote', null, last ? 'You have reached the end of the book.' : 'End of chapter'));
-    if (last) card.appendChild(h('a.rd-endbtn', { href: '#/' }, 'Back to the library'));
+      h('p.rd-endnote', null, last ? tt('You have reached the end of the book.') : tt('End of chapter')));
+    if (last) card.appendChild(h('a.rd-endbtn', { href: '#/' }, tt('Back to the library')));
     // The label in a span of its own: a long title ends in an ellipsis (a flex box would clip it at both ends).
     else card.appendChild(h('button.rd-endbtn', { type: 'button', onclick: () => api.chapter(1) }, h('span.rd-endbtn-label', null, goNextChapterLabel(l))));
-    const words = wordsButton(l, 'button.rd-endbtn.rd-endbtn-quiet', 'Words in this chapter');
+    const words = wordsButton(l, 'button.rd-endbtn.rd-endbtn-quiet', tt('Words in this chapter'));
     if (words) card.appendChild(words);
     return card;
   }
@@ -557,11 +558,11 @@ export function createPager(o: PagerOptions): Pager {
       if (side === 'single' && isLast && l.done) {
         const on = l.index < book.chapterCount - 1
           ? h('button.rd-ftr-next', { type: 'button', 'data-rd-ui': '', onclick: () => api.chapter(1) }, goNextChapterLabel(l), ' ›')
-          : h('span.rd-ftr-left', null, 'End of the book');
-        footer.appendChild(h('span.rd-ftr-end', null, wordsButton(l, 'button.rd-ftr-words', 'Words'), on));
+          : h('span.rd-ftr-left', null, tt('End of the book'));
+        footer.appendChild(h('span.rd-ftr-end', null, wordsButton(l, 'button.rd-ftr-words', tt('Words')), on));
       } else if (side === 'right' && isLast && l.done && o.onChapterWords) {
         // The last page of a chapter that fills its spread (no blank page follows).
-        footer.appendChild(wordsButton(l, 'button.rd-ftr-words', 'Words in this chapter')!);
+        footer.appendChild(wordsButton(l, 'button.rd-ftr-words', tt('Words in this chapter'))!);
       } else footer.appendChild(h('span.rd-ftr-left', null, pagesLeftLabel(page, l.pages, !l.done)));
     }
     el.append(h('div.rd-hdr', null, h('span', null, header)), footer);

@@ -32,8 +32,9 @@ import { fixesSig, hereIn, placeHere } from '../../core/fixes';
 import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang } from '../../lang/active';
 import { bookStartText } from './bookStart';
-import { aidName, aidSeal, aidWord, glossLanguage, levelLabel } from '../../lang/labels';
+import { aidName, aidSeal, glossLanguage, levelLabel } from '../../lang/labels';
 import { POS_SEL } from './render';
+import { langName, tt, uiLocale } from '../../i18n';
 
 const BAR_H = 52;
 /** A second tap within this long and this far (CSS px) of the first is a double tap. */
@@ -44,6 +45,8 @@ const LIFT_HOLD_MS = 400;
 const PINYIN_CYCLE: PinyinMode[] = ['off', 'all', 'unknown', 'hsk'];
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+/** A whole percent as the app's language writes it: 45% in English, 45 % in French. */
+const percentText = (pct: number): string => new Intl.NumberFormat(uiLocale(), { style: 'percent' }).format(pct / 100);
 
 function isTyping(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null;
@@ -92,10 +95,10 @@ function explainDictWait(line: HTMLElement, ready: Promise<unknown>): void {
   const timer = window.setTimeout(() => {
     stop = watchDictBytes(({ loaded, total }) => {
       if (!total) return;
-      const mb = (n: number) => (n / 1e6).toFixed(1);
+      const mb = (n: number) => new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false }).format(Number((n / 1e6).toFixed(1)));
       line.textContent = loaded < total
-        ? `Downloading the dictionary: ${mb(loaded)} of ${mb(total)} MB`
-        : 'Getting the dictionary ready…';
+        ? tt('Downloading the dictionary: {loaded} of {total} MB', { loaded: mb(loaded), total: mb(total) })
+        : tt('Getting the dictionary ready…');
     });
     if (settled) stop();
   }, SAY_DOWNLOAD_MS);
@@ -108,7 +111,7 @@ function message(root: HTMLElement, title: string, body: string): void {
   root.appendChild(h('div.page', null,
     h('h1.page-title', null, title),
     h('p.muted', null, body),
-    h('p', null, h('a.btn', { href: '#/' }, icon('arrowLeft'), 'Back to the library'))));
+    h('p', null, h('a.btn', { href: '#/' }, icon('arrowLeft'), tt('Back to the library')))));
 }
 
 /** A place in a chapter that survives a change of layout: a stored block number and an offset in it. */
@@ -116,10 +119,10 @@ interface Place { chapter: number; block: number; offset: number }
 
 export const mount: MountFn = async (root, params, ctx) => {
   clear(root);
-  const loadingLine = h('span.app-loading-text', null, 'Opening the book…');
+  const loadingLine = h('span.app-loading-text', null, tt('Opening the book…'));
   // A slow first download can hold the book up for a while, and a Home Screen app has no browser Back. Leaving is safe:
   // every await below checks that the address is still the reader's.
-  const loadingBack = h('p.rd-loading-back', { hidden: true }, h('a.btn', { href: '#/' }, icon('arrowLeft'), 'Back to the library'));
+  const loadingBack = h('p.rd-loading-back', { hidden: true }, h('a.btn', { href: '#/' }, icon('arrowLeft'), tt('Back to the library')));
   root.appendChild(h('div.app-loading', null, h('div.app-spinner'), loadingLine));
   root.appendChild(loadingBack);
   const backTimer = window.setTimeout(() => { loadingBack.hidden = false; }, OFFER_BACK_MS);
@@ -131,14 +134,14 @@ export const mount: MountFn = async (root, params, ctx) => {
   if (!ctx.dictSync()) explainDictWait(loadingLine, dictReady);
   const synced = syncBeforeOpen();
   const book = params.bookId ? await store.books.get(params.bookId) : undefined;
-  if (!book) { window.clearTimeout(backTimer); message(root, 'Book not found', 'This book is not in your library. It may have been removed.'); return; }
+  if (!book) { window.clearTimeout(backTimer); message(root, tt('Book not found'), tt('This book is not in your library. It may have been removed.')); return; }
   let dict: Dictionary;
   try { dict = await dictReady; } catch {
     window.clearTimeout(backTimer);
     if (!location.hash.startsWith('#/read')) return; // went back to the library while it loaded
-    message(root, 'Dictionary not loaded', typeof navigator !== 'undefined' && navigator.onLine === false
-      ? "This language's dictionary is not on this device yet. Connect to the internet once to finish setting it up."
-      : 'The dictionary data could not be loaded, so words cannot be looked up. Reload the page to try again.');
+    message(root, tt('Dictionary not loaded'), typeof navigator !== 'undefined' && navigator.onLine === false
+      ? tt("This language's dictionary is not on this device yet. Connect to the internet once to finish setting it up.")
+      : tt('The dictionary data could not be loaded, so words cannot be looked up. Reload the page to try again.'));
     return;
   }
   if (!location.hash.startsWith('#/read')) return; // navigated away while loading
@@ -199,15 +202,15 @@ export const mount: MountFn = async (root, params, ctx) => {
   const pinyinSeal = h(`span.rd-seal${isChinese() || L.id === 'ja' || L.id === 'en' ? '.zh' : '.rd-seal-latin'}`, { 'aria-hidden': 'true', lang: L.id === 'en' ? 'zh-Hans' : L.tag }, aidSeal());
   const pinyinBtn = h('button.rd-pill.rd-pinyin-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: `${aidName()} (P)`, onclick: () => togglePinyinMenu() },
     pinyinSeal, pinyinLabel) as HTMLButtonElement;
-  const aaBtn = h('button.rd-pill.rd-aa-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': 'Display settings', title: 'Display settings', onclick: () => toggleDisplayMenu() },
+  const aaBtn = h('button.rd-pill.rd-aa-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': tt('Display settings'), title: tt('Display settings'), onclick: () => toggleDisplayMenu() },
     h('span.rd-aa', { 'aria-hidden': 'true' }, 'Aa')) as HTMLButtonElement;
   const speechBtn = h('button.icon-btn.rd-speech-btn', {
-    type: 'button', title: 'Read chapter aloud', 'aria-label': 'Read chapter aloud', 'aria-pressed': 'false',
+    type: 'button', title: tt('Read chapter aloud'), 'aria-label': tt('Read chapter aloud'), 'aria-pressed': 'false',
     onclick: () => { if (speaking) stopChapterSpeech(); else void startChapterSpeech(); },
   }, icon('speaker')) as HTMLButtonElement;
   speechBtn.hidden = !canSpeak();
   const pauseBtn = h('button.icon-btn.rd-pause-btn', {
-    type: 'button', title: 'Pause reading', 'aria-label': 'Pause reading', 'aria-pressed': 'false',
+    type: 'button', title: tt('Pause reading'), 'aria-label': tt('Pause reading'), 'aria-pressed': 'false',
     onclick: () => {
       if (!speaking) return;
       paused = !paused;
@@ -216,16 +219,16 @@ export const mount: MountFn = async (root, params, ctx) => {
     },
   }, icon('pause')) as HTMLButtonElement;
   pauseBtn.hidden = true;
-  const audioStatus = h('span.rd-audio-status', { role: 'status', 'aria-live': 'polite' }, 'Reading aloud');
-  const audioSpeed = h('select.rd-audio-speed', { 'aria-label': 'Read-aloud speed', title: 'Read-aloud speed' }) as HTMLSelectElement;
+  const audioStatus = h('span.rd-audio-status', { role: 'status', 'aria-live': 'polite' }, tt('Reading aloud'));
+  const audioSpeed = h('select.rd-audio-speed', { 'aria-label': tt('Read-aloud speed'), title: tt('Read-aloud speed') }) as HTMLSelectElement;
   audioSpeed.addEventListener('change', () => ctx.settings.set({ ttsRate: Number(audioSpeed.value) }));
-  const audioPause = h('button.btn.btn-sm.rd-audio-pause', { type: 'button', 'aria-label': 'Pause audio', onclick: () => pauseBtn.click() }, icon('pause'), 'Pause') as HTMLButtonElement;
-  const audio = h('aside.rd-audio', { hidden: true, 'data-rd-ui': true, 'aria-label': 'Read-aloud controls' },
+  const audioPause = h('button.btn.btn-sm.rd-audio-pause', { type: 'button', 'aria-label': tt('Pause audio'), onclick: () => pauseBtn.click() }, icon('pause'), tt('Pause')) as HTMLButtonElement;
+  const audio = h('aside.rd-audio', { hidden: true, 'data-rd-ui': true, 'aria-label': tt('Read-aloud controls') },
     audioStatus, audioSpeed, audioPause,
-    h('button.icon-btn', { type: 'button', 'aria-label': 'Stop audio', title: 'Stop audio', onclick: () => stopChapterSpeech() }, icon('stop')));
-  const tocBtn = h('button.icon-btn.rd-toc-btn', { type: 'button', title: 'Chapters (C)', 'aria-label': 'Chapters', onclick: () => toc.open(chapterIndex) }, icon('list'));
+    h('button.icon-btn', { type: 'button', 'aria-label': tt('Stop audio'), title: tt('Stop audio'), onclick: () => stopChapterSpeech() }, icon('stop')));
+  const tocBtn = h('button.icon-btn.rd-toc-btn', { type: 'button', title: tt('Chapters (C)'), 'aria-label': tt('Chapters'), onclick: () => toc.open(chapterIndex) }, icon('list'));
   // Bookmarks: the button is filled when the page on screen has one, and takes it away again.
-  const markBtn = h('button.icon-btn.rd-mark-btn', { type: 'button', title: 'Bookmark this page (B)', 'aria-label': 'Bookmark this page', 'aria-pressed': 'false',
+  const markBtn = h('button.icon-btn.rd-mark-btn', { type: 'button', title: tt('Bookmark this page (B)'), 'aria-label': tt('Bookmark this page'), 'aria-pressed': 'false',
     onclick: () => void toggleBookmark() }, icon('bookmark')) as HTMLButtonElement;
   // Full screen, one tap away while reading (also F, and the Aa menu); in the bar on an iPad or a computer (a phone's bar has
   // no room). Where the browser cannot do it, the tap says how. A Home Screen app is already full screen: no button there
@@ -235,24 +238,24 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (isFullscreen()) { void setFullscreen(false).catch(() => {}); return; }
     if (!fullscreenSupported()) {
       ctx.toast(isStandalone()
-        ? 'Opened from your Home Screen, Globereader already reads without the browser bars.'
-        : 'This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open Globereader from there to read without the bars.', { ms: 7000 });
+        ? tt('Opened from your Home Screen, Globereader already reads without the browser bars.')
+        : tt('This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open Globereader from there to read without the bars.'), { ms: 7000 });
       return;
     }
-    void setFullscreen(!isFullscreen()).catch(() => ctx.toast('This browser would not go full screen.'));
+    void setFullscreen(!isFullscreen()).catch(() => ctx.toast(tt('This browser would not go full screen.')));
   } }) as HTMLButtonElement;
   const paintFull = () => {
     const on = isFullscreen();
     fullBtn.hidden = isStandalone() && !on;
     fullBtn.replaceChildren(icon(on ? 'shrink' : 'expand'));
     fullBtn.setAttribute('aria-pressed', String(on));
-    fullBtn.setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen');
-    fullBtn.title = on ? 'Leave full screen (F)' : 'Full screen (F)';
+    fullBtn.setAttribute('aria-label', on ? tt('Leave full screen') : tt('Full screen'));
+    fullBtn.title = on ? tt('Leave full screen (F)') : tt('Full screen (F)');
   };
   paintFull();
   const offFull = onFullscreenChange(paintFull);
   const bar = h('header.rd-bar', null,
-    h('a.icon-btn.rd-back', { href: '#/', title: 'Back to the library', 'aria-label': 'Back to the library' }, icon('arrowLeft')),
+    h('a.icon-btn.rd-back', { href: '#/', title: tt('Back to the library'), 'aria-label': tt('Back to the library') }, icon('arrowLeft')),
     h('div.rd-titles', null, titleBook, titleChapter),
     h('div.rd-bar-actions', null, tocBtn, markBtn, speechBtn, pauseBtn, fullBtn, pinyinBtn, aaBtn, pct),
     h('div.rd-progress', { 'aria-hidden': 'true' }, fill));
@@ -352,20 +355,20 @@ export const mount: MountFn = async (root, params, ctx) => {
   function syncSpeechButton(): void {
     speechBtn.replaceChildren(icon(speaking ? 'stop' : 'speaker'));
     speechBtn.setAttribute('aria-pressed', String(speaking));
-    speechBtn.setAttribute('aria-label', speaking ? 'Stop reading aloud' : 'Read chapter aloud');
-    speechBtn.title = speaking ? 'Stop reading aloud' : 'Read chapter aloud';
+    speechBtn.setAttribute('aria-label', speaking ? tt('Stop reading aloud') : tt('Read chapter aloud'));
+    speechBtn.title = speaking ? tt('Stop reading aloud') : tt('Read chapter aloud');
     pauseBtn.hidden = !speaking || !paged;
     pauseBtn.replaceChildren(icon(paused ? 'play' : 'pause'));
     pauseBtn.setAttribute('aria-pressed', String(paused));
-    pauseBtn.setAttribute('aria-label', paused ? 'Resume reading' : 'Pause reading');
-    pauseBtn.title = paused ? 'Resume reading' : 'Pause reading';
+    pauseBtn.setAttribute('aria-label', paused ? tt('Resume reading') : tt('Pause reading'));
+    pauseBtn.title = paused ? tt('Resume reading') : tt('Pause reading');
     audio.hidden = !speaking;
     rd.classList.toggle('rd-audio-on', speaking);
     // A card at the bottom (the first-visit hint, a question, the name check) sits above the read-aloud bar (reader.css).
     if (speaking) requestAnimationFrame(() => { if (!audio.hidden) document.body.style.setProperty('--rd-audio-h', `${Math.ceil(audio.getBoundingClientRect().height)}px`); });
-    audioStatus.textContent = paused ? 'Paused' : audioStarted ? 'Reading aloud' : 'Preparing audio…';
-    audioPause.replaceChildren(icon(paused ? 'play' : 'pause'), paused ? 'Resume' : 'Pause');
-    audioPause.setAttribute('aria-label', paused ? 'Resume audio' : 'Pause audio');
+    audioStatus.textContent = paused ? tt('Paused') : audioStarted ? tt('Reading aloud') : tt('Preparing audio…');
+    audioPause.replaceChildren(icon(paused ? 'play' : 'pause'), paused ? tt('Resume') : tt('Pause'));
+    audioPause.setAttribute('aria-label', paused ? tt('Resume audio') : tt('Pause audio'));
     const rate = ctx.settings.get().ttsRate;
     const rates = [...new Set([0.5, 0.75, 0.9, 1, 1.25, 1.5, 2, rate])].sort((a, b) => a - b);
     audioSpeed.replaceChildren(...rates.map(value => h('option', { value }, `${value}×`)));
@@ -415,10 +418,10 @@ export const mount: MountFn = async (root, params, ctx) => {
     const start = here.block;
     const offset = here.offset;
     const blocks = v.blocks.filter(b => b.kind === 'text' && b.text.trim() && b.index >= start);
-    if (!blocks.length) { ctx.toast('No text left to read in this chapter.'); return; }
+    if (!blocks.length) { ctx.toast(tt('No text left to read in this chapter.')); return; }
     const offsets = blocks.map(b => b.index === start ? offset : 0);
     const texts = blocks.map((b, i) => b.text.slice(offsets[i]));
-    if (!texts.some(text => text.trim())) { ctx.toast('No text left to read in this chapter.'); return; }
+    if (!texts.some(text => text.trim())) { ctx.toast(tt('No text left to read in this chapter.')); return; }
     stopChapterSpeech();
     const mine = ++speechRun;
     speaking = true;
@@ -508,7 +511,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     },
     pointerKind: () => pointerKind,
     readFrom: (block, offset) => {
-      if (view()?.blocks[block.index] !== block) { ctx.toast('Choose a starting word again; the text has changed.'); return; }
+      if (view()?.blocks[block.index] !== block) { ctx.toast(tt('Choose a starting word again; the text has changed.')); return; }
       void startChapterSpeech({ block: block.index, offset });
     },
     // With the keyboard cursor on, the cursor follows the popup's word, and focus returns to it when the popup closes.
@@ -549,7 +552,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (s.pinyin === 'hsk' && isChinese()) pinyinLabel.replaceChildren(h('span.rd-pill-pre', null, 'HSK '), level);
     else if (s.pinyin === 'hsk') pinyinLabel.textContent = level;
     else pinyinLabel.textContent = pinyinModeLabel(s.pinyin);
-    pinyinBtn.setAttribute('aria-label', `${aidName()}: ${pinyinLabel.textContent}`);
+    pinyinBtn.setAttribute('aria-label', tt('{aid}: {mode}', { aid: aidName(), mode: pinyinLabel.textContent ?? '' }));
     pinyinBtn.dataset.mode = s.pinyin;
     pinyinBtn.dataset.level = level;
   }
@@ -675,8 +678,8 @@ export const mount: MountFn = async (root, params, ctx) => {
   function syncMarkBtn(): void {
     const on = !!markOnScreen();
     markBtn.setAttribute('aria-pressed', String(on));
-    markBtn.setAttribute('aria-label', on ? 'Remove the bookmark on this page' : 'Bookmark this page');
-    markBtn.title = on ? 'Remove bookmark (B)' : 'Bookmark this page (B)';
+    markBtn.setAttribute('aria-label', on ? tt('Remove the bookmark on this page') : tt('Bookmark this page'));
+    markBtn.title = on ? tt('Remove bookmark (B)') : tt('Bookmark this page (B)');
   }
   async function toggleBookmark(): Promise<void> {
     const here = markOnScreen();
@@ -687,12 +690,12 @@ export const mount: MountFn = async (root, params, ctx) => {
     const at = v.fromStored(p.block, p.offset);
     const label = [...(v.blocks[at.block]?.text ?? '').slice(at.offset).replace(/\s+/g, ' ').trim()].slice(0, 28).join('');
     const mark: Bookmark = { id: `${book!.id}:${Date.now().toString(36)}`, bookId: book!.id, chapter: p.chapter, block: p.block, offset: p.offset, label, createdAt: Date.now(), bookKey: bookKey(book!) };
-    try { await store.bookmarks.put(mark); } catch (e) { ctx.toast(e instanceof Error ? e.message : 'Could not save the bookmark.'); return; }
-    ctx.toast('Page bookmarked. Find it under Bookmarks in the chapter list.', { ms: 4000 });
+    try { await store.bookmarks.put(mark); } catch (e) { ctx.toast(e instanceof Error ? e.message : tt('Could not save the bookmark.')); return; }
+    ctx.toast(tt('Page bookmarked. Find it under Bookmarks in the chapter list.'), { ms: 4000 });
   }
   async function removeBookmark(b: Bookmark): Promise<void> {
-    try { await store.bookmarks.remove(b.id); } catch (e) { ctx.toast(e instanceof Error ? e.message : 'Could not remove the bookmark.'); return; }
-    ctx.toast('Bookmark removed', { ms: 6000, action: { label: 'Undo', run: () => { void store.bookmarks.put(b).catch(() => {}); } } });
+    try { await store.bookmarks.remove(b.id); } catch (e) { ctx.toast(e instanceof Error ? e.message : tt('Could not remove the bookmark.')); return; }
+    ctx.toast(tt('Bookmark removed'), { ms: 6000, action: { label: tt('Undo'), run: () => { void store.bookmarks.put(b).catch(() => {}); } } });
   }
 
   // ----------------------------------------------------------- lexicon
@@ -777,7 +780,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (popoverOpenFor(aaBtn)) { closePopover(); return; }
     const m = buildDisplayMenu(ctx);
     menuSync = m.sync;
-    openPopover(aaBtn, m.el, () => { menuSync = null; }, { label: 'Display settings' });
+    openPopover(aaBtn, m.el, () => { menuSync = null; }, { label: tt('Display settings') });
   }
 
   /** Language tag for the text: lets the browser pick regional glyph shapes and the right speech voice. */
@@ -816,7 +819,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   }
 
   const chapterTitleText = (index: number, v?: ChapterView | null): string =>
-    text(v?.title || book!.chapterTitles?.[index] || `Chapter ${index + 1}`);
+    text(v?.title || book!.chapterTitles?.[index] || tt('Chapter {n}', { n: index + 1 }));
 
   /** The chapter on screen changed (opened, or the pages turned over a chapter edge). */
   function chapterShown(index: number, v: ChapterView): void {
@@ -875,14 +878,14 @@ export const mount: MountFn = async (root, params, ctx) => {
     const tries = failCount(book!.id, index);
     const last = index >= book!.chapterCount - 1;
     const actions = h('div.rd-fail-actions', null,
-      index > 0 ? h('button.btn', { type: 'button', onclick: () => void loadChapter(index - 1, { top: true }) }, icon('chevronLeft'), 'Previous chapter') : null,
-      last ? null : h('button.btn', { type: 'button', onclick: () => void loadChapter(index + 1, { top: true }) }, 'Next chapter', icon('chevronRight')),
-      h('button.btn.btn-primary', { type: 'button', onclick: () => toc.open(index) }, icon('list'), 'Open chapter list'),
-      tries < 2 ? h('button.btn', { type: 'button', onclick: () => void loadChapter(index, { top: true }) }, icon('refresh'), 'Try again') : null,
-      h('a.btn', { href: '#/' }, icon('arrowLeft'), 'Back to the library'));
+      index > 0 ? h('button.btn', { type: 'button', onclick: () => void loadChapter(index - 1, { top: true }) }, icon('chevronLeft'), tt('Previous chapter')) : null,
+      last ? null : h('button.btn', { type: 'button', onclick: () => void loadChapter(index + 1, { top: true }) }, tt('Next chapter'), icon('chevronRight')),
+      h('button.btn.btn-primary', { type: 'button', onclick: () => toc.open(index) }, icon('list'), tt('Open chapter list')),
+      tries < 2 ? h('button.btn', { type: 'button', onclick: () => void loadChapter(index, { top: true }) }, icon('refresh'), tt('Try again')) : null,
+      h('a.btn', { href: '#/' }, icon('arrowLeft'), tt('Back to the library')));
     const box = h('div.rd-fail', { role: 'alert' },
-      h('h2', null, 'Could not display this chapter'),
-      h('p', null, `${chapterTitleText(index)} did not draw. Your place in the book is kept. You can read another chapter now.`),
+      h('h2', null, tt('Could not display this chapter')),
+      h('p', null, tt('{chapter} did not draw. Your place in the book is kept. You can read another chapter now.', { chapter: chapterTitleText(index) })),
       actions);
     rd.querySelector('.rd-fail')?.remove();
     if (paged) rd.appendChild(box);
@@ -930,7 +933,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     const v = createChapterView({ ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, script: book!.script });
     v.el.lang = langOf(ctx.settings.get());
     v.el.tabIndex = 0;
-    v.el.setAttribute('aria-label', 'Book text. Press Enter to choose words with the arrow keys.');
+    v.el.setAttribute('aria-label', tt('Book text. Press Enter to choose words with the arrow keys.'));
     const place = at.block !== undefined ? v.fromStored(at.block, at.offset ?? 0) : { block: 0, offset: 0 };
     const target = clamp(place.block, 0, v.blocks.length - 1);
     renderAround(v, target);
@@ -966,14 +969,14 @@ export const mount: MountFn = async (root, params, ctx) => {
     const last = index >= book!.chapterCount - 1;
     const el = h('footer.rd-end', { 'data-rd-ui': '' });
     if (index > 0) {
-      el.appendChild(h('button.btn.rd-end-prev', { type: 'button', onclick: () => void loadChapter(index - 1, { top: true }) }, icon('chevronLeft'), 'Previous chapter'));
+      el.appendChild(h('button.btn.rd-end-prev', { type: 'button', onclick: () => void loadChapter(index - 1, { top: true }) }, icon('chevronLeft'), tt('Previous chapter')));
     }
-    el.appendChild(h('button.btn.rd-end-words', { type: 'button', onclick: () => toc.open(index, 'words') }, icon('list'), 'Words in this chapter'));
+    el.appendChild(h('button.btn.rd-end-words', { type: 'button', onclick: () => toc.open(index, 'words') }, icon('list'), tt('Words in this chapter')));
     if (last) {
-      el.append(h('p.rd-end-note', null, 'You have reached the end.'),
-        h('a.btn.btn-primary', { href: '#/' }, icon('library'), 'Back to the library'));
+      el.append(h('p.rd-end-note', null, tt('You have reached the end.')),
+        h('a.btn.btn-primary', { href: '#/' }, icon('library'), tt('Back to the library')));
     } else {
-      el.appendChild(h('button.btn.btn-primary.rd-end-next', { type: 'button', onclick: () => void loadChapter(index + 1, { top: true }) }, 'Next chapter', icon('chevronRight')));
+      el.appendChild(h('button.btn.btn-primary.rd-end-next', { type: 'button', onclick: () => void loadChapter(index + 1, { top: true }) }, tt('Next chapter'), icon('chevronRight')));
     }
     return el;
   }
@@ -1016,7 +1019,7 @@ export const mount: MountFn = async (root, params, ctx) => {
         setChrome(false);
       },
       isBusy: () => { const sel = window.getSelection(); return !!sel && !sel.isCollapsed && !!view()?.el.contains(sel.anchorNode); },
-      onEnd: () => ctx.toast('You have reached the end of the book.'),
+      onEnd: () => ctx.toast(tt('You have reached the end of the book.')),
       onChapterError: (i, e) => { bumpFail(book!.id, i); showChapterError(i, e); },
       text,
       onChapterWords: (i) => toc.open(i, 'words'),
@@ -1124,7 +1127,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       uiRaf = 0;
       const p = percent();
       fill.style.width = `${(p * 100).toFixed(1)}%`;
-      pct.textContent = `${Math.floor(p * 100)}%`;
+      pct.textContent = percentText(Math.floor(p * 100));
       syncMarkBtn();
     });
   }
@@ -1527,9 +1530,9 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (bookId !== book!.id || !p) return;
     const here = currentPlace();
     if (here && here.chapter === p.chapter && here.block === p.block && here.offset === (p.offset ?? 0)) return;
-    ctx.toast(`On another device you are ${Math.round(p.percent * 100)}% through this book.`, {
+    ctx.toast(tt('On another device you are {percent} through this book.', { percent: percentText(Math.round(p.percent * 100)) }), {
       ms: 12000,
-      action: { label: 'Go there', run: () => void loadChapter(p.chapter, p.block > 0 || (p.offset ?? 0) > 0 ? { block: p.block, offset: p.offset } : { top: true }) },
+      action: { label: tt('Go there'), run: () => void loadChapter(p.chapter, p.block > 0 || (p.offset ?? 0) > 0 ? { block: p.block, offset: p.offset } : { top: true }) },
     });
   };
 
@@ -1613,11 +1616,11 @@ export const mount: MountFn = async (root, params, ctx) => {
   async function checkNamesNow(): Promise<void> {
     if (!nameCheck) return;
     toc.close();
-    if (isDetecting(book!.id)) { ctx.toast('Globereader is still finding the names in this book. Try again in a moment.'); return; }
+    if (isDetecting(book!.id)) { ctx.toast(tt('Globereader is still finding the names in this book. Try again in a moment.')); return; }
     let list;
-    try { list = await nameCheck.candidates(true); } catch (e) { console.error('name check', e); ctx.toast('Could not look for names.'); return; }
+    try { list = await nameCheck.candidates(true); } catch (e) { console.error('name check', e); ctx.toast(tt('Could not look for names.')); return; }
     if (disposed) return;
-    if (!list.length) { ctx.toast('No more names to check in this book.'); return; }
+    if (!list.length) { ctx.toast(tt('No more names to check in this book.')); return; }
     rd.querySelector('.rd-spell-ask, .rd-coach:not(.rd-name-ask)')?.remove();
     const box = nameCheck.show(rd, list);
     if (box) { bar.after(box); liftToasts(box); box.querySelector<HTMLElement>('.rd-nc-word')?.focus(); }
@@ -1641,10 +1644,10 @@ export const mount: MountFn = async (root, params, ctx) => {
     // After the first-visit hint, which sits in the same place.
     if (rd.querySelector('.rd-coach')) { window.setTimeout(askSpellings, 2000); return; }
     const box = h('div.rd-coach.rd-spell-ask', { role: 'note', 'data-rd-ui': '' },
-      h('div', null, h('p', null, askText(ids)), h('p', null, 'You can change it later under Corrections in the chapter list.')),
+      h('div', null, h('p', null, askText(ids)), h('p', null, tt('You can change it later under Corrections in the chapter list.'))),
       h('div.rd-spell-btns', null,
-        h('button.btn.btn-sm.btn-primary', { type: 'button', onclick: () => { box.remove(); void spellings!.choose(ids, true); } }, 'Yes'),
-        h('button.btn.btn-sm', { type: 'button', onclick: () => { box.remove(); void spellings!.choose(ids, false); } }, 'No')));
+        h('button.btn.btn-sm.btn-primary', { type: 'button', onclick: () => { box.remove(); void spellings!.choose(ids, true); } }, tt('Yes')),
+        h('button.btn.btn-sm', { type: 'button', onclick: () => { box.remove(); void spellings!.choose(ids, false); } }, tt('No'))));
     rd.appendChild(box);
     liftToasts(box);
   }
@@ -1669,19 +1672,30 @@ export const mount: MountFn = async (root, params, ctx) => {
   function showReaderHint(): void {
     if (coachSeen()) return;
     const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
+    // The seal as the bar draws it, so the button is easy to find: each sentence is translated whole and the seal goes where {seal} is.
+    const seal = h(`span.rd-seal${isChinese() || L.id === 'ja' || L.id === 'en' ? '.zh' : '.rd-seal-latin'}`, null, aidSeal());
+    const gloss = glossLanguage();
+    const language = langName(gloss === 'Chinese' ? 'zh' : 'en', gloss);
+    const sealLine = isChinese()
+      ? touch ? tt("Tap {seal} at the top to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level.")
+        : tt("Click {seal} at the top (or press P) to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level.")
+      : L.aid === 'furigana'
+        ? touch ? tt("Tap {seal} at the top to choose where furigana show: every word, words you don't know yet, or words above your JLPT level.")
+          : tt("Click {seal} at the top (or press P) to choose where furigana show: every word, words you don't know yet, or words above your JLPT level.")
+        : touch ? tt("Tap {seal} at the top to show short {language} hints over words: every word, words you don't know yet, or words above your level.", { language })
+          : tt("Click {seal} at the top (or press P) to show short {language} hints over words: every word, words you don't know yet, or words above your level.", { language });
+    const [beforeSeal, afterSeal = ''] = sealLine.split('{seal}');
     const lines: (string | Node)[][] = [
       [touch
-        ? 'Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.'
-        : 'Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.'],
-      // The seal as the bar draws it, so the button is easy to find.
-      [touch ? 'Tap ' : 'Click ', h(`span.rd-seal${isChinese() || L.id === 'ja' || L.id === 'en' ? '.zh' : '.rd-seal-latin'}`, null, aidSeal()), touch ? ' at the top' : ' at the top (or press P)',
-        isChinese() ? " to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level."
-          : L.aid === 'furigana' ? " to choose where furigana show: every word, words you don't know yet, or words above your JLPT level."
-          : ` to show short ${glossLanguage()} hints over words: every word, words you don't know yet, or words above your level.`],
+        ? tt('Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.')
+        : tt('Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.')],
+      [beforeSeal, seal, afterSeal].filter((x) => x !== ''),
     ];
     const s = ctx.settings.get();
     if (s.pinyin === 'unknown' && store.known.count() === 0) {
-      lines.push([`Right now every word has ${aidWord()}. Mark a word as known in its card and its ${aidWord()} goes away.`]);
+      lines.push([L.aid === 'pinyin' ? tt('Right now every word has pinyin. Mark a word as known in its card and its pinyin goes away.')
+        : L.aid === 'furigana' ? tt('Right now every word has furigana. Mark a word as known in its card and its furigana goes away.')
+          : tt('Right now every word has hints. Mark a word as known in its card and its hints goes away.')]);
     }
     const stop = () => {
       document.removeEventListener('pointerdown', close, true);
@@ -1696,7 +1710,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     };
     const box = h('div.rd-coach', { role: 'note', 'data-rd-ui': '' },
       h('div', null, lines.map((l) => h('p', null, ...l))),
-      h('button.btn.btn-sm', { type: 'button', onclick: close }, 'Got it'));
+      h('button.btn.btn-sm', { type: 'button', onclick: close }, tt('Got it')));
     rd.appendChild(box);
     const timer = window.setTimeout(close, 20000);
     // The first tap anywhere puts it away (and still does what the tap was for).

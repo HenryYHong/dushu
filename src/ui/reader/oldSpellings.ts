@@ -7,14 +7,15 @@ import { makeFix } from '../../core/fixes';
 import type { Lexicon } from '../../types';
 import type { BookFixes } from './bookFixes';
 import type { SpellingSwitch } from './toc';
+import { tt, ttm } from '../../i18n';
 
 export type SpellingId = 'di' | 'na';
 export const SPELLING_IDS: SpellingId[] = ['di', 'na'];
 
-/** The character each switch is about, and how the Corrections tab says it. */
+/** The character each switch is about, and how the Corrections tab says it (in English: switches() gives the app's language). */
 export const SPELLINGS: Record<SpellingId, { word: string; label: string; hint: string }> = {
-  di: { word: '底', label: '底 for 的', hint: '我底书 reads wǒ de shū' },
-  na: { word: '那', label: '那 for 哪 in questions', hint: '那里去？ reads nǎlǐ qù' },
+  di: { word: '底', label: ttm('底 for 的'), hint: ttm('我底书 reads wǒ de shū') },
+  na: { word: '那', label: ttm('那 for 哪 in questions'), hint: ttm('那里去？ reads nǎlǐ qù') },
 };
 
 export interface BookSpellings {
@@ -74,7 +75,7 @@ export function createBookSpellings(ctx: AppContext, book: BookMeta, fixes: Book
       const c = choice();
       const on = current();
       return SPELLING_IDS.filter((id) => c[id] !== undefined || (report && (report[id].hits > 0 || report[id].sure))).map((id) => ({
-        id, label: SPELLINGS[id].label, hint: SPELLINGS[id].hint, on: on[id], set: (v: boolean) => choose([id], v),
+        id, label: tt(SPELLINGS[id].label), hint: tt(SPELLINGS[id].hint), on: on[id], set: (v: boolean) => choose([id], v),
       }));
     },
     ask() {
@@ -90,6 +91,10 @@ export function createBookSpellings(ctx: AppContext, book: BookMeta, fixes: Book
  * 红楼梦 水浒 西游记, are the books that write 那 for 哪 most: not only the 1920s.)
  */
 export function askText(ids: SpellingId[]): string {
-  const said = ids.map((id) => (id === 'di' ? '底 for 的' : '那 for 哪'));
-  return `This book writes ${said.join(' and ')}, as many older books do. Read ${ids.length > 1 ? 'them' : 'it'} that way?`;
+  // Each case whole, so a language can say it its own way (ask() gives them in SPELLING_IDS order).
+  const di = ids.includes('di');
+  const na = ids.includes('na');
+  if (di && na) return tt('This book writes 底 for 的 and 那 for 哪, as many older books do. Read them that way?');
+  return di ? tt('This book writes 底 for 的, as many older books do. Read it that way?')
+    : tt('This book writes 那 for 哪, as many older books do. Read it that way?');
 }

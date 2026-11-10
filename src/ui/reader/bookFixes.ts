@@ -9,6 +9,7 @@ import type { Fixer, FixPiece, FixTarget } from '../popup/fixView';
 import type { BlockState, ChapterView } from './chapter';
 import type { SpellingSwitch, TocFixes } from './toc';
 import { h } from '../dom';
+import { tt, ttn } from '../../i18n';
 
 export interface BookFixes extends Fixer {
   /** Reads the book's fixes again (a change here, in another tab, or from another device). */
@@ -49,7 +50,7 @@ export function createBookFixes(ctx: AppContext, book: BookMeta): BookFixes {
     async places(word) { return countIn(await bookTexts(), word); },
     async save(fix) {
       // (The store keeps only what cleanFix takes: a fix it would drop is said, not toasted as done.)
-      if (!cleanFix(fix)) throw new Error('Globereader cannot keep that correction.');
+      if (!cleanFix(fix)) throw new Error(tt('Globereader cannot keep that correction.'));
       const was = (await store.fixes.list()).find((f) => f.id === fix.id);
       await store.fixes.put([{ ...fix, t: Math.max(fix.t, (was?.t ?? 0) + 1) }]);
       return was;
@@ -95,8 +96,6 @@ export async function toggleFound(fixes: BookFixes, entry: LexiconEntry): Promis
   else await fixes.save(makeFix({ book: fixes.book.key, bookId: fixes.book.id, kind: 'unword', word: entry.word }));
 }
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
-
 /** The book a corrections file names ({ title, key }), if it says. */
 function fileBook(json: string): { title?: string; key?: string } | undefined {
   try {
@@ -113,33 +112,36 @@ export function correctionsTab(ctx: AppContext, fixes: BookFixes, title: string,
     list: () => fixes.fixes(),
     async toggle(f) { await fixes.save({ ...f, on: !f.on, t: Date.now() }); },
     async remove(f) {
-      try { await fixes.remove(f.id); } catch (e) { ctx.toast(e instanceof Error ? e.message : 'Could not delete that.'); return; }
-      ctx.toast(`Your correction of ${f.word} is deleted.`, { ms: 7000, action: { label: 'Undo', run: () => { void fixes.save(f).catch(() => {}); } } });
+      try { await fixes.remove(f.id); } catch (e) { ctx.toast(e instanceof Error ? e.message : tt('Could not delete that.')); return; }
+      ctx.toast(tt('Your correction of {word} is deleted.', { word: f.word }), { ms: 7000, action: { label: tt('Undo'), run: () => { void fixes.save(f).catch(() => {}); } } });
     },
     places: (w) => fixes.places(w),
     async exportFile() {
       // The book's own corrections, and the words joined for all books (marked so in the file; an import makes them all-books again).
       const own = fixes.fixes().filter((f) => f.book !== '*' || (f.kind === 'word' && !f.at));
-      if (!own.length) { ctx.toast('This book has no corrections to export yet.'); return; }
+      if (!own.length) { ctx.toast(tt('This book has no corrections to export yet.')); return; }
       const url = URL.createObjectURL(new Blob([exportFixes(own, { title, key: fixes.book.key })], { type: 'application/json' }));
-      const a = h('a', { href: url, download: `${title.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 60) || 'Book'} corrections.json` });
+      const name = title.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 60) || tt('Book');
+      const a = h('a', { href: url, download: `${tt('{title} corrections', { title: name })}.json` });
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      ctx.toast(`${plural(own.length, 'correction')} saved to your downloads.`);
+      ctx.toast(ttn(own.length, '{n} correction saved to your downloads.', '{n} corrections saved to your downloads.'));
     },
     async importFile(file) {
       let list: Fix[];
       let json = '';
-      try { json = await file.text(); list = importFixes(json, fixes.book); } catch (e) { ctx.toast(e instanceof Error ? e.message : 'Could not read that file.'); return; }
+      try { json = await file.text(); list = importFixes(json, fixes.book); } catch (e) { ctx.toast(e instanceof Error ? e.message : tt('Could not read that file.')); return; }
       // A file made for another book (it names its book) is added only when the reader says so.
       const from = fileBook(json);
       if (list.length && from?.key && from.key !== fixes.book.key && !olderKeys(fixes.book.key).includes(from.key)) {
         const ok = await confirmDialog({
-          title: 'Corrections of another book',
-          message: `This file holds the corrections of ${from.title ? `“${from.title}”` : 'another book'}, not of “${title}”. Add them to this book anyway?`,
-          confirmLabel: 'Add them',
+          title: tt('Corrections of another book'),
+          message: from.title
+            ? tt('This file holds the corrections of “{other}”, not of “{title}”. Add them to this book anyway?', { other: from.title, title })
+            : tt('This file holds the corrections of another book, not of “{title}”. Add them to this book anyway?', { title }),
+          confirmLabel: tt('Add them'),
         });
         if (!ok) return;
       }
@@ -148,9 +150,10 @@ export function correctionsTab(ctx: AppContext, fixes: BookFixes, title: string,
       const take = list.filter((f) => (have.get(f.id)?.t ?? -1) < f.t);
       if (take.length) await ctx.store.fixes.put(take);
       const kept = list.length - take.length;
-      ctx.toast(!list.length ? 'That file has no corrections Globereader can use.'
-        : !take.length ? 'These corrections are already here.'
-          : `Added ${plural(take.length, 'correction')}.${kept ? ` ${plural(kept, 'was', 'were')} already here.` : ''}`);
+      const added = take.length;
+      ctx.toast(!list.length ? tt('That file has no corrections Globereader can use.')
+        : !added ? tt('These corrections are already here.')
+          : ttn(added, 'Added {n} correction.', 'Added {n} corrections.') + (kept ? ` ${ttn(kept, '{n} was already here.', '{n} were already here.')}` : ''));
     },
     ...(spellings ? { spellings } : {}),
   };

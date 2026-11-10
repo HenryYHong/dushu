@@ -14,6 +14,7 @@ import { levelLabel, levelScheme } from '../../lang/labels';
 import { langVocabItem, safeLookup, shortGlossOf } from '../../lang/words';
 import { foldSearch } from '../vocab/model';
 import type { WordLookup } from '../../lang/types';
+import { tt, ttn, uiLocale } from '../../i18n';
 
 /** What the Words tab needs from the reader. */
 export interface TocWords {
@@ -44,8 +45,8 @@ export interface WordsTab {
 type Show = 'new' | 'all';
 type Order = 'often' | 'first';
 
-const fmt = (n: number) => n.toLocaleString('en-US');
-const plural = (n: number, one: string, many = `${one}s`) => `${fmt(n)} ${n === 1 ? one : many}`;
+/** A share as the app's language writes it: 75% in English, 75 % in French. */
+const percent = (pct: number) => new Intl.NumberFormat(uiLocale(), { style: 'percent' }).format(pct / 100);
 
 export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, opts: { text(s: string): string; rowH: number; chapterTitle(i: number): string }): WordsTab {
   const store = ctx.store;
@@ -90,19 +91,19 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
 
   // ------------------------------------------------------------- head
   const chapterName = h('div.rd-words-chapter');
-  const prevBtn = h('button.icon-btn.rd-words-step', { type: 'button', 'aria-label': 'Previous chapter', title: 'Previous chapter', onclick: () => step(-1) }, icon('chevronLeft')) as HTMLButtonElement;
-  const nextBtn = h('button.icon-btn.rd-words-step', { type: 'button', 'aria-label': 'Next chapter', title: 'Next chapter', onclick: () => step(1) }, icon('chevronRight')) as HTMLButtonElement;
+  const prevBtn = h('button.icon-btn.rd-words-step', { type: 'button', 'aria-label': tt('Previous chapter'), title: tt('Previous chapter'), onclick: () => step(-1) }, icon('chevronLeft')) as HTMLButtonElement;
+  const nextBtn = h('button.icon-btn.rd-words-step', { type: 'button', 'aria-label': tt('Next chapter'), title: tt('Next chapter'), onclick: () => step(1) }, icon('chevronRight')) as HTMLButtonElement;
   const share = h('div.rd-words-share', { 'aria-live': 'polite' });
-  const filter = h('input.input.rd-toc-filter.rd-words-filter', { type: 'search', placeholder: 'Filter words', 'aria-label': 'Filter words' }) as HTMLInputElement;
+  const filter = h('input.input.rd-toc-filter.rd-words-filter', { type: 'search', placeholder: tt('Filter words'), 'aria-label': tt('Filter words') }) as HTMLInputElement;
   const chip = (label: string, on: () => boolean, set: () => void, title: string) => {
     const b = h('button.rd-words-chip', { type: 'button', title, onclick: () => { set(); syncChips(); paint(); } }, label) as HTMLButtonElement;
     return { b, on };
   };
   const chips = [
-    chip('New', () => show === 'new', () => { show = 'new'; }, 'Words you have not marked known'),
-    chip('All', () => show === 'all', () => { show = 'all'; }, 'Every word in the chapter'),
-    chip('Most often', () => order === 'often', () => { order = 'often'; }, 'The words that come up most first'),
-    chip('In order', () => order === 'first', () => { order = 'first'; }, 'In the order they first come up'),
+    chip(tt('New'), () => show === 'new', () => { show = 'new'; }, tt('Words you have not marked known')),
+    chip(tt('All'), () => show === 'all', () => { show = 'all'; }, tt('Every word in the chapter')),
+    chip(tt('Most often'), () => order === 'often', () => { order = 'often'; }, tt('The words that come up most first')),
+    chip(tt('In order'), () => order === 'first', () => { order = 'first'; }, tt('In the order they first come up')),
   ];
   function syncChips(): void { for (const c of chips) c.b.setAttribute('aria-pressed', String(c.on())); }
   const head = h('div.rd-words-head', null,
@@ -110,12 +111,12 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     share,
     filter,
     h('div.rd-words-chips', null,
-      h('div.rd-words-group', { role: 'group', 'aria-label': 'Show' }, chips[0].b, chips[1].b),
-      h('div.rd-words-group', { role: 'group', 'aria-label': 'Order' }, chips[2].b, chips[3].b)));
+      h('div.rd-words-group', { role: 'group', 'aria-label': tt('Show') }, chips[0].b, chips[1].b),
+      h('div.rd-words-group', { role: 'group', 'aria-label': tt('Order') }, chips[2].b, chips[3].b)));
   syncChips();
 
   // ------------------------------------------------------------- rows
-  const list = h('div.rd-toc-list.rd-words', { role: 'list', 'aria-label': 'Words in this chapter' });
+  const list = h('div.rd-toc-list.rd-words', { role: 'list', 'aria-label': tt('Words in this chapter') });
   const tab: WordsTab = {
     head, list,
     window: null as unknown as Windowed,
@@ -145,17 +146,17 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     h('span.rd-word-line', null,
       h('span.rd-name-py', null, pinyinOf(w)),
       h('span.rd-name-meta', null,
-        h('span.rd-name-count', { title: `${plural(w.count, 'time')} in this chapter` }, `${w.count}×`),
+        h('span.rd-name-count', { title: ttn(w.count, '{n} time in this chapter', '{n} times in this chapter') }, `${w.count}×`),
         level ? h('span.rd-word-hsk', { title: engine ? `${levelScheme()} ${levelText}` : `HSK ${level === 7 ? '7–9' : level}` }, levelText) : null)),
     h('span.rd-word-gloss', null, gloss(w)));
     const saveBtn = h('button.icon-btn.rd-word-act', {
       type: 'button', tabindex: stop, 'data-k': 'save', 'aria-pressed': String(saved),
-      'aria-label': saved ? `Remove ${word} from saved words` : `Save ${word}`, title: saved ? 'Saved. Tap to remove.' : 'Save to flashcards',
+      'aria-label': saved ? tt('Remove {word} from saved words', { word }) : tt('Save {word}', { word }), title: saved ? tt('Saved. Tap to remove.') : tt('Save to flashcards'),
       onclick: () => void toggleSave(w),
     }, icon(saved ? 'starFill' : 'star'));
     const knownBtn = h('button.icon-btn.rd-word-act', {
       type: 'button', tabindex: stop, 'data-k': 'known', 'aria-pressed': String(known),
-      'aria-label': known ? `${word} is known. Mark as not known` : `Mark ${word} as known`, title: known ? 'Known. Tap to undo.' : 'I know this word',
+      'aria-label': known ? tt('{word} is known. Mark as not known', { word }) : tt('Mark {word} as known', { word }), title: known ? tt('Known. Tap to undo.') : tt('I know this word'),
       onclick: () => void toggleKnown(w),
     }, icon(known ? 'checkCircle' : 'check'));
     return h('div.rd-toc-row.rd-name.rd-word', { role: 'listitem', 'data-known': known ? '' : null, 'data-saved': saved ? '' : null }, main, saveBtn, knownBtn);
@@ -178,7 +179,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
         word, syllables: w.pinyin, around: { prev: text(w.prev), next: text(w.next) },
         context: { sentence: text(w.sentence), bookId: book.id, bookTitle: book.title, chapter: index },
       }));
-    } catch (e) { ctx.toast(`Could not save ${word}: ${String(e)}`); }
+    } catch (e) { ctx.toast(tt('Could not save {word}: {error}', { word, error: String(e) })); }
   }
 
   async function toggleKnown(w: ChapterWord): Promise<void> {
@@ -188,7 +189,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     try {
       if (isKnown(w)) await store.known.remove([...new Set([simp, w.key, w.word, word, trad].filter(Boolean))]);
       else await store.known.add([simp || w.key]);
-    } catch (e) { ctx.toast(`Could not update ${word}: ${String(e)}`); }
+    } catch (e) { ctx.toast(tt('Could not update {word}: {error}', { word, error: String(e) })); }
   }
 
   // ------------------------------------------------------------- painting
@@ -198,21 +199,26 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     nextBtn.disabled = index >= book.chapterCount - 1;
     share.textContent = '';
     if (!data) return;
-    if (!data.total) { share.appendChild(h('p.rd-words-note', null, engine ? 'No words in this chapter.' : 'No Chinese words in this chapter.')); return; }
+    if (!data.total) { share.appendChild(h('p.rd-words-note', null, engine ? tt('No words in this chapter.') : tt('No Chinese words in this chapter.'))); return; }
     const s = wordShare(data, isKnown);
     const pct = Math.floor((s.known / s.total) * 100);
+    // The share is in bold inside the sentence: the sentence is translated whole and cut where {percent} stands.
+    const [before, after = ''] = tt('{percent} of the words in this chapter are ones you know.').split('{percent}');
+    const fresh = s.fresh;
+    const often = s.freshOften;
     share.append(
-      h('div.rd-words-meter', { role: 'img', 'aria-label': `${pct}% known` }, h('span', { style: `width: ${pct}%` })),
-      h('p.rd-words-big', null, h('strong', null, `${pct}%`), ` of the words in this chapter are ones you know.`),
-      h('p.rd-words-note', null, s.fresh
-        ? `${plural(s.fresh, 'new word')}${s.freshOften ? `, ${fmt(s.freshOften)} of them ${s.freshOften === 1 ? 'comes' : 'come'} up 3 or more times` : ''}.`
-        : 'You know every word in this chapter.'),
+      h('div.rd-words-meter', { role: 'img', 'aria-label': tt('{percent} known', { percent: percent(pct) }) }, h('span', { style: `width: ${pct}%` })),
+      h('p.rd-words-big', null, before || null, h('strong', null, percent(pct)), after || null),
+      h('p.rd-words-note', null, !fresh ? tt('You know every word in this chapter.')
+        : !often ? ttn(fresh, '{n} new word.', '{n} new words.')
+          : ttn(often, '{words}, {n} of them comes up 3 or more times.', '{words}, {n} of them come up 3 or more times.', { words: ttn(fresh, '{n} new word', '{n} new words') })),
     );
     if (!store.known.count()) {
       // HSK and JLPT are names of levels; elsewhere the scheme is just "Level" (A1 to C2), and "Level levels" says it twice.
       const s = levelScheme();
-      const levels = s === 'HSK' || s === 'JLPT' ? `${s} levels` : 'levels';
-      share.appendChild(h('p.rd-words-note', null, `Mark words you know with the check, or mark whole ${levels} as known in Vocabulary.`));
+      share.appendChild(h('p.rd-words-note', null, s === 'HSK' ? tt('Mark words you know with the check, or mark whole HSK levels as known in Vocabulary.')
+        : s === 'JLPT' ? tt('Mark words you know with the check, or mark whole JLPT levels as known in Vocabulary.')
+          : tt('Mark words you know with the check, or mark whole levels as known in Vocabulary.')));
     }
   }
 
@@ -240,7 +246,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     tab.rove = Math.max(0, Math.min(tab.rove, shown.length - 1));
     tab.window.set(shown.length, opts.rowH);
     if (!shown.length) {
-      list.appendChild(h('div.rd-toc-none', null, q ? 'No words match.' : show === 'new' ? 'You know every word in this chapter.' : 'No words in this chapter.'));
+      list.appendChild(h('div.rd-toc-none', null, q ? tt('No words match.') : show === 'new' ? tt('You know every word in this chapter.') : tt('No words in this chapter.')));
     }
   }
 
@@ -253,7 +259,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     tab.rove = 0;
     list.scrollTop = 0;
     paint();
-    share.appendChild(h('p.rd-words-note', null, 'Counting the words in this chapter…'));
+    share.appendChild(h('p.rd-words-note', null, tt('Counting the words in this chapter…')));
     src.load(i).then((got) => {
       if (mine !== seq) return;
       data = got;
@@ -261,7 +267,7 @@ export function createWordsTab(ctx: AppContext, book: BookMeta, src: TocWords, o
     }, () => {
       if (mine !== seq) return;
       share.textContent = '';
-      share.appendChild(h('p.rd-words-note', null, 'This chapter could not be read.'));
+      share.appendChild(h('p.rd-words-note', null, tt('This chapter could not be read.')));
     });
   }
 

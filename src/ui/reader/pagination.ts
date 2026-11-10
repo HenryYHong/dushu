@@ -1,5 +1,6 @@
 // The arithmetic of the Pages layout (ARCHITECTURE.md 5.7): how wide a page is, when two pages sit side by side,
 // which page a block is on and which block a page starts with. Pure functions, no DOM, so they are easy to test.
+import { tt, ttn } from '../../i18n';
 
 export type SpreadSetting = 'auto' | 'single' | 'double';
 
@@ -153,9 +154,10 @@ export function spreadCount(pages: number, per: 1 | 2): number {
  */
 export function pagesLeftLabel(page: number, total: number, approx = false): string {
   const left = Math.max(0, total - 1 - page);
-  if (left === 0 && !approx) return 'Last page of chapter';
+  if (left === 0 && !approx) return tt('Last page of chapter');
   const n = Math.max(1, left);
-  return `${approx ? 'About ' : ''}${n} ${n === 1 ? 'page' : 'pages'} left in chapter`;
+  return approx ? ttn(n, 'About {n} page left in chapter', 'About {n} pages left in chapter')
+    : ttn(n, '{n} page left in chapter', '{n} pages left in chapter');
 }
 
 /** Pages of a chapter that is only partly measured: scale what is known by the share of the text that has been measured. */
