@@ -23,7 +23,7 @@ import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge
 import { CLOUD_EVENT, accountInfo, accountMark, cloudFetch, cloudSession, forgetSession, isAccountOwner } from './cloud';
 import { FIX_KEY, SYNCED_SETTINGS, bookKey, canonical, fixKey, hash, isFixKey, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 import { cleanFix, fixWire } from './fixes';
-import { actKey, cleanDay, isActKey, mergeRecord, parseActKey, syncRecords } from './activity';
+import { SYNC_DAYS, actKey, addDays, cleanDay, dayOf, isActKey, mergeRecord, parseActKey, syncRecords } from './activity';
 
 export { bookKey, canonical, hash };
 
@@ -495,9 +495,14 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         : key.startsWith('p:') ? Math.max(cur.at, base.at + 1) : Math.max(chosenAt(key) ?? t, base.at + 1);
       changed.push({ key, at, sig: cur.sig, dirty: 1, ...bare(cur), ...(base?.held !== undefined ? { held: base.held } : {}) });
     }
+    // A day's reading time leaves the snapshot once it is SYNC_DAYS old on this device's calendar, but another device's date
+    // can be up to two days behind (UTC+14 and UTC-12) and still send it, so its deletion waits two days more: by then every
+    // device has let the day go, and the record is deleted once instead of going back and forth with each sync.
+    const actKept = addDays(dayOf(), -(SYNC_DAYS + 2));
     for (const [key, base] of rows) {
       // Places are never deleted by sync: removing a book here must not lose the place on the other devices. Nor are settings.
       if (key === META || key.startsWith('p:') || key.startsWith('o:') || base.sig === '-' || current.has(key)) continue;
+      if (isActKey(key) && (parseActKey(key)?.day ?? '') >= actKept) continue;
       changed.push({ key, at: Math.max(t, base.at + 1), sig: '-', dirty: 1 });
     }
     if (changed.length) {
@@ -506,6 +511,11 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     }
     const dirty = () => [...rows.values()].filter((r) => r.dirty);
     /**
+     * The changes Settings counts as waiting: every unsent row but a setting still at the library's default that the reader
+     * never chose (time 0). Those go all the same (a new device seeds an empty account with them); they are not the reader's.
+     */
+    const owed = () => dirty().filter((r) => !(r.key.startsWith('o:') && r.at === 0)).length;
+    /**
      * Settings sent in this sync that the hub did not keep. A hub keeps only the names it lists (syncKeys.ts) and echoes every
      * one it kept, won or lost; a hub from before a setting existed (translateTo, covers) drops it without a word. Such a row
      * stays dirty, with the time it was chosen, and goes again with the next sync, so the choice arrives once the hub is updated
@@ -513,7 +523,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
      */
     const unheard = new Set<string>();
     const unsent = () => dirty().filter((r) => !unheard.has(r.key));
-    setStatus({ pending: dirty().length });
+    setStatus({ pending: owed() });
     if (!syncEnabled(lang)) { setStatus({ state: 'off' }); return; }
     /** The hub's copy is new (or was reset), or this device moved to another hub: everything here goes to it again. */
     const restart = async (epoch: string) => {
@@ -584,7 +594,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         await store.sync.write([{ key: META, at: 0, sig: '', held: meta }], [], rows);
         const name = LANGS[lang].name;
         setStatus({
-          state: 'outdated', hub, lastOk: undefined, counts: undefined, pending: dirty().length,
+          state: 'outdated', hub, lastOk: undefined, counts: undefined, pending: owed(),
           message: `${hub === 'cloud' ? 'The sync server is older than this version of Globereader' : 'Globereader on your Mac is older than this page'} and does not keep ${name} yet. Your ${name} words, places and bookmarks stay on this device and sync once it is updated.`,
         });
         return;
@@ -620,7 +630,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       });
       await store.sync.write([...cleared, { key: META, at: 0, sig: '', held: meta }], [], rows);
       for (const r of cleared) rows.set(r.key, r);
-      setStatus({ state: 'idle', hub, lastOk: now(), pending: dirty().length, counts: reply.counts });
+      setStatus({ state: 'idle', hub, lastOk: now(), pending: owed(), counts: reply.counts });
       if (!copied && !opts.send && hub === 'cloud' && hasMacBridge()) {
         // Signed in and able to reach the Mac: what the Mac holds goes into the account once, beside this sync (never in its
         // way when the Mac is asleep), and a sync right after takes it. Started once the account has answered for this library,

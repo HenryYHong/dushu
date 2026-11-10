@@ -65,19 +65,35 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
   });
 
   const supported = canSpeak();
-  if (!supported) {
-    select.disabled = true;
-    test.disabled = true;
-    note.textContent = 'This browser cannot speak text aloud.';
-  } else {
+  /**
+   * Lists the voices again. A browser can load its voices after Settings opened (voiceschanged), and the Mac's voices come
+   * from the bridge: each listing is numbered, so an older, slower one never replaces a newer one.
+   */
+  let listRun = 0;
+  const relist = () => {
+    const mine = ++listRun;
     void (isChinese() ? listChineseVoices() : listVoicesFor(lang().tag)).then((list) => {
+      if (mine !== listRun) return;
       voices = list;
       listed = true;
       fill(settings.get().ttsVoice);
       note.textContent = list.length
         ? `Automatic picks the best voice you have. On iPad you can add ${langName()} voices in Settings > Accessibility > Read & Speak.`
-        : `No ${langName()} voices found. Add one in your device’s Accessibility > Read & Speak settings, then reopen Globereader.`;
-    }).catch(() => { listed = true; });
+        : `No ${langName()} voices found. Add one in your device’s Accessibility > Read & Speak settings, then reopen Settings.`;
+    }).catch(() => {
+      if (mine !== listRun) return;
+      listed = true;
+      note.textContent = '';
+    });
+  };
+  if (!supported) {
+    select.disabled = true;
+    test.disabled = true;
+    note.textContent = 'This browser cannot speak text aloud.';
+  } else {
+    note.textContent = 'Looking for voices…';
+    relist();
+    speechSynthesis.addEventListener('voiceschanged', relist);
   }
 
   const el = group('Speech', null,
@@ -92,6 +108,11 @@ export function speechGroup(ctx: AppContext): { el: HTMLElement; update(s: Setti
       rate.update(s);
       if (select.value !== s.ttsVoice && (listed || !s.ttsVoice)) fill(s.ttsVoice);
     },
-    dispose() { testRun++; stopSpeaking(); },
+    dispose() {
+      testRun++;
+      stopSpeaking();
+      listRun++;
+      if (supported) speechSynthesis.removeEventListener('voiceschanged', relist);
+    },
   };
 }

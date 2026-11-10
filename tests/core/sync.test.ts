@@ -7,11 +7,20 @@ import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { newSrs } from '../../src/core/srs';
 import { REMOTE_PROGRESS_EVENT, bookKey, canonical, createSyncer, setSyncEnabled, syncEnabled, type Syncer } from '../../src/core/sync';
 import { openStore } from '../../src/store';
+import { createSettingsStore } from '../../src/store/settings';
 import type { ImportedBook, Store, VocabItem } from '../../src/types';
 import { createSyncStore } from '../../scripts/sync-bridge';
 
 let n = 0;
 const open = () => openStore(`sync-${++n}-${Math.random().toString(36).slice(2)}`);
+
+function memStorage(): Storage {
+  const m = new Map<string, string>();
+  return {
+    get length() { return m.size; }, clear: () => m.clear(), key: (i) => [...m.keys()][i] ?? null,
+    getItem: (k) => m.get(k) ?? null, removeItem: (k) => { m.delete(k); }, setItem: (k, v) => { m.set(k, String(v)); },
+  };
+}
 
 const dirs: string[] = [];
 const tempDir = () => { const d = mkdtempSync(join(tmpdir(), 'dushu-sync-')); dirs.push(d); return d; };
@@ -417,6 +426,36 @@ describe('sync between two devices', () => {
     setSyncEnabled(true);
     await sa.run();
     expect(m.server.status().counts.known).toBe(1);
+  });
+
+  it('does not count settings left at their defaults as changes waiting, but still sends them', async () => {
+    // A fresh device has done nothing: its settings go as defaults (time 0) with the first sync, but Settings must not say
+    // "21 changes from this device will sync" while the hub is out of reach.
+    const m = mac();
+    m.down = true;
+    const a = await open();
+    const settings = createSettingsStore(memStorage(), 'zh');
+    const sa = createSyncer(a, { send: (body) => m.send(body), everyMs: 0, settings });
+    syncers.push(sa);
+    await sa.run();
+    expect(sa.status()).toMatchObject({ state: 'asleep', pending: 0 });
+    await a.vocab.put(word('银行'));
+    await sa.run();
+    expect(sa.status()).toMatchObject({ state: 'asleep', pending: 1 });
+    // A setting the reader chose is theirs, and waits too.
+    settings.set({ fontSize: 30 });
+    await sa.run();
+    expect(sa.status().pending).toBe(2);
+    setSyncEnabled(false);
+    await sa.run();
+    expect(sa.status()).toMatchObject({ state: 'off', pending: 2 });
+    setSyncEnabled(true);
+    m.down = false;
+    await sa.run();
+    expect(sa.status()).toMatchObject({ state: 'idle', pending: 0 });
+    const sent = m.sent.flat() as { key: string; at: number }[];
+    expect(sent.find((c) => c.key === 'o:theme')).toMatchObject({ at: 0 });
+    expect(sent.find((c) => c.key === 'o:fontSize')?.at).toBeGreaterThan(0);
   });
 });
 
