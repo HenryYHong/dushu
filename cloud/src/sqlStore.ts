@@ -1,13 +1,19 @@
 // An account's state in its Durable Object's SQLite database.
 import { recordRoom, type AccountStore, type BookEntry, type LimitsStore } from './account';
-import { countRecord, noCounts, type StoredRecord, type WireRecord } from '../../src/core/syncExchange';
-import { langPrefix } from '../../src/core/syncKeys';
+import { READER, READER_COPIES, countRecord, noCounts, type StoredRecord, type WireRecord } from '../../src/core/syncExchange';
+import { ACT_PREFIX, GOAL_KEY, langPrefix } from '../../src/core/syncKeys';
+
+/** The SQL for a reader's record (isReaderKey) named from character `from` of the key on. */
+const readerFrom = (from: string) => `(substr(key, ${from}, ${ACT_PREFIX.length}) = '${ACT_PREFIX}' OR substr(key, ${from}) = '${GOAL_KEY}')`;
 
 /**
  * The SQL that picks one library's records (syncExchange.ts inLang), and its bindings: Chinese keys have no '@' in front,
- * another language's start with its prefix ('@ja:').
+ * another language's start with its prefix ('@ja:'). READER: the reader's records as kept ('l:act:…', 'l:goal');
+ * READER_COPIES: the copies of them a Worker from before kept under a prefix ('@ja:l:act:…').
  */
 function library(lang: string): { where: string; binds: unknown[]; skip: number } {
+  if (lang === READER) return { where: readerFrom('1'), binds: [], skip: 0 };
+  if (lang === READER_COPIES) return { where: `substr(key, 1, 1) = '@' AND ${readerFrom("instr(key, ':') + 1")}`, binds: [], skip: 0 };
   const prefix = langPrefix(lang);
   return prefix
     ? { where: 'substr(key, 1, ?) = ?', binds: [prefix.length, prefix], skip: prefix.length }

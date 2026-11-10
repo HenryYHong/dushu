@@ -2,7 +2,7 @@
 // these per email, or per account made with a passkey, in a Durable Object with its own SQLite database (sqlStore.ts); tests
 // keep it in memory. Every method is synchronous over the store, so a Durable Object runs each one as a single transaction;
 // the hashing and the passkey signatures are checked before.
-import { countRecord, exchange, inLang, noCounts, recordSize, syncLang, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
+import { countRecord, exchange, inLang, noCounts, recordSize, shareReader, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
 import { OTHER_LANGS } from '../../src/core/syncKeys';
 
 export const CODE_TTL_MS = 10 * 60_000;
@@ -51,7 +51,9 @@ export const STALE_UPLOAD_MS = 86_400_000;
  * Words, places, settings and the rest an account keeps, in bytes of JSON: the owner's, and everyone else's. Two rooms of this
  * size (RecordRoom): the Chinese library's, as before languages synced, so a reader of Chinese and Japanese is never refused
  * Chinese words for the Japanese ones and the Chinese app from before is answered exactly as it was; and one shared by the
- * other seven languages. 40 MB at most for an account that is not the owner's, beside its 200 MB of books.
+ * other seven languages. 40 MB at most for an account that is not the owner's, beside its 200 MB of books. The reader's
+ * records (reading time and the goal, a few bytes a day) are kept under Chinese keys, so they count in the Chinese room
+ * whichever library sends them.
  */
 export const OWNER_RECORD_BYTES = 100 * 1024 * 1024;
 export const SHARED_RECORD_BYTES = 20 * 1024 * 1024;
@@ -463,19 +465,39 @@ export class AccountCore {
   sync(sessionHash: string, input: { epoch?: unknown; since?: unknown; changes?: unknown; lang?: unknown }, now: number): SyncReply {
     this.authorize(sessionHash, now);
     const table = this.table();
-    // An account keeps so much in each room (more for the owner): a merge that would grow the request's room past that is
-    // refused, one that shrinks it never. The merge says what it would keep before it writes (exchange), so a change that
-    // loses, or another language's change in the request (never kept), is not counted.
-    const lang = syncLang(input.lang);
-    const kind: RecordRoom = lang ? 'others' : 'chinese';
+    this.shareReader(table);
+    // An account keeps so much in each room (more for the owner): a merge that would grow a room past that is refused, one
+    // that shrinks it never. The merge says what it would keep before it writes (exchange), so a change that loses, or another
+    // language's change in the request (never kept), is not counted. A request grows its own library's room, and the Chinese
+    // one with the reader's records (reading time and the goal, kept under Chinese keys whichever library sends them).
     const room = this.owner() ? OWNER_RECORD_BYTES : SHARED_RECORD_BYTES;
     const { reply, changed } = exchange(table, input, now, (grow) => {
-      if (grow > 0 && this.store.recordBytes(kind) + grow > room) {
-        throw new CloudError(413, `Your account is full: it keeps up to ${room / 1024 / 1024} MB of words, places and settings${lang ? ' for all your languages but Chinese together' : ''}.`, 'full');
+      const by: Record<RecordRoom, number> = { chinese: 0, others: 0 };
+      for (const [key, n] of grow) by[recordRoom(key)] += n;
+      for (const kind of ['others', 'chinese'] as const) {
+        if (by[kind] > 0 && this.store.recordBytes(kind) + by[kind] > room) {
+          throw new CloudError(413, `Your account is full: it keeps up to ${room / 1024 / 1024} MB of words, places and settings${kind === 'others' ? ' for all your languages but Chinese together' : ''}.`, 'full');
+        }
       }
     });
-    if (changed) this.store.setMeta('version', String(table.version));
+    if (changed) {
+      this.store.setMeta('version', String(table.version));
+      this.store.setMeta('reader', String(table.version));
+    }
     return reply;
+  }
+
+  /**
+   * Before a sync: the reader's records made one, if a Worker from before (this one rolled back, or the one before this deploy)
+   * wrote to the account since this one last did (syncExchange.ts shareReader). `reader` in meta is the version this Worker left
+   * the records at; a Worker from before moves `version` on and never touches it. Saved with the version at once, so a request
+   * refused next (full) leaves the table and its version in step.
+   */
+  private shareReader(table: RecordTable): void {
+    const left = Number(this.store.getMeta('reader') ?? 0);
+    if (left === table.version) return;
+    if (shareReader(table, Number.isInteger(left) && left >= 0 && left < table.version ? left : 0)) this.store.setMeta('version', String(table.version));
+    this.store.setMeta('reader', String(table.version));
   }
 
   /** The Chinese library's status, as before languages synced (GET /sync; the app reads its counts from each sync's reply). */

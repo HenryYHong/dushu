@@ -127,6 +127,17 @@ export const isFixKey = (key: string): boolean => key.startsWith(FIX_KEY);
  * Every library's sync carries it, so the goal reaches a device whichever library it opens.
  */
 export const GOAL_KEY = 'l:goal';
+/** A device's reading time on a day (core/activity.ts) travels as 'l:act:<day>:<device>'. */
+export const ACT_PREFIX = 'l:act:';
+
+/**
+ * The reader's records rather than one library's: reading time and the daily goal. A library sends them as it sends everything,
+ * under its own prefix ('@ja:l:act:…', 'l:goal' for Chinese), but a hub keeps one copy of each, under the key Chinese uses, and
+ * gives it to every library under that library's prefix (syncExchange.ts). So a Japanese reader and a Spanish reader share one
+ * streak and one goal, and a device that opens both libraries makes one record, not two. `key` is a library's own name for it,
+ * without a prefix.
+ */
+export const isReaderKey = (key: string): boolean => key.startsWith(ACT_PREFIX) || key === GOAL_KEY;
 
 /** A looked-up word's record key: 'l:<day>:<word>'. */
 export const lookupKey = (day: string, id: string): string => `l:${day}:${id}`;

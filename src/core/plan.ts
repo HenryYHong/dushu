@@ -1,6 +1,7 @@
 // What the reader is learning: the languages chosen on the welcome screen (ui/welcome.ts) or in Settings, and the daily goal in
 // minutes. The reader's, not one library's, so under no language's prefix. Kept on the device; the goal also syncs ('l:goal',
-// core/sync.ts), so every device judges a day by the same goal.
+// core/sync.ts, one record on a hub whichever library sends it: isReaderKey in syncKeys.ts), so every device judges a day by the
+// same goal.
 import { isLangId } from '../lang/registry';
 import type { LangId } from '../lang/types';
 import { ACTIVITY_EVENT, DEFAULT_GOAL, GOALS, setTodayGoal } from './activity';

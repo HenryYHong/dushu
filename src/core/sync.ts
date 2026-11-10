@@ -196,9 +196,11 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, 
   for (const b of await store.bookmarks.list()) put(`b:${b.id}`, bookmarkWire(b, books), b.createdAt);
   for (const f of await store.fixes.list()) put(fixKey(f.id), fixWire(f), f.t);
   // Time read each day, this device's and the others' (core/activity.ts), whichever library is open: one streak for them all.
+  // Sent under this library's prefix like the rest; a hub keeps one record of each whichever library sends it, and gives it to
+  // every library (isReaderKey, core/syncExchange.ts), so a Japanese library hears of the Spanish read on another device.
   for (const r of syncRecords()) put(actKey(r.day, r.device), r.rec, r.rec.t);
-  // The daily goal, the reader's in every library, with the time it was chosen. A device that never chose one sends nothing
-  // (it takes the account's), so what an untouched library sends is what it always sent.
+  // The daily goal, the reader's in every library, with the time it was chosen (one record on a hub too). A device that never
+  // chose one sends nothing (it takes the account's), so what an untouched library sends is what it always sent.
   const plan = getPlan();
   if (plan.goalAt > 0) put(GOAL_KEY, { g: plan.goal }, plan.goalAt);
   for (const [id, key] of books.keyOf) {

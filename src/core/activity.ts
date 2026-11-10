@@ -1,9 +1,12 @@
 // Time spent reading and reviewing, by day, the daily goal and the streak. One record per device per day, for every language
 // at once: one streak counts reading in any language. Kept in localStorage (dushu.activity.v1, under no language's prefix, so
-// deleting one library leaves it alone), and sent with whichever library syncs as 'l:act:<day>:<device>' (core/sync.ts): a hub
-// keeps any 'l:' key as a record of its own, and a device from before reads an 'l:' key only when it names a day, so neither
-// needs an update. A record only ever grows (seconds per language), so two copies merge by taking the larger of each.
+// deleting one library leaves it alone), and sent with whichever library syncs as 'l:act:<day>:<device>' (core/sync.ts), under
+// that library's prefix like the rest of it. A hub keeps one copy of each day whichever library sends it, and gives it to every
+// library (isReaderKey in syncKeys.ts, syncExchange.ts), so a device that only reads Japanese hears of the Spanish read on
+// another. A device from before reads an 'l:' key only when it names a day, so it passes these over. A record only ever grows
+// (seconds per language), so two copies merge by taking the larger of each.
 import type { LangId } from '../lang/types';
+import { ACT_PREFIX } from './syncKeys';
 
 export const ACTIVITY_KEY = 'dushu.activity.v1';
 /** Fired on window when the time or the goal changes here (or arrives from another device). */
@@ -158,7 +161,7 @@ export function mergeDays(a: DayRecord, b: DayRecord): DayRecord {
   return { s, g: later.g, t: later.t };
 }
 
-export const ACT_PREFIX = 'l:act:';
+export { ACT_PREFIX };
 export const actKey = (day: string, device: string): string => `${ACT_PREFIX}${day}:${device}`;
 export const isActKey = (key: string): boolean => key.startsWith(ACT_PREFIX);
 export function parseActKey(key: string): { day: string; device: string } | null {

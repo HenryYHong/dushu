@@ -11,11 +11,16 @@ import { isAbsolute, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { bridgeRequest } from './private-access';
-import { SYNC_LIMITS, SyncError, countRecord, exchange, inLang, noCounts, type RecordTable, type StoredRecord, type SyncReply, type WireRecord } from '../src/core/syncExchange';
+import { SYNC_LIMITS, SyncError, countRecord, exchange, inLang, noCounts, shareReader, type RecordTable, type StoredRecord, type SyncReply, type WireRecord } from '../src/core/syncExchange';
 
 export { SYNC_LIMITS, SyncError };
 export type { SyncReply, WireRecord };
-export interface SyncState { epoch: string; version: number; records: Record<string, StoredRecord> }
+/**
+ * The Mac's copy. `reader`: the version this server last left the records at (the reader's records made one, syncExchange.ts
+ * shareReader). A server from before (one not restarted since the update, or started from an older checkout on the same folder)
+ * keeps the field as it is and moves `version` on, so the next request here folds what it wrote.
+ */
+export interface SyncState { epoch: string; version: number; records: Record<string, StoredRecord>; reader?: number }
 
 const BACKUP_DAYS = 14;
 
@@ -107,8 +112,17 @@ export function createSyncStore(opts: SyncStoreOptions = {}) {
     /** Merges `changes` and returns every record newer than `since`, plus the current value of any change that lost. */
     exchange(input: { epoch?: unknown; since?: unknown; changes?: unknown; lang?: unknown }): SyncReply {
       const s = load();
+      const left = s.reader ?? 0;
+      if (left !== s.version) {
+        shareReader(table(s), Number.isInteger(left) && left >= 0 && left < s.version ? left : 0);
+        s.reader = s.version;
+        save(s);
+      }
       const { reply, changed } = exchange(table(s), input, now());
-      if (changed) save(s);
+      if (changed) {
+        s.reader = s.version;
+        save(s);
+      }
       return reply;
     },
     /** The Chinese library's status, as before languages synced. */

@@ -1118,7 +1118,8 @@ books go through the account, and so do the reader's corrections (§4.12: names 
 `l:fix:<id>` records). Review logs and the names Dushu found are not synced. Each language's library syncs on its own, apart (**Languages** below).
 - **The Mac** (`scripts/sync-bridge.ts`, route `POST /api/sync`, owner-only through `bridgeRequest`, CORS like the other bridge routes)
   keeps one file, `state.json` in the folder `DUSHU_SYNC_DIR` names (an absolute path; the owner's is `.dushu-local/sync`):
-  `{ epoch, version, records: { key: { at, data, rev } } }`. There is no default folder: only `scripts/start-local.mjs` (Dushu.command,
+  `{ epoch, version, records: { key: { at, data, rev } }, reader }` (`reader`: the version this server last left the reader's
+  records at, **The reader's records** below). There is no default folder: only `scripts/start-local.mjs` (Dushu.command,
   `npm start`, the login item) sets it, and a server started any other way (`npm run dev`, `npm run preview`, a QA script) answers 503
   `{ off: true }`. A save by another process on the same folder (a new inode) is read before the next merge, never overwritten.
   Keys: `v:<word id>`, `k:<word>`, `p:<book key>`, `l:<day>:<word id>` (a looked-up word), `l:fix:<fix id>` (a correction, §4.12), `b:<bookmark id>`, `o:<setting>`, with
@@ -1157,7 +1158,23 @@ books go through the account, and so do the reader's corrections (§4.12: names 
     `core/syncKeys.ts`) only keys with its prefix are kept, the reply holds only them, its counts (`countRecord` reads the kind after
     the prefix), and `lang` named back. `RecordTable.changed` and `counts` take the library (`inLang`); the account's SQL picks it by
     `substr(key, …)`. The version counts every library's changes, so a Chinese cursor moves past Japanese ones. `GET /sync` and the
-    Mac's `GET /api/sync` report the Chinese library, as before.
+    Mac's `GET /api/sync` report the Chinese library, as before. The reader's records are the one exception (below).
+  - *The reader's records* (`isReaderKey` in `core/syncKeys.ts`: reading time `l:act:<day>:<device>` and the goal `l:goal`) are the
+    reader's, not a library's, so they are one record each on a hub. A library sends them as it sends everything, under its prefix
+    (`@ja:l:goal`); the hub keeps them under the Chinese key (`l:goal`) whichever library sends them, and answers every library with
+    them under its own prefix (`exchange`: `RecordTable.changed` with `READER`). So a device that reads only Japanese and one that
+    reads only Spanish share one streak and one goal, and a device that opens both libraries makes one record of its day, not two. The
+    app needs nothing new for it: the key on the wire is what it always was, and no second copy is sent, so there is no old copy to
+    stop sending later. A hub from before (the Worker until it is deployed, the Mac until it restarts) keeps a copy per library, as it
+    did, and each library sees only its own, which is no worse than before; none is dropped. The first request an updated hub answers
+    folds them (`shareReader`): each copy written since this hub last left the table (`reader` in the account's meta or the Mac's
+    file; a hub from before moves `version` on and leaves `reader` alone, so a rollback is folded too) goes into the one record: two
+    copies of a day give the larger time of each language, the goal the one chosen last, and a deletion only beats a record older than
+    it (live copies go first, so the order does not matter). Then every live reader's record gets a new rev, so a library whose cursor
+    passed it while that hub gave it only to Chinese (one that synced then, or first synced then) gets it on its next sync: a few
+    hundred small records at most, and only after a hub from before has written. The copies stay where they are (a rolled-back hub
+    still lists them), and the updated one never gives them out again. The Chinese app from before reads an `l:` key only when it
+    names a day, so it passes the records over, whichever library sent them.
   - *Settings.* A language syncs its own settings (`librarySettings`: the list without `translateTo` and `localOnly`, plus `stress`),
     each compared with its own defaults (`defaultsFor`). `translateTo` and `localOnly` are the reader's: each device spreads them to
     its libraries (`TARGET_KEY`, `LOCAL_ONLY_KEY`) and only the Chinese library syncs them; synced by every library, two libraries on
@@ -1169,6 +1186,8 @@ books go through the account, and so do the reader's corrections (§4.12: names 
     together". Only what the merge keeps counts: `exchange` decides every change before it writes and hands the room the bytes it
     would add, so a deletion that loses (time 0, or older than the copy kept) frees nothing and a key deleted and saved again in
     one request counts once. Tombstones of keys never kept still cost nothing (as before languages; bounded only per request).
+    The reader's records are kept under Chinese keys, so they count in the Chinese room whichever library sends them (`exchange`
+    hands the room each key's bytes, and each room is checked on its own): a day that does not fit there is refused as Chinese.
     Book room stays one for the account (1 GB, 200 MB): books are what storage costs.
   - *A hub from before languages* drops a prefixed record without a word and answers without `lang`. So another language's library
     sends nothing to a hub until a reply has named its language: a library that never synced asks first (`changes: []`), and the
@@ -1185,7 +1204,9 @@ books go through the account, and so do the reader's corrections (§4.12: names 
     keys like `v:…`, so nothing is taken), counts them as nothing, and refuses `@` keys; another language's library is `outdated`
     and loses nothing (above). Its room sums every record, so while it runs the other languages' bytes count against the Chinese
     20 MB, and a Chinese word that fits today can be refused as full; the next deploy gives the room back. It never sees another
-    language's books (Books below). The same holds for the Mac's server started from an older checkout on the same folder.
+    language's books (Books below). The same holds for the Mac's server started from an older checkout on the same folder. A
+    Worker or Mac from before the reader's records were shared keeps copies per library while it runs, which the next request the
+    newer one answers folds (`reader`, above).
   - *Switch.* Each library has its own Sync switch: Chinese `dushu.sync.off.v1`; another language `dushu.<id>.sync.off.v1` (`'1'` off,
     `'0'` on). Until it is set it follows the Chinese one, and the library's first syncer writes that down (a reader who turned sync
     off, or a QA run that does, has not turned it on for Japanese by opening Japanese); from then on each is its own, so Chinese
@@ -1274,17 +1295,23 @@ books go through the account, and so do the reader's corrections (§4.12: names 
   (hub and device), `tests/cloud/sync-languages.test.ts` (the Worker, the Mac copy, the SQL on a real SQLite beside main's own),
   `tests/cloud/books-languages.test.ts`. The released Worker reads the accounts as main's SQL would (`releasedView` in
   `tests/cloud/helpers.ts`: every record, every byte, the `books` table only), and they run new, released, new again, as a rollback would.
+  The hubs' merge from before the reader's records were shared is frozen in `tests/fixtures/languages/` (e823516):
+  `tests/core/sync-reader.test.ts` (a Mac not yet restarted, then restarted, then started from an older checkout, over the same
+  `state.json`) and `tests/cloud/sync-reader.test.ts` (the Worker before its deploy, over the same account) run it, with devices
+  that each have their own localStorage (`tests/helpers/readerDevices.ts`).
 - **Deploying languages**: the Worker first (`npm run cloud:deploy`), then the Mac's server (restart it from the updated checkout), then
   the site. Any order loses nothing (a library whose hub is older waits, `outdated`), but this order never shows the message. After
   that, roll the Worker forward rather than back: a rollback loses nothing either, but the Chinese room counts every language while
-  it runs (Rolling back, above).
+  it runs (Rolling back, above). The reader's records shared across libraries need only the hubs (the app is unchanged): until a
+  hub is updated each library keeps its own time and goal there, as before.
 
 - **Reading time** (`core/activity.ts`): each device's day is one record, `l:act:<day>:<device>` with `{ s: seconds by language,
   g: the goal in minutes when last written, t }`, kept in localStorage (`dushu.activity.v1`, no language's prefix) and sent with
-  whichever library syncs, so one streak counts every language. Under `l:` like fixes: every hub keeps it as a record of its own
-  (last writer wins), and a device from before reads an `l:` key only when it names a day, so neither needs an update. Copies merge
-  by taking the larger time of each language (the day only grows), so the hub's copy is always taken and one with more here goes
-  back. Only the last 60 days are sent; a day past that is let go of on the hub and kept here (400 days) for the best streak.
+  whichever library syncs, so one streak counts every language. Under `l:` like fixes: a hub keeps it as a record of its own (last
+  writer wins), one record whichever library sends it (**The reader's records**, in Languages above), and a device from before
+  reads an `l:` key only when it names a day, so it passes these over. Copies merge by taking the larger time of each language (the
+  day only grows), so the hub's copy is always taken and one with more here goes back. Only the last 60 days are sent; a day past
+  that is let go of on the hub and kept here (400 days) for the best streak.
 
 ### 4.12 Corrections (`core/fixes.ts`, `ui/reader/bookFixes.ts`, `ui/popup/fixView.ts`, the Corrections tab in `ui/reader/toc.ts`)
 No reader cuts and reads every word right. A **fix** (`Fix` in types.ts) is what the reader says about one word of one book, and it acts
@@ -1630,8 +1657,9 @@ and opens it. Empty state explains what the app does in two sentences.
 - The reading clock runs on the Read and Review routes (`main.ts`) and while Practice is open: time counts while the page is in
   front and there was input in the last three minutes (or any voice is reading aloud), flushed every five seconds. Reaching the goal
   says so once, in a toast.
-- The goal syncs as `l:goal` (`{ g }`, core/sync.ts), the one chosen last on any device winning; a device that never chose one
-  sends nothing and takes the account's, and finishing the welcome without touching the goal is not a choice.
+- The goal syncs as `l:goal` (`{ g }`, core/sync.ts), the one chosen last on any device winning, in every library (one record on
+  the hub whichever library sends it, §4.11); a device that never chose one sends nothing and takes the account's, and finishing
+  the welcome without touching the goal is not a choice.
 - A day is won when its time reaches the goal in force that day, so raising the goal never undoes a day. A past day is judged by
   this device's own goal for it (its record, or the stamp the goal card writes), and by the easiest goal of the other devices only
   when this device has no record for that day. The streak runs to today once today is won, else to yesterday.
