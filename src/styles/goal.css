@@ -22,6 +22,8 @@
 .goal-day.met .goal-day-dot { background: var(--accent); border-color: var(--accent); }
 .goal-day.today .goal-day-dot { outline: 1.5px solid var(--text); outline-offset: 1.5px; }
 .goal-day-name { font-size: 10.5px; color: var(--text-3); line-height: 1; }
+/* Each day in words, for screen readers only. */
+.goal-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .goal-set { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
 .goal-select { height: 32px; font-size: 13px; padding-top: 0; padding-bottom: 0; }
 
@@ -30,4 +32,13 @@
   .goal-today { grid-column: 1 / -1; grid-row: 2; }
   .goal-week { justify-self: end; }
   .goal-set { grid-column: 1 / -1; grid-row: 3; justify-self: start; }
+}
+
+/* Narrow phones: the streak and the seven days no longer fit side by side (they need 392 px), so the days take a row of
+   their own. */
+@media (max-width: 420px) {
+  .goal { grid-template-columns: minmax(0, 1fr); }
+  .goal-week { grid-row: 2; justify-self: stretch; justify-content: space-between; }
+  .goal-today { grid-row: 3; }
+  .goal-set { grid-row: 4; }
 }

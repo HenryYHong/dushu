@@ -208,6 +208,16 @@ export function stopSpeaking(): void {
   }
 }
 
+/**
+ * Whether a book is being read aloud now: a run of the Mac's or the account's voice (playing, or preparing its next
+ * sentence), or the browser's voice speaking. Not while paused (Chrome keeps speechSynthesis.speaking true then).
+ */
+export function isReadingAloud(): boolean {
+  if (nativePaused) return false;
+  if (nativeCtl) return true;
+  try { return canSpeak() && speechSynthesis.speaking && !speechSynthesis.paused; } catch { return false; }
+}
+
 export function pauseSpeaking(): void {
   nativePaused = true;
   if (nativeCtl) { nativeAudio?.pause(); return; }

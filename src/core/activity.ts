@@ -93,6 +93,19 @@ export function addSeconds(lang: LangId, seconds: number, goal: number, t: numbe
   write(a, store);
 }
 
+/**
+ * This device judged today by `goal` (the goal card drew it, the reading clock counted): keep a record of that goal for today,
+ * even before any time is counted, so tomorrow the day is judged as it was shown (totals). It holds no time, so it is never
+ * sent (syncRecords), and writing it fires no event (the card draws itself while it writes it).
+ */
+export function stampToday(goal: number, t: number = Date.now(), store = storage()): void {
+  const a = read(store);
+  const day = dayOf(t);
+  if (a.days[day]?.[a.device]) return;
+  (a.days[day] ??= {})[a.device] = { s: {}, g: goal, t };
+  write(a, store, false);
+}
+
 /** The goal of today's record here changes with the goal, so today is judged by the new one. */
 export function setTodayGoal(goal: number, t: number = Date.now(), store = storage()): void {
   const a = read(store);
@@ -161,13 +174,16 @@ function totals(a: Activity, goalNow: number, today: string): Map<string, DayTot
   const out = new Map<string, DayTotal>();
   for (const [day, devices] of Object.entries(a.days)) {
     let seconds = 0;
-    let goal = 0;
-    for (const rec of Object.values(devices)) {
+    let others = 0;
+    for (const [device, rec] of Object.entries(devices)) {
       for (const sec of Object.values(rec.s)) seconds += sec;
-      // Several devices on one day: the easiest goal any of them was set to that day.
-      goal = goal ? Math.min(goal, rec.g) : rec.g;
+      if (device !== a.device) others = others ? Math.min(others, rec.g) : rec.g;
     }
-    if (day === today) goal = goalNow;
+    // Today by the goal set here now. A past day by the goal this device had that day (its own record, or the stamp the card
+    // left), so a day shown as won at night is still won in the morning when another device had a harder goal; a day this
+    // device never saw, by the easiest goal of the devices that read that day. (Devices keep goals of their own: one goal
+    // for every device would need the goal to sync.)
+    const goal = day === today ? goalNow : devices[a.device]?.g ?? others;
     out.set(day, { day, seconds, goal, met: seconds >= goal * 60 });
   }
   return out;
@@ -204,7 +220,8 @@ export function streak(goal: number, now: number = Date.now(), store = storage()
   const week: DayTotal[] = [];
   for (let i = 6; i >= 0; i--) {
     const day = addDays(today, -i);
-    week.push(byDay.get(day) ?? { day, seconds: 0, goal: day === today ? goal : DEFAULT_GOAL, met: false });
+    // A day with no reading anywhere: out of the goal set now, like today.
+    week.push(byDay.get(day) ?? { day, seconds: 0, goal, met: false });
   }
   const t = byDay.get(today);
   return { today: t?.seconds ?? 0, goal, met: met(today), current, best, week };

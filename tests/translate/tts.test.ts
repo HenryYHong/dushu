@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { pauseSpeaking, pickVoice, resumeSpeaking, speakSequence, stopSpeaking, voiceLabel } from '../../src/speech/tts';
+import { isReadingAloud, pauseSpeaking, pickVoice, resumeSpeaking, speakSequence, stopSpeaking, voiceLabel } from '../../src/speech/tts';
 
 const v = (name: string, lang: string, localService = true) => ({ name, lang, voiceURI: name, localService, default: false }) as SpeechSynthesisVoice;
 const voices = [v('Alex', 'en-US'), v('Meijia', 'zh-TW'), v('Tingting', 'zh-CN'), v('Google', 'zh_CN', false), v('Sinji', 'zh-HK')];
@@ -200,5 +200,30 @@ describe('chapter speech', () => {
     expect(parts).toEqual([0, 1, 3, 4]);
     // Each sentence's first word is where it is in the paragraph: 他 at 5.
     expect(words.filter((w) => w[0] === 1)).toEqual([[1, 0], [1, 5]]);
+  });
+});
+
+describe('whether a book is being read aloud (for the reading clock)', () => {
+  it('follows the browser voice, and not while it is paused (Chrome still says speaking then)', () => {
+    const synth = { speaking: false, paused: false, getVoices: () => voices, cancel: vi.fn(), pause: vi.fn(), resume: vi.fn(), speak: vi.fn() };
+    vi.stubGlobal('SpeechSynthesisUtterance', class {});
+    vi.stubGlobal('speechSynthesis', synth);
+    expect(isReadingAloud()).toBe(false);
+    synth.speaking = true;
+    expect(isReadingAloud()).toBe(true);
+    pauseSpeaking();
+    expect(isReadingAloud()).toBe(false);
+    synth.paused = true;
+    resumeSpeaking();
+    expect(isReadingAloud()).toBe(false);
+    synth.paused = false;
+    expect(isReadingAloud()).toBe(true);
+    synth.speaking = false;
+    expect(isReadingAloud()).toBe(false);
+  });
+
+  it('is false without speech at all', () => {
+    vi.stubGlobal('speechSynthesis', undefined);
+    expect(isReadingAloud()).toBe(false);
   });
 });

@@ -6,6 +6,8 @@ import { clear, h } from '../dom';
 import { icon } from '../icons';
 import { itemFromLookupRow } from '../popup/saveWord';
 import { speak } from '../../speech/tts';
+import { goalMessage, startReadingClock } from '../../core/readingClock';
+import { langId } from '../../lang/active';
 import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
 
 const nodes = (...list: (HTMLElement | null)[]): HTMLElement[] => list.filter((n): n is HTMLElement => n !== null);
@@ -33,11 +35,21 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
   const overlay = h('div.prc-overlay', null, card);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   document.body.appendChild(overlay);
+  let closed = false;
+  // Practice is review too: its time counts toward the day's goal while it is open, as Review's does.
+  const stopClock = startReadingClock(langId(), (days, goal) => ctx.toast(goalMessage(days, goal), { ms: 6000 }));
+  // Leaving the screen (Back, a link) closes it, so its clock never runs beside the next screen's.
+  const onRoute = () => close();
+  window.addEventListener('hashchange', onRoute);
 
   function close(): void {
+    if (closed) return;
+    closed = true;
+    stopClock();
+    window.removeEventListener('hashchange', onRoute);
     document.removeEventListener('keydown', onKey, true);
     overlay.remove();
-    opener?.focus?.({ preventScroll: true });
+    if (opener?.isConnected) opener.focus({ preventScroll: true });
   }
 
   function current(): LookupRow | undefined { return queue[0]; }

@@ -4,10 +4,16 @@
 import type { LangId } from '../lang/types';
 import { addSeconds, streak } from './activity';
 import { getPlan } from './plan';
+import { isReadingAloud } from '../speech/tts';
 
 const TICK_MS = 5_000;
 const IDLE_MS = 180_000;
 const INPUTS = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'] as const;
+
+/** What the app says when today's goal is reached: `days` in a row, today among them. */
+export function goalMessage(days: number, goal: number): string {
+  return days > 1 ? `Daily goal reached: ${goal} minutes. That is ${days} days in a row.` : `Daily goal reached: ${goal} minutes. Your streak has started.`;
+}
 
 /** Starts counting for `lang`; `onGoal` hears when today's goal is reached. Returns the stop function. */
 export function startReadingClock(lang: LangId, onGoal?: (days: number, goal: number) => void): () => void {
@@ -16,9 +22,11 @@ export function startReadingClock(lang: LangId, onGoal?: (days: number, goal: nu
   let pending = 0;
   const onInput = () => { lastInput = Date.now(); };
   for (const type of INPUTS) document.addEventListener(type, onInput, { capture: true, passive: true });
-  const speaking = () => { try { return !!globalThis.speechSynthesis?.speaking; } catch { return false; } };
+  // Read aloud by any voice (the browser's, the Mac's or the account's), and not paused.
+  const speaking = () => { try { return isReadingAloud(); } catch { return false; } };
   const flush = () => {
     if (pending < 1) return;
+    // addSeconds writes today's record here with the goal it is judged by (the stamp totals() reads tomorrow).
     const goal = getPlan().goal;
     const before = streak(goal).met;
     addSeconds(lang, pending, goal);

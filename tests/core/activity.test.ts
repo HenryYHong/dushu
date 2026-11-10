@@ -1,7 +1,7 @@
 // The daily goal and the streak (core/activity.ts, core/plan.ts): time adds up by day across languages and devices, a goal
 // raised later does not undo a day already won, copies from two devices merge, and only a device never used is welcomed.
-import { describe, expect, it } from 'vitest';
-import { ACTIVITY_KEY, actKey, addDays, addSeconds, cleanDay, dayOf, deviceId, mergeRecord, parseActKey, streak, syncRecords } from '../../src/core/activity';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ACTIVITY_KEY, actKey, addDays, addSeconds, cleanDay, dayOf, deviceId, mergeRecord, parseActKey, setTodayGoal, stampToday, streak, syncRecords } from '../../src/core/activity';
 import { getPlan, needsWelcome, setPlan } from '../../src/core/plan';
 
 function memoryStorage(init: Record<string, string> = {}): Storage {
@@ -19,6 +19,11 @@ const at = (day: string, hour = 12) => { const [y, mo, d] = day.split('-').map(N
 const TODAY = '2026-11-07';
 
 describe('the streak', () => {
+  // The records are written for days in November 2026, and kept for 400 days before the clock: pinned, so the test does not
+  // start failing in December 2027.
+  beforeEach(() => { vi.setSystemTime(at(TODAY)); });
+  afterEach(() => { vi.useRealTimers(); });
+
   it('adds up the day across languages, and counts days in a row', () => {
     const s = memoryStorage();
     for (const day of ['2026-11-03', '2026-11-04', '2026-11-05']) addSeconds('es', 700, 10, at(day), s);
@@ -75,6 +80,80 @@ describe('the streak', () => {
     const s = memoryStorage({ [ACTIVITY_KEY]: '{not json' });
     addSeconds('it', 30, 10, at(TODAY), s);
     expect(streak(10, at(TODAY), s).today).toBe(30);
+  });
+});
+
+describe('two devices with different goals', () => {
+  beforeEach(() => { vi.setSystemTime(at(TODAY)); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  const DAY = '2026-11-09';
+  const NIGHT = at(DAY, 21);
+  const MORNING = at(addDays(DAY, 1), 9);
+  /** Every record one device would send, taken in by the other (core/sync.ts). */
+  const sync = (from: Storage, to: Storage, t: number) => { for (const r of syncRecords(t, from)) mergeRecord(r.day, r.device, r.rec, to); };
+  /** What a device shows of `DAY` at time `t`: the goal card stamps its goal for today, then draws the streak. */
+  const shows = (goal: number, t: number, store: Storage) => {
+    vi.setSystemTime(t);
+    stampToday(goal, t, store);
+    const st = streak(goal, t, store);
+    return { met: st.week.find((d) => d.day === DAY)!.met, current: st.current, best: st.best };
+  };
+
+  it('A: a day read on the device with the harder goal stays won on the other the next morning', () => {
+    const phone = memoryStorage();
+    const laptop = memoryStorage();
+    addSeconds('es', 720, 20, at(DAY, 15), laptop);
+    sync(laptop, phone, at(DAY, 15));
+    const night = shows(10, NIGHT, phone);
+    expect(night).toEqual({ met: true, current: 1, best: 1 });
+    expect(shows(10, MORNING, phone)).toEqual(night);
+    // The laptop, at 20 minutes, never called it won.
+    expect(shows(20, NIGHT, laptop).met).toBe(false);
+    expect(shows(20, MORNING, laptop).met).toBe(false);
+  });
+
+  it('A2: a run of days on the phone keeps the day read on the laptop', () => {
+    const phone = memoryStorage();
+    const laptop = memoryStorage();
+    for (let i = 3; i >= 1; i--) addSeconds('es', 600, 10, at(addDays(DAY, -i), 18), phone);
+    addSeconds('es', 720, 20, at(DAY, 15), laptop);
+    sync(laptop, phone, at(DAY, 15));
+    const night = shows(10, NIGHT, phone);
+    expect(night).toEqual({ met: true, current: 4, best: 4 });
+    expect(shows(10, MORNING, phone)).toEqual(night);
+  });
+
+  it('B: a day each device read toward its own goal is judged the same before and after midnight on both', () => {
+    const phone = memoryStorage();
+    const laptop = memoryStorage();
+    addSeconds('es', 300, 20, at(DAY, 10), phone);
+    addSeconds('es', 480, 10, at(DAY, 12), laptop);
+    sync(phone, laptop, at(DAY, 13));
+    sync(laptop, phone, at(DAY, 13));
+    const phoneNight = shows(20, NIGHT, phone);
+    const laptopNight = shows(10, NIGHT, laptop);
+    expect(phoneNight.met).toBe(false);
+    expect(laptopNight.met).toBe(true);
+    expect(shows(20, MORNING, phone)).toEqual(phoneNight);
+    expect(shows(10, MORNING, laptop)).toEqual(laptopNight);
+  });
+
+  it('keeps the stamp on this device only, and moves it with the goal today', () => {
+    const s = memoryStorage();
+    stampToday(15, NIGHT, s);
+    expect(syncRecords(NIGHT, s)).toEqual([]);
+    expect(streak(15, NIGHT, s).week.at(-1)).toMatchObject({ day: DAY, seconds: 0, goal: 15, met: false });
+    setTodayGoal(5, NIGHT + 1000, s);
+    expect(streak(30, MORNING, s).week.find((d) => d.day === DAY)!.goal).toBe(5);
+    // A second stamp does not change the goal the day was shown with.
+    stampToday(30, NIGHT + 2000, s);
+    expect(streak(30, MORNING, s).week.find((d) => d.day === DAY)!.goal).toBe(5);
+  });
+
+  it('gives the days with no reading the goal set now, not ten minutes', () => {
+    const st = streak(20, at(TODAY), memoryStorage());
+    expect(st.week.map((d) => d.goal)).toEqual([20, 20, 20, 20, 20, 20, 20]);
   });
 });
 
