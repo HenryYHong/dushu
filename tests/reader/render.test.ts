@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { Dictionary } from '../../src/types';
+import type { Dictionary, Token } from '../../src/types';
 import {
-  displayTokens, pinyinVisible, refreshPinyin, refreshVisibility, renderParagraph, rtContent, type RenderOptions,
+  displayTokens, pinyinVisible, refreshPinyin, refreshVisibility, renderParagraph, renderTokens, rtContent, type RenderOptions,
 } from '../../src/ui/reader/render';
 import { blockText, pointToOffset, rangeToSpans, snapToCodePoint, spansText, textNodes } from '../../src/ui/reader/selection';
 import { loadTestDictionary } from '../helpers/data';
@@ -235,5 +235,73 @@ describe('even grid markup', () => {
   it('leaves ASCII punctuation and dashes alone', () => {
     const p = renderParagraph('好, 好——好...', dict, opts());
     expect(p.el.querySelectorAll('.rd-pu')).toHaveLength(0);
+  });
+});
+
+/** Tokens as a spaced language's engine cuts them: words (an elided one keeps its apostrophe), spaces, single marks. */
+function spacedTokens(text: string): Token[] {
+  const out: Token[] = [];
+  for (const m of text.matchAll(/(\p{L}+['’]?)|(\s+)|([^\p{L}\s])/gu)) {
+    const start = m.index ?? 0;
+    const kind = m[1] ? 'word' : m[2] ? 'space' : 'punct';
+    out.push({ text: m[0], start, end: start + m[0].length, kind, inDict: kind === 'word', key: m[0].toLowerCase() } as Token);
+  }
+  return out;
+}
+
+describe('a hinted word and its punctuation', () => {
+  const render = (text: string, visible = true) => {
+    const tokens = spacedTokens(text);
+    const el = document.createElement('p');
+    el.appendChild(renderTokens(tokens, tokens, opts({ aid: 'hint', hint: () => 'a long gloss', visible: () => visible })).nodes);
+    return el;
+  };
+  const runs = (el: Element) => [...el.querySelectorAll('.rd-nb')].map((e) => blockText(e));
+
+  it('keeps the comma after a word with it, and leaves the space out', () => {
+    const el = render('las florecillas rosas, celestes y gualdas...');
+    expect(runs(el)).toContain('rosas,');
+    expect(runs(el)).toContain('gualdas...');
+    for (const r of runs(el)) expect(r).not.toMatch(/\s/);
+    expect(blockText(el)).toBe('las florecillas rosas, celestes y gualdas...');
+    // The word sits against its comma, not in the middle of its hint's cell.
+    const word = (t: string) => [...el.querySelectorAll('.rd-word')].find((w) => blockText(w) === t)!;
+    expect(word('rosas').classList.contains('rd-before-punct')).toBe(true);
+    expect(word('celestes').classList.contains('rd-before-punct')).toBe(false);
+  });
+
+  it('keeps an elided word and opening marks with the word they lean on', () => {
+    const el = render('directeur de l’instruction publique');
+    expect(runs(el)).toEqual(['l’instruction']);
+    expect(runs(render('Lo llamo: "¿Platero?", y viene'))).toContain('"¿Platero?",');
+  });
+
+  it('groups a word whose hint is hidden too (the hint mode can change without drawing again), and offsets stay', () => {
+    const el = render('rosas, celestes', false);
+    expect(runs(el)).toEqual(['rosas,']);
+    const words = [...el.querySelectorAll<HTMLElement>('.rd-word')];
+    expect(words.map((w) => [w.dataset.s, w.dataset.e])).toEqual([['0', '5'], ['7', '15']]);
+    expect([...el.querySelectorAll<HTMLElement>('.rd-o')].map((o) => o.dataset.o)).toEqual(['0', '7']);
+  });
+
+  it('wraps nothing without hints', () => {
+    const tokens = spacedTokens('rosas, celestes');
+    const el = document.createElement('p');
+    el.appendChild(renderTokens(tokens, tokens, opts()).nodes);
+    expect(el.querySelector('.rd-nb')).toBeNull();
+  });
+});
+
+describe('a line of verse', () => {
+  it('keeps each clause on one line, with every character’s offset as it was', () => {
+    const line = '床前明月光，疑是地上霜。';
+    const plain = renderParagraph(line, dict, opts());
+    const verse = renderParagraph(line, dict, opts({ verse: true }));
+    expect([...verse.el.querySelectorAll('.rd-clause')].map((e) => blockText(e))).toEqual(['床前明月光，', '疑是地上霜。']);
+    expect(blockText(verse.el)).toBe(line);
+    const offsets = (el: Element) => [...el.querySelectorAll<HTMLElement>('ruby.rd-c')].map((r) => r.dataset.o);
+    expect(offsets(verse.el)).toEqual(offsets(plain.el));
+    expect(verse.el.querySelectorAll('rt')).toHaveLength(10);
+    expect(plain.el.querySelector('.rd-clause')).toBeNull();
   });
 });

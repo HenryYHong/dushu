@@ -2,7 +2,7 @@
 // Two layouts share everything else: Scroll (one long column) and Pages (paginated like a book, ARCHITECTURE.md 5.7).
 // Contract: ARCHITECTURE.md 5.3 and 5.7.
 import '../../styles/reader.css';
-import type { Bookmark, Chapter, Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, Progress, Settings } from '../../types';
+import type { Bookmark, Dictionary, Lexicon, LexiconEntry, MountFn, PinyinMode, Progress, Settings } from '../../types';
 import { readingFontSizeKey } from '../../store/settings';
 import { canSpeak, pauseSpeaking, resumeSpeaking, setSpeakingRate, speakSequence, stopSpeaking } from '../../speech/tts';
 import { EMPTY_LEXICON, isDetecting, loadLexicon } from '../../core/lexicon';
@@ -31,6 +31,7 @@ import { createNameCheck } from './nameCheck';
 import { fixesSig, hereIn, placeHere } from '../../core/fixes';
 import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang } from '../../lang/active';
+import { bookStartText } from './bookStart';
 import { aidName, aidSeal, aidWord, glossLanguage, levelLabel } from '../../lang/labels';
 import { POS_SEL } from './render';
 
@@ -81,6 +82,8 @@ function coachMark(): void { try { localStorage.setItem(COACH_KEY, '1'); } catch
 
 /** How long the book may take to open before the wait for the dictionary is explained. */
 const SAY_DOWNLOAD_MS = 400;
+/** How long the book may take to open before the way back to the library shows (the bar is not up yet). */
+const OFFER_BACK_MS = 2000;
 
 /** While a slow first download of the dictionary holds up the book, the loading line says how far it has got. */
 function explainDictWait(line: HTMLElement, ready: Promise<unknown>): void {
@@ -114,7 +117,12 @@ interface Place { chapter: number; block: number; offset: number }
 export const mount: MountFn = async (root, params, ctx) => {
   clear(root);
   const loadingLine = h('span.app-loading-text', null, 'Opening the book…');
+  // A slow first download can hold the book up for a while, and a Home Screen app has no browser Back. Leaving is safe:
+  // every await below checks that the address is still the reader's.
+  const loadingBack = h('p.rd-loading-back', { hidden: true }, h('a.btn', { href: '#/' }, icon('arrowLeft'), 'Back to the library'));
   root.appendChild(h('div.app-loading', null, h('div.app-spinner'), loadingLine));
+  root.appendChild(loadingBack);
+  const backTimer = window.setTimeout(() => { loadingBack.hidden = false; }, OFFER_BACK_MS);
 
   const store = ctx.store;
   // The book, the dictionary and the place read on another device are waited for together, not one after another.
@@ -123,10 +131,14 @@ export const mount: MountFn = async (root, params, ctx) => {
   if (!ctx.dictSync()) explainDictWait(loadingLine, dictReady);
   const synced = syncBeforeOpen();
   const book = params.bookId ? await store.books.get(params.bookId) : undefined;
-  if (!book) { message(root, 'Book not found', 'This book is not in your library. It may have been removed.'); return; }
+  if (!book) { window.clearTimeout(backTimer); message(root, 'Book not found', 'This book is not in your library. It may have been removed.'); return; }
   let dict: Dictionary;
   try { dict = await dictReady; } catch {
-    message(root, 'Dictionary not loaded', 'The dictionary data could not be loaded, so words cannot be looked up. Reload the page to try again.');
+    window.clearTimeout(backTimer);
+    if (!location.hash.startsWith('#/read')) return; // went back to the library while it loaded
+    message(root, 'Dictionary not loaded', typeof navigator !== 'undefined' && navigator.onLine === false
+      ? "This language's dictionary is not on this device yet. Connect to the internet once to finish setting it up."
+      : 'The dictionary data could not be loaded, so words cannot be looked up. Reload the page to try again.');
     return;
   }
   if (!location.hash.startsWith('#/read')) return; // navigated away while loading
@@ -246,6 +258,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     h('div.rd-progress', { 'aria-hidden': 'true' }, fill));
   const page: HTMLElement = h('main.rd-page');
   const rd: HTMLElement = h('div.rd-root', null, bar, page, audio);
+  window.clearTimeout(backTimer);
   clear(root);
   root.appendChild(rd);
 
@@ -776,22 +789,24 @@ export const mount: MountFn = async (root, params, ctx) => {
   }
 
   /**
-   * The first chapter this reader opens tells the engine a new book has begun: it forgets the last book's names and learns
-   * this one's from the text (Platero y yo's first page opens "Platero es pequeño"; 清 is Kiyo only in 坊っちゃん).
+   * Before the first chapter is drawn, the engine is told a new book has begun: it forgets the last book's names and learns
+   * this one's from the chapter opened, the first chapters and a spread over the book (bookStart.ts; Platero y yo's first
+   * page opens "Platero es pequeño"; 清 is Kiyo only in 坊っちゃん). Started once, by the first open below.
    */
-  let bookBegun = false;
-  function beginBook(chapter: Chapter): void {
-    if (bookBegun) return;
-    bookBegun = true;
-    const text = chapter.blocks.map((b) => ('text' in b ? b.text : '')).join('\n');
-    try { activeEngine()?.beginBook?.(text); } catch (e) { console.error('Could not start the book in the engine', e); }
+  let bookBegun: Promise<void> | null = null;
+  function beginBook(opened: number): Promise<void> {
+    const engine = activeEngine();
+    if (!engine?.beginBook) return Promise.resolve();
+    return (bookBegun ??= bookStartText(book!.chapterCount, opened, (i) => store.books.chapter(book!.id, i))
+      .then((text) => { engine.beginBook!(text); })
+      .catch((e) => { console.error('Could not start the book in the engine', e); }));
   }
 
   /** Build a chapter view for the Pages layout (its pinyin is drawn near the eye only: `lazyPinyin`). */
   async function makeView(index: number): Promise<ChapterView | null> {
     const chapter = await store.books.chapter(book!.id, index);
     if (!chapter) return null;
-    beginBook(chapter);
+    await beginBook(index);
     const v = createChapterView({
       ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, script: book!.script, lazyPinyin: true,
       onResize: () => { if (paged) pager?.relayout(); },
@@ -811,9 +826,17 @@ export const mount: MountFn = async (root, params, ctx) => {
     lookup.reset();
     clearCursor();
     titleChapter.textContent = chapterTitleText(index, v);
-    // A one-chapter book (a poem, a pasted page) would show its title twice.
-    titleChapter.hidden = book!.chapterCount === 1 && titleChapter.textContent === text(book!.title);
+    hideDuplicateTitle();
     toc.setCurrent(index);
+  }
+
+  /**
+   * A one-chapter book (a poem, a pasted page, a short story) would show its title twice. The book's title goes, not the
+   * chapter's: a phone's bar shows only the chapter's, and would be left with nothing.
+   */
+  function hideDuplicateTitle(): void {
+    titleBook.hidden = book!.chapterCount === 1 && titleChapter.textContent === text(book!.title);
+    titleChapter.hidden = false;
   }
 
   /** The script setting changed: the bar, the contents list and the names follow it. */
@@ -823,7 +846,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (failing !== null) titleChapter.textContent = chapterTitleText(failing);
     else if (v) {
       titleChapter.textContent = chapterTitleText(chapterIndex, v);
-      titleChapter.hidden = book!.chapterCount === 1 && titleChapter.textContent === text(book!.title);
+      hideDuplicateTitle();
     }
     toc.refreshText();
   }
@@ -848,6 +871,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     toc.setCurrent(index);
     titleChapter.textContent = chapterTitleText(index);
     titleChapter.hidden = false;
+    titleBook.hidden = false;
     const tries = failCount(book!.id, index);
     const last = index >= book!.chapterCount - 1;
     const actions = h('div.rd-fail-actions', null,
@@ -900,7 +924,8 @@ export const mount: MountFn = async (root, params, ctx) => {
     const chapter = await store.books.chapter(book!.id, index);
     if (seq !== loadSeq || disposed) return;
     if (!chapter) throw new Error('The chapter is not in the library.');
-    beginBook(chapter);
+    await beginBook(index);
+    if (seq !== loadSeq || disposed) return;
     const old = scrollView;
     const v = createChapterView({ ctx, dict, bookId: book!.id, chapter, chapterIndex: index, lexicon, script: book!.script });
     v.el.lang = langOf(ctx.settings.get());
@@ -1454,7 +1479,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       case 'f': case 'F': e.preventDefault(); if (fullscreenSupported() || isFullscreen()) void setFullscreen(!isFullscreen()).catch(() => {}); break;
       case 'b': case 'B': e.preventDefault(); void toggleBookmark(); break;
       case 'c': case 'C': e.preventDefault(); toc.open(chapterIndex); break;
-      case 'n': case 'N': e.preventDefault(); toc.open(chapterIndex, 'names'); break;
+      case 'n': case 'N': if (!isChinese()) return; e.preventDefault(); toc.open(chapterIndex, 'names'); break;
       case 'w': case 'W': e.preventDefault(); toc.open(chapterIndex, 'words'); break;
       case 'ArrowRight':
       case 'PageDown':
@@ -1540,10 +1565,12 @@ export const mount: MountFn = async (root, params, ctx) => {
 
   // ------------------------------------------------------------- first open
   const wantCh = params.ch !== undefined ? Number.parseInt(params.ch, 10) : NaN;
-  const startPaged = ctx.settings.get().layout === 'pages';
-  if (startPaged) enterPaged();
   const startAt = Number.isFinite(wantCh) && wantCh >= 0 && wantCh < book.chapterCount ? wantCh
     : saved && saved.chapter >= 0 && saved.chapter < book.chapterCount ? saved.chapter : 0;
+  // The engine learns the book's names while the first chapter loads; that chapter waits for it (makeView, loadScrollChapter).
+  void beginBook(startAt);
+  const startPaged = ctx.settings.get().layout === 'pages';
+  if (startPaged) enterPaged();
   if (failCount(book.id, startAt) >= 2) {
     // This chapter failed to show twice: opening it a third time would only trap the reader on it. Offer the list instead.
     showChapterError(startAt, new Error('This chapter failed to show twice.'));

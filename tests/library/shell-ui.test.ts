@@ -131,6 +131,23 @@ describe('shortcut sheet', () => {
       expect(new Set(seen).size, g.group).toBe(seen.length);
     }
   });
+  it('lists N for names and terms only in Chinese, the one language with a Names tab', async () => {
+    const hasN = (list: typeof SHORTCUTS) => list[0].rows.some((r) => r.keys.join() === 'N');
+    expect(hasN(SHORTCUTS)).toBe(true);
+    const active = await import('../../src/lang/active');
+    vi.resetModules();
+    const fresh = await import('../../src/lang/active');
+    fresh.setLangForTests('es');
+    try {
+      const { SHORTCUTS: es } = await import('../../src/ui/shortcuts');
+      expect(hasN(es)).toBe(false);
+      expect(es[0].rows.some((r) => r.keys.join() === 'C')).toBe(true);
+    } finally {
+      fresh.setLangForTests('zh');
+      active.setLangForTests('zh');
+      vi.resetModules();
+    }
+  });
   it('draws alternatives as separate keys with the word between, not with a plus', () => {
     const div = document.createElement('div');
     div.append(...keyCaps({ keys: ['Shift', '← or →'], what: '' }));

@@ -528,7 +528,8 @@ export function createPager(o: PagerOptions): Pager {
       h('div.rd-endmark', { 'aria-hidden': 'true' }),
       h('p.rd-endnote', null, last ? 'You have reached the end of the book.' : 'End of chapter'));
     if (last) card.appendChild(h('a.rd-endbtn', { href: '#/' }, 'Back to the library'));
-    else card.appendChild(h('button.rd-endbtn', { type: 'button', onclick: () => api.chapter(1) }, goNextChapterLabel(l)));
+    // The label in a span of its own: a long title ends in an ellipsis (a flex box would clip it at both ends).
+    else card.appendChild(h('button.rd-endbtn', { type: 'button', onclick: () => api.chapter(1) }, h('span.rd-endbtn-label', null, goNextChapterLabel(l))));
     const words = wordsButton(l, 'button.rd-endbtn.rd-endbtn-quiet', 'Words in this chapter');
     if (words) card.appendChild(words);
     return card;
@@ -638,7 +639,9 @@ export function createPager(o: PagerOptions): Pager {
         while (!disposed && mine === pumpSeq) {
           await yieldSlot();
           if (disposed || mine !== pumpSeq) return;
-          if (turn || drag?.state === 'drag') continue;
+          // A turn or a drag is playing: wait a frame, not a free slot, or this loop spins (a slot comes back at once). Keep
+          // looping rather than stop: a turn that is cancelled, or a drag that springs back, does not start the pump again.
+          if (turn || drag?.state === 'drag') { await nextFrame(); continue; }
           if (!(await pumpOnce(mine))) return;
         }
       } catch (e) {
@@ -1538,7 +1541,8 @@ export function createPager(o: PagerOptions): Pager {
     if (!cur) return 0;
     const start = book.chapterOffsets[cur.index] ?? 0;
     const end = book.chapterOffsets[cur.index + 1] ?? book.charCount;
-    const frac = chapterFraction(firstPageOfSpread(spread, geom.per) + geom.per - 1, cur.pages);
+    // By spread: the first spread is 0 (a book just opened is not half read) and the last is 1.
+    const frac = chapterFraction(spread, spreadCount(cur.pages, geom.per));
     return book.charCount > 0 ? clamp((start + (end - start) * frac) / book.charCount, 0, 1) : 0;
   }
 

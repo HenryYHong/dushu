@@ -16,6 +16,7 @@ import {
 import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang, langId } from '../../lang/active';
 import { sliceRuby } from '../../import/aozora';
+import { verseLines } from './verse';
 
 export interface BlockState {
   index: number;
@@ -240,6 +241,8 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
   }
 
   // ---- shells
+  // Chinese only: the patterns are the Chinese importer's, and other languages set their paragraphs their own way.
+  const verse = isChinese() ? verseLines(sourceBlocks) : sourceBlocks.map(() => false);
   const blocks: BlockState[] = sourceBlocks.map((block, index) => {
     const piece = pieces[index];
     let el: HTMLElement;
@@ -282,6 +285,8 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
     if (kind === 'text' && piece.more) el.classList.add('rd-more');
     if (kind === 'text' && isChinese() && !/[\p{Script=Han}]/u.test(text)) el.classList.add('rd-plain');
     else if (kind === 'text' && block.t === 'p' && text.length <= SHORT_PARAGRAPH) el.classList.add('rd-short');
+    // A line of a poem: no first-line indent, and it breaks only between its clauses (render.ts).
+    if (verse[index]) el.classList.add('rd-verse');
     article.appendChild(el);
     return { index, kind, block, el, text, source: text, pieceStart: piece.start, rendered: null, trans: null, transBtn: null };
   });
@@ -298,7 +303,7 @@ export function createChapterView(o: ChapterViewOptions): ChapterView {
       const tokens = segmentShown(b.text, sourceText[b.index], dict, shownLexicon(), 'ruby' in b.block ? b.block.ruby : undefined, hereFor(b));
       const opts = renderOptions();
       const shown = displayTokens(tokens, opts.sandhi);
-      const { nodes, views } = renderTokens(tokens, shown, { ...opts, deferPinyin: lazy });
+      const { nodes, views } = renderTokens(tokens, shown, { ...opts, deferPinyin: lazy, verse: verse[b.index] });
       b.el.appendChild(nodes);
       b.rendered = { el: b.el, text: b.text, tokens, shown, views, pinyinBuilt: lazy ? false : undefined };
     } catch (e) {

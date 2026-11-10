@@ -74,6 +74,47 @@ describe('reader screen', () => {
     expect(q('.rd-article')!.getAttribute('lang')).toBe('zh-Hans');
   });
 
+  it('offers the way back to the library while a slow dictionary holds the book up', async () => {
+    const { ctx, meta } = await setup();
+    const slow: AppContext = { ...ctx, dict: () => new Promise(() => {}), dictSync: () => null };
+    location.hash = `#/read/${meta.id}`;
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    void mount(root, { bookId: meta.id }, slow);
+    await tick(50);
+    const back = root.querySelector<HTMLElement>('.rd-loading-back')!;
+    expect(back.hidden).toBe(true); // not at once: most books open before it would be read
+    await tick(2100);
+    expect(back.hidden).toBe(false);
+    expect(back.querySelector('a[href="#/"]')!.textContent).toBe('Back to the library');
+  });
+
+  it('says the dictionary needs the internet once when it fails offline', async () => {
+    const { ctx, meta } = await setup();
+    const failing: AppContext = { ...ctx, dict: () => Promise.reject(new Error('fetch failed')), dictSync: () => null };
+    const online = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine');
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+    try {
+      const root = await open(failing, meta.id);
+      expect(root.textContent).toContain('Connect to the internet once');
+      expect(root.querySelector('a[href="#/"]')).not.toBeNull();
+    } finally {
+      delete (navigator as { onLine?: boolean }).onLine;
+      if (online) Object.defineProperty(Navigator.prototype, 'onLine', online);
+    }
+  });
+
+  it('keeps the chapter title in the bar of a one-chapter book named like its chapter (a phone shows only that one)', async () => {
+    const made = await makeCtx({ pinyin: 'all', layout: 'scroll' });
+    const meta = await made.ctx.store.books.add({
+      title: '项链', author: 'T', format: 'paste', script: 'simplified', chapters: [{ title: '项链', blocks: [{ t: 'p', text: '她爱这座小城。' }] }], assets: new Map(),
+    });
+    await open(made.ctx, meta.id);
+    expect(text('.rd-chapter-title')).toBe('项链');
+    expect(q('.rd-chapter-title')!.hidden).toBe(false);
+    expect(q('.rd-book-title')!.hidden).toBe(true); // not twice on a wide screen either
+  });
+
   it('click opens the word popup with the context sentence; Esc closes and clears the highlight', async () => {
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);

@@ -26,7 +26,8 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: ['B'], what: 'Bookmark this page, or take its bookmark away' },
       { keys: ['C'], what: 'Open the chapter list' },
       { keys: ['W'], what: 'Open the words of this chapter' },
-      { keys: ['N'], what: 'Open the names and terms of this book' },
+      // Only Chinese has a Names tab (the language is fixed for the page: switching reloads it).
+      ...(isChinese() ? [{ keys: ['N'], what: 'Open the names and terms of this book' }] : []),
       { keys: ['Page Down'], what: 'At the end of a chapter, go to the next one' },
       { keys: ['Page Up'], what: 'At the top of a chapter, go to the previous one' },
       { keys: ['Shift', '← or →'], what: 'Previous or next chapter, from anywhere' },

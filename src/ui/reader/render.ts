@@ -7,6 +7,7 @@ import { segmentShown } from './shown';
 import type { Dictionary, Lexicon, PinyinMode, PinyinStyle, Token } from '../../types';
 import { widthOfPinyin } from './grid';
 import { isWord } from '../../lang/token';
+import { CLAUSE_MARKS } from './verse';
 
 export interface PinyinDisplay {
   style: PinyinStyle;
@@ -59,6 +60,8 @@ export interface RenderOptions extends PinyinDisplay {
   hint?: (t: Token) => string | undefined;
   /** Russian: mark the stressed vowel. */
   stress?: boolean;
+  /** A line of verse (verse.ts): each clause is kept on one line, so a line too long for the column breaks after a comma. */
+  verse?: boolean;
 }
 
 /** Copy of the tokens with the sandhi rewrite applied (or not). The originals stay untouched. */
@@ -245,15 +248,59 @@ function aidTexts(token: Token, opts: RenderOptions): string[] {
   return [];
 }
 
+/** An elided word (French l’, qu’; Italian dell’): it leans on the word after it. */
+const isElided = (t: Token): boolean => t.kind === 'word' && /['’]$/.test(t.text);
+/** A no-break space (French « Platero », « ¿ » in some books): it glues as punctuation does. */
+const isGlue = (t: Token): boolean => t.kind === 'punct' || (t.kind === 'space' && /^[\u00a0\u202f\u2007]+$/.test(t.text));
+
+/**
+ * The runs to keep on one line, as [first, last] token indexes. A word under a hint is a box (an inline grid as wide as its
+ * hint), and a line may break on either side of a box, even before a comma: so each hinted word keeps with it the marks that
+ * touch it (¿ « “ ( before, , . ; : ! ? … » ” ) after) and an elided word before it (de l’instruction). Spaces stay out.
+ * Every word with a hint box counts, shown or not: the hint mode changes later without drawing the words again.
+ */
+function hintRuns(tokens: Token[], boxed: (t: Token) => boolean): [number, number][] {
+  const runs: [number, number][] = [];
+  let taken = -1;
+  tokens.forEach((t, i) => {
+    if (!boxed(t)) return;
+    let a = i;
+    while (a - 1 > taken && (isGlue(tokens[a - 1]) || isElided(tokens[a - 1]))) a--;
+    let b = i;
+    while (b + 1 < tokens.length && isGlue(tokens[b + 1])) b++;
+    // A no-break space at either end touches nothing it should hold.
+    while (a < i && tokens[a].kind === 'space') a++;
+    while (b > i && tokens[b].kind === 'space') b--;
+    if (a < i || b > i) runs.push([a, b]);
+    taken = Math.max(taken, b);
+  });
+  return runs;
+}
+
+/** A line of verse's clauses, as [first, last] token indexes: each ends with its mark (，、；：。！？). */
+function clauseRuns(tokens: Token[]): [number, number][] {
+  const runs: [number, number][] = [];
+  let start = 0;
+  tokens.forEach((t, i) => {
+    if (t.kind !== 'punct' || !CLAUSE_MARKS.includes(t.text.slice(-1))) return;
+    runs.push([start, i]);
+    start = i + 1;
+  });
+  if (start < tokens.length) runs.push([start, tokens.length - 1]);
+  return runs;
+}
+
 /** Build the nodes for a token list. Non-Han tokens become plain text nodes. */
 export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOptions): { nodes: DocumentFragment; views: TokenView[] } {
   const frag = document.createDocumentFragment();
   const views: TokenView[] = [];
+  /** Each token's node, in order; grouped into runs at the end. */
+  const out: Node[] = [];
   tokens.forEach((token, index) => {
     if (token.kind === 'word') {
       const view = renderWord(token, index, opts);
       views.push(view);
-      frag.appendChild(view.el);
+      out[index] = view.el;
       return;
     }
     if (token.kind !== 'han') {
@@ -262,7 +309,7 @@ export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOption
       if (quote) {
         const pu = createEl('span', `rd-pu rd-pu-q rd-pu-q${quote.side} rd-pq-${quote.key}`);
         pu.appendChild(document.createTextNode(token.text));
-        frag.appendChild(pu);
+        out[index] = pu;
       } else if (side) {
         // ！ is drawn centered in its box (the other closing marks sit at the left), so the stylesheet moves it (rd-pu-b).
         const pu = createEl('span', side === 'o' ? 'rd-pu rd-pu-o' : token.text === '！' ? 'rd-pu rd-pu-c rd-pu-b' : 'rd-pu rd-pu-c');
@@ -270,8 +317,8 @@ export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOption
         // locales (PingFang) would follow the text's zh-Hant and draw the centered ones, so the mark says it is simplified.
         pu.lang = 'zh-Hans';
         pu.appendChild(document.createTextNode(token.text));
-        frag.appendChild(pu);
-      } else frag.appendChild(document.createTextNode(token.text));
+        out[index] = pu;
+      } else out[index] = document.createTextNode(token.text);
       return;
     }
     const el = createEl('span', 'rd-w');
@@ -304,9 +351,35 @@ export function renderTokens(tokens: Token[], shown: Token[], opts: RenderOption
     if (opts.words) decorateWord(view, shown[index], opts.style);
     if (opts.visible && !opts.visible(token)) el.classList.add('rd-nopy');
     views.push(view);
-    frag.appendChild(el);
+    out[index] = el;
+  });
+  // Runs kept on one line: a verse line's clauses, or a hinted word with the marks that touch it. Each token keeps its own
+  // node and offsets (data-s, data-o); the run is only a wrapper the stylesheet sets white-space: nowrap on.
+  const boxed = (t: Token) => t.kind === 'word' && !t.ruby?.length && !isElided(t) && t.inPhrase !== 'rest';
+  const runs = opts.verse ? clauseRuns(tokens) : opts.aid === 'hint' ? hintRuns(tokens, boxed) : [];
+  const cls = opts.verse ? 'rd-clause' : 'rd-nb';
+  let r = 0;
+  let wrap: HTMLElement | null = null;
+  out.forEach((node, i) => {
+    if (r < runs.length && i === runs[r][0]) {
+      wrap = createEl('span', cls);
+      frag.appendChild(wrap);
+      // A word with marks after it keeps to the end of its hint's cell, against them ("rosas," not "rosas ,").
+      if (!opts.verse) markClosed(tokens, out, runs[r]);
+    }
+    (wrap ?? frag).appendChild(node);
+    if (wrap && i === runs[r][1]) { wrap = null; r++; }
   });
   return { nodes: frag, views };
+}
+
+/** rd-before-punct on a run's hinted word (its last word) when punctuation follows it inside the run. */
+function markClosed(tokens: Token[], nodes: Node[], [a, b]: [number, number]): void {
+  for (let i = b; i >= a; i--) {
+    if (tokens[i].kind !== 'word') continue;
+    if (i < b) (nodes[i] as HTMLElement).classList.add('rd-before-punct');
+    return;
+  }
 }
 
 /**

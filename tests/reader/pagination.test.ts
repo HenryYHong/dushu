@@ -135,6 +135,15 @@ describe('blocks and pages', () => {
     expect(chapterFraction(9, 10)).toBe(1);
     expect(chapterFraction(0, 1)).toBe(0);
   });
+
+  it('counts a two-page spread as one place: 0 on the first spread, 1 on the last (pager.ts percent)', () => {
+    const atSpread = (spread: number, pages: number, per: 1 | 2) => chapterFraction(spread, spreadCount(pages, per));
+    expect([0, 1].map((sp) => atSpread(sp, 4, 2))).toEqual([0, 1]);
+    expect([0, 1].map((sp) => atSpread(sp, 3, 2))).toEqual([0, 1]);
+    expect([0, 1, 2].map((sp) => atSpread(sp, 6, 2))).toEqual([0, 0.5, 1]);
+    // One page on screen: the same as counting pages.
+    expect([0, 1, 2, 3].map((p) => atSpread(p, 4, 1))).toEqual([0, 1 / 3, 2 / 3, 1]);
+  });
 });
 
 describe('turning', () => {

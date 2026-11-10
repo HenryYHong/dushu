@@ -233,7 +233,7 @@
 /* Safari (the only engine with hanging-punctuation) does the same without the grid, so it never gets pretty. */
 @supports (hanging-punctuation: first) { .rd-p, .rd-quote { text-wrap: wrap; } }
 /* Only headings are balanced. A short prose paragraph is filled like any other (balanced, its first line stopped 8 to 10
-   cells early); .rd-short stays as a hook for verse if the importer ever marks it. */
+   cells early); .rd-short is only a hook. Verse is .rd-verse (verse.ts), set below. */
 .rd-h { text-wrap: balance; }
 .rd-b.rd-speaking { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 4px; }
 .rd-quote { margin: 0.7em 0; padding: 0 0 0 1em; border-left: 3px solid var(--rule); color: var(--text-2); }
@@ -479,6 +479,9 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) { --rd-coach-b: calc(ma
 .rd-row-hint { font-weight: 400; font-size: 11.5px; line-height: 1.3; color: var(--text-3); }
 .rd-row-note { font-size: 12.5px; color: var(--text-2); white-space: nowrap; }
 .rd-row-ctl { flex: 1 1 auto; min-width: 0; display: flex; justify-content: flex-end; align-items: center; }
+/* A switch needs only its own width; the label gets the rest ("Learn known words as I read" on one line). */
+.rd-row-switch .rd-row-label { flex: 1 1 auto; max-width: none; }
+.rd-row-switch .rd-row-ctl { flex: 0 0 auto; }
 .rd-row-ctl > .rd-seg { flex: 1 1 auto; }
 .rd-row-ctl > .rd-slider-wrap { flex: 1 1 auto; }
 .rd-sep { border: 0; border-top: 1px solid var(--hairline); margin: 4px 8px; }
@@ -580,6 +583,13 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-paged .rd-p { margin: 0; text-indent: 2em; }
 .rd-paged.rd-grid .rd-p, .rd-grid .rd-paged .rd-p { text-indent: var(--rd-indent); }
 .rd-paged .rd-noindent, .rd-paged .rd-plain, .rd-grid .rd-paged .rd-noindent, .rd-grid .rd-paged .rd-plain { text-indent: 0; }
+/* A line of verse (verse.ts) starts flush, with no paragraph indent; one too long for the column breaks only after a comma
+   (render.ts keeps each clause on one line), and its next clause hangs one character in, so it reads as the same line. */
+.rd-verse, .rd-grid .rd-verse, .rd-paged .rd-verse, .rd-grid .rd-paged .rd-verse, .rd-paged.rd-grid .rd-verse {
+  --rd-hang: 1em; padding-left: var(--rd-hang); text-indent: calc(-1 * var(--rd-hang));
+}
+.rd-grid .rd-article .rd-verse { --rd-hang: calc(var(--rd-cell) * 1em); }
+.rd-article .rd-clause { white-space: nowrap; }
 .rd-paged .rd-quote { margin: 0.5em 0; }
 .rd-paged .rd-h { break-after: avoid; break-inside: avoid; margin: 1.2em 0 0.6em; }
 /* No extra air above the chapter title: the first line of a chapter's opening page sits level with the facing page. */
@@ -643,6 +653,7 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 }
 :root[data-theme='dark'] .rd-endbtn { background: var(--surface-2); }
 @media (hover: hover) { .rd-endbtn:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); } }
+.rd-endbtn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rd-endbtn-quiet, :root[data-theme='dark'] .rd-endbtn-quiet { background: transparent; box-shadow: none; color: var(--text-2); font-weight: 500; }
 /* The way on to the next chapter is the main thing to tap here: a full 44 px target under a finger. */
 @media (pointer: coarse) { .rd-endbtn { min-height: 44px; } }
@@ -842,6 +853,11 @@ html:has(.rd-root.rd-paged), body:has(.rd-root.rd-paged) { overscroll-behavior-x
 .rd-article .rd-phrase-head > .rd-hw .rd-rtx { width: max-content; max-width: 16em; }
 /* After an elision (qu’on) the word keeps to the left of its cell, against the word it is joined to. */
 .rd-article .rd-elided + .rd-word:not(.rd-nopy) > .rd-hw { justify-items: start; }
+/* A hinted word keeps the marks that touch it on its line (render.ts, rd-nb). With a mark after it, it keeps to the end of
+   its cell, against the mark ("rosas," not "rosas ,"); after an elision (l’ascia,) the rule above wins, on purpose: the gap
+   then falls before the comma, not inside the word. */
+.rd-article .rd-nb { white-space: nowrap; }
+.rd-article .rd-before-punct:not(.rd-nopy) > .rd-hw { justify-items: end; }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw > .rd-hb { line-height: 1.2; }
 .rd-article .rd-word:not(.rd-nopy) > .rd-hw > rt { display: block; height: 0; align-self: start; }
 .rd-article .rd-hw .rd-rtx {
@@ -943,3 +959,6 @@ body[data-route='read']:has(.rd-spell-ask) .app-toasts, body[data-route='read']:
 body[data-route='read']:has(.rd-name-ask) .app-toasts, body[data-route='read']:has(.rd-audio-on:not(.rd-paged)):has(.rd-name-ask) .app-toasts {
   bottom: calc(var(--rd-coach-b, 24px) + var(--rd-coach-h, 160px) + 8px);
 }
+
+/* The way back while a book is still opening (reader.ts mount): under the loading line, which has 96 px of room below. */
+.rd-loading-back { margin: -72px 16px 0; text-align: center; }

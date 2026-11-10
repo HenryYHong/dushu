@@ -155,7 +155,9 @@ function row(label: string, control: Node, hint?: string): HTMLElement {
     if (control.matches('[role="group"], [role="switch"]')) control.setAttribute('aria-label', label);
     control.querySelector('input[type="range"]')?.setAttribute('aria-label', label);
   }
-  return h('div.rd-row', null,
+  // A switch is small: its label takes the rest of the line rather than wrapping its last word.
+  const isSwitch = control instanceof HTMLElement && control.matches('[role="switch"]');
+  return h(isSwitch ? 'div.rd-row.rd-row-switch' : 'div.rd-row', null,
     h('div.rd-row-label', null, label, hint ? h('span.rd-row-hint', null, hint) : null),
     h('div.rd-row-ctl', null, control));
 }
