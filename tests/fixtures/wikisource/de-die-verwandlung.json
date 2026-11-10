@@ -1,0 +1,67 @@
+{
+ "parse": {
+  "title": "Die Verwandlung",
+  "pageid": 151266,
+  "redirects": [],
+  "text": "<div class=\"mw-content-ltr mw-parser-output\" lang=\"de\" dir=\"ltr\"><p>Folgende Texte tragen den Titel <b>Die Verwandlung</b>:\n</p>\n<ul><li><a href=\"/wiki/Die_Verwandlung_(Bandemer)\" title=\"Die Verwandlung (Bandemer)\">Die Verwandlung</a>, ein Gedicht von <a href=\"/wiki/Susanne_von_Bandemer\" title=\"Susanne von Bandemer\">Susanne von Bandemer</a></li>\n<li><a href=\"/wiki/Die_Verwandlung_(Brinckmann)\" title=\"Die Verwandlung (Brinckmann)\">Die Verwandlung</a>, ein Gedicht von <a href=\"/wiki/Karl_Gustav_Brinckmann\" title=\"Karl Gustav Brinckmann\">Karl Gustav Brinckmann</a></li>\n<li><a href=\"/wiki/Die_Verwandlung_(1785)\" title=\"Die Verwandlung (1785)\">Die Verwandlung</a>, ein Gedicht von <a href=\"/wiki/Johann_Gottfried_Herder\" title=\"Johann Gottfried Herder\">Johann Gottfried Herder</a></li>\n<li><a href=\"/wiki/Die_Verwandlung_(Franz_Kafka)\" title=\"Die Verwandlung (Franz Kafka)\">Die Verwandlung</a>, eine Erzählung von <a href=\"/wiki/Franz_Kafka\" title=\"Franz Kafka\">Franz Kafka</a></li></ul>\n<p><i>Siehe auch:</i> <a href=\"/wiki/Verwandlung\" class=\"mw-disambig\" title=\"Verwandlung\">Verwandlung</a>\n</p>\n<hr>\n<div style=\"border-width:2px 0 0 0; font-size:100%\">\n<table style=\"background-color:transparent\">\n<tbody><tr>\n<td style=\"width:50px; vertical-align:top\"><span typeof=\"mw:File\"><span title=\"Begriffsklärung\"><img alt=\"Begriffsklärung\" src=\"//thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Disambig.svg/60px-Disambig.svg.png?utm_source=de.wikisource.org&amp;utm_campaign=parser&amp;utm_content=thumbnail\" decoding=\"async\" loading=\"lazy\" width=\"45\" height=\"36\" class=\"mw-file-element\" data-file-width=\"230\" data-file-height=\"183\"></span></span>\n</td>\n<td>Diese Seite dient der Unterscheidung gleichnamiger Texte.\n</td></tr></tbody></table>\n</div>\n<p><br>\n</p></div>",
+  "categories": [
+   {
+    "sortkey": "",
+    "category": "Textunterscheidung"
+   }
+  ],
+  "links": [
+   {
+    "ns": 0,
+    "title": "Die Verwandlung (1785)",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Die Verwandlung (Bandemer)",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Die Verwandlung (Brinckmann)",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Die Verwandlung (Franz Kafka)",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Franz Kafka",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Johann Gottfried Herder",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Karl Gustav Brinckmann",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Susanne von Bandemer",
+    "exists": true
+   },
+   {
+    "ns": 0,
+    "title": "Verwandlung",
+    "exists": true
+   }
+  ],
+  "displaytitle": "<span lang=\"de\" dir=\"ltr\"><span class=\"mw-page-title-main\">Die Verwandlung</span></span>",
+  "properties": {
+   "defaultsort": "Verwandlung #Die",
+   "disambiguation": "",
+   "unexpectedUnconnectedPage": 0
+  }
+ }
+}

@@ -1,9 +1,10 @@
 // "Find a free book", from two public-domain libraries:
 // - Project Gutenberg: books in the language being read, most read first, or by title or author. Its catalog (OPDS) answers any
 //   page directly; its files do not, so the EPUB comes through the sync server (cloud/src/worker.ts gutenbergBook).
-// - Wikisource: any work on the language's Wikisource, by title or author, made an EPUB by Wikisource's own exporter
-//   (ws-export) through the sync server (wikisourceBook); its search API answers any page. Chinese and Japanese open on it,
-//   since Gutenberg has few of their books.
+// - Wikisource: any work on the language's Wikisource, by title or author, made an EPUB in the page from its API, as
+//   Wikisource's own exporter (ws-export) makes one (wikisourceBook.ts); its API answers any page. Chinese and Japanese open on
+//   it, since Gutenberg has few of their books. (The sync server's route to the exporter, cloud/src/worker.ts wikisourceBook, is
+//   kept for older copies of the app: the exporter answers it with a bot check.)
 // - Aozora Bunko (青空文庫), for Japanese: its catalog is shipped as a search index (public/data/ja/aozora.tsv.gz, made by
 //   scripts/lang/ja/build_aozora_index.py) and searched on the page; the work's XHTML page, with the readings it prints, comes
 //   through the sync server (aozoraBook). Japanese opens on it.
@@ -21,7 +22,8 @@ import type { AppContext, BookMeta } from '../../types';
 import type { LangId } from '../../lang/types';
 import { isNetworkFailure, type Importer } from './importer';
 import { hash } from '../../core/syncKeys';
-import { langName, tt, ttm, uiLang, uiLocale } from '../../i18n';
+import { langName, tt, ttm, ttn, uiLang, uiLocale } from '../../i18n';
+import { LIST_PAGE, WikisourceError, wikisourceEpub } from './wikisourceBook';
 
 const GUTENBERG_SEARCH = 'https://www.gutenberg.org/ebooks/search.opds/';
 
@@ -160,11 +162,6 @@ export async function searchGutenberg(query: string, code: string, start = 1, si
   return parseOpds(await res.text(), lang().name);
 }
 
-/**
- * A list of a work's editions or of works sharing a name: a page to choose from, not a book. The categories each Wikisource
- * files them under (en Versions pages, fr Éditions multiples, es Versiones, pt !Listas de versões, ja 底本選択ページ, …).
- */
-const LIST_PAGE = /versions pages|disambiguation|éditions multiples|homonymie|begriffskl|消歧|曖昧|многозначн|desambiguaci|disambigua|versiones|listas de versões|底本選択/i;
 /** German Wikisource keeps authors' and topics' pages among the works: by their exact category. */
 const NOT_A_WORK = /^Kategorie:(?:Autoren|Thema)$/;
 /** Encyclopedia entries filed as pages of their own ("ADB:Goethe", "MKL1888:Faust"); a title with ": " is a real work's. */
@@ -217,8 +214,8 @@ export async function searchWikisource(query: string, code: string, offset = 0, 
 
 /**
  * Where Chinese starts on Wikisource, which has no "most read" list: well-known works whose pages hold the whole work, each
- * exported and imported 2026-11-09 (modern prose first, then the long classics). Japanese opens on Aozora Bunko instead: its
- * Wikisource files most classics as pages to choose an edition from.
+ * made into a book (wikisourceBook.ts) and imported 2026-11-09 (modern prose first, then the long classics). Japanese opens
+ * on Aozora Bunko instead: its Wikisource files most classics as pages to choose an edition from.
  */
 const WIKISOURCE_STARTERS: Partial<Record<LangId, string[]>> = {
   zh: ['吶喊', '彷徨', '朝花夕拾', '故事新編', '野艸', '阿Q正傳', '浮生六記', '老殘遊記', '儒林外史', '鏡花緣', '聊齋志異', '封神演義'],
@@ -302,13 +299,16 @@ export class FoundError extends Error {
 /** What a download that got no answer says (never the browser's own "Failed to fetch"). */
 export const DOWNLOAD_FAILED = ttm('Could not download the book. Check your connection and try again.');
 
-/** The book's EPUB, through the sync server. Throws with the server's own words when it says why it could not. */
-export async function fetchFound(b: FoundBook, code: string, signal?: AbortSignal): Promise<File> {
+/**
+ * The book's EPUB (Aozora's: its XHTML page), through the sync server; a Wikisource work's is made in the page from Wikisource's
+ * API. Throws with the server's own words when it says why it could not. `onNote` hears what the reader should know of a book
+ * that was added all the same (a long work cut short).
+ */
+export async function fetchFound(b: FoundBook, code: string, signal?: AbortSignal, onNote?: (note: string) => void): Promise<File> {
+  if (b.source === 'wikisource') return fetchWikisource(b, code, signal, onNote);
   const base = cloudBase();
   if (!base) throw new Error(tt('Adding free books needs the sync server, which this copy of Globereader does not have.'));
-  const url = b.source === 'gutenberg' ? `${base}/gutenberg/${b.key}`
-    : b.source === 'aozora' ? `${base}/aozora/${b.key}`
-    : `${base}/wikisource/${code}/${encodeURIComponent(b.key)}`;
+  const url = b.source === 'gutenberg' ? `${base}/gutenberg/${b.key}` : `${base}/aozora/${b.key}`;
   // A request with no answer (the server down or out of reach, or an error page without CORS) says so plainly.
   const unanswered = (e: unknown): never => {
     if (e instanceof DOMException && e.name === 'AbortError') throw e;
@@ -322,6 +322,25 @@ export async function fetchFound(b: FoundBook, code: string, signal?: AbortSigna
   }
   const body = await res.blob().catch(unanswered);
   return new File([body], fileOf(b, code), { type: b.source === 'aozora' ? 'text/html' : 'application/epub+zip' });
+}
+
+/**
+ * A Wikisource work as an EPUB, put together from its Wikisource's API (wikisourceBook.ts) with no sync server. Its reasons (no
+ * such page, a list of editions, no text, too busy) are said as they are; a request with no answer says so plainly.
+ */
+async function fetchWikisource(b: FoundBook, code: string, signal?: AbortSignal, onNote?: (note: string) => void): Promise<File> {
+  try {
+    const book = await wikisourceEpub(b.key, code, { signal });
+    if (book.cut) {
+      onNote?.(ttn(book.cut.kept, 'This work is too long to add whole. Its first {n} part was added; the rest is on Wikisource.',
+        'This work is too long to add whole. Its first {n} parts were added; the rest is on Wikisource.'));
+    }
+    return new File([book.epub as Uint8Array<ArrayBuffer>], fileOf(b, code), { type: 'application/epub+zip' });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    if (e instanceof WikisourceError) throw new FoundError(e.message, e.code);
+    throw new FoundError(tt(DOWNLOAD_FAILED));
+  }
 }
 
 /**
@@ -345,8 +364,11 @@ export function gutenbergHasText(id: string): Promise<boolean | null> {
   return p;
 }
 
-/** What became of a book asked for: added, already in the library, or why not (with the server's code). */
-interface AddOutcome { meta?: BookMeta; twin?: BookMeta; message?: string; code?: string }
+/**
+ * What became of a book asked for: added (with what the reader should know of it, `note`), already in the library, or why not
+ * (with the server's code).
+ */
+interface AddOutcome { meta?: BookMeta; note?: string; twin?: BookMeta; message?: string; code?: string }
 interface Adding { done: Promise<AddOutcome>; rows: Set<{ live: () => boolean; settle: (o: AddOutcome) => void }> }
 /**
  * Books being added, by the file they are added under. Done is not Cancel: an add goes on with the dialog closed, and a dialog
@@ -364,7 +386,8 @@ function addFound(ctx: AppContext, importer: Importer, b: FoundBook, code: LangI
     let twin: BookMeta | undefined;
     let message = '';
     let why: string | undefined;
-    const meta = await importer.remote(who, () => fetchFound(b, code), {
+    let note = '';
+    const meta = await importer.remote(who, () => fetchFound(b, code, undefined, (n) => { note = n; }), {
       quiet: true,
       // The row's own words for what went wrong: the reason alone, without the book's title, which the row shows.
       onProblem: (m, t, e, reason) => {
@@ -372,7 +395,7 @@ function addFound(ctx: AppContext, importer: Importer, b: FoundBook, code: LangI
         else { message = reason ?? m; why = e instanceof FoundError ? e.code : undefined; }
       },
     });
-    if (meta) return { meta };
+    if (meta) return note ? { meta, note } : { meta };
     if (twin) return { twin };
     // The browser's own words never show ("Failed to fetch"); offline says so.
     if (typeof navigator !== 'undefined' && navigator.onLine === false) message = tt('You are offline. Connect to the internet to add books.');
@@ -387,7 +410,10 @@ function addFound(ctx: AppContext, importer: Importer, b: FoundBook, code: LangI
     if (live.length) { for (const r of live) r.settle(o); return; }
     const shown = (t: string) => scriptView(ctx.settings.get().script, ctx.dictSync()).text(t);
     const open = (m: BookMeta) => () => ctx.navigate(`/read/${encodeURIComponent(m.id)}`);
-    if (o.meta) ctx.toast(tt('Added “{title}”.', { title: shown(o.meta.title) }), { action: { label: tt('Read'), run: open(o.meta) }, ms: 7000 });
+    if (o.meta) {
+      const added = tt('Added “{title}”.', { title: shown(o.meta.title) });
+      ctx.toast(o.note ? `${added} ${o.note}` : added, { action: { label: tt('Read'), run: open(o.meta) }, ms: o.note ? 12000 : 7000 });
+    }
     else if (o.twin) ctx.toast(tt('“{title}” is already in your library.', { title: shown(o.twin.title) }), { action: { label: tt('Open'), run: open(o.twin) }, ms: 7000 });
     else ctx.toast(tt('“{title}” could not be added. {reason}', { title: who.title, reason: o.message ?? '' }), { ms: 9000 });
   });
@@ -459,6 +485,8 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
     const row = (b: FoundBook): HTMLElement => {
       const btn = h('button.btn.btn-sm.lib-find-add', { type: 'button' }) as HTMLButtonElement;
       const err = h('div.lib-find-error', { role: 'alert', hidden: true });
+      // What the reader should know of a book that was added (a long work cut short).
+      const noted = h('div.lib-find-note', { hidden: true });
       const titleEl = h('div.lib-find-title', { lang: code === 'zh' && ctx.settings.get().script === 'traditional' ? 'zh-Hant' : L.tag });
       const authorEl = b.author ? h('div.lib-find-author') : null;
       const key = fileOf(b, code);
@@ -495,11 +523,17 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
           added = o.meta;
           have.push(o.meta);
           said.textContent = tt('Added “{title}”. The button now opens it.', { title: title() });
+          if (o.note) {
+            noted.textContent = o.note;
+            noted.hidden = false;
+            said.textContent += ` ${o.note}`;
+          }
         } else if (o.twin) {
           added = o.twin;
           said.textContent = tt('“{title}” is already in your library. The button opens it.', { title: title() });
         } else {
-          none = o.code === 'no-epub';
+          // Nothing to add from it: a recording with no text, a Wikisource page with no text yet, a list of editions.
+          none = o.code === 'no-epub' || o.code === 'no-text' || o.code === 'list';
           // The button is about to be disabled: the keyboard goes on to the next book rather than to the page.
           if (none && document.activeElement === btn) (nextButton(li) ?? input).focus();
           err.textContent = o.message ?? '';
@@ -524,6 +558,7 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
           authorEl,
           b.also.length ? h('div.lib-find-note', null, tt('Also in {languages}', { languages: listed(b.also) })) : null,
           b.note ? h('div.lib-find-note', null, b.note) : null,
+          noted,
           err),
         btn) as Row;
       li.sync = sync;
