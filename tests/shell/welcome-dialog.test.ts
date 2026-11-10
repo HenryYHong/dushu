@@ -139,7 +139,7 @@ describe('the welcome dialog', () => {
     expect(done).toBe(true);
     expect(dialog()).toBeNull();
     expect(document.activeElement).toBe(opener);
-    expect(getPlan()).toEqual({ langs: ['es'], goal: 15, welcomed: 5 });
+    expect(getPlan()).toMatchObject({ langs: ['es'], goal: 15, welcomed: 5 });
   });
 
   it('names the last button for what it does: Go to my library first, Done from Settings', () => {

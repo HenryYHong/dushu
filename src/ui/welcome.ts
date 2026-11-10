@@ -72,7 +72,8 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
     };
     const finish = () => {
       const langs = learning();
-      setPlan({ langs, goal, welcomed: Date.now() });
+      // A goal left as it was is not a new choice: a new device's untouched default must not replace the one the account has.
+      setPlan({ langs, goal, ...(goal === plan.goal ? { goalAt: getPlan().goalAt } : {}), welcomed: Date.now() });
       if (target) settings.set({ translateTo: target });
       // From Settings the open library stays while it is still one being learned. The first visit opens the first one chosen.
       const next = opts.again ? (langs.includes(opts.current) ? undefined : langs[0]) : langs[0] !== opts.current ? langs[0] : undefined;

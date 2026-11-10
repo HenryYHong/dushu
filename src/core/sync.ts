@@ -21,9 +21,10 @@ import { defaultsFor, sanitizePatch } from '../store/settings';
 import { moveByPercent } from './place';
 import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge';
 import { CLOUD_EVENT, accountInfo, accountMark, cloudFetch, cloudSession, forgetSession, isAccountOwner } from './cloud';
-import { FIX_KEY, SYNCED_SETTINGS, bookKey, canonical, fixKey, hash, isFixKey, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
+import { FIX_KEY, GOAL_KEY, SYNCED_SETTINGS, bookKey, canonical, fixKey, hash, isFixKey, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 import { cleanFix, fixWire } from './fixRecord';
-import { SYNC_DAYS, actKey, addDays, cleanDay, dayOf, isActKey, mergeRecord, parseActKey, syncRecords } from './activity';
+import { GOALS, SYNC_DAYS, actKey, addDays, cleanDay, dayOf, isActKey, mergeRecord, parseActKey, syncRecords } from './activity';
+import { GOAL_EVENT, getPlan, setPlan } from './plan';
 
 export { bookKey, canonical, hash };
 
@@ -54,6 +55,11 @@ export { SYNCED_SETTINGS };
 // Every name there is a setting.
 const _settingNames: readonly (keyof Settings)[] = SYNCED_SETTINGS;
 void _settingNames;
+/** A synced goal's minutes, when it is one of GOALS. */
+function goalOf(data: unknown): number | null {
+  const g = data && typeof data === 'object' ? (data as { g?: unknown }).g : undefined;
+  return typeof g === 'number' && (GOALS as readonly number[]).includes(g) ? g : null;
+}
 /** A setting's value as it travels, checked; undefined when it is not one Dushu can use, or not one this library syncs. */
 function settingHere(name: string, data: unknown, lang: LangId): { v: unknown } | undefined {
   if (!isSyncedSetting(name, lang) || !data || typeof data !== 'object') return undefined;
@@ -190,6 +196,10 @@ async function snapshot(store: Store, books: Books, rows: Map<string, SyncRow>, 
   for (const f of await store.fixes.list()) put(fixKey(f.id), fixWire(f), f.t);
   // Time read each day, this device's and the others' (core/activity.ts), whichever library is open: one streak for them all.
   for (const r of syncRecords()) put(actKey(r.day, r.device), r.rec, r.rec.t);
+  // The daily goal, the reader's in every library, with the time it was chosen. A device that never chose one sends nothing
+  // (it takes the account's), so what an untouched library sends is what it always sent.
+  const plan = getPlan();
+  if (plan.goalAt > 0) put(GOAL_KEY, { g: plan.goal }, plan.goalAt);
   for (const [id, key] of books.keyOf) {
     const p = await store.progress.get(id);
     if (p) put(`p:${key}`, progressWire(p), p.updatedAt);
@@ -459,7 +469,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const t = now();
     /** When a setting's value was chosen, if the settings know (SettingsStore.chosenAt), and never later than now. */
     const chosenAt = (key: string): number | undefined => {
-      const at = key.startsWith('o:') ? opts.settings?.chosenAt?.(key.slice(2) as keyof Settings) : undefined;
+      const at = key.startsWith('o:') ? opts.settings?.chosenAt?.(key.slice(2) as keyof Settings) : key === GOAL_KEY ? getPlan().goalAt : undefined;
       return at === undefined ? undefined : Math.min(at, t);
     };
     const changed: SyncRow[] = [];
@@ -500,8 +510,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     // device has let the day go, and the record is deleted once instead of going back and forth with each sync.
     const actKept = addDays(dayOf(), -(SYNC_DAYS + 2));
     for (const [key, base] of rows) {
-      // Places are never deleted by sync: removing a book here must not lose the place on the other devices. Nor are settings.
-      if (key === META || key.startsWith('p:') || key.startsWith('o:') || base.sig === '-' || current.has(key)) continue;
+      // Places are never deleted by sync: removing a book here must not lose the place on the other devices. Nor are settings, or the goal.
+      if (key === META || key === GOAL_KEY || key.startsWith('p:') || key.startsWith('o:') || base.sig === '-' || current.has(key)) continue;
       if (isActKey(key) && (parseActKey(key)?.day ?? '') >= actKept) continue;
       changed.push({ key, at: Math.max(t, base.at + 1), sig: '-', dirty: 1 });
     }
@@ -668,6 +678,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     const fixesPut: Fix[] = [];
     const fixesDel: string[] = [];
     const settingsPatch: Partial<Settings> = {};
+    let goalHere: { goal: number; goalAt: number } | null = null;
     let resend = false;
     const moved = new Map<string, Progress>();
     const next: SyncRow[] = [];
@@ -686,6 +697,10 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       if (kind === 'l' && isActKey(`l:${id}`)) {
         const d = cleanDay(data);
         return d ? sigOf(d) : null;
+      }
+      if (kind === 'l' && `l:${id}` === GOAL_KEY) {
+        const g = goalOf(data);
+        return g ? sigOf({ g }) : null;
       }
       if (kind === 'l') {
         const r = lookupLocal(`l:${id}`, data, books);
@@ -722,7 +737,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         next.push({ key: r.key, at: r.at, sig });
         continue;
       }
-      if (kind === 'l' && r.data !== null && r.data !== undefined && !isFixKey(r.key)) {
+      if (kind === 'l' && r.data !== null && r.data !== undefined && !isFixKey(r.key) && r.key !== GOAL_KEY) {
         // Lookups merge (mergeLookups), so the Mac's copy is always taken: the store merges it with the row here, and what
         // only this device had is sent next time (the row records the Mac's copy, which no longer matches the one here).
         const item = lookupLocal(r.key, r.data, books);
@@ -779,6 +794,13 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         const wire = auto ? { a: 1 } : {};
         const sig = sigOf(wire);
         if (base?.sig !== sig) knownPut.push(auto ? { word: id, auto: true } : { word: id });
+        next.push({ key: r.key, at: r.at, sig });
+      } else if (kind === 'l' && r.key === GOAL_KEY) {
+        // The goal chosen last, on any device. Never deleted: a copy with no goal is passed over.
+        const g = goalOf(data);
+        if (!g) continue;
+        const sig = sigOf({ g });
+        if (base?.sig !== sig && r.at >= getPlan().goalAt) goalHere = { goal: g, goalAt: r.at };
         next.push({ key: r.key, at: r.at, sig });
       } else if (kind === 'l' && isFixKey(r.key)) {
         const fid = r.key.slice(FIX_KEY.length);
@@ -844,6 +866,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     await store.sync.apply({ vocabPut, vocabDel, knownPut, knownDel, progressPut, lookupsPut, lookupsDel, bookmarksPut, bookmarksDel, fixesPut, fixesDel, rows: next, seen: rows });
     // Settings chosen on another device, after their rows: the sync this change asks for finds nothing new to send.
     if (Object.keys(settingsPatch).length) opts.settings?.set(settingsPatch);
+    if (goalHere && goalHere.goal !== getPlan().goal) setPlan(goalHere);
+    else if (goalHere) setPlan({ goalAt: goalHere.goalAt });
     // A moved place is this device's to send, under the book's key here; so are lookups only this device had.
     if (moved.size || resend) soon();
     for (const r of next) rows.set(r.key, r);
@@ -906,6 +930,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   const setProgress = store.progress.set;
   store.progress.set = async (p) => { await setProgress(p); soon(5000); };
   const offSettings = opts.settings?.subscribe((_s, changed) => { if (changed.some((name) => isSyncedSetting(name, lang))) soon(3000); });
+  const onGoal = () => soon(3000);
+  globalThis.addEventListener?.(GOAL_EVENT, onGoal);
   const onVisible = () => {
     leaving = document.visibilityState === 'hidden';
     if (leaving) { clearTimeout(timer); void run(); } else soon(200);
@@ -939,6 +965,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       globalThis.removeEventListener?.(BRIDGE_EVENT, onWake);
       globalThis.removeEventListener?.(CLOUD_EVENT, onWake);
       globalThis.removeEventListener?.('hashchange', onRoute);
+      globalThis.removeEventListener?.(GOAL_EVENT, onGoal);
       if (active === syncer) active = null;
       return running ?? Promise.resolve();
     },

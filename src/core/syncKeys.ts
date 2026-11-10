@@ -122,6 +122,12 @@ export const FIX_KEY = 'l:fix:';
 export const fixKey = (id: string): string => FIX_KEY + id;
 export const isFixKey = (key: string): boolean => key.startsWith(FIX_KEY);
 
+/**
+ * The daily goal (core/plan.ts) travels as 'l:goal', `{ g: minutes }`, last writer wins: under 'l:' for the same reasons as a fix.
+ * Every library's sync carries it, so the goal reaches a device whichever library it opens.
+ */
+export const GOAL_KEY = 'l:goal';
+
 /** A looked-up word's record key: 'l:<day>:<word>'. */
 export const lookupKey = (day: string, id: string): string => `l:${day}:${id}`;
 export function parseLookupKey(key: string): { day: string; id: string } | null {

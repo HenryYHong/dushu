@@ -163,10 +163,11 @@ describe('the welcome screen', () => {
     expect(needsWelcome(fresh)).toBe(true);
     setPlan({ langs: ['es', 'zh'], goal: 15, welcomed: 1 }, fresh);
     expect(needsWelcome(fresh)).toBe(false);
-    expect(getPlan(fresh)).toEqual({ langs: ['es', 'zh'], goal: 15, welcomed: 1 });
+    expect(getPlan(fresh)).toMatchObject({ langs: ['es', 'zh'], goal: 15, welcomed: 1 });
+    expect(getPlan(fresh).goalAt).toBeGreaterThan(0);
     const reader = memoryStorage({ 'dushu.settings.v1': '{}' });
     expect(needsWelcome(reader)).toBe(false);
     expect(getPlan(reader).welcomed).toBeGreaterThan(0);
-    expect(getPlan(memoryStorage({ 'dushu.plan.v1': '{"langs":["xx","fr"],"goal":7}' }))).toEqual({ langs: ['fr'], goal: 10, welcomed: 0 });
+    expect(getPlan(memoryStorage({ 'dushu.plan.v1': '{"langs":["xx","fr"],"goal":7}' }))).toEqual({ langs: ['fr'], goal: 10, goalAt: 0, welcomed: 0 });
   });
 });

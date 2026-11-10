@@ -1630,6 +1630,8 @@ and opens it. Empty state explains what the app does in two sentences.
 - The reading clock runs on the Read and Review routes (`main.ts`) and while Practice is open: time counts while the page is in
   front and there was input in the last three minutes (or any voice is reading aloud), flushed every five seconds. Reaching the goal
   says so once, in a toast.
+- The goal syncs as `l:goal` (`{ g }`, core/sync.ts), the one chosen last on any device winning; a device that never chose one
+  sends nothing and takes the account's, and finishing the welcome without touching the goal is not a choice.
 - A day is won when its time reaches the goal in force that day, so raising the goal never undoes a day. A past day is judged by
   this device's own goal for it (its record, or the stamp the goal card writes), and by the easiest goal of the other devices only
   when this device has no record for that day. The streak runs to today once today is won, else to yesterday.

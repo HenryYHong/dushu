@@ -181,8 +181,8 @@ function totals(a: Activity, goalNow: number, today: string): Map<string, DayTot
     }
     // Today by the goal set here now. A past day by the goal this device had that day (its own record, or the stamp the card
     // left), so a day shown as won at night is still won in the morning when another device had a harder goal; a day this
-    // device never saw, by the easiest goal of the devices that read that day. (Devices keep goals of their own: one goal
-    // for every device would need the goal to sync.)
+    // device never saw, by the easiest goal of the devices that read that day. (The goal syncs, core/plan.ts, so devices differ only
+    // until the next sync, or when a day was judged before a change reached them.)
     const goal = day === today ? goalNow : devices[a.device]?.g ?? others;
     out.set(day, { day, seconds, goal, met: seconds >= goal * 60 });
   }
