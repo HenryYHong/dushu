@@ -38,6 +38,8 @@ function sizeLabel(count: number, short: boolean): string {
 }
 
 const readHref = (id: string) => `#/read/${encodeURIComponent(id)}`;
+/** Read by a screen reader, not shown (library.css has no class for it). */
+const VISUALLY_HIDDEN = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap';
 
 function progressBar(fraction: number, label?: string): HTMLElement {
   const bar = h('div.lib-bar', { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(fraction * 100), 'aria-label': label ?? 'Progress' },
@@ -59,20 +61,24 @@ interface MenuItem { label: string; icon: string; danger?: boolean; run: () => v
 /** A set of choices shown as radio items under a small heading, the chosen one checked. */
 interface MenuChoices { heading: string; options: { label: string; checked: boolean; run: () => void }[] }
 
-/** One floating menu at a time, anchored under a button; closes on outside click, Esc, scroll or resize. */
+/**
+ * One floating menu at a time, anchored under a button; closes on outside click, Esc, Tab, scroll or resize. The arrows,
+ * Home and End move between its items. Choosing one puts focus back on the button first, so a dialog it opens returns there.
+ */
 function openMenu(anchor: HTMLElement, items: (MenuItem | MenuChoices)[], within?: HTMLElement): void {
   closeMenu();
+  const choose = (run: () => void) => () => { closeMenu(); anchor.focus({ preventScroll: true }); run(); };
   const menu = h('div.lib-menu', { role: 'menu' },
     items.map((it) => 'heading' in it
       ? h('div.lib-menu-group', { role: 'group', 'aria-label': it.heading },
         h('div.lib-menu-heading', { 'aria-hidden': 'true' }, it.heading),
         it.options.map((o) => h('button.lib-menu-item.lib-menu-choice', {
           type: 'button', role: 'menuitemradio', 'aria-checked': String(o.checked),
-          onclick: () => { closeMenu(); o.run(); },
+          onclick: choose(o.run),
         }, o.checked ? icon('check') : h('span.lib-menu-blank'), o.label)))
       : h('button.lib-menu-item' + (it.danger ? '.lib-menu-danger' : ''), {
         type: 'button', role: 'menuitem',
-        onclick: () => { closeMenu(); it.run(); },
+        onclick: choose(it.run),
       }, icon(it.icon), it.label)));
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
@@ -86,19 +92,32 @@ function openMenu(anchor: HTMLElement, items: (MenuItem | MenuChoices)[], within
   menu.style.left = `${left}px`;
   menu.style.top = `${flip ? r.top - menu.offsetHeight - 4 : r.bottom + 4}px`;
   const onDown = (e: Event) => { if (!menu.contains(e.target as Node)) closeMenu(); };
-  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); anchor.focus(); } };
+  const entries = [...menu.querySelectorAll<HTMLElement>('.lib-menu-item')];
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); closeMenu(); anchor.focus({ preventScroll: true }); return; }
+    const i = entries.indexOf(document.activeElement as HTMLElement);
+    const n = entries.length;
+    const to = e.key === 'ArrowDown' ? (i + 1) % n : e.key === 'ArrowUp' ? (i <= 0 ? n - 1 : i - 1)
+      : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
+    if (to < 0 || !n) return;
+    // The page never scrolls under the menu (a scroll would close it).
+    e.preventDefault();
+    entries[to].focus({ preventScroll: true });
+  };
   document.addEventListener('pointerdown', onDown, true);
   document.addEventListener('keydown', onKey, true);
   window.addEventListener('resize', closeMenu);
   window.addEventListener('scroll', closeMenu, true);
+  anchor.setAttribute('aria-expanded', 'true');
   disposeMenu = () => {
     document.removeEventListener('pointerdown', onDown, true);
     document.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', closeMenu);
     window.removeEventListener('scroll', closeMenu, true);
+    anchor.setAttribute('aria-expanded', 'false');
     menu.remove();
   };
-  menu.querySelector<HTMLElement>('button')?.focus();
+  entries[0]?.focus({ preventScroll: true });
 }
 let disposeMenu: (() => void) | null = null;
 function closeMenu(): void { disposeMenu?.(); disposeMenu = null; }
@@ -125,6 +144,14 @@ export const mount: MountFn = (root, _params, ctx) => {
   let importer: Importer;
   let query = '';
   let order: 'recent' | 'title' | 'added' = 'recent';
+  // Until the classics list answers (or 2.5 s pass), a library with no books shows a quiet placeholder where the first book's
+  // card will be, not "No books yet" and then a jump.
+  let samplesSettled = false;
+  let samplesGaveUp = false;
+  // Where focus goes when the grid is drawn again after a menu action took its card away (Rename, Delete). Used once.
+  let refocus: { id: string; next?: string; until: number } | null = null;
+  // The first-book card on screen, kept while only its own classic is being added, so the button says Opening… in place.
+  let startShown: { key: string; el: HTMLElement; paint: (busy: boolean) => void } | null = null;
   // How much of each book's vocabulary is known (a line on each card).
   const shares = createBookShares(ctx);
 
@@ -177,7 +204,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   importer = createImporter(ctx, () => {
     if (!alive) return;
     const key = importer.jobs.map((j) => `${j.id}:${j.title}:${j.author}`).join('|');
-    if (key === jobsKey && gridEl.querySelector('.lib-card-pending')) { updatePending(); return; }
+    if (key === jobsKey && gridEl.querySelector('.lib-card-pending, .lib-start')) { updatePending(); return; }
     jobsKey = key;
     renderGrid();
   });
@@ -237,6 +264,10 @@ export const mount: MountFn = (root, _params, ctx) => {
   /** A book's title and author for its drawn cover, in the reading script like the words under it. */
   const labelOf = (b: { title: string; author: string }): Label => ({ title: shown(b.title), author: shown(b.author) });
   const sampleLabel = (s: Sample): Label => ({ title: sampleShown(s, 'title'), author: sampleShown(s, 'author') });
+  /** The language titles and authors are in (the library's, in the reading script), so a screen reader says them in it. */
+  const bookLang = (): string => (isChinese() && ctx.settings.get().script === 'traditional' ? 'zh-Hant' : lang().tag);
+  /** The classic a running job is adding, if it is one. */
+  const sampleOfJob = (job: Job): Sample | undefined => samples.find((x) => job.label === `“${x.title}”`);
 
   function renderContinue(): void {
     clear(continueEl);
@@ -250,8 +281,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     continueEl.appendChild(h('section.lib-continue.card', { 'aria-label': 'Continue reading' },
       h('a.lib-continue-cover', { href: readHref(opened.id), tabindex: -1, 'aria-hidden': 'true' }, bookCover(opened, store, 'sm', ctx.settings.get().covers, labelOf(opened))),
       h('div.lib-continue-info', null,
-        h('h2.lib-continue-title.zh', null, shown(opened.title)),
-        opened.author ? h('div.lib-continue-author', null, shown(opened.author)) : null,
+        h('h2.lib-continue-title.zh', { lang: bookLang() }, shown(opened.title)),
+        opened.author ? h('div.lib-continue-author', { lang: bookLang() }, shown(opened.author)) : null,
         h('div.lib-continue-progress', null, progressBar(frac, `Progress in ${opened.title}`), h('span.muted', null, `${where}${progressLabel(p)}`))),
       h('a.btn.btn-primary.lib-continue-go', { href: readHref(opened.id) }, 'Continue', icon('chevronRight'))));
   }
@@ -259,35 +290,58 @@ export const mount: MountFn = (root, _params, ctx) => {
   // ---- grid ----
   function renderGrid(): void {
     headActions.appendChild(macBooks); // preserve the live control when replacing the empty-state card
-    clear(gridEl);
     const jobs = importer.jobs;
-    if (!loaded && !jobs.length) return;
-    const empty = !books.length && !jobs.length;
+    // The easiest classic, one tap from its first page. While it is being added the library still counts as empty, so its card
+    // stays (saying Opening…) until the book opens.
+    const first = samples.find((x) => levelOf(x) === 'easy') ?? samples[0];
+    const startLabel = first ? `“${first.title}”` : null;
+    const empty = !books.length && jobs.every((j) => j.label === startLabel);
     libraryTools.hidden = !books.length;
     headActions.hidden = empty; // the empty state carries the same two buttons, bigger
     // A new reader's first screen is about a first book; the goal and streak come once there is one.
     goal.el.hidden = empty;
+    // A phone or tablet has no file to drop and no mouse to drag with: it is told its own way to a sentence.
+    const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
+    const startKey = empty && first ? `${first.id}|${sampleShown(first, 'title')}|${touch}|${canFindBooks()}` : '';
+    if (startKey && startShown?.key === startKey && startShown.el.parentElement === gridEl) { startShown.paint(jobs.length > 0); return; }
+    clear(gridEl);
+    startShown = null;
+    if (!loaded && !jobs.length) return;
     if (empty) {
-      // A phone or tablet has no file to drop and no mouse to drag with: it is told its own way to a sentence.
-      const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
       const gives = isChinese() ? 'its pinyin and meaning' : lang().aid === 'furigana' ? 'its reading and meaning' : 'its meaning';
-      // The easiest classic, one tap from its first page; the other ways in are under it.
-      const first = samples.find((x) => levelOf(x) === 'easy') ?? samples[0];
       if (first) {
-        gridEl.appendChild(startCard(first, touch
+        const card = startCard(first, touch
           ? `Tap any word for ${gives}, and tap it twice for the whole sentence and its translation.`
-          : `Click any word for ${gives}, or drag across a sentence to translate it.`));
+          : `Click any word for ${gives}, or drag across a sentence to translate it.`);
+        startShown = { key: startKey, ...card };
+        gridEl.appendChild(card.el);
+        settleFocus();
         return;
       }
+      // The classics are still on their way: a quiet card where the first book will be, about its height (a column on a phone,
+      // library.css), with nothing to read or press yet.
+      if (!samplesSettled && !samplesGaveUp) {
+        const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 560px)').matches;
+        gridEl.appendChild(h('div.card.lib-start-wait', { 'aria-busy': 'true', style: `min-height: ${narrow ? 520 : 310}px` }));
+        return;
+      }
+      const name = isChinese() ? 'Chinese' : lang().name;
+      const ways = [
+        samples.length ? 'pick a classic below' : '',
+        canFindBooks() ? `find a free book in ${name}` : '',
+        'import an EPUB, a Kindle file without DRM, a text file or a PDF',
+      ].filter(Boolean);
+      const said = ways.length > 1 ? `${ways.slice(0, -1).join(', ')}, or ${ways[ways.length - 1]}` : ways[0];
+      const offline = !samples.length && typeof navigator !== 'undefined' && navigator.onLine === false;
       gridEl.appendChild(h('section.lib-empty.card', null,
         h('h2.lib-empty-title', null, 'No books yet'),
-        h('p', null, touch
-          ? `Pick a classic below, find a free book in ${isChinese() ? 'Chinese' : lang().name}, or import an EPUB, a Kindle file without DRM, a text file or a PDF.`
-          : `Pick a classic below, find a free book in ${isChinese() ? 'Chinese' : lang().name}, or import an EPUB, a Kindle file without DRM, a text file or a PDF. You can also drop a file anywhere on this page.`),
+        offline ? h('p', null, `You are offline. ${name} classics and the ${name} dictionary download the first time you open ${name} online.`) : null,
+        h('p', null, `${said[0].toUpperCase()}${said.slice(1)}.${touch ? '' : ' You can also drop a file anywhere on this page.'}`),
         h('p', null, touch
           ? `Then tap any word for ${gives}, and tap it twice for the whole sentence and its translation.`
           : `Then click any word for ${gives}, or drag across a sentence to translate it.`),
         h('div.lib-actions.lib-empty-actions', null, findBtn(), importBtn(), pasteBtn(), macBooks)));
+      settleFocus();
       return;
     }
     const searchKey = (value: string) => (ctx.dictSync()?.toSimplified(value) ?? value).normalize('NFKC').toLocaleLowerCase();
@@ -300,20 +354,46 @@ export const mount: MountFn = (root, _params, ctx) => {
       gridEl.appendChild(h('div.lib-no-results', null,
         h('p', null, 'No books match your search.'),
         h('button.btn.btn-sm', { type: 'button', onclick: () => { search.value = ''; query = ''; renderGrid(); search.focus(); } }, 'Clear search')));
+      settleFocus();
       return;
     }
     gridEl.appendChild(h('div.lib-grid', null, jobs.map(pendingCard), matched.map(bookCard)));
+    settleFocus();
+  }
+
+  /**
+   * After Rename or Delete the grid is drawn again and the card's menu button goes with it. When focus went with it, it moves
+   * to the new card's menu button, or after a Delete to the next book (or the search, or the first thing to press).
+   */
+  function settleFocus(): void {
+    const want = refocus;
+    if (!want) return;
+    if (Date.now() > want.until) { refocus = null; return; }
+    const at = document.activeElement;
+    if (at && at !== document.body && at.isConnected) return;
+    const cardOf = (id: string | undefined) => (id ? [...gridEl.querySelectorAll<HTMLElement>('.lib-card[data-id]')].find((c) => c.dataset.id === id) : undefined);
+    const same = cardOf(want.id);
+    const target = same?.querySelector<HTMLElement>('.lib-card-menu')
+      ?? cardOf(want.next)?.querySelector<HTMLElement>('.lib-card-main')
+      ?? (libraryTools.hidden ? gridEl.querySelector<HTMLElement>('button:not([disabled]), a[href]') : search);
+    if (!target) return;
+    refocus = null;
+    target.focus({ preventScroll: true });
   }
 
   function pendingCard(job: Job): HTMLElement {
-    const bar = progressBar(job.fraction, `Adding ${job.title}`);
+    // A classic is named from the list, in the reading script (it is there before the dictionary); a file by what it is so far.
+    const s = sampleOfJob(job);
+    const title = s ? sampleShown(s, 'title') : shown(job.title);
+    const author = s ? sampleShown(s, 'author') : job.author ? shown(job.author) : '';
+    const bar = progressBar(job.fraction, `Adding ${title}`);
     setJobBar(bar, job);
     return h('article.lib-card.lib-card-pending', { 'aria-busy': 'true', 'data-job': job.id },
       h('div.lib-cover-wrap.lib-cover-wrap-md', null,
-        generatedCover(job.title, job.author, 'md', bookEra({ title: job.title, author: job.author })),
+        generatedCover(job.title, job.author, 'md', bookEra({ title: job.title, author: job.author }), { title, author }),
         h('div.lib-cover-busy', null, h('div.app-spinner'))),
       h('div.lib-card-info', null,
-        h('div.lib-card-title.zh', null, job.title),
+        h('div.lib-card-title.zh', { lang: bookLang() }, title),
         h('div.lib-card-author.lib-pending-stage', { role: 'status' }, jobStage(job)),
         bar));
   }
@@ -332,7 +412,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   function bookCard(b: BookMeta): HTMLElement {
     const p = progress.get(b.id);
     const menuBtn = h('button.lib-card-menu', {
-      type: 'button', 'aria-label': `Options for ${b.title}`, 'aria-haspopup': 'menu',
+      type: 'button', 'aria-label': `Options for ${shown(b.title)}`, 'aria-haspopup': 'menu', 'aria-expanded': 'false',
       onclick: (e: Event) => {
         e.preventDefault();
         // The Mac's books are always in the library, so they have no Delete.
@@ -353,19 +433,29 @@ export const mount: MountFn = (root, _params, ctx) => {
         ], card);
       },
     }, icon('more'));
-    const label = `${b.title}${b.author ? ', ' + b.author : ''}. ${progressLabel(p)}`;
-    const known = shares.text(b.id);
+    // The link is named by what it shows: the title and author in the book's language (a screen reader says them in it), how far
+    // in, and the known-words line once there is one. The bar and the size line are for the eye.
+    const bar = progressBar(progressFraction(p));
+    bar.setAttribute('aria-hidden', 'true');
     const card: HTMLElement = h('article.lib-card', { 'data-id': b.id },
-      h('a.lib-card-main', { href: readHref(b.id), 'data-label': label, 'aria-label': known ? `${label}. ${known}.` : label },
+      h('a.lib-card-main', { href: readHref(b.id) },
         bookCover(b, store, 'md', ctx.settings.get().covers, labelOf(b)),
         h('div.lib-card-info', null,
-          h('div.lib-card-title.zh', null, shown(b.title)),
-          h('div.lib-card-author', null, b.author ? shown(b.author) : ' '),
-          progressBar(progressFraction(p)),
-          h('div.lib-card-meta', null, h('span', null, progressLabel(p)), h('span', null, sizeLabel(b.charCount, true))),
+          h('div.lib-card-title.zh', { lang: bookLang() }, shown(b.title)),
+          b.author ? h('div.lib-card-author', { lang: bookLang() }, shown(b.author)) : h('div.lib-card-author', { 'aria-hidden': 'true' }, ' '),
+          bar,
+          h('span', { style: VISUALLY_HIDDEN }, `${progressLabel(p)}.`),
+          h('div.lib-card-meta', { 'aria-hidden': 'true' }, h('span', null, progressLabel(p)), h('span', null, sizeLabel(b.charCount, true))),
           shares.line(b))),
       menuBtn);
     return card;
+  }
+
+  /** After a dialog from a card's menu: focus back on the menu button when it went nowhere (jsdom, or the card was redrawn). */
+  function backToMenu(id: string): void {
+    const at = document.activeElement;
+    if (at && at !== document.body && at.isConnected) return;
+    [...gridEl.querySelectorAll<HTMLElement>('.lib-card[data-id]')].find((c) => c.dataset.id === id)?.querySelector<HTMLElement>('.lib-card-menu')?.focus({ preventScroll: true });
   }
 
   async function rename(b: BookMeta): Promise<void> {
@@ -377,9 +467,11 @@ export const mount: MountFn = (root, _params, ctx) => {
         { name: 'author', label: 'Author', value: b.author },
       ],
     });
-    if (!v || !alive) return;
-    if (v.title === b.title && v.author === b.author) return;
-    try { await store.books.update(b.id, { title: v.title, author: v.author }); } catch (e) { ctx.toast(e instanceof Error ? e.message : 'Could not rename the book.'); }
+    if (!alive) return;
+    if (!v || (v.title === b.title && v.author === b.author)) { backToMenu(b.id); return; }
+    // The card is drawn again with the new name: focus follows it to its new menu button.
+    refocus = { id: b.id, until: Date.now() + 4000 };
+    try { await store.books.update(b.id, { title: v.title, author: v.author }); } catch (e) { refocus = null; backToMenu(b.id); ctx.toast(e instanceof Error ? e.message : 'Could not rename the book.'); }
   }
 
   async function remove(b: BookMeta): Promise<void> {
@@ -391,7 +483,12 @@ export const mount: MountFn = (root, _params, ctx) => {
       confirmLabel: 'Delete',
       danger: true,
     });
-    if (!ok) return;
+    if (!alive) return;
+    if (!ok) { backToMenu(b.id); return; }
+    // Once the card is gone, focus moves to the book after it (or before it, when it was the last).
+    const cards = [...gridEl.querySelectorAll<HTMLElement>('.lib-card[data-id]')];
+    const at = cards.findIndex((c) => c.dataset.id === b.id);
+    refocus = { id: b.id, next: (cards[at + 1] ?? cards[at - 1])?.dataset.id, until: Date.now() + 4000 };
     try {
       await store.books.remove(b.id);
       forgetBookInAccount(b);
@@ -401,16 +498,25 @@ export const mount: MountFn = (root, _params, ctx) => {
     }
   }
 
-  /** The first book for a reader with none: the easiest classic, to start in one tap, and the other ways to add one. */
-  function startCard(s: Sample, how: string): HTMLElement {
-    const start = h('button.btn.btn-primary.lib-start-go', { type: 'button' }, 'Start reading', icon('chevronRight')) as HTMLButtonElement;
+  /**
+   * The first book for a reader with none: the easiest classic, to start in one tap, and the other ways to add one. `paint`
+   * shows the button busy (Opening…) while the classic is being added.
+   */
+  function startCard(s: Sample, how: string): { el: HTMLElement; paint: (busy: boolean) => void } {
+    const title = sampleShown(s, 'title');
+    const start = h('button.btn.btn-primary.lib-start-go', { type: 'button' }) as HTMLButtonElement;
+    const paint = (busy: boolean) => {
+      start.disabled = busy;
+      start.setAttribute('aria-label', busy ? `Opening “${title}”` : `Start reading “${title}”`);
+      start.replaceChildren(...(busy ? ['Opening…'] : ['Start reading', icon('chevronRight')]));
+    };
+    paint(importer.jobs.some((j) => j.label === `“${s.title}”`));
     start.addEventListener('click', async () => {
-      start.disabled = true;
-      start.replaceChildren('Opening…');
+      paint(true);
       const meta = await importer.sample(s);
       if (!alive) return;
       if (meta) ctx.navigate(readHref(meta.id));
-      else { start.disabled = false; start.replaceChildren('Start reading', icon('chevronRight')); }
+      else paint(false);
     });
     const link = (label: string, run: () => void) => h('button.lib-start-link', { type: 'button', onclick: run }, label);
     const others = [
@@ -418,16 +524,17 @@ export const mount: MountFn = (root, _params, ctx) => {
       link('paste some text', () => void openPaste()),
       link('import a file', () => fileInput.click()),
     ].filter((x): x is HTMLElement => !!x);
-    return h('section.lib-start.card', { 'aria-label': 'Your first book' },
+    const el = h('section.lib-start.card', { 'aria-label': 'Your first book' },
       h('div.lib-start-cover', null, sampleCoverEl(s)),
       h('div.lib-start-body', null,
         h('div.lib-start-kicker', null, 'Your first book'),
-        h('h2.lib-start-title.zh', null, sampleShown(s, 'title')),
-        s.author ? h('div.lib-start-author', null, sampleShown(s, 'author')) : null,
+        h('h2.lib-start-title.zh', { lang: bookLang() }, title),
+        s.author ? h('div.lib-start-author', { lang: bookLang() }, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-start-blurb', null, s.blurb) : null,
         h('p.lib-start-how', null, how),
         h('div.lib-start-actions', null, start),
         h('p.lib-start-other', null, 'Or ', others.flatMap((el, i) => (i ? [i === others.length - 1 ? ' or ' : ', ', el] : [el])), '. EPUB, Kindle without DRM, text and PDF files all work.')));
+    return { el, paint };
   }
 
   // ---- classics ----
@@ -460,11 +567,14 @@ export const mount: MountFn = (root, _params, ctx) => {
   function sampleCard(s: Sample, existing: BookMeta | undefined): HTMLElement {
     const busy = importer.jobs.some((j) => j.label === `“${s.title}”`);
     const size = [s.chapters && plural(s.chapters, 'chapter'), s.chars && sizeLabel(s.chars, false)].filter(Boolean).join(' · ');
+    // Each button names its book: a list of a dozen "Add and read" says nothing to a screen reader.
+    const title = sampleShown(s, 'title');
     const go = existing
-      ? h('a.btn.btn-sm', { href: readHref(existing.id) }, 'Open')
+      ? h('a.btn.btn-sm', { href: readHref(existing.id), 'aria-label': `Open “${title}”` }, 'Open')
       : h('button.btn.btn-sm.lib-add', {
           type: 'button',
           disabled: busy,
+          'aria-label': busy ? `Adding “${title}”` : `Add and read “${title}”`,
           onclick: async (e: Event) => {
             const btn = e.currentTarget as HTMLButtonElement;
             btn.disabled = true;
@@ -478,9 +588,9 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('div.lib-sample-cover', null, existing ? bookCover(existing, store, 'sm', ctx.settings.get().covers, sampleLabel(s)) : sampleCoverEl(s)),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
-          h('div.lib-sample-title.zh', null, sampleShown(s, 'title')),
+          h('div.lib-sample-title.zh', { lang: bookLang() }, title),
           h('span.lib-level-badge', { 'data-level': levelOf(s) }, LEVELS.find((l) => l.key === levelOf(s))!.name)),
-        s.author ? h('div.lib-sample-author', null, sampleShown(s, 'author')) : null,
+        s.author ? h('div.lib-sample-author', { lang: bookLang() }, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-sample-blurb', null, s.blurb) : null,
         h('div.lib-sample-foot', null,
           h('span.muted.lib-sample-size', null, existing ? 'In your library' : size),
@@ -553,7 +663,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (publicCopy) {
       macNote.append(
         h('p', null, cloudBase()
-          ? 'Your books and words are saved in this browser. Sign in with your email to have them on your other devices too.'
+          ? 'Your books and words are saved in this browser. Have an account? Sign in to have them on your other devices too.'
           : 'Your books and words are saved in this browser. If you run Globereader on your own Mac, connect this device to it in Settings to use its translator, voices and books.'),
         h('div.lib-actions', null,
           cloudBase()
@@ -605,10 +715,31 @@ export const mount: MountFn = (root, _params, ctx) => {
       macBooks.replaceChildren(icon('download'), 'Add books from Mac');
     }
   }
+  // A slow network: after 2.5 s the empty library says how else to add a book. The list, when it comes, still brings the
+  // first-book card.
+  const giveUp = setTimeout(() => { samplesGaveUp = true; if (alive && !books.length) renderGrid(); }, 2500);
   const samplesReady = fetchSamples().catch((): Sample[] => []).then((list) => {
+    samplesSettled = true;
+    clearTimeout(giveUp);
     if (alive) { samples = list; renderSamples(); if (!books.length) renderGrid(); }
     return list;
   });
+  // Opened offline in a language never opened before, the list is not on the device: back online, it is asked for again.
+  let askingAgain = false;
+  const onOnline = () => {
+    if (!alive) return;
+    if (samples.length || askingAgain) { if (!books.length) renderGrid(); return; }
+    askingAgain = true;
+    void fetchSamples().then((list) => {
+      askingAgain = false;
+      if (!alive) return;
+      if (list.length) { samples = list; renderSamples(); }
+      if (!books.length) renderGrid();
+    });
+  };
+  const onOffline = () => { if (alive && !books.length) renderGrid(); };
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
 
   /** A classic not added yet: its drawn cover, with its painting as the board. */
   function sampleCoverEl(s: Sample): HTMLElement {
@@ -694,6 +825,9 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   return () => {
     alive = false;
+    clearTimeout(giveUp);
+    window.removeEventListener('online', onOnline);
+    window.removeEventListener('offline', onOffline);
     window.removeEventListener(INCOMING_EVENT, onIncoming);
     goal.dispose();
     closeMenu();

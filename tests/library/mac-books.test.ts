@@ -185,7 +185,7 @@ describe('owner books on the library screen', () => {
       await openLibrary();
       const note = () => root.querySelector<HTMLElement>('.lib-mac-note')!;
       await until(() => !note().hidden);
-      expect(note().textContent).toMatch(/Sign in with your email/);
+      expect(note().textContent).toMatch(/Have an account\? Sign in to have them on your other devices/);
       [...note().querySelectorAll<HTMLElement>('.btn')].find((b) => b.textContent === 'Dismiss')!.click();
       expect(note().textContent).toMatch(/Add Globereader to your Home Screen: tap Share, then Add to Home Screen/);
       [...note().querySelectorAll<HTMLElement>('.btn')].find((b) => b.textContent === 'Got it')!.click();
@@ -220,7 +220,9 @@ describe('owner books on the library screen', () => {
     onPublicSite();
     await openLibrary();
     await until(() => !root.querySelector<HTMLElement>('.lib-mac-note')!.hidden);
-    expect(root.querySelector('.lib-mac-note')!.textContent).toMatch(/saved in this browser.*Sign in with your email/);
+    expect(root.querySelector('.lib-mac-note')!.textContent).toMatch(/saved in this browser\. Have an account\? Sign in/);
+    // Email sign-in is by invite: nobody new is told to sign in with their email.
+    expect(root.querySelector('.lib-mac-note')!.textContent).not.toMatch(/email/i);
     expect([...root.querySelectorAll<HTMLElement>('.lib-mac-note .btn')].map((b) => b.textContent)).toEqual(['Sign in', 'Dismiss']);
     await flush(100);
     expect(calls.filter((c) => c.includes('local-books'))).toEqual([]);

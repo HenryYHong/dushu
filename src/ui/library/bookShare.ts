@@ -13,7 +13,7 @@ export interface BookShares {
   measure(books: BookMeta[]): void;
   /** Known words changed: every line is worked out again. */
   refresh(): void;
-  /** The line's text for a book ('' while there is none), for the card's label. */
+  /** The line's text for a book ('' while there is none). */
   text(bookId: string): string;
   dispose(): void;
 }
@@ -52,9 +52,9 @@ export function createBookShares(ctx: AppContext, opts: { delayMs?: number } = {
     // While a book is being counted its line keeps its place, so the cards in a row stay level.
     el.textContent = t || '\u00a0';
     el.hidden = !store.known.count();
-    // The card is one link with its own label; the line is part of what it says.
-    const link = el.closest<HTMLElement>('[data-label]');
-    if (link) link.setAttribute('aria-label', t ? `${link.dataset.label}. ${t}.` : link.dataset.label!);
+    // The line is part of what the card's link says (library.ts names the link by its content); while it is blank it says
+    // nothing, not its explanation.
+    if (t) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', 'true');
   }
 
   function paint(bookId: string): void {
