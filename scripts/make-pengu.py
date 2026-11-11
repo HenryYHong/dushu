@@ -3,30 +3,33 @@
 
     python3 -I scripts/make-pengu.py        (needs Pillow: pip install pillow)
 
-art/pengu-logo.png is the logo: a fluffy emperor penguin chick peeking over an open red book, on a flat pink square (made by
-Henry with an AI image generator, 2026-11-11). The icons are that square; the mascot inside the app is the chick and its book cut
-out of the pink: every pixel is as see-through as it is close to the pink, and the pink is taken out of the colors along the edge,
-so it sits cleanly on a light or a dark page. It writes:
+art/pengu-logo.png is Pengu: a fluffy emperor penguin chick peeking over an open red book, in a white sticker edge, on a flat
+pale blue square (made by Henry with an AI image generator, 2026-11-11). The sticker is cut out of the blue (every pixel as
+see-through as it is close to the blue, and the blue taken out of the colors along the edge, so it sits cleanly on a light or a
+dark page), and its book recolored to the app's vermilion, so Pengu wears the app's own two colors. The mascot inside the app is
+that sticker; the logo and icons are it on the app's ink blue. It writes:
 
-    src/ui/pengu/pengu.webp        the mascot (welcome screen, walkthrough, empty screens, Review), 512 px, transparent
-    src/ui/pengu/logo.webp         the logo with rounded corners (the brand mark in the bar), 192 px
+    src/ui/pengu/pengu.webp        the mascot, the sticker cut out (welcome, walkthrough, empty screens, Review), 512 px
+    src/ui/pengu/logo.webp         the logo: the sticker on ink blue, rounded corners (the brand mark in the bar), 192 px
     art/pengu-cutout.png           the mascot at full size, for scripts/make-icons.mjs (the link picture)
     public/icon.svg                the logo for the browser tab, a 128 px picture inside an SVG
     public/icons/icon-192.png, icon-512.png       the logo with rounded corners ("any" purpose)
-    public/icons/apple-touch-icon.png (180)        the square as it is (iOS rounds the corners)
-    public/icons/icon-maskable-512.png             the square with the chick smaller, inside the central safe zone
+    public/icons/apple-touch-icon.png (180)        the square, full bleed (iOS rounds the corners)
+    public/icons/icon-maskable-512.png             the square with Pengu smaller, inside the central safe zone
 """
-import base64, io, os
+import base64, colorsys, io, os
 from collections import deque
 from PIL import Image, ImageDraw
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 SRC = os.path.join(REPO, 'art', 'pengu-logo.png')
-SOFT = (10, 60)   # distance from the pink (RGB) at which a pixel starts to show, and at which it is solid
+SOFT = (10, 60)   # distance from the background color (RGB) at which a pixel starts to show, and at which it is solid
+INK = (0x24, 0x35, 0x54)        # the app's ink blue (styles/tokens.css --ink): the logo's ground
+VERMILION = (0xc1, 0x36, 0x16)  # the app's accent (--accent): the book
 
 
 def background(im: Image.Image) -> tuple[tuple[int, int, int], Image.Image]:
-    """The pink (the corners' average) and the region of near-pink pixels reachable from the edge (255 there)."""
+    """The background color (the corners' average) and the region of pixels near it reachable from the edge (255 there)."""
     w, h = im.size
     px = im.load()
     corners = [px[2, 2], px[w - 3, 2], px[2, h - 3], px[w - 3, h - 3]]
@@ -54,7 +57,7 @@ def background(im: Image.Image) -> tuple[tuple[int, int, int], Image.Image]:
 
 
 def cutout(im: Image.Image) -> Image.Image:
-    """The chick and its book on transparent: outside the background region solid; inside it, as see-through as it is pink."""
+    """The sticker on transparent: outside the background region solid; inside it, as see-through as it is close to the background."""
     bg, region = background(im)
     w, h = im.size
     px = im.load()
@@ -72,10 +75,38 @@ def cutout(im: Image.Image) -> Image.Image:
             a = max(0.0, min(1.0, (d - lo) / (hi - lo)))
             if a <= 0:
                 continue
-            # The pink taken out of an edge pixel's color: what it would be without the background showing through.
+            # The background taken out of an edge pixel's color: what it would be without it showing through.
             c = tuple(max(0, min(255, round((p[i] - (1 - a) * bg[i]) / a))) for i in range(3))
             op[x, y] = c + (round(a * 255),)
     return out
+
+
+def recolor_book(im: Image.Image) -> Image.Image:
+    """The book's reds moved to the app's vermilion: hue and saturation taken from it, lightness scaled to match. Only the
+    picture's lower part, where the book is (the cheeks, also pinkish, stay as they are)."""
+    th, tl, ts = colorsys.rgb_to_hls(*[c / 255 for c in VERMILION])
+    out = im.copy()
+    px = out.load()
+    w, h = out.size
+    for y in range(int(h * 0.55), h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if not a:
+                continue
+            hh, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            if s > 0.45 and (hh > 0.92 or hh < 0.04) and l < 0.8:
+                nr, ng, nb = colorsys.hls_to_rgb(th, min(1, l * tl / 0.53), min(1, ts * s / 0.8))
+                px[x, y] = (round(nr * 255), round(ng * 255), round(nb * 255), a)
+    return out
+
+
+def on_ink(sticker: Image.Image, size: int, share: float) -> Image.Image:
+    """A square of the app's ink blue with the sticker taking `share` of its width, a little below the middle."""
+    sq = Image.new('RGBA', (size, size), INK + (255,))
+    k = int(size * share)
+    s = sticker.resize((k, k), Image.LANCZOS)
+    sq.alpha_composite(s, ((size - k) // 2, (size - k) // 2 + size // 85))
+    return sq
 
 
 def trim_square(im: Image.Image, pad: float = 0.04) -> Image.Image:
@@ -105,24 +136,18 @@ def save(im: Image.Image, path: str, size: int, **kw) -> None:
 
 def main() -> None:
     src = Image.open(SRC).convert('RGB')
-    bg, _ = background(src)
-    cut = cutout(src)
-    mascot = trim_square(cut)
+    mascot = recolor_book(trim_square(cutout(src)))
     mascot.save(os.path.join(REPO, 'art', 'pengu-cutout.png'), optimize=True)
     print('wrote art/pengu-cutout.png')
     save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', 'pengu.webp'), 512, quality=90, method=6)
-    logo = rounded(src)
+    square = on_ink(mascot, 1024, 0.86)
+    logo = rounded(square)
     save(logo, os.path.join(REPO, 'src', 'ui', 'pengu', 'logo.webp'), 192, quality=90, method=6)
     save(logo, os.path.join(REPO, 'public', 'icons', 'icon-192.png'), 192, optimize=True)
     save(logo, os.path.join(REPO, 'public', 'icons', 'icon-512.png'), 512, optimize=True)
-    save(src, os.path.join(REPO, 'public', 'icons', 'apple-touch-icon.png'), 180, optimize=True)
-    # The safe zone is the middle 80 percent, a circle: the chick and book shrunk to fit inside it on the same pink.
-    mask = Image.new('RGB', src.size, bg)
-    part = trim_square(cut, 0)
-    k = int(src.width * 0.64)
-    part = part.resize((k, k), Image.LANCZOS)
-    mask.paste(part, ((src.width - k) // 2, (src.height - k) // 2), part)
-    save(mask, os.path.join(REPO, 'public', 'icons', 'icon-maskable-512.png'), 512, optimize=True)
+    save(square.convert('RGB'), os.path.join(REPO, 'public', 'icons', 'apple-touch-icon.png'), 180, optimize=True)
+    # The safe zone is the middle 80 percent, a circle: Pengu shrunk to fit inside it.
+    save(on_ink(mascot, 1024, 0.64).convert('RGB'), os.path.join(REPO, 'public', 'icons', 'icon-maskable-512.png'), 512, optimize=True)
     buf = io.BytesIO()
     logo.resize((128, 128), Image.LANCZOS).save(buf, 'PNG', optimize=True)
     data = base64.b64encode(buf.getvalue()).decode()

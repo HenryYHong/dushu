@@ -19,7 +19,7 @@ try {
     @font-face { font-family: N; src: url(${font('newsreader-italic.woff2')}); font-style: italic; }
     @font-face { font-family: N; src: url(${font('newsreader-roman.woff2')}); font-style: normal; }
     html, body { margin: 0; width: 1200px; height: 630px; background: #f6f2ea; color: #1c1a17; }
-    body { display: flex; align-items: center; gap: 48px; padding: 0 84px 0 64px; box-sizing: border-box; border-bottom: 14px solid #f0afaf; }
+    body { display: flex; align-items: center; gap: 48px; padding: 0 84px 0 64px; box-sizing: border-box; border-bottom: 14px solid #c13616; }
     img { width: 380px; height: 380px; flex: none; }
     h1 { margin: 0; font: italic 500 112px/1 N, serif; letter-spacing: -0.01em; }
     p { margin: 22px 0 0; font: 400 38px/1.3 N, serif; color: #4c4741; }
