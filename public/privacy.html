@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy · LinguPengu</title>
+<meta name="description" content="What LinguPengu keeps, where, and how to delete it.">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<style>
+  :root { --paper: #f5f1ea; --text: #1f1d1a; --muted: #5f5a52; --rule: #dad5cc; --accent: #c13616; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --paper: #141311; --text: #ece7de; --muted: #a9a297; --rule: #2e2b27; --accent: #e8643f; } }
+  html { background: var(--paper); }
+  body { margin: 0; padding: 40px 16px 64px; color: var(--text); background: var(--paper);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 40rem; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  header img { width: 44px; height: 44px; border-radius: 22%; box-shadow: 0 0 0 1px var(--rule); }
+  h1 { font: italic 600 30px/1.2 Georgia, "Times New Roman", serif; margin: 0; }
+  h2 { font-size: 18px; margin: 32px 0 6px; }
+  p, li { margin: 0 0 10px; }
+  ul { padding-left: 22px; margin: 0 0 10px; }
+  .muted { color: var(--muted); }
+  a { color: var(--accent); }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 32px 0 16px; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="./icon.svg" alt=""><h1>Privacy</h1></header>
+  <p class="muted">LinguPengu · updated November 11, 2026</p>
+
+  <p>LinguPengu is a free app for reading real books in the language you're learning. It runs in your browser. This page says what it keeps, where, and how to delete it.</p>
+
+  <h2>On your device</h2>
+  <p>Your books, saved words, reading places and settings are kept in your browser on this device. Clearing this site's data in your browser removes them.</p>
+
+  <h2>If you sign in</h2>
+  <p>Signing in makes an account on LinguPengu's sync server, which runs on Cloudflare. It keeps:</p>
+  <ul>
+    <li>how you sign in: your email address, the ID Google gives your account if you sign in with Google, or your passkey's public key</li>
+    <li>the books you add, your saved words, reading places, bookmarks and settings, so your devices stay in step</li>
+    <li>when each of your devices last synced, your time zone and the app's language (so reminders come at a sensible hour, in your language)</li>
+  </ul>
+  <p>Only you can see what's in your account. You can delete it, with everything in it, in Settings. Signing out keeps this device's copy.</p>
+
+  <h2>Signing in with Google</h2>
+  <p>LinguPengu asks Google only for your email address and an ID for your Google account, to know it's you. It never sees your Google password, contacts, files or anything else in your Google account.</p>
+
+  <h2>Emails</h2>
+  <p>We email you a sign-in code when you ask for one. If your account has an email address, you also get a welcome email, and a reminder now and then when saved words are ready to review (at most once a week). Every email has a link to turn these off, and so does Settings. Emails are sent through Resend.</p>
+
+  <h2>Notifications</h2>
+  <p>If you turn on notifications, your browser gives LinguPengu an address to send review reminders to. It's kept in your account until you turn notifications off. Reminders go through your browser's push service (Google, Apple or Mozilla, depending on your browser).</p>
+
+  <h2>Translation and read-aloud</h2>
+  <p>When you ask for a sentence to be translated, that sentence and a little of the text around it are sent to the translator that answers: Qwen on Cloudflare (signed in), Claude by Anthropic (if your account has it), or MyMemory (if you pick it). Chrome's own translator works on your device. A passage you ask to hear read aloud is sent to Cloudflare to make the audio. Nothing else from your books leaves your device, except books you add, which are kept in your account so your other devices can open them.</p>
+
+  <h2>Finding books</h2>
+  <p>Searching for free books asks Project Gutenberg, Wikisource and Aozora Bunko, either from your browser or through LinguPengu's server. Only your search and the book you pick are sent.</p>
+
+  <h2>Limits</h2>
+  <p>To stop abuse, the server counts sign-in codes and some other requests per network for a day. It keeps a scrambled (hashed) form of your network's address for that, never the address itself.</p>
+
+  <h2>What LinguPengu doesn't do</h2>
+  <p>No ads, no analytics or tracking. Your data is never sold or shared for marketing.</p>
+
+  <hr>
+  <p class="muted">Questions? Open an issue at <a href="https://github.com/HenryYHong/dushu/issues">github.com/HenryYHong/dushu</a>. <a href="./">Back to LinguPengu</a></p>
+</main>
+</body>
+</html>
