@@ -1875,11 +1875,11 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   pinyin one block at a time made it more frames, not cheaper ones. Real iPad GPU and CPU numbers are not measured.
 
 ### 5.8 Shell, fonts, PWA
-- Pengu, the mascot (`ui/pengu.ts`): a navy penguin sticker, a generated picture (`art/pengu-source.jpg`) that
-  `scripts/make-pengu.py` cuts out of its background (white and circle-blue reachable from the edge, the largest shape kept) and
-  gives a clean white sticker edge: `ui/pengu/pengu.webp` (the mascot, `penguHtml`, `penguEl`) and `ui/pengu/logo.webp` (its top
-  half peeking out of a pale blue circle, `penguMark`, the brand mark), plus `public/icon.svg` and the PNG icons (a full blue
-  square for the ones a platform rounds or masks). `scripts/make-icons.mjs` draws the link picture. One picture serves every pose
+- Pengu, the mascot (`ui/pengu.ts`): a fluffy emperor penguin chick peeking over an open red book, on a flat pink square
+  (`art/pengu-logo.png`, a generated picture). `scripts/make-pengu.py` makes the logo from the square (`ui/pengu/logo.webp`, rounded
+  corners, `penguMark`; `public/icon.svg` and the PNG icons, the maskable one with the chick inside the safe zone) and the mascot
+  by cutting the chick and book out of the pink (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`): the pink region reachable from
+  the edge, each pixel as see-through as it is close to the pink, and the pink taken out of the edge's colors. `scripts/make-icons.mjs` draws the link picture. One picture serves every pose
   for now (`PenguPose` names the use, and styles move it). It waves on the welcome screen, stands
   beside each walkthrough step (`ui/guide.ts`), reads over empty Vocabulary and About, and cheers when a review session ends.
   Fixed colors, not the theme's, so it looks the same in light and dark; its animations stop with reduced motion.

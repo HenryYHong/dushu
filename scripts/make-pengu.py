@@ -1,146 +1,100 @@
 #!/usr/bin/env python3
-"""Pengu, LinguPengu's mascot, from its source picture: the app's images and icons.
+"""Pengu, LinguPengu's mascot, from its picture: the app's images and icons.
 
     python3 -I scripts/make-pengu.py        (needs Pillow: pip install pillow)
 
-art/pengu-source.jpg is the picture Pengu was chosen from: generated on 2026-11-11 with Leonardo's Lucid Origin model through
-Cloudflare Workers AI (a penguin sticker on a pale blue circle, on white). This cuts the penguin out of its background (everything
-white or circle-blue that touches the picture's edge), puts a clean white sticker edge and a soft shadow back around it, and
-makes the logo: its top half peeking up out of a crisp circle. It writes:
+art/pengu-logo.png is the logo: a fluffy emperor penguin chick peeking over an open red book, on a flat pink square (made by
+Henry with an AI image generator, 2026-11-11). The icons are that square; the mascot inside the app is the chick and its book cut
+out of the pink: every pixel is as see-through as it is close to the pink, and the pink is taken out of the colors along the edge,
+so it sits cleanly on a light or a dark page. It writes:
 
     src/ui/pengu/pengu.webp        the mascot (welcome screen, walkthrough, empty screens, Review), 512 px, transparent
-    src/ui/pengu/logo.webp         the logo: Pengu's top half peeking out of its circle (the brand mark in the bar), 192 px
-    art/pengu-sticker.png          the mascot at full size, for scripts/make-icons.mjs (the link picture)
+    src/ui/pengu/logo.webp         the logo with rounded corners (the brand mark in the bar), 192 px
+    art/pengu-cutout.png           the mascot at full size, for scripts/make-icons.mjs (the link picture)
     public/icon.svg                the logo for the browser tab, a 128 px picture inside an SVG
-    public/icons/icon-192.png, icon-512.png       the logo on transparent ("any" purpose)
-    public/icons/apple-touch-icon.png (180)        full bleed: Pengu peeking up from the bottom of a blue square (iOS rounds it)
-    public/icons/icon-maskable-512.png             full bleed, Pengu inside the central safe zone
+    public/icons/icon-192.png, icon-512.png       the logo with rounded corners ("any" purpose)
+    public/icons/apple-touch-icon.png (180)        the square as it is (iOS rounds the corners)
+    public/icons/icon-maskable-512.png             the square with the chick smaller, inside the central safe zone
 """
 import base64, io, os
 from collections import deque
-from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-SRC = os.path.join(REPO, 'art', 'pengu-source.jpg')
-CIRCLE = (176, 201, 219)          # the source's circle, as sampled
-CENTER, RADIUS = (512, 512), 392  # where it is in the 1024 source
-STICKER = 14                      # the white edge around the penguin, in source pixels
+SRC = os.path.join(REPO, 'art', 'pengu-logo.png')
+SOFT = (10, 60)   # distance from the pink (RGB) at which a pixel starts to show, and at which it is solid
 
 
-def background_mask(im: Image.Image) -> Image.Image:
-    """255 where the picture is background: white or circle-blue pixels reachable from its edge."""
+def background(im: Image.Image) -> tuple[tuple[int, int, int], Image.Image]:
+    """The pink (the corners' average) and the region of near-pink pixels reachable from the edge (255 there)."""
     w, h = im.size
     px = im.load()
-    # White, the circle's blue, and anything blended between the two (the circle's anti-aliased rim): close to the line from one
-    # color to the other.
-    span = [255 - c for c in CIRCLE]
-    span2 = sum(d * d for d in span)
-    def bg(x, y):
+    corners = [px[2, 2], px[w - 3, 2], px[2, h - 3], px[w - 3, h - 3]]
+    bg = tuple(sum(c[i] for c in corners) // 4 for i in range(3))
+    def near(x, y):
         p = px[x, y]
-        t = max(0.0, min(1.0, sum((p[i] - CIRCLE[i]) * span[i] for i in range(3)) / span2))
-        return sum((p[i] - (CIRCLE[i] + t * span[i])) ** 2 for i in range(3)) < 26 ** 2
+        return sum((p[i] - bg[i]) ** 2 for i in range(3)) < SOFT[1] ** 2
+    region = Image.new('L', (w, h), 0)
+    rp = region.load()
     seen = bytearray(w * h)
     q = deque((x, y) for x in range(w) for y in (0, h - 1))
     q.extend((x, y) for y in range(h) for x in (0, w - 1))
-    out = Image.new('L', (w, h), 0)
-    op = out.load()
     while q:
         x, y = q.popleft()
-        i = y * w + x
-        if seen[i]:
+        if seen[y * w + x]:
             continue
-        seen[i] = 1
-        if not bg(x, y):
+        seen[y * w + x] = 1
+        if not near(x, y):
             continue
-        op[x, y] = 255
-        if x > 0: q.append((x - 1, y))
-        if x < w - 1: q.append((x + 1, y))
-        if y > 0: q.append((x, y - 1))
-        if y < h - 1: q.append((x, y + 1))
-    return out
+        rp[x, y] = 255
+        for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx]:
+                q.append((nx, ny))
+    return bg, region
 
 
-def keep_largest(mask: Image.Image) -> Image.Image:
-    """Only the largest connected shape of a mask (the penguin): specks along the circle's rim and the like are dropped."""
-    w, h = mask.size
-    m = mask.load()
-    label = [0] * (w * h)
-    best, best_n, n = 0, 0, 0
-    for y0 in range(h):
-        for x0 in range(w):
-            if m[x0, y0] < 128 or label[y0 * w + x0]:
-                continue
-            n += 1
-            size = 0
-            q = deque([(x0, y0)])
-            label[y0 * w + x0] = n
-            while q:
-                x, y = q.popleft()
-                size += 1
-                for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
-                    if 0 <= nx < w and 0 <= ny < h and not label[ny * w + nx] and m[nx, ny] >= 128:
-                        label[ny * w + nx] = n
-                        q.append((nx, ny))
-            if size > best_n:
-                best, best_n = n, size
-    out = Image.new('L', (w, h), 0)
-    o = out.load()
+def cutout(im: Image.Image) -> Image.Image:
+    """The chick and its book on transparent: outside the background region solid; inside it, as see-through as it is pink."""
+    bg, region = background(im)
+    w, h = im.size
+    px = im.load()
+    rp = region.load()
+    out = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    op = out.load()
+    lo, hi = SOFT
     for y in range(h):
         for x in range(w):
-            if label[y * w + x] == best:
-                o[x, y] = 255
-    return out
-
-
-def sticker(src: Image.Image) -> Image.Image:
-    """The penguin with a white sticker edge and a soft shadow, on transparent, the source's size."""
-    fg = keep_largest(ImageChops.invert(background_mask(src)))
-    # Gaps the flood left (a stray light pixel in the outline) are closed; the edge is smoothed a little.
-    fg = fg.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.7))
-    edge = fg.filter(ImageFilter.MaxFilter(STICKER * 2 + 1)).filter(ImageFilter.GaussianBlur(1.6))
-    shadow = edge.filter(ImageFilter.GaussianBlur(10)).point(lambda a: int(a * 0.22))
-    out = Image.new('RGBA', src.size, (0, 0, 0, 0))
-    out.paste(Image.new('RGBA', src.size, (31, 42, 92, 255)), (0, 8), shadow)
-    out.paste(Image.new('RGBA', src.size, (255, 255, 255, 255)), (0, 0), edge)
-    out.paste(src.convert('RGBA'), (0, 0), fg)
+            p = px[x, y]
+            if not rp[x, y]:
+                op[x, y] = p + (255,)
+                continue
+            d = sum((p[i] - bg[i]) ** 2 for i in range(3)) ** 0.5
+            a = max(0.0, min(1.0, (d - lo) / (hi - lo)))
+            if a <= 0:
+                continue
+            # The pink taken out of an edge pixel's color: what it would be without the background showing through.
+            c = tuple(max(0, min(255, round((p[i] - (1 - a) * bg[i]) / a))) for i in range(3))
+            op[x, y] = c + (round(a * 255),)
     return out
 
 
 def trim_square(im: Image.Image, pad: float = 0.04) -> Image.Image:
     """The picture cut to what is not transparent, centered in a square with a little room around it."""
-    box = im.getbbox()
-    part = im.crop(box)
+    part = im.crop(im.getbbox())
     side = int(max(part.size) * (1 + 2 * pad))
     sq = Image.new('RGBA', (side, side), (0, 0, 0, 0))
     sq.paste(part, ((side - part.width) // 2, (side - part.height) // 2), part)
     return sq
 
 
-def peeking(stk: Image.Image, square: bool = False, share: float = 1.55, drop: float = 0.20) -> Image.Image:
-    """The logo: Pengu's top half peeking up out of a pale blue circle (or a full square, for icons a platform rounds or masks).
-    Below the middle Pengu is cut by the circle, so it rises from inside it; above, the head and flippers may pop past its edge.
-    `share` is Pengu's size against half the picture, `drop` how far down it sits."""
-    n = 2048
-    c = n // 2
-    r = int(n * 0.40)
-    base = Image.new('RGBA', (n, n), CIRCLE + (255,) if square else (0, 0, 0, 0))
-    if not square:
-        ImageDraw.Draw(base).ellipse((c - r, c - r, c + r, c + r), fill=CIRCLE + (255,))
-    p = trim_square(stk, 0)
-    size = int(n * 0.5 * share)
-    p = p.resize((size, size), Image.LANCZOS)
-    layer = Image.new('RGBA', (n, n), (0, 0, 0, 0))
-    layer.alpha_composite(p, ((n - size) // 2, c - size // 2 + int(drop * n)))
-    keep = Image.new('L', (n, n), 0)
-    d = ImageDraw.Draw(keep)
-    if square:
-        d.rectangle((0, 0, n, n), fill=255)
-    else:
-        d.ellipse((c - r, c - r, c + r, c + r), fill=255)
-        d.rectangle((0, 0, n, c), fill=255)
-    layer.putalpha(ImageChops.multiply(layer.getchannel('A'), keep))
-    base.alpha_composite(layer)
-    return base if square else trim_square(base, 0.03)
+def rounded(im: Image.Image, radius: float = 0.22) -> Image.Image:
+    """The square with rounded corners (drawn at four times the size, so the curve is smooth)."""
+    n = im.width * 4
+    mask = Image.new('L', (n, n), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, n - 1, n - 1), radius=int(n * radius), fill=255)
+    out = im.convert('RGBA')
+    out.putalpha(mask.resize(im.size, Image.LANCZOS))
+    return out
 
 
 def save(im: Image.Image, path: str, size: int, **kw) -> None:
@@ -151,26 +105,29 @@ def save(im: Image.Image, path: str, size: int, **kw) -> None:
 
 def main() -> None:
     src = Image.open(SRC).convert('RGB')
-    stk = sticker(src)
-    mascot = trim_square(stk)
-    mark = peeking(stk)
-    mascot.save(os.path.join(REPO, 'art', 'pengu-sticker.png'))
-    print('wrote art/pengu-sticker.png')
+    bg, _ = background(src)
+    cut = cutout(src)
+    mascot = trim_square(cut)
+    mascot.save(os.path.join(REPO, 'art', 'pengu-cutout.png'), optimize=True)
+    print('wrote art/pengu-cutout.png')
     save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', 'pengu.webp'), 512, quality=90, method=6)
-    save(mark, os.path.join(REPO, 'src', 'ui', 'pengu', 'logo.webp'), 192, quality=90, method=6)
-    save(mark, os.path.join(REPO, 'public', 'icons', 'icon-192.png'), 192, optimize=True)
-    save(mark, os.path.join(REPO, 'public', 'icons', 'icon-512.png'), 512, optimize=True)
-    peeking(stk, square=True, share=1.75, drop=0.24).resize((180, 180), Image.LANCZOS).save(os.path.join(REPO, 'public', 'icons', 'apple-touch-icon.png'), optimize=True)
-    print('wrote public/icons/apple-touch-icon.png (180 px)')
-    # The safe zone is the middle 80 percent: Pengu's face a little smaller and higher there.
-    peeking(stk, square=True, share=1.35, drop=0.20).resize((512, 512), Image.LANCZOS).save(os.path.join(REPO, 'public', 'icons', 'icon-maskable-512.png'), optimize=True)
-    print('wrote public/icons/icon-maskable-512.png (512 px)')
+    logo = rounded(src)
+    save(logo, os.path.join(REPO, 'src', 'ui', 'pengu', 'logo.webp'), 192, quality=90, method=6)
+    save(logo, os.path.join(REPO, 'public', 'icons', 'icon-192.png'), 192, optimize=True)
+    save(logo, os.path.join(REPO, 'public', 'icons', 'icon-512.png'), 512, optimize=True)
+    save(src, os.path.join(REPO, 'public', 'icons', 'apple-touch-icon.png'), 180, optimize=True)
+    # The safe zone is the middle 80 percent, a circle: the chick and book shrunk to fit inside it on the same pink.
+    mask = Image.new('RGB', src.size, bg)
+    part = trim_square(cut, 0)
+    k = int(src.width * 0.64)
+    part = part.resize((k, k), Image.LANCZOS)
+    mask.paste(part, ((src.width - k) // 2, (src.height - k) // 2), part)
+    save(mask, os.path.join(REPO, 'public', 'icons', 'icon-maskable-512.png'), 512, optimize=True)
     buf = io.BytesIO()
-    mark.resize((128, 128), Image.LANCZOS).save(buf, 'PNG', optimize=True)
+    logo.resize((128, 128), Image.LANCZOS).save(buf, 'PNG', optimize=True)
     data = base64.b64encode(buf.getvalue()).decode()
     with open(os.path.join(REPO, 'public', 'icon.svg'), 'w') as f:
-        f.write(f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 128 128">'
-                f'<image width="128" height="128" href="data:image/png;base64,{data}"/></svg>\n')
+        f.write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><image width="128" height="128" href="data:image/png;base64,{data}"/></svg>\n')
     print(f'wrote public/icon.svg ({os.path.getsize(os.path.join(REPO, "public", "icon.svg")) // 1024} KB)')
 
 

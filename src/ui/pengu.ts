@@ -1,7 +1,7 @@
-// Pengu, LinguPengu's mascot: a cute navy penguin sticker (art/pengu-source.jpg, made into the app's images by
-// scripts/make-pengu.py). The mascot (pengu.webp: the whole penguin, waving with both flippers) is on the welcome screen, beside
-// each walkthrough step, over empty Review and Vocabulary, on About and cheering at the end of a review; the logo (logo.webp:
-// its top half peeking out of a pale blue circle) is the brand mark in the bar and, from the same script, the app icons.
+// Pengu, LinguPengu's mascot: a fluffy emperor penguin chick peeking over an open red book (art/pengu-logo.png, made into the
+// app's images by scripts/make-pengu.py). The mascot (pengu.webp: the chick and its book cut out of the pink) is on the welcome
+// screen, beside each walkthrough step, over empty Review and Vocabulary, on About and cheering at the end of a review; the logo
+// (logo.webp: the pink square with rounded corners) is the brand mark in the bar and, from the same script, the app icons.
 // One picture for every pose for now: `pose` only names how it is used, so styles can move it (a hop, a cheer).
 import penguUrl from './pengu/pengu.webp';
 import logoUrl from './pengu/logo.webp';
@@ -15,7 +15,7 @@ export function penguHtml(pose: PenguPose = 'stand', label = ''): string {
   return `<img class="pengu pengu-${pose}" src="${penguUrl}" alt="${attr(label)}"${label ? '' : ' aria-hidden="true"'} draggable="false" decoding="async">`;
 }
 
-/** The logo (the brand mark): Pengu peeking out of its circle, as an <img> (HTML), hidden from screen readers. */
+/** The logo (the brand mark): Pengu over its book on the pink square, as an <img> (HTML), hidden from screen readers. */
 export function penguMark(): string {
   return `<img class="pengu-mark" src="${logoUrl}" alt="" aria-hidden="true" draggable="false" decoding="async">`;
 }
