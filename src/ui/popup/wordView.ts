@@ -24,6 +24,7 @@ import type { WordPopupOptions } from './popup';
 import { entriesForReading } from '../../core/reading';
 import { headwordsFor, vocabItemFor } from './saveWord';
 import { flyToVocab } from '../fly';
+import { popIcon } from '../vocab/motion';
 import { cardMeanings, type CardMeanings } from './meanings';
 import { tt, ttn } from '../../i18n';
 
@@ -313,16 +314,25 @@ export function mountWordView(
 
     // Header
     const saveBtn = h('button.icon-btn.pp-save', { onclick: () => void toggleSave(v), title: tt('Save word (S)'), 'aria-label': tt('Save word') });
-    const knownBtn = h('button.icon-btn.pp-known', { onclick: () => void toggleKnown(v), title: tt('Mark as known (K)'), 'aria-label': tt('Mark as known') });
+    const knownBtn = h('button.icon-btn.pp-known', { onclick: () => void toggleKnown(v), title: tt('Mark as known (K)'), 'aria-label': tt('Mark as known') }, icon('checkCircle'));
+    // What the buttons showed last, so a star or check that turns on gives one small pop (vocab/motion.ts) and any other change
+    // leaves the icon alone; the first drawing has nothing to pop.
+    let wasSaved: boolean | undefined;
+    let wasKnown: boolean | undefined;
     const sync = () => {
       const saved = store.vocab.has(simp) || store.vocab.has(v.word);
-      saveBtn.replaceChildren(icon(saved ? 'starFill' : 'star'));
+      if (saved !== wasSaved) {
+        saveBtn.replaceChildren(icon(saved ? 'starFill' : 'star'));
+        if (saved && wasSaved === false) popIcon(saveBtn);
+        wasSaved = saved;
+      }
       saveBtn.setAttribute('aria-pressed', String(saved));
       saveBtn.title = saved ? tt('Remove from saved words (S)') : tt('Save word (S)');
       const known = store.known.has(simp) || store.known.has(v.word);
       // Learned from reading (settings.autoKnown) rather than marked by hand: said so, and the button looks a little lighter.
       const learned = known && (store.known.isAuto(simp) || store.known.isAuto(v.word));
-      knownBtn.replaceChildren(icon('checkCircle'));
+      if (known && wasKnown === false) popIcon(knownBtn);
+      wasKnown = known;
       knownBtn.setAttribute('aria-pressed', String(known));
       knownBtn.classList.toggle('pp-learned', learned);
       knownBtn.title = learned ? tt('Learned from reading. Click to unmark (K)') : known ? tt('Known. Click to unmark (K)') : tt('Mark as known (K)');

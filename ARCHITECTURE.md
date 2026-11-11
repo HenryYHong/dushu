@@ -1787,6 +1787,17 @@ and opens it. Empty state explains what the app does in two sentences.
   Vocabulary screen has Saved | Looked up tabs (`dushu.vocab.tab`); Looked up groups by day, newest first, each day with Practice, plus
   "Practice the last 7 days" (one row per word). Practice is a run of its own (Again puts the word at the end, Got it moves on) and
   never touches the SRS schedule; its star saves to the flashcards. Synced through the Mac (§4.11).
+- Motion of saved words (`ui/vocab/motion.ts`, on Review's `canMove`/`play`): a star or check that turns on (the word card's Save and
+  Known, a Looked up row's star, Practice's star) pops once, 1.15 and back in 200 ms; turning off, and a card opening, do nothing. In
+  Saved and Looked up, a change to the words themselves (removed, put back, saved or removed elsewhere; `render(changed)`) redraws
+  FLIP-style: a row that left fades where it was as an inert copy hidden from screen readers (`.voc-ghost`, 140 ms) while the rows
+  after it slide straight up into its place (240 ms), and a row that came back eases in once the rows below have made room. Rows
+  never cross between columns: in two columns they are simply drawn in their new places and only a returning word eases in. A
+  search, a sort, a setting, or more than 8 rows coming or going is drawn at once. While a library with no books waits for the
+  classics list (up to 2.5 s on a slow network), its placeholder card shows blocks laid out like the first book's card in the room
+  Pengu will peek in, after 300 ms and with a slow band of the card's own color passing over them (still under reduced motion), and
+  keeps them across redraws. The library's own books and the Vocabulary lists come from IndexedDB in tens of milliseconds (25 to
+  70 ms with 800 words at 4x CPU throttling), so they have no placeholder: one would only flash.
 - Bookmarks (store table `bookmarks`; reader top-bar button and `B`; drawer tab): stored like a reading place (chapter, stored block,
   offset) plus the first 28 characters as a label. The button is pressed when a bookmark lies on the spread on screen (Pages,
   `pager.shownRange()`) or in a block in view (Scroll), checked on every progress update. Synced through the Mac (§4.11).

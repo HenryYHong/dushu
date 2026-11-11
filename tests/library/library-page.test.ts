@@ -152,6 +152,11 @@ describe('the empty library while the classics are coming', () => {
     expect(wait.textContent).toBe('');
     expect(wait.querySelector('button')).toBeNull();
     expect(root.querySelector('.lib-empty')).toBeNull();
+    // Blocks where the first book's card will put its cover, title and button, hidden from a screen reader; drawn again while
+    // the list is still coming, the card stays as it is (its blocks do not start over).
+    expect(wait.querySelector('[aria-hidden="true"] .lib-skel')).not.toBeNull();
+    window.dispatchEvent(new Event('offline'));
+    expect(root.querySelector('.lib-start-wait')).toBe(wait);
     // Find a book, Paste text and Import book stay in the header even before the first book.
     expect(root.querySelector<HTMLElement>('.page-head .lib-actions')!.hidden).toBe(false);
     await vi.advanceTimersByTimeAsync(2000);

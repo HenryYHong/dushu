@@ -8,6 +8,7 @@ import { itemFromLookupRow } from '../popup/saveWord';
 import { localDay } from '../popup/lookupLog';
 import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
 import { openPractice } from './practice';
+import { popIcon, redraw } from './motion';
 import { tt, ttn, uiLocale } from '../../i18n';
 
 const DAY_MS = 86_400_000;
@@ -49,13 +50,17 @@ const nodes = (...list: (HTMLElement | null)[]): HTMLElement[] => list.filter((n
 export interface LookupsView {
   el: HTMLElement;
   refresh(): Promise<void>;
-  render(): void;
+  /** Draws the rows again; `changed` when the rows themselves changed (motion.ts), not the settings they are shown in. */
+  render(changed?: boolean): void;
   count(): number;
 }
 
 export function createLookupsView(ctx: AppContext): LookupsView {
   const { store } = ctx;
   let rows: LookupRow[] = [];
+  let listed = false;
+  // The words whose star was off at the last drawing, so a star that turns on (saved here, in Practice or on the card) pops.
+  let unstarred = new Set<string>();
   const el = h('div.voc-lookups');
   const top = h('div.voc-lk-top');
   const days = h('div.voc-lk-days');
@@ -63,7 +68,9 @@ export function createLookupsView(ctx: AppContext): LookupsView {
 
   async function refresh(): Promise<void> {
     try { rows = await store.lookups.list(); } catch (e) { ctx.toast(e instanceof Error ? e.message : tt('Could not read the words you looked up.')); return; }
-    render();
+    // The first list is simply there; after that a word removed or put back folds away or eases in.
+    render(listed);
+    listed = true;
   }
 
   function practice(list: LookupRow[], title: string): void {
@@ -71,7 +78,14 @@ export function createLookupsView(ctx: AppContext): LookupsView {
     openPractice(ctx, list, title);
   }
 
-  function render(): void {
+  function render(changed = false): void {
+    const popped: HTMLElement[] = [];
+    redraw(days, changed, () => draw(popped));
+    unstarred = new Set(rows.filter((r) => !store.vocab.has(r.id)).map((r) => r.id));
+    popped.forEach(popIcon);
+  }
+
+  function draw(popped: HTMLElement[]): void {
     clear(top);
     clear(days);
     if (!rows.length) {
@@ -95,16 +109,16 @@ export function createLookupsView(ctx: AppContext): LookupsView {
     for (const g of groupByDay(rows)) {
       const label = dayLabel(g.day, now);
       days.appendChild(h('section.voc-lk-day', { 'aria-label': label },
-        h('div.voc-lk-head', null,
+        h('div.voc-lk-head', { 'data-flip': `day ${g.day}` },
           h('h2.voc-lk-title', null, label),
           h('span.voc-lk-count.muted', null, ttn(g.rows.length, '{n} word', '{n} words')),
           h('button.btn.btn-sm.voc-lk-practice', { type: 'button', onclick: () => practice(g.rows, label) }, icon('cards'), tt('Practice'))),
-        h('div.voc-list', { role: 'list' }, g.rows.map((r) => row(r, view))),
+        h('div.voc-list', { role: 'list' }, g.rows.map((r) => row(r, view, popped))),
       ));
     }
   }
 
-  function row(r: LookupRow, view: ReturnType<typeof scriptView>): HTMLElement {
+  function row(r: LookupRow, view: ReturnType<typeof scriptView>, popped: HTMLElement[]): HTMLElement {
     const s = ctx.settings.get();
     const shown = view.text(r.word);
     const ta = textAttrs();
@@ -116,7 +130,8 @@ export function createLookupsView(ctx: AppContext): LookupsView {
       'aria-label': saved ? tt('{word} is in your flashcards', { word: r.id }) : tt('Save {word} to flashcards', { word: r.id }),
       'aria-pressed': String(saved), onclick: (e: Event) => { e.stopPropagation(); void save(r); }, onkeydown: (e: Event) => e.stopPropagation(),
     }, icon('star'));
-    const el = h('div', { class: 'voc-row voc-lk-row', role: 'listitem', tabindex: 0, 'aria-label': `${r.id}, ${r.gloss}` },
+    if (saved && unstarred.has(r.id)) popped.push(star);
+    const el = h('div', { class: 'voc-row voc-lk-row', role: 'listitem', tabindex: 0, 'aria-label': `${r.id}, ${r.gloss}`, 'data-flip': `${r.day} ${r.id}` },
       h('div.voc-main', null,
         h('div.voc-line', null, word, r.pinyin ? pinyinEl(r.pinyin, s.pinyinStyle, s.toneColors, 'voc-py') : null),
         r.gloss ? h('div.voc-gloss', null, r.gloss) : null,
