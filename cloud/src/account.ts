@@ -579,7 +579,7 @@ export class AccountCore {
    * else when the zone changed since it was last told, or a day has passed (so one it lost comes back). Null when not.
    */
   directoryNote(now: number, force = false): { tz: string } | null {
-    if (!this.store.getMeta('created')) return null;
+    if (!this.generation()) return null;
     const { tz } = this.about();
     type Told = { tz?: unknown; at?: unknown } | null;
     let told: Told = null;
@@ -590,7 +590,18 @@ export class AccountCore {
 
   /** The directory has this account in `tz`. */
   directoryTold(tz: string, now: number): void {
-    if (this.store.getMeta('created')) this.store.setMeta('dir', JSON.stringify({ tz, at: now }));
+    if (this.generation()) this.store.setMeta('dir', JSON.stringify({ tz, at: now }));
+  }
+
+  /**
+   * Which making of this account it is, for follow-ups: its `created` time, or 'legacy' for an account made before accounts
+   * kept one (2026-10-25) that has not signed in again since (its email or passkey is there; signing in again fills in
+   * `created`). Such an account is in the directory and gets reminders, never a welcome (its age is unknown, so never
+   * within WELCOME_WITHIN_MS). Null when there is no account. `created` itself is not filled in here: the app keys this
+   * device's marks for the account by it (core/cloud.ts accountMark), and a new value would start them over.
+   */
+  private generation(): string | null {
+    return this.store.getMeta('created') ?? (this.store.getMeta('email') || this.passkeys().length ? 'legacy' : null);
   }
 
   /** The push subscriptions kept, oldest first. */
@@ -673,7 +684,7 @@ export class AccountCore {
    * or 'drop' when no device is signed in any more (or the account is gone), so the directory forgets it until a sign-in.
    */
   followupPlan(now: number): FollowupPlan {
-    const created = this.store.getMeta('created');
+    const created = this.generation();
     const sessions = this.store.sessions().filter((s) => now - s.used <= SESSION_IDLE_MS);
     if (!created || !sessions.length) {
       this.store.setMeta('dir', null);
@@ -682,7 +693,7 @@ export class AccountCore {
     const email = this.store.getMeta('email') ?? '';
     const emailsOn = !!email && this.store.getMeta('emails') !== 'off';
     const { locale } = this.about();
-    const age = now - Number(created);
+    const age = created === 'legacy' ? Number.POSITIVE_INFINITY : now - Number(created);
     if (emailsOn && !this.store.getMeta('sent:welcome') && age >= WELCOME_AFTER_MS && age <= WELCOME_WITHIN_MS) {
       return { kind: 'welcome', email, locale, token: this.unsubscribeToken(), created };
     }
@@ -700,7 +711,7 @@ export class AccountCore {
 
   /** Notes a follow-up sent, unless the account was deleted (and maybe made again) while it was being sent. */
   followupSent(kind: 'welcome' | 'remind', created: string, now: number): void {
-    if (this.store.getMeta('created') !== created) return;
+    if (this.generation() !== created) return;
     this.store.setMeta(`sent:${kind}`, String(now));
   }
 

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { memoryStore, wordDueAt } from '../../cloud/src/account';
+import { AccountCore, memoryStore, wordDueAt } from '../../cloud/src/account';
 import { DirectoryCore, memoryDirectory } from '../../cloud/src/directory';
 import { EMAIL_GAP_MS, localHour, mailText, reminderEmail, welcomeEmail } from '../../cloud/src/followups';
 import { MAIL_CATALOG } from '../../cloud/src/mailCatalog';
@@ -392,6 +392,27 @@ describe('the review reminder', () => {
   });
 });
 
+describe('an account made before accounts kept their making time (2026-10-25)', () => {
+  it('joins the directory and gets reminders, never a welcome, without its making time being filled in', () => {
+    const store = memoryStore();
+    const core = new AccountCore(store);
+    const t = Date.UTC(2026, 10, 1, 9);
+    core.storeCode('old@example.com', 'h', t);
+    core.verify('h', 's', t);
+    // As such an account is: an email and a signed-in device, no `created` (the app keys its marks by it).
+    store.setMeta('created', null);
+    expect(core.directoryNote(t, true)).not.toBeNull();
+    for (let i = 0; i < 6; i++) store.data.set(`v:w${i}`, { at: 1, data: { id: `w${i}`, srs: { due: t } }, rev: i + 1 });
+    // Away four days: a reminder by email (emails are on), not the welcome it never had.
+    const plan = core.followupPlan(t + 4 * DAY);
+    expect(plan.kind).toBe('remind');
+    expect(plan.kind === 'remind' && plan.created).toBe('legacy');
+    core.followupSent('remind', 'legacy', t + 4 * DAY);
+    expect(core.followupPlan(t + 5 * DAY).kind).toBe('none');
+    expect(store.getMeta('created') ?? null).toBeNull();
+  });
+});
+
 describe('the day’s emails', () => {
   it('lets follow-ups use only their share, so sign-in codes always have the rest, and tries a reminder left out the next day', async () => {
     const c = await server({ DAILY_EMAILS: '6', FOLLOWUP_EMAILS: '2' });
@@ -555,7 +576,9 @@ describe('what the app tells the account', () => {
     await c.post('/sync', { changes: Array.from({ length: 5 }, (_, i) => ({ key: `v:w${i}`, at: 1, data: word(`w${i}`, clock) })) }, token);
     const tokyo = (day: number) => Date.UTC(2026, 10, day, 9);
     await c.cronAt(tokyo(8));
-    expect(c.followups().map((m) => m.subject)).toEqual(['5 words are ready to review']);
+    // In the language the app said, Japanese.
+    expect(c.followups().map((m) => m.subject)).toEqual([reminderEmail('ja', 5, APP, 'x').subject]);
+    expect(c.followups()[0].subject).not.toBe('5 words are ready to review');
   });
 
   it('takes a deleted account out of the directory', async () => {
