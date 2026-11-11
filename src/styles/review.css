@@ -100,7 +100,7 @@
 
 /* Pengu (ui/pengu.ts): over the empty states and cheering at the end of a session. */
 .rev-pengu { display: block; width: 104px; height: 104px; margin: 0 0 var(--space-2) -10px; }
-.rev-pengu svg { width: 100%; height: 100%; display: block; }
+.rev-pengu img { width: 100%; height: 100%; display: block; object-fit: contain; -webkit-user-select: none; user-select: none; }
 .rev-summary .rev-pengu { width: 128px; height: 128px; margin: calc(-1 * var(--space-4)) auto var(--space-2); }
 @media (prefers-reduced-motion: no-preference) {
   .rev-pengu-cheer .pengu { animation: pengu-cheer 0.9s cubic-bezier(.3, 1.5, .5, 1) both; transform-origin: 50% 100%; }

@@ -1875,10 +1875,12 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   pinyin one block at a time made it more frames, not cheaper ones. Real iPad GPU and CPU numbers are not measured.
 
 ### 5.8 Shell, fonts, PWA
-- Pengu, the mascot (`ui/pengu.ts`): a round baby penguin drawn like a sticker (gray body, big white face and belly, shiny eyes,
-  a navy outline), as SVG from shared parts in four poses (stand, wave, cheer, read; `penguSvg`, `penguEl`), and its top half
-  waving on a pale blue circle (`penguMark`: the brand mark in the bar, `public/icon.svg`, and the PNG icons and link picture from
-  `scripts/make-icons.mjs`; a full blue square for the icons a platform rounds or masks). It waves on the welcome screen, stands
+- Pengu, the mascot (`ui/pengu.ts`): a navy penguin sticker, a generated picture (`art/pengu-source.jpg`) that
+  `scripts/make-pengu.py` cuts out of its background (white and circle-blue reachable from the edge, the largest shape kept) and
+  gives a clean white sticker edge: `ui/pengu/pengu.webp` (the mascot, `penguHtml`, `penguEl`) and `ui/pengu/logo.webp` (its top
+  half peeking out of a pale blue circle, `penguMark`, the brand mark), plus `public/icon.svg` and the PNG icons (a full blue
+  square for the ones a platform rounds or masks). `scripts/make-icons.mjs` draws the link picture. One picture serves every pose
+  for now (`PenguPose` names the use, and styles move it). It waves on the welcome screen, stands
   beside each walkthrough step (`ui/guide.ts`), reads over empty Vocabulary and About, and cheers when a review session ends.
   Fixed colors, not the theme's, so it looks the same in light and dark; its animations stop with reduced motion.
 - Page heads: `ui/pageHead.ts` `pageTitle(screen, title)` builds each screen's one `h1`: the screen's name in the library's language first

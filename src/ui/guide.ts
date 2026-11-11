@@ -5,7 +5,7 @@
 import '../styles/guide.css';
 import { h } from './dom';
 import { num, tt } from '../i18n';
-import { penguSvg, type PenguPose } from './pengu';
+import { penguHtml, type PenguPose } from './pengu';
 
 /** The library's walkthrough: 'due' once the welcome is finished (or Settings asks for it), 'done' after. */
 export const SITE_GUIDE_KEY = 'dushu.site-guide.v1';
@@ -105,7 +105,7 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
     const last = i === steps.length - 1;
     count.textContent = tt('Step {step} of {total}', { step: num(i + 1), total: num(steps.length) });
     const pose = step.pose ?? (i === 0 ? 'wave' : last ? 'cheer' : 'stand');
-    if (pengu.dataset.pose !== pose) { pengu.dataset.pose = pose; pengu.innerHTML = penguSvg(pose); }
+    if (pengu.dataset.pose !== pose) { pengu.dataset.pose = pose; pengu.innerHTML = penguHtml(pose); }
     title.textContent = step.title;
     body.replaceChildren(...step.body);
     back.hidden = i === 0;
