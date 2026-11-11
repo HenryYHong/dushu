@@ -146,9 +146,10 @@ const openAccounts = (env: Env): number => {
 const NO_MORE_ACCOUNTS = 'LinguPengu has made all the new passkey accounts it can today. Try again tomorrow, or continue with Google or your email.';
 /**
  * Google sign-ins from one network a day. Google does the proving and nothing is emailed, so this only keeps one network from
- * making the Worker fetch Google's keys or fill the nonce list: a classroom signing in together stays well under it.
+ * making the Worker fetch Google's keys or fill the nonce list. Phones on one carrier often share an address, and a school
+ * signs in together, so it is set well above the others.
  */
-const GOOGLE_PER_NETWORK = 30;
+const GOOGLE_PER_NETWORK = 100;
 /** Books one network may fetch from Project Gutenberg through the Worker in a day (gutenbergBook), and the largest one. */
 const BOOKS_PER_NETWORK = 200;
 const BOOK_MAX_BYTES = 40 * 1024 * 1024;

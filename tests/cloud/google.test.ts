@@ -229,7 +229,7 @@ describe('signing in with Google', () => {
     expect(await reason(`${h}.${p}.${(await idToken(n)).split('.')[2]}`)).toBe('signature');
   });
 
-  it('is off without a client id (503), keeps to ALLOWED_EMAILS, and limits a network to 30 a day', async () => {
+  it('is off without a client id (503), keeps to ALLOWED_EMAILS, and limits a network to 100 a day', async () => {
     const g = await certs();
     const off = cloud({ googleFetch: g.fetch });
     const res = await googleIn(off);
@@ -243,7 +243,7 @@ describe('signing in with Google', () => {
 
     const c = cloud({ GOOGLE_CLIENT_ID: CLIENT, googleFetch: g.fetch });
     // Bad tokens count too: a network cannot try forever.
-    for (let i = 0; i < 29; i++) expect((await googleIn(c, { aud: 'x' }, { ip: '203.0.113.9' })).status).toBe(401);
+    for (let i = 0; i < 99; i++) expect((await googleIn(c, { aud: 'x' }, { ip: '203.0.113.9' })).status).toBe(401);
     expect((await googleIn(c, {}, { ip: '203.0.113.9' })).status).toBe(200);
     const over = await googleIn(c, {}, { ip: '203.0.113.9' });
     expect(over.status).toBe(429);

@@ -1308,7 +1308,7 @@ books go through the account, and so do the reader's corrections (§4.12: names 
     `email` present and `email_verified` true (else 403); the token's `nonce` the one the app sent beside it (at least 16
     characters). Refused tokens are one 401 (`bad_google`) for the app, with the reason for tests. The nonce's hash is then taken
     once in the Limits object (`takeOnce`, kept 2 days): the token carries its nonce, so a copy of it (a history, a log) would
-    otherwise sign in again for the hour it lasts. 30 a day per network (`GOOGLE_PER_NETWORK`, counted before the check); 503
+    otherwise sign in again for the hour it lasts. 100 a day per network (`GOOGLE_PER_NETWORK`, counted before the check); 503
     without `GOOGLE_CLIENT_ID`; `ALLOWED_EMAILS` applies.
   - *The account* is the one an emailed code to the address reaches (`idFromName('email:' + normalEmail(email))`), so a person
     who signed up by code and later taps Google finds everything there. Op `google` (`AccountCore.googleSignIn`): a session like
