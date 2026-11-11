@@ -1841,7 +1841,9 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
 Reminders (`ui/settings/reminders.ts`, `core/reminders.ts`), under the sync account while signed in: "Email reminders" for an account with an
 email (`/me/reminders`), and "Notifications on this device" when the server has a push key (`/push/key`). The browser asks for permission only
 on that tap; the switch reads this device's push subscription, sends it to the account again each time Settings opens, and says why it can't
-be turned on (blocked, an iPhone or iPad outside the Home Screen app, no support). Signing out ends this device's subscription first. Each sync
+be turned on (blocked, an iPhone or iPad outside the Home Screen app, no support). Signing out ends this device's subscription first, and
+any other end of the sign-in (the server's 401, a deleted account) ends it too (`watchSignOut`, from `main.ts`), so the next account signed in
+here never inherits it. One made with a key the server no longer has shows off and is ended, never sent again. Each sync
 to the account tells it the time zone and the app's language (`about`), so reminders come at 6 PM local time in that language.
 
 ### 5.7 Pages layout (Apple Books style) and the even pinyin grid

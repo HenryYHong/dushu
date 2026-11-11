@@ -3,7 +3,7 @@
 // there is something to switch: a passkey account on a server without notifications has neither.
 import { h } from '../dom';
 import { CLOUD_EVENT, cloudBase, cloudSession } from '../../core/cloud';
-import { currentSubscription, getReminders, pushAvailable, pushKey, refreshPush, setEmailReminders, subscribePush, unsubscribePush } from '../../core/reminders';
+import { currentSubscription, getReminders, madeWithKey, pushAvailable, pushKey, refreshPush, setEmailReminders, subscribePush, unsubscribePush } from '../../core/reminders';
 import { isStandalone, onIPhoneOrIPad } from '../fullscreen';
 import { nextId, row } from './controls';
 import { tt } from '../../i18n';
@@ -31,7 +31,10 @@ export function remindersRow(): { el: HTMLElement; dispose(): void } | null {
   if (!cloudBase()) return null;
   const email = switchLine(tt('Email reminders'));
   const push = switchLine(tt('Notifications on this device'));
-  const note = h('div.set-help.set-remind-note', { role: 'status', 'aria-live': 'polite' });
+  // Why notifications can't be turned on here: read with the switch itself, which is disabled then.
+  const noteId = nextId('remind-note');
+  const note = h('div.set-help.set-remind-note', { id: noteId, role: 'status', 'aria-live': 'polite' });
+  push.input.setAttribute('aria-describedby', noteId);
   const result = h('div.set-test-out.set-remind-result', { role: 'status', 'aria-live': 'polite' });
   const el = row(tt('Reminders'), tt('When words are ready to review and you haven’t been back for a few days. At most once a week.'),
     h('div.set-remind', null, email.el, push.el, note, result));
@@ -54,7 +57,8 @@ export function remindersRow(): { el: HTMLElement; dispose(): void } | null {
     const denied = support === 'ok' && Notification.permission === 'denied';
     const sub = support === 'ok' && !denied ? await currentSubscription() : null;
     if (!alive) return;
-    push.input.checked = !!sub && Notification.permission === 'granted';
+    // One made with a key the server no longer has is off: nothing can reach it (load ends it).
+    push.input.checked = !!sub && Notification.permission === 'granted' && madeWithKey(sub, key);
     push.input.disabled = support !== 'ok' || denied;
     note.textContent = support === 'home' ? tt('On iPhone and iPad, add LinguPengu to your Home Screen first: tap Share, then Add to Home Screen.')
       : support === 'no' ? tt('This browser can’t show notifications.')
@@ -74,7 +78,7 @@ export function remindersRow(): { el: HTMLElement; dispose(): void } | null {
     email.input.checked = !!prefs?.email;
     el.hidden = !cloudSession() || (!prefs?.canEmail && !key);
     await paintPush();
-    if (key && pushSupport() === 'ok') void refreshPush();
+    if (key && pushSupport() === 'ok') void refreshPush(key);
   }
 
   email.input.addEventListener('change', async () => {

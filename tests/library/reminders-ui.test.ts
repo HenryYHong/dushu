@@ -5,6 +5,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { remindersRow } from '../../src/ui/settings/reminders';
 import { accountPanel } from '../../src/ui/settings/account';
+import { watchSignOut } from '../../src/core/reminders';
+import { CLOUD_EVENT, forgetSession } from '../../src/core/cloud';
 
 /** A P-256 public key as the server sends it: 65 bytes, 0x04 first, base64url. */
 const KEY_BYTES = Uint8Array.from({ length: 65 }, (_, i) => (i === 0 ? 4 : i));
@@ -73,7 +75,7 @@ beforeEach(() => {
       return Response.json({ ok: true, devices: 1 });
     }
     if (url.pathname === '/me/push/remove') return Response.json({ ok: true, devices: 0 });
-    if (url.pathname === '/auth/signout') return Response.json({ ok: true });
+    if (url.pathname === '/auth/signout' || url.pathname === '/me/delete') return Response.json({ ok: true });
     return Response.json({ error: 'Not found.' }, { status: 404 });
   }));
   root = document.createElement('div');
@@ -177,6 +179,30 @@ describe('the Reminders row', () => {
     row.dispose();
   });
 
+  it('a subscription made with a key the server no longer has is off, ends here, leaves the account and is never sent again', async () => {
+    withPush();
+    permission = 'granted';
+    const oldKey = Uint8Array.from(KEY_BYTES, (b, i) => (i === 0 ? 4 : 255 - b));
+    sub = makeSub(oldKey);
+    const made = sub;
+    signIn();
+    const row = mount();
+    await until(() => !line('Notifications on this device').hidden);
+    expect(input('Notifications on this device').checked).toBe(false);
+    await until(() => calls.some((c) => c.path === '/me/push/remove'));
+    expect(made.unsubscribe).toHaveBeenCalled();
+    expect(calls.find((c) => c.path === '/me/push/remove')?.body).toEqual({ endpoint: 'https://push.example.com/send/abc' });
+    expect(calls.some((c) => c.path === '/me/push')).toBe(false);
+
+    // Turned on again: a new subscription with the server's key.
+    flip('Notifications on this device');
+    await until(() => calls.some((c) => c.path === '/me/push'));
+    await until(() => !input('Notifications on this device').disabled);
+    expect([...subscribe.mock.calls[0][0].applicationServerKey]).toEqual([...KEY_BYTES]);
+    expect(input('Notifications on this device').checked).toBe(true);
+    row.dispose();
+  });
+
   it('drops the subscription again when the account does not take it', async () => {
     withPush();
     server.pushFails = true;
@@ -200,6 +226,9 @@ describe('the Reminders row', () => {
     await until(() => note() !== '');
     expect(note()).toBe('Notifications are blocked for this site in your browser settings.');
     expect(input('Notifications on this device').disabled).toBe(true);
+    // The disabled switch says why, to a screen reader too.
+    const describedBy = input('Notifications on this device').getAttribute('aria-describedby');
+    expect(describedBy && document.getElementById(describedBy)?.textContent).toBe('Notifications are blocked for this site in your browser settings.');
 
     // Blocked on the tap itself: the switch goes back off and the same line says why.
     row.dispose();
@@ -269,5 +298,35 @@ describe('signing out', () => {
     expect(calls[0].auth).toBe('Bearer tok');
     expect(made.unsubscribe).toHaveBeenCalled();
     panel.dispose();
+  });
+
+  it('ends this device’s subscription however else the sign-in ends: the server’s 401, or a deleted account', async () => {
+    withPush();
+    permission = 'granted';
+    const stop = watchSignOut();
+    try {
+      // The server says the sign-in is over (sync and accountInfo forget the session on a 401).
+      sub = makeSub(KEY_BYTES);
+      const first = sub;
+      signIn();
+      window.dispatchEvent(new Event(CLOUD_EVENT)); // still signed in: nothing ends
+      await new Promise((r) => setTimeout(r, 20));
+      expect(first.unsubscribe).not.toHaveBeenCalled();
+      forgetSession();
+      await until(() => first.unsubscribe.mock.calls.length === 1);
+
+      // The account deleted from Settings.
+      sub = makeSub(KEY_BYTES);
+      const second = sub;
+      signIn();
+      const panel = accountPanel();
+      root.appendChild(panel.el);
+      [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Delete account…')!.click();
+      [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Delete my account')!.click();
+      await until(() => calls.some((c) => c.path === '/me/delete'));
+      await until(() => second.unsubscribe.mock.calls.length === 1);
+      expect(sub).toBeNull();
+      panel.dispose();
+    } finally { stop(); }
   });
 });

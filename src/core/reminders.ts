@@ -3,7 +3,7 @@
 // that turned them on here (Web Push, through public/sw.js), and otherwise an email when the account has one and emails are
 // on. Settings shows both switches (ui/settings/reminders.ts); this file is how they talk to the server and the browser.
 import { tt } from '../i18n';
-import { cloudFetch, cloudSession } from './cloud';
+import { CLOUD_EVENT, cloudFetch, cloudSession } from './cloud';
 
 /** The account's reminder settings: follow-up emails on, whether it has an email address at all, and the devices with notifications. */
 export interface ReminderPrefs { email: boolean; canEmail: boolean; devices: number }
@@ -98,6 +98,15 @@ function sameKey(sub: PushSubscription, key: Uint8Array): boolean {
 }
 
 /**
+ * Whether this device's subscription was made with the server's key now (base64url, from pushKey). One made with a key the
+ * server no longer has (VAPID_KEYS changed) can never get a reminder: the push service refuses every send without saying the
+ * subscription is gone, so the server keeps trying it. Settings shows it as off.
+ */
+export function madeWithKey(sub: PushSubscription, key: string): boolean {
+  try { return sameKey(sub, fromBase64Url(key)); } catch { return false; }
+}
+
+/**
  * Turns notifications on for this device: a subscription made with the server's key (a new one if the server's key changed),
  * then kept by the account. The permission must already be granted. When the account does not take it, the subscription is
  * dropped again, so the switch never says on for a device the server does not know. Returns how many devices the account has.
@@ -149,10 +158,35 @@ export async function dropPushHere(): Promise<void> {
 
 /**
  * Sends this device's subscription to the account again, when it has one. Settings does it each time it opens: an account that
- * dropped it (more than ten devices, the account made again) gets it back, and "same endpoint replaces" on the server makes it
- * harmless. Quiet: a failure changes nothing.
+ * dropped it (more than ten devices) gets it back, and "same endpoint replaces" on the server makes it harmless. One made with
+ * a key the server no longer has (madeWithKey) is never sent: it ends here and leaves the account, and the switch says off
+ * until it is turned on again with the new key. Quiet: a failure changes nothing.
  */
-export async function refreshPush(): Promise<void> {
+export async function refreshPush(key: string): Promise<void> {
   const sub = await currentSubscription();
-  if (sub && Notification.permission === 'granted') await call('/me/push', { subscription: sub.toJSON() }).then((r) => r.text(), () => '');
+  if (!sub || Notification.permission !== 'granted') return;
+  if (!madeWithKey(sub, key)) { await unsubscribePush(); return; }
+  await call('/me/push', { subscription: sub.toJSON() }).then((r) => r.text(), () => '');
+}
+
+/**
+ * Ends this device's subscription when it is no longer signed in. Sign out in Settings does it while still signed in, so the
+ * account is told (dropPushHere); this covers the other ways a sign-in ends: the server saying it is over (401, from another
+ * device or after the account dropped it), and a deleted account. A subscription left alive would still get the old account's
+ * reminders from the server, which keeps it, and Settings would hand it to the next account signed in here, which never chose
+ * notifications. Only ended here: there is no account left to tell, and the push service answers the server's next try that
+ * it is gone. Returns whether it ended one.
+ */
+export async function endPushIfSignedOut(): Promise<boolean> {
+  if (cloudSession()) return false;
+  const sub = await currentSubscription();
+  if (!sub || cloudSession()) return false;
+  return sub.unsubscribe().catch(() => false);
+}
+
+/** main.ts: each time the sign-in changes, a device signed out has no subscription left (endPushIfSignedOut). */
+export function watchSignOut(): () => void {
+  const onChange = () => { void endPushIfSignedOut(); };
+  globalThis.addEventListener?.(CLOUD_EVENT, onChange);
+  return () => globalThis.removeEventListener?.(CLOUD_EVENT, onChange);
 }
