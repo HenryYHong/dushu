@@ -3,13 +3,18 @@
 // requests run one at a time: per email for the owner, per passkey account for everyone the owner invites. Another holds what
 // they all share: the daily counts, the passkey challenges, and the owner's invites. Sessions are bearer tokens
 // '<account id>.<secret>': only the secret's SHA-256 is stored. Read-aloud and sentence translation for everyone signed in use
-// Workers AI, kept together under its free daily allowance (SPEECH_MAX_CHARS, TRANSLATE_NEURONS).
+// Workers AI, kept together under its free daily allowance (SPEECH_MAX_CHARS, TRANSLATE_NEURONS). A third object, the
+// directory, lists the accounts by time zone, so the hourly cron can send review reminders at each person's 6 PM (directory.ts,
+// followups.ts, push.ts).
 import Anthropic from '@anthropic-ai/sdk';
 import { verifyAuthenticationResponse, verifyRegistrationResponse, type AuthenticationResponseJSON, type RegistrationResponseJSON, type WebAuthnCredential } from '@simplewebauthn/server';
 import { isoBase64URL, isoUint8Array } from '@simplewebauthn/server/helpers';
 import { AccountCore, BOOK_CHUNK, CloudError, LimitsCore, OWNER_ONLY_CLAUDE, allowedEmail, normalEmail, type ClaudeLimits, type Invite, type PasskeyRecord, type SignedIn, type Take } from './account';
-import { sqlLimits, sqlStore, type SqlStorage } from './sqlStore';
+import { sqlDirectory, sqlLimits, sqlStore, type SqlStorage } from './sqlStore';
 import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
+import { DirectoryCore, FOLLOWUP_BATCH } from './directory';
+import { EMAIL_GAP_MS, FOLLOWUP_EMAILS, runFollowup, unsubscribePage, type FollowupDeps } from './followups';
+import { vapidKeys } from './push';
 import { SYNC_LIMITS, SyncError, syncLang } from '../../src/core/syncExchange';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
 import { describeError, parseTranslateBody, runClaude, targetEcho, type ServerClient } from '../../src/translate/claudeServer';
@@ -23,7 +28,10 @@ export interface DurableObjectNamespace {
   idFromString(id: string): DurableObjectId;
   get(id: DurableObjectId): DurableObjectStub;
 }
-interface DurableObjectState { storage: { sql: SqlStorage } }
+interface DurableObjectState {
+  id: DurableObjectId;
+  storage: { sql: SqlStorage; setAlarm(at: number): Promise<void> | void };
+}
 export interface ExecutionContext { waitUntil(promise: Promise<unknown>): void }
 
 export interface Env {
@@ -61,6 +69,20 @@ export interface Env {
   SPEECH_MAX_CHARS?: string;
   /** Tests send the sign-in emails; the Worker uses MAIL_MODE and RESEND_API_KEY. */
   mailer?: Mailer;
+  /** The directory of accounts by time zone, for the follow-ups at each person's 6 PM (directory.ts). */
+  DIRECTORY?: DurableObjectNamespace;
+  /**
+   * The server's Web Push key pair (push.ts vapidKeys: JSON with the base64url public point and private scalar), a secret:
+   * node scripts/make-vapid.mjs | npx wrangler secret put VAPID_KEYS. Unset: no push, and reminders go by email only.
+   */
+  VAPID_KEYS?: string;
+  /** The app, as the follow-ups link to it ('https://henryyhong.com/dushu/'), and this server, for the unsubscribe link. */
+  APP_URL?: string;
+  SYNC_URL?: string;
+  /** Follow-up emails a day at most, counted with the sign-in codes (DAILY_EMAILS): the rest of the day is the codes'. */
+  FOLLOWUP_EMAILS?: string;
+  /** Tests send push messages through this instead of the network. */
+  pushFetch?: typeof fetch;
 }
 
 const owners = (env: Env) => env.OWNER_EMAILS ?? env.ALLOWED_EMAILS ?? '';
@@ -530,6 +552,38 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
   return null;
 }
 
+/**
+ * The link at the bottom of every follow-up email (?a=<account id>&t=<its secret>). GET shows a page with one button, so a
+ * mail scanner that opens links turns nothing off; POST turns follow-up emails off, from that button or from a mail app's own
+ * unsubscribe (RFC 8058: a POST of "List-Unsubscribe=One-Click", answered 200 with no redirect). Sign-in codes keep coming.
+ */
+async function unsubscribeRoute(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'GET' && request.method !== 'POST') throw new CloudError(405, 'Not allowed.');
+  const q = new URL(request.url).searchParams;
+  const a = q.get('a') ?? '';
+  const t = q.get('t') ?? '';
+  const really = request.method === 'POST';
+  // The form's body says nothing the address does not: read (a little of it) and let go.
+  if (really) await request.text().catch(() => '');
+  let answer = { ok: false, locale: 'en' };
+  if (/^[0-9a-f]{64}$/.test(a) && /^[A-Za-z0-9_-]{16,128}$/.test(t)) {
+    let stub: DurableObjectStub | null = null;
+    try { stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromString(a)); } catch { /* no such account */ }
+    const res = stub ? await call(env, stub, 'unsubscribe', { token: t, really }) : null;
+    if (res?.ok) answer = await res.json() as typeof answer;
+  }
+  return new Response(unsubscribePage(answer.locale, !answer.ok ? 'bad' : really ? 'done' : 'ask'), {
+    status: answer.ok ? 200 : 400,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      // Nothing outside the page, and the address (with its secret) not passed on as a referrer.
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      'Referrer-Policy': 'no-referrer',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+}
+
 async function route(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
   const path = new URL(request.url).pathname;
   if (path === '/' && request.method === 'GET') return json(200, { app: 'dushu-sync' });
@@ -614,6 +668,28 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     const { stub, secret: s } = bearer(request, env);
     return call(env, stub, 'signout', {}, s);
   }
+  if (path === '/push/key' && request.method === 'GET') {
+    // The public half of the server's key, which the app subscribes with: public, so no sign-in is needed to read it.
+    const vapid = await vapidKeys(env.VAPID_KEYS);
+    if (!vapid) throw new CloudError(404, 'Reminders on this device are not set up on the sync server yet.', 'no_push');
+    return json(200, { key: vapid.publicKey });
+  }
+  if (path === '/me/reminders') {
+    const { stub, secret: s } = bearer(request, env);
+    if (request.method === 'GET') return call(env, stub, 'reminders', {}, s);
+    if (request.method !== 'POST') throw new CloudError(405, 'Not allowed.');
+    const body = await readJson(request, 4096);
+    return call(env, stub, 'reminders', { change: 'email' in body ? { email: body.email } : {} }, s);
+  }
+  if (path === '/me/push' && request.method === 'POST') {
+    const { stub, secret: s } = bearer(request, env);
+    return call(env, stub, 'push-add', { subscription: (await readJson(request, 8192)).subscription }, s);
+  }
+  if (path === '/me/push/remove' && request.method === 'POST') {
+    const { stub, secret: s } = bearer(request, env);
+    return call(env, stub, 'push-remove', { endpoint: (await readJson(request, 8192)).endpoint }, s);
+  }
+  if (path === '/unsubscribe') return unsubscribeRoute(request, env);
   if (path === '/me/delete' && request.method === 'POST') {
     const { stub, secret: s } = bearer(request, env);
     return call(env, stub, 'delete', {}, s);
@@ -887,10 +963,66 @@ export default {
     out.headers.set('Cache-Control', 'no-store');
     return out;
   },
+
+  /** The hourly cron (wrangler.toml [triggers]): the directory queues whoever's 6 PM it is, and its alarm does the rest. */
+  async scheduled(controller: { scheduledTime?: number }, env: Env): Promise<void> {
+    if (!env.DIRECTORY) return;
+    const res = await directoryStub(env.DIRECTORY).fetch('https://directory/run', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ now: controller.scheduledTime ?? Date.now() }),
+    });
+    await res.body?.cancel().catch(() => {});
+  },
 };
 
+const directoryStub = (ns: DurableObjectNamespace) => ns.get(ns.idFromName('directory'));
+
+/** Asks the directory to do `op` (put, drop, run); false when there is none or it failed. */
+async function directory(env: Env, op: 'put' | 'drop', body: Record<string, unknown>): Promise<boolean> {
+  if (!env.DIRECTORY) return false;
+  try {
+    const res = await directoryStub(env.DIRECTORY).fetch(`https://directory/${op}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    await res.body?.cancel().catch(() => {});
+    return res.ok;
+  } catch (e) {
+    console.error('LinguPengu directory', e instanceof Error ? e.message : e);
+    return false;
+  }
+}
+
+/** What an account's Durable Object reaches beyond itself: its own id and the Worker's settings (the directory, the shared
+ * days, mail and push). Tests pass the same, with everything in memory. Without it (an older test), the account is on its own. */
+export interface AccountDeps { self: string; env: Env }
+
+/** Tells the directory this account is here, in its zone, when it needs telling (AccountCore directoryNote). Never fails the request. */
+async function tellDirectory(core: AccountCore, deps: AccountDeps | undefined, now: number, force: boolean): Promise<void> {
+  if (!deps?.env.DIRECTORY) return;
+  const note = core.directoryNote(now, force);
+  if (note && await directory(deps.env, 'put', { id: deps.self, tz: note.tz })) core.directoryTold(note.tz, now);
+}
+
+/** What a follow-up needs from the Worker's settings (followups.ts FollowupDeps). */
+function followupDeps(deps: AccountDeps): FollowupDeps {
+  const { env } = deps;
+  const daily = Number(env.DAILY_EMAILS) || 90;
+  const set = env.FOLLOWUP_EMAILS ? Number(env.FOLLOWUP_EMAILS) : NaN;
+  // Never more than the day's whole count; "0" turns follow-up emails off for everyone (push still goes).
+  const share = Math.min(daily, set >= 0 ? set : FOLLOWUP_EMAILS);
+  return {
+    self: deps.self,
+    appUrl: env.APP_URL || 'https://henryyhong.com/dushu/',
+    syncUrl: (env.SYNC_URL || 'https://dushu-sync.henryhong.workers.dev').replace(/\/+$/, ''),
+    // The same count as the sign-in codes ('emails'), with a lower ceiling: follow-ups stop at `share`, codes go on to `daily`.
+    takeEmail: () => takeShared(env, [{ name: 'emails', n: 1, max: share }]).catch(() => false),
+    mailer: () => mailer(env),
+    vapid: () => vapidKeys(env.VAPID_KEYS),
+    fetch: env.pushFetch,
+  };
+}
+
 /** What an account's Durable Object does with a request from the Worker. Apart from the class so tests can run it in memory. */
-export async function accountRequest(core: AccountCore, request: Request): Promise<Response> {
+export async function accountRequest(core: AccountCore, request: Request, deps?: AccountDeps): Promise<Response> {
   try {
     const url = new URL(request.url);
     const op = url.pathname.slice(1);
@@ -904,18 +1036,36 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
     // Hashed before the account is touched, so each operation below runs whole, as one transaction.
     const session = token ? await sha256(token) : '';
     // After the last await: from here each operation runs to its end before another request reaches this account, so the
-    // owners it is told are the ones it answers with.
+    // owners it is told are the ones it answers with. A few then reach outside (telling the directory, a follow-up's mail and
+    // push) once the account's part is done; what they write back after (directoryTold, dropPushes, followupSent) does not
+    // depend on the owners, and checks the account is still the one it read.
     core.setOwners(request.headers.get('X-Owners') ?? '');
     switch (op) {
       case 'code-check': core.checkCode(now); return json(200, { ok: true });
       case 'code': core.storeCode(str(body.email), str(body.hash), now); return json(200, { ok: true });
-      case 'verify': return json(200, core.verify(str(body.codeHash), str(body.sessionHash), now));
+      case 'verify': {
+        const signedIn = core.verify(str(body.codeHash), str(body.sessionHash), now);
+        await tellDirectory(core, deps, now, true);
+        return json(200, signedIn);
+      }
       case 'mac-session': return json(200, core.macSession(str(body.sessionHash), now));
       case 'me': return json(200, core.me(session, now));
       case 'mac': return json(200, core.setMac(session, str(body.mac), now));
       case 'signout': core.signOut(session); return json(200, { ok: true });
       case 'status': return json(200, core.status(session, now));
-      case 'sync': return json(200, core.sync(session, body, now));
+      case 'sync': {
+        const reply = core.sync(session, body, now);
+        await tellDirectory(core, deps, now, false);
+        return json(200, reply);
+      }
+      case 'reminders': return json(200, core.reminders(session, now, (body.change ?? {}) as { email?: unknown }));
+      case 'push-add': return json(200, core.addPush(session, body.subscription, now));
+      case 'push-remove': return json(200, core.removePush(session, body.endpoint, now));
+      // From the unsubscribe link: no session, the link's secret is the check.
+      case 'unsubscribe': return json(200, core.unsubscribe(str(body.token), body.really === true));
+      // From the directory's run. { drop: true } tells it to forget this account (signed out everywhere, or deleted) until it
+      // signs in again.
+      case 'followup': return json(200, deps ? await runFollowup(core, followupDeps(deps), now) : { sent: null });
       case 'books': {
         // A language's list comes named ({ lang, books }), so its library can tell this Worker from one before languages, which
         // answers every request with its Chinese books as a bare list.
@@ -932,12 +1082,24 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
       case 'speech-start': return json(200, core.speechStart(session, now));
       // Read-aloud, translation and invites ask the same thing: signed in, and whether this is an owner.
       case 'ai-start': case 'who': return json(200, core.speechStart(session, now));
-      case 'passkey-create': return json(200, core.createWithPasskey(str(body.id), str(body.name), body.key, str(body.sessionHash), now));
+      case 'passkey-create': {
+        const signedIn = core.createWithPasskey(str(body.id), str(body.name), body.key, str(body.sessionHash), now);
+        await tellDirectory(core, deps, now, true);
+        return json(200, signedIn);
+      }
       case 'passkey-get': return json(200, { key: core.passkeyFor(str(body.id)) });
-      case 'passkey-signin': return json(200, core.passkeySignIn(str(body.id), Number(body.counter), str(body.sessionHash), now));
+      case 'passkey-signin': {
+        const signedIn = core.passkeySignIn(str(body.id), Number(body.counter), str(body.sessionHash), now);
+        await tellDirectory(core, deps, now, true);
+        return json(200, signedIn);
+      }
       case 'passkey-label': return json(200, core.passkeyLabel(session, now));
       case 'passkey-add': core.addPasskey(session, body.key, now); return json(200, { ok: true });
-      case 'delete': core.deleteAccount(session, now); return json(200, { ok: true });
+      case 'delete': {
+        core.deleteAccount(session, now);
+        if (deps) await directory(deps.env, 'drop', { id: deps.self });
+        return json(200, { ok: true });
+      }
       case 'chunk-get': return new Response(core.getBookChunk(session, key, index, now) as Uint8Array<ArrayBuffer>, { headers: { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'no-store' } });
       default: return json(404, { error: 'Not found.' });
     }
@@ -947,12 +1109,14 @@ export async function accountRequest(core: AccountCore, request: Request): Promi
 /** One sync account (one email). */
 export class Account {
   private readonly core: AccountCore;
-  constructor(state: DurableObjectState) {
+  private readonly deps: AccountDeps;
+  constructor(state: DurableObjectState, env: Env) {
     this.core = new AccountCore(sqlStore(state.storage.sql));
+    this.deps = { self: state.id.toString(), env };
   }
 
   fetch(request: Request): Promise<Response> {
-    return accountRequest(this.core, request);
+    return accountRequest(this.core, request, this.deps);
   }
 }
 
@@ -992,5 +1156,77 @@ export class Limits {
 
   fetch(request: Request): Promise<Response> {
     return limitsRequest(this.core, request);
+  }
+}
+
+/** How the directory sets its next alarm: the Durable Object's own, or a test's. */
+export type ArmAlarm = (at: number) => Promise<void> | void;
+
+/** What the directory object does with a request from the Worker or an account. Apart from the class so tests can run it in memory. */
+export async function directoryRequest(core: DirectoryCore, request: Request, arm: ArmAlarm): Promise<Response> {
+  try {
+    const op = new URL(request.url).pathname.slice(1);
+    const body = await request.json() as Record<string, unknown>;
+    switch (op) {
+      case 'put': core.put(str(body.id), str(body.tz)); return json(200, { ok: true });
+      case 'drop': core.drop(str(body.id)); return json(200, { ok: true });
+      case 'run': {
+        const now = typeof body.now === 'number' && Number.isFinite(body.now) ? body.now : Date.now();
+        const queued = core.run(now);
+        if (core.pending()) await arm(Date.now());
+        return json(200, { queued, pending: core.pending() });
+      }
+      default: return json(404, { error: 'Not found.' });
+    }
+  } catch (e) { return failure(e); }
+}
+
+/**
+ * One alarm of the directory: the next FOLLOWUP_BATCH queued accounts each do their follow-up (in their own Durable Object, one
+ * after another), and the alarm is set again while any are left. An account that does not answer is left until tomorrow, never
+ * retried in a loop.
+ *
+ * The batch leaves the queue before any account is asked. An account notes what it sent only after the push service or Resend
+ * took it, so one cut off in between (a deploy resets every object; an alarm that runs too long is stopped) has sent without
+ * noting it. Cloudflare runs a stopped alarm again, and with the batch still queued it would ask those accounts again, and they
+ * would send again. Taken off first, a cut-off batch is simply skipped until tomorrow: a reminder a day late, never two.
+ *
+ * One account at a time, with EMAIL_GAP_MS after each that sent an email: Resend's API takes a couple of requests a second,
+ * and a batch asked all at once would send its emails together, most of them refused (each still counted against the day).
+ */
+export async function directoryAlarm(core: DirectoryCore, env: Env, arm: ArmAlarm, pause: (ms: number) => Promise<void> = (ms) => new Promise((done) => setTimeout(done, ms))): Promise<void> {
+  const ids = core.next(FOLLOWUP_BATCH);
+  core.done(ids);
+  const now = Date.now();
+  for (const id of ids) {
+    let stub: DurableObjectStub;
+    try { stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromString(id)); } catch { core.drop(id); continue; }
+    try {
+      const res = await call(env, stub, 'followup', { now });
+      const result = await res.json().catch(() => null) as { drop?: unknown; sent?: unknown } | null;
+      if (res.ok && result?.drop === true) core.drop(id);
+      if (res.ok && (result?.sent === 'welcome' || result?.sent === 'email')) await pause(EMAIL_GAP_MS);
+    } catch (e) {
+      console.error('LinguPengu follow-up', e instanceof Error ? e.message : e);
+    }
+  }
+  if (core.pending()) await arm(Date.now() + 1000);
+}
+
+/** The directory of accounts by time zone (directory.ts): one, idFromName('directory'). */
+export class Directory {
+  private readonly core: DirectoryCore;
+  private readonly arm: ArmAlarm;
+  constructor(state: DurableObjectState, private readonly env: Env) {
+    this.core = new DirectoryCore(sqlDirectory(state.storage.sql));
+    this.arm = (at) => state.storage.setAlarm(at);
+  }
+
+  fetch(request: Request): Promise<Response> {
+    return directoryRequest(this.core, request, this.arm);
+  }
+
+  alarm(): Promise<void> {
+    return directoryAlarm(this.core, this.env, this.arm);
   }
 }

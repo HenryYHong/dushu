@@ -1,5 +1,6 @@
 // An account's state in its Durable Object's SQLite database.
 import { recordRoom, type AccountStore, type BookEntry, type LimitsStore } from './account';
+import type { DirectoryStore } from './directory';
 import { READER, READER_COPIES, countRecord, noCounts, type StoredRecord, type WireRecord } from '../../src/core/syncExchange';
 import { ACT_PREFIX, GOAL_KEY, langPrefix } from '../../src/core/syncKeys';
 
@@ -27,6 +28,30 @@ function library(lang: string): { where: string; binds: unknown[]; skip: number 
  * library signed in, the Chinese app from before included, and come again on every run. The other tables it never reads.
  */
 const SHELVES = { chinese: { books: 'books', chunks: 'book_chunks' }, others: { books: 'lang_books', chunks: 'lang_book_chunks' } } as const;
+
+/**
+ * The saved words due for review at `now` (both bindings, in order), in every language: what the app's Review counts as due (store.vocab.due:
+ * `srs.due <= now`) for each word as a device would keep it (cleanVocab in src/store/index.ts: the id is the key's, else not a
+ * word; a schedule that is not one is a new card due when it was added; a due time at most 100 years past the last review).
+ * Counted by SQLite's JSON functions, so a follow-up run does not parse thousands of records in JavaScript. dueWordAt
+ * (account.ts) is the same rule for the memory store, and tests/cloud/reminders.test.ts checks both against cleanVocab.
+ */
+const KIND_AT = "CASE WHEN substr(key, 1, 1) = '@' THEN instr(key, ':') + 1 ELSE 1 END";
+const num = (path: string) => `json_type(data, '${path}') IN ('integer', 'real')`;
+const DUE_WORDS = `SELECT count(*) AS n FROM (
+  SELECT substr(key, ${KIND_AT} + 2) AS kid, data,
+    CASE WHEN ${num('$.addedAt')} THEN json_extract(data, '$.addedAt') ELSE ? END AS added,
+    CASE WHEN json_type(data, '$.id') = 'text' AND json_extract(data, '$.id') != '' THEN json_extract(data, '$.id')
+         WHEN json_type(data, '$.simp') = 'text' THEN json_extract(data, '$.simp') ELSE '' END AS id,
+    CASE WHEN json_type(data, '$.simp') = 'text' AND json_extract(data, '$.simp') != '' THEN json_extract(data, '$.simp')
+         WHEN json_type(data, '$.id') = 'text' THEN json_extract(data, '$.id') ELSE '' END AS simp
+  FROM records
+  WHERE data != 'null' AND substr(key, ${KIND_AT}, 2) = 'v:' AND json_valid(data) AND json_type(data) = 'object'
+) WHERE id = kid AND length(id) <= 100 AND length(simp) <= 100 AND (
+  CASE WHEN json_type(data, '$.srs') = 'object' AND ${num('$.srs.due')}
+    THEN min(max(0, round(json_extract(data, '$.srs.due'))),
+      max(CASE WHEN ${num('$.srs.last')} AND json_extract(data, '$.srs.last') BETWEEN 0 AND 8.64e15 THEN round(json_extract(data, '$.srs.last')) ELSE 0 END, added) + 3153600000000)
+    ELSE added END) <= ?`;
 
 export interface SqlStorage {
   exec(query: string, ...bindings: unknown[]): { toArray(): Record<string, unknown>[] };
@@ -101,6 +126,7 @@ export function sqlStore(sql: SqlStorage): AccountStore {
       return r ? new Uint8Array(r.data as ArrayBuffer) : undefined;
     },
     chunkCount: (key) => Number(sql.exec(`SELECT count(*) AS n FROM ${shelf(key).chunks} WHERE key = ?`, key).toArray()[0]?.n ?? 0),
+    dueWords: (now) => Number(sql.exec(DUE_WORDS, now, now).toArray()[0]?.n ?? 0),
     // The Chinese room is the records without '@' in front, the others' those with it.
     recordBytes: (room) => Number(sql.exec(`SELECT coalesce(sum(length(data)), 0) AS n FROM records WHERE data != 'null' AND substr(key, 1, 1) ${room === 'chinese' ? '!=' : '='} '@'`).toArray()[0]?.n ?? 0),
     wipe() {
@@ -126,5 +152,34 @@ export function sqlLimits(sql: SqlStorage): LimitsStore {
       else sql.exec('INSERT OR REPLACE INTO items (kind, key, v) VALUES (?, ?, ?)', kind, key, value);
     },
     items: (kind) => sql.exec('SELECT key, v FROM items WHERE kind = ?', kind).toArray().map((r) => ({ key: String(r.key), value: String(r.v) })),
+  };
+}
+
+/** The directory (directory.ts) in its Durable Object's SQLite database: one row per account, and the queue of a run. */
+export function sqlDirectory(sql: SqlStorage): DirectoryStore {
+  sql.exec('CREATE TABLE IF NOT EXISTS people (id TEXT PRIMARY KEY, tz TEXT NOT NULL, checked REAL NOT NULL DEFAULT 0)');
+  sql.exec('CREATE INDEX IF NOT EXISTS people_tz ON people (tz, checked)');
+  sql.exec('CREATE TABLE IF NOT EXISTS queue (id TEXT PRIMARY KEY, at INTEGER NOT NULL)');
+  return {
+    put(id, tz) { sql.exec('INSERT INTO people (id, tz, checked) VALUES (?, ?, 0) ON CONFLICT (id) DO UPDATE SET tz = excluded.tz', id, tz); },
+    drop(id) {
+      sql.exec('DELETE FROM people WHERE id = ?', id);
+      sql.exec('DELETE FROM queue WHERE id = ?', id);
+    },
+    zones: () => sql.exec('SELECT DISTINCT tz FROM people').toArray().map((r) => String(r.tz)),
+    queueZone(tz, before, now) {
+      // One zone per query: a handful of bindings, whatever the number of zones (Durable Objects take 100 at most).
+      const n = Number(sql.exec('SELECT count(*) AS n FROM people WHERE tz = ? AND checked < ? AND id NOT IN (SELECT id FROM queue)', tz, before).toArray()[0]?.n ?? 0);
+      sql.exec('INSERT OR IGNORE INTO queue (id, at) SELECT id, (SELECT coalesce(max(at), 0) FROM queue) + 1 FROM people WHERE tz = ? AND checked < ?', tz, before);
+      sql.exec('UPDATE people SET checked = ? WHERE tz = ? AND checked < ?', now, tz, before);
+      return n;
+    },
+    next: (n) => sql.exec('SELECT id FROM queue ORDER BY at, id LIMIT ?', n).toArray().map((r) => String(r.id)),
+    done(ids) { for (const id of ids) sql.exec('DELETE FROM queue WHERE id = ?', id); },
+    pending: () => Number(sql.exec('SELECT count(*) AS n FROM queue').toArray()[0]?.n ?? 0),
+    person(id) {
+      const r = sql.exec('SELECT tz, checked FROM people WHERE id = ?', id).toArray()[0];
+      return r ? { tz: String(r.tz), checked: Number(r.checked) } : undefined;
+    },
   };
 }

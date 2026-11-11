@@ -4,6 +4,8 @@
 // the hashing and the passkey signatures are checked before.
 import { countRecord, exchange, inLang, noCounts, recordSize, shareReader, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
 import { OTHER_LANGS } from '../../src/core/syncKeys';
+import { REMIND_DUE, REMIND_EVERY_MS, REMIND_IDLE_MS, REMIND_SLACK_MS, WELCOME_AFTER_MS, WELCOME_WITHIN_MS, isMailLocale, validTimeZone, type FollowupPlan } from './followups';
+import { MAX_PUSH_DEVICES, pushSubscription, type PushRecord } from './push';
 
 export const CODE_TTL_MS = 10 * 60_000;
 export const CODE_GAP_MS = 30_000;
@@ -99,8 +101,56 @@ export interface AccountStore {
   chunkCount(key: string): number;
   /** Bytes of JSON in the records of one room (RecordRoom). */
   recordBytes(room: RecordRoom): number;
+  /** The saved words due for review at `now`, in every language (wordDueAt). */
+  dueWords(now: number): number;
   /** Forgets everything: the account deleted. */
   wipe(): void;
+}
+
+const MAX_TIME = 8.64e15;
+const MAX_INTERVAL_MS = 36_500 * 86_400_000;
+
+/**
+ * When the saved word kept under `key` ('v:<id>' or '@<lang>:v:<id>') is due for review, as a device that takes the record
+ * keeps it: src/store/index.ts cleanVocab (its id is the key's, or it is not a word: null) with sanitizeSrs in src/core/srs.ts
+ * (a schedule that is not one is a new card, due when the word was added; a due time at most 100 years after the last review).
+ * The app's Review counts a word as due when this is at or before now (store.vocab.due). Written out here rather than imported:
+ * those modules bring the app's string catalogs with them, which only Vite can load. The sqlStore query (DUE_WORDS) is the same
+ * rule in SQL, and tests/cloud/reminders.test.ts checks both against cleanVocab itself.
+ */
+export function wordDueAt(key: string, data: unknown, now: number): number | null {
+  const at = key[0] === '@' ? key.indexOf(':') + 1 : 0;
+  if (key.slice(at, at + 2) !== 'v:' || !data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const v = data as Record<string, unknown>;
+  const text = (x: unknown) => (typeof x === 'string' ? x : '');
+  const num = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+  const id = text(v.id) || text(v.simp);
+  const simp = text(v.simp) || text(v.id);
+  if (!id || id !== key.slice(at + 2) || id.length > 100 || simp.length > 100) return null;
+  const added = num(v.addedAt) ? v.addedAt : now;
+  const srs = v.srs as Record<string, unknown> | null | undefined;
+  if (!srs || typeof srs !== 'object' || Array.isArray(srs) || !num(srs.due)) return added;
+  const last = num(srs.last) && srs.last >= 0 && srs.last <= MAX_TIME ? Math.round(srs.last) : 0;
+  return Math.min(Math.max(0, Math.round(srs.due)), Math.max(last, added) + MAX_INTERVAL_MS);
+}
+
+/** Two strings compared in time that does not depend on where they differ (a secret in a link). */
+function sameSecret(a: string, b: string): boolean {
+  let diff = a.length === b.length && a.length > 0 ? 0 : 1;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return diff === 0;
+}
+
+const DAY_MS = 86_400_000;
+
+/** The follow-up settings a device sees (GET and POST /me/reminders). */
+export interface Reminders {
+  /** Follow-up emails on: only an account with an email address has them. */
+  email: boolean;
+  /** The account has an email address (a passkey account has none, so push is its only way). */
+  canEmail: boolean;
+  /** Push subscriptions kept (devices that turned review reminders on). */
+  devices: number;
 }
 
 export class CloudError extends Error {
@@ -333,8 +383,11 @@ export class AccountCore {
     return this.me(sessionHash, now);
   }
 
+  /** Signs the device out; reminders stop going to the push subscription it gave. */
   signOut(sessionHash: string): void {
     this.store.dropSession(sessionHash);
+    const pushes = this.pushes();
+    if (pushes.some((p) => p.by === sessionHash)) this.savePushes(pushes.filter((p) => p.by !== sessionHash));
   }
 
   /**
@@ -462,8 +515,9 @@ export class AccountCore {
     return this.store.records(epoch, Number(this.store.getMeta('version') ?? 0) || 0);
   }
 
-  sync(sessionHash: string, input: { epoch?: unknown; since?: unknown; changes?: unknown; lang?: unknown }, now: number): SyncReply {
+  sync(sessionHash: string, input: { epoch?: unknown; since?: unknown; changes?: unknown; lang?: unknown; about?: unknown }, now: number): SyncReply {
     this.authorize(sessionHash, now);
+    this.setAbout(input.about);
     const table = this.table();
     this.shareReader(table);
     // An account keeps so much in each room (more for the owner): a merge that would grow a room past that is refused, one
@@ -498,6 +552,156 @@ export class AccountCore {
     if (left === table.version) return;
     if (shareReader(table, Number.isInteger(left) && left >= 0 && left < table.version ? left : 0)) this.store.setMeta('version', String(table.version));
     this.store.setMeta('reader', String(table.version));
+  }
+
+  // ------------------------------------------------------------ follow-ups ---
+
+  /**
+   * What the person's app said about them on its last sync ({ tz, locale }, POST /sync `about`): the time zone their 6 PM is in,
+   * and the app's language, which their follow-ups are written in. An app from before sends none: UTC and English.
+   */
+  about(): { tz: string; locale: string } {
+    const tz = this.store.getMeta('tz');
+    const locale = this.store.getMeta('locale');
+    return { tz: tz && validTimeZone(tz) ? tz : 'UTC', locale: isMailLocale(locale) ? locale : 'en' };
+  }
+
+  /** Keeps `about` from a sync: a zone Intl knows and one of the app's languages; anything else is left as it was. */
+  private setAbout(about: unknown): void {
+    if (!about || typeof about !== 'object') return;
+    const { tz, locale } = about as { tz?: unknown; locale?: unknown };
+    if (validTimeZone(tz) && tz !== this.store.getMeta('tz')) this.store.setMeta('tz', tz);
+    if (isMailLocale(locale) && locale !== this.store.getMeta('locale')) this.store.setMeta('locale', locale);
+  }
+
+  /**
+   * Whether the directory (directory.ts) should hear about this account now, and in which zone: always when `force` (a sign-in),
+   * else when the zone changed since it was last told, or a day has passed (so one it lost comes back). Null when not.
+   */
+  directoryNote(now: number, force = false): { tz: string } | null {
+    if (!this.store.getMeta('created')) return null;
+    const { tz } = this.about();
+    type Told = { tz?: unknown; at?: unknown } | null;
+    let told: Told = null;
+    try { told = JSON.parse(this.store.getMeta('dir') ?? 'null') as Told; } catch { /* tell it again */ }
+    if (!force && told && told.tz === tz && typeof told.at === 'number' && now - told.at >= 0 && now - told.at < DAY_MS) return null;
+    return { tz };
+  }
+
+  /** The directory has this account in `tz`. */
+  directoryTold(tz: string, now: number): void {
+    if (this.store.getMeta('created')) this.store.setMeta('dir', JSON.stringify({ tz, at: now }));
+  }
+
+  /** The push subscriptions kept, oldest first. */
+  pushes(): PushRecord[] {
+    try {
+      const list = JSON.parse(this.store.getMeta('push') ?? '[]') as unknown;
+      return Array.isArray(list) ? list.filter((p): p is PushRecord => !!p && typeof p === 'object' && typeof (p as PushRecord).endpoint === 'string') : [];
+    } catch { return []; }
+  }
+
+  private savePushes(list: PushRecord[]): void {
+    this.store.setMeta('push', list.length ? JSON.stringify(list) : null);
+  }
+
+  /** The follow-up settings, and with `email` (a boolean) follow-up emails turned on or off first. */
+  reminders(sessionHash: string, now: number, change: { email?: unknown } = {}): Reminders {
+    this.authorize(sessionHash, now);
+    const canEmail = !!this.store.getMeta('email');
+    if ('email' in change) {
+      if (typeof change.email !== 'boolean') throw new CloudError(400, 'The request was not understood.');
+      if (canEmail) this.store.setMeta('emails', change.email ? null : 'off');
+    }
+    return { email: canEmail && this.store.getMeta('emails') !== 'off', canEmail, devices: this.pushes().length };
+  }
+
+  /**
+   * Keeps a browser's push subscription (push.ts pushSubscription checks it), for the device signed in with `sessionHash`. The
+   * same endpoint again replaces the one kept; past MAX_PUSH_DEVICES the oldest goes.
+   */
+  addPush(sessionHash: string, input: unknown, now: number): { ok: true; devices: number } {
+    this.authorize(sessionHash, now);
+    const sub = pushSubscription(input);
+    if (!sub) throw new CloudError(400, 'That push subscription could not be kept.', 'bad_subscription');
+    const list = [...this.pushes().filter((p) => p.endpoint !== sub.endpoint), { ...sub, added: now, by: sessionHash }];
+    const kept = list.slice(Math.max(0, list.length - MAX_PUSH_DEVICES));
+    this.savePushes(kept);
+    return { ok: true, devices: kept.length };
+  }
+
+  /** Forgets a push subscription (the device turned reminders off). One that is not kept is no error. */
+  removePush(sessionHash: string, endpoint: unknown, now: number): { ok: true; devices: number } {
+    this.authorize(sessionHash, now);
+    const list = this.pushes();
+    const kept = typeof endpoint === 'string' ? list.filter((p) => p.endpoint !== endpoint) : list;
+    if (kept.length !== list.length) this.savePushes(kept);
+    return { ok: true, devices: kept.length };
+  }
+
+  /** Forgets the subscriptions whose push service said they are gone (404 or 410). */
+  dropPushes(endpoints: string[]): void {
+    const list = this.pushes();
+    const kept = list.filter((p) => !endpoints.includes(p.endpoint));
+    if (kept.length !== list.length) this.savePushes(kept);
+  }
+
+  /** The secret in this account's unsubscribe link, made the first time an email needs one. */
+  private unsubscribeToken(): string {
+    let token = this.store.getMeta('unsub');
+    if (!token) {
+      const bytes = crypto.getRandomValues(new Uint8Array(24));
+      token = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      this.store.setMeta('unsub', token);
+    }
+    return token;
+  }
+
+  /**
+   * The unsubscribe link (GET /unsubscribe shows a button, POST turns emails off when `really`): whether `token` is this
+   * account's, and the language to answer in. Sign-in codes are not follow-ups and keep coming.
+   */
+  unsubscribe(token: string, really: boolean): { ok: boolean; locale: string } {
+    const kept = this.store.getMeta('unsub') ?? '';
+    const ok = !!this.store.getMeta('email') && sameSecret(kept, token);
+    if (ok && really) this.store.setMeta('emails', 'off');
+    return { ok, locale: ok ? this.about().locale : 'en' };
+  }
+
+  /**
+   * What this account's follow-up is at its 6 PM (followups.ts, which sends it): a welcome email, a review reminder, nothing,
+   * or 'drop' when no device is signed in any more (or the account is gone), so the directory forgets it until a sign-in.
+   */
+  followupPlan(now: number): FollowupPlan {
+    const created = this.store.getMeta('created');
+    const sessions = this.store.sessions().filter((s) => now - s.used <= SESSION_IDLE_MS);
+    if (!created || !sessions.length) {
+      this.store.setMeta('dir', null);
+      return { kind: 'drop' };
+    }
+    const email = this.store.getMeta('email') ?? '';
+    const emailsOn = !!email && this.store.getMeta('emails') !== 'off';
+    const { locale } = this.about();
+    const age = now - Number(created);
+    if (emailsOn && !this.store.getMeta('sent:welcome') && age >= WELCOME_AFTER_MS && age <= WELCOME_WITHIN_MS) {
+      return { kind: 'welcome', email, locale, token: this.unsubscribeToken(), created };
+    }
+    const used = Math.max(...sessions.map((s) => s.used));
+    const reminded = Number(this.store.getMeta('sent:remind') ?? 0) || 0;
+    // A week since the last reminder, give or take how much sooner this evening's run reached the account (REMIND_SLACK_MS).
+    if (now - used < REMIND_IDLE_MS || now - reminded < REMIND_EVERY_MS - REMIND_SLACK_MS) return { kind: 'none' };
+    const pushes = this.pushes();
+    if (!pushes.length && !emailsOn) return { kind: 'none' };
+    // Counted last: the cheap checks above leave most accounts before their records are read.
+    const due = this.store.dueWords(now);
+    if (due < REMIND_DUE) return { kind: 'none' };
+    return { kind: 'remind', due, locale, pushes, email: emailsOn ? email : null, token: emailsOn ? this.unsubscribeToken() : '', created };
+  }
+
+  /** Notes a follow-up sent, unless the account was deleted (and maybe made again) while it was being sent. */
+  followupSent(kind: 'welcome' | 'remind', created: string, now: number): void {
+    if (this.store.getMeta('created') !== created) return;
+    this.store.setMeta(`sent:${kind}`, String(now));
   }
 
   /** The Chinese library's status, as before languages synced (GET /sync; the app reads its counts from each sync's reply). */
@@ -551,6 +755,7 @@ export function memoryStore(): AccountStore & {
     dropSession: (h) => { sessions.delete(h); },
     sessions: () => [...sessions].map(([hash, s]) => ({ hash, used: s.used })),
     recordBytes: (room) => [...data].reduce((n, [k, r]) => n + (recordRoom(k) === room ? recordSize(r.data) : 0), 0),
+    dueWords: (now) => [...data].filter(([k, r]) => { const at = wordDueAt(k, r.data, now); return at !== null && at <= now; }).length,
     wipe: () => {
       meta.clear(); sessions.clear(); data.clear();
       for (const s of Object.values(shelves)) { s.books.clear(); s.chunks.clear(); }
