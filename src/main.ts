@@ -16,6 +16,7 @@ import { startSync } from './core/sync';
 import { CLOUD_EVENT, accountInfo, cloudSession } from './core/cloud';
 import { BOOKS_EVENT, syncBooks, type BooksReport } from './core/cloudBooks';
 import { linkMac } from './core/cloudLink';
+import { watchSignOut } from './core/reminders';
 import { signInButton } from './ui/signIn';
 import { reviewCount } from './ui/review/learning';
 import { scriptView } from './ui/vocab/render';
@@ -291,6 +292,8 @@ async function boot(): Promise<void> {
   startSync(store, { settings });
   void linkMac();
   window.addEventListener(CLOUD_EVENT, () => void linkMac());
+  // Review reminders on this device are the signed-in account's: however the sign-in ends, they end here too.
+  watchSignOut();
   // Whether this account is the owner's (the Mac and Claude settings follow it): asked on each start.
   if (cloudSession()) void accountInfo().catch(() => {});
   // Books in the account: this device's go up and the account's come down, on open, on sign-in, when the app comes back to

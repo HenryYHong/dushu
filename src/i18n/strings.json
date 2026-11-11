@@ -64,6 +64,11 @@
    "public/samples/pt/index.json"
   ]
  },
+ "A few things that help:": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
  "A free online service, about 5,000 characters a day. Your sentence is sent to it.": {
   "where": [
    "src/ui/settings/translation.ts"
@@ -1581,6 +1586,7 @@
   "where": [
    "src/core/cloud.ts",
    "src/core/passkey.ts",
+   "src/core/reminders.ts",
    "src/translate/account.ts",
    "src/translate/claude.ts",
    "src/ui/settings/sync.ts"
@@ -1920,6 +1926,11 @@
    "src/ui/welcome.ts"
   ]
  },
+ "Done. You will not get these emails anymore. You can turn them back on in LinguPengu’s Settings.": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
  "Double-click": {
   "where": [
    "src/ui/shortcuts.ts"
@@ -2078,6 +2089,11 @@
  "Email me a code": {
   "where": [
    "src/ui/settings/account.ts"
+  ]
+ },
+ "Email reminders": {
+  "where": [
+   "src/ui/settings/reminders.ts"
   ]
  },
  "End of chapter": {
@@ -2532,6 +2548,11 @@
  "Haiku costs less.": {
   "where": [
    "src/ui/settings/translation.ts"
+  ]
+ },
+ "Happy reading,": {
+  "where": [
+   "src/i18n/mailStrings.ts"
   ]
  },
  "Hard": {
@@ -3964,6 +3985,16 @@
    "src/ui/settings/data.ts"
   ]
  },
+ "Notifications are blocked for this site in your browser settings.": {
+  "where": [
+   "src/ui/settings/reminders.ts"
+  ]
+ },
+ "Notifications on this device": {
+  "where": [
+   "src/ui/settings/reminders.ts"
+  ]
+ },
  "Novels and older, richer language": {
   "where": [
    "src/ui/library/library.ts"
@@ -4046,6 +4077,11 @@
    "public/samples/ru/index.json"
   ]
  },
+ "On iPhone and iPad, add LinguPengu to your Home Screen first: tap Share, then Add to Home Screen.": {
+  "where": [
+   "src/ui/settings/reminders.ts"
+  ]
+ },
  "On readings": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -4118,6 +4154,11 @@
  "Open LinguPengu in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "Open LinguPengu: {link}": {
+  "where": [
+   "src/i18n/mailStrings.ts"
   ]
  },
  "Open Review once a day. It brings back the words you starred or looked up, with longer gaps as you remember them.": {
@@ -4852,6 +4893,11 @@
    "src/ui/review/review.ts"
   ]
  },
+ "Reminders": {
+  "where": [
+   "src/ui/settings/reminders.ts"
+  ]
+ },
  "Remove": {
   "where": [
    "src/ui/popup/fixView.ts",
@@ -4967,6 +5013,11 @@
    "src/ui/shortcuts.ts",
    "src/ui/siteGuide.ts",
    "src/ui/vocab/vocab.ts"
+  ]
+ },
+ "Review now: {link}": {
+  "where": [
+   "src/i18n/mailStrings.ts"
   ]
  },
  "Review progress": {
@@ -5420,7 +5471,8 @@
  },
  "Sign in first.": {
   "where": [
-   "src/core/passkey.ts"
+   "src/core/passkey.ts",
+   "src/core/reminders.ts"
   ]
  },
  "Sign in on each device and your books, words and places are the same on all of them.": {
@@ -5968,6 +6020,11 @@
    "src/ui/settings/settings.ts"
   ]
  },
+ "Thanks for trying LinguPengu!": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
  "That Aozora Bunko work is not one LinguPengu can add: it may still be under copyright, or have no XHTML page.": {
   "where": [
    "src/ui/library/findBooks.ts"
@@ -6000,7 +6057,9 @@
  },
  "That did not work. Try again.": {
   "where": [
-   "src/ui/join.ts"
+   "src/core/reminders.ts",
+   "src/ui/join.ts",
+   "src/ui/settings/reminders.ts"
   ]
  },
  "That file has no corrections LinguPengu can use.": {
@@ -6416,6 +6475,7 @@
    "src/core/cloud.ts",
    "src/core/cloudBooks.ts",
    "src/core/passkey.ts",
+   "src/core/reminders.ts",
    "src/core/sync.ts"
   ]
  },
@@ -6682,6 +6742,11 @@
    "src/ui/join.ts"
   ]
  },
+ "This browser can’t show notifications.": {
+  "where": [
+   "src/ui/settings/reminders.ts"
+  ]
+ },
  "This browser could not start audio. Try another {language} voice in Settings.": {
   "where": [
    "src/speech/tts.ts"
@@ -6892,6 +6957,11 @@
  "This link is missing its invite. Ask for the link again.": {
   "where": [
    "src/ui/join.ts"
+  ]
+ },
+ "This link is not valid anymore.": {
+  "where": [
+   "src/i18n/mailStrings.ts"
   ]
  },
  "This page has no text to read yet.": {
@@ -7239,6 +7309,21 @@
    "src/ui/settings/speech.ts"
   ]
  },
+ "Turn off LinguPengu emails?": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
+ "Turn off emails": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
+ "Turn off these emails: {link}": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
  "Turn on Hints to see a short {language} meaning over hard words: every word, words you haven't marked as known, or words above your level.": {
   "where": [
    "src/ui/about/about.ts"
@@ -7453,6 +7538,7 @@
  },
  "Welcome to LinguPengu": {
   "where": [
+   "src/i18n/mailStrings.ts",
    "src/ui/welcome.ts"
   ]
  },
@@ -7490,6 +7576,11 @@
  "When I ask": {
   "where": [
    "src/ui/settings/settings.ts"
+  ]
+ },
+ "When words are ready to review and you haven’t been back for a few days. At most once a week.": {
+  "where": [
+   "src/ui/settings/reminders.ts"
   ]
  },
  "When you are signed in, books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.": {
@@ -7784,6 +7875,11 @@
    "src/ui/reader/reader.ts"
   ]
  },
+ "You get this email because you signed in to LinguPengu with this address.": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
  "You have reached the end of the book.": {
   "where": [
    "src/ui/reader/pager.ts",
@@ -7793,6 +7889,12 @@
  "You have reached the end.": {
   "where": [
    "src/ui/reader/reader.ts"
+  ]
+ },
+ "You have {n} saved words ready to review. A few minutes now keeps them fresh.": {
+  "one": "You have {n} saved word ready to review. A few minutes now keeps it fresh.",
+  "where": [
+   "src/i18n/mailStrings.ts"
   ]
  },
  "You know <1% of its words": {
@@ -7813,6 +7915,11 @@
  "You opened LinguPengu from your Mac, so this device already uses it.": {
   "where": [
    "src/ui/settings/mac.ts"
+  ]
+ },
+ "You will still get sign-in codes when you ask for one.": {
+  "where": [
+   "src/i18n/mailStrings.ts"
   ]
  },
  "Your Mac adds Claude, its local model, Premium voices and your own books. It is reached over Tailscale, only by you.": {
@@ -9272,6 +9379,18 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
+ "{n} words are ready to review": {
+  "one": "{n} word is ready to review",
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
+ "{n} words are ready to review.": {
+  "one": "{n} word is ready to review.",
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
  "{n} words learned from reading.": {
   "one": "{n} word learned from reading.",
   "where": [
@@ -9661,6 +9780,21 @@
  "“{title}”: {reason}": {
   "where": [
    "src/ui/library/importer.ts"
+  ]
+ },
+ "• Review your saved words for a few minutes a day. Each one comes back right before you would forget it.": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
+ "• Tap any word in a book to see what it means, and tap the star to save it.": {
+  "where": [
+   "src/i18n/mailStrings.ts"
+  ]
+ },
+ "• Your books and words are saved to your account, so you can pick up on any device.": {
+  "where": [
+   "src/i18n/mailStrings.ts"
   ]
  },
  "一个 as yí gè, 不是 as bú shì.": {

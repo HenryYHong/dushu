@@ -2075,5 +2075,36 @@
  "We only use your email to send you sign-in codes.": "メールアドレスはサインインコードの送信にだけ使います。",
  "Hi, I’m Pengu!": "こんにちは、Pengu です！",
  "I’ll show you around. Your books live here: start with a free classic, or add your own.": "ご案内しますね。あなたの本はここにあります。無料の名作から始めても、自分の本を追加してもかまいません。",
- "You finished “{title}”!": "「{title}」を読み終えました！"
+ "You finished “{title}”!": "「{title}」を読み終えました！",
+ "Reminders": "リマインダー",
+ "When words are ready to review and you haven’t been back for a few days. At most once a week.": "復習できる単語があり、数日アプリを開いていないときにお知らせします。多くても週に1回です。",
+ "Email reminders": "メールで知らせる",
+ "Notifications on this device": "このデバイスに通知する",
+ "Notifications are blocked for this site in your browser settings.": "このサイトの通知は、ブラウザの設定でブロックされています。",
+ "On iPhone and iPad, add LinguPengu to your Home Screen first: tap Share, then Add to Home Screen.": "iPhoneとiPadでは、まずLinguPenguをホーム画面に追加してください：「共有」、「ホーム画面に追加」の順にタップします。",
+ "This browser can’t show notifications.": "このブラウザは通知を表示できません。",
+ "Thanks for trying LinguPengu!": "LinguPenguをお試しいただき、ありがとうございます！",
+ "A few things that help:": "役に立つ使い方：",
+ "• Tap any word in a book to see what it means, and tap the star to save it.": "• 本の中の単語をタップすると意味が表示されます。星をタップすると保存できます。",
+ "• Review your saved words for a few minutes a day. Each one comes back right before you would forget it.": "• 保存した単語を1日数分ずつ復習しましょう。どの単語も、忘れそうになる直前にまた出てきます。",
+ "• Your books and words are saved to your account, so you can pick up on any device.": "• 本と単語はアカウントに保存されるので、どのデバイスでも続きから使えます。",
+ "Open LinguPengu: {link}": "LinguPenguを開く：{link}",
+ "Review now: {link}": "今すぐ復習する：{link}",
+ "Happy reading,": "楽しい読書を。",
+ "You get this email because you signed in to LinguPengu with this address.": "このアドレスでLinguPenguにサインインしたため、このメールをお送りしています。",
+ "Turn off these emails: {link}": "このメールの配信を停止する：{link}",
+ "Turn off LinguPengu emails?": "LinguPenguからのメールを停止しますか？",
+ "You will still get sign-in codes when you ask for one.": "サインインコードは、リクエストしたときにこれまでどおり届きます。",
+ "Turn off emails": "メールを停止する",
+ "Done. You will not get these emails anymore. You can turn them back on in LinguPengu’s Settings.": "完了しました。今後このメールは届きません。LinguPenguの設定で、いつでもまた受け取れるようにできます。",
+ "This link is not valid anymore.": "このリンクはもう使えません。",
+ "{n} words are ready to review": {
+  "other": "復習できる単語が{n}語あります"
+ },
+ "You have {n} saved words ready to review. A few minutes now keeps them fresh.": {
+  "other": "復習できる保存した単語が{n}語あります。今数分だけ復習すれば、しっかり覚えていられます。"
+ },
+ "{n} words are ready to review.": {
+  "other": "復習できる単語が{n}語あります。"
+ }
 }

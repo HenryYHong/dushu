@@ -1802,6 +1802,10 @@ and opens it. Empty state explains what the app does in two sentences.
 - `scripts/i18n/extract.mjs` collects every such string, and the classics' blurbs from `public/samples/**/index.json`, into
   `src/i18n/strings.json` with the files each is in. `src/i18n/catalogs/<code>.json` translate them (a count by its CLDR forms).
   `tests/i18n/catalogs.test.ts` fails when strings.json is out of date, a catalog drops or adds a `{value}`, or covers under 95%.
+- The sync server's emails and notifications (the welcome, the review reminder, the unsubscribe page) are translated the same way:
+  `src/i18n/mailStrings.ts` lists their exact English through `tt()`/`ttn()` for the extractor (the app never calls it), and
+  `node scripts/i18n/mail-catalog.mjs` copies their translations into `cloud/src/mailCatalog.ts`, keyed [locale][English] (a count
+  by its singular and its plural). `tests/i18n/mail-catalog.test.ts` fails when that file is out of date or a language lacks one.
 - Ten languages besides English: zh, zh-Hant, ja, ko, es, fr, de, it, pt (Brazil), ru. A device starts in its browser's
   language when the app has it; Settings › Learning › Your language (`dushu.ui.v1`, on this device) chooses one, sets
   `translateTo` to it and reloads. The welcome's language step is the same choice. `main.ts` loads the catalog (a lazy chunk,
@@ -1877,6 +1881,13 @@ screen, the one being read marked with a vermilion ribbon (the first at the top 
 CC BY-SA attribution is required; Noto Serif SC/TC and LXGW WenKai are OFL 1.1), coverage counts, keyboard shortcuts, what can be imported
 (EPUB, MOBI and AZW3 without DRM, TXT, PDF, HTML, Markdown), reading like a book, names and terms, iPad, and a storage card (is the data
 protected from eviction, with an ask button; `navigator.storage.persist()` is requested once after the first import, or at boot when books exist).
+Reminders (`ui/settings/reminders.ts`, `core/reminders.ts`), under the sync account while signed in: "Email reminders" for an account with an
+email (`/me/reminders`), and "Notifications on this device" when the server has a push key (`/push/key`). The browser asks for permission only
+on that tap; the switch reads this device's push subscription, sends it to the account again each time Settings opens, and says why it can't
+be turned on (blocked, an iPhone or iPad outside the Home Screen app, no support). Signing out ends this device's subscription first, and
+any other end of the sign-in (the server's 401, a deleted account) ends it too (`watchSignOut`, from `main.ts`), so the next account signed in
+here never inherits it. One made with a key the server no longer has shows off and is ended, never sent again. Each sync
+to the account tells it the time zone and the app's language (`about`), so reminders come at 6 PM local time in that language.
 
 ### 5.7 Pages layout (Apple Books style) and the even pinyin grid
 - `settings.layout`: `scroll` (default) or `pages`. `settings.spread`: `auto` shows two pages side by side
@@ -2010,7 +2021,9 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   the two Newsreader files; survives app updates; the data version hashes the bytes of `data/`, `samples/` and `fonts/`, so a release that
   changes only a classic still reaches installed apps) and `dushu-fonts-v1` (the woff2 slices, cached on first use, never cleared by app or data updates). It does not call `skipWaiting` at install; it handles a
   `SKIP_WAITING` message. `main.ts` shows a persistent "A new version of Dushu is ready. Reload" toast when a worker is waiting, and checks for updates
-  when the page becomes visible. Every cache lookup passes `ignoreVary` (a static host's `Vary: Origin` otherwise hides cached module chunks from `import()`), and only an HTML response is ever stored as the app shell. `qa-shell.mjs` with `QA_ONLY=offline` stops a preview server and reloads every screen from the cache. HTTPS is required for install and offline on an iPad (README, "Read on your iPad"); the private Serve endpoint provides it without a public deployment.
+  when the page becomes visible. It also shows the sync server's review reminders (`push`: `{title, body, url, tag}`, the app's
+  icon, a plain "LinguPengu" when there is no message) and a tap brings an open app window to `#/review` or opens one; a link to
+  another address keeps only its `#/route`, on this one. Every cache lookup passes `ignoreVary` (a static host's `Vary: Origin` otherwise hides cached module chunks from `import()`), and only an HTML response is ever stored as the app shell. `qa-shell.mjs` with `QA_ONLY=offline` stops a preview server and reloads every screen from the cache. HTTPS is required for install and offline on an iPad (README, "Read on your iPad"); the private Serve endpoint provides it without a public deployment.
 - Safe areas: `#screen` and the reader use `env(safe-area-inset-*)` and `dvh`. Coarse pointers get 44 px buttons (Apple's minimum target), 40 px icon buttons and fields, and 16 px inputs.
 
 

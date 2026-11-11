@@ -4,6 +4,7 @@
 import { h } from '../dom';
 import { CLOUD_EVENT, accountLabel, cloudBase, cloudSession, deleteAccount, requestCode, signIn, signOut } from '../../core/cloud';
 import { addPasskey, passkeyHere, passkeysSupported, signInWithPasskey } from '../../core/passkey';
+import { dropPushHere } from '../../core/reminders';
 import { nextId, row } from './controls';
 import { tt } from '../../i18n';
 
@@ -130,6 +131,8 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
   againBtn.addEventListener('click', () => { asked = ''; say(''); paint(); email.focus(); });
   signOutBtn.addEventListener('click', async () => {
     signOutBtn.disabled = true;
+    // Notifications here were the account's: they stop with the sign-in (told to the account while it still is one).
+    await dropPushHere();
     await signOut();
     signOutBtn.disabled = false;
     say(tt('Signed out. Everything stays on this device; it no longer syncs through your account.'));

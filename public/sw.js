@@ -225,3 +225,49 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(request).catch(async () => (await caches.match(request, MATCH)) || Response.error()));
   }
 });
+
+// Review reminders (cloud/ sends them as Web Push to each device that turned them on in Settings, core/reminders.ts). The
+// message is JSON: { title, body, url, tag }, already in the reader's language. A push with no message (or one that can't be
+// read) still shows something, as every push must: the app's name, opening the review. The link is only ever this app's own
+// page: one for another address (the public copy's, on a device that uses a private copy) keeps only its #/route, here.
+const REVIEW_HASH = '#/review';
+function appLink(raw) {
+  const scope = new URL(self.registration.scope);
+  try {
+    const url = new URL(typeof raw === 'string' && raw ? raw : REVIEW_HASH, scope);
+    if (url.origin === self.location.origin && url.pathname.startsWith(scope.pathname)) return url.href;
+    const here = new URL(scope.href);
+    here.hash = url.hash || REVIEW_HASH;
+    return here.href;
+  } catch {
+    return new URL(REVIEW_HASH, scope).href;
+  }
+}
+
+self.addEventListener('push', (event) => {
+  let msg = {};
+  try { msg = (event.data && event.data.json()) || {}; } catch { msg = {}; }
+  const text = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+  const title = text(msg.title, 120) || 'LinguPengu';
+  const options = {
+    body: text(msg.body, 400),
+    tag: text(msg.tag, 64) || 'review',
+    icon: new URL('icons/icon-192.png', self.registration.scope).href,
+    data: { url: appLink(msg.url) },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// A tap on the notification: an open LinguPengu window comes to the front at the review; with none, one opens there.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = appLink(event.notification.data && event.notification.data.url);
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const win = windows.find((c) => c.url.startsWith(self.registration.scope));
+    if (!win) { await self.clients.openWindow(url); return; }
+    const front = (await win.focus().catch(() => null)) || win;
+    // navigate() works only on a window this worker controls; another one is still brought to the front.
+    if (front.url !== url && typeof front.navigate === 'function') await front.navigate(url).catch(() => {});
+  })());
+});
