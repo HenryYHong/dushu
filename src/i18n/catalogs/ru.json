@@ -2414,5 +2414,45 @@
  "We only use your email to send you sign-in codes.": "Ваша почта нужна только для кодов входа.",
  "Hi, I’m Pengu!": "Привет, я Pengu!",
  "I’ll show you around. Your books live here: start with a free classic, or add your own.": "Я всё покажу. Здесь живут ваши книги: начните с бесплатной классики или добавьте свои.",
- "You finished “{title}”!": "Вы дочитали «{title}»!"
+ "You finished “{title}”!": "Вы дочитали «{title}»!",
+ "Reminders": "Напоминания",
+ "When words are ready to review and you haven’t been back for a few days. At most once a week.": "Когда есть слова для повторения, а вы не заходили несколько дней. Не чаще раза в неделю.",
+ "Email reminders": "Напоминания по почте",
+ "Notifications on this device": "Уведомления на этом устройстве",
+ "Notifications are blocked for this site in your browser settings.": "Уведомления для этого сайта заблокированы в настройках браузера.",
+ "On iPhone and iPad, add LinguPengu to your Home Screen first: tap Share, then Add to Home Screen.": "На iPhone и iPad сначала добавьте LinguPengu на экран «Домой»: нажмите «Поделиться», затем «На экран „Домой“».",
+ "This browser can’t show notifications.": "Этот браузер не может показывать уведомления.",
+ "Thanks for trying LinguPengu!": "Спасибо, что пробуете LinguPengu!",
+ "A few things that help:": "Несколько советов:",
+ "• Tap any word in a book to see what it means, and tap the star to save it.": "• Нажмите на любое слово в книге, чтобы узнать, что оно значит, а на звёздочку, чтобы его сохранить.",
+ "• Review your saved words for a few minutes a day. Each one comes back right before you would forget it.": "• Повторяйте сохранённые слова по несколько минут в день. Каждое возвращается как раз перед тем, как вы бы его забыли.",
+ "• Your books and words are saved to your account, so you can pick up on any device.": "• Ваши книги и слова хранятся в аккаунте, поэтому продолжить можно на любом устройстве.",
+ "Open LinguPengu: {link}": "Открыть LinguPengu: {link}",
+ "Review now: {link}": "Повторить сейчас: {link}",
+ "Happy reading,": "Приятного чтения,",
+ "You get this email because you signed in to LinguPengu with this address.": "Вы получили это письмо, потому что входили в LinguPengu с этого адреса.",
+ "Turn off these emails: {link}": "Отписаться от этих писем: {link}",
+ "Turn off LinguPengu emails?": "Отписаться от писем LinguPengu?",
+ "You will still get sign-in codes when you ask for one.": "Коды для входа по-прежнему будут приходить, когда вы их запросите.",
+ "Turn off emails": "Отписаться от писем",
+ "Done. You will not get these emails anymore. You can turn them back on in LinguPengu’s Settings.": "Готово. Эти письма больше не будут приходить. Включить их снова можно в настройках LinguPengu.",
+ "This link is not valid anymore.": "Эта ссылка больше не действует.",
+ "{n} words are ready to review": {
+  "one": "{n} слово готово к повторению",
+  "few": "{n} слова готовы к повторению",
+  "many": "{n} слов готовы к повторению",
+  "other": "{n} слова готовы к повторению"
+ },
+ "You have {n} saved words ready to review. A few minutes now keeps them fresh.": {
+  "one": "У вас {n} сохранённое слово для повторения. Несколько минут сейчас помогут его не забыть.",
+  "few": "У вас {n} сохранённых слова для повторения. Несколько минут сейчас помогут их не забыть.",
+  "many": "У вас {n} сохранённых слов для повторения. Несколько минут сейчас помогут их не забыть.",
+  "other": "У вас {n} сохранённых слова для повторения. Несколько минут сейчас помогут их не забыть."
+ },
+ "{n} words are ready to review.": {
+  "one": "{n} слово готово к повторению.",
+  "few": "{n} слова готовы к повторению.",
+  "many": "{n} слов готовы к повторению.",
+  "other": "{n} слова готовы к повторению."
+ }
 }

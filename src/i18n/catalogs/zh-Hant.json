@@ -2071,5 +2071,36 @@
  "We only use your email to send you sign-in codes.": "我們只用你的電子郵件寄送登入驗證碼。",
  "Hi, I’m Pengu!": "嗨，我是 Pengu！",
  "I’ll show you around. Your books live here: start with a free classic, or add your own.": "我帶你看看。你的書都在這裡：可以從一本免費的經典開始，或加入你自己的書。",
- "You finished “{title}”!": "你讀完了《{title}》！"
+ "You finished “{title}”!": "你讀完了《{title}》！",
+ "Reminders": "提醒",
+ "When words are ready to review and you haven’t been back for a few days. At most once a week.": "有詞可以複習，而你幾天沒打開 LinguPengu 時，會提醒你。每週最多一次。",
+ "Email reminders": "電子郵件提醒",
+ "Notifications on this device": "這台裝置上的通知",
+ "Notifications are blocked for this site in your browser settings.": "此網站的通知已在瀏覽器設定中被封鎖。",
+ "On iPhone and iPad, add LinguPengu to your Home Screen first: tap Share, then Add to Home Screen.": "在 iPhone 和 iPad 上，請先把 LinguPengu 加入主畫面：點「分享」，再點「加入主畫面」。",
+ "This browser can’t show notifications.": "這個瀏覽器無法顯示通知。",
+ "Thanks for trying LinguPengu!": "感謝試用 LinguPengu！",
+ "A few things that help:": "幾個小技巧：",
+ "• Tap any word in a book to see what it means, and tap the star to save it.": "• 點書中的任何詞，就能看到它的意思；點星號就能收藏。",
+ "• Review your saved words for a few minutes a day. Each one comes back right before you would forget it.": "• 每天花幾分鐘複習收藏的詞。每個詞都會在你快要忘記之前再出現。",
+ "• Your books and words are saved to your account, so you can pick up on any device.": "• 你的書和詞都儲存在帳號裡，換哪台裝置都能接著用。",
+ "Open LinguPengu: {link}": "開啟 LinguPengu：{link}",
+ "Review now: {link}": "現在複習：{link}",
+ "Happy reading,": "祝閱讀愉快，",
+ "You get this email because you signed in to LinguPengu with this address.": "你收到這封郵件，是因為你用這個電子郵件地址登入了 LinguPengu。",
+ "Turn off these emails: {link}": "不再接收這些郵件：{link}",
+ "Turn off LinguPengu emails?": "不再接收 LinguPengu 的郵件？",
+ "You will still get sign-in codes when you ask for one.": "你需要登入驗證碼時，仍會照常收到。",
+ "Turn off emails": "不再接收郵件",
+ "Done. You will not get these emails anymore. You can turn them back on in LinguPengu’s Settings.": "好了，你不會再收到這些郵件。可以在 LinguPengu 的設定裡重新開啟。",
+ "This link is not valid anymore.": "這個連結已失效。",
+ "{n} words are ready to review": {
+  "other": "有 {n} 個詞可以複習了"
+ },
+ "You have {n} saved words ready to review. A few minutes now keeps them fresh.": {
+  "other": "你有 {n} 個收藏的詞可以複習了。現在花幾分鐘，就能記得更牢。"
+ },
+ "{n} words are ready to review.": {
+  "other": "有 {n} 個詞可以複習了。"
+ }
 }

@@ -2302,5 +2302,42 @@
  "We only use your email to send you sign-in codes.": "Nous utilisons votre e-mail uniquement pour vous envoyer des codes de connexion.",
  "Hi, I’m Pengu!": "Salut, moi c’est Pengu !",
  "I’ll show you around. Your books live here: start with a free classic, or add your own.": "Je vais vous faire visiter. Vos livres sont ici : commencez par un classique gratuit, ou ajoutez les vôtres.",
- "You finished “{title}”!": "Vous avez terminé « {title} » !"
+ "You finished “{title}”!": "Vous avez terminé « {title} » !",
+ "Reminders": "Rappels",
+ "When words are ready to review and you haven’t been back for a few days. At most once a week.": "Quand des mots sont prêts à être révisés et que vous n’avez pas ouvert l’app depuis quelques jours. Une fois par semaine au plus.",
+ "Email reminders": "Rappels par e-mail",
+ "Notifications on this device": "Notifications sur cet appareil",
+ "Notifications are blocked for this site in your browser settings.": "Les notifications sont bloquées pour ce site dans les réglages de votre navigateur.",
+ "On iPhone and iPad, add LinguPengu to your Home Screen first: tap Share, then Add to Home Screen.": "Sur iPhone et iPad, ajoutez d’abord LinguPengu à votre écran d’accueil : touchez Partager, puis Sur l’écran d’accueil.",
+ "This browser can’t show notifications.": "Ce navigateur ne peut pas afficher de notifications.",
+ "Thanks for trying LinguPengu!": "Merci d’essayer LinguPengu !",
+ "A few things that help:": "Quelques conseils utiles :",
+ "• Tap any word in a book to see what it means, and tap the star to save it.": "• Touchez n’importe quel mot d’un livre pour voir ce qu’il veut dire, et touchez l’étoile pour l’enregistrer.",
+ "• Review your saved words for a few minutes a day. Each one comes back right before you would forget it.": "• Révisez vos mots enregistrés quelques minutes par jour. Chacun revient juste avant que vous ne l’oubliiez.",
+ "• Your books and words are saved to your account, so you can pick up on any device.": "• Vos livres et vos mots sont enregistrés dans votre compte : vous pouvez reprendre sur n’importe quel appareil.",
+ "Open LinguPengu: {link}": "Ouvrir LinguPengu : {link}",
+ "Review now: {link}": "Réviser maintenant : {link}",
+ "Happy reading,": "Bonne lecture,",
+ "You get this email because you signed in to LinguPengu with this address.": "Vous recevez cet e-mail parce que cette adresse a servi à vous connecter à LinguPengu.",
+ "Turn off these emails: {link}": "Ne plus recevoir ces e-mails : {link}",
+ "Turn off LinguPengu emails?": "Ne plus recevoir les e-mails de LinguPengu ?",
+ "You will still get sign-in codes when you ask for one.": "Vous recevrez toujours les codes de connexion quand vous en demanderez un.",
+ "Turn off emails": "Ne plus recevoir d’e-mails",
+ "Done. You will not get these emails anymore. You can turn them back on in LinguPengu’s Settings.": "C’est fait. Vous ne recevrez plus ces e-mails. Vous pouvez les réactiver dans les Réglages de LinguPengu.",
+ "This link is not valid anymore.": "Ce lien n’est plus valide.",
+ "{n} words are ready to review": {
+  "one": "{n} mot est prêt à être révisé",
+  "many": "{n} mots sont prêts à être révisés",
+  "other": "{n} mots sont prêts à être révisés"
+ },
+ "You have {n} saved words ready to review. A few minutes now keeps them fresh.": {
+  "one": "Vous avez {n} mot enregistré à réviser. Quelques minutes maintenant suffisent pour le garder en tête.",
+  "many": "Vous avez {n} mots enregistrés à réviser. Quelques minutes maintenant suffisent pour les garder en tête.",
+  "other": "Vous avez {n} mots enregistrés à réviser. Quelques minutes maintenant suffisent pour les garder en tête."
+ },
+ "{n} words are ready to review.": {
+  "one": "{n} mot est prêt à être révisé.",
+  "many": "{n} mots sont prêts à être révisés.",
+  "other": "{n} mots sont prêts à être révisés."
+ }
 }

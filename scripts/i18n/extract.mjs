@@ -15,6 +15,18 @@ const MANY = new RegExp(String.raw`\bttn\(\s*[^,()]+(?:\([^()]*\))?\s*,\s*(${STR
 /** A string literal's value. Only literals reach here, and only from this repository. */
 const value = (lit) => (lit[0] === '`' ? lit.slice(1, -1).replace(/\\(.)/g, '$1') : JSON.parse(lit[0] === "'" ? `"${lit.slice(1, -1).replace(/\\'/g, "'").replace(/"/g, '\\"')}"` : lit));
 
+/**
+ * The strings one source file passes to tt, ttm, ttn and ttx, in the order they are written: { text, one } where `one` is a
+ * count's singular (text is its plural, the catalogs' key). scripts/i18n/mail-catalog.mjs reads src/i18n/mailStrings.ts with it.
+ */
+export function stringsIn(src) {
+  const found = [];
+  for (const m of src.matchAll(ONE)) found.push({ at: m.index, text: value(m[2]) });
+  for (const m of src.matchAll(MANY)) found.push({ at: m.index, text: value(m[2]), one: value(m[1]) });
+  for (const m of src.matchAll(CTX)) found.push({ at: m.index, text: `${value(m[1])} [${value(m[2])}]` });
+  return found.sort((a, b) => a.at - b.at).map(({ text, one }) => (one === undefined ? { text } : { text, one }));
+}
+
 function files(dir) {
   const out = [];
   for (const name of readdirSync(dir)) {

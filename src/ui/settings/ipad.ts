@@ -6,6 +6,7 @@ import { macRows } from './mac';
 import { syncRow } from './sync';
 import { accountRow } from './account';
 import { invitesRow } from './invites';
+import { remindersRow } from './reminders';
 import { tt } from '../../i18n';
 
 /**
@@ -16,16 +17,19 @@ import { tt } from '../../i18n';
  */
 export function ipadGroup(params: Record<string, string>): { el: HTMLElement; dispose(): void } {
   const account = accountRow();
+  // Under the account, while signed in: review reminders by email or notification.
+  const reminders = remindersRow();
   const sync = syncRow();
   if (!isMacOrigin() && !connectedMac() && !isAccountOwner()) {
     const own = cloudSession() ? null : macRows(params);
     const el = group(tt('Sync'), null,
       account?.el ?? null,
+      reminders?.el ?? null,
       sync.el,
       row(tt('Install'), tt('Added to the Home Screen, LinguPengu opens like an app and works offline.'), h('span', null, tt('In Safari: Share, then Add to Home Screen'))),
       row(tt('Books'), tt('When you are signed in, books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.'), h('span', null, tt('Import book, in the library'))),
       own ? h('details.set-own-mac', { open: params.connect !== undefined }, h('summary.set-own-mac-title', null, tt('Use your own Mac')), ...own.rows) : null);
-    return { el, dispose() { sync.dispose(); account?.dispose(); own?.dispose(); } };
+    return { el, dispose() { sync.dispose(); account?.dispose(); reminders?.dispose(); own?.dispose(); } };
   }
   const mac = macRows(params);
   // The owner's invite links (shown once the server has said this account is the owner's).
@@ -47,11 +51,12 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     ? tt('Sign in and your books, words and Claude go with your account. Connecting a device to your Mac only adds its voices and local AI.')
     : tt('Connect each device to your Mac once. Your words and reading places then sync through it.'),
     account?.el ?? null,
+    reminders?.el ?? null,
     invites?.el ?? null,
     sync.el,
     ...mac.rows,
     row(tt('Connect'), tt('Turn on Tailscale on your iPad with the same account as this Mac, then open the private link in Safari.'), h('div', null, link, status)),
     row(tt('Install'), tt('Open LinguPengu from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.'), h('span', null, tt('In Safari: Share, then Add to Home Screen'))),
     row(tt('Books'), tt('Books on your Mac reach every device by themselves. For other books, use Import book.'), h('span', null, tt('Your Mac keeps a daily copy of your synced words for two weeks.'))));
-  return { el, dispose() { mac.dispose(); sync.dispose(); account?.dispose(); invites?.dispose(); } };
+  return { el, dispose() { mac.dispose(); sync.dispose(); account?.dispose(); reminders?.dispose(); invites?.dispose(); } };
 }

@@ -2081,5 +2081,36 @@
  "We only use your email to send you sign-in codes.": "이메일은 로그인 코드를 보낼 때만 사용해요.",
  "Hi, I’m Pengu!": "안녕하세요, 저는 Pengu예요!",
  "I’ll show you around. Your books live here: start with a free classic, or add your own.": "제가 안내해 드릴게요. 책은 여기에 있어요. 무료 고전으로 시작하거나 직접 책을 추가해 보세요.",
- "You finished “{title}”!": "“{title}” 책을 다 읽었어요!"
+ "You finished “{title}”!": "“{title}” 책을 다 읽었어요!",
+ "Reminders": "복습 알림",
+ "When words are ready to review and you haven’t been back for a few days. At most once a week.": "복습할 단어가 있는데 며칠 동안 들어오지 않았을 때 알려 드려요. 최대 일주일에 한 번이에요.",
+ "Email reminders": "이메일 알림",
+ "Notifications on this device": "이 기기에서 알림 받기",
+ "Notifications are blocked for this site in your browser settings.": "브라우저 설정에서 이 사이트의 알림이 차단되어 있어요.",
+ "On iPhone and iPad, add LinguPengu to your Home Screen first: tap Share, then Add to Home Screen.": "iPhone과 iPad에서는 먼저 LinguPengu를 홈 화면에 추가하세요: 공유를 탭한 다음 홈 화면에 추가를 탭하면 돼요.",
+ "This browser can’t show notifications.": "이 브라우저는 알림을 표시할 수 없어요.",
+ "Thanks for trying LinguPengu!": "LinguPengu를 써 주셔서 고마워요!",
+ "A few things that help:": "이렇게 써 보세요:",
+ "• Tap any word in a book to see what it means, and tap the star to save it.": "• 책에서 아무 단어나 탭하면 뜻이 보이고, 별을 탭하면 저장돼요.",
+ "• Review your saved words for a few minutes a day. Each one comes back right before you would forget it.": "• 저장한 단어를 하루에 몇 분씩 복습하세요. 단어마다 잊어버리기 직전에 다시 나와요.",
+ "• Your books and words are saved to your account, so you can pick up on any device.": "• 책과 단어는 계정에 저장되니 어느 기기에서든 이어서 할 수 있어요.",
+ "Open LinguPengu: {link}": "LinguPengu 열기: {link}",
+ "Review now: {link}": "지금 복습하기: {link}",
+ "Happy reading,": "즐거운 독서 되세요.",
+ "You get this email because you signed in to LinguPengu with this address.": "이 주소로 LinguPengu에 로그인하셔서 이 이메일을 받으셨어요.",
+ "Turn off these emails: {link}": "이 이메일 그만 받기: {link}",
+ "Turn off LinguPengu emails?": "LinguPengu 이메일을 그만 받을까요?",
+ "You will still get sign-in codes when you ask for one.": "로그인 코드는 요청하면 계속 받을 수 있어요.",
+ "Turn off emails": "이메일 그만 받기",
+ "Done. You will not get these emails anymore. You can turn them back on in LinguPengu’s Settings.": "완료됐어요. 이제 이 이메일은 오지 않아요. LinguPengu 설정에서 다시 켤 수 있어요.",
+ "This link is not valid anymore.": "이 링크는 더 이상 쓸 수 없어요.",
+ "{n} words are ready to review": {
+  "other": "복습할 단어가 {n}개 있어요"
+ },
+ "You have {n} saved words ready to review. A few minutes now keeps them fresh.": {
+  "other": "복습할 저장 단어가 {n}개 있어요. 지금 몇 분만 복습하면 잊지 않을 수 있어요."
+ },
+ "{n} words are ready to review.": {
+  "other": "복습할 단어가 {n}개 있어요."
+ }
 }

@@ -16,7 +16,7 @@ import type { Bookmark, BookMeta, Fix, LookupRow, Progress, Settings, SettingsSt
 import type { LangId } from '../lang/types';
 import { langId } from '../lang/active';
 import { LANGS } from '../lang/registry';
-import { langName, tt } from '../i18n';
+import { langName, tt, uiLang } from '../i18n';
 import { cleanBookmark, cleanLookup, cleanProgress, cleanVocab } from '../store';
 import { defaultsFor, sanitizePatch } from '../store/settings';
 import { moveByPercent } from './place';
@@ -50,6 +50,18 @@ const copiedKey = (lang: LangId): string => (lang === 'zh' ? COPIED_KEY : `dushu
 /** A copy that failed (the Mac asleep, Tailscale off) is tried again after this long, never on every sync. */
 const COPY_RETRY_MS = 5 * 60_000;
 const META = '#meta';
+
+/**
+ * What the account is told about the person with each sync (`about` in the request): their time zone and the app's language.
+ * The sync server sends its review reminders and welcome email at 6 PM where they are, in their language (cloud/). The Mac
+ * and a Worker from before reminders ignore it, and an app from before them never sends it (the server then takes UTC and
+ * English).
+ */
+export function aboutHere(): { tz: string; locale: string } {
+  let tz = '';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? ''; } catch { /* no time zone data */ }
+  return { tz: tz && tz.length <= 64 ? tz : 'UTC', locale: uiLang() };
+}
 
 // The settings that sync (SYNCED_SETTINGS, librarySettings) are listed in syncKeys.ts, where the hubs check them too.
 export { SYNCED_SETTINGS };
@@ -553,6 +565,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     let restarted = false;
     let first = true;
     let copied = false;
+    let sentAbout = false;
     for (;;) {
       const hub = cloudSession() ? 'cloud' : 'mac';
       /**
@@ -569,7 +582,10 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         epoch: asked ? asked.epoch : meta.epoch, since: asked ? asked.version : meta.cursor,
         changes: outgoing.map((r) => ({ key: prefix + r.key, at: r.at, data: r.sig === '-' ? null : current.get(r.key)?.data ?? null })),
         ...(prefix ? { lang } : {}),
+        // Only to the account, once a sync: the Mac sends no reminders.
+        ...(hub === 'cloud' && !sentAbout ? { about: aboutHere() } : {}),
       });
+      sentAbout = true;
       const request = send(body, leaving && body.length < 60_000);
       // Signed out by the server: that stays what Settings says until this device signs in again.
       if (!request) { setStatus({ state: status.state === 'signedout' ? 'signedout' : 'none', hub: undefined }); return; }

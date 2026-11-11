@@ -18,7 +18,12 @@ export interface WorkerOptions {
   langs?: Record<string, string>;
   /** FONT_SHEETS: the reading fonts' stylesheets, left out of the shell. */
   fontSheets?: string[];
+  /** The app's open windows, for a tap on a notification (clients.matchAll). */
+  windows?: FakeWindow[];
 }
+
+/** An open window of the app, as a worker sees it: where it is, and what was done to it. */
+export interface FakeWindow { url: string; focused?: boolean; navigated?: string[]; controlled?: boolean }
 
 /** Loads sw.js. The data version is 'd' (cache dushu-static-d) and the build 't' (dushu-app-t). */
 export function loadWorker(opts: WorkerOptions) {
@@ -70,11 +75,31 @@ export function loadWorker(opts: WorkerOptions) {
     if (f.etag && asked === f.etag) return new Response(null, { status: 304 });
     return new Response(f.body, { status: 200, headers: { 'content-type': f.type, ...(f.etag ? { ETag: f.etag } : {}) } });
   };
+  /** Notifications shown (registration.showNotification) and windows opened (clients.openWindow). */
+  const shown: { title: string; options: NotificationOptions & { data?: { url?: string } } }[] = [];
+  const opened: string[] = [];
+  const windows = opts.windows ?? [];
+  const client = (w: FakeWindow) => ({
+    get url() { return w.url; },
+    focus: async () => { w.focused = true; return client(w); },
+    navigate: async (url: string) => {
+      // As in a browser: only a window this worker controls can be sent somewhere.
+      if (w.controlled === false) throw new TypeError('not controlled');
+      (w.navigated ??= []).push(url);
+      w.url = url;
+      return client(w);
+    },
+  });
   const self = {
-    registration: { scope: 'https://app.test/' },
+    registration: { scope: 'https://app.test/', showNotification: async (title: string, options: NotificationOptions) => { shown.push({ title, options }); } },
     location: { origin: 'https://app.test' },
     addEventListener: (t: string, fn: Handler) => { handlers[t] = fn; },
-    skipWaiting() {}, clients: { claim: async () => {} },
+    skipWaiting() {},
+    clients: {
+      claim: async () => {},
+      matchAll: async () => windows.map(client),
+      openWindow: async (url: string) => { opened.push(url); return null; },
+    },
   };
   const precache = opts.precache ?? [];
   const isData = (p: string) => /^(data|samples)\//.test(p);
@@ -103,5 +128,20 @@ export function loadWorker(opts: WorkerOptions) {
     handlers.activate({ waitUntil: (p: Promise<unknown>) => { done = p; } });
     await done;
   }
-  return { request, install, activate, stores, lookups, added, requests, handlers, inits, get fetched() { return fetched; } };
+  /** A push arriving: `data` is its message (a string, or undefined for none). */
+  async function push(data?: string): Promise<void> {
+    let done: Promise<unknown> = Promise.resolve();
+    const message = data === undefined ? null : { json: () => JSON.parse(data), text: () => data };
+    handlers.push({ data: message, waitUntil: (p: Promise<unknown>) => { done = p; } });
+    await done;
+  }
+  /** A tap on a notification that was shown. Returns whether it was closed. */
+  async function click(n: { options: { data?: unknown } }): Promise<boolean> {
+    let done: Promise<unknown> = Promise.resolve();
+    let closed = false;
+    handlers.notificationclick({ notification: { data: n.options.data, close: () => { closed = true; } }, waitUntil: (p: Promise<unknown>) => { done = p; } });
+    await done;
+    return closed;
+  }
+  return { request, install, activate, push, click, shown, opened, stores, lookups, added, requests, handlers, inits, get fetched() { return fetched; } };
 }
