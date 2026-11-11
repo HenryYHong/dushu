@@ -1293,7 +1293,8 @@ books go through the account, and so do the reader's corrections (§4.12: names 
     the account's books come, the same "Signed in" message).
   - *The check* (`verifyGoogleIdToken`, WebCrypto, no library): header `alg` RS256 and a `kid`; the key from Google's JWKS
     (`googleapis.com/oauth2/v3/certs`), kept in the isolate for its Cache-Control max-age (at most a day) and fetched once more for
-    a `kid` it does not know (then refused); an RSASSA-PKCS1-v1_5 SHA-256 signature over `header.payload`; `iss` Google's (either
+    a `kid` it does not know (then refused), but not within a minute of the last fetch (`UNKNOWN_KID_GAP_MS`), so tokens naming
+    made-up kids cannot turn every request into a fetch to Google; an RSASSA-PKCS1-v1_5 SHA-256 signature over `header.payload`; `iss` Google's (either
     spelling); `aud` the client id (and `azp`, when present); `exp` not past (60 s of clock skew) and `iat` not ahead (5 minutes);
     `email` present and `email_verified` true (else 403); the token's `nonce` the one the app sent beside it (at least 16
     characters). Refused tokens are one 401 (`bad_google`) for the app, with the reason for tests. The nonce's hash is then taken

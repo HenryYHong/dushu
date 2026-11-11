@@ -18,6 +18,13 @@ const IAT_SKEW_S = 300;
  * minutes when it names none. */
 const KEYS_DEFAULT_S = 300;
 const KEYS_MAX_S = 86_400;
+/**
+ * A kid the kept keys do not have is looked for at Google at most this often (per isolate). Google publishes a new key hours
+ * before it signs with it, so the keys kept for their max-age nearly always have it already, and a genuine new kid waits a
+ * minute at worst. Without the gap, anyone could send tokens naming made-up kids and make every one of those requests a fetch
+ * to Google (a subrequest, and the keys parsed and imported again), from as many networks as they have.
+ */
+export const UNKNOWN_KID_GAP_MS = 60_000;
 /** The app's nonce is 32 random bytes in base64url (43 characters); anything shorter than 16 is no nonce. */
 export const MIN_NONCE = 16;
 const MAX_NONCE = 256;
@@ -41,15 +48,17 @@ export interface GoogleIdentity {
 interface Jwk { kty?: unknown; kid?: unknown; alg?: unknown; use?: unknown; n?: unknown; e?: unknown }
 
 /**
- * Google's keys by kid, as this Worker's isolate last fetched them, and until when they hold. A module-level copy: an isolate
- * lives for many requests, and a new one fetches once (a few hundred bytes). A fetch under way is shared.
+ * Google's keys by kid, as this Worker's isolate last fetched them, until when they hold, and when they were last asked for
+ * (for UNKNOWN_KID_GAP_MS). A module-level copy: an isolate lives for many requests, and a new one fetches once (a few hundred
+ * bytes). A fetch under way is shared.
  */
-const kept: { keys: Map<string, CryptoKey>; until: number; loading: Promise<void> | null } = { keys: new Map(), until: 0, loading: null };
+const kept: { keys: Map<string, CryptoKey>; until: number; asked: number; loading: Promise<void> | null } = { keys: new Map(), until: 0, asked: 0, loading: null };
 
 /** Forgets the keys (tests start each case with none). */
 export function forgetGoogleKeys(): void {
   kept.keys = new Map();
   kept.until = 0;
+  kept.asked = 0;
   kept.loading = null;
 }
 
@@ -69,6 +78,8 @@ function part(s: string, reason: string): Record<string, unknown> {
 }
 
 async function load(fetcher: typeof fetch, now: number): Promise<void> {
+  // Noted before the answer, so a fetch that fails starts the gap too.
+  kept.asked = now;
   let res: Response;
   try {
     res = await fetcher(GOOGLE_CERTS, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10_000) });
@@ -104,12 +115,12 @@ function refresh(fetcher: typeof fetch, now: number): Promise<void> {
 
 /**
  * The key Google signed with, by the token's kid. Kept keys while they hold; a kid they do not have is fetched for once more
- * (Google starts signing with a new key a while after it publishes it, so this is rare), and then refused.
+ * (Google starts signing with a new key a while after it publishes it, so this is rare), but only when the keys were last
+ * asked for at least UNKNOWN_KID_GAP_MS ago, and then refused.
  */
 async function keyFor(kid: string, fetcher: typeof fetch, now: number): Promise<CryptoKey | null> {
-  let fetched = false;
-  if (now >= kept.until) { await refresh(fetcher, now); fetched = true; }
-  if (!kept.keys.has(kid) && !fetched) await refresh(fetcher, now);
+  if (now >= kept.until) await refresh(fetcher, now);
+  else if (!kept.keys.has(kid) && now - kept.asked >= UNKNOWN_KID_GAP_MS) await refresh(fetcher, now);
   return kept.keys.get(kid) ?? null;
 }
 

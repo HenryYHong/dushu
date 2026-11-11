@@ -166,18 +166,48 @@ describe('signing in with Google', () => {
     expect((await googleIn(c)).status).toBe(200);
     expect((await googleIn(c)).status).toBe(200);
     expect(g.fetches).toBe(1);
-    // A kid it does not have: asked once more, still not there, refused.
-    expect(await json(await googleIn(c, {}, { kid: 'k9', key: stranger.privateKey }))).toMatchObject({ code: 'bad_google' });
+    const t0 = Date.now();
+    const check = async (kid: string, key: CryptoKey, at: number) => {
+      const n = nonce();
+      try { await verifyGoogleIdToken(await idToken(n, {}, { kid, key }), n, CLIENT, { fetch: g.fetch, now: at }); return 'ok'; } catch (e) { return e instanceof GoogleTokenError ? e.reason : String(e); }
+    };
+    // A kid it does not have, a minute after the keys came: asked once more, still not there, refused.
+    expect(await check('k9', stranger.privateKey, t0 + 61_000)).toBe('unknown kid');
     expect(g.fetches).toBe(2);
-    // Google starts signing with its next key: the first token with it fetches the new list and signs in.
+    // Google starts signing with its next key: the first token with it, a minute on, fetches the new list and signs in.
     g.keys = [await published(google1, 'k1'), await published(google2, 'k2')];
-    expect((await googleIn(c, {}, { kid: 'k2', key: google2.privateKey })).status).toBe(200);
+    expect(await check('k2', google2.privateKey, t0 + 122_000)).toBe('ok');
     expect(g.fetches).toBe(3);
     // Past the max-age (21,600 s) the keys are fetched again before any token is checked.
     const n = nonce();
-    const later = Date.now() + 21_601_000;
+    const later = t0 + 122_000 + 21_601_000;
     await expect(verifyGoogleIdToken(await idToken(n), n, CLIENT, { fetch: g.fetch, now: later })).rejects.toThrow(GoogleTokenError);
     expect(g.fetches).toBe(4);
+  });
+
+  it('does not ask Google again for every made-up kid: at most once a minute', async () => {
+    const g = await certs();
+    const c = cloud({ GOOGLE_CLIENT_ID: CLIENT, googleFetch: g.fetch });
+    expect((await googleIn(c)).status).toBe(200);
+    expect(g.fetches).toBe(1);
+    // Tokens naming kids Google never published, one after another (each from its own network, so no daily limit stops
+    // them): the keys were fetched just now, so none of them is a reason to fetch again.
+    for (let i = 0; i < 20; i++) {
+      const res = await googleIn(c, {}, { kid: `made-up-${i}`, key: stranger.privateKey, ip: `198.51.100.${i + 1}` });
+      expect(await json(res)).toMatchObject({ code: 'bad_google' });
+    }
+    expect(g.fetches).toBe(1);
+    // The good key still signs in, with no fetch either.
+    expect((await googleIn(c)).status).toBe(200);
+    expect(g.fetches).toBe(1);
+    // A minute on, one more look for an unknown kid, and again none for the next ones.
+    const later = Date.now() + 61_000;
+    for (let i = 0; i < 5; i++) {
+      const n = nonce();
+      await expect(verifyGoogleIdToken(await idToken(n, {}, { kid: `later-${i}`, key: stranger.privateKey }), n, CLIENT, { fetch: g.fetch, now: later + i * 1000 }))
+        .rejects.toThrow(GoogleTokenError);
+    }
+    expect(g.fetches).toBe(2);
   });
 
   it('says why a token was refused, to the tests and the log (the app sees one message)', async () => {
