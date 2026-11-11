@@ -20,7 +20,7 @@
 import type { AccountCore } from './account';
 import type { Mailer } from './mail';
 import { MAIL_CATALOG } from './mailCatalog';
-import { sendPush, type PushRandom, type PushRecord, type Vapid } from './push';
+import { sendPush, type PushRandom, type PushRecord, type PushResult, type Vapid } from './push';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -242,9 +242,8 @@ export async function runFollowup(core: AccountCore, deps: FollowupDeps, now: nu
         console.error('LinguPengu push', e instanceof Error ? e.message : e);
         return 'failed' as const;
       })));
-      const gone = plan.pushes.filter((_, i) => results[i] === 'gone').map((p) => p.endpoint);
-      removed = gone.length;
-      if (gone.length) core.dropPushes(gone);
+      const answered = (result: PushResult) => plan.pushes.filter((_, i) => results[i] === result).map((p) => p.endpoint);
+      removed = core.pushAnswers(answered('gone'), answered('failed'), answered('sent'));
       // One device that took it is enough: the person sees it there.
       if (results.includes('sent')) {
         core.followupSent('remind', plan.created, now);

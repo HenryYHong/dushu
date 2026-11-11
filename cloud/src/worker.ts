@@ -1107,7 +1107,7 @@ export async function accountRequest(core: AccountCore, request: Request, deps?:
     const session = token ? await sha256(token) : '';
     // After the last await: from here each operation runs to its end before another request reaches this account, so the
     // owners it is told are the ones it answers with. A few then reach outside (telling the directory, a follow-up's mail and
-    // push) once the account's part is done; what they write back after (directoryTold, dropPushes, followupSent) does not
+    // push) once the account's part is done; what they write back after (directoryTold, pushAnswers, followupSent) does not
     // depend on the owners, and checks the account is still the one it read.
     core.setOwners(request.headers.get('X-Owners') ?? '');
     switch (op) {

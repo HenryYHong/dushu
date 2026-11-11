@@ -350,6 +350,33 @@ describe('the review reminder', () => {
     expect(await reminders(c, token)).toEqual({ email: true, canEmail: true, devices: 0 });
   });
 
+  it('forgets a device its push service refuses three reminders in a row (a 403 never says gone), and a taken one starts the count again', async () => {
+    const answers: Record<string, number> = {};
+    const c = await server({}, (endpoint) => answers[endpoint] ?? 201);
+    const token = await reader(c, 'reader@example.com', 6);
+    const phone = 'https://fcm.googleapis.com/fcm/send/phone';
+    const tablet = 'https://web.push.apple.com/tablet';
+    for (const endpoint of [phone, tablet]) {
+      expect(await (await c.post('/me/push', { subscription: subscriptionOf(await newReceiver(), endpoint) }, token)).json()).toMatchObject({ ok: true });
+    }
+    // The tablet was made with another server key: Apple answers 403 every time. The phone has a bad week in the middle.
+    answers[tablet] = 403;
+    await c.cronAt(sixPm(5));
+    answers[phone] = 503;
+    await c.cronAt(sixPm(12));
+    delete answers[phone];
+    await c.cronAt(sixPm(19));
+    // Three refusals in a row: the tablet is forgotten; the phone's one bad week was wiped by the next that went through.
+    expect(await reminders(c, token)).toEqual({ email: true, canEmail: true, devices: 1 });
+    answers[phone] = 503;
+    await c.cronAt(sixPm(26));
+    answers[phone] = 503;
+    await c.cronAt(sixPm(33));
+    expect(await reminders(c, token)).toEqual({ email: true, canEmail: true, devices: 1 });
+    await c.cronAt(sixPm(40));
+    expect(await reminders(c, token)).toEqual({ email: true, canEmail: true, devices: 0 });
+  });
+
   it('goes to an account with no email by push only', async () => {
     const c = await server({ OWNER_EMAILS: 'owner@example.com' });
     clock = Date.UTC(2026, 10, 1, 9);

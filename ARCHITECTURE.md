@@ -1335,7 +1335,8 @@ books go through the account, and so do the reader's corrections (§4.12: names 
   newest session's `used` is 3 days old, and no reminder went out in 7 days (less 3 hours, `REMIND_SLACK_MS`, so a run that
   reaches the account a little sooner than last week's, or the evening summer time starts, still counts as a week). Both at the
   person's 6 PM. A reminder goes by Web Push to every subscription of the account (done when one push service takes it; a 404 or
-  410 forgets that subscription), else by email when there is an address and emails are on. Accounts signed out everywhere get
+  410 forgets that subscription, and so do 3 other refusals in a row, `PUSH_STRIKES`: a 403 for a subscription made with another
+  server key, an endpoint that stopped answering), else by email when there is an address and emails are on. Accounts signed out everywhere get
   nothing; passkey accounts get push only.
   - *Who and when.* The `Directory` Durable Object (one, `idFromName('directory')`, SQLite `people(id, tz, checked)`, no email)
     lists the signed-in accounts. The hourly cron (`scheduled`, `0 * * * *`) asks it to `run`: everyone whose local hour (Intl,

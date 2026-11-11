@@ -74,7 +74,16 @@ export interface PushRecord {
   added: number;
   /** The session (its hash) that added it: signing that device out stops its reminders too. */
   by?: string;
+  /** Reminders in a row its push service refused other than as gone (PushResult 'failed'); PUSH_STRIKES of them and it is forgotten. */
+  fails?: number;
 }
+
+/**
+ * A subscription its push service refuses this many reminders in a row is forgotten, as a gone one is at once. Some dead ones
+ * never say 404 or 410: FCM and Apple answer 403 to one made with another server key, and an endpoint can stop answering. A
+ * reminder a push service took starts the count again, so a bad day at one is not enough.
+ */
+export const PUSH_STRIKES = 3;
 
 /**
  * A subscription as PushSubscription.toJSON() gives it ({ endpoint, keys: { p256dh, auth } }), checked: an https URL of sane
@@ -179,7 +188,10 @@ export async function vapidAuth(endpoint: string, vapid: Vapid, now: number): Pr
 
 // ------------------------------------------------------------------ sending ---
 
-/** sent: the push service took it (201). gone: the subscription is dead (404 or 410, or its key is unusable): forget it. */
+/**
+ * sent: the push service took it (201). gone: the subscription is dead (404 or 410, or its key is unusable): forget it. failed:
+ * anything else (a 403, a 5xx, no answer): one strike toward PUSH_STRIKES.
+ */
 export type PushResult = 'sent' | 'gone' | 'failed';
 
 /**

@@ -6,7 +6,7 @@
 import { countRecord, exchange, inLang, noCounts, recordSize, shareReader, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
 import { OTHER_LANGS } from '../../src/core/syncKeys';
 import { REMIND_DUE, REMIND_EVERY_MS, REMIND_IDLE_MS, REMIND_SLACK_MS, WELCOME_AFTER_MS, WELCOME_WITHIN_MS, isMailLocale, validTimeZone, type FollowupPlan } from './followups';
-import { MAX_PUSH_DEVICES, pushSubscription, type PushRecord } from './push';
+import { MAX_PUSH_DEVICES, PUSH_STRIKES, pushSubscription, type PushRecord } from './push';
 
 export const CODE_TTL_MS = 10 * 60_000;
 export const CODE_GAP_MS = 30_000;
@@ -666,11 +666,33 @@ export class AccountCore {
     return { ok: true, devices: kept.length };
   }
 
-  /** Forgets the subscriptions whose push service said they are gone (404 or 410). */
-  dropPushes(endpoints: string[]): void {
+  /**
+   * What the push services answered a reminder: a subscription said to be gone (404 or 410) is forgotten at once, one refused
+   * any other way gets a strike and is forgotten at PUSH_STRIKES in a row, and one that took it starts its count again. Returns
+   * how many were forgotten.
+   */
+  pushAnswers(gone: string[], failed: string[], sent: string[]): number {
     const list = this.pushes();
-    const kept = list.filter((p) => !endpoints.includes(p.endpoint));
-    if (kept.length !== list.length) this.savePushes(kept);
+    let changed = false;
+    const kept: PushRecord[] = [];
+    for (const p of list) {
+      if (gone.includes(p.endpoint)) { changed = true; continue; }
+      if (failed.includes(p.endpoint)) {
+        changed = true;
+        const fails = (p.fails ?? 0) + 1;
+        if (fails < PUSH_STRIKES) kept.push({ ...p, fails });
+        continue;
+      }
+      if (sent.includes(p.endpoint) && p.fails) {
+        changed = true;
+        const { fails: _, ...fresh } = p;
+        kept.push(fresh);
+        continue;
+      }
+      kept.push(p);
+    }
+    if (changed) this.savePushes(kept);
+    return list.length - kept.length;
   }
 
   /** The secret in this account's unsubscribe link, made the first time an email needs one. */
