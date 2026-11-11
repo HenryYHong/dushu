@@ -1920,6 +1920,11 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   the app's vermilion: that is the mascot (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`); on the app's ink blue with rounded
   corners it is the logo (`ui/pengu/logo.webp`, `penguMark`), `public/icon.svg` and the PNG icons (the maskable one with Pengu
   inside the safe zone). Two of the app's colors and Pengu's grays, so it sits with the rest of the page.
+  Pengu has three poses, generated from that picture in ChatGPT so they match it (the same book in the same place): reading
+  (`pengu.webp`), waving (`art/pengu-wave.png`, `pengu-wave.webp`: the welcome, the walkthrough's first step, Review with no cards)
+  and cheering (`art/pengu-cheer.png`, `pengu-cheer.webp`: the walkthrough's last step, a review finished, the daily goal, a book
+  finished). `make-pengu.py` cuts every pose to the reading Pengu's square, so one takes another's place without Pengu moving, and
+  `preloadPengu` loads and decodes all three at the start, so a pose that changes (the walkthrough) never blinks.
   Pengu is alive (`ui/pengu.ts`, `styles/pengu.css`): the picture breathes and sways (CSS, each one from a different moment), and
   its span takes one-off moves from the Web Animations API (pop, hop, boing, cheer, duck, nod), so the two add up. It breathes
   twice as it arrives and then rests. It pops in on the welcome screen and the empty screens, pops in with the walkthrough and

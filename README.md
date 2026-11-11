@@ -2,7 +2,7 @@
 
 LinguPengu (first called Dushu, 读书, then Globereader) is a reader for learning a language from real books: Chinese, Japanese, Spanish, French, German, Italian, Portuguese and Russian, and English for Chinese speakers. The code and its data keys still say dushu.
 
-Its mascot is Pengu, a fluffy emperor penguin chick peeking over an open book in the app's vermilion: on the app's ink blue it is the logo and app icon, and as a sticker it is the one who greets you on the welcome screen, shows you around the library and the reader, and cheers when you finish a review. The picture (`art/pengu-logo.png`) was made for this app with an AI image generator; `python3 -I scripts/make-pengu.py` (needs Pillow) makes the app's images and icons from it, and `node scripts/make-icons.mjs` the link picture.
+Its mascot is Pengu, a fluffy emperor penguin chick peeking over an open book in the app's vermilion: on the app's ink blue it is the logo and app icon, and as a sticker it is the one who greets you on the welcome screen, shows you around the library and the reader, and cheers when you finish a review. The picture (`art/pengu-logo.png`) was made for this app with an AI image generator, and its waving and cheering poses (`art/pengu-wave.png`, `art/pengu-cheer.png`) from it; `python3 -I scripts/make-pengu.py` (needs Pillow) makes the app's images and icons from it, and `node scripts/make-icons.mjs` the link picture.
 
 For Chinese: open an EPUB, a text file or a PDF, or paste a chapter. Click any word to see its pinyin, English meanings and how it is built from its characters. Drag across a sentence for its pinyin and a translation. Words you save become flashcards.
 

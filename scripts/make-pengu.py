@@ -4,12 +4,17 @@
     python3 -I scripts/make-pengu.py        (needs Pillow: pip install pillow)
 
 art/pengu-logo.png is Pengu: a fluffy emperor penguin chick peeking over an open red book, in a white sticker edge, on a flat
-pale blue square (made by Henry with an AI image generator, 2026-11-11). The sticker is cut out of the blue (every pixel as
+pale blue square (made by Henry with an AI image generator, 2026-11-11). art/pengu-wave.png (a flipper raised, waving) and
+art/pengu-cheer.png (both flippers up, eyes closed happily) are the same picture in other poses, made from it the same way, the
+book and the frame unchanged: each is cut to the same square as the reading Pengu, so a pose can take another's place without
+Pengu moving. The sticker is cut out of the blue (every pixel as
 see-through as it is close to the blue, and the blue taken out of the colors along the edge, so it sits cleanly on a light or a
 dark page), and its book recolored to the app's vermilion, so Pengu wears the app's own two colors. The mascot inside the app is
 that sticker; the logo and icons are it on the app's ink blue. It writes:
 
-    src/ui/pengu/pengu.webp        the mascot, the sticker cut out (welcome, walkthrough, empty screens, Review), 512 px
+    src/ui/pengu/pengu.webp        the mascot, the sticker cut out (peeking over a card, empty screens), 512 px
+    src/ui/pengu/pengu-wave.webp   the mascot waving (the welcome, the walkthrough's first step, nothing to review), 512 px
+    src/ui/pengu/pengu-cheer.webp  the mascot cheering (a review finished, the daily goal, a book finished), 512 px
     src/ui/pengu/logo.webp         the logo: the sticker on ink blue, rounded corners (the brand mark in the bar), 192 px
     art/pengu-cutout.png           the mascot at full size, for scripts/make-icons.mjs (the link picture)
     public/icon.svg                the logo for the browser tab, a 128 px picture inside an SVG
@@ -23,6 +28,8 @@ from PIL import Image, ImageDraw
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 SRC = os.path.join(REPO, 'art', 'pengu-logo.png')
+# The other poses: the picture each comes from and the mascot image it makes.
+POSES = {'wave': 'pengu-wave', 'cheer': 'pengu-cheer'}
 SOFT = (10, 60)   # distance from the background color (RGB) at which a pixel starts to show, and at which it is solid
 INK = (0x24, 0x35, 0x54)        # the app's ink blue (styles/tokens.css --ink): the logo's ground
 VERMILION = (0xc1, 0x36, 0x16)  # the app's accent (--accent): the book
@@ -83,12 +90,12 @@ def cutout(im: Image.Image) -> Image.Image:
 
 def recolor_book(im: Image.Image) -> Image.Image:
     """The book's reds moved to the app's vermilion: hue and saturation taken from it, lightness scaled to match. Only the
-    picture's lower part, where the book is (the cheeks, also pinkish, stay as they are)."""
+    picture's lower part, where the book is (the cheeks and an open mouth, also reddish, stay as they are)."""
     th, tl, ts = colorsys.rgb_to_hls(*[c / 255 for c in VERMILION])
     out = im.copy()
     px = out.load()
     w, h = out.size
-    for y in range(int(h * 0.55), h):
+    for y in range(int(h * 0.6), h):
         for x in range(w):
             r, g, b, a = px[x, y]
             if not a:
@@ -109,9 +116,9 @@ def on_ink(sticker: Image.Image, size: int, share: float) -> Image.Image:
     return sq
 
 
-def trim_square(im: Image.Image, pad: float = 0.04) -> Image.Image:
-    """The picture cut to what is not transparent, centered in a square with a little room around it."""
-    part = im.crop(im.getbbox())
+def trim_square(im: Image.Image, pad: float = 0.04, box: tuple[int, int, int, int] | None = None) -> Image.Image:
+    """The picture cut to `box` (what is not transparent, by default), centered in a square with a little room around it."""
+    part = im.crop(box or im.getbbox())
     side = int(max(part.size) * (1 + 2 * pad))
     sq = Image.new('RGBA', (side, side), (0, 0, 0, 0))
     sq.paste(part, ((side - part.width) // 2, (side - part.height) // 2), part)
@@ -136,10 +143,18 @@ def save(im: Image.Image, path: str, size: int, **kw) -> None:
 
 def main() -> None:
     src = Image.open(SRC).convert('RGB')
-    mascot = recolor_book(trim_square(cutout(src)))
+    sticker = cutout(src)
+    box = sticker.getbbox()
+    mascot = recolor_book(trim_square(sticker, box=box))
     mascot.save(os.path.join(REPO, 'art', 'pengu-cutout.png'), optimize=True)
     print('wrote art/pengu-cutout.png')
     save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', 'pengu.webp'), 512, quality=90, method=6)
+    for name, out in POSES.items():
+        pose = cutout(Image.open(os.path.join(REPO, 'art', f'pengu-{name}.png')).convert('RGB'))
+        if pose.size != sticker.size:
+            raise SystemExit(f'art/pengu-{name}.png is {pose.size}, not {sticker.size} like art/pengu-logo.png')
+        # Cut to the reading Pengu's box, not its own: the same book in the same place in every pose.
+        save(recolor_book(trim_square(pose, box=box)), os.path.join(REPO, 'src', 'ui', 'pengu', f'{out}.webp'), 512, quality=90, method=6)
     square = on_ink(mascot, 1024, 0.86)
     logo = rounded(square)
     save(logo, os.path.join(REPO, 'src', 'ui', 'pengu', 'logo.webp'), 192, quality=90, method=6)

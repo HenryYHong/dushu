@@ -1,6 +1,7 @@
 // Pengu, LinguPengu's mascot: a fluffy emperor penguin chick peeking over an open book in the app's vermilion, a sticker
 // (art/pengu-logo.png, made into the app's images by scripts/make-pengu.py). The logo (logo.webp: the sticker on the app's ink
-// blue, rounded corners) is the brand mark in the bar and the app icons; the mascot (pengu.webp) is alive around the app:
+// blue, rounded corners) is the brand mark in the bar and the app icons; the mascot is alive around the app, in three poses
+// drawn alike (the same book in the same place, so one can take another's place): reading (pengu.webp), waving and cheering.
 //
 //   penguEl(pose, cls)        Pengu in a span: breathing and swaying gently (CSS, on the picture), a jump when tapped
 //   animatePengu(el, move)    a one-off move on that span: pop (arriving), hop, boing, cheer, duck, nod (Web Animations)
@@ -12,24 +13,35 @@
 // stops for a reader who asks for reduced motion, and does nothing where the browser cannot animate (tests).
 import '../styles/pengu.css';
 import penguUrl from './pengu/pengu.webp';
+import waveUrl from './pengu/pengu-wave.webp';
+import cheerUrl from './pengu/pengu-cheer.webp';
 import logoUrl from './pengu/logo.webp';
 
 export type PenguPose = 'stand' | 'wave' | 'cheer' | 'read';
 export type PenguMove = 'pop' | 'hop' | 'boing' | 'cheer' | 'duck' | 'nod';
 
+/** Each pose's picture: hello (the welcome, nothing to review), well done (a review, the goal, a book), and reading otherwise. */
+const POSE_URL: Record<PenguPose, string> = { stand: penguUrl, read: penguUrl, wave: waveUrl, cheer: cheerUrl };
+
 const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 const still = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Starts loading the picture early (main.ts), so Pengu never pops in late. */
+/** Starts loading the pictures early (main.ts), so Pengu never pops in late or blinks when its pose changes (the walkthrough). */
 export function preloadPengu(): void {
-  if (typeof Image === 'function') new Image().src = penguUrl;
+  if (typeof Image !== 'function') return;
+  for (const url of new Set(Object.values(POSE_URL))) {
+    const img = new Image();
+    img.src = url;
+    // Decoded ahead too, so a pose swapped in is drawn in the same frame.
+    void img.decode?.().catch(() => {});
+  }
 }
 
 /** Pengu as an <img> (HTML), breathing gently. `label` names it for screen readers; without one it is decoration, hidden from them. */
 export function penguHtml(pose: PenguPose = 'stand', label = ''): string {
   // Each Pengu starts its breath at a different moment, so two on one screen never move in step.
   const delay = `${-(Math.random() * 4).toFixed(2)}s`;
-  return `<img class="pengu pengu-${pose} pengu-idle" style="animation-delay:${delay}" src="${penguUrl}" alt="${attr(label)}"${label ? '' : ' aria-hidden="true"'} draggable="false" decoding="async">`;
+  return `<img class="pengu pengu-${pose} pengu-idle" style="animation-delay:${delay}" src="${POSE_URL[pose]}" alt="${attr(label)}"${label ? '' : ' aria-hidden="true"'} draggable="false" decoding="async">`;
 }
 
 /** The logo (the brand mark): Pengu over its book on the ink blue square, as an <img> (HTML), hidden from screen readers. */
