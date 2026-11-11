@@ -179,17 +179,22 @@ describe('the welcome dialog', () => {
     const group = dialog()!.querySelector('[role=radiogroup]')!;
     expect(group.getAttribute('aria-label')).toBe('Daily goal');
     const radios = [...group.querySelectorAll<HTMLButtonElement>('[role=radio]')];
-    expect(radios.map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false', 'false']);
-    expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1, -1, -1]);
+    expect(radios.map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false', 'false', 'false']);
+    expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1, -1, -1, -1]);
     radios[1].focus();
     radios[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
     expect(document.activeElement).toBe(radios[2]);
     expect(radios[2].getAttribute('aria-checked')).toBe('true');
     radios[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
-    expect(radios[4].getAttribute('aria-checked')).toBe('true');
-    expect(radios.map((r) => r.tabIndex)).toEqual([-1, -1, -1, -1, 0]);
+    // The last is Custom: its field shows, for any number of minutes.
+    expect(radios[5].getAttribute('aria-checked')).toBe('true');
+    expect(radios.map((r) => r.tabIndex)).toEqual([-1, -1, -1, -1, -1, 0]);
+    const own = dialog()!.querySelector<HTMLInputElement>('.goal-input')!;
+    expect(own.closest<HTMLElement>('.goal-own')!.hidden).toBe(false);
+    own.value = '45';
+    own.dispatchEvent(new Event('change'));
     primary().click();
-    expect(getPlan().goal).toBe(30);
+    expect(getPlan().goal).toBe(45);
   });
 
   it('says English once on the English card', () => {

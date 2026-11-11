@@ -2284,5 +2284,16 @@
  "Your books live here. Start with a free classic, or add your own.": "Qui ci sono i tuoi libri. Inizia con un classico gratuito o aggiungi i tuoi.",
  "Your language, your daily goal, translators and sync.": "La tua lingua, il tuo obiettivo giornaliero, i traduttori e la sincronizzazione.",
  "Looking it up…": "Ricerca in corso…",
- "A rare word, from the full ECDICT dictionary.": "Una parola rara, dal dizionario ECDICT completo."
+ "A rare word, from the full ECDICT dictionary.": "Una parola rara, dal dizionario ECDICT completo.",
+ "Custom": "Personalizzato",
+ "Custom…": "Personalizzato…",
+ "Detailed": "Dettagliato",
+ "Flashcard buttons": "Pulsanti delle schede",
+ "Forgot": "Dimenticata",
+ "Got it [remembered]": "Ricordata",
+ "Minutes a day": "Minuti al giorno",
+ "Simple": "Semplice",
+ "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "Semplice chiede solo se te la ricordavi: Dimenticata o Ricordata. Dettagliato ha i quattro di Anki, Ripeti, Difficile, Bene e Facile, ognuno con quando torna la scheda. Vale solo per questo dispositivo.",
+ "Your own": "Il tuo",
+ "min a day": "min al giorno"
 }

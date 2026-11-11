@@ -1720,6 +1720,17 @@
    "src/ui/about/about.ts"
   ]
  },
+ "Custom": {
+  "where": [
+   "src/ui/settings/learning.ts",
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Custom…": {
+  "where": [
+   "src/ui/goalCard.ts"
+  ]
+ },
  "Cycle pinyin: off, all, unknown, HSK": {
   "where": [
    "src/ui/shortcuts.ts"
@@ -1845,6 +1856,11 @@
  "Deleting…": {
   "where": [
    "src/ui/settings/account.ts"
+  ]
+ },
+ "Detailed": {
+  "where": [
+   "src/ui/settings/settings.ts"
   ]
  },
  "Details": {
@@ -2299,6 +2315,11 @@
    "src/ui/popup/wordView.ts"
   ]
  },
+ "Flashcard buttons": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
  "Flip": {
   "where": [
    "src/ui/reader/menus.ts",
@@ -2314,6 +2335,11 @@
  "For Chinese speakers": {
   "where": [
    "src/ui/welcome.ts"
+  ]
+ },
+ "Forgot": {
+  "where": [
+   "src/ui/review/review.ts"
   ]
  },
  "Forty-five short fables in rhyming verse, including The Crow and the Fox and The Tortoise and the Hare. Animals talk, and each story has a moral.": {
@@ -2506,6 +2532,11 @@
   "where": [
    "src/ui/library/library.ts",
    "src/ui/vocab/practice.ts"
+  ]
+ },
+ "Got it [remembered]": {
+  "where": [
+   "src/ui/review/review.ts"
   ]
  },
  "Grade {grade}": {
@@ -3410,6 +3441,11 @@
  "Menu": {
   "where": [
    "src/ui/reader/menus.ts"
+  ]
+ },
+ "Minutes a day": {
+  "where": [
+   "src/ui/goalInput.ts"
   ]
  },
  "Minutes of reading or review a day, in any language. Each day you reach it adds to your streak.": {
@@ -5485,6 +5521,16 @@
  "Signing in…": {
   "where": [
    "src/ui/settings/account.ts"
+  ]
+ },
+ "Simple": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": {
+  "where": [
+   "src/ui/settings/settings.ts"
   ]
  },
  "Simplified": {
@@ -7955,6 +8001,11 @@
    "src/ui/review/review.ts"
   ]
  },
+ "Your own": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
  "Your own Mac": {
   "where": [
    "src/ui/about/about.ts"
@@ -8324,6 +8375,11 @@
  "masculine or feminine": {
   "where": [
    "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "min a day": {
+  "where": [
+   "src/ui/goalInput.ts"
   ]
  },
  "name": {

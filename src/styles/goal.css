@@ -42,3 +42,6 @@
   .goal-today { grid-row: 3; }
   .goal-set { grid-row: 4; }
 }
+.goal-set { flex-wrap: wrap; }
+.goal-set-pick { display: inline-flex; align-items: center; gap: 6px; }
+.goal-own-card .goal-input { height: 30px; padding: 0 8px; font-size: 13px; }

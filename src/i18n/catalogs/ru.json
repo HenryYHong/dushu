@@ -2395,5 +2395,16 @@
  "Your books live here. Start with a free classic, or add your own.": "Здесь хранятся ваши книги. Начните с бесплатной классики или добавьте свои.",
  "Your language, your daily goal, translators and sync.": "Ваш язык, цель на день, переводчики и синхронизация.",
  "Looking it up…": "Ищем…",
- "A rare word, from the full ECDICT dictionary.": "Редкое слово из полного словаря ECDICT."
+ "A rare word, from the full ECDICT dictionary.": "Редкое слово из полного словаря ECDICT.",
+ "Custom": "Свой",
+ "Custom…": "Свой…",
+ "Detailed": "Подробно",
+ "Flashcard buttons": "Кнопки карточек",
+ "Forgot": "Забыл",
+ "Got it [remembered]": "Помню",
+ "Minutes a day": "Минут в день",
+ "Simple": "Просто",
+ "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "«Просто» спрашивает только, помните ли вы: «Забыл» или «Помню». «Подробно» — четыре кнопки Anki: «Снова», «Трудно», «Хорошо» и «Легко», у каждой видно, когда карточка вернётся. Только для этого устройства.",
+ "Your own": "Своя цель",
+ "min a day": "мин в день"
 }

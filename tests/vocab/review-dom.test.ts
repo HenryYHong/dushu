@@ -30,6 +30,8 @@ async function setup(words: ReturnType<typeof item>[]) {
     settings: createSettingsStore(), store, navigate: () => {},
     toast: (m) => { toasts.push(m); },
   };
+  // Anki's four buttons, with their times; the simple pair has its own test below.
+  ctx.settings.set({ reviewButtons: 'detailed' });
   const root = document.createElement('div');
   document.body.replaceChildren(root);
   return { store, ctx, root, toasts };
@@ -38,6 +40,26 @@ async function setup(words: ReturnType<typeof item>[]) {
 beforeEach(() => { localStorage.clear(); });
 
 describe('review screen', () => {
+  it('simple buttons: Forgot and Got it, no times; 1 forgets, 2 (or Anki’s 3) remembers', async () => {
+    const { ctx, root } = await setup([item('你好', 'ni3 hao3', 'hello'), item('爱', 'ai4', 'to love')]);
+    ctx.settings.set({ reviewButtons: 'simple' });
+    const cleanup = await mountReview(root, {}, ctx) as () => void;
+    try {
+      await tick();
+      const first = root.querySelector('.rev-word')!.textContent;
+      key(' ');
+      expect([...root.querySelectorAll('.rev-grade-label')].map((e) => e.textContent)).toEqual(['Forgot', 'Got it']);
+      expect(root.querySelectorAll('.rev-grade-iv').length).toBe(0);
+      // Got it is Anki's Good: a new card moves on (and comes back once more later in the session, as Good does).
+      key('3'); await tick();
+      expect(root.querySelector<HTMLElement>('.rev-back')!.hidden).toBe(true);
+      expect(root.querySelector('.rev-word')!.textContent).not.toBe(first);
+      key(' ');
+      key('1'); await tick();
+      expect(root.querySelector<HTMLElement>('.rev-back')!.hidden).toBe(true);
+    } finally { cleanup(); }
+  });
+
   it('keyboard-only: space reveals, 3 grades, summary at the end', async () => {
     const { store, ctx, root } = await setup([item('你好', 'ni3 hao3', 'hello', { context: { sentence: '他说你好。' } }), item('爱', 'ai4', 'to love')]);
     const cleanup = await mountReview(root, {}, ctx) as () => void;

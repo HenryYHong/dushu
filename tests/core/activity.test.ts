@@ -70,7 +70,10 @@ describe('the streak', () => {
     expect(parseActKey(actKey(TODAY, 'abc123def0'))).toEqual({ day: TODAY, device: 'abc123def0' });
     expect(parseActKey('l:2026-11-07:word')).toBeNull();
     expect(parseActKey('l:act:2026-11-07:Bad Device')).toBeNull();
-    expect(cleanDay({ s: { es: -5, fr: 'x', de: 1e9 }, g: 7 })).toEqual({ s: { de: 86400 }, g: 10, t: 0 });
+    expect(cleanDay({ s: { es: -5, fr: 'x', de: 1e9 }, g: 7.5 })).toEqual({ s: { de: 86400 }, g: 10, t: 0 });
+    // Any whole number of minutes up to four hours is a goal (Custom).
+    expect(cleanDay({ s: { de: 60 }, g: 7 })?.g).toBe(7);
+    expect(cleanDay({ s: { de: 60 }, g: 241 })?.g).toBe(10);
     expect(cleanDay('nope')).toBeNull();
     expect(dayOf(at('2026-01-02', 0))).toBe('2026-01-02');
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
@@ -168,6 +171,6 @@ describe('the welcome screen', () => {
     const reader = memoryStorage({ 'dushu.settings.v1': '{}' });
     expect(needsWelcome(reader)).toBe(false);
     expect(getPlan(reader).welcomed).toBeGreaterThan(0);
-    expect(getPlan(memoryStorage({ 'dushu.plan.v1': '{"langs":["xx","fr"],"goal":7}' }))).toEqual({ langs: ['fr'], goal: 10, goalAt: 0, welcomed: 0 });
+    expect(getPlan(memoryStorage({ 'dushu.plan.v1': '{"langs":["xx","fr"],"goal":0}' }))).toEqual({ langs: ['fr'], goal: 10, goalAt: 0, welcomed: 0 });
   });
 });

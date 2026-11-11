@@ -2055,5 +2055,16 @@
  "Your books live here. Start with a free classic, or add your own.": "你的書都在這裡。可以從一本免費的經典開始，或加入你自己的書。",
  "Your language, your daily goal, translators and sync.": "你的語言、每日目標、翻譯服務和同步。",
  "Looking it up…": "正在查詢…",
- "A rare word, from the full ECDICT dictionary.": "罕見詞，出自完整版 ECDICT 詞典。"
+ "A rare word, from the full ECDICT dictionary.": "罕見詞，出自完整版 ECDICT 詞典。",
+ "Custom": "自訂",
+ "Custom…": "自訂…",
+ "Detailed": "詳細",
+ "Flashcard buttons": "複習卡按鈕",
+ "Forgot": "忘了",
+ "Got it [remembered]": "記得",
+ "Minutes a day": "每天分鐘數",
+ "Simple": "簡單",
+ "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "簡單：只問你記不記得，「忘了」或「記得」。詳細：Anki 的四個按鈕，「重來」「困難」「良好」「簡單」，並顯示卡片下次出現的時間。只對這台裝置有效。",
+ "Your own": "自己訂",
+ "min a day": "分鐘/天"
 }

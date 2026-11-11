@@ -106,12 +106,15 @@ export const mount: MountFn = (root, params, ctx) => {
   // The language being read. Each one keeps its own books, words and settings; switching opens its library. Then what the
   // reader is learning and the daily goal (core/plan.ts).
   const learning = learningControls(ctx);
+  const reviewButtons = add(segmented('reviewButtons', tt('Flashcard buttons'), [
+    { value: 'simple', label: tt('Simple') }, { value: 'detailed', label: tt('Detailed') }], set('reviewButtons')));
   const language = group(tt('Learning'), null,
     row(tt('Your language'), tt('The app is shown in it, and sentences are translated into it.'), learning.own, 'set-ui-lang'),
     row(tt('Reading in'), tt('Each language keeps its own library, words and settings, and syncs them on its own.'),
       { el: langSelect('select'), update: () => {} }),
     row(tt('Languages you are learning'), tt('These come first when you switch languages.'), learning.langs),
     row(tt('Daily goal'), tt('Minutes of reading or review a day, in any language. Each day you reach it adds to your streak.'), learning.goal),
+    row(tt('Flashcard buttons'), tt('Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.'), reviewButtons),
     row(tt('Welcome screen'), tt('Choose your languages, translation language and goal again, step by step.'), learning.welcome),
     row(tt('Walkthrough'), tt('A tour of the library, then of the reader the next time you open a book.'), learning.walkthrough));
   // The word cards' meanings in the reader's language (translate/meanings.ts). Shown only when that is not the dictionary's.

@@ -2065,5 +2065,16 @@
  "Your books live here. Start with a free classic, or add your own.": "책은 여기에 모여요. 무료 고전으로 시작하거나 내 책을 추가하세요.",
  "Your language, your daily goal, translators and sync.": "내 언어, 하루 목표, 번역기, 동기화.",
  "Looking it up…": "찾는 중…",
- "A rare word, from the full ECDICT dictionary.": "드문 단어예요. 전체 ECDICT 사전에서 가져왔어요."
+ "A rare word, from the full ECDICT dictionary.": "드문 단어예요. 전체 ECDICT 사전에서 가져왔어요.",
+ "Custom": "직접 설정",
+ "Custom…": "직접 설정…",
+ "Detailed": "자세히",
+ "Flashcard buttons": "플래시카드 버튼",
+ "Forgot": "잊었어요",
+ "Got it [remembered]": "기억했어요",
+ "Minutes a day": "하루 몇 분",
+ "Simple": "간단히",
+ "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "간단히는 기억했는지만 물어요: 잊었어요 또는 기억했어요. 자세히는 Anki의 네 가지(다시, 어려움, 알맞음, 쉬움)와 카드가 다시 나오는 때를 보여 줘요. 이 기기에서만 적용돼요.",
+ "Your own": "직접 정해요",
+ "min a day": "분/일"
 }

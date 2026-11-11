@@ -7,6 +7,7 @@ import { langId } from '../../lang/active';
 import { ACTIVITY_EVENT, GOALS } from '../../core/activity';
 import { getPlan, setPlan } from '../../core/plan';
 import { radioGroup } from './controls';
+import { goalInput } from '../goalInput';
 import { markReaderGuide, markSiteGuide } from '../guide';
 import { UI_LANGS, UI_NAMES, chooseUiLang, langName, tt, ttn, uiLang } from '../../i18n';
 
@@ -34,7 +35,17 @@ export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HT
   const langs = h('div.set-learn', { role: 'group', 'aria-label': tt('Languages you are learning') }, chips);
 
   // The goal is the plan's, not a setting: the same radio group as the settings' segmented controls (arrow keys, one tab stop).
-  const goal = radioGroup(tt('Daily goal'), GOALS.map((g) => ({ value: g as number, label: ttn(g, '{n} min', '{n} min') })), (g) => setPlan({ goal: g }));
+  // Custom (0) shows a field for any number of minutes.
+  const ownGoal = goalInput(25, (g) => setPlan({ goal: g }));
+  const goalRadios = radioGroup(tt('Daily goal'), [...GOALS.map((g) => ({ value: g as number, label: ttn(g, '{n} min', '{n} min') })), { value: 0, label: tt('Custom') }],
+    (g) => {
+      if (g) { setPlan({ goal: g }); return; }
+      ownGoal.el.hidden = false;
+      goalRadios.select(0);
+      ownGoal.input.focus();
+      setPlan({ goal: ownGoal.value() });
+    });
+  const goal = { el: h('div.set-goal', null, goalRadios.el, ownGoal.el) };
 
   const welcome = h('button.btn', { type: 'button', onclick: () => {
     void import('../welcome').then((m) => m.showWelcome(ctx.settings, { current: langId(), again: true }));
@@ -50,7 +61,10 @@ export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HT
   const draw = () => {
     const plan = getPlan();
     chips.forEach((b, i) => b.setAttribute('aria-pressed', String(plan.langs.includes(LANG_IDS[i]))));
-    goal.select(plan.goal);
+    const offered = (GOALS as readonly number[]).includes(plan.goal);
+    goalRadios.select(offered ? plan.goal : 0);
+    ownGoal.el.hidden = offered && document.activeElement !== ownGoal.input;
+    if (!offered) ownGoal.show(plan.goal);
   };
   draw();
   window.addEventListener(ACTIVITY_EVENT, draw);

@@ -2172,5 +2172,16 @@
  "Your books live here. Start with a free classic, or add your own.": "Hier sind deine Bücher. Starte mit einem kostenlosen Klassiker oder füge eigene hinzu.",
  "Your language, your daily goal, translators and sync.": "Deine Sprache, dein Tagesziel, Übersetzer und Sync.",
  "Looking it up…": "Wird nachgeschlagen …",
- "A rare word, from the full ECDICT dictionary.": "Ein seltenes Wort, aus dem vollständigen ECDICT-Wörterbuch."
+ "A rare word, from the full ECDICT dictionary.": "Ein seltenes Wort, aus dem vollständigen ECDICT-Wörterbuch.",
+ "Custom": "Eigenes",
+ "Custom…": "Eigenes …",
+ "Detailed": "Ausführlich",
+ "Flashcard buttons": "Karteikarten-Tasten",
+ "Forgot": "Vergessen",
+ "Got it [remembered]": "Gewusst",
+ "Minutes a day": "Minuten pro Tag",
+ "Simple": "Einfach",
+ "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "Einfach fragt nur, ob du es wusstest: Vergessen oder Gewusst. Ausführlich hat Ankis vier, Nochmal, Schwer, Gut und Leicht, jeweils mit dem Zeitpunkt, wann die Karte wiederkommt. Gilt nur für dieses Gerät.",
+ "Your own": "Dein eigenes",
+ "min a day": "Min. pro Tag"
 }

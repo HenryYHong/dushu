@@ -11,9 +11,13 @@ import { ACT_PREFIX } from './syncKeys';
 export const ACTIVITY_KEY = 'dushu.activity.v1';
 /** Fired on window when the time or the goal changes here (or arrives from another device). */
 export const ACTIVITY_EVENT = 'dushu:activity';
-/** The goals to choose from, in minutes a day. */
+/** The goals offered, in minutes a day. Any whole number of minutes up to GOAL_MAX can be chosen as well (Custom). */
 export const GOALS = [5, 10, 15, 20, 30] as const;
 export const DEFAULT_GOAL = 10;
+/** The longest goal a reader can set, in minutes a day: four hours. */
+export const GOAL_MAX = 240;
+/** A daily goal in minutes: a whole number from 1 to GOAL_MAX. */
+export const isGoal = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= GOAL_MAX;
 /** Days kept on the device (the calendar and the best streak), and days sent with a sync. */
 const KEEP_DAYS = 400;
 export const SYNC_DAYS = 60;
@@ -50,7 +54,7 @@ export function cleanDay(v: unknown): DayRecord | null {
   for (const [lang, sec] of Object.entries(r.s as Record<string, unknown>)) {
     if (/^[a-z]{2}$/.test(lang) && typeof sec === 'number' && Number.isFinite(sec) && sec > 0) s[lang] = Math.min(DAY_MAX, Math.round(sec));
   }
-  const g = typeof r.g === 'number' && (GOALS as readonly number[]).includes(r.g) ? r.g : DEFAULT_GOAL;
+  const g = isGoal(r.g) ? r.g : DEFAULT_GOAL;
   const t = typeof r.t === 'number' && Number.isFinite(r.t) && r.t > 0 ? r.t : 0;
   return { s, g, t };
 }

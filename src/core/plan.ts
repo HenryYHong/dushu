@@ -4,7 +4,7 @@
 // same goal.
 import { isLangId } from '../lang/registry';
 import type { LangId } from '../lang/types';
-import { ACTIVITY_EVENT, DEFAULT_GOAL, GOALS, setTodayGoal } from './activity';
+import { ACTIVITY_EVENT, DEFAULT_GOAL, isGoal, setTodayGoal } from './activity';
 
 export const PLAN_KEY = 'dushu.plan.v1';
 /** Fired on window when the goal is changed here (not when it arrives from another device): the syncer sends it. */
@@ -30,7 +30,7 @@ export function getPlan(store = storage()): Plan {
   try { raw = JSON.parse(store?.getItem(PLAN_KEY) ?? 'null'); } catch { /* start again */ }
   const p = (raw && typeof raw === 'object' ? raw : {}) as { langs?: unknown; goal?: unknown; goalAt?: unknown; welcomed?: unknown };
   const langs = Array.isArray(p.langs) ? [...new Set(p.langs.filter(isLangId))] : [];
-  const goal = typeof p.goal === 'number' && (GOALS as readonly number[]).includes(p.goal) ? p.goal : DEFAULT_GOAL;
+  const goal = isGoal(p.goal) ? p.goal : DEFAULT_GOAL;
   const welcomed = typeof p.welcomed === 'number' && Number.isFinite(p.welcomed) ? p.welcomed : 0;
   const goalAt = goal === p.goal && typeof p.goalAt === 'number' && Number.isFinite(p.goalAt) && p.goalAt > 0 ? p.goalAt : 0;
   return { langs, goal, goalAt, welcomed };

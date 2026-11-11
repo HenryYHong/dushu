@@ -24,7 +24,7 @@ import { BRIDGE_EVENT, bridgeBase, bridgeFetch, hasMacBridge } from './macBridge
 import { CLOUD_EVENT, accountInfo, accountMark, cloudFetch, cloudSession, forgetSession, isAccountOwner } from './cloud';
 import { FIX_KEY, GOAL_KEY, SYNCED_SETTINGS, bookKey, canonical, fixKey, hash, isFixKey, isSyncedSetting, langPrefix, librarySettings, lookupKey, mergeLookups, olderKeys, parseLookupKey, progressWire } from './syncKeys';
 import { cleanFix, fixWire } from './fixRecord';
-import { GOALS, SYNC_DAYS, actKey, addDays, cleanDay, dayOf, isActKey, mergeRecord, parseActKey, syncRecords } from './activity';
+import { isGoal, SYNC_DAYS, actKey, addDays, cleanDay, dayOf, isActKey, mergeRecord, parseActKey, syncRecords } from './activity';
 import { GOAL_EVENT, getPlan, setPlan } from './plan';
 
 export { bookKey, canonical, hash };
@@ -56,10 +56,10 @@ export { SYNCED_SETTINGS };
 // Every name there is a setting.
 const _settingNames: readonly (keyof Settings)[] = SYNCED_SETTINGS;
 void _settingNames;
-/** A synced goal's minutes, when it is one of GOALS. */
+/** A synced goal's minutes, when it is one (any whole number of minutes from 1 to GOAL_MAX). */
 function goalOf(data: unknown): number | null {
   const g = data && typeof data === 'object' ? (data as { g?: unknown }).g : undefined;
-  return typeof g === 'number' && (GOALS as readonly number[]).includes(g) ? g : null;
+  return isGoal(g) ? g : null;
 }
 /** A setting's value as it travels, checked; undefined when it is not one Dushu can use, or not one this library syncs. */
 function settingHere(name: string, data: unknown, lang: LangId): { v: unknown } | undefined {

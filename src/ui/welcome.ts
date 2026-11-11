@@ -9,6 +9,7 @@ import { LANGS, LANG_IDS } from '../lang/registry';
 import type { LangId } from '../lang/types';
 import { switchLang } from '../lang/active';
 import { GOALS } from '../core/activity';
+import { goalInput } from './goalInput';
 import { getPlan, setPlan, type Plan } from '../core/plan';
 import { TARGET_LANGUAGES, isOwnLanguage, targetFor, targetLanguage, type TargetLanguage } from '../translate/targets';
 import { markLangChoice } from './langSwitch';
@@ -189,15 +190,26 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
     };
 
     const stepGoal = () => {
-      const at = Math.max(0, GOALS.indexOf(goal as (typeof GOALS)[number]));
-      const buttons = GOALS.map((g, i) => h('button.wel-goal', { type: 'button', role: 'radio', 'aria-checked': String(i === at), tabindex: i === at ? 0 : -1 },
-        h('span.wel-goal-min', null, tt('{min} min', { min: num(g) })), h('span.wel-goal-name', null, GOAL_NAMES[g] ? tt(GOAL_NAMES[g]) : '')) as HTMLButtonElement);
-      const pick = (i: number) => {
-        goal = GOALS[i];
+      // The goals offered, then Custom: any number of minutes, in the field under the row.
+      const offered = (GOALS as readonly number[]).includes(goal);
+      const at = offered ? GOALS.indexOf(goal as (typeof GOALS)[number]) : GOALS.length;
+      const own = goalInput(offered ? 25 : goal, (g) => { goal = g; keep({ goal }); }, 'wel-goal-own');
+      own.el.hidden = offered;
+      const buttons = [
+        ...GOALS.map((g, i) => h('button.wel-goal', { type: 'button', role: 'radio', 'aria-checked': String(i === at), tabindex: i === at ? 0 : -1 },
+          h('span.wel-goal-min', null, tt('{min} min', { min: num(g) })), h('span.wel-goal-name', null, GOAL_NAMES[g] ? tt(GOAL_NAMES[g]) : '')) as HTMLButtonElement),
+        h('button.wel-goal', { type: 'button', role: 'radio', 'aria-checked': String(at === GOALS.length), tabindex: at === GOALS.length ? 0 : -1 },
+          h('span.wel-goal-min', null, tt('Custom')), h('span.wel-goal-name', null, tt('Your own'))) as HTMLButtonElement,
+      ];
+      const pick = (i: number, typing = false) => {
+        const custom = i === GOALS.length;
+        goal = custom ? own.value() : GOALS[i];
+        own.el.hidden = !custom;
         keep({ goal });
         buttons.forEach((b, j) => { b.setAttribute('aria-checked', String(j === i)); b.tabIndex = j === i ? 0 : -1; });
+        if (custom && typing) own.input.focus();
       };
-      buttons.forEach((b, i) => b.addEventListener('click', () => pick(i)));
+      buttons.forEach((b, i) => b.addEventListener('click', () => pick(i, true)));
       const group = h('div.wel-goals', { role: 'radiogroup', 'aria-label': tt('Daily goal') }, buttons);
       // A radio group: one tab stop, and the arrows move the choice.
       group.addEventListener('keydown', (ev) => {
@@ -217,6 +229,7 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         h('h2.wel-q', null, tt('Set a daily goal')),
         h('p.wel-help', null, tt('Minutes of reading or review a day. Hit it every day to build a streak. You can change it later.')),
         group,
+        own.el,
         foot(true, true, finish),
       ];
     };

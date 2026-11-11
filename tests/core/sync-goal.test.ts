@@ -82,9 +82,9 @@ describe('the daily goal between devices', () => {
     expect(s.status().pending).toBe(0);
   });
 
-  it('passes over a goal that is not one of the choices', async () => {
+  it('passes over a goal that is not one (a fraction, or more than four hours), and takes one of the reader’s own', async () => {
     const h = hub();
-    h.data.set(GOAL_KEY, { at: Date.now(), data: { g: 7 }, rev: ++h.version });
+    h.data.set(GOAL_KEY, { at: Date.now(), data: { g: 999 }, rev: ++h.version });
     const s = device(await open(), h);
     await s.run();
     expect(getPlan().goal).toBe(10);

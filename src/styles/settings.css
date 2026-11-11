@@ -222,3 +222,8 @@
 @media (hover: hover) { .set-learn-chip:hover { border-color: var(--text-3); color: var(--text); } }
 .set-learn-chip[aria-pressed='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--text); }
 @media (max-width: 640px) { .set-learn { justify-content: flex-start; max-width: none; } }
+
+/* The daily goal: the offered minutes and Custom, with the field for one's own beside them. */
+.set-goal { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+/* Six choices (five goals and Custom) may not fit a phone's row in a longer language: they wrap instead of running off. */
+.set-goal .set-seg { flex-wrap: wrap; max-width: 100%; }

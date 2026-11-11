@@ -466,6 +466,11 @@ export interface Settings {
    * has), so it does not sync.
    */
   translateMeanings: 'auto' | 'always' | 'ask' | 'never';
+  /**
+   * The flashcards' answer buttons: 'simple' is Forgot or Got it, with no times; 'detailed' is Again, Hard, Good and Easy, each with
+   * when the card comes back (Anki's four). This device's, so it does not sync.
+   */
+  reviewButtons: 'simple' | 'detailed';
   ttsVoice: string;
   ttsRate: number;
   /** scroll = one long column per chapter; pages = paginated like a printed book (Apple Books style). */

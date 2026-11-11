@@ -26,6 +26,8 @@ async function setup() {
     dict: () => Promise.resolve(dict), dictSync: () => dict,
     settings: createSettingsStore(), store, navigate: () => {}, toast: () => {},
   };
+  // Anki's four buttons: these tests grade Easy (4), which the simple pair does not have.
+  ctx.settings.set({ reviewButtons: 'detailed' });
   const root = document.createElement('div');
   document.body.replaceChildren(root);
   return { store, ctx, root };

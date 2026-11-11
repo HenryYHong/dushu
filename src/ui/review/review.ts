@@ -12,13 +12,20 @@ import { pageTitle } from '../pageHead';
 import { celebrate } from './celebrate';
 import { describeNextDue, ReviewSession } from './queue';
 import { reviewCards, reviewParts } from './learning';
-import { num, tt, ttm, ttn } from '../../i18n';
+import { num, tt, ttm, ttn, ttx } from '../../i18n';
 
 const GRADES: { grade: Grade; key: 'again' | 'hard' | 'good' | 'easy'; label: string }[] = [
   { grade: 0, key: 'again', label: ttm('Again') },
   { grade: 1, key: 'hard', label: ttm('Hard') },
   { grade: 2, key: 'good', label: ttm('Good') },
   { grade: 3, key: 'easy', label: ttm('Easy') },
+];
+
+/** The simple buttons (Settings › Flashcard buttons): Forgot is Again, Got it is Good. No times, keys 1 and 2. */
+const SIMPLE: { grade: Grade; key: 'again' | 'good'; label: () => string }[] = [
+  { grade: 0, key: 'again', label: () => tt('Forgot') },
+  // "Got it" as in "I remembered it", not the button that puts a tip away.
+  { grade: 2, key: 'good', label: () => ttx('Got it', 'remembered') },
 ];
 
 const pct = (x: number) => tt('{n}%', { n: num(Math.round(x * 100)) });
@@ -133,11 +140,16 @@ export const mount: MountFn = (root, _params, ctx) => {
       tt('Show answer'), h('span.kbd', null, tt('Space')));
 
     const iv = nextIntervals(cur.srs, Date.now());
-    const grades = h('div.rev-grades', { hidden: !revealed, role: 'group', 'aria-label': tt('How well did you remember it?') },
-      GRADES.map((g) => h('button', { type: 'button', class: `rev-grade rev-grade-${g.key}`, onclick: (e: Event) => { e.stopPropagation(); void grade(g.grade); } },
-        h('span.rev-grade-label', null, tt(g.label)),
-        h('span.rev-grade-iv', null, iv[g.key]),
-        h('span.rev-grade-key.kbd', null, String(g.grade + 1)))));
+    const simple = settings.reviewButtons !== 'detailed';
+    const grades = h(simple ? 'div.rev-grades.rev-grades-simple' : 'div.rev-grades', { hidden: !revealed, role: 'group', 'aria-label': tt('How well did you remember it?') },
+      simple
+        ? SIMPLE.map((g, i) => h('button', { type: 'button', class: `rev-grade rev-grade-${g.key}`, onclick: (e: Event) => { e.stopPropagation(); void grade(g.grade); } },
+          h('span.rev-grade-label', null, g.label()),
+          h('span.rev-grade-key.kbd', null, String(i + 1))))
+        : GRADES.map((g) => h('button', { type: 'button', class: `rev-grade rev-grade-${g.key}`, onclick: (e: Event) => { e.stopPropagation(); void grade(g.grade); } },
+          h('span.rev-grade-label', null, tt(g.label)),
+          h('span.rev-grade-iv', null, iv[g.key]),
+          h('span.rev-grade-key.kbd', null, String(g.grade + 1)))));
 
     const card = h('div.card.rev-card', {
       tabindex: -1, role: 'group', 'aria-label': tt('Card {n} of {total}', { n: session.done + 1, total: session.total }),
@@ -216,7 +228,9 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('p.muted', null, tt('{a}, {b}', { a: ttn(s.cards, '{n} card', '{n} cards'), b: ttn(s.reviews, '{n} answer', '{n} answers') })),
       h('div.rev-stats', null,
         stat(pct(s.recall), tt('Remembered')),
-        ...GRADES.map((g) => stat(String(s.grades[g.grade]), tt(g.label))),
+        ...(settings.reviewButtons !== 'detailed'
+          ? [stat(String(s.grades[0]), SIMPLE[0].label()), stat(String(s.grades[1] + s.grades[2] + s.grades[3]), SIMPLE[1].label())]
+          : GRADES.map((g) => stat(String(s.grades[g.grade]), tt(g.label)))),
       ),
       // Looked-up words are new cards, not due ones: said apart, as Vocabulary says them.
       h('p.rev-next', null, parts.due && parts.fresh
@@ -249,10 +263,12 @@ export const mount: MountFn = (root, _params, ctx) => {
       if (!revealed) revealCurrent();
       return;
     }
+    // Simple: 1 is Forgot, and 2 (or Anki's 3 and 4) Got it.
+    const simple = settings.reviewButtons !== 'detailed';
     if (e.key >= '1' && e.key <= '4') {
       if (!revealed) return;
       e.preventDefault();
-      void grade((Number(e.key) - 1) as Grade);
+      void grade(simple ? (e.key === '1' ? SIMPLE[0].grade : SIMPLE[1].grade) : (Number(e.key) - 1) as Grade);
     } else if (e.key === 'p' || e.key === 'P') {
       speakNow();
     }

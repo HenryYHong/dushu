@@ -425,3 +425,8 @@ dialog.modal:focus { outline: none; }
 /* Japanese text anywhere in the interface (a word card, a saved word) takes a Japanese face, not the Chinese ones the interface
    stack lists first: the same kanji are drawn differently. Zero specificity, so any rule that sets a face still wins. */
 :where(:root[data-lang='ja'] [lang|='ja']) { font-family: var(--font-book); }
+
+/* A goal of the reader's own (ui/goalInput.ts): the minutes, then "min a day". */
+.goal-own { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 14px; color: var(--text-2); }
+.goal-own[hidden] { display: none; }
+.goal-own .goal-input { width: 5.5em; text-align: right; font-variant-numeric: tabular-nums; }

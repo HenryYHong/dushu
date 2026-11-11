@@ -43,6 +43,10 @@
 @media (hover: hover) { .rev-grade:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); } }
 .rev-grade:active { transform: scale(0.98); }
 .rev-grade-label { font-weight: 600; font-size: 14.5px; }
+/* The simple pair (Forgot, Got it): two wide buttons with bigger words and no times. */
+.rev-grades-simple { grid-template-columns: repeat(2, 1fr); }
+.rev-grades-simple .rev-grade { padding: 16px 8px 10px; }
+.rev-grades-simple .rev-grade-label { font-size: 16.5px; }
 .rev-grade-iv { font-size: 13px; color: var(--text-2); }
 .rev-grade-key { margin-top: 4px; color: var(--text-3); }
 /* Each grade has a color bar and a label in the same color: red, amber, green, blue, from "again" to "easy". */

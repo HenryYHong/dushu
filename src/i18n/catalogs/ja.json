@@ -2059,5 +2059,16 @@
  "Your books live here. Start with a free classic, or add your own.": "ここにあなたの本が並びます。無料の名作から始めるか、自分の本を追加してください。",
  "Your language, your daily goal, translators and sync.": "言語、1日の目標、翻訳サービス、同期の設定です。",
  "Looking it up…": "調べています…",
- "A rare word, from the full ECDICT dictionary.": "まれな単語です。完全版の ECDICT 辞書から。"
+ "A rare word, from the full ECDICT dictionary.": "まれな単語です。完全版の ECDICT 辞書から。",
+ "Custom": "カスタム",
+ "Custom…": "カスタム…",
+ "Detailed": "詳細",
+ "Flashcard buttons": "フラッシュカードのボタン",
+ "Forgot": "忘れた",
+ "Got it [remembered]": "覚えていた",
+ "Minutes a day": "1日の分数",
+ "Simple": "シンプル",
+ "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "シンプルは覚えていたかだけを聞きます：「忘れた」か「覚えていた」。詳細は Anki の4つ（もう一度・難しい・正解・やさしい）で、それぞれ次にカードが出る時期も表示します。この端末だけの設定です。",
+ "Your own": "自分で決める",
+ "min a day": "分/日"
 }
