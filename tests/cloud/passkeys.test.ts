@@ -39,7 +39,7 @@ describe('passkey accounts on an invite', () => {
     expect(await body(await c.post('/auth/invite', { invite: token }))).toEqual({ label: 'Mom’s class' });
 
     const { res, device, options } = await join(c, token, '  Amy   Li ');
-    expect(options.rp).toEqual({ id: 'henryyhong.com', name: 'Globereader' });
+    expect(options.rp).toEqual({ id: 'henryyhong.com', name: 'LinguPengu' });
     expect(options.authenticatorSelection).toMatchObject({ residentKey: 'required' });
     expect(res.status).toBe(200);
     const joined = await body(res);

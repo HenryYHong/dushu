@@ -278,8 +278,8 @@ export async function bookFromLink(link: { source: SourceId; key: string; lang?:
       const other = english ? langName(link.lang, english) : '';
       throw new Error(other && isLangId(link.lang)
         ? tt('That page is on the {other} Wikisource. Open the {other} library to add it; this one reads {lang}.', { other, lang: name })
-        : other ? tt('That page is on the {other} Wikisource, a language Globereader does not read yet.', { other })
-          : tt('That page is on another language’s Wikisource, a language Globereader does not read yet.'));
+        : other ? tt('That page is on the {other} Wikisource, a language LinguPengu does not read yet.', { other })
+          : tt('That page is on another language’s Wikisource, a language LinguPengu does not read yet.'));
     }
     return { source: 'wikisource', key: link.key, title: link.key, author: '', also: [] };
   }
@@ -287,7 +287,7 @@ export async function bookFromLink(link: { source: SourceId; key: string; lang?:
     throw new Error(tt("Aozora Bunko's works are in {japanese}. Open the {japanese} library to add one; this one reads {lang}.", { japanese: langName('ja', 'Japanese'), lang: name }));
   }
   const work = (await loadAozora()).find((w) => w.id === link.key);
-  if (!work) throw new Error(tt('That Aozora Bunko work is not one Globereader can add: it may still be under copyright, or have no XHTML page.'));
+  if (!work) throw new Error(tt('That Aozora Bunko work is not one LinguPengu can add: it may still be under copyright, or have no XHTML page.'));
   return aozoraBook(work);
 }
 
@@ -307,7 +307,7 @@ export const DOWNLOAD_FAILED = ttm('Could not download the book. Check your conn
 export async function fetchFound(b: FoundBook, code: string, signal?: AbortSignal, onNote?: (note: string) => void): Promise<File> {
   if (b.source === 'wikisource') return fetchWikisource(b, code, signal, onNote);
   const base = cloudBase();
-  if (!base) throw new Error(tt('Adding free books needs the sync server, which this copy of Globereader does not have.'));
+  if (!base) throw new Error(tt('Adding free books needs the sync server, which this copy of LinguPengu does not have.'));
   const url = b.source === 'gutenberg' ? `${base}/gutenberg/${b.key}` : `${base}/aozora/${b.key}`;
   // A request with no answer (the server down or out of reach, or an error page without CORS) says so plainly.
   const unanswered = (e: unknown): never => {

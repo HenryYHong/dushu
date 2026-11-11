@@ -173,7 +173,7 @@ export async function accountBooks(): Promise<AccountBook[]> {
   // A Worker that keeps each language's books answers a language with { lang, books }. One from before languages answers with
   // a bare list (its Chinese books), and nothing in it is this library's: nothing goes up or comes down until it is updated.
   const named = data && typeof data === 'object' && (data as { lang?: unknown }).lang === langId() ? (data as { books?: unknown }).books : undefined;
-  if (!Array.isArray(named)) throw new Error(tt('The sync server is older than this version of Globereader and does not keep {language} books yet. They stay on this device until it is updated.', { language: langName(langId(), lang().name) }));
+  if (!Array.isArray(named)) throw new Error(tt('The sync server is older than this version of LinguPengu and does not keep {language} books yet. They stay on this device until it is updated.', { language: langName(langId(), lang().name) }));
   return named.filter((b): b is AccountBook => isEntry(b) && b.key.startsWith(prefix)).map((b) => ({ ...b, key: b.key.slice(prefix.length) }));
 }
 
@@ -227,7 +227,7 @@ async function downloadBytes(book: AccountBook): Promise<Uint8Array> {
     out.set(piece, at);
     at += piece.byteLength;
   }
-  if (at !== book.size || await sha256(out) !== book.sha) throw new Error(tt('“{title}” did not download whole. Globereader will try again.', { title: book.title }));
+  if (at !== book.size || await sha256(out) !== book.sha) throw new Error(tt('“{title}” did not download whole. LinguPengu will try again.', { title: book.title }));
   return out;
 }
 
@@ -393,7 +393,7 @@ export function syncBooks(store: Store): Promise<{ added: BookMeta[]; uploaded: 
         }
       }
     } catch (e) {
-      console.warn('Globereader: books in your account', e);
+      console.warn('LinguPengu: books in your account', e);
       if (!(e instanceof Unreachable)) error = e instanceof Error ? e.message : String(e);
     }
     if (added.length || up.length || error) {

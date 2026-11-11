@@ -356,13 +356,13 @@ export function buildDisplayMenu(ctx: AppContext, opts: { guide?: () => void } =
   // and says so; elsewhere (an iPhone), say how.
   const full = add(toggle(isFullscreen, (v) => {
     void setFullscreen(v)
-      .catch(() => ctx.toast(isStandalone() ? tt('Opened from the Home Screen, Globereader already reads without the browser bars.') : tt('This browser would not go full screen. In Safari: Share, then Add to Home Screen.')))
+      .catch(() => ctx.toast(isStandalone() ? tt('Opened from the Home Screen, LinguPengu already reads without the browser bars.') : tt('This browser would not go full screen. In Safari: Share, then Add to Home Screen.')))
       .finally(() => full.sync());
   }));
   const fullRow = fullscreenSupported()
     ? row(tt('Full screen'), full.el, tt('Hides the browser bars (F)'))
     : isStandalone() ? row(tt('Full screen'), h('span.rd-row-note', null, tt('On')), tt('Opened from the Home Screen: no browser bars'))
-    : row(tt('Full screen'), h('span.rd-row-note', null, tt('Add to Home Screen')), tt('In Safari: Share, then Add to Home Screen. Open Globereader from there to read without the browser bars.'));
+    : row(tt('Full screen'), h('span.rd-row-note', null, tt('Add to Home Screen')), tt('In Safari: Share, then Add to Home Screen. Open LinguPengu from there to read without the browser bars.'));
   const el = h('div.rd-menu.rd-display', null,
     section(tt('Text'),
       row(tt('Text size'), size),

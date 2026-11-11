@@ -594,7 +594,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       const reply = await response.json().catch(() => null) as Reply | null;
       if (stopped) return;
       if (!reply || typeof reply.epoch !== 'string' || !Number.isInteger(reply.version) || !Array.isArray(reply.records)) {
-        setStatus({ state: 'error', hub, message: hub === 'cloud' ? tt('The sync server sent an answer Globereader did not understand.') : tt('Your Mac sent an answer Globereader did not understand.') });
+        setStatus({ state: 'error', hub, message: hub === 'cloud' ? tt('The sync server sent an answer LinguPengu did not understand.') : tt('Your Mac sent an answer LinguPengu did not understand.') });
         return;
       }
       if (prefix && reply.lang !== lang) {
@@ -610,8 +610,8 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         setStatus({
           state: 'outdated', hub, lastOk: undefined, counts: undefined, pending: owed(),
           message: hub === 'cloud'
-            ? tt('The sync server is older than this version of Globereader and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.', language)
-            : tt('Globereader on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.', language),
+            ? tt('The sync server is older than this version of LinguPengu and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.', language)
+            : tt('LinguPengu on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.', language),
         });
         return;
       }
@@ -911,7 +911,7 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
         if (locks?.request) await locks.request('dushu-sync', () => once());
         else await once();
       } catch (e) {
-        console.warn('Globereader sync', e);
+        console.warn('LinguPengu sync', e);
         setStatus({ state: 'error', message: e instanceof Error ? e.message : String(e) });
       }
     };

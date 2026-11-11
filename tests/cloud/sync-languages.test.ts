@@ -197,7 +197,7 @@ describe('a new Japanese library on the sync server live today', () => {
     await ja.syncer.run();
     expect(zh.syncer.status()).toMatchObject({ state: 'idle', pending: 0 });
     expect(ja.syncer.status()).toMatchObject({ state: 'outdated', hub: 'cloud', pending: 1 });
-    expect(ja.syncer.status().message).toMatch(/^The sync server is older than this version of Globereader and does not keep Japanese yet/);
+    expect(ja.syncer.status().message).toMatch(/^The sync server is older than this version of LinguPengu and does not keep Japanese yet/);
     // Never sent there: that Worker counts every change toward the Chinese room, and a nearly full one would answer "full".
     expect(w.bodies.filter((b) => b.lang === 'ja').every((b) => b.changes.length === 0)).toBe(true);
     // Kept nowhere on the server, not even as a Chinese word.

@@ -16,7 +16,7 @@ export function noTextMessage(): string {
 }
 
 export const PDF_HOST_MESSAGE = ttm(
-  'The PDF reader could not start. This is a problem with how Globereader is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.');
+  'The PDF reader could not start. This is a problem with how LinguPengu is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.');
 
 export const PDF_OFFLINE_MESSAGE = ttm('PDF import needs a connection the first time. Connect once and try again.');
 

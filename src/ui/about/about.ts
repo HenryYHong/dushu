@@ -3,6 +3,7 @@ import '../../styles/about.css';
 import type { DataMeta, MountFn } from '../../types';
 import { h, clear } from '../dom';
 import { pageTitle } from '../pageHead';
+import { penguEl } from '../pengu';
 import { icon } from '../icons';
 import { SHORTCUTS, keyCaps } from '../shortcuts';
 import { connectedMac, isMacOrigin } from '../../core/macBridge';
@@ -77,12 +78,12 @@ const PAGES = () => [
 
 const NAMES = () => [
   tt('Novels are full of names no dictionary has, like 郭靖 or 桃花岛. Left alone they get split into single characters that make no sense.'),
-  tt('The first time you open a book, Globereader looks for names and terms that keep coming up and reads them as whole words. It takes a few seconds, on your device.'),
+  tt('The first time you open a book, LinguPengu looks for names and terms that keep coming up and reads them as whole words. It takes a few seconds, on your device.'),
   tt('Tap one to fix its pinyin or meaning, or to say it isn\'t a word. You can also add a name it missed.'),
 ];
 
 const DEVICES = () => [
-  tt('Open Globereader in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.'),
+  tt('Open LinguPengu in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.'),
   tt('To add your own books, tap Import book and pick a file from the Files app.'),
   tt('Safari has no built-in translator. On an iPhone or iPad, sign in and your sentences are translated through your account. Signed out, you get a word-by-word gloss.'),
 ];
@@ -91,12 +92,12 @@ const ACCOUNT = () => [
   tt('Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer\'s password or PIN.'),
   tt('On an iPhone, iPad or Mac, your passkey is on your other Apple devices too. On another device, sign in once with your phone (the browser offers it), then add a passkey there in Settings.'),
   tt('Your books, saved words, lookups, bookmarks, reading places and settings follow you to any device you sign in on. A few things that depend on the screen, like one or two pages, stay with each device.'),
-  tt('Signed in, books are read aloud in your account\'s voice, up to a daily limit. Otherwise Globereader uses your device\'s own voices.'),
+  tt('Signed in, books are read aloud in your account\'s voice, up to a daily limit. Otherwise LinguPengu uses your device\'s own voices.'),
   tt('Only you can see what\'s in your account. You can delete it in Settings, and this device keeps its own copy.'),
 ];
 
 const MAC = () => [
-  tt('If you run Globereader on your own Mac, the website can use it over Tailscale for Premium voices, a translation model and the books on that Mac. Only the Mac\'s owner can do this.'),
+  tt('If you run LinguPengu on your own Mac, the website can use it over Tailscale for Premium voices, a translation model and the books on that Mac. Only the Mac\'s owner can do this.'),
   tt('To connect a device, copy the connect link from Settings on the Mac and open it on the device, or type the Mac\'s address into Settings on the website. The address stays in that browser.'),
   tt('Books the Mac shares are added to the library by themselves and work offline after that. They can\'t be deleted, and if the browser clears them they come back.'),
 ];
@@ -109,7 +110,7 @@ const otherTranslation = (furigana: boolean): string[] => [
   furigana
     ? tt('Meanings and readings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.')
     : tt('Meanings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.'),
-  tt('On Automatic, Globereader tries Claude first if your account has it, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.'),
+  tt('On Automatic, LinguPengu tries Claude first if your account has it, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.'),
   ...TRANSLATION_REST(),
 ];
 
@@ -123,7 +124,7 @@ const TRANSLATION_REST = () => [
 
 const TRANSLATION = () => [
   tt('Pinyin and meanings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.'),
-  tt('On Automatic, Globereader tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.'),
+  tt('On Automatic, LinguPengu tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.'),
   ...TRANSLATION_REST(),
 ];
 
@@ -156,7 +157,7 @@ function storageCard(): HTMLElement {
     try { kept = await api.persisted(); } catch { /* ignore */ }
     status.textContent = kept
       ? tt('Your browser has agreed to keep your books and words, even when space runs low.')
-      : tt('Your browser may clear your books and words if space runs low. Adding Globereader to the Home Screen and asking here makes that much less likely.');
+      : tt('Your browser may clear your books and words if space runs low. Adding LinguPengu to the Home Screen and asking here makes that much less likely.');
     btn.hidden = kept;
   };
   btn.addEventListener('click', () => {
@@ -207,8 +208,8 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
       ? tt('Choose where furigana show: nowhere, over every word with kanji, over words you haven\'t marked as known, or over words above your JLPT level.')
       : L.stress ? `${hints} ${tt('Stress marks show which vowel to stress.')}` : hints,
     furigana
-      ? tt('Tap a word for its meaning, reading and kanji. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.')
-      : tt('Tap a word for its meaning. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.'),
+      ? tt('Tap a word for its meaning, reading and kanji. LinguPengu looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.')
+      : tt('Tap a word for its meaning. LinguPengu looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.'),
     furigana
       ? tt('Star a word to study it later. Mark a word as known and its {aid} go away.', { aid: aidWord() })
       : tt('Star a word to study it later. Mark a word as known and its {aid} goes away.', { aid: aidWord() }),
@@ -218,11 +219,13 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
   const levels = `${tt(L.levels.about)} ${levelScheme() === 'JLPT' ? tt('Mark a whole JLPT level as known in Vocabulary.') : tt('Mark a whole level as known in Vocabulary.')}`;
   const statRows = Object.entries(counts).filter(([, v]) => typeof v === 'number' && v > 0).slice(0, 6);
   return h('div.page.ab-page', null,
-    h('div.page-head', null, h('div', null, pageTitle('about', tt('About Globereader')))),
-    h('section.ab-section', null,
+    h('div.page-head', null, h('div', null, pageTitle('about', tt('About LinguPengu')))),
+    h('section.ab-section.ab-intro', null,
+      // Pengu with a book beside the opening lines (ui/pengu.ts).
+      penguEl('read', 'ab-pengu'),
       h('p.ab-lead', null, furigana
-        ? tt('Globereader is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.', { language: langName(L.id, L.name) })
-        : tt('Globereader is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.', { language: langName(L.id, L.name) })),
+        ? tt('LinguPengu is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.', { language: langName(L.id, L.name) })
+        : tt('LinguPengu is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.', { language: langName(L.id, L.name) })),
       h('p.ab-p', null, tt('It runs in your browser. Your books and words stay on this device, and in your account if you sign in, where only you can see them. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.')),
       h('p.ab-p', null, tt('Each language is its own library, with its own books, words and settings, and each syncs with your account on its own. Switch languages in Settings or with the language menu at the top.'))),
     h('section.ab-section', null, h('h2.section-title', null, tt('How to use it')), steps(how)),
@@ -313,10 +316,11 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
   ];
 
   return h('div.page.ab-page', null,
-    h('div.page-head', null, h('div', null, pageTitle('about', tt('About Globereader')))),
+    h('div.page-head', null, h('div', null, pageTitle('about', tt('About LinguPengu')))),
 
-    h('section.ab-section', null,
-      h('p.ab-lead', null, tt('I made Globereader to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.')),
+    h('section.ab-section.ab-intro', null,
+      penguEl('read', 'ab-pengu'),
+      h('p.ab-lead', null, tt('I made LinguPengu to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.')),
       h('p.ab-p', null, tt('It runs in your browser. Your books and words stay on this device, and in your account if you sign in, where only you can see them. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.'))),
 
     h('section.ab-section', null,
@@ -342,7 +346,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
     h('section.ab-section', null,
       h('h2.section-title', null, tt('On a phone or iPad')),
       steps(DEVICES()),
-      h('p.ab-p.ab-gap', null, tt('Safari can delete a website\'s data if you don\'t open it for about a week. Sites on the Home Screen are safe from that. Globereader also asks the browser to keep its data once you add a book, and if you\'re signed in, your books come back from your account anyway.')),
+      h('p.ab-p.ab-gap', null, tt('Safari can delete a website\'s data if you don\'t open it for about a week. Sites on the Home Screen are safe from that. LinguPengu also asks the browser to keep its data once you add a book, and if you\'re signed in, your books come back from your account anyway.')),
       storageCard()),
 
     showMac() ? h('section.ab-section', null,
@@ -355,7 +359,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
 
     h('section.ab-section', null,
       h('h2.section-title', null, tt('Every character')),
-      h('p.ab-p', null, tt('Globereader can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.')),
+      h('p.ab-p', null, tt('LinguPengu can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.')),
       stats.length
         ? h('table.ab-counts', null, h('tbody', null, stats.map((s) => h('tr.ab-count', null,
             h('td.ab-count-value', null, s.value),

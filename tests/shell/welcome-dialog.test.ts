@@ -38,7 +38,7 @@ describe('the welcome dialog', () => {
     void showWelcome(settings, { current: 'zh' });
     const d = dialog()!;
     expect(d.open).toBe(true);
-    expect(d.getAttribute('aria-label')).toBe('Welcome to Globereader');
+    expect(d.getAttribute('aria-label')).toBe('Welcome to LinguPengu');
     expect(d.contains(document.activeElement)).toBe(true);
     expect(d.querySelector('.wel-sr')!.textContent).toBe('Step 1 of 3');
     expect(document.body.classList.contains('wel-open')).toBe(true);

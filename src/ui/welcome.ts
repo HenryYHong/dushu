@@ -2,7 +2,7 @@
 // language translations go into, and a daily goal. Shown before the dictionary downloads, so someone learning Spanish never
 // waits for the Chinese one. Finishing opens the first language chosen (from Settings, only when the open one was dropped).
 import '../styles/welcome.css';
-import globeSvg from './globe.svg?raw';
+import { penguSvg } from './pengu';
 import { h } from './dom';
 import { icon } from './icons';
 import { LANGS, LANG_IDS } from '../lang/registry';
@@ -66,8 +66,9 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
     };
 
     const box = h('div.wel-box');
-    const dlg = h('dialog.wel', { 'aria-label': tt('Welcome to Globereader') }, box) as HTMLDialogElement;
-    const mark = () => { const el = h('span.wel-mark', { 'aria-hidden': 'true' }); el.innerHTML = globeSvg; return el; };
+    const dlg = h('dialog.wel', { 'aria-label': tt('Welcome to LinguPengu') }, box) as HTMLDialogElement;
+    // Pengu waving hello (ui/pengu.ts).
+    const mark = () => { const el = h('span.wel-mark', { 'aria-hidden': 'true' }); el.innerHTML = penguSvg('wave'); return el; };
 
     const close = () => {
       if (done) return;
@@ -136,7 +137,7 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
       const go = f.querySelector<HTMLButtonElement>('.btn-primary')!;
       return [
         h('div.wel-head', null, mark(), h('div', null,
-          h('h1.wel-title', null, opts.again ? tt('Your languages') : tt('Welcome to Globereader')),
+          h('h1.wel-title', null, opts.again ? tt('Your languages') : tt('Welcome to LinguPengu')),
           h('p.wel-lede', null, tt('Read real books in the language you’re learning. Tap any word to see what it means.')))),
         h('h2.wel-q', null, tt('What do you want to learn?')),
         h('p.wel-help', null, tt('Pick one or more. Each comes with free classic books.')),

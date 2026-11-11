@@ -177,7 +177,7 @@ describe('owner books on the library screen', () => {
     expect([...document.querySelectorAll<HTMLElement>('.lib-menu-item[role="menuitem"]')].map((b) => b.textContent)).toEqual(['Rename', 'Delete']);
   });
 
-  it('tells Safari on an iPad, once, to add Globereader to the Home Screen, after the sign-in note', async () => {
+  it('tells Safari on an iPad, once, to add LinguPengu to the Home Screen, after the sign-in note', async () => {
     onPublicSite();
     Object.defineProperty(navigator, 'userAgent', { value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15', configurable: true });
     Object.defineProperty(navigator, 'maxTouchPoints', { value: 5, configurable: true });
@@ -187,7 +187,7 @@ describe('owner books on the library screen', () => {
       await until(() => !note().hidden);
       expect(note().textContent).toMatch(/only saved in this browser\. Sign in to keep them\./);
       [...note().querySelectorAll<HTMLElement>('.btn')].find((b) => b.textContent === 'Dismiss')!.click();
-      expect(note().textContent).toMatch(/Add Globereader to your Home Screen: tap Share, then Add to Home Screen/);
+      expect(note().textContent).toMatch(/Add LinguPengu to your Home Screen: tap Share, then Add to Home Screen/);
       [...note().querySelectorAll<HTMLElement>('.btn')].find((b) => b.textContent === 'Got it')!.click();
       expect(note().hidden).toBe(true);
       // Remembered: the next visit shows neither.

@@ -89,7 +89,7 @@ export function createAutoKnown(o: AutoKnownOptions): AutoKnown {
   let queue: Promise<void> = Promise.resolve();
 
   const run = (fn: () => Promise<void>): Promise<void> => {
-    queue = queue.then(fn).catch((e) => { console.warn('Globereader: could not update the words learned from reading', e); });
+    queue = queue.then(fn).catch((e) => { console.warn('LinguPengu: could not update the words learned from reading', e); });
     return queue;
   };
   const simplify = (w: string) => { try { return o.simplify(w) || w; } catch { return w; } };

@@ -25,7 +25,7 @@ export function watchServiceWorker(
     if (now() < autoUntil) { worker.postMessage('SKIP_WAITING'); return; }
     if (updateOffered) return;
     updateOffered = true;
-    ctx.toast(tt('A new version of Globereader is ready.'), {
+    ctx.toast(tt('A new version of LinguPengu is ready.'), {
       ms: 24 * 3600 * 1000,
       action: { label: tt('Reload'), run: () => waitingWorker?.postMessage('SKIP_WAITING') },
     });

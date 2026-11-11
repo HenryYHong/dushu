@@ -114,7 +114,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 
 const serve = (files: Record<string, { type: string; body: string }>) => vi.stubGlobal('fetch', async (url: string) => {
   const f = files[new URL(url).pathname];
-  if (!f) return new Response('<!doctype html><title>Globereader</title>', { status: 200, headers: { 'content-type': 'text/html' } });
+  if (!f) return new Response('<!doctype html><title>LinguPengu</title>', { status: 200, headers: { 'content-type': 'text/html' } });
   const bytes = new TextEncoder().encode(f.body);
   return new Response(bytes, { headers: { 'content-type': f.type, 'content-length': String(bytes.length) } });
 });

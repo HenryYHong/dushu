@@ -150,7 +150,7 @@ export const mount: MountFn = async (root, params, ctx) => {
    * read since on another device, so it is not saved again. */
   let lastSaved = saved ? { chapter: saved.chapter, block: saved.block, offset: saved.offset ?? 0 } : { chapter: 0, block: 0, offset: 0 };
   const prevTitle = document.title;
-  document.title = `${book.title} - Globereader`;
+  document.title = `${book.title} - LinguPengu`;
   void store.books.update(book.id, { lastOpenedAt: Date.now() }).catch(() => {});
 
   // The reader's fixes of this book (bookFixes.ts): laid over the names and terms, so the page is cut and read as they say.
@@ -234,8 +234,8 @@ export const mount: MountFn = async (root, params, ctx) => {
     if (isFullscreen()) { void setFullscreen(false).catch(() => {}); return; }
     if (!fullscreenSupported()) {
       ctx.toast(isStandalone()
-        ? tt('Opened from your Home Screen, Globereader already reads without the browser bars.')
-        : tt('This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open Globereader from there to read without the bars.'), { ms: 7000 });
+        ? tt('Opened from your Home Screen, LinguPengu already reads without the browser bars.')
+        : tt('This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open LinguPengu from there to read without the bars.'), { ms: 7000 });
       return;
     }
     void setFullscreen(!isFullscreen()).catch(() => ctx.toast(tt('This browser would not go full screen.')));
@@ -1612,7 +1612,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   async function checkNamesNow(): Promise<void> {
     if (!nameCheck) return;
     toc.close();
-    if (isDetecting(book!.id)) { ctx.toast(tt('Globereader is still finding the names in this book. Try again in a moment.')); return; }
+    if (isDetecting(book!.id)) { ctx.toast(tt('LinguPengu is still finding the names in this book. Try again in a moment.')); return; }
     let list;
     try { list = await nameCheck.candidates(true); } catch (e) { console.error('name check', e); ctx.toast(tt('Could not look for names.')); return; }
     if (disposed) return;
@@ -1689,7 +1689,7 @@ export const mount: MountFn = async (root, params, ctx) => {
       return words.find((w) => !w.closest('.rd-h') && fits(w)) ?? words.find(fits) ?? null;
     };
     const steps: GuideStep[] = [
-      { target: firstWord, title: tt('Look up a word'), body: [touch
+      { target: firstWord, title: tt('Look up a word'), pose: 'read', body: [touch
         ? tt('Tap a word to see what it means. Tap it twice for the whole sentence and its translation.')
         : tt('Click a word to see what it means. Drag across a sentence to translate it.')] },
       { title: tt('Save words'), body: [tt('A word’s card has Save word, for words you want to review, and Mark as known, for words you already know.')] },

@@ -50,7 +50,7 @@ export function createBookFixes(ctx: AppContext, book: BookMeta): BookFixes {
     async places(word) { return countIn(await bookTexts(), word); },
     async save(fix) {
       // (The store keeps only what cleanFix takes: a fix it would drop is said, not toasted as done.)
-      if (!cleanFix(fix)) throw new Error(tt('Globereader cannot keep that correction.'));
+      if (!cleanFix(fix)) throw new Error(tt('LinguPengu cannot keep that correction.'));
       const was = (await store.fixes.list()).find((f) => f.id === fix.id);
       await store.fixes.put([{ ...fix, t: Math.max(fix.t, (was?.t ?? 0) + 1) }]);
       return was;
@@ -151,7 +151,7 @@ export function correctionsTab(ctx: AppContext, fixes: BookFixes, title: string,
       if (take.length) await ctx.store.fixes.put(take);
       const kept = list.length - take.length;
       const added = take.length;
-      ctx.toast(!list.length ? tt('That file has no corrections Globereader can use.')
+      ctx.toast(!list.length ? tt('That file has no corrections LinguPengu can use.')
         : !added ? tt('These corrections are already here.')
           : ttn(added, 'Added {n} correction.', 'Added {n} corrections.') + (kept ? ` ${ttn(kept, '{n} was already here.', '{n} were already here.')}` : ''));
     },

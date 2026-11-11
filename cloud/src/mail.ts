@@ -8,8 +8,8 @@ export interface Mailer {
 /** The email with a sign-in code. */
 export function codeEmail(code: string): { subject: string; text: string } {
   return {
-    subject: `${code} is your Globereader sign-in code`,
-    text: `Your Globereader sign-in code is ${code}.\n\nType it in Globereader within 10 minutes. If you did not ask for it, you can ignore this email: nobody can sign in without the code.`,
+    subject: `${code} is your LinguPengu sign-in code`,
+    text: `Your LinguPengu sign-in code is ${code}.\n\nType it in LinguPengu within 10 minutes. If you did not ask for it, you can ignore this email: nobody can sign in without the code.`,
   };
 }
 
@@ -29,5 +29,5 @@ export function resendMailer(apiKey: string, from: string, fetcher: typeof fetch
 
 /** Local testing: the email is logged, not sent. */
 export function logMailer(): Mailer {
-  return { async send({ to, subject }) { console.log(`Globereader email to ${to}: ${subject}`); } };
+  return { async send({ to, subject }) { console.log(`LinguPengu email to ${to}: ${subject}`); } };
 }

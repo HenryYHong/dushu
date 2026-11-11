@@ -78,7 +78,7 @@ describe('exports', () => {
     const [front, back, tag] = lines[3].split('\t');
     expect(front).toContain('<b>你好</b><br>他说：“<b>你好</b>！”');
     expect(back).toBe('nǐ hǎo<br>hello; hi');
-    expect(tag).toBe('globereader::chinese');
+    expect(tag).toBe('lingupengu::chinese');
   });
   it('anki: escapes html and quotes tabs', () => {
     const it = item('a', 'a1', 'x<y> "q"\tz');
@@ -170,7 +170,7 @@ describe('exports in other languages', () => {
     setLangForTests('es');
     const [, back, tag] = ankiTsv([item('perro', '', 'dog', { context: { sentence: 'Un perro grande.' } })], 'marks').trim().split('\n')[3].split('\t');
     expect(back).toBe('dog');
-    expect(tag).toBe('globereader::spanish');
+    expect(tag).toBe('lingupengu::spanish');
     setLangForTests('ja');
     expect(ankiTsv([item('食べる', 'たべる', 'to eat')], 'marks').trim().split('\n')[3].split('\t')[1]).toBe('たべる<br>to eat');
     // Kana that only repeat the word say nothing.
@@ -185,8 +185,8 @@ describe('exports in other languages', () => {
       const evening = new Date(2026, 10, 9, 20, 0).getTime();
       expect(new Date(evening).toISOString().slice(0, 10)).toBe('2026-11-10');
       setLangForTests('es');
-      expect(exportFileName('vocab', evening)).toBe('globereader-spanish-vocab-2026-11-09.csv');
-      expect(exportFileName('anki', evening)).toBe('globereader-spanish-anki-2026-11-09.txt');
+      expect(exportFileName('vocab', evening)).toBe('lingupengu-spanish-vocab-2026-11-09.csv');
+      expect(exportFileName('anki', evening)).toBe('lingupengu-spanish-anki-2026-11-09.txt');
       const row = vocabCsv([item('gato', '', 'cat', { addedAt: evening, srs: { due: evening, interval: 0, ease: 2.5, reps: 0, lapses: 0, last: 0 } })], 'marks').split('\r\n')[1];
       expect(row).toBe('gato,cat,,,2026-11-09,2026-11-09');
     } finally {

@@ -64,7 +64,7 @@ describe('a work on one page', () => {
     expect(url.origin + url.pathname).toBe('https://ja.wikisource.org/w/api.php');
     expect(Object.fromEntries(['action', 'formatversion', 'origin', 'redirects'].map((k) => [k, url.searchParams.get(k)]))).toEqual({ action: 'parse', formatversion: '2', origin: '*', redirects: '1' });
     // Browsers cannot set User-Agent: the API's own header names the app.
-    expect(headers[0].get('Api-User-Agent')).toMatch(/^Globereader \(https:/);
+    expect(headers[0].get('Api-User-Agent')).toMatch(/^LinguPengu \(https:/);
     expect(b.title).toBe('羅生門');
     // No ws-author on the page: the importer takes the author from the header's link, by the name of their page.
     expect(b.author).toBe('芥川龍之介');

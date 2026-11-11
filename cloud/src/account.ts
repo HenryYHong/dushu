@@ -279,7 +279,7 @@ export class AccountCore {
   /** What a new passkey for the signed-in account is labeled with, and the ids it has (not to make one twice on a device). */
   passkeyLabel(sessionHash: string, now: number): { name: string; ids: string[] } {
     this.authorize(sessionHash, now);
-    return { name: this.store.getMeta('name') || this.store.getMeta('email') || 'Globereader', ids: this.passkeys().map((k) => k.id) };
+    return { name: this.store.getMeta('name') || this.store.getMeta('email') || 'LinguPengu', ids: this.passkeys().map((k) => k.id) };
   }
 
   private addSession(sessionHash: string, now: number): SignedIn {
@@ -328,7 +328,7 @@ export class AccountCore {
   setMac(sessionHash: string, mac: string, now: number): ReturnType<AccountCore['me']> {
     this.authorize(sessionHash, now);
     if (!this.owner()) throw new CloudError(403, 'Only the owner’s account keeps the Mac’s address.');
-    if (!MAC.test(mac)) throw new CloudError(400, 'That is not a Mac address Globereader can use.');
+    if (!MAC.test(mac)) throw new CloudError(400, 'That is not a Mac address LinguPengu can use.');
     this.store.setMeta('mac', mac);
     return this.me(sessionHash, now);
   }

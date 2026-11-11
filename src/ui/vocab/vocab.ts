@@ -2,6 +2,7 @@
 import '../../styles/vocab.css';
 import type { AppContext, MountFn, Settings, VocabItem } from '../../types';
 import { h, clear } from '../dom';
+import { penguEl } from '../pengu';
 import { icon } from '../icons';
 import { pageTitle } from '../pageHead';
 import { openWordPopup } from '../popup/popup';
@@ -103,6 +104,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     toolbar.hidden = tools.hidden = items.length === 0;
     if (!items.length) {
       list.appendChild(h('div.empty.voc-empty', null,
+        // Pengu with a book: the words come from reading.
+        penguEl('read', 'voc-pengu'),
         h('h2.voc-empty-title', null, tt('No saved words yet')),
         h('p', null, tt('Tap a word while you read and press the star. It shows up here with the sentence you found it in, and goes into Review.')),
         h('a.btn', { href: '#/' }, icon('book'), tt('Open the library')),
@@ -202,7 +205,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       const list = clauses(bits);
       ctx.toast(restored ? tt('{list}. Settings restored.', { list }) : tt('{list}.', { list }), { ms: 6000 });
     } catch (e) {
-      ctx.toast(e instanceof Error ? e.message : tt('That file is not a Globereader backup.'), { ms: 6000 });
+      ctx.toast(e instanceof Error ? e.message : tt('That file is not a LinguPengu backup.'), { ms: 6000 });
     }
   }
 

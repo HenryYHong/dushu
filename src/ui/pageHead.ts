@@ -41,7 +41,7 @@ export function pageTitle(screen: ScreenName, title: string, tag: 'h1' | 'h2' = 
   const L = lang();
   const zh = L.id === 'zh' || (L.id === 'en' && intoChinese());
   const native = zh ? SCREEN_ZH[screen] : SCREEN_NAMES[L.id as Exclude<LangId, 'zh'>][screen];
-  // Said once when the title already says it: Library and Library, About and About Globereader.
+  // Said once when the title already says it: Library and Library, About and About LinguPengu.
   return h(`${tag}.${cls}`, null,
     title.toLowerCase().startsWith(native.toLowerCase()) ? null
       : h(zh || L.id === 'ja' ? 'span.page-title-zh' : 'span.page-title-zh.page-title-native', { lang: zh ? 'zh-Hans' : L.tag, 'aria-hidden': 'true' }, native),

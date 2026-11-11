@@ -1,6 +1,6 @@
-# Globereader (formerly Dushu 读书): architecture
+# LinguPengu (formerly Dushu 读书): architecture
 
-The app is shown as Globereader. Internal names (storage keys, the `dushu-sync` Worker, the X-Dushu-* headers, `app: 'dushu'` in files) keep the old name so saved data, sync and the Mac bridge go on working.
+The app is shown as LinguPengu. Internal names (storage keys, the `dushu-sync` Worker, the X-Dushu-* headers, `app: 'dushu'` in files) keep the old name so saved data, sync and the Mac bridge go on working.
 
 A local web app for reading real Chinese books. Import an EPUB, TXT or PDF (or paste text).
 Every word can be looked up: tap or double-click a word for pinyin, definitions and
@@ -689,7 +689,7 @@ settings.sandhi is on (the caller decides).
 - Backup JSON: `{ app: 'dushu', version: 1, exportedAt, settings (the Mac address is not a setting and never appears; an import can never turn Local only off, and a key left by an older version is dropped),
   vocab, known, progress, reviews, lexicon, bookmarks?, lookups? }` — books are not included (they can be big); say so in the UI.
   Bookmarks carry their book's sync key, so one restored before its book comes back lands on the book when it is added; reading
-  activity is not in it. The file is named `globereader-<language>-backup-<local date>.json`; the JSON still says `app: 'dushu'`.
+  activity is not in it. The file is named `lingupengu-<language>-backup-<local date>.json`; the JSON still says `app: 'dushu'`.
 
 ### 4.7 `translate/` — `getTranslator(id, settings, dict)`, `pickTranslator(settings, dict)`
 - `chrome`: the built-in on-device Translator API (`self.Translator`, Chrome 138+):
@@ -1875,6 +1875,11 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   pinyin one block at a time made it more frames, not cheaper ones. Real iPad GPU and CPU numbers are not measured.
 
 ### 5.8 Shell, fonts, PWA
+- Pengu, the mascot (`ui/pengu.ts`): a baby emperor penguin in a vermilion scarf, drawn as SVG from shared parts in four poses
+  (stand, wave, cheer, read; `penguSvg`, `penguEl`) and as a head on the red square (`penguMark`: the brand mark in the bar,
+  `public/icon.svg` and the PNG icons and link picture from `scripts/make-icons.mjs`). It waves on the welcome screen, stands
+  beside each walkthrough step (`ui/guide.ts`), reads over empty Vocabulary and About, and cheers when a review session ends.
+  Fixed colors, not the theme's, so it looks the same in light and dark; its animations stop with reduced motion.
 - Page heads: `ui/pageHead.ts` `pageTitle(screen, title)` builds each screen's one `h1`: the screen's name in the library's language first
   (书架 生词 复习 设置 关于 in the Chinese library, Biblioteca in the Spanish one; `span.page-title-zh[aria-hidden=true]`), then the title in
   the app's language, which is what a screen reader announces. The name is left out when the title already starts with it.

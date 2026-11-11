@@ -97,3 +97,17 @@
 /* The burst at the end of a session (review/celebrate.ts). */
 .rev-confetti { position: fixed; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
 .rev-confetti span { position: absolute; display: block; will-change: transform, opacity; }
+
+/* Pengu (ui/pengu.ts): over the empty states and cheering at the end of a session. */
+.rev-pengu { display: block; width: 104px; height: 104px; margin: 0 0 var(--space-2) -10px; }
+.rev-pengu svg { width: 100%; height: 100%; display: block; }
+.rev-summary .rev-pengu { width: 128px; height: 128px; margin: calc(-1 * var(--space-4)) auto var(--space-2); }
+@media (prefers-reduced-motion: no-preference) {
+  .rev-pengu-cheer .pengu { animation: pengu-cheer 0.9s cubic-bezier(.3, 1.5, .5, 1) both; transform-origin: 50% 100%; }
+}
+@keyframes pengu-cheer {
+  0% { transform: translateY(16px) scale(0.8); opacity: 0; }
+  45% { transform: translateY(-10px) scale(1.04); opacity: 1; }
+  70% { transform: translateY(0) scale(0.98); }
+  85% { transform: translateY(-4px); }
+}

@@ -170,7 +170,7 @@ function mailer(env: Env): Mailer {
   if (env.mailer) return env.mailer;
   if (env.MAIL_MODE === 'log') return logMailer();
   if (!env.RESEND_API_KEY) throw new CloudError(503, 'Sign-in emails are not set up on the sync server yet.');
-  return resendMailer(env.RESEND_API_KEY, env.MAIL_FROM || 'Globereader <onboarding@resend.dev>');
+  return resendMailer(env.RESEND_API_KEY, env.MAIL_FROM || 'LinguPengu <onboarding@resend.dev>');
 }
 
 /** Counts against the days shared by every account (the Limits object); false when any is used up. */
@@ -250,17 +250,17 @@ async function speech(request: Request, env: Env): Promise<Response> {
     ...(owner ? [] : [{ name: 'speech-others', n: chars, max: SPEECH_OTHERS_CHARS }]),
   ];
   if (!await takeShared(env, shared)) {
-    throw new CloudError(429, 'Today’s free read-aloud is used up. It resets at midnight (UTC); until then Globereader reads with this device’s voice.', 'daily_limit');
+    throw new CloudError(429, 'Today’s free read-aloud is used up. It resets at midnight (UTC); until then LinguPengu reads with this device’s voice.', 'daily_limit');
   }
   // The model's answer as it comes, { audio: base64 WAV }: decoding megabytes here would take the Worker past the free plan's
   // CPU time, so the device decodes it (src/speech/tts.ts).
   let res: unknown;
   try { res = await env.AI.run(SPEECH_MODEL, { prompt: text, lang: 'zh' }, { returnRawResponse: true }); } catch (e) {
-    console.error('Globereader speech', e);
+    console.error('LinguPengu speech', e);
     throw new CloudError(502, 'The sync server could not read that aloud. Try again in a moment.', 'voice_failed');
   }
   if (!(res instanceof Response) || !res.ok || !res.body) {
-    console.error('Globereader speech', res instanceof Response ? res.status : typeof res);
+    console.error('LinguPengu speech', res instanceof Response ? res.status : typeof res);
     throw new CloudError(502, 'The sync server could not read that aloud. Try again in a moment.', 'voice_failed');
   }
   return new Response(res.body, { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
@@ -309,7 +309,7 @@ async function aiTranslate(request: Request, env: Env): Promise<Response> {
         max_tokens: maxTokens, temperature: 0,
       }) as QwenAnswer;
     } catch (e) {
-      console.error('Globereader translate', e);
+      console.error('LinguPengu translate', e);
       throw new CloudError(502, 'The sync server could not translate that. Try again in a moment.', 'model_failed');
     }
     const u = answer.usage ?? {};
@@ -371,7 +371,7 @@ async function perNetwork(request: Request, env: Env, name: string, max: number,
 /** The page asking, as WebAuthn names it: one of Dushu's own origins, and its host as the passkey's site (the rpID). */
 function pageOrigin(request: Request): { origin: string; rpID: string } {
   const origin = request.headers.get('Origin') ?? '';
-  if (!ORIGINS.some((r) => r.test(origin))) throw new CloudError(403, 'Passkeys work only on Globereader’s own pages.');
+  if (!ORIGINS.some((r) => r.test(origin))) throw new CloudError(403, 'Passkeys work only on LinguPengu’s own pages.');
   return { origin, rpID: new URL(origin).hostname };
 }
 
@@ -385,7 +385,7 @@ const handleOf = (id: string) => isoBase64URL.fromBuffer(isoUint8Array.fromHex(i
 function creationOptions(challenge: string, rpID: string, id: string, name: string, exclude: string[] = []) {
   return {
     challenge, timeout: 120_000, attestation: 'none',
-    rp: { id: rpID, name: 'Globereader' },
+    rp: { id: rpID, name: 'LinguPengu' },
     user: { id: handleOf(id), name, displayName: name },
     pubKeyCredParams: [-7, -8, -257].map((alg) => ({ type: 'public-key', alg })),
     authenticatorSelection: { residentKey: 'required', requireResidentKey: true, userVerification: 'preferred' },
@@ -410,7 +410,7 @@ async function newPasskey(response: unknown, challenge: string, origin: string, 
     const c = v.registrationInfo.credential;
     return { id: c.id, publicKey: isoBase64URL.fromBuffer(c.publicKey), counter: c.counter, rpID, created: 0, ...(c.transports?.length ? { transports: c.transports } : {}) };
   } catch (e) {
-    console.error('Globereader passkey', e instanceof Error ? e.message : e);
+    console.error('LinguPengu passkey', e instanceof Error ? e.message : e);
     throw new CloudError(400, 'That passkey could not be checked. Try again.', 'bad_passkey');
   }
 }
@@ -471,7 +471,7 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
     let id = '';
     try { id = isoUint8Array.toHex(isoBase64URL.toBuffer(str(response?.response?.userHandle))); } catch { /* not ours */ }
     const gone = new CloudError(401, 'This passkey’s account was deleted.', 'no_account');
-    if (!/^[0-9a-f]{64}$/.test(id)) throw new CloudError(400, 'That passkey is not one for Globereader.', 'bad_passkey');
+    if (!/^[0-9a-f]{64}$/.test(id)) throw new CloudError(400, 'That passkey is not one for LinguPengu.', 'bad_passkey');
     let stub: DurableObjectStub;
     try { stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromString(id)); } catch { throw gone; }
     const { key } = await (await call(env, stub, 'passkey-get', { id: str(response?.id) })).json() as { key?: PasskeyRecord | null };
@@ -483,7 +483,7 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
       if (!v.verified) throw new Error('not verified');
       counter = v.authenticationInfo.newCounter;
     } catch (e) {
-      console.error('Globereader passkey', e instanceof Error ? e.message : e);
+      console.error('LinguPengu passkey', e instanceof Error ? e.message : e);
       throw new CloudError(401, 'That passkey could not be checked. Try again.', 'bad_passkey');
     }
     const s = secret();
@@ -564,7 +564,7 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     const code = sixDigits();
     try { await mailer(env).send({ to: email, ...codeEmail(code) }); } catch (e) {
       if (e instanceof CloudError) throw e;
-      console.error('Globereader sync: the sign-in email was not sent', e);
+      console.error('LinguPengu sync: the sign-in email was not sent', e);
       throw new CloudError(502, 'The sign-in email could not be sent. Try again in a minute.');
     }
     const kept = await call(env, stub, 'code', { email, hash: await sha256(code) });
@@ -689,7 +689,7 @@ async function readCapped(res: Response, max: number): Promise<ArrayBuffer> {
 const isZip = (bytes: ArrayBuffer): boolean => { const b = new Uint8Array(bytes, 0, Math.min(4, bytes.byteLength)); return b[0] === 0x50 && b[1] === 0x4b; };
 
 /**
- * Books are fetched for Globereader's own pages only. The Origin check only stops a page elsewhere from using this relay in a
+ * Books are fetched for LinguPengu's own pages only. The Origin check only stops a page elsewhere from using this relay in a
  * browser: a script can send any Origin. The real limits are the per-network counts and the week each answer stays in the
  * cache. A Tailscale page counts only when it is one of BOOK_ORIGINS (a Worker setting, never in the source, naming the owner's
  * own copy) once that is set.
@@ -699,7 +699,7 @@ function ownBookPage(request: Request, env: Env): void {
   const own = (env.BOOK_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
   const tailnet = /\.ts\.net(?::\d+)?$/.test(origin);
   if (!ORIGINS.some((r) => r.test(origin)) || (tailnet && own.length && !own.includes(origin))) {
-    throw new CloudError(403, 'Books are fetched for Globereader’s own pages only.');
+    throw new CloudError(403, 'Books are fetched for LinguPengu’s own pages only.');
   }
 }
 
@@ -715,7 +715,7 @@ async function keepFor(cache: Cache, key: Request, res: Response, ctx: Execution
 const takeBook = (request: Request, env: Env): Promise<void> =>
   perNetwork(request, env, 'books', BOOKS_PER_NETWORK, 'Too many books were added from this network today. Try again tomorrow.');
 
-const RELAY_HEADERS = { 'User-Agent': 'Globereader-sync/0.1 (personal reading app)' };
+const RELAY_HEADERS = { 'User-Agent': 'LinguPengu-sync/0.1 (personal reading app)' };
 const WEEK = 'public, max-age=604800';
 
 /**
@@ -774,7 +774,7 @@ async function aozoraBook(card: string, file: string, request: Request, env: Env
 
 /**
  * A public-domain book from Project Gutenberg, by its number (ui/library/findBooks.ts). Gutenberg's search answers a page
- * directly, but its files do not let a page read them, so the Worker fetches the EPUB for Globereader's own pages: only a book
+ * directly, but its files do not let a page read them, so the Worker fetches the EPUB for LinguPengu's own pages: only a book
  * number, only from gutenberg.org, each kept a week in the Worker's cache, and a few hundred a day from one network. Nothing
  * about the reader is kept or passed on. A book too large with its pictures comes as the plain EPUB; one with no EPUB at all
  * answers 404 with the code 'no-epub', which the dialog shows and does not offer again.
@@ -868,7 +868,7 @@ async function gutenbergCheck(id: string, request: Request, env: Env, ctx?: Exec
 function failure(e: unknown): Response {
   if (e instanceof CloudError) return json(e.status, { error: e.message, ...(e.code ? { code: e.code } : {}) });
   if (e instanceof SyncError) return json(e.status, { error: e.message });
-  console.error('Globereader sync', e);
+  console.error('LinguPengu sync', e);
   return json(500, { error: 'The sync server could not do that. Try again in a minute.' });
 }
 

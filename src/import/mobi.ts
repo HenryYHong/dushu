@@ -17,8 +17,8 @@ import { chaptersFromSpine, dropContentsPages, dropTitlePage, type SpineDoc, typ
 import { bookFromText } from './txt';
 
 export const KINDLE_DRM_MESSAGE = ttm(
-  'This Kindle book is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.');
-const BROKEN = ttm('This Kindle book could not be read (the file is damaged or in a layout Globereader does not know).');
+  'This Kindle book is protected by DRM (copy protection), so LinguPengu cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.');
+const BROKEN = ttm('This Kindle book could not be read (the file is damaged or in a layout LinguPengu does not know).');
 const NULL_INDEX = 0xffffffff;
 
 const u16 = (b: Uint8Array, o: number): number => (b[o] << 8) | b[o + 1];
@@ -297,7 +297,7 @@ function dropLeadingNoise(chapters: Chapter[]): Chapter[] {
 
 export async function importMobi(data: Uint8Array, sourceName: string, onProgress?: (fraction: number) => void): Promise<ImportedBook> {
   if (data.length > 4 && (tag(data, 0, 3) === 'TPZ' || tag(data, 0, 4) === '\xeaDRM')) {
-    throw new ImportError(tt('This is a Kindle format Globereader cannot read (Topaz or KFX). Use a DRM-free EPUB instead.'));
+    throw new ImportError(tt('This is a Kindle format LinguPengu cannot read (Topaz or KFX). Use a DRM-free EPUB instead.'));
   }
   if (!looksLikeMobi(data)) throw new ImportError(tt('This file is not a valid Kindle (MOBI or AZW3) book.'));
 

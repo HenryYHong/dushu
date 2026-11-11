@@ -85,7 +85,7 @@ export function createBookShares(ctx: AppContext, opts: { delayMs?: number } = {
         samples.set(b.id, s);
         keepSample(b.id, s, ids);
         paint(b.id);
-      } catch (e) { console.warn('Globereader: could not count the words of', b.title, e); }
+      } catch (e) { console.warn('LinguPengu: could not count the words of', b.title, e); }
     }
   }
 

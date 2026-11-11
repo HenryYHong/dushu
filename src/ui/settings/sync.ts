@@ -54,7 +54,7 @@ export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date
   if (st.state === 'error') return `${tt('Sync did not finish: {reason}', { reason: st.message ?? tt('unknown error') })}${waiting}`;
   // A hub from before this language synced: the records wait here (core/sync.ts says which hub and what to do).
   if (st.state === 'outdated') {
-    const why = st.message ?? tt('Your sync server is older than this version of Globereader.');
+    const why = st.message ?? tt('Your sync server is older than this version of LinguPengu.');
     return `${why}${st.pending ? ` ${ttn(st.pending, '{n} change from this device is waiting.', '{n} changes from this device are waiting.')}` : ''}`;
   }
   // The first sync: the hub it goes to is known only once it answers, so it names none.

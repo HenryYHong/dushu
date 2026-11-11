@@ -132,3 +132,7 @@
   .prc-word { font-size: 52px; }
   .prc-body { padding-top: var(--space-6); }
 }
+
+/* Pengu reading over the empty word list (ui/pengu.ts). */
+.voc-pengu { display: block; width: 104px; height: 104px; margin: 0 0 var(--space-2) -10px; }
+.voc-pengu svg { width: 100%; height: 100%; display: block; }

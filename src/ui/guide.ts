@@ -5,6 +5,7 @@
 import '../styles/guide.css';
 import { h } from './dom';
 import { num, tt } from '../i18n';
+import { penguSvg, type PenguPose } from './pengu';
 
 /** The library's walkthrough: 'due' once the welcome is finished (or Settings asks for it), 'done' after. */
 export const SITE_GUIDE_KEY = 'dushu.site-guide.v1';
@@ -26,6 +27,8 @@ export interface GuideStep {
   title: string;
   /** Text and inline elements (the seal as the bar draws it). */
   body: (string | Node)[];
+  /** How Pengu stands beside it: waving on the first step and cheering on the last unless a step says otherwise. */
+  pose?: PenguPose;
 }
 
 /** Room left around what a step points at, and between it and the card. */
@@ -57,8 +60,10 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
   const back = h('button.btn.btn-sm', { type: 'button', onclick: () => go(at - 1) }, tt('Back')) as HTMLButtonElement;
   const next = h('button.btn.btn-sm.btn-primary', { type: 'button', onclick: () => go(at + 1) }) as HTMLButtonElement;
   const skip = h('button.btn.btn-sm.btn-ghost.rd-guide-skip', { type: 'button', onclick: () => end(true) }, tt('Skip')) as HTMLButtonElement;
+  // Pengu, beside the step's title (ui/pengu.ts).
+  const pengu = h('span.rd-guide-pengu', { 'aria-hidden': 'true' });
   const card = h('section.rd-guide-card', { role: 'dialog', 'aria-modal': 'true', 'aria-label': tt('Walkthrough') },
-    count, title, body, h('div.rd-guide-foot', null, skip, h('span.rd-guide-gap'), back, next));
+    h('div.rd-guide-head', null, pengu, h('div', null, count, title)), body, h('div.rd-guide-foot', null, skip, h('span.rd-guide-gap'), back, next));
   const shade = h('div.rd-guide-shade');
   const el = h('div.rd-guide', { 'data-rd-ui': '' }, shade, spot, card);
   const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -99,6 +104,8 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
     const step = steps[i];
     const last = i === steps.length - 1;
     count.textContent = tt('Step {step} of {total}', { step: num(i + 1), total: num(steps.length) });
+    const pose = step.pose ?? (i === 0 ? 'wave' : last ? 'cheer' : 'stand');
+    if (pengu.dataset.pose !== pose) { pengu.dataset.pose = pose; pengu.innerHTML = penguSvg(pose); }
     title.textContent = step.title;
     body.replaceChildren(...step.body);
     back.hidden = i === 0;

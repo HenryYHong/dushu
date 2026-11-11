@@ -16,10 +16,10 @@ import { langName, tt, ttn, uiLocale } from '../../i18n';
 
 /**
  * The backup's file name: the app, the language (a Spanish and a German backup of one day are two files) and the local day,
- * globereader-spanish-backup-2026-11-09.json. The file itself still says app: 'dushu', which every backup has (importBackup).
+ * lingupengu-spanish-backup-2026-11-09.json. The file itself still says app: 'dushu', which every backup has (importBackup).
  */
 export function backupFileName(d = new Date()): string {
-  return `globereader-${lang().name.toLowerCase()}-backup-${dayOf(d.getTime())}.json`;
+  return `lingupengu-${lang().name.toLowerCase()}-backup-${dayOf(d.getTime())}.json`;
 }
 
 /**
@@ -155,7 +155,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
       if (report.settings) ctx.settings.set(report.settings);
       say(describeReport(report));
     } catch (e) {
-      say(e instanceof Error ? e.message : tt('That file is not a Globereader backup.'), true);
+      say(e instanceof Error ? e.message : tt('That file is not a LinguPengu backup.'), true);
     }
   });
   const importBtn = h('button.btn.btn-sm', { type: 'button', onclick: () => file.click() }, icon('upload'), tt('Import backup'));

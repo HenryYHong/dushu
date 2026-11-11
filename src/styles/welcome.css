@@ -13,11 +13,13 @@ body.wel-open { overflow: hidden; }
 .wel-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .wel-box { max-width: 640px; margin: 0 auto; }
 .wel-head { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
-.wel-mark { display: inline-grid; flex: none; width: 56px; height: 56px; border-radius: 12px; background: var(--accent-fill); }
-.wel-mark svg { width: 100%; height: 100%; }
-.wel-mark .gr-sea, .wel-mark .gr-base { fill: var(--accent-fill-text); }
-.wel-mark .gr-land { fill: var(--accent-fill); }
-.wel-mark .gr-frame { stroke: var(--accent-fill-text); }
+/* Pengu waving hello (ui/pengu.ts), standing beside the title. */
+.wel-mark { display: inline-grid; flex: none; width: 84px; height: 84px; margin: -8px 0 -6px -8px; }
+.wel-mark svg { width: 100%; height: 100%; display: block; }
+@media (prefers-reduced-motion: no-preference) {
+  .wel-mark .pengu { animation: pengu-hop 0.6s cubic-bezier(.3, 1.4, .5, 1) both; transform-origin: 50% 100%; }
+}
+@keyframes pengu-hop { from { transform: translateY(10px) scale(0.85); opacity: 0; } }
 .wel-title { margin: 0; font: italic 500 34px/1.1 var(--font-display); letter-spacing: -0.01em; }
 .wel-title:focus, .wel-q:focus { outline: none; }
 .wel-lede { margin: 6px 0 0; color: var(--text-2); font-size: 16px; }
@@ -72,7 +74,7 @@ body.wel-open { overflow: hidden; }
 @media (max-width: 520px) {
   .wel { padding-top: calc(var(--safe-t) + 24px); }
   .wel-head { gap: 12px; margin-bottom: 22px; }
-  .wel-mark { width: 46px; height: 46px; border-radius: 10px; }
+  .wel-mark { width: 68px; height: 68px; }
   .wel-title { font-size: 27px; }
   .wel-lede { font-size: 15px; }
   .wel-langs { grid-template-columns: 1fr 1fr; gap: 8px; }

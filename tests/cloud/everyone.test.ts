@@ -72,7 +72,7 @@ describe('the sign-in email', () => {
     expect((await c.post('/auth/code', { email: 'friend@example.com' })).status).toBe(200);
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toBe('friend@example.com');
-    expect(sent[0].subject).toMatch(/^\d{6} is your Globereader sign-in code$/);
+    expect(sent[0].subject).toMatch(/^\d{6} is your LinguPengu sign-in code$/);
     const failing = cloud({ MAIL_MODE: undefined, mailer: { send: async () => { throw new Error('down'); } } } as Partial<Env>);
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect((await failing.post('/auth/code', { email: 'friend@example.com' })).status).toBe(502);
@@ -81,10 +81,10 @@ describe('the sign-in email', () => {
   it('is sent through Resend with the configured sender', async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     const fetcher = (async (url: string, init: RequestInit) => { calls.push({ url, init }); return new Response('{}'); }) as unknown as typeof fetch;
-    await resendMailer('re_test', 'Globereader <sign-in@mail.example.com>', fetcher).send({ to: 'friend@example.com', ...codeEmail('123456') });
+    await resendMailer('re_test', 'LinguPengu <sign-in@mail.example.com>', fetcher).send({ to: 'friend@example.com', ...codeEmail('123456') });
     expect(calls[0].url).toBe('https://api.resend.com/emails');
     expect(new Headers(calls[0].init.headers).get('Authorization')).toBe('Bearer re_test');
-    expect(JSON.parse(String(calls[0].init.body))).toMatchObject({ from: 'Globereader <sign-in@mail.example.com>', to: ['friend@example.com'], subject: '123456 is your Globereader sign-in code' });
+    expect(JSON.parse(String(calls[0].init.body))).toMatchObject({ from: 'LinguPengu <sign-in@mail.example.com>', to: ['friend@example.com'], subject: '123456 is your LinguPengu sign-in code' });
     const refusing = (async () => new Response('domain not verified', { status: 403 })) as unknown as typeof fetch;
     await expect(resendMailer('re_test', 'x', refusing).send({ to: 'friend@example.com', subject: 's', text: 't' })).rejects.toThrow(/403/);
   });

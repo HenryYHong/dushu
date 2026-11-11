@@ -1,6 +1,8 @@
-# Globereader
+# LinguPengu
 
-Globereader (first called Dushu, 读书) is a reader for learning a language from real books: Chinese, Japanese, Spanish, French, German, Italian, Portuguese and Russian, and English for Chinese speakers. The code and its data keys still say dushu.
+LinguPengu (first called Dushu, 读书, then Globereader) is a reader for learning a language from real books: Chinese, Japanese, Spanish, French, German, Italian, Portuguese and Russian, and English for Chinese speakers. The code and its data keys still say dushu.
+
+Its mascot is Pengu, a baby emperor penguin in a vermilion scarf (`src/ui/pengu.ts`, drawn for this app): it waves on the welcome screen, shows you around the library and the reader, and cheers when you finish a review. The app icons are made from it (`node scripts/make-icons.mjs`).
 
 For Chinese: open an EPUB, a text file or a PDF, or paste a chapter. Click any word to see its pinyin, English meanings and how it is built from its characters. Drag across a sentence for its pinyin and a translation. Words you save become flashcards.
 
@@ -89,7 +91,7 @@ Once you have marked some words known, each book in your library says how much o
 - **Find a book** searches free libraries in the language you are reading: Project Gutenberg (most read first, or by title or author), Wikisource (any work on that language's Wikisource, made into a book with its chapters; Chinese opens here, with well-known works to start with) and, for Japanese, Aozora Bunko (青空文庫: over 17,000 works out of copyright, most read first, searchable in kanji or kana, with the readings it prints over hard words kept as furigana). Add one and it opens like any other book. The page searches the catalogs itself; the book is fetched through the sync server, which fetches nothing but a book from those two sites. A new library also suggests a first book, the easiest classic, one tap from its first page.
 - **Import book**, or drop a file anywhere on the Library page. Supported: EPUB, MOBI and AZW3 (Kindle files without DRM), TXT (UTF-8, GBK, Big5 and UTF-16 are detected), PDF with a text layer, HTML and Markdown. Importing a book that is already in your library offers to open it instead of adding a second copy.
 - **Paste text** for an article or a chapter you copied from the web.
-- **From other apps**: installed on Android, Globereader is in the share menu: share a book file to add it, a link to a book on Gutenberg, Wikisource or Aozora Bunko to find it, or text to paste it. Installed from Chrome or Edge on a computer, it can open EPUB and Kindle files ("Open with"). A link to a book can also be pasted into Find a book.
+- **From other apps**: installed on Android, LinguPengu is in the share menu: share a book file to add it, a link to a book on Gutenberg, Wikisource or Aozora Bunko to find it, or text to paste it. Installed from Chrome or Edge on a computer, it can open EPUB and Kindle files ("Open with"). A link to a book can also be pasted into Find a book.
 - **Start with a classic** adds a public-domain text in one click.
 - **Books from your Mac** arrive on their own on a connected device (see Connect your own Mac).
 
@@ -154,7 +156,7 @@ Tap the bookmark at the top of a page (or press `B`) to bookmark it; the button 
 
 ## Daily goal and streak
 
-The first time you open Globereader it asks which languages you want to learn, which language translations should be in, and a daily goal (5 to 30 minutes). The library shows today's minutes against the goal, your streak (days in a row you reached it) and the last seven days. Time counts while you read or review and are active (a page turned, a word tapped, a scroll in the last three minutes), in any language. Signed in or connected to your Mac, each device's time syncs, so reading on the iPad counts on the phone. Change the languages and the goal in **Settings › Learning**, where **Show it again** brings back the welcome screen.
+The first time you open LinguPengu it asks which languages you want to learn, which language translations should be in, and a daily goal (5 to 30 minutes). The library shows today's minutes against the goal, your streak (days in a row you reached it) and the last seven days. Time counts while you read or review and are active (a page turned, a word tapped, a scroll in the last three minutes), in any language. Signed in or connected to your Mac, each device's time syncs, so reading on the iPad counts on the phone. Change the languages and the goal in **Settings › Learning**, where **Show it again** brings back the welcome screen.
 
 ## Review
 
@@ -219,7 +221,6 @@ The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Rus
 | Aozora Bunko, Project Gutenberg, Wikisource | The bundled classics (public domain in the United States) | public domain |
 | Wikimedia Commons and museum open-access images | The classics' cover paintings (public domain) | public domain |
 | Aozora Bunko (青空文庫) catalog | The Japanese search index for Find a book (`public/data/ja/aozora.tsv.gz`, made by `scripts/lang/ja/build_aozora_index.py`: titles, authors and file names of works out of copyright; the works are fetched when you add one) | catalog data published by Aozora Bunko for anyone's use |
-| Natural Earth (1:110m land) | The continents on the app's globe icon (`scripts/make-globe.py`) | public domain |
 
 The tests (not the app) also read freely licensed Chinese text, kept in `tests/corpus/` with its attribution:
 

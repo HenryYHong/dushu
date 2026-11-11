@@ -1,4 +1,4 @@
-// Books from Project Gutenberg through the Worker (cloud/src/worker.ts gutenbergBook): only a book number, only for Globereader's
+// Books from Project Gutenberg through the Worker (cloud/src/worker.ts gutenbergBook): only a book number, only for LinguPengu's
 // own pages, only gutenberg.org, and only an EPUB comes back. Gutenberg is played by a stub; nothing goes over the network.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cloud } from './helpers';

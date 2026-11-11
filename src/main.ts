@@ -1,5 +1,5 @@
 // App shell: theme, fonts, nav, hash router, toasts, and the AppContext every screen receives.
-import globeSvg from './ui/globe.svg?raw';
+import { penguMark } from './ui/pengu';
 import { num, startI18n, tt, ttm, ttn } from './i18n';
 import './styles/tokens.css';
 import './styles/base.css';
@@ -128,7 +128,7 @@ async function boot(): Promise<void> {
   app.append(opening);
   const slow = setTimeout(() => {
     opening.replaceChildren(h('div.app-spinner'),
-      h('span', null, tt('Still opening your library. If this does not finish, close any other Globereader tabs and reload this page.')));
+      h('span', null, tt('Still opening your library. If this does not finish, close any other LinguPengu tabs and reload this page.')));
   }, 5000);
 
   // The dictionary takes longest to be ready, so it starts first: its files download and parse while the library opens.
@@ -167,7 +167,7 @@ async function boot(): Promise<void> {
     clearTimeout(slow);
     opening.remove();
     app.append(h('main.app-fatal', null,
-      h('h1', null, tt('Globereader cannot open your saved data')),
+      h('h1', null, tt('LinguPengu cannot open your saved data')),
       h('p', null, e instanceof Error ? e.message : tt('The local database could not be opened.'))));
     return;
   }
@@ -236,7 +236,7 @@ async function boot(): Promise<void> {
     ctx.toast(tt('This browser is blocking local storage, so books and words will be lost when you close the tab.'), { ms: 9000 });
   }
   // Start parsing the dictionary right away; the library does not wait for it.
-  ctx.dict().catch((e) => { console.error(e); ctx.toast(tt('Could not download the dictionary. Check your connection; Globereader will try again.'), { ms: 8000 }); });
+  ctx.dict().catch((e) => { console.error(e); ctx.toast(tt('Could not download the dictionary. Check your connection; LinguPengu will try again.'), { ms: 8000 }); });
   // Saved words, known words, reading places, lookups and bookmarks, kept the same on every device signed in to the sync
   // account (or connected to the Mac), each language's library apart. Signed in, a device also learns where the Mac is, for
   // the Mac's books.
@@ -257,7 +257,7 @@ async function boot(): Promise<void> {
     const down = r.added.length;
     if (up) ctx.toast(up === 1 ? tt('Saved “{title}” to your account.', { title: title(r.uploaded) }) : ttn(up, 'Saved {n} book to your account.', 'Saved {n} books to your account.'), { ms: 5000 });
     if (down) ctx.toast(down === 1 ? tt('Added “{title}” from your account.', { title: title(r.added) }) : ttn(down, 'Added {n} book from your account.', 'Added {n} books from your account.'), { ms: 6000 });
-    // Only what Globereader can say in its own words: a browser's own text for a dropped connection ("Failed to fetch") is not
+    // Only what LinguPengu can say in its own words: a browser's own text for a dropped connection ("Failed to fetch") is not
     // shown, and Settings → Sync already says when the server cannot be reached.
     if (r.error && !BROWSER_TEXT.test(r.error) && !toldErrors.has(r.error)) { toldErrors.add(r.error); ctx.toast(tt('Your books could not sync with your account: {error}', { error: r.error }), { ms: 9000 }); }
   });
@@ -267,18 +267,17 @@ async function boot(): Promise<void> {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') accountBooks(); });
   setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, 5 * 60_000);
 
-  /** The app's mark, as on its icon (public/icon.svg): a desk globe with the continents. */
+  /** The app's mark, as on its icon (public/icon.svg): Pengu's head in its scarf, on the red square (ui/pengu.ts). */
   const brandMark = () => {
     const el = h('span.app-brand-mark', { 'aria-hidden': 'true' });
-    // A desk globe with the continents (ui/globe.svg); base.css colors it for the theme.
-    el.innerHTML = globeSvg;
+    el.innerHTML = penguMark({ rounded: 26 });
     return el;
   };
   const reviewBadge = h('span.app-badge', { hidden: true });
   const navLink = (href: string, label: string, ic: string, extra?: Node) =>
     h('a.app-navlink', { href, title: label, 'aria-label': label, 'data-route': href.replace(/^#\/?/, '') }, icon(ic), h('span.app-navlabel', null, label), extra ?? null);
   const nav = h('nav.app-nav', { 'aria-label': tt('Main') },
-    h('a.app-brand', { href: '#/', 'aria-label': tt('Globereader, library') }, brandMark(), h('span.app-brand-en', null, 'Globereader')),
+    h('a.app-brand', { href: '#/', 'aria-label': tt('LinguPengu, library') }, brandMark(), h('span.app-brand-en', null, 'LinguPengu')),
     langChip(),
     navLink('#/', tt('Library'), 'library'),
     navLink('#/vocab', tt('Vocabulary'), 'list'),
@@ -350,7 +349,7 @@ async function boot(): Promise<void> {
     cleanup = undefined;
     document.body.dataset.route = route || 'library';
     // After the old screen's cleanup, which puts back the title the reader replaced.
-    document.title = TITLES[route] ? tt('{screen} - Globereader', { screen: tt(TITLES[route]) }) : 'Globereader';
+    document.title = TITLES[route] ? tt('{screen} - LinguPengu', { screen: tt(TITLES[route]) }) : 'LinguPengu';
     clockFor(route);
     for (const a of nav.querySelectorAll<HTMLAnchorElement>('.app-navlink')) {
       a.toggleAttribute('aria-current', a.dataset.route === route);

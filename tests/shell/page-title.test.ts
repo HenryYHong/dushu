@@ -18,7 +18,7 @@ describe('pageTitle', () => {
     expect(kicker(pageTitle('library', 'Library'))).toBe('书架');
     localStorage.setItem(TARGET_KEY, JSON.stringify({ to: 'es', at: 1 }));
     expect(kicker(pageTitle('library', 'Library'))).toBeNull();
-    expect(kicker(pageTitle('about', 'About Globereader'))).toBeNull();
+    expect(kicker(pageTitle('about', 'About LinguPengu'))).toBeNull();
     // The app in Spanish: the library's own word leads, as in every other library.
     expect(kicker(pageTitle('library', 'Biblioteca'))).toBe('Library');
   });

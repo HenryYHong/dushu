@@ -140,7 +140,7 @@ function openDb(name: string, onLost: () => void): Promise<IDBDatabase> {
         if (!db.objectStoreNames.contains(t)) db.createObjectStore(t, def);
       }
     };
-    r.onblocked = () => console.warn('Globereader: another tab holds an older version of the database open; close it to continue.');
+    r.onblocked = () => console.warn('LinguPengu: another tab holds an older version of the database open; close it to continue.');
     r.onerror = () => reject(r.error ?? new Error('Could not open the local database'));
     r.onsuccess = () => {
       const db = r.result;

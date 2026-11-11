@@ -33,7 +33,7 @@ vi.mock('../../src/ui/vocab/vocab', () => ({
 vi.mock('../../src/ui/about/about', () => ({
   mount: (root: HTMLElement) => {
     const page = Object.assign(document.createElement('div'), { className: 'about-page' });
-    page.appendChild(Object.assign(document.createElement('h1'), { textContent: 'About Globereader' }));
+    page.appendChild(Object.assign(document.createElement('h1'), { textContent: 'About LinguPengu' }));
     root.appendChild(page);
     return () => { spy.aboutCleanup.calls++; spy.aboutCleanup.routes.push(document.body.dataset.route); };
   },
@@ -96,14 +96,14 @@ describe('route teardown', () => {
   it('names each screen in the title, the reader the book, and moves the focus to the new screen\'s heading', async () => {
     await go('#/about');
     await vi.waitFor(() => expect(document.querySelector('.about-page')).not.toBeNull());
-    expect(document.title).toBe('About - Globereader');
-    expect(document.activeElement?.textContent).toBe('About Globereader');
+    expect(document.title).toBe('About - LinguPengu');
+    expect(document.activeElement?.textContent).toBe('About LinguPengu');
     await go(`#/read/${meta.id}`);
     await readerDrawn();
-    expect(document.title).toBe('测试书 - Globereader');
+    expect(document.title).toBe('测试书 - LinguPengu');
     await go('#/');
     await libraryShown();
     // The reader puts back the title it found, and the library's comes after it.
-    expect(document.title).toBe('Library - Globereader');
+    expect(document.title).toBe('Library - LinguPengu');
   });
 });

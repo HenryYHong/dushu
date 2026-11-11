@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build Globereader's English dictionary for Chinese speakers learning English: public/data/en/.
+"""Build LinguPengu's English dictionary for Chinese speakers learning English: public/data/en/.
 
     python3 -I scripts/lang/en/build_en.py [--ecdict FILE] [--texts DIR]
 
@@ -460,7 +460,7 @@ def main(argv):
             continue
         lines.append('\t'.join([e.key, e.head if e.head != e.key else '', '', e.pos, '', str(rank_of.get(e.key, '')),
                                 str(entry_paradigm.get(idx, '')), '', e.hint, *sense_cols]))
-    header = (f'# Globereader English dictionary for Chinese speakers. From ECDICT (MIT, github.com/skywind3000/ECDICT, '
+    header = (f'# LinguPengu English dictionary for Chinese speakers. From ECDICT (MIT, github.com/skywind3000/ECDICT, '
               f'{ECDICT_COMMIT[:7]}) and scripts/lang/en/curated.tsv. Built {datetime.date.today().isoformat()}.\n'
               '# key\thead\treading\tpos\tgender\trank\tparadigm\tflags\thint\tsenses...\n')
     write_gz(os.path.join(OUT, 'entries.tsv.gz'), header + '\n'.join(lines) + '\n')
@@ -486,7 +486,7 @@ def main(argv):
             continue
         plines.append((0 if w in EXPRESSIONS else 1, rank_of.get(words[0], 10 ** 7), w, hint_of([g for _, g, _ in plain for g in g]), senses))
     plines.sort()
-    write_gz(os.path.join(OUT, 'phrases.tsv.gz'), '# Globereader English fixed phrases, from ECDICT (MIT): words folded lower-case, hint, senses.\n'
+    write_gz(os.path.join(OUT, 'phrases.tsv.gz'), '# LinguPengu English fixed phrases, from ECDICT (MIT): words folded lower-case, hint, senses.\n'
              + '\n'.join('\t'.join([w, h, *s]) for _, _, w, h, s in plines) + '\n')
 
     # How the words and their forms are said (the card shows it): `word\tIPA`, two pronunciations split by |. Then, from

@@ -30,8 +30,10 @@ export function maybeSiteGuide(): () => void {
 function start(): () => void {
   const there = (sel: string) => { const el = document.querySelector<HTMLElement>(sel); return !!el && !el.hidden && el.getBoundingClientRect().width > 0; };
   const steps: GuideStep[] = [
-    { target: q('.lib-start, .lib-continue, .page-head .page-title'), title: tt('Your library'),
-      body: [tt('Your books live here. Start with a free classic, or add your own.')] },
+    // The first book's Start reading, the book to continue, or else the page's title: the first of them there is.
+    { target: () => document.querySelector('.lib-start-go') ?? document.querySelector('.lib-continue') ?? document.querySelector('.page-head .page-title'),
+      title: tt('Hi, I’m Pengu!'),
+      body: [tt('I’ll show you around. Your books live here: start with a free classic, or add your own.')] },
   ];
   if (there('.page-head .lib-find-btn')) steps.push({ target: q('.page-head .lib-find-btn'), title: tt('Find a book'), body: [tt('Search thousands of free books from Project Gutenberg and Wikisource.')] });
   if (there('.page-head .lib-paste-btn')) steps.push({ target: q('.page-head .lib-paste-btn'), title: tt('Paste text'), body: [tt('Paste any text, like an article or a chapter, and read it like a book.')] });

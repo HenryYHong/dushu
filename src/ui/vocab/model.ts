@@ -206,9 +206,9 @@ function sentenceHtml(item: VocabItem): string {
 /** The language in a file name or a tag: "spanish", "chinese". */
 const langSlug = () => lang().name.toLowerCase().replace(/[^a-z]+/g, '-');
 
-/** A download's name, dated by this device's calendar: globereader-spanish-vocab-2026-11-09.csv. */
+/** A download's name, dated by this device's calendar: lingupengu-spanish-vocab-2026-11-09.csv. */
 export function exportFileName(kind: 'anki' | 'vocab', now: number = Date.now()): string {
-  return `globereader-${langSlug()}-${kind}-${dayOf(now)}.${kind === 'anki' ? 'txt' : 'csv'}`;
+  return `lingupengu-${langSlug()}-${kind}-${dayOf(now)}.${kind === 'anki' ? 'txt' : 'csv'}`;
 }
 
 /** A saved word's reading as an export shows it: pinyin in the chosen style, another language's as it is. */
@@ -220,7 +220,7 @@ const readingOf = (it: VocabItem, style: PinyinStyle) => (isChinese() ? formatPi
  */
 export function ankiTsv(items: VocabItem[], style: PinyinStyle): string {
   const lines = ['#separator:tab', '#html:true', '#tags column:3'];
-  const tag = `globereader::${langSlug()}`;
+  const tag = `lingupengu::${langSlug()}`;
   for (const it of items) {
     const sentence = sentenceHtml(it);
     const front = `<b>${escHtml(it.simp)}</b>${sentence ? `<br>${sentence}` : ''}`;

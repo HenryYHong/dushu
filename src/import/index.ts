@@ -62,7 +62,7 @@ function detectKind(name: string, bytes: Uint8Array): Kind {
   if (startsWith(bytes, '%PDF')) return 'pdf';
   if (looksLikeMobi(bytes)) return 'mobi';
   if (startsWith(bytes, 'TPZ') || startsWith(bytes, '\u00ea' + 'DRMION')) {
-    throw new ImportError(tt('This is a Kindle format Globereader cannot read (Topaz or KFX). Use a DRM-free EPUB instead.'));
+    throw new ImportError(tt('This is a Kindle format LinguPengu cannot read (Topaz or KFX). Use a DRM-free EPUB instead.'));
   }
   if (startsWith(bytes, 'PK\u0003\u0004') || startsWith(bytes, 'PK\u0005\u0006')) {
     // A zip under any other name is most likely an EPUB; the EPUB reader says so if it is not.

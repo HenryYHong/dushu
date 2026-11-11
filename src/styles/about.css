@@ -55,3 +55,9 @@
 .ab-storage { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) var(--space-5); max-width: 70ch; }
 .ab-storage .ab-p { margin: 0; font-size: 14px; }
 @media (max-width: 640px) { .ab-storage { flex-direction: column; align-items: flex-start; padding-inline: var(--space-4); } }
+
+/* Pengu reading, floated beside the opening lines (ui/pengu.ts). */
+.ab-pengu { float: right; width: 120px; height: 120px; margin: -12px -8px 8px 16px; }
+.ab-pengu svg { width: 100%; height: 100%; display: block; }
+.ab-intro::after { content: ''; display: block; clear: both; }
+@media (max-width: 520px) { .ab-pengu { width: 92px; height: 92px; } }

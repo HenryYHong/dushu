@@ -154,7 +154,7 @@
    "public/samples/pt/index.json"
   ]
  },
- "A new version of Globereader is ready.": {
+ "A new version of LinguPengu is ready.": {
   "where": [
    "src/swUpdate.ts"
   ]
@@ -360,7 +360,7 @@
    "src/main.ts"
   ]
  },
- "About Globereader": {
+ "About LinguPengu": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -387,7 +387,7 @@
    "src/ui/popup/bookCard.ts"
   ]
  },
- "Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.": {
+ "Add LinguPengu to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.": {
   "where": [
    "src/ui/library/library.ts"
   ]
@@ -452,7 +452,7 @@
    "src/ui/library/findBooks.ts"
   ]
  },
- "Added to the Home Screen, Globereader opens like an app and works offline.": {
+ "Added to the Home Screen, LinguPengu opens like an app and works offline.": {
   "where": [
    "src/ui/settings/ipad.ts"
   ]
@@ -523,7 +523,7 @@
    "src/ui/library/importer.ts"
   ]
  },
- "Adding free books needs the sync server, which this copy of Globereader does not have.": {
+ "Adding free books needs the sync server, which this copy of LinguPengu does not have.": {
   "where": [
    "src/ui/library/findBooks.ts"
   ]
@@ -1526,7 +1526,7 @@
    "src/ui/library/findBooks.ts"
   ]
  },
- "Could not download the dictionary. Check your connection; Globereader will try again.": {
+ "Could not download the dictionary. Check your connection; LinguPengu will try again.": {
   "where": [
    "src/main.ts"
   ]
@@ -2438,46 +2438,6 @@
    "src/ui/reader/reader.ts"
   ]
  },
- "Globereader can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.": {
-  "where": [
-   "src/ui/about/about.ts"
-  ]
- },
- "Globereader cannot keep that correction.": {
-  "where": [
-   "src/ui/reader/bookFixes.ts"
-  ]
- },
- "Globereader cannot open your saved data": {
-  "where": [
-   "src/main.ts"
-  ]
- },
- "Globereader is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.": {
-  "where": [
-   "src/ui/about/about.ts"
-  ]
- },
- "Globereader is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.": {
-  "where": [
-   "src/ui/about/about.ts"
-  ]
- },
- "Globereader is still finding the names in this book. Try again in a moment.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
- "Globereader on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": {
-  "where": [
-   "src/core/sync.ts"
-  ]
- },
- "Globereader, library": {
-  "where": [
-   "src/main.ts"
-  ]
- },
  "Glyphs for rare characters, so nothing shows as an empty box.": {
   "where": [
    "src/ui/about/about.ts"
@@ -2589,6 +2549,11 @@
    "src/ui/reader/toc.ts"
   ]
  },
+ "Hi, I’m Pengu!": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "Hide words at or below a JLPT level": {
   "where": [
    "src/ui/reader/menus.ts"
@@ -2660,12 +2625,12 @@
    "src/ui/reader/wordsTab.ts"
   ]
  },
- "I made Globereader to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.": {
+ "I made LinguPengu to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.": {
   "where": [
    "src/ui/about/about.ts"
   ]
  },
- "If you run Globereader on your own Mac, the website can use it over Tailscale for Premium voices, a translation model and the books on that Mac. Only the Mac's owner can do this.": {
+ "If you run LinguPengu on your own Mac, the website can use it over Tailscale for Premium voices, a translation model and the books on that Mac. Only the Mac's owner can do this.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -2716,7 +2681,7 @@
    "src/ui/settings/ipad.ts"
   ]
  },
- "In Safari: Share, then Add to Home Screen. Open Globereader from there to read without the browser bars.": {
+ "In Safari: Share, then Add to Home Screen. Open LinguPengu from there to read without the browser bars.": {
   "where": [
    "src/ui/reader/menus.ts"
   ]
@@ -2812,6 +2777,11 @@
    "src/ui/popup/fixView.ts"
   ]
  },
+ "I’ll show you around. Your books live here: start with a free classic, or add your own.": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "JLPT (old)": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -2827,7 +2797,7 @@
    "src/main.ts"
   ]
  },
- "Join Globereader": {
+ "Join LinguPengu": {
   "where": [
    "src/ui/join.ts"
   ]
@@ -3066,6 +3036,46 @@
   "where": [
    "src/ui/reader/menus.ts",
    "src/ui/settings/settings.ts"
+  ]
+ },
+ "LinguPengu can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "LinguPengu cannot keep that correction.": {
+  "where": [
+   "src/ui/reader/bookFixes.ts"
+  ]
+ },
+ "LinguPengu cannot open your saved data": {
+  "where": [
+   "src/main.ts"
+  ]
+ },
+ "LinguPengu is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "LinguPengu is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
+ "LinguPengu is still finding the names in this book. Try again in a moment.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "LinguPengu on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": {
+  "where": [
+   "src/core/sync.ts"
+  ]
+ },
+ "LinguPengu, library": {
+  "where": [
+   "src/main.ts"
   ]
  },
  "Link for your other devices": {
@@ -4001,12 +4011,12 @@
    "src/ui/reader/menus.ts"
   ]
  },
- "On Automatic, Globereader tries Claude first if your account has it, then Qwen through your account if you're signed in, then the browser's own translator (Chrome has one, Safari doesn't), and last a word-by-word gloss. The panel says which one answered.": {
+ "On Automatic, LinguPengu tries Claude first if your account has it, then Qwen through your account if you're signed in, then the browser's own translator (Chrome has one, Safari doesn't), and last a word-by-word gloss. The panel says which one answered.": {
   "where": [
    "src/ui/about/about.ts"
   ]
  },
- "On Automatic, Globereader tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you're signed in, then the browser's own translator (Chrome has one, Safari doesn't), and last a word-by-word gloss. The panel says which one answered.": {
+ "On Automatic, LinguPengu tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you're signed in, then the browser's own translator (Chrome has one, Safari doesn't), and last a word-by-word gloss. The panel says which one answered.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -4076,7 +4086,7 @@
    "src/ui/settings/settings.ts"
   ]
  },
- "Only do this if the link came from your own Globereader. After connecting, translation, voices and your books on this device use that Mac.": {
+ "Only do this if the link came from your own LinguPengu. After connecting, translation, voices and your books on this device use that Mac.": {
   "where": [
    "src/ui/settings/mac.ts"
   ]
@@ -4100,12 +4110,12 @@
    "src/ui/library/library.ts"
   ]
  },
- "Open Globereader from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.": {
+ "Open LinguPengu from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.": {
   "where": [
    "src/ui/settings/ipad.ts"
   ]
  },
- "Open Globereader in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.": {
+ "Open LinguPengu in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -4168,7 +4178,7 @@
    "src/ui/shortcuts.ts"
   ]
  },
- "Open this link once on a device that uses the public Globereader site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": {
+ "Open this link once on a device that uses the public LinguPengu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": {
   "where": [
    "src/ui/settings/mac.ts"
   ]
@@ -4178,7 +4188,7 @@
    "src/ui/library/library.ts"
   ]
  },
- "Opened from the Home Screen, Globereader already reads without the browser bars.": {
+ "Opened from the Home Screen, LinguPengu already reads without the browser bars.": {
   "where": [
    "src/ui/reader/menus.ts"
   ]
@@ -4188,7 +4198,7 @@
    "src/ui/reader/menus.ts"
   ]
  },
- "Opened from your Home Screen, Globereader already reads without the browser bars.": {
+ "Opened from your Home Screen, LinguPengu already reads without the browser bars.": {
   "where": [
    "src/ui/reader/reader.ts"
   ]
@@ -4337,7 +4347,7 @@
    "src/ui/settings/account.ts"
   ]
  },
- "Passkeys work only on Globereader’s own address.": {
+ "Passkeys work only on LinguPengu’s own address.": {
   "where": [
    "src/core/passkey.ts"
   ]
@@ -4678,7 +4688,7 @@
    "src/ui/library/importer.ts"
   ]
  },
- "Read Chinese books with me on Globereader": {
+ "Read Chinese books with me on LinguPengu": {
   "where": [
    "src/ui/settings/invites.ts"
   ]
@@ -4969,7 +4979,7 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
- "Run npm run ipad in Globereader on your Mac to set up the private address first.": {
+ "Run npm run ipad in LinguPengu on your Mac to set up the private address first.": {
   "where": [
    "src/ui/settings/mac.ts"
   ]
@@ -4979,7 +4989,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Safari can delete a website's data if you don't open it for about a week. Sites on the Home Screen are safe from that. Globereader also asks the browser to keep its data once you add a book, and if you're signed in, your books come back from your account anyway.": {
+ "Safari can delete a website's data if you don't open it for about a week. Sites on the Home Screen are safe from that. LinguPengu also asks the browser to keep its data once you add a book, and if you're signed in, your books come back from your account anyway.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -5178,7 +5188,7 @@
    "src/ui/popup/translation.ts"
   ]
  },
- "Send a link to people you want to use Globereader. They make an account with a passkey, with no email, and the link works for as many people as you set.": {
+ "Send a link to people you want to use LinguPengu. They make an account with a passkey, with no email, and the link works for as many people as you set.": {
   "where": [
    "src/ui/settings/invites.ts"
   ]
@@ -5488,7 +5498,7 @@
    "src/ui/join.ts"
   ]
  },
- "Signed in, books are read aloud in your account's voice, up to a daily limit. Otherwise Globereader uses your device's own voices.": {
+ "Signed in, books are read aloud in your account's voice, up to a daily limit. Otherwise LinguPengu uses your device's own voices.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -5668,7 +5678,7 @@
    "src/ui/welcome.ts"
   ]
  },
- "Still opening your library. If this does not finish, close any other Globereader tabs and reload this page.": {
+ "Still opening your library. If this does not finish, close any other LinguPengu tabs and reload this page.": {
   "where": [
    "src/main.ts"
   ]
@@ -5845,12 +5855,12 @@
    "src/ui/about/about.ts"
   ]
  },
- "Tap a word for its meaning, reading and kanji. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.": {
+ "Tap a word for its meaning, reading and kanji. LinguPengu looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.": {
   "where": [
    "src/ui/about/about.ts"
   ]
  },
- "Tap a word for its meaning. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.": {
+ "Tap a word for its meaning. LinguPengu looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -5958,22 +5968,22 @@
    "src/ui/settings/settings.ts"
   ]
  },
- "That Aozora Bunko work is not one Globereader can add: it may still be under copyright, or have no XHTML page.": {
+ "That Aozora Bunko work is not one LinguPengu can add: it may still be under copyright, or have no XHTML page.": {
   "where": [
    "src/ui/library/findBooks.ts"
   ]
  },
- "That address did not answer like Globereader on your Mac.": {
+ "That address did not answer like LinguPengu on your Mac.": {
   "where": [
    "src/core/macBridge.ts"
   ]
  },
- "That backup is from Globereader in {language}. Switch to {language} to restore it.": {
+ "That backup is from LinguPengu in {language}. Switch to {language} to restore it.": {
   "where": [
    "src/store/index.ts"
   ]
  },
- "That backup was made by a newer version of Globereader. Update the app and try again.": {
+ "That backup was made by a newer version of LinguPengu. Update the app and try again.": {
   "where": [
    "src/store/index.ts"
   ]
@@ -5983,7 +5993,7 @@
    "src/store/index.ts"
   ]
  },
- "That cover is not a picture Globereader can show.": {
+ "That cover is not a picture LinguPengu can show.": {
   "where": [
    "src/store/index.ts"
   ]
@@ -5993,24 +6003,24 @@
    "src/ui/join.ts"
   ]
  },
- "That file has no corrections Globereader can use.": {
+ "That file has no corrections LinguPengu can use.": {
   "where": [
    "src/ui/reader/bookFixes.ts"
   ]
  },
- "That file is not a Globereader backup (it is not valid JSON).": {
+ "That file is not a LinguPengu backup (it is not valid JSON).": {
   "where": [
    "src/store/index.ts"
   ]
  },
- "That file is not a Globereader backup.": {
+ "That file is not a LinguPengu backup.": {
   "where": [
    "src/store/index.ts",
    "src/ui/settings/data.ts",
    "src/ui/vocab/vocab.ts"
   ]
  },
- "That file is not a Globereader corrections file.": {
+ "That file is not a LinguPengu corrections file.": {
   "where": [
    "src/core/fixes.ts"
   ]
@@ -6020,7 +6030,7 @@
    "src/core/fixes.ts"
   ]
  },
- "That file was made by a newer version of Globereader. Update the app and try again.": {
+ "That file was made by a newer version of LinguPengu. Update the app and try again.": {
   "where": [
    "src/core/fixes.ts"
   ]
@@ -6036,12 +6046,12 @@
    "src/ui/settings/mac.ts"
   ]
  },
- "That page is on another language’s Wikisource, a language Globereader does not read yet.": {
+ "That page is on another language’s Wikisource, a language LinguPengu does not read yet.": {
   "where": [
    "src/ui/library/findBooks.ts"
   ]
  },
- "That page is on the {other} Wikisource, a language Globereader does not read yet.": {
+ "That page is on the {other} Wikisource, a language LinguPengu does not read yet.": {
   "where": [
    "src/ui/library/findBooks.ts"
   ]
@@ -6091,7 +6101,7 @@
    "public/samples/index.json"
   ]
  },
- "The PDF reader could not start. This is a problem with how Globereader is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.": {
+ "The PDF reader could not start. This is a problem with how LinguPengu is being served (its PDF worker file could not be loaded), not with your file. Reload the page and try again.": {
   "where": [
    "src/import/errors.ts"
   ]
@@ -6236,7 +6246,7 @@
    "public/samples/fr/index.json"
   ]
  },
- "The first time you open a book, Globereader looks for names and terms that keep coming up and reads them as whole words. It takes a few seconds, on your device.": {
+ "The first time you open a book, LinguPengu looks for names and terms that keep coming up and reads them as whole words. It takes a few seconds, on your device.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -6419,17 +6429,17 @@
    "src/ui/settings/translation.ts"
   ]
  },
- "The sync server is older than this version of Globereader and does not keep {language} books yet. They stay on this device until it is updated.": {
+ "The sync server is older than this version of LinguPengu and does not keep {language} books yet. They stay on this device until it is updated.": {
   "where": [
    "src/core/cloudBooks.ts"
   ]
  },
- "The sync server is older than this version of Globereader and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": {
+ "The sync server is older than this version of LinguPengu and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": {
   "where": [
    "src/core/sync.ts"
   ]
  },
- "The sync server sent an answer Globereader did not understand.": {
+ "The sync server sent an answer LinguPengu did not understand.": {
   "where": [
    "src/core/cloud.ts",
    "src/core/sync.ts"
@@ -6556,12 +6566,12 @@
    "src/import/epub.ts"
   ]
  },
- "This EPUB is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.": {
+ "This EPUB is protected by DRM (copy protection), so LinguPengu cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.": {
   "where": [
    "src/import/epub.ts"
   ]
  },
- "This Kindle book could not be read (the file is damaged or in a layout Globereader does not know).": {
+ "This Kindle book could not be read (the file is damaged or in a layout LinguPengu does not know).": {
   "where": [
    "src/import/mobi.ts"
   ]
@@ -6591,7 +6601,7 @@
    "src/import/mobiText.ts"
   ]
  },
- "This Kindle book is protected by DRM (copy protection), so Globereader cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.": {
+ "This Kindle book is protected by DRM (copy protection), so LinguPengu cannot read it. Use a DRM-free copy of the book, or one you have the right to convert.": {
   "where": [
    "src/import/mobi.ts"
   ]
@@ -6657,7 +6667,7 @@
    "src/ui/reader/oldSpellings.ts"
   ]
  },
- "This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open Globereader from there to read without the bars.": {
+ "This browser cannot go full screen. In Safari: Share, then Add to Home Screen, and open LinguPengu from there to read without the bars.": {
   "where": [
    "src/ui/reader/reader.ts"
   ]
@@ -6712,12 +6722,12 @@
    "src/ui/reader/menus.ts"
   ]
  },
- "This browser would not keep the address. Allow site data for Globereader and try again.": {
+ "This browser would not keep the address. Allow site data for LinguPengu and try again.": {
   "where": [
    "src/ui/settings/mac.ts"
   ]
  },
- "This browser would not keep the sign-in. Allow site data for Globereader and try again.": {
+ "This browser would not keep the sign-in. Allow site data for LinguPengu and try again.": {
   "where": [
    "src/core/cloud.ts"
   ]
@@ -6737,7 +6747,7 @@
    "src/ui/popup/wordView.ts"
   ]
  },
- "This copy of Globereader has no sync server.": {
+ "This copy of LinguPengu has no sync server.": {
   "where": [
    "src/core/cloud.ts"
   ]
@@ -6807,7 +6817,7 @@
    "src/ui/settings/sync.ts"
   ]
  },
- "This file does not look like text (it may be a binary file with a .txt name), so Globereader did not import it.": {
+ "This file does not look like text (it may be a binary file with a .txt name), so LinguPengu did not import it.": {
   "where": [
    "src/import/encoding.ts"
   ]
@@ -6853,7 +6863,7 @@
    "src/ui/join.ts"
   ]
  },
- "This is a Kindle format Globereader cannot read (Topaz or KFX). Use a DRM-free EPUB instead.": {
+ "This is a Kindle format LinguPengu cannot read (Topaz or KFX). Use a DRM-free EPUB instead.": {
   "where": [
    "src/import/index.ts",
    "src/import/mobi.ts"
@@ -6869,7 +6879,7 @@
    "src/ui/popup/fixView.ts"
   ]
  },
- "This is the public copy of Globereader. The private address is shown when you open Globereader from your Mac.": {
+ "This is the public copy of LinguPengu. The private address is shown when you open LinguPengu from your Mac.": {
   "where": [
    "src/ui/settings/ipad.ts"
   ]
@@ -7239,7 +7249,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Turn on Tailscale on your Mac and run npm run ipad in Globereader to set up the private address.": {
+ "Turn on Tailscale on your Mac and run npm run ipad in LinguPengu to set up the private address.": {
   "where": [
    "src/ui/settings/ipad.ts"
   ]
@@ -7441,7 +7451,7 @@
    "src/ui/settings/settings.ts"
   ]
  },
- "Welcome to Globereader": {
+ "Welcome to LinguPengu": {
   "where": [
    "src/ui/welcome.ts"
   ]
@@ -7795,7 +7805,7 @@
    "src/ui/library/bookShare.ts"
   ]
  },
- "You opened Globereader from your Mac, so this device already uses it.": {
+ "You opened LinguPengu from your Mac, so this device already uses it.": {
   "where": [
    "src/ui/settings/mac.ts"
   ]
@@ -7875,7 +7885,7 @@
    "src/ui/settings/ipad.ts"
   ]
  },
- "Your Mac sent an answer Globereader did not understand.": {
+ "Your Mac sent an answer LinguPengu did not understand.": {
   "where": [
    "src/core/sync.ts"
   ]
@@ -7916,7 +7926,7 @@
    "src/ui/library/library.ts"
   ]
  },
- "Your books and words are saved in this browser. If you run Globereader on your own Mac, connect this device to it in Settings to use its translator, voices and books.": {
+ "Your books and words are saved in this browser. If you run LinguPengu on your own Mac, connect this device to it in Settings to use its translator, voices and books.": {
   "where": [
    "src/ui/library/library.ts"
   ]
@@ -7924,11 +7934,6 @@
  "Your books could not sync with your account: {error}": {
   "where": [
    "src/main.ts"
-  ]
- },
- "Your books live here. Start with a free classic, or add your own.": {
-  "where": [
-   "src/ui/siteGuide.ts"
   ]
  },
  "Your books, saved words, lookups, bookmarks, reading places and settings follow you to any device you sign in on. A few things that depend on the screen, like one or two pages, stay with each device.": {
@@ -7946,7 +7951,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Your browser may clear your books and words if space runs low. Adding Globereader to the Home Screen and asking here makes that much less likely.": {
+ "Your browser may clear your books and words if space runs low. Adding LinguPengu to the Home Screen and asking here makes that much less likely.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -7987,8 +7992,7 @@
  "Your library": {
   "where": [
    "src/ui/library/library.ts",
-   "src/ui/reader/reader.ts",
-   "src/ui/siteGuide.ts"
+   "src/ui/reader/reader.ts"
   ]
  },
  "Your name": {
@@ -8011,7 +8015,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Your phone or computer saves a passkey for Globereader. You unlock it the way you unlock the device: Face ID, a fingerprint, or your computer’s password or PIN. You don’t need a Globereader password or an email. On a shared computer, pick your phone instead and scan the code. On an iPhone or iPad the passkey is on your other Apple devices too.": {
+ "Your phone or computer saves a passkey for LinguPengu. You unlock it the way you unlock the device: Face ID, a fingerprint, or your computer’s password or PIN. You don’t need a LinguPengu password or an email. On a shared computer, pick your phone instead and scan the code. On an iPhone or iPad the passkey is on your other Apple devices too.": {
   "where": [
    "src/ui/join.ts"
   ]
@@ -8021,7 +8025,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Your saved data was written by a newer version of Globereader. Update the app to open it.": {
+ "Your saved data was written by a newer version of LinguPengu. Update the app to open it.": {
   "where": [
    "src/store/index.ts"
   ]
@@ -8036,7 +8040,7 @@
    "src/core/readingClock.ts"
   ]
  },
- "Your sync server is older than this version of Globereader.": {
+ "Your sync server is older than this version of LinguPengu.": {
   "where": [
    "src/ui/settings/sync.ts"
   ]
@@ -8066,12 +8070,12 @@
    "src/ui/join.ts"
   ]
  },
- "You’re invited to Globereader ({label}). Make an account with a passkey: no password, no email.": {
+ "You’re invited to LinguPengu ({label}). Make an account with a passkey: no password, no email.": {
   "where": [
    "src/ui/join.ts"
   ]
  },
- "You’re invited to Globereader. Make an account with a passkey: no password, no email.": {
+ "You’re invited to LinguPengu. Make an account with a passkey: no password, no email.": {
   "where": [
    "src/ui/join.ts"
   ]
@@ -9393,7 +9397,7 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
- "{screen} - Globereader": {
+ "{screen} - LinguPengu": {
   "where": [
    "src/main.ts"
   ]
@@ -9597,7 +9601,7 @@
    "src/ui/library/findBooks.ts"
   ]
  },
- "“{title}” did not download whole. Globereader will try again.": {
+ "“{title}” did not download whole. LinguPengu will try again.": {
   "where": [
    "src/core/cloudBooks.ts"
   ]

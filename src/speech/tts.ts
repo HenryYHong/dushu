@@ -521,7 +521,7 @@ export async function speakSequence(
         opts?.onError?.(error instanceof Error ? error.message : tt('Could not prepare Premium audio.'));
         return false;
       }
-      console.warn('Globereader: the account voice could not read, so this device’s voice reads instead', error);
+      console.warn('LinguPengu: the account voice could not read, so this device’s voice reads instead', error);
       voice = own;
       from = at;
     } finally {

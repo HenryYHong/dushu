@@ -10,6 +10,7 @@ import { contextEl, pinyinEl, scriptView, textAttrs } from '../vocab/render';
 import { isChinese } from '../../lang/active';
 import { pageTitle } from '../pageHead';
 import { celebrate } from './celebrate';
+import { penguEl } from '../pengu';
 import { describeNextDue, ReviewSession } from './queue';
 import { reviewCards, reviewParts } from './learning';
 import { num, tt, ttm, ttn, ttx } from '../../i18n';
@@ -86,7 +87,8 @@ export const mount: MountFn = (root, _params, ctx) => {
       : [h('h2.rev-empty-title', null, tt('Nothing due right now')),
          h('p', null, next ? nextDueLine(next) : tt('You are all caught up.')),
          h('a.btn', { href: '#/vocab' }, icon('list'), tt('See your words'))];
-    screen.append(head(), h('div.card.rev-empty', null, ...msg));
+    // Pengu: waving at someone with no cards yet, cheering someone who is all caught up.
+    screen.append(head(), h('div.card.rev-empty', null, penguEl(total === 0 ? 'wave' : 'cheer', 'rev-pengu'), ...msg));
   }
 
   // -------------------------------------------------------------- card ---
@@ -224,6 +226,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     clear(screen);
     const stat = (value: string, label: string) => h('div.rev-stat', null, h('div.rev-stat-value', null, value), h('div.rev-stat-label', null, label));
     const summary = h('div.card.rev-summary', null,
+      penguEl('cheer', 'rev-pengu rev-pengu-cheer'),
       h('h2.rev-summary-title', null, tt('Session complete')),
       h('p.muted', null, tt('{a}, {b}', { a: ttn(s.cards, '{n} card', '{n} cards'), b: ttn(s.reviews, '{n} answer', '{n} answers') })),
       h('div.rev-stats', null,

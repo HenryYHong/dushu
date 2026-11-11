@@ -26,7 +26,7 @@ export const MAX_BYTES = 40 * 1024 * 1024;
 /** Pages asked for at once. Once the API asks to slow down (or does not answer), one at a time. */
 const AT_ONCE = 3;
 /** How the app names itself to Wikimedia: a page cannot set User-Agent, and the API reads this header instead. */
-const API_USER_AGENT = 'Globereader (https://henryyhong.com/dushu)';
+const API_USER_AGENT = 'LinguPengu (https://henryyhong.com/dushu)';
 /** A work's own page before its parts is kept only for a text of its own this long (a preface), not for a title page. */
 const OWN_TEXT = 200;
 

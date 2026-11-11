@@ -119,7 +119,7 @@ describe('a new Japanese library and the Worker live today', () => {
     const ja = await library('ja');
     const meta = await ja.books.add(book());
     expect(await as('ja', () => syncBooks(ja))).toEqual({ added: [], uploaded: 0 });
-    expect(reports.at(-1)?.error).toBe('The sync server is older than this version of Globereader and does not keep Japanese books yet. They stay on this device until it is updated.');
+    expect(reports.at(-1)?.error).toBe('The sync server is older than this version of LinguPengu and does not keep Japanese books yet. They stay on this device until it is updated.');
     expect(w.calls.filter((c) => c.startsWith('POST /books')).length).toBe(1); // the Chinese one
     expect(w.kept()).toEqual([bookKey(await zh.books.list().then((l) => l[0]))]);
     // A delete there names the Japanese key, which the Worker does not have: the Chinese book of that key would stay.

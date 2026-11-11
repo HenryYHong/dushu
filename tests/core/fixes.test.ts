@@ -299,7 +299,7 @@ describe('fixes kept, sent and shared', () => {
     expect(back[2].at).toEqual(at);
     expect(back[3]).toMatchObject({ book: '*', bookId: '*' });
     expect(() => importFixes('not json', other)).toThrow(/not valid JSON/);
-    expect(() => importFixes('{"app":"dushu","version":1}', other)).toThrow(/not a Globereader corrections file/);
+    expect(() => importFixes('{"app":"dushu","version":1}', other)).toThrow(/not a LinguPengu corrections file/);
     expect(() => importFixes('{"app":"dushu","corrections":2,"fixes":[]}', other)).toThrow(/newer version/);
   });
 
