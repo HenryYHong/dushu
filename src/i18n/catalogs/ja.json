@@ -2074,5 +2074,6 @@
  "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "上の「サインイン」をタップしてメールアドレスを入力してください。6桁のコードをお送りし、初回はそれでアカウントが作られます。パスワードはありません。招待リンクがあれば、代わりにパスキーで作ることもできます。デバイスと同じ方法（Face ID、指紋、パソコンのパスワードや PIN）で開けます。",
  "We only use your email to send you sign-in codes.": "メールアドレスはサインインコードの送信にだけ使います。",
  "Hi, I’m Pengu!": "こんにちは、Pengu です！",
- "I’ll show you around. Your books live here: start with a free classic, or add your own.": "ご案内しますね。あなたの本はここにあります。無料の名作から始めても、自分の本を追加してもかまいません。"
+ "I’ll show you around. Your books live here: start with a free classic, or add your own.": "ご案内しますね。あなたの本はここにあります。無料の名作から始めても、自分の本を追加してもかまいません。",
+ "You finished “{title}”!": "「{title}」を読み終えました！"
 }

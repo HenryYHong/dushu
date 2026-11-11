@@ -1901,7 +1901,12 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   the welcome screen and the empty screens, hops with each walkthrough step and cheers at the last, jumps when tapped, peeks over
   the top edge of Review's flashcard (`penguPeek`: tilting its head at the answer, hopping at a remembered word, ducking at a
   forgotten one) and of the library's first book, cheers over the confetti when a session ends, reads in place of the spinner
-  while the library opens, and pops up from the bottom of the screen to say the day's goal is reached (`penguSays`). Transforms
+  while the library opens, and pops up from the bottom of the screen to say the day's goal is reached (`penguSays`). The first
+  time a reader gets to the end of a book, it says so with a small burst of paper from behind it (`penguSays(…, { confetti })`,
+  `penguConfetti`; the reader's `ui/reader/bookEnd.ts`: once per book on this device, `dushu.books-finished.v1`; never for a book
+  that opens at its end, a saved place already "Finished", a chapter still being laid out, or where the browser cannot animate).
+  A word saved from its card sends its star along a short curve to Vocabulary in the top bar, which nudges once (`ui/fly.ts`
+  `flyTo`; nothing when the bar is hidden, as in the reader, or off screen). Transforms
   and opacity only; nothing moves with reduced motion. `scripts/make-icons.mjs` draws the link picture. One picture serves every pose
   for now (`PenguPose` names the use, and styles move it). It waves on the welcome screen, stands
   beside each walkthrough step (`ui/guide.ts`), reads over empty Vocabulary and About, and cheers when a review session ends.

@@ -35,6 +35,8 @@ import { bookStartText } from './bookStart';
 import { aidName, aidSeal, glossLanguage, levelLabel } from '../../lang/labels';
 import { POS_SEL } from './render';
 import { markReaderGuide, readerGuideSeen, showGuide, type GuideStep } from '../guide';
+import { penguSays } from '../pengu';
+import { FINISHED_AT, watchFinish } from './bookEnd';
 import { langName, tt, uiLocale } from '../../i18n';
 
 const BAR_H = 52;
@@ -1015,7 +1017,9 @@ export const mount: MountFn = async (root, params, ctx) => {
         setChrome(false);
       },
       isBusy: () => { const sel = window.getSelection(); return !!sel && !sel.isCollapsed && !!view()?.el.contains(sel.anchorNode); },
-      onEnd: () => ctx.toast(tt('You have reached the end of the book.')),
+      // Going on past the last page is reaching the end too: Pengu says so now if it has not yet (finishNow), and the toast never
+      // shows over Pengu, which covers the same place.
+      onEnd: () => { if (!finishNow() && !document.querySelector('.pengu-says')) ctx.toast(tt('You have reached the end of the book.')); },
       onChapterError: (i, e) => { bumpFail(book!.id, i); showChapterError(i, e); },
       text,
       onChapterWords: (i) => toc.open(i, 'words'),
@@ -1125,7 +1129,44 @@ export const mount: MountFn = async (root, params, ctx) => {
       fill.style.width = `${(p * 100).toFixed(1)}%`;
       pct.textContent = percentText(Math.floor(p * 100));
       syncMarkBtn();
+      checkFinish();
     });
+  }
+
+  // ------------------------------------------------------------ the book's end
+  // The first time the reader gets to the end of the book, Pengu says so (bookEnd.ts). The place is looked at only once it has
+  // been still for a moment, so a place being restored or a chapter being laid out is never taken for it. Not where the browser
+  // cannot animate (tests): it is a moment, not information the page lacks ("You have reached the end." is there either way).
+  const finish = watchFinish(book.id, (saved?.percent ?? 0) >= FINISHED_AT);
+  const FINISH_STILL_MS = 900;
+  const canCelebrate = typeof HTMLElement.prototype.animate === 'function';
+  let finishTimer = 0;
+  function checkFinish(): void {
+    if (!canCelebrate) return;
+    window.clearTimeout(finishTimer);
+    finishTimer = window.setTimeout(finishNow, FINISH_STILL_MS);
+  }
+  /** Looks at the place now; true when this is the first time the reader got to the end, and Pengu said so. */
+  function finishNow(): boolean {
+    window.clearTimeout(finishTimer);
+    if (!canCelebrate || disposed || !finish.see(atBookEnd())) return false;
+    penguSays(tt('You finished “{title}”!', { title: text(book!.title) }), 6500, { confetti: true });
+    return true;
+  }
+
+  /** Whether the end of the book is on screen: null while the last chapter is still being laid out (Pages) or drawn (Scroll). */
+  function atBookEnd(): boolean | null {
+    if (failing !== null || chapterIndex < book!.chapterCount - 1) return false;
+    if (paged) {
+      if (!pager || pager.chapterIndex() !== chapterIndex) return null;
+      const i = pager.info();
+      return i.exact ? i.spread >= i.spreads - 1 : null;
+    }
+    const v = scrollView;
+    if (!v || v.renderedCount() < v.blocks.length) return null;
+    // "You have reached the end." under the last line, all of it in view.
+    const end = page.querySelector('.rd-end-note') ?? page.querySelector('.rd-end');
+    return !!end && end.getBoundingClientRect().bottom <= window.innerHeight;
   }
 
   let saveTimer = 0;
@@ -1726,6 +1767,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     loadSeq++;
     window.clearTimeout(hoverTimer);
     window.clearTimeout(selTimer);
+    window.clearTimeout(finishTimer);
     rd.removeEventListener('mousedown', onMouseDown);
     rd.removeEventListener('click', onClick);
     rd.removeEventListener('dblclick', onDblClick);

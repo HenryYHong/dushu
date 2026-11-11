@@ -36,3 +36,8 @@
   background: var(--elev); transform: rotate(45deg); border-radius: 2px;
 }
 @media (prefers-reduced-motion: reduce) { .pengu-says { transition: none; } }
+
+/* The burst of paper from behind Pengu (penguConfetti, a book finished): under Pengu and its bubble, over the page; no taps. */
+.pengu-confetti { position: fixed; inset: 0; z-index: 94; pointer-events: none; overflow: hidden; }
+.pengu-confetti span { position: absolute; display: block; will-change: transform, opacity; }
+@media (prefers-reduced-motion: reduce) { .pengu-confetti { display: none; } }

@@ -2301,5 +2301,6 @@
  "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "Toque em Entrar no topo e digite seu e-mail. Enviamos um código de seis dígitos e, na primeira vez, isso cria sua conta. Não há senha. Com um link de convite, você também pode criá-la com uma chave de acesso e desbloqueá-la como desbloqueia seu dispositivo: Face ID, digital, ou a senha ou o PIN do computador.",
  "We only use your email to send you sign-in codes.": "Usamos seu e-mail só para enviar códigos de acesso.",
  "Hi, I’m Pengu!": "Oi, eu sou o Pengu!",
- "I’ll show you around. Your books live here: start with a free classic, or add your own.": "Vou te mostrar tudo. Seus livros ficam aqui: comece com um clássico grátis ou adicione os seus."
+ "I’ll show you around. Your books live here: start with a free classic, or add your own.": "Vou te mostrar tudo. Seus livros ficam aqui: comece com um clássico grátis ou adicione os seus.",
+ "You finished “{title}”!": "Você terminou de ler “{title}”!"
 }

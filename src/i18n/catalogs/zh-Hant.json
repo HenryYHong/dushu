@@ -2070,5 +2070,6 @@
  "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "點頂部的「登入」，輸入你的電子郵件。我們會寄給你一組六位數驗證碼，第一次登入就會建立你的帳號。不需要密碼。如果你有邀請連結，也可以改用通行密鑰建立帳號，像解鎖裝置一樣解鎖它：Face ID、指紋，或電腦的密碼或 PIN。",
  "We only use your email to send you sign-in codes.": "我們只用你的電子郵件寄送登入驗證碼。",
  "Hi, I’m Pengu!": "嗨，我是 Pengu！",
- "I’ll show you around. Your books live here: start with a free classic, or add your own.": "我帶你看看。你的書都在這裡：可以從一本免費的經典開始，或加入你自己的書。"
+ "I’ll show you around. Your books live here: start with a free classic, or add your own.": "我帶你看看。你的書都在這裡：可以從一本免費的經典開始，或加入你自己的書。",
+ "You finished “{title}”!": "你讀完了《{title}》！"
 }

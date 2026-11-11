@@ -7779,6 +7779,11 @@
    "src/ui/reader/reader.ts"
   ]
  },
+ "You finished “{title}”!": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "You have reached the end of the book.": {
   "where": [
    "src/ui/reader/pager.ts",
