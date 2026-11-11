@@ -2,6 +2,8 @@
 import '../../styles/library.css';
 import { goalCard } from '../goalCard';
 import { canFindBooks, findBooksDialog, parseBookLink } from './findBooks';
+import { GUIDE_EVENT } from '../guide';
+import { maybeSiteGuide } from '../siteGuide';
 import { INCOMING_EVENT, takeIncoming } from './incoming';
 import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
@@ -197,9 +199,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     fileInput.value = '';
     if (files.length) void importer.files(files);
   });
-  const importBtn = () => h('button.btn.btn-primary', { type: 'button', onclick: () => fileInput.click() }, icon('upload'), tt('Import book'));
-  const pasteBtn = () => h('button.btn', { type: 'button', onclick: () => void openPaste() }, icon('text'), tt('Paste text'));
-  const findBtn = () => (canFindBooks() ? h('button.btn', { type: 'button', onclick: () => void openFind() }, icon('search'), tt('Find a book')) : null);
+  const importBtn = () => h('button.btn.btn-primary.lib-import-btn', { type: 'button', onclick: () => fileInput.click() }, icon('upload'), tt('Import book'));
+  const pasteBtn = () => h('button.btn.lib-paste-btn', { type: 'button', onclick: () => void openPaste() }, icon('text'), tt('Paste text'));
+  const findBtn = () => (canFindBooks() ? h('button.btn.lib-find-btn', { type: 'button', onclick: () => void openFind() }, icon('search'), tt('Find a book')) : null);
 
   const headActions = h('div.lib-actions', null, findBtn(), pasteBtn(), importBtn());
   const macBooks = h('button.btn', { type: 'button', hidden: true, onclick: () => void addMacBooks() }, icon('download'), tt('Add books from Mac')) as HTMLButtonElement;
@@ -853,6 +855,11 @@ export const mount: MountFn = (root, _params, ctx) => {
     });
   }
 
+  // The library's walkthrough (siteGuide.ts): due after the welcome, or when Settings asks for it again.
+  let stopGuide = () => {};
+  const startGuide = () => { stopGuide(); stopGuide = maybeSiteGuide(); };
+  window.addEventListener(GUIDE_EVENT, startGuide);
+
   void load().then(async () => {
     if (!alive) return;
     await dropDuplicates();
@@ -860,6 +867,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     renderMacNote();
     accountBooks();
     forgetRemovedList();
+    // The walkthrough, once after the welcome: when the classics are listed, so the first step can point at the first book.
+    void samplesReady.finally(() => { if (alive) startGuide(); });
     await refreshMac(true);
     void upgradeOld();
     void samplesReady.then((list) => coverOldSamples(list));
@@ -871,6 +880,8 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   return () => {
     alive = false;
+    stopGuide();
+    window.removeEventListener(GUIDE_EVENT, startGuide);
     clearTimeout(giveUp);
     window.removeEventListener('online', onOnline);
     window.removeEventListener('offline', onOffline);

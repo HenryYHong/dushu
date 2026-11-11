@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The names scan of a book's first open finishes while the reader may already have a word card open.
 // It must not take the card away or redraw under it: it waits for the card to be closed.
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 import type { BookMeta, Chapter, Lexicon, LexiconEntry } from '../../src/types';
 import { closePopup } from '../../src/ui/popup/popup';
 import { makeCtx, stubBrowser } from './helpers';
@@ -59,3 +59,7 @@ describe('names found while a word card is open', () => {
     await vi.waitFor(() => expect(wordTexts()).toContain('门口见面'), { timeout: 2000 });
   });
 });
+
+// The reading walkthrough (ui/guide.ts) covers the reader the first time a book opens; these tests read past it. Registered
+// last, so it runs after any clearing of storage above.
+beforeEach(() => { try { localStorage.setItem('dushu.reader-hint.v1', '1'); } catch { /* no storage here */ } });

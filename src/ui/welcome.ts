@@ -12,6 +12,7 @@ import { GOALS } from '../core/activity';
 import { getPlan, setPlan, type Plan } from '../core/plan';
 import { TARGET_LANGUAGES, isOwnLanguage, targetFor, targetLanguage, type TargetLanguage } from '../translate/targets';
 import { markLangChoice } from './langSwitch';
+import { markSiteGuide } from './guide';
 import { chooseUiLang, isUiLang, langName, num, tt, ttm, uiLang, uiLocale } from '../i18n';
 import type { SettingsStore } from '../types';
 
@@ -84,6 +85,8 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
       // The reader's own language: the app is shown in it when it has it (src/i18n). A new language needs the page drawn again.
       const reshow = !!target && isUiLang(target) && target !== uiLang();
       if (target && isUiLang(target)) chooseUiLang(target);
+      // The first visit goes on to the library's walkthrough (ui/siteGuide.ts), and the reader's when a book opens.
+      if (!opts.again) markSiteGuide('due');
       // From Settings the open library stays while it is still one being learned. The first visit opens the first one chosen.
       const next = opts.again ? (langs.includes(opts.current) ? undefined : langs[0]) : langs[0] !== opts.current ? langs[0] : undefined;
       if (next) { done = true; switchLang(next); return; }

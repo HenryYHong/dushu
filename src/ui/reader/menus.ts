@@ -305,7 +305,7 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
 const oneDecimal = (v: number): string => new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Number(v.toFixed(1)));
 
 /** Content of the Aa menu: text, page and reading. (How the pinyin looks lives in the pinyin menu.) */
-export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): void } {
+export function buildDisplayMenu(ctx: AppContext, opts: { guide?: () => void } = {}): { el: HTMLElement; sync(): void } {
   const get = () => ctx.settings.get();
   const set = (p: Partial<Settings>) => ctx.settings.set(p);
   const syncs: (() => void)[] = [];
@@ -380,7 +380,8 @@ export function buildDisplayMenu(ctx: AppContext): { el: HTMLElement; sync(): vo
       touch ? null : lookRow,
       // The switch only shows the hover button beside each paragraph; a touch screen has no hover (a double tap translates anyway).
       touch ? null : row(tt('Translate paragraphs'), ptrans.el, tt('Drag across a sentence (Pages) or use the button (Scroll)')),
-      row(tt('Read-aloud speed'), rate.el)),
+      row(tt('Read-aloud speed'), rate.el),
+      opts.guide ? row(tt('Reading guide'), h('button.btn.btn-sm', { type: 'button', onclick: opts.guide }, tt('Show'))) : null),
   );
   syncs.push(() => {
     const s = get();

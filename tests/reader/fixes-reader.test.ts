@@ -2,7 +2,7 @@
 // The reader's fixes on the page (ARCHITECTURE.md §4.12): a fix saved (here, in another tab, or by sync) draws the page again cut and
 // read as it says; the word card, the Words tab and read-aloud see the fixed words; the Corrections tab lists them with a switch
 // and Delete; and a "here only" fix stays at its place. The sentences are invented.
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 import { anchorAt, makeFix } from '../../src/core/fixes';
 import { bookKey } from '../../src/core/syncKeys';
 import type { AppContext, BookMeta, Chapter, Fix } from '../../src/types';
@@ -225,3 +225,7 @@ describe('fixes on the page', () => {
     expect(document.querySelector('.pp-pop')).toBeNull();
   });
 });
+
+// The reading walkthrough (ui/guide.ts) covers the reader the first time a book opens; these tests read past it. Registered
+// last, so it runs after any clearing of storage above.
+beforeEach(() => { try { localStorage.setItem('dushu.reader-hint.v1', '1'); } catch { /* no storage here */ } });

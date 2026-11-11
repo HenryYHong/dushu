@@ -89,3 +89,7 @@
 @media (pointer: coarse) { .rev-speak.icon-btn { width: 44px; height: 44px; } }
 
 .rev-page a.btn, .rev-page a.btn:hover { text-decoration: none; }
+
+/* The burst at the end of a session (review/celebrate.ts). */
+.rev-confetti { position: fixed; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
+.rev-confetti span { position: absolute; display: block; will-change: transform, opacity; }

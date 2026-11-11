@@ -112,7 +112,8 @@ export const mount: MountFn = (root, params, ctx) => {
       { el: langSelect('select'), update: () => {} }),
     row(tt('Languages you are learning'), tt('These come first when you switch languages.'), learning.langs),
     row(tt('Daily goal'), tt('Minutes of reading or review a day, in any language. Each day you reach it adds to your streak.'), learning.goal),
-    row(tt('Welcome screen'), tt('Choose your languages, translation language and goal again, step by step.'), learning.welcome));
+    row(tt('Welcome screen'), tt('Choose your languages, translation language and goal again, step by step.'), learning.welcome),
+    row(tt('Walkthrough'), tt('A tour of the library, then of the reader the next time you open a book.'), learning.walkthrough));
   // The word cards' meanings in the reader's language (translate/meanings.ts). Shown only when that is not the dictionary's.
   const meaningsRow = row(tt('Meanings in your language'), tt('Word cards translate the dictionary’s {original} into your language and keep the {original} under each meaning. Automatic uses Chrome’s free on-device translator, and an online one (Qwen through your account, Claude or MyMemory) only when you press the button on the card. Always uses any of them without asking.', { original: glossLanguage() }), meanings);
   const lookup = group(tt('Lookup'), null,

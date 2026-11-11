@@ -1,0 +1,21 @@
+/* The walkthrough (ui/guide.ts): a dimmed screen with one part lit, and a card beside it. */
+.rd-guide { position: fixed; inset: 0; z-index: 90; }
+.rd-guide-shade { position: fixed; inset: 0; background: rgb(0 0 0 / 0.55); }
+.rd-guide-shade[hidden], .rd-guide-spot[hidden] { display: none; }
+.rd-guide-spot {
+  position: fixed; border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--accent), 0 0 0 200vmax rgb(0 0 0 / 0.55);
+  transition: left var(--dur-pop, 180ms) ease, top var(--dur-pop, 180ms) ease, width var(--dur-pop, 180ms) ease, height var(--dur-pop, 180ms) ease;
+}
+.rd-guide-card {
+  position: fixed; box-sizing: border-box; padding: var(--space-4); border-radius: var(--radius-l);
+  background: var(--elev); color: var(--text); box-shadow: var(--shadow-pop); font: 14px/1.5 var(--font-ui);
+}
+.rd-guide-count { margin: 0 0 2px; font-size: 12px; color: var(--text-3, var(--text-2)); }
+.rd-guide-title { margin: 0 0 6px; font: 600 17px/1.3 var(--font-ui); outline: none; }
+.rd-guide-body { margin: 0 0 var(--space-3); color: var(--text-2); }
+.rd-guide-body .rd-seal { vertical-align: -2px; }
+.rd-guide-foot { display: flex; align-items: center; gap: var(--space-2); }
+.rd-guide-gap { flex: 1; }
+.rd-guide-foot .btn[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .rd-guide-spot { transition: none; } }

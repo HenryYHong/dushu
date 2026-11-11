@@ -2,7 +2,7 @@
 // Keeping the reader's place through changes that re-style the text: a switch of layout, of script, of text size, and a
 // book reopened at the top of a chapter. The fake layout (layoutFake.ts) follows the text size, so a place measured after
 // the text was re-styled lands somewhere else, as it does in a browser.
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 import type { AppContext, BookMeta, Chapter, Progress } from '../../src/types';
 import { mount } from '../../src/ui/reader/reader';
 import { closePopup } from '../../src/ui/popup/popup';
@@ -136,11 +136,26 @@ describe('keeping the place in Scroll', () => {
     expect(topLine()).toEqual({ b: 1, o: perLine() });
   });
 
-  it('the first-visit hint points to the 拼 button and the HSK level', async () => {
+  it('the first-visit walkthrough goes step by step to the 拼 button and the HSK level, and Skip ends it for good', async () => {
     localStorage.removeItem('dushu.reader-hint.v1');
     const { ctx, meta } = await setup();
     await open(ctx, meta.id);
-    const lines = [...document.querySelectorAll('.rd-coach p')].map((p) => p.textContent ?? '');
-    expect(lines.some((l) => l.includes('拼') && l.includes('HSK'))).toBe(true);
+    const card = () => document.querySelector<HTMLElement>('.rd-guide-card');
+    const press = (label: string) => [...card()!.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === label && !b.hidden)!.click();
+    expect(card()!.textContent).toContain('Step 1 of');
+    press('Next');
+    press('Next');
+    expect(card()!.textContent).toContain('拼');
+    expect(card()!.textContent).toContain('HSK');
+    press('Back');
+    expect(card()!.textContent).toContain('Save words');
+    press('Skip');
+    expect(document.querySelector('.rd-guide')).toBeNull();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(localStorage.getItem('dushu.reader-hint.v1')).toBe('1');
   });
 });
+
+// The reading walkthrough (ui/guide.ts) covers the reader the first time a book opens; these tests read past it. Registered
+// last, so it runs after any clearing of storage above (the walkthrough's own test takes the key away again).
+beforeEach(() => { try { localStorage.setItem('dushu.reader-hint.v1', '1'); } catch { /* no storage here */ } });

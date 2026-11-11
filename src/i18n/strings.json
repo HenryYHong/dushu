@@ -194,6 +194,11 @@
    "public/samples/it/index.json"
   ]
  },
+ "A rare word, from the full ECDICT dictionary.": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
  "A red-haired boy works in a Sicilian sand mine, where everyone treats him as bad luck.": {
   "where": [
    "public/samples/it/index.json"
@@ -249,6 +254,11 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
+ "A tour of the library, then of the reader the next time you open a book.": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
  "A traveling monk tells of a mountain crossing one summer: a snake on the path, a forest of leeches, and a lovely woman in a lonely house.": {
   "where": [
    "public/samples/ja/index.json"
@@ -298,6 +308,11 @@
  "A word-by-word gloss, not a real translation. The first meanings may be wrong here.": {
   "where": [
    "src/ui/popup/translation.ts"
+  ]
+ },
+ "A word’s card has Save word, for words you want to review, and Mark as known, for words you already know.": {
+  "where": [
+   "src/ui/reader/reader.ts"
   ]
  },
  "A young Brahmin leaves home in India to look for peace and finds it in an unexpected place.": {
@@ -425,6 +440,11 @@
  "Add to library": {
   "where": [
    "src/ui/library/paste.ts"
+  ]
+ },
+ "Add your own EPUB, Kindle (without DRM), text or PDF files.": {
+  "where": [
+   "src/ui/siteGuide.ts"
   ]
  },
  "Add {n}": {
@@ -778,6 +798,7 @@
  },
  "Back": {
   "where": [
+   "src/ui/guide.ts",
    "src/ui/popup/fixView.ts",
    "src/ui/popup/langWordView.ts",
    "src/ui/popup/phraseView.ts",
@@ -843,6 +864,11 @@
    "src/ui/reader/reader.ts"
   ]
  },
+ "Bookmark the page you’re on.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "Bookmark this page": {
   "where": [
    "src/ui/reader/reader.ts"
@@ -860,6 +886,7 @@
  },
  "Bookmarks": {
   "where": [
+   "src/ui/reader/reader.ts",
    "src/ui/reader/toc.ts"
   ]
  },
@@ -941,6 +968,11 @@
  "Casual": {
   "where": [
    "src/ui/welcome.ts"
+  ]
+ },
+ "Change the text size, font and theme, and choose between turning pages and scrolling.": {
+  "where": [
+   "src/ui/reader/reader.ts"
   ]
  },
  "Change them later under Corrections.": {
@@ -1067,6 +1099,16 @@
  "Choose where furigana show: nowhere, over every word with kanji, over words you haven't marked as known, or over words above your JLPT level.": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "Choose where furigana show: on every word, on words you don’t know yet, or on words above your JLPT level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Choose where pinyin shows: on every word, on words you don’t know yet, or on words above your HSK level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
   ]
  },
  "Choose your languages, translation language and goal again, step by step.": {
@@ -1226,7 +1268,7 @@
    "src/ui/shortcuts.ts"
   ]
  },
- "Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.": {
+ "Click a word to see what it means. Drag across a sentence to translate it.": {
   "where": [
    "src/ui/reader/reader.ts"
   ]
@@ -1249,21 +1291,6 @@
  "Click or tap": {
   "where": [
    "src/ui/settings/settings.ts"
-  ]
- },
- "Click {seal} at the top (or press P) to choose where furigana show: every word, words you don't know yet, or words above your JLPT level.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
- "Click {seal} at the top (or press P) to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
- "Click {seal} at the top (or press P) to show short {language} hints over words: every word, words you don't know yet, or words above your level.": {
-  "where": [
-   "src/ui/reader/reader.ts"
   ]
  },
  "Close": {
@@ -1873,6 +1900,7 @@
  },
  "Done": {
   "where": [
+   "src/ui/guide.ts",
    "src/ui/library/dialogs.ts",
    "src/ui/library/findBooks.ts",
    "src/ui/reader/menus.ts",
@@ -2197,7 +2225,8 @@
  },
  "Find a book": {
   "where": [
-   "src/ui/library/library.ts"
+   "src/ui/library/library.ts",
+   "src/ui/siteGuide.ts"
   ]
  },
  "Find a free book": {
@@ -2438,6 +2467,16 @@
    "src/ui/about/about.ts"
   ]
  },
+ "Go back to your books. Words you save wait for you in Vocabulary and Review.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Go over your saved words with flashcards, a few minutes a day.": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "Go there": {
   "where": [
    "src/ui/reader/reader.ts"
@@ -2466,7 +2505,6 @@
  "Got it": {
   "where": [
    "src/ui/library/library.ts",
-   "src/ui/reader/reader.ts",
    "src/ui/vocab/practice.ts"
   ]
  },
@@ -2638,7 +2676,8 @@
  },
  "Import book": {
   "where": [
-   "src/ui/library/library.ts"
+   "src/ui/library/library.ts",
+   "src/ui/siteGuide.ts"
   ]
  },
  "Import book, in the library": {
@@ -2793,6 +2832,11 @@
    "src/ui/reader/toc.ts"
   ]
  },
+ "Jump to a chapter or a bookmark, and see the words in this book.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "Kai": {
   "where": [
    "src/ui/reader/menus.ts",
@@ -2812,6 +2856,11 @@
  "Keep it": {
   "where": [
    "src/ui/settings/account.ts"
+  ]
+ },
+ "Keep reading": {
+  "where": [
+   "src/ui/reader/reader.ts"
   ]
  },
  "Keep your Mac awake with Ollama and the private connection running": {
@@ -2891,6 +2940,11 @@
  "Language you are reading": {
   "where": [
    "src/ui/langSwitch.ts"
+  ]
+ },
+ "Languages": {
+  "where": [
+   "src/ui/siteGuide.ts"
   ]
  },
  "Languages you are learning": {
@@ -2998,6 +3052,11 @@
    "src/ui/settings/mac.ts"
   ]
  },
+ "Listen to the chapter read aloud.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "Little King Buby loses his first tooth, and Ratón Pérez, the mouse who comes for children's teeth, takes him across Madrid to the home of a poor boy.": {
   "where": [
    "public/samples/es/index.json"
@@ -3095,6 +3154,7 @@
  },
  "Look up a word": {
   "where": [
+   "src/ui/reader/reader.ts",
    "src/ui/shortcuts.ts"
   ]
  },
@@ -3132,6 +3192,11 @@
  "Looking for voices…": {
   "where": [
    "src/ui/settings/speech.ts"
+  ]
+ },
+ "Looking it up…": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
   ]
  },
  "Lookup": {
@@ -3488,6 +3553,7 @@
  },
  "Next": {
   "where": [
+   "src/ui/guide.ts",
    "src/ui/popup/langWordView.ts",
    "src/ui/popup/wordView.ts"
   ]
@@ -4028,6 +4094,16 @@
    "src/ui/library/library.ts"
   ]
  },
+ "Open a book": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
+ "Open any book to start reading. The reader shows you around the first time.": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "Open chapter list": {
   "where": [
    "src/ui/reader/reader.ts"
@@ -4240,10 +4316,16 @@
    "src/core/passkey.ts"
   ]
  },
+ "Paste any text, like an article or a chapter, and read it like a book.": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "Paste text": {
   "where": [
    "src/ui/library/library.ts",
-   "src/ui/library/paste.ts"
+   "src/ui/library/paste.ts",
+   "src/ui/siteGuide.ts"
   ]
  },
  "Paste {lang} text here: a chapter, an article, song lyrics…": {
@@ -4577,7 +4659,8 @@
  },
  "Read aloud": {
   "where": [
-   "src/ui/popup/phraseView.ts"
+   "src/ui/popup/phraseView.ts",
+   "src/ui/reader/reader.ts"
   ]
  },
  "Read aloud (P)": {
@@ -4646,6 +4729,11 @@
  "Reading aloud": {
   "where": [
    "src/ui/reader/reader.ts"
+  ]
+ },
+ "Reading guide": {
+  "where": [
+   "src/ui/reader/menus.ts"
   ]
  },
  "Reading in": {
@@ -4841,6 +4929,7 @@
    "src/main.ts",
    "src/ui/review/review.ts",
    "src/ui/shortcuts.ts",
+   "src/ui/siteGuide.ts",
    "src/ui/vocab/vocab.ts"
   ]
  },
@@ -4852,21 +4941,6 @@
  "Review {n}": {
   "where": [
    "src/ui/vocab/vocab.ts"
-  ]
- },
- "Right now every word has furigana. Mark a word as known in its card and its furigana goes away.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
- "Right now every word has hints. Mark a word as known in its card and its hints goes away.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
- "Right now every word has pinyin. Mark a word as known in its card and its pinyin goes away.": {
-  "where": [
-   "src/ui/reader/reader.ts"
   ]
  },
  "Run npm run ipad in Globereader on your Mac to set up the private address first.": {
@@ -4930,6 +5004,11 @@
    "src/ui/popup/wordView.ts"
   ]
  },
+ "Save words": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "Save {word}": {
   "where": [
    "src/ui/reader/wordsTab.ts"
@@ -4983,6 +5062,11 @@
    "src/ui/settings/settings.ts"
   ]
  },
+ "Scroll down to keep reading. Your place is saved as you go.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "Scroll puts each chapter in one long column.": {
   "where": [
    "src/ui/settings/settings.ts"
@@ -4991,6 +5075,11 @@
  "Search for a book, or paste a link to one": {
   "where": [
    "src/ui/library/findBooks.ts"
+  ]
+ },
+ "Search thousands of free books from Project Gutenberg and Wikisource.": {
+  "where": [
+   "src/ui/siteGuide.ts"
   ]
  },
  "Search vocabulary": {
@@ -5134,7 +5223,8 @@
   "where": [
    "src/main.ts",
    "src/ui/popup/translation.ts",
-   "src/ui/settings/settings.ts"
+   "src/ui/settings/settings.ts",
+   "src/ui/siteGuide.ts"
   ]
  },
  "Seven rhyming pranks by two naughty boys, and what finally happens to them.": {
@@ -5197,6 +5287,7 @@
  },
  "Show": {
   "where": [
+   "src/ui/reader/menus.ts",
    "src/ui/reader/wordsTab.ts",
    "src/ui/vocab/practice.ts"
   ]
@@ -5242,6 +5333,11 @@
    "src/ui/reader/menus.ts"
   ]
  },
+ "Show short {language} hints over words: on every word, on words you don’t know yet, or on words above your level.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "Show the shortcut sheet": {
   "where": [
    "src/ui/shortcuts.ts"
@@ -5262,7 +5358,8 @@
    "src/ui/library/library.ts",
    "src/ui/popup/translation.ts",
    "src/ui/settings/account.ts",
-   "src/ui/signIn.ts"
+   "src/ui/signIn.ts",
+   "src/ui/siteGuide.ts"
   ]
  },
  "Sign in above, or connect this device to your Mac, and your words, reading places and bookmarks sync.": {
@@ -5298,6 +5395,11 @@
  "Sign in or connect your Mac": {
   "where": [
    "src/ui/settings/translation.ts"
+  ]
+ },
+ "Sign in to keep your books and words on all your devices.": {
+  "where": [
+   "src/ui/siteGuide.ts"
   ]
  },
  "Sign in to sync": {
@@ -5404,6 +5506,7 @@
  },
  "Skip": {
   "where": [
+   "src/ui/guide.ts",
    "src/ui/welcome.ts"
   ]
  },
@@ -5499,7 +5602,8 @@
  },
  "Start reading": {
   "where": [
-   "src/ui/library/library.ts"
+   "src/ui/library/library.ts",
+   "src/ui/reader/reader.ts"
   ]
  },
  "Start reading “{title}”": {
@@ -5524,6 +5628,7 @@
  },
  "Step {step} of {total}": {
   "where": [
+   "src/ui/guide.ts",
    "src/ui/welcome.ts"
   ]
  },
@@ -5636,6 +5741,16 @@
    "src/ui/about/about.ts"
   ]
  },
+ "Swipe, or tap the left or right edge of the page.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
+ "Switch to another language’s library.": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "Sync": {
   "where": [
    "src/ui/settings/ipad.ts",
@@ -5704,7 +5819,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.": {
+ "Tap a word to see what it means. Tap it twice for the whole sentence and its translation.": {
   "where": [
    "src/ui/reader/reader.ts"
   ]
@@ -5749,21 +5864,6 @@
    "src/ui/reader/nameCheck.ts"
   ]
  },
- "Tap {seal} at the top to choose where furigana show: every word, words you don't know yet, or words above your JLPT level.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
- "Tap {seal} at the top to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
- "Tap {seal} at the top to show short {language} hints over words: every word, words you don't know yet, or words above your level.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
  "Taught": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -5804,6 +5904,11 @@
   "where": [
    "src/ui/library/paste.ts",
    "src/ui/reader/menus.ts"
+  ]
+ },
+ "Text and page": {
+  "where": [
+   "src/ui/reader/reader.ts"
   ]
  },
  "Text size": {
@@ -6322,6 +6427,11 @@
  "The words that come up most first": {
   "where": [
    "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "The words you save, all in one list.": {
+  "where": [
+   "src/ui/siteGuide.ts"
   ]
  },
  "Theme": {
@@ -7103,6 +7213,11 @@
    "src/ui/reader/menus.ts"
   ]
  },
+ "Turn the page": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "Twenty-four short fables in verse about animals with human faults: a crow and a fox, a dragonfly and an ant, a monkey with glasses, and more.": {
   "where": [
    "public/samples/ru/index.json"
@@ -7206,6 +7321,11 @@
    "src/ui/popup/bookCard.ts"
   ]
  },
+ "Use the arrow keys, or click the left or right edge of the page.": {
+  "where": [
+   "src/ui/reader/reader.ts"
+  ]
+ },
  "Use your correction of {word}": {
   "where": [
    "src/ui/reader/toc.ts"
@@ -7245,6 +7365,7 @@
  "Vocabulary": {
   "where": [
    "src/main.ts",
+   "src/ui/siteGuide.ts",
    "src/ui/vocab/vocab.ts"
   ]
  },
@@ -7261,6 +7382,12 @@
  "Voice sample stopped.": {
   "where": [
    "src/ui/settings/speech.ts"
+  ]
+ },
+ "Walkthrough": {
+  "where": [
+   "src/ui/guide.ts",
+   "src/ui/settings/settings.ts"
   ]
  },
  "Welcome screen": {
@@ -7753,6 +7880,11 @@
    "src/main.ts"
   ]
  },
+ "Your books live here. Start with a free classic, or add your own.": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "Your books, saved words, lookups, bookmarks, reading places and settings follow you to any device you sign in on. A few things that depend on the screen, like one or two pages, stay with each device.": {
   "where": [
    "src/ui/about/about.ts"
@@ -7796,6 +7928,11 @@
    "src/ui/welcome.ts"
   ]
  },
+ "Your language, your daily goal, translators and sync.": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "Your languages": {
   "where": [
    "src/ui/welcome.ts"
@@ -7803,7 +7940,9 @@
  },
  "Your library": {
   "where": [
-   "src/ui/library/library.ts"
+   "src/ui/library/library.ts",
+   "src/ui/reader/reader.ts",
+   "src/ui/siteGuide.ts"
   ]
  },
  "Your name": {

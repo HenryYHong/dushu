@@ -511,3 +511,7 @@ describe('words looked up and bookmarks', () => {
     await vi.waitFor(async () => expect(await ctx.store.bookmarks.list(meta.id)).toHaveLength(0));
   });
 });
+
+// The reading walkthrough (ui/guide.ts) covers the reader the first time a book opens; these tests read past it. Registered
+// last, so it runs after any clearing of storage above.
+beforeEach(() => { try { localStorage.setItem('dushu.reader-hint.v1', '1'); } catch { /* no storage here */ } });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Words learned from reading, wired into the reader (Scroll layout in jsdom: every block has the same small box, so all are in view).
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 import { localDay } from '../../src/core/autoKnown';
 import type { AppContext, BookMeta, Chapter } from '../../src/types';
 import { closePopup } from '../../src/ui/popup/popup';
@@ -144,3 +144,7 @@ describe('what the Pages layout counts', () => {
     expect(view.units.flatMap((u) => u.words().map((w) => `${w.id}=${w.word}`))).toEqual(['0:2:0=他', '0:2:1=走', '0:2:2=了']);
   });
 });
+
+// The reading walkthrough (ui/guide.ts) covers the reader the first time a book opens; these tests read past it. Registered
+// last, so it runs after any clearing of storage above.
+beforeEach(() => { try { localStorage.setItem('dushu.reader-hint.v1', '1'); } catch { /* no storage here */ } });

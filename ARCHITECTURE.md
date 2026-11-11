@@ -1600,9 +1600,10 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
 - Touch: on a touch screen a second tap within 380 ms and 48 px (screen coordinates) of the first opens the sentence of the FIRST tap's word as a phrase popup (translation), whatever is under the finger by then: it is a capture-phase click listener (`onDoubleTap` in reader.ts), because the first tap's card or the lifted page can be under the second tap, and the Pages lift of a bottom sheet is held back 400 ms (`LIFT_HOLD_MS`) so the word stays put for it. Names found by the first-open scan wait while a word card is open and apply when it is closed. Pages turns the page
   from a tap on the blank margin in the outer strips of the spread (`edgeWidth`: about 16% of a spread, 20% of one page, 56 px at least). A tap on
   the text never turns: a word opens its card wherever it is, and the rest of a text line (`.rd-b`: punctuation, the gap between lines) shows or hides
-  the bar, so reaching for a word near the edge no longer turns the page. A mouse click on a word always looks it up. The first time a book is opened on a device a hint says so, and points to
-  the 拼 button (drawn as the seal) for pinyin on every word, unknown words or above an HSK level (`dushu.reader-hint.v1` in localStorage,
-  dismissed by the first tap).
+  the bar, so reaching for a word near the edge no longer turns the page. A mouse click on a word always looks it up. The first time a book is opened on a device the reader's walkthrough
+  (`ui/guide.ts`, steps in `showReaderHint`) lights up, one step at a time, a word on the page, the 拼 seal, Aa, read aloud, chapters, the
+  bookmark and the way back, and says how pages turn; the rest of the screen is dimmed and takes no taps or keys while it shows. Seen once
+  it is finished or skipped (`dushu.reader-hint.v1`); leaving the book in the middle shows it again. The Aa menu shows it again.
 - A chapter that cannot be loaded or drawn shows "Could not display this chapter" with Previous, Next, Open chapter list and (the first time) Try
   again; keys still turn chapters; the saved place is not overwritten. Failures are counted per chapter in localStorage (`dushu.chapter-failures`):
   after two, opening the book shows the error and the chapter list instead of trying that chapter again.
@@ -1682,6 +1683,10 @@ and opens it. Empty state explains what the app does in two sentences.
   the language translations go into (any of `translate/targets.ts`, 94), and a daily goal. Finishing opens the first language
   chosen; a device used before the screen existed is marked welcomed and never interrupted. Settings › Learning changes the
   languages and the goal and shows the screen again. The languages being learned come first in the language switcher.
+- Finishing the welcome makes the library's walkthrough due (`ui/siteGuide.ts`, `dushu.site-guide.v1`): once the library is drawn
+  and nothing is open over it, it lights up the first book, Find a book, Paste text, Import book, then Vocabulary, Review, Settings,
+  the language switch and Sign in, and says the reader shows itself the first time a book opens. Settings › Learning › Walkthrough
+  shows both again.
 - needsWelcome writes the unfinished plan (`welcomed: 0`) at once, so a reload or a second tab during the welcome brings it back.
   The welcome is a modal `<dialog>`. Skip keeps a language already picked; with none picked the bar keeps its language chip. From
   Settings, Done stays in the open library unless that language was dropped, and Esc acts as Cancel.
@@ -2045,7 +2050,10 @@ exists.
   Chinese. Its dictionary (`scripts/lang/en/build_en.py`) is ECDICT (MIT): Chinese glosses and hints, the forms of each word
   (went is go's past tense; a noun's 's and s' its possessive), COCA/BNC ranks, and the Chinese exam lists, which give its levels
   (`levels.tsv.gz`, read by the spaced engine when a language has one: 中考, 高考, CET-4, CET-6, IELTS/TOEFL with 考研, GRE; a word
-  is at the first list it is on). `scripts/lang/en/curated.tsv` replaces ECDICT's entries for the commonest words, whose Chinese
+  is at the first list it is on). The main dictionary keeps about 68,000 words (ranked, on a list, or met in the starter books); the
+  other 340,000 single ECDICT words with a translation are in `data/en/rare/<first two letters>.tsv.gz` (`build_rare.py`, 6 MB in
+  all), which the word card fetches only for a word the dictionary lacks (cavillers: caviller), trying its regular forms
+  (`lang/spaced/rareWords.ts`); none is downloaded ahead. `scripts/lang/en/curated.tsv` replaces ECDICT's entries for the commonest words, whose Chinese
   is thin there ("the" is only 那), and adds the contractions (don't, I'm, it's are words of their own) and be/have/do's forms.
   Phrasal verbs are ECDICT's verb + particle rows for common verbs, matched before a noun too (`SpacedLang.phrasesBeforeNoun`:
   "gave up the idea"). The card says how the word on the page and its dictionary form are pronounced (went /went/, go /ɡəʊ/):

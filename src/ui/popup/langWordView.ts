@@ -263,9 +263,27 @@ export function mountLangWordView(
       if (m.el) body.appendChild(m.el);
       if (many && (o.context?.sentence || v.token)) body.appendChild(h('p.pp-note', null, tt('Every word this can be. The first fits best where it is used here.')));
     } else {
-      body.appendChild(h('p.pp-note', null, lu.name || v.token?.name
+      const missing = h('p.pp-note', null, lu.name || v.token?.name
         ? tt('A name. The dictionary has no entry for it.')
-        : tt('Not in the dictionary. Translate the sentence to see it in context.')));
+        : tt('Not in the dictionary. Translate the sentence to see it in context.'));
+      body.appendChild(missing);
+      // English: a rarer word than the dictionary keeps (cavillers) may be in the rest of ECDICT, fetched now (rareWords.ts).
+      if (L.id === 'en' && !(lu.name || v.token?.name)) {
+        const said = missing.textContent;
+        missing.textContent = tt('Looking it up…');
+        void import('../../lang/spaced/rareWords')
+          .then((r) => r.rareLookup(new URL('data/en/', document.baseURI).href, v.word))
+          .catch(() => null)
+          .then((hit) => {
+            if (!missing.isConnected) return;
+            if (!hit) { missing.textContent = said; return; }
+            missing.replaceWith(h('div.pp-rare', null,
+              hit.key !== v.word.toLowerCase() ? h('p.pp-note', null, h('span', { lang: L.tag }, hit.key)) : null,
+              h('ol.pp-defs', null, ...hit.gloss.split(' | ').map((g) => h('li', { lang: 'zh-Hans' }, g))),
+              h('p.pp-note', null, tt('A rare word, from the full ECDICT dictionary.'))));
+            host.reposition();
+          });
+      }
     }
 
     // Pieces: a word made of several (clitics, elision, a compound) can be looked up one piece at a time.

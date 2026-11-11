@@ -9,6 +9,7 @@ import { icon } from '../icons';
 import { contextEl, pinyinEl, scriptView, textAttrs } from '../vocab/render';
 import { isChinese } from '../../lang/active';
 import { pageTitle } from '../pageHead';
+import { celebrate } from './celebrate';
 import { describeNextDue, ReviewSession } from './queue';
 import { reviewCards, reviewParts } from './learning';
 import { num, tt, ttm, ttn } from '../../i18n';
@@ -210,7 +211,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!alive) return;
     clear(screen);
     const stat = (value: string, label: string) => h('div.rev-stat', null, h('div.rev-stat-value', null, value), h('div.rev-stat-label', null, label));
-    screen.append(head(), h('div.card.rev-summary', null,
+    const summary = h('div.card.rev-summary', null,
       h('h2.rev-summary-title', null, tt('Session complete')),
       h('p.muted', null, tt('{a}, {b}', { a: ttn(s.cards, '{n} card', '{n} cards'), b: ttn(s.reviews, '{n} answer', '{n} answers') })),
       h('div.rev-stats', null,
@@ -228,7 +229,10 @@ export const mount: MountFn = (root, _params, ctx) => {
         h('a.btn', { href: '#/vocab' }, icon('list'), tt('Back to words')),
         h('a.btn.btn-ghost', { href: '#/' }, tt('Library')),
       ),
-    ));
+    );
+    screen.append(head(), summary);
+    // A session finished: a short celebration (celebrate.ts).
+    if (s.reviews > 0) celebrate(summary);
     session = null;
   }
 

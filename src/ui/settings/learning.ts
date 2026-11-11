@@ -7,9 +7,10 @@ import { langId } from '../../lang/active';
 import { ACTIVITY_EVENT, GOALS } from '../../core/activity';
 import { getPlan, setPlan } from '../../core/plan';
 import { radioGroup } from './controls';
+import { markReaderGuide, markSiteGuide } from '../guide';
 import { UI_LANGS, UI_NAMES, chooseUiLang, langName, tt, ttn, uiLang } from '../../i18n';
 
-export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HTMLElement; goal: HTMLElement; welcome: HTMLElement; dispose(): void } {
+export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HTMLElement; goal: HTMLElement; welcome: HTMLElement; walkthrough: HTMLElement; dispose(): void } {
   // The app is shown in it, and sentences are translated into it (Translation › Translate into changes only that). The page
   // reloads, so every screen is drawn again in the new language.
   const own = h('select.select', { id: 'set-ui-lang', 'aria-label': tt('Your language') },
@@ -38,6 +39,12 @@ export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HT
   const welcome = h('button.btn', { type: 'button', onclick: () => {
     void import('../welcome').then((m) => m.showWelcome(ctx.settings, { current: langId(), again: true }));
   } }, tt('Show it again'));
+  // The walkthrough (ui/guide.ts): the library's starts as the library opens, and the reader's the next time a book does.
+  const walkthrough = h('button.btn', { type: 'button', onclick: () => {
+    markReaderGuide(false);
+    markSiteGuide('due');
+    location.hash = '#/';
+  } }, tt('Show it again'));
 
   // Redrawn when the plan changes here, in another tab or from another device.
   const draw = () => {
@@ -47,5 +54,5 @@ export function learningControls(ctx: AppContext): { own: HTMLElement; langs: HT
   };
   draw();
   window.addEventListener(ACTIVITY_EVENT, draw);
-  return { own, langs, goal: goal.el, welcome, dispose() { window.removeEventListener(ACTIVITY_EVENT, draw); } };
+  return { own, langs, goal: goal.el, welcome, walkthrough, dispose() { window.removeEventListener(ACTIVITY_EVENT, draw); } };
 }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The reader screen end to end in jsdom: no layout, but the wiring (chapters, popups, settings, progress) is real.
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi, beforeEach } from 'vitest';
 import type { AppContext, BookMeta, Chapter } from '../../src/types';
 import { mount } from '../../src/ui/reader/reader';
 import { closePopup } from '../../src/ui/popup/popup';
@@ -348,3 +348,7 @@ describe('reader screen', () => {
     expect(ctx.settings.get().pinyin).toBe(before);
   });
 });
+
+// The reading walkthrough (ui/guide.ts) covers the reader the first time a book opens; these tests read past it. Registered
+// last, so it runs after any clearing of storage above.
+beforeEach(() => { try { localStorage.setItem('dushu.reader-hint.v1', '1'); } catch { /* no storage here */ } });

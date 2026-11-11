@@ -34,6 +34,7 @@ import { activeEngine, isChinese, lang } from '../../lang/active';
 import { bookStartText } from './bookStart';
 import { aidName, aidSeal, glossLanguage, levelLabel } from '../../lang/labels';
 import { POS_SEL } from './render';
+import { markReaderGuide, readerGuideSeen, showGuide, type GuideStep } from '../guide';
 import { langName, tt, uiLocale } from '../../i18n';
 
 const BAR_H = 52;
@@ -77,11 +78,6 @@ function clearFail(bookId: string, chapter: number): void {
   const f = readFails();
   if (failKey(bookId, chapter) in f) { delete f[failKey(bookId, chapter)]; writeFails(f); }
 }
-
-/** The one-time hint about how to look things up. */
-const COACH_KEY = 'dushu.reader-hint.v1';
-function coachSeen(): boolean { try { return localStorage.getItem(COACH_KEY) === '1'; } catch { return true; } }
-function coachMark(): void { try { localStorage.setItem(COACH_KEY, '1'); } catch { /* ignore */ } }
 
 /** How long the book may take to open before the wait for the dictionary is explained. */
 const SAY_DOWNLOAD_MS = 400;
@@ -778,7 +774,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   }
   function toggleDisplayMenu(): void {
     if (popoverOpenFor(aaBtn)) { closePopover(); return; }
-    const m = buildDisplayMenu(ctx);
+    const m = buildDisplayMenu(ctx, { guide: () => showReaderHint(true) });
     menuSync = m.sync;
     openPopover(aaBtn, m.el, () => { menuSync = null; }, { label: tt('Display settings') });
   }
@@ -1607,7 +1603,7 @@ export const mount: MountFn = async (root, params, ctx) => {
    */
   function askNames(list: Awaited<ReturnType<NonNullable<typeof nameCheck>['candidates']>>): void {
     if (disposed || !list.length || rd.querySelector('.rd-name-ask')) return;
-    if (rd.querySelector('.rd-coach')) { window.setTimeout(() => askNames(list), 2000); return; }
+    if (rd.querySelector('.rd-coach, .rd-guide')) { window.setTimeout(() => askNames(list), 2000); return; }
     const box = nameCheck?.show(rd, list);
     if (box) { bar.after(box); liftToasts(box); }
   }
@@ -1642,7 +1638,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     const ids = spellings?.ask() ?? [];
     if (disposed || !ids.length || rd.querySelector('.rd-spell-ask')) return;
     // After the first-visit hint, which sits in the same place.
-    if (rd.querySelector('.rd-coach')) { window.setTimeout(askSpellings, 2000); return; }
+    if (rd.querySelector('.rd-coach, .rd-guide')) { window.setTimeout(askSpellings, 2000); return; }
     const box = h('div.rd-coach.rd-spell-ask', { role: 'note', 'data-rd-ui': '' },
       h('div', null, h('p', null, askText(ids)), h('p', null, tt('You can change it later under Corrections in the chapter list.'))),
       h('div.rd-spell-btns', null,
@@ -1668,55 +1664,56 @@ export const mount: MountFn = async (root, params, ctx) => {
     }
   }
 
-  /** The first time a book is opened on this device: how to look things up, once. */
-  function showReaderHint(): void {
-    if (coachSeen()) return;
+  /**
+   * The reading guide (guide.ts): the first time a book is opened on this device, and again from the Aa menu. Each step lights up
+   * the part of the reader it is about. Seen once it is finished or skipped; leaving the book in the middle shows it again next time.
+   */
+  function showReaderHint(again = false): void {
+    if ((!again && readerGuideSeen()) || rd.querySelector('.rd-guide')) return;
+    stopCoach?.();
     const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
-    // The seal as the bar draws it, so the button is easy to find: each sentence is translated whole and the seal goes where {seal} is.
+    const paged = ctx.settings.get().layout === 'pages';
+    // The seal as the bar draws it, set inside the sentence about it.
     const seal = h(`span.rd-seal${isChinese() || L.id === 'ja' || L.id === 'en' ? '.zh' : '.rd-seal-latin'}`, null, aidSeal());
     const gloss = glossLanguage();
     const language = langName(gloss === 'Chinese' ? 'zh' : 'en', gloss);
-    const sealLine = isChinese()
-      ? touch ? tt("Tap {seal} at the top to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level.")
-        : tt("Click {seal} at the top (or press P) to choose where pinyin shows: every word, words you don't know yet, or words above your HSK level.")
-      : L.aid === 'furigana'
-        ? touch ? tt("Tap {seal} at the top to choose where furigana show: every word, words you don't know yet, or words above your JLPT level.")
-          : tt("Click {seal} at the top (or press P) to choose where furigana show: every word, words you don't know yet, or words above your JLPT level.")
-        : touch ? tt("Tap {seal} at the top to show short {language} hints over words: every word, words you don't know yet, or words above your level.", { language })
-          : tt("Click {seal} at the top (or press P) to show short {language} hints over words: every word, words you don't know yet, or words above your level.", { language });
-    const [beforeSeal, afterSeal = ''] = sealLine.split('{seal}');
-    const lines: (string | Node)[][] = [
-      [touch
-        ? tt('Tap a word to look it up. Tap twice for the whole sentence and its translation, or press and hold to select your own words.')
-        : tt('Click a word to look it up. Drag across text to select a sentence and translate it. Press Enter to choose words with the keys.')],
-      [beforeSeal, seal, afterSeal].filter((x) => x !== ''),
+    // A word on screen as it is now, for the first step: in a paragraph when there is one (not the chapter's heading). Pages
+    // are laid out in the pager's stage, outside `page`, so the whole reader is searched.
+    const firstWord = (): Element | null => {
+      const top = bar.getBoundingClientRect().bottom;
+      const fits = (w: Element) => {
+        const r = w.getBoundingClientRect();
+        return r.width > 0 && r.top >= top && r.bottom <= window.innerHeight && r.left >= 0 && r.right <= window.innerWidth;
+      };
+      const words = [...rd.querySelectorAll(POS_SEL)];
+      return words.find((w) => !w.closest('.rd-h') && fits(w)) ?? words.find(fits) ?? null;
+    };
+    const steps: GuideStep[] = [
+      { target: firstWord, title: tt('Look up a word'), body: [touch
+        ? tt('Tap a word to see what it means. Tap it twice for the whole sentence and its translation.')
+        : tt('Click a word to see what it means. Drag across a sentence to translate it.')] },
+      { title: tt('Save words'), body: [tt('A word’s card has Save word, for words you want to review, and Mark as known, for words you already know.')] },
+      { target: () => pinyinBtn, title: aidName(), body: [
+        seal, ' ',
+        L.aid === 'pinyin' ? tt('Choose where pinyin shows: on every word, on words you don’t know yet, or on words above your HSK level.')
+          : L.aid === 'furigana' ? tt('Choose where furigana show: on every word, on words you don’t know yet, or on words above your JLPT level.')
+            : tt('Show short {language} hints over words: on every word, on words you don’t know yet, or on words above your level.', { language })] },
+      { target: () => aaBtn, title: tt('Text and page'), body: [tt('Change the text size, font and theme, and choose between turning pages and scrolling.')] },
+      ...(speechBtn.hidden ? [] : [{ target: () => speechBtn, title: tt('Read aloud'), body: [tt('Listen to the chapter read aloud.')] }]),
+      { target: () => tocBtn, title: tt('Chapters'), body: [tt('Jump to a chapter or a bookmark, and see the words in this book.')] },
+      { target: () => markBtn, title: tt('Bookmarks'), body: [tt('Bookmark the page you’re on.')] },
+      paged
+        ? { title: tt('Turn the page'), body: [touch ? tt('Swipe, or tap the left or right edge of the page.') : tt('Use the arrow keys, or click the left or right edge of the page.')] }
+        : { title: tt('Keep reading'), body: [tt('Scroll down to keep reading. Your place is saved as you go.')] },
+      { target: () => rd.querySelector('.rd-back'), title: tt('Your library'), body: [tt('Go back to your books. Words you save wait for you in Vocabulary and Review.')] },
     ];
-    const s = ctx.settings.get();
-    if (s.pinyin === 'unknown' && store.known.count() === 0) {
-      lines.push([L.aid === 'pinyin' ? tt('Right now every word has pinyin. Mark a word as known in its card and its pinyin goes away.')
-        : L.aid === 'furigana' ? tt('Right now every word has furigana. Mark a word as known in its card and its furigana goes away.')
-          : tt('Right now every word has hints. Mark a word as known in its card and its hints goes away.')]);
-    }
-    const stop = () => {
-      document.removeEventListener('pointerdown', close, true);
-      window.clearTimeout(timer);
-      window.clearTimeout(arm);
-      stopCoach = null;
-    };
-    const close = () => {
-      coachMark();
-      stop();
-      box.remove();
-    };
-    const box = h('div.rd-coach', { role: 'note', 'data-rd-ui': '' },
-      h('div', null, lines.map((l) => h('p', null, ...l))),
-      h('button.btn.btn-sm', { type: 'button', onclick: close }, tt('Got it')));
-    rd.appendChild(box);
-    const timer = window.setTimeout(close, 20000);
-    // The first tap anywhere puts it away (and still does what the tap was for).
-    const arm = window.setTimeout(() => document.addEventListener('pointerdown', close, true), 600);
-    // Leaving the reader takes its timers and listener with it (the hint shows again next time).
-    stopCoach = stop;
+    closePopover();
+    const guide = showGuide(rd, steps, { last: tt('Start reading') });
+    stopCoach = guide.stop;
+    void guide.done.then((seen) => {
+      if (stopCoach === guide.stop) stopCoach = null;
+      if (seen) markReaderGuide(true);
+    });
   }
 
   return () => {
