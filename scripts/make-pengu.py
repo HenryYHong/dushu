@@ -9,17 +9,17 @@ art/pengu-cheer.png (both flippers up, eyes closed happily) are the same picture
 book and the frame unchanged: each is cut to the same square as the reading Pengu, so a pose can take another's place without
 Pengu moving. The sticker is cut out of the blue (every pixel as
 see-through as it is close to the blue, and the blue taken out of the colors along the edge, so it sits cleanly on a light or a
-dark page), and its book recolored to the app's vermilion, so Pengu wears the app's own two colors. The mascot inside the app,
-the brand mark in the bar and the browser tab's icon are that sticker by itself; the installed app's icons are it on a square of
-the app's ink blue (a home screen wants a solid square: iOS fills a see-through one with black). It writes:
+dark page), and its book recolored to the app's vermilion, so Pengu wears the app's own two colors. The mascot inside the app
+is that sticker by itself; the logo (the brand mark in the bar, the browser tab's icon, the installed app's icons) is it on a
+white square with rounded corners (a home screen wants a solid square anyway: iOS fills a see-through one with black). It writes:
 
     src/ui/pengu/pengu.webp        the mascot, the sticker cut out (peeking over a card, empty screens), 512 px
     src/ui/pengu/pengu-wave.webp   the mascot waving (the welcome, the walkthrough's first step, nothing to review), 512 px
     src/ui/pengu/pengu-cheer.webp  the mascot cheering (a review finished, the daily goal, a book finished), 512 px
-    src/ui/pengu/logo.webp         the brand mark in the bar: the reading sticker, small, 128 px
+    src/ui/pengu/logo.webp         the logo, the brand mark in the bar, 128 px
     art/pengu-cutout.png           the mascot at full size, for scripts/make-icons.mjs (the link picture)
-    public/icon.svg                the browser tab's icon: the sticker, a 128 px picture inside an SVG
-    public/icons/icon-192.png, icon-512.png       the sticker on ink blue with rounded corners ("any" purpose)
+    public/icon.svg                the logo for the browser tab, a 128 px picture inside an SVG
+    public/icons/icon-192.png, icon-512.png       the logo ("any" purpose)
     public/icons/apple-touch-icon.png (180)        the square, full bleed (iOS rounds the corners)
     public/icons/icon-maskable-512.png             the square with Pengu smaller, inside the central safe zone
 """
@@ -32,7 +32,7 @@ SRC = os.path.join(REPO, 'art', 'pengu-logo.png')
 # The other poses: the picture each comes from and the mascot image it makes.
 POSES = {'wave': 'pengu-wave', 'cheer': 'pengu-cheer'}
 SOFT = (10, 60)   # distance from the background color (RGB) at which a pixel starts to show, and at which it is solid
-INK = (0x24, 0x35, 0x54)        # the app's ink blue (styles/tokens.css --ink): the logo's ground
+GROUND = (255, 255, 255)        # the logo's ground: white
 VERMILION = (0xc1, 0x36, 0x16)  # the app's accent (--accent): the book
 
 
@@ -108,9 +108,9 @@ def recolor_book(im: Image.Image) -> Image.Image:
     return out
 
 
-def on_ink(sticker: Image.Image, size: int, share: float) -> Image.Image:
-    """A square of the app's ink blue with the sticker taking `share` of its width, a little below the middle."""
-    sq = Image.new('RGBA', (size, size), INK + (255,))
+def on_ground(sticker: Image.Image, size: int, share: float) -> Image.Image:
+    """A white square with the sticker taking `share` of its width, a little below the middle."""
+    sq = Image.new('RGBA', (size, size), GROUND + (255,))
     k = int(size * share)
     s = sticker.resize((k, k), Image.LANCZOS)
     sq.alpha_composite(s, ((size - k) // 2, (size - k) // 2 + size // 85))
@@ -156,16 +156,16 @@ def main() -> None:
             raise SystemExit(f'art/pengu-{name}.png is {pose.size}, not {sticker.size} like art/pengu-logo.png')
         # Cut to the reading Pengu's box, not its own: the same book in the same place in every pose.
         save(recolor_book(trim_square(pose, box=box)), os.path.join(REPO, 'src', 'ui', 'pengu', f'{out}.webp'), 512, quality=90, method=6)
-    square = on_ink(mascot, 1024, 0.86)
+    square = on_ground(mascot, 1024, 0.86)
     logo = rounded(square)
-    save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', 'logo.webp'), 128, quality=90, method=6)
+    save(logo, os.path.join(REPO, 'src', 'ui', 'pengu', 'logo.webp'), 128, quality=90, method=6)
     save(logo, os.path.join(REPO, 'public', 'icons', 'icon-192.png'), 192, optimize=True)
     save(logo, os.path.join(REPO, 'public', 'icons', 'icon-512.png'), 512, optimize=True)
     save(square.convert('RGB'), os.path.join(REPO, 'public', 'icons', 'apple-touch-icon.png'), 180, optimize=True)
     # The safe zone is the middle 80 percent, a circle: Pengu shrunk to fit inside it.
-    save(on_ink(mascot, 1024, 0.64).convert('RGB'), os.path.join(REPO, 'public', 'icons', 'icon-maskable-512.png'), 512, optimize=True)
+    save(on_ground(mascot, 1024, 0.64).convert('RGB'), os.path.join(REPO, 'public', 'icons', 'icon-maskable-512.png'), 512, optimize=True)
     buf = io.BytesIO()
-    mascot.resize((128, 128), Image.LANCZOS).save(buf, 'PNG', optimize=True)
+    logo.resize((128, 128), Image.LANCZOS).save(buf, 'PNG', optimize=True)
     data = base64.b64encode(buf.getvalue()).decode()
     with open(os.path.join(REPO, 'public', 'icon.svg'), 'w') as f:
         f.write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><image width="128" height="128" href="data:image/png;base64,{data}"/></svg>\n')

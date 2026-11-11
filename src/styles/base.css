@@ -40,9 +40,10 @@ a { color: var(--ink); }
   border-bottom: 1px solid var(--rule);
 }
 .app-brand { display: flex; align-items: center; gap: 10px; margin-right: auto; text-decoration: none; color: var(--text); border-radius: var(--radius-s); }
-/* The brand mark, like the browser tab's icon: Pengu over its book, the sticker by itself (ui/pengu.ts penguMark). */
+/* The brand mark, like the browser tab's icon: Pengu over its book on a white rounded square (ui/pengu.ts penguMark), with a
+   hairline so the white still reads on the paper page. The radius matches the picture's corners (make-pengu.py rounded). */
 .app-brand-mark { display: inline-grid; flex: none; width: 36px; height: 36px; }
-.app-brand-mark img { width: 100%; height: 100%; display: block; object-fit: contain; -webkit-user-select: none; user-select: none; }
+.app-brand-mark img { width: 100%; height: 100%; display: block; object-fit: contain; border-radius: 22%; box-shadow: 0 0 0 1px var(--rule); -webkit-user-select: none; user-select: none; }
 .app-brand-zh, .seal {
   display: inline-grid; place-items: center; flex: none;
   background: var(--accent-fill); color: var(--accent-fill-text);

@@ -315,7 +315,7 @@ async function boot(): Promise<void> {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') accountBooks(); });
   setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, 5 * 60_000);
 
-  /** The app's mark, as in the browser tab (public/icon.svg): Pengu over its book, the sticker by itself (ui/pengu.ts). */
+  /** The app's mark, as in the browser tab (public/icon.svg): Pengu over its book on a white rounded square (ui/pengu.ts). */
   const brandMark = () => {
     const el = h('span.app-brand-mark', { 'aria-hidden': 'true' });
     el.innerHTML = penguMark();
