@@ -1790,8 +1790,15 @@ and opens it. Empty state explains what the app does in two sentences.
   never touches the SRS schedule; its star saves to the flashcards. Synced through the Mac (§4.11).
 - Motion of saved words (`ui/vocab/motion.ts`, on Review's `canMove`/`play`): a star or check that turns on (the word card's Save and
   Known, a Looked up row's star, Practice's star) pops once, 1.15 and back in 200 ms; turning off, and a card opening, do nothing. In
-  Saved and Looked up, a change to the words themselves (removed, put back, saved or removed elsewhere; `render(changed)`) redraws
-  FLIP-style: a row that left fades where it was as an inert copy hidden from screen readers (`.voc-ghost`, 140 ms) while the rows
+  Saved and Looked up, a change to the words themselves (removed, put back, saved or removed elsewhere; `render(changed)`) is patched
+  in place (`ui/vocab/patch.ts`): only the rows that left are taken out and those that came put in at their place in the order (a
+  Looked up day comes or goes with its first or last word), every other row stays the same element, and a word saved elsewhere
+  only sets its Looked up star again (`savedChanged`). A patch draws exactly what a full drawing would (tests/vocab/list-patch.test.ts);
+  a search, a sort, a setting, the date changing since the last drawing, or more than 8 rows coming or going draws in full. A
+  keyboard focus on a row that left moves to the row now in its place. Rows have `contain: layout style`, so rows that shift are
+  moved as wholes. With 800 saved words at 4x CPU, Remove went from a 370 to 430 ms frame (every row built again) to frames of
+  33 ms or less. The change then shows FLIP-style, measuring only the rows within two screens of the window: a row that left fades
+  where it was as an inert copy hidden from screen readers (`.voc-ghost`, 140 ms) while the rows
   after it slide straight up into its place (240 ms), and a row that came back eases in once the rows below have made room. Rows
   never cross between columns: in two columns they are simply drawn in their new places and only a returning word eases in. A
   search, a sort, a setting, or more than 8 rows coming or going is drawn at once. While a library with no books waits for the

@@ -128,6 +128,36 @@ describe('a word that leaves a list', () => {
   });
 });
 
+describe('a long list', () => {
+  it('measures only the rows on or near the screen, and still moves the ones in sight', () => {
+    const many = Array.from({ length: 400 }, (_, i) => `w${i}`);
+    const el = list(many);
+    let measured = 0;
+    const rect = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function (this: Element) { if ((this as HTMLElement).dataset?.flip) measured++; return rect.call(this); };
+    redraw(el, true, () => fill(el, many.filter((w) => w !== 'w1')));
+    // A screen of 768 px holds 8 rows: with two screens above and below it, about 40 rows are measured before and after,
+    // not 400 each time.
+    expect(measured).toBeLessThan(120);
+    const slides = calls.filter((c) => !(c.el as HTMLElement).classList.contains('voc-ghost'));
+    expect(slides.length).toBeGreaterThan(0);
+    // Only rows in sight slide; the row that left fades.
+    expect(slides.every((c) => Number(String((c.el as HTMLElement).dataset.flip).slice(1)) < 12)).toBe(true);
+    expect(el.querySelectorAll('.voc-ghost')).toHaveLength(1);
+  });
+
+  it('just draws a list in a tab that is not shown', () => {
+    const tab = document.createElement('div');
+    tab.hidden = true;
+    document.body.append(tab);
+    const el = list(['a', 'b', 'c']);
+    tab.append(el);
+    redraw(el, true, () => fill(el, ['a', 'c']));
+    expect(words(el)).toEqual(['a', 'c']);
+    expect(calls).toHaveLength(0);
+  });
+});
+
 describe('a star or check that turns on', () => {
   it('pops its icon a little and back, in 200 ms; nothing with reduced motion', () => {
     const btn = document.createElement('button');

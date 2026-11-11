@@ -2,8 +2,8 @@
 // pop (turning off, it is simply off), and a word that leaves a list folds away while the rows after it close the gap, as a
 // word that comes back eases in and the rows make room. A search, a sort or a new setting redraws at once, and so does a
 // change of many rows. Transforms and opacity only, through review/motion.ts: nothing moves for a reader who asks for reduced
-// motion, and nothing happens where the browser cannot animate (tests). The list is drawn in full either way; the motion only
-// shows the way there, so nothing waits on it.
+// motion, and nothing happens where the browser cannot animate (tests). The list is drawn either way (in full, or a few words
+// patched in place by patch.ts); the motion only shows the way there, so nothing waits on it.
 import { EASE, EASE_OUT, canMove, play } from '../review/motion';
 
 /** A button's icon that has just turned on: a little bigger, then back, in 200 ms. */
@@ -12,8 +12,11 @@ export function popIcon(btn: Element | null | undefined): void {
   play(target, [{ transform: 'none' }, { transform: 'scale(1.15)', offset: 0.4 }, { transform: 'none' }], { duration: 200, easing: EASE });
 }
 
-/** Each keyed element of a list ([data-flip]) and where it was, taken just before the list is drawn again. */
-type Boxes = Map<string, { el: HTMLElement; box: DOMRect }>;
+/**
+ * Each keyed element of a list ([data-flip]), and where those on or near the screen were. Rows farther off are never seen
+ * moving (a row slides by a couple of rows at most), and measuring 800 of them took a phone longer than the change itself.
+ */
+interface Boxes { els: Map<string, HTMLElement>; at: Map<string, DOMRect> }
 
 const GHOST = 'voc-ghost';
 /** More rows than this coming or going at once (a restore, a sync) is a new list, not a change to read: it is just drawn. */
@@ -28,10 +31,30 @@ const MOVE_DELAY = 70;
 const ARRIVE_DELAY = 100;
 const ARRIVE_MS = 220;
 
-function measure(root: HTMLElement): Boxes {
-  const at: Boxes = new Map();
-  for (const el of root.querySelectorAll<HTMLElement>('[data-flip]')) at.set(el.dataset.flip!, { el, box: el.getBoundingClientRect() });
-  return at;
+function measure(root: HTMLElement, vh: number): Boxes {
+  const list = [...root.querySelectorAll<HTMLElement>('[data-flip]')];
+  const keys = list.map((el) => el.getAttribute('data-flip')!);
+  const els = new Map(list.map((el, i) => [keys[i], el]));
+  const at = new Map<string, DOMRect>();
+  // Two screens above and below it: farther than that, a row is out of sight before and after any slide (a row slides by
+  // at most twice its height).
+  const lo = -2 * vh;
+  const hi = 3 * vh;
+  // The rows are in reading order, so their tops never go up the screen: the first near it is found by halving.
+  let a = 0;
+  let b = list.length;
+  while (a < b) {
+    const m = (a + b) >> 1;
+    if (list[m].getBoundingClientRect().top < lo) a = m + 1; else b = m;
+  }
+  // A row above that one may still reach down into the band (a tall row, or the other column).
+  while (a > 0 && list[a - 1].getBoundingClientRect().bottom > lo) a--;
+  for (let i = a; i < list.length; i++) {
+    const box = list[i].getBoundingClientRect();
+    if (box.top > hi) break;
+    at.set(keys[i], box);
+  }
+  return { els, at };
 }
 
 /**
@@ -42,26 +65,28 @@ function measure(root: HTMLElement): Boxes {
  * rows crossing the screen would be far more motion than one word is worth; a word that came back still eases in.
  */
 export function redraw(root: HTMLElement, animate: boolean, draw: () => void): void {
-  const before = animate && canMove(root) ? measure(root) : null;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  // A list out of sight (its tab not shown) has nothing to show moving.
+  const before = animate && canMove(root) && !root.closest('[hidden]') ? measure(root, vh) : null;
   // A row still fading from the last change stays to finish (drawing clears the list).
   const ghosts = before ? [...root.querySelectorAll<HTMLElement>(`:scope > .${GHOST}`)] : [];
   draw();
   if (!before) return;
   root.append(...ghosts);
-  const after = new Map<string, HTMLElement>();
-  for (const el of root.querySelectorAll<HTMLElement>('[data-flip]')) after.set(el.dataset.flip!, el);
-  const gone = [...before.keys()].filter((k) => !after.has(k));
-  if (gone.length + [...after.keys()].filter((k) => !before.has(k)).length > MOST_CHANGES) return;
+  const after = measure(root, vh);
+  const gone = [...before.els.keys()].filter((k) => !after.els.has(k));
+  if (gone.length + [...after.els.keys()].filter((k) => !before.els.has(k)).length > MOST_CHANGES) return;
 
-  const vh = window.innerHeight || document.documentElement.clientHeight;
   const seen = (b: DOMRect) => b.bottom > -60 && b.top < vh + 60 && b.height > 0;
   let slides: [HTMLElement, number, number][] = [];
   const arriving: HTMLElement[] = [];
   let crossing = false;
-  for (const [key, el] of after) {
-    const old = before.get(key)?.box;
-    const now = el.getBoundingClientRect();
-    if (!old) { if (seen(now)) arriving.push(el); continue; }
+  for (const [key, now] of after.at) {
+    const el = after.els.get(key)!;
+    if (!before.els.has(key)) { if (seen(now)) arriving.push(el); continue; }
+    // A row that was far off the screen is simply in its new place.
+    const old = before.at.get(key);
+    if (!old) continue;
     const dx = old.left - now.left;
     const dy = old.top - now.top;
     if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || (!seen(old) && !seen(now))) continue;
@@ -69,7 +94,10 @@ export function redraw(root: HTMLElement, animate: boolean, draw: () => void): v
     // A row sent far off (a new order) is simply in its new place.
     else if (Math.abs(dy) <= Math.max(240, 2 * now.height)) slides.push([el, dx, dy]);
   }
-  let leaving = gone.map((k) => before.get(k)!).filter((g) => seen(g.box));
+  let leaving = gone.flatMap((k) => {
+    const box = before.at.get(k);
+    return box && seen(box) ? [{ el: before.els.get(k)!, box }] : [];
+  });
   if (crossing) { slides = []; leaving = []; }
   if (slides.length + arriving.length + leaving.length > MOST_MOVING) return;
 

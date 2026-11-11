@@ -13,6 +13,7 @@ import { activeEngine, isChinese } from '../../lang/active';
 import { aidName, aidWord, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { createLookupsView } from './lookups';
 import { redraw } from './motion';
+import { applyPatch, focusedRow, planPatch, refocus } from './patch';
 import { reviewParts } from '../review/learning';
 import { backupFileName } from '../settings/data';
 import { num, tt, ttm, ttn, uiLocale } from '../../i18n';
@@ -55,6 +56,21 @@ const fmtDate = (ms: number) => new Date(ms).toLocaleDateString(uiLocale(), { mo
 /** Clauses said one after another: "Added 3 words, updated 1, 2 bookmarks added". */
 const clauses = (list: string[]) => list.reduce((a, b) => tt('{a}, {b}', { a, b }));
 
+/** Everything a row shows of a saved word but its due chip, in one string: a word whose row would look different is drawn again. */
+const rowShows = (it: VocabItem) => JSON.stringify([it.simp, it.trad, it.pinyin, it.gloss, it.context?.sentence, it.context?.bookTitle, it.addedAt]);
+const ROW = '.voc-row[data-flip]';
+
+/** The rows on screen and what each was drawn from, so a change of a few words is patched in (patch.ts). */
+interface DrawnList {
+  /** What every row was drawn with (the search, the sort, the settings): a patch needs the same. */
+  with: string;
+  keys: string[];
+  rows: Map<string, HTMLElement>;
+  shows: Map<string, string>;
+  /** Each row's due chip as drawn ("later Due in 3d"), set again when time has changed it. */
+  due: Map<string, string>;
+}
+
 export const mount: MountFn = (root, _params, ctx) => {
   const { store } = ctx;
   let items: VocabItem[] = [];
@@ -63,6 +79,10 @@ export const mount: MountFn = (root, _params, ctx) => {
   let settings = ctx.settings.get();
   let alive = true;
   let listed = false;
+  /** The saved words by id, as last read: a row's buttons act on the word as it is now, whenever its row was drawn. */
+  let byId = new Map<string, VocabItem>();
+  /** Null while the list shows no rows (nothing saved, nothing matches). */
+  let drawn: DrawnList | null = null;
 
   // ------------------------------------------------------------ header ---
   const sub = h('p.page-sub');
@@ -103,17 +123,30 @@ export const mount: MountFn = (root, _params, ctx) => {
   function shown(): VocabItem[] { return filterAndSort(items, query, sort); }
 
   /**
-   * Draws the words. `changed`: the saved words themselves changed (a word removed, put back, saved elsewhere), so a row that
-   * left folds away and one that came eases in (motion.ts); a search, a sort or a setting just draws the list as it is now.
+   * Draws the words. `changed`: the saved words themselves changed (a word removed, put back, saved elsewhere), so the rows of
+   * the few words that came or went are put in or taken out in place (patch.ts), and a row that left folds away while one that
+   * came eases in (motion.ts); a search, a sort or a setting just draws the list as it is now. A keyboard focus on a row that
+   * left goes to the row now in its place.
    */
   function renderList(changed = false): void {
-    redraw(list, changed, drawList);
+    const focus = focusedRow(list, ROW);
+    redraw(list, changed, () => { if (!changed || !patchList()) drawList(); });
+    refocus(list, focus, ROW);
+  }
+
+  /** The search, the sort and the settings every row is drawn with (and whether the script can be converted yet). */
+  const drawnWith = () => JSON.stringify([query, sort, settings.script, settings.pinyinStyle, settings.toneColors,
+    scriptView(settings.script, ctx.dictSync()).ready, uiLocale()]);
+
+  function countLine(rows: VocabItem[]): string {
+    return query.trim() ? ttn(rows.length, '{n} match of {total}', '{n} matches of {total}', { total: num(items.length) }) : '';
   }
 
   function drawList(): void {
     clear(list);
+    drawn = null;
     const rows = shown();
-    count.textContent = query.trim() ? ttn(rows.length, '{n} match of {total}', '{n} matches of {total}', { total: num(items.length) }) : '';
+    count.textContent = countLine(rows);
     toolbar.hidden = tools.hidden = items.length === 0;
     if (!items.length) {
       list.appendChild(h('div.empty.voc-empty', null,
@@ -130,11 +163,55 @@ export const mount: MountFn = (root, _params, ctx) => {
       return;
     }
     const now = Date.now();
-    for (const it of rows) list.appendChild(row(it, now));
+    const d: DrawnList = { with: drawnWith(), keys: rows.map((it) => it.id), rows: new Map(), shows: new Map(), due: new Map() };
+    for (const it of rows) {
+      const el = row(it, now, d);
+      d.rows.set(it.id, el);
+      list.appendChild(el);
+    }
+    drawn = d;
   }
 
-  function row(it: VocabItem, now: number): HTMLElement {
+  /**
+   * Brings the rows on screen up to the words as they are now, in place: the rows of words that left are taken out, those of
+   * words that came are put in at their place in the order, and a due chip that time has changed is set again. False, with
+   * nothing changed, when the list has to be drawn in full (patch.ts).
+   */
+  function patchList(): boolean {
+    const d = drawn;
+    if (!d || d.with !== drawnWith()) return false;
+    const rows = shown();
+    if (!rows.length) return false;
+    const redo = new Set<string>();
+    for (const it of rows) {
+      const was = d.shows.get(it.id);
+      if (was !== undefined && was !== rowShows(it)) redo.add(it.id);
+    }
+    const keys = rows.map((it) => it.id);
+    const patch = planPatch(d.keys, keys, redo);
+    if (!patch) return false;
+    const now = Date.now();
+    const next = new Map(rows.map((it) => [it.id, it]));
+    for (const k of patch.out) { d.shows.delete(k); d.due.delete(k); }
+    applyPatch(list, patch, d.rows, (k) => row(next.get(k)!, now, d));
+    for (const it of rows) {
+      const due = dueLabel(it, now);
+      if (d.due.get(it.id) === `${due.state} ${due.text}`) continue;
+      d.due.set(it.id, `${due.state} ${due.text}`);
+      const chip = d.rows.get(it.id)!.querySelector<HTMLElement>('.voc-due')!;
+      chip.className = `chip voc-due voc-due-${due.state}`;
+      chip.textContent = due.text;
+    }
+    d.keys = keys;
+    count.textContent = countLine(rows);
+    return true;
+  }
+
+  /** The row of a saved word; `into` records what it shows. */
+  function row(it: VocabItem, now: number, into: DrawnList): HTMLElement {
     const due = dueLabel(it, now);
+    into.shows.set(it.id, rowShows(it));
+    into.due.set(it.id, `${due.state} ${due.text}`);
     const view = scriptView(settings.script, ctx.dictSync());
     const shownWord = view.word(it);
     const ta = textAttrs(shownWord === it.trad && it.trad !== it.simp);
@@ -150,11 +227,11 @@ export const mount: MountFn = (root, _params, ctx) => {
       h('div.voc-side', null,
         h('span', { class: `chip voc-due voc-due-${due.state}` }, due.text),
         h('button.icon-btn.voc-remove', { type: 'button', title: tt('Remove'), 'aria-label': tt('Remove {word}', { word: it.simp }),
-          onclick: (e: Event) => { e.stopPropagation(); void remove(it); },
+          onclick: (e: Event) => { e.stopPropagation(); void remove(byId.get(it.id) ?? it); },
           onkeydown: (e: Event) => e.stopPropagation() }, icon('trash')),
       ),
     );
-    const open = () => openPopup(it, word);
+    const open = () => openPopup(byId.get(it.id) ?? it, word);
     el.addEventListener('click', open);
     el.addEventListener('keydown', (e: KeyboardEvent) => {
       if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); open(); }
@@ -402,6 +479,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   async function load(): Promise<void> {
     try {
       items = await store.vocab.list();
+      byId = new Map(items.map((it) => [it.id, it]));
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : tt('Could not read your vocabulary.'));
       return;
@@ -418,7 +496,7 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   // Also fires for a change made in another tab (the store tells every tab), so words saved there show up here.
   const offChange = store.onChange((what) => {
-    if (what === 'vocab') { void load(); lookups.render(); }
+    if (what === 'vocab') { void load(); lookups.savedChanged(); }
     if (what === 'known') { renderKnown(); void refreshHead(); }
     if (what === 'lookups') { void lookups.refresh(); void refreshHead(); }
   });

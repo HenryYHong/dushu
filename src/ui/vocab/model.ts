@@ -44,12 +44,16 @@ export function searchText(item: VocabItem): string {
   ].join('\n');
 }
 
-/** Every whitespace-separated term of the query must appear somewhere in the item. */
-export function matchesQuery(item: VocabItem, query: string): boolean {
-  const terms = foldSearch(query.trim()).split(/\s+/).filter(Boolean);
-  if (!terms.length) return true;
+const queryTerms = (query: string) => foldSearch(query.trim()).split(/\s+/).filter(Boolean);
+const hasTerms = (item: VocabItem, terms: string[]) => {
   const hay = searchText(item);
   return terms.every((t) => hay.includes(t));
+};
+
+/** Every whitespace-separated term of the query must appear somewhere in the item. */
+export function matchesQuery(item: VocabItem, query: string): boolean {
+  const terms = queryTerms(query);
+  return !terms.length || hasTerms(item, terms);
 }
 
 function comparePinyin(a: VocabItem, b: VocabItem): number {
@@ -66,7 +70,9 @@ function comparePinyin(a: VocabItem, b: VocabItem): number {
 }
 
 export function filterAndSort(items: VocabItem[], query: string, sort: SortKey): VocabItem[] {
-  const out = items.filter((i) => matchesQuery(i, query));
+  // The query is folded once, not once a word (the list is sorted again on every change to the words).
+  const terms = queryTerms(query);
+  const out = terms.length ? items.filter((i) => hasTerms(i, terms)) : items.slice();
   switch (sort) {
     case 'added': out.sort((a, b) => b.addedAt - a.addedAt || a.simp.localeCompare(b.simp, 'zh')); break;
     case 'due': out.sort((a, b) => a.srs.due - b.srs.due || b.addedAt - a.addedAt); break;

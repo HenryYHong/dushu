@@ -24,6 +24,11 @@
   background: none; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0;
   box-shadow: none; cursor: pointer;
   transition: background var(--dur-fast) var(--ease);
+  /* Each row is laid out and painted on its own, so when a word near the top of a long list is removed the rows below move
+     as wholes; without it a phone went over every line of every row again (about 20 ms at 4x CPU with 800 words). Nothing
+     in a row overflows it or is placed against the page, so the layout is the same (a line may round to the next device
+     pixel). */
+  contain: layout style;
 }
 @media (hover: hover) { .voc-row:hover { background: linear-gradient(to right, var(--wash), transparent 75%); } }
 .voc-main { min-width: 0; flex: 1; }
