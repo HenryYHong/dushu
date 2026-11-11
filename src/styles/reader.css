@@ -101,6 +101,10 @@
 .rd-audio-pause { min-width: 70px; }
 .rd-audio-pause .icon { width: 14px; height: 14px; }
 .rd-paged .rd-audio { display: none; }
+/* It rises into place as reading aloud starts, like the cards that sit where it does (reader.ts showAudio drops it out). */
+.rd-audio { animation: rd-rise var(--dur-pop) var(--ease-pop); }
+/* A menu, the drawer or the read-aloud bar on its way out (menus.ts, toc.ts, reader.ts): taps go to the page under it. */
+.rd-leaving { pointer-events: none; }
 .rd-audio-on:not(.rd-paged) .rd-page { padding-bottom: 160px; }
 @media (pointer: coarse) { .rd-audio-speed { font-size: 16px; width: 64px; } }
 @media (max-width: 380px) {
@@ -799,8 +803,8 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
   .rd-aa-btn { width: 40px; padding: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rd-bar, .rd-hf { transition: none; }
-  .rd-pop, .rd-pop.rd-sheet, .rd-coach, .rd-toc { animation: rd-fade 1ms; transition: none; }
+  .rd-bar, .rd-chrome-off .rd-bar, .rd-hf { transition: none; }
+  .rd-pop, .rd-pop.rd-sheet, .rd-coach, .rd-toc, .rd-audio { animation: rd-fade 1ms; transition: none; }
 }
 
 /* A sideways trackpad swipe turns the page; it must not also make the browser go Back. */

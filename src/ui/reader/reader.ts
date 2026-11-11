@@ -38,6 +38,8 @@ import { markReaderGuide, readerGuideSeen, showGuide, type GuideStep } from '../
 import { penguSays } from '../pengu';
 import { FINISHED_AT, watchFinish } from './bookEnd';
 import { langName, tt, uiLocale } from '../../i18n';
+import { EASE, EASE_IN, play } from '../review/motion';
+import { onScreen } from '../fly';
 
 const BAR_H = 52;
 /** A second tap within this long and this far (CSS px) of the first is a double tap. */
@@ -350,6 +352,39 @@ export const mount: MountFn = async (root, params, ctx) => {
 
   const view = (): ChapterView | null => (paged ? pager?.view() ?? null : scrollView);
 
+  /** The read-aloud bar on its way down, when it is leaving. */
+  let audioLeaving: Animation | null = null;
+  /**
+   * Shows or hides the read-aloud bar. It rises into place when reading starts (reader.css) and drops back the way it came when
+   * reading stops, taking no taps on the way. Reading that starts again at once (Read from here while reading) keeps it where it
+   * is. A bar that is not drawn (Pages has none) or cannot move is simply hidden.
+   */
+  function showAudio(on: boolean): void {
+    if (on) {
+      audioLeaving?.cancel();
+      audioLeaving = null;
+      audio.hidden = false;
+      audio.inert = false;
+      audio.classList.remove('rd-leaving');
+      return;
+    }
+    if (audio.hidden || audioLeaving) return;
+    const out = onScreen(audio)
+      ? play(audio, [{ transform: 'translate(-50%, 0)', opacity: 1 }, { transform: 'translate(-50%, 12px)', opacity: 0 }], { duration: 180, easing: EASE_IN })
+      : null;
+    if (!out) { audio.hidden = true; return; }
+    audio.inert = true;
+    audio.classList.add('rd-leaving');
+    audioLeaving = out;
+    out.finished.then(() => {
+      if (audioLeaving !== out) return;
+      audioLeaving = null;
+      audio.hidden = true;
+      audio.inert = false;
+      audio.classList.remove('rd-leaving');
+    }, () => {});
+  }
+
   function syncSpeechButton(): void {
     speechBtn.replaceChildren(icon(speaking ? 'stop' : 'speaker'));
     speechBtn.setAttribute('aria-pressed', String(speaking));
@@ -360,7 +395,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     pauseBtn.setAttribute('aria-pressed', String(paused));
     pauseBtn.setAttribute('aria-label', paused ? tt('Resume reading') : tt('Pause reading'));
     pauseBtn.title = paused ? tt('Resume reading') : tt('Pause reading');
-    audio.hidden = !speaking;
+    showAudio(speaking);
     rd.classList.toggle('rd-audio-on', speaking);
     // A card at the bottom (the first-visit hint, a question, the name check) sits above the read-aloud bar (reader.css).
     if (speaking) requestAnimationFrame(() => { if (!audio.hidden) document.body.style.setProperty('--rd-audio-h', `${Math.ceil(audio.getBoundingClientRect().height)}px`); });
@@ -673,11 +708,19 @@ export const mount: MountFn = async (root, params, ctx) => {
     }
     return undefined;
   }
+  /** When the reader last set a bookmark: the button pops as it fills for that bookmark, not for one a page turn comes to. */
+  let markSetAt = 0;
   function syncMarkBtn(): void {
     const on = !!markOnScreen();
+    const was = markBtn.getAttribute('aria-pressed') === 'true';
     markBtn.setAttribute('aria-pressed', String(on));
     markBtn.setAttribute('aria-label', on ? tt('Remove the bookmark on this page') : tt('Bookmark this page'));
     markBtn.title = on ? tt('Remove bookmark (B)') : tt('Bookmark this page (B)');
+    if (on && !was && markSetAt && performance.now() - markSetAt < 2000) {
+      // The ribbon fills with one small pop: the page is marked. Taking a bookmark away needs nothing; the outline says it.
+      play(markBtn.querySelector('svg'), [{ transform: 'scale(1)' }, { transform: 'scale(1.2)', offset: 0.4 }, { transform: 'scale(1)' }], { duration: 260, easing: EASE });
+    }
+    if (on) markSetAt = 0;
   }
   async function toggleBookmark(): Promise<void> {
     const here = markOnScreen();
@@ -688,7 +731,8 @@ export const mount: MountFn = async (root, params, ctx) => {
     const at = v.fromStored(p.block, p.offset);
     const label = [...(v.blocks[at.block]?.text ?? '').slice(at.offset).replace(/\s+/g, ' ').trim()].slice(0, 28).join('');
     const mark: Bookmark = { id: `${book!.id}:${Date.now().toString(36)}`, bookId: book!.id, chapter: p.chapter, block: p.block, offset: p.offset, label, createdAt: Date.now(), bookKey: bookKey(book!) };
-    try { await store.bookmarks.put(mark); } catch (e) { ctx.toast(e instanceof Error ? e.message : tt('Could not save the bookmark.')); return; }
+    markSetAt = performance.now();
+    try { await store.bookmarks.put(mark); } catch (e) { markSetAt = 0; ctx.toast(e instanceof Error ? e.message : tt('Could not save the bookmark.')); return; }
     ctx.toast(tt('Page bookmarked. Find it under Bookmarks in the chapter list.'), { ms: 4000 });
   }
   async function removeBookmark(b: Bookmark): Promise<void> {
@@ -1794,7 +1838,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     unsubStore();
     learning.dispose();
     closePopup();
-    closePopover();
+    closePopover(true);
     toc.dispose();
     scrollView?.dispose();
     scrollView = null;

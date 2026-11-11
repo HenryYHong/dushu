@@ -12,6 +12,7 @@ import { windowed } from './windowed';
 import { createWordsTab, type TocWords } from './wordsTab';
 import { lang } from '../../lang/active';
 import { tt, ttm, ttn, ttx, uiLocale } from '../../i18n';
+import { EASE, EASE_IN, play } from '../review/motion';
 
 export type TocTab = 'chapters' | 'words' | 'names' | 'bookmarks';
 
@@ -226,6 +227,10 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   const backdrop = h('div.rd-backdrop', { onclick: () => close() });
   const root = h('div.rd-toc-root', { hidden: true }, backdrop, panel);
   document.body.appendChild(root);
+  /** Open as far as the reader is concerned. A closed drawer can still be on screen for a moment, sliding out (leave). */
+  let opened = false;
+  /** The slide out and the fade of the backdrop while the drawer leaves. */
+  let leaving: Animation[] = [];
 
   // ------------------------------------------------------- chapters tab
   function chapterRow(pos: number): HTMLElement {
@@ -375,7 +380,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (fx) {
       const need = [...new Set(shownNames.filter((r) => r.fix && !r.fix.at && r.count === undefined && !counted.has(r.word)).map((r) => r.word))].slice(0, 40);
       if (need.length) {
-        void Promise.all(need.map(async (w) => { counted.set(w, await fx.places(w).catch(() => 0)); })).then(() => { if (tab === 'names' && !root.hidden) nameWindow.repaint(); });
+        void Promise.all(need.map(async (w) => { counted.set(w, await fx.places(w).catch(() => 0)); })).then(() => { if (tab === 'names' && opened) nameWindow.repaint(); });
       }
     }
   }
@@ -408,10 +413,12 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     } catch { rows = []; }
     namesLoaded = true;
     buildRows();
-    if (tab === 'names' && !root.hidden) paintNames();
+    if (tab === 'names' && opened) paintNames();
   }
 
-  function setTab(next: TocTab) {
+  /** Shows tab `next`. `fade` fades its list in: true for a tab picked in the open drawer, not for the one it opens on. */
+  function setTab(next: TocTab, fade = true) {
+    const was = tab;
     tab = next === 'names' && names ? 'names' : next === 'words' && words ? 'words' : next === 'bookmarks' && marks ? 'bookmarks' : 'chapters';
     order = null;
     const isNames = tab === 'names';
@@ -431,12 +438,19 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
     if (segBar) segBar.hidden = !isNames;
     if (fixFoot) fixFoot.hidden = !isNames;
     if (!isNames) spellBox.hidden = true;
-    if (words) { words.head.hidden = !isWords; words.list.hidden = !isWords; words.setVisible(isWords && !root.hidden); }
+    if (words) { words.head.hidden = !isWords; words.list.hidden = !isWords; words.setVisible(isWords && opened); }
     panel.setAttribute('aria-label', isNames ? (fx ? tt('Corrections') : tt('Names and terms')) : isWords ? tt('Words in this chapter') : isMarks ? tt('Bookmarks') : tt('Chapters'));
     if (isMarks) void paintMarks();
     else if (isNames) { paintNames(); void loadNames(); }
     else if (isWords) words!.show(currentIndex);
     else { paint(); scrollToCurrent(); }
+    // A tab picked in the open drawer: its list fades in over a moment, so the change reads as the same panel turning to
+    // another list. Opening on a tab needs nothing more; the drawer's own slide says it.
+    if (fade && opened && tab !== was) {
+      for (const el of [filter, status, list, nameFilter, segBar, nameList, fixFoot, words?.head, words?.list, markList]) {
+        if (el?.isConnected && !el.hidden) play(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: EASE });
+      }
+    }
   }
 
   async function loadTitles() {
@@ -452,7 +466,7 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
           titles[i] = c?.title?.trim() || tt('Chapter {n}', { n: i + 1 });
         }));
         // Redraw the window in place: the row the reader is on keeps its focus.
-        if (!root.hidden && tab === 'chapters') chapterWindow.repaint();
+        if (opened && tab === 'chapters') chapterWindow.repaint();
       }
       status.textContent = '';
     })();
@@ -535,14 +549,20 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   function open(current: number, which: TocTab = 'chapters') {
     opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     currentIndex = current;
+    opened = true;
+    // Opened again while it was still sliding out: it slides back in from where it got to.
+    for (const a of leaving) a.reverse();
+    leaving = [];
+    root.inert = false;
+    root.classList.remove('rd-leaving');
     root.hidden = false;
     filter.value = '';
     nameFilter.value = '';
     segPicked = false;
     rove = current;
-    setTab(which);
+    setTab(which, false);
     window.addEventListener('keydown', onKey, true);
-    void loadTitles().then(() => { if (!root.hidden && tab === 'chapters') { paint(); scrollToCurrent(); } });
+    void loadTitles().then(() => { if (opened && tab === 'chapters') { paint(); scrollToCurrent(); } });
     // Into the drawer: the current chapter (or, on the other tab, its first control).
     if (tab === 'chapters') {
       const row = chapterWindow.rowAt(rove)?.querySelector<HTMLElement>('button');
@@ -551,14 +571,37 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   }
 
   function close() {
-    if (root.hidden) return;
-    root.hidden = true;
+    if (!opened) return;
+    opened = false;
+    leave();
     words?.setVisible(false);
     window.removeEventListener('keydown', onKey, true);
     // Focus goes back to what opened the drawer (the Chapters button, or the page when a key opened it).
     const back = opener && opener.isConnected ? opener : document.querySelector<HTMLElement>('.rd-toc-btn');
     back?.focus({ preventScroll: true });
     opener = null;
+  }
+
+  /**
+   * The drawer goes back the way it came, to its side, as the backdrop fades: quickly, and taking no taps on the way, so the
+   * page is the reader's again at once. Where nothing can move it is simply gone.
+   */
+  function leave(): void {
+    const out = [
+      play(panel, [{ transform: 'none' }, { transform: 'translateX(calc(-100% - 16px))' }], { duration: 220, easing: EASE_IN }),
+      play(backdrop, [{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: EASE }),
+    ].filter((a): a is Animation => !!a);
+    if (!out.length) { root.hidden = true; return; }
+    root.inert = true;
+    root.classList.add('rd-leaving');
+    leaving = out;
+    void Promise.all(out.map((a) => a.finished)).then(() => {
+      if (leaving !== out) return;
+      leaving = [];
+      root.hidden = true;
+      root.inert = false;
+      root.classList.remove('rd-leaving');
+    }, () => {});
   }
 
   filter.addEventListener('input', () => { paint(); });
@@ -568,13 +611,13 @@ export function createToc(ctx: AppContext, book: BookMeta, onPick: (index: numbe
   return {
     open,
     close,
-    isOpen: () => !root.hidden,
+    isOpen: () => opened,
     setCurrent(i) { currentIndex = i; },
-    refreshNames() { counted.clear(); if (!root.hidden && tab === 'names') void loadNames(); else { rows = []; fixRows = []; namesLoaded = false; } },
+    refreshNames() { counted.clear(); if (opened && tab === 'names') void loadNames(); else { rows = []; fixRows = []; namesLoaded = false; } },
     refreshWords() { words?.reload(); },
-    refreshBookmarks() { if (!root.hidden && tab === 'bookmarks') void paintMarks(); },
+    refreshBookmarks() { if (opened && tab === 'bookmarks') void paintMarks(); },
     refreshText() {
-      if (root.hidden) return;
+      if (!opened) return;
       if (tab === 'chapters') chapterWindow.repaint(); else if (tab === 'words') words!.refreshText(); else paintNames();
     },
     dispose() {
