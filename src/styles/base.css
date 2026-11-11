@@ -40,7 +40,7 @@ a { color: var(--ink); }
   border-bottom: 1px solid var(--rule);
 }
 .app-brand { display: flex; align-items: center; gap: 10px; margin-right: auto; text-decoration: none; color: var(--text); border-radius: var(--radius-s); }
-/* The brand mark, like the app icon: Pengu waving on its blue circle (ui/pengu.ts penguMark). */
+/* The brand mark, like the browser tab's icon: Pengu over its book, the sticker by itself (ui/pengu.ts penguMark). */
 .app-brand-mark { display: inline-grid; flex: none; width: 36px; height: 36px; }
 .app-brand-mark img { width: 100%; height: 100%; display: block; object-fit: contain; -webkit-user-select: none; user-select: none; }
 .app-brand-zh, .seal {

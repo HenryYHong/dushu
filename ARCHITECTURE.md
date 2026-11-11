@@ -1917,9 +1917,10 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
 - Pengu, the mascot (`ui/pengu.ts`): a fluffy emperor penguin chick peeking over an open book, a sticker (`art/pengu-logo.png`,
   a generated picture, on pale blue). `scripts/make-pengu.py` cuts the sticker out of the blue (the blue region reachable from the
   edge, each pixel as see-through as it is close to the blue, the blue taken out of the edge's colors) and recolors the book to
-  the app's vermilion: that is the mascot (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`); on the app's ink blue with rounded
-  corners it is the logo (`ui/pengu/logo.webp`, `penguMark`), `public/icon.svg` and the PNG icons (the maskable one with Pengu
-  inside the safe zone). Two of the app's colors and Pengu's grays, so it sits with the rest of the page.
+  the app's vermilion: that is the mascot (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`), and by itself, small, the brand mark
+  in the bar (`ui/pengu/logo.webp`, `penguMark`) and the browser tab's icon (`public/icon.svg`). Only the installed app's PNG
+  icons put it on the app's ink blue with rounded corners (the maskable one with Pengu inside the safe zone), since a home screen
+  wants a solid square (iOS fills a see-through one with black); the manifest lists only those. Two of the app's colors and Pengu's grays, so it sits with the rest of the page.
   Pengu has three poses, generated from that picture in ChatGPT so they match it (the same book in the same place): reading
   (`pengu.webp`), waving (`art/pengu-wave.png`, `pengu-wave.webp`: the welcome, the walkthrough's first step, Review with no cards)
   and cheering (`art/pengu-cheer.png`, `pengu-cheer.webp`: the walkthrough's last step, a review finished, the daily goal, a book
