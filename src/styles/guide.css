@@ -5,7 +5,8 @@
 .rd-guide-spot {
   position: fixed; border-radius: 10px; pointer-events: none;
   box-shadow: 0 0 0 2px var(--accent), 0 0 0 200vmax rgb(0 0 0 / 0.55);
-  transition: left var(--dur-pop, 180ms) ease, top var(--dur-pop, 180ms) ease, width var(--dur-pop, 180ms) ease, height var(--dur-pop, 180ms) ease;
+  /* The card glides with it, in the same time and curve (guide.ts GLIDE_MS, the app's --ease). */
+  transition: left 260ms var(--ease), top 260ms var(--ease), width 260ms var(--ease), height 260ms var(--ease);
 }
 .rd-guide-card {
   position: fixed; box-sizing: border-box; padding: var(--space-4); border-radius: var(--radius-l);

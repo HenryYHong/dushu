@@ -2,6 +2,7 @@
 // settings store stays the single source of truth (a change in another tab also updates the page).
 import type { Settings } from '../../types';
 import { h } from '../dom';
+import { choiceGlide } from '../choiceGlide';
 
 export interface Control {
   el: HTMLElement;
@@ -26,11 +27,19 @@ export function row(label: string, help: string | null, control: Control | Node,
  * tabindex). `select` marks a value as chosen; the caller calls it whenever the value changes, wherever it is kept.
  */
 export function radioGroup<T>(label: string, options: { value: T; label: string }[], set: (v: T) => void): { el: HTMLElement; select(v: T): void } {
+  // True while a choice made here (a tap, an arrow key) is being saved, which marks it chosen at once (the stores tell their
+  // listeners as they change): only that slides the highlight, never the first draw or a change made somewhere else.
+  let byHand = false;
+  const choose = (v: T) => {
+    byHand = true;
+    try { set(v); } finally { byHand = false; }
+  };
   const buttons = options.map((o) => h('button.set-seg-btn', {
     type: 'button', role: 'radio', 'aria-checked': 'false',
-    onclick: () => set(o.value),
+    onclick: () => choose(o.value),
   }, o.label) as HTMLButtonElement);
   const el = h('div.set-seg', { role: 'radiogroup', 'aria-label': label }, buttons);
+  const glide = choiceGlide(el, 'set-seg');
   el.addEventListener('keydown', (ev) => {
     const e = ev as KeyboardEvent;
     const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
@@ -38,16 +47,22 @@ export function radioGroup<T>(label: string, options: { value: T; label: string 
     e.preventDefault();
     const n = (i + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1) + buttons.length) % buttons.length;
     buttons[n].focus();
-    set(options[n].value);
+    choose(options[n].value);
   });
   return {
     el,
     select(v) {
+      const was = buttons.find((b) => b.getAttribute('aria-checked') === 'true');
+      const from = byHand ? glide.from(was) : null;
       options.forEach((o, i) => {
         const on = o.value === v;
         buttons[i].setAttribute('aria-checked', String(on));
         buttons[i].tabIndex = on ? 0 : -1;
       });
+      const now = buttons[options.findIndex((o) => o.value === v)];
+      if (now === was) return;
+      if (from && now) glide.to(now, from);
+      else glide.stop();
     },
   };
 }

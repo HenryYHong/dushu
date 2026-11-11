@@ -1693,7 +1693,8 @@ and opens it. Empty state explains what the app does in two sentences.
 - Finishing the welcome makes the library's walkthrough due (`ui/siteGuide.ts`, `dushu.site-guide.v1`): once the library is drawn
   and nothing is open over it, it lights up the first book, Find a book, Paste text, Import book, then Vocabulary, Review, Settings,
   the language switch and Sign in, and says the reader shows itself the first time a book opens. Settings › Learning › Walkthrough
-  shows both again.
+  shows both again. The welcome's next step slides in 20 px from the side the reader went to as it fades in (the footer stays
+  put); a walkthrough's card glides with the spotlight to the next step (260 ms, its height with it) while the new words fade in.
 - needsWelcome writes the unfinished plan (`welcomed: 0`) at once, so a reload or a second tab during the welcome brings it back.
   The welcome is a modal `<dialog>`. Skip keeps a language already picked; with none picked the bar keeps its language chip. From
   Settings, Done stays in the open library unless that language was dropped, and Esc acts as Cancel.
@@ -1959,8 +1960,12 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   Desktop menus are frosted (`--glass` with a blur, solid without one); sheets, the word card and anything in Pages are solid.
   One control system in `base.css`: a tonal track with a raised paper segment (`.rd-seg`, `.set-seg`, drawer tabs, Words chips, the word
   card's step bar), a pill switch (on is inked with a check, so the state never rests on position alone), sliders inked up to the thumb.
+  A Settings segmented control's paper segment, and the welcome's goal ring, slide to a choice made by hand (`ui/choiceGlide.ts`: a
+  mark shown only while it moves, so the chosen button's own style is the highlight at rest); never on a first draw or a change from elsewhere.
   Hover washes sit inside `@media (hover: hover)`. Italic only on English the app writes, never on an element that can hold Chinese.
-  Respect light/sepia/dark themes (test all four, system dark too). Must work at 390 px wide.
+  Respect light/sepia/dark themes (test all four, system dark too). Must work at 390 px wide. A new theme cross-fades the whole page
+  (`main.ts` applyTheme, 240 ms, View Transitions with `.app-theme-fade`); the first draw, the system's own switch under Auto and
+  reduced motion change it at once.
 - Icons: `icon(name)` from `ui/icons.ts`. No emoji in the UI.
 - The reading grid (the reading fonts and sizes, the cell, every `--rd-*` variable, `--font-pinyin`) is not styled from outside it, and
   nothing sets `font-feature-settings` on `body` (it inherits into `rt` and moves the pinyin).

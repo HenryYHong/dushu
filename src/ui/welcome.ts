@@ -3,6 +3,8 @@
 // waits for the Chinese one. Finishing opens the first language chosen (from Settings, only when the open one was dropped).
 import '../styles/welcome.css';
 import { animatePengu, penguEl } from './pengu';
+import { choiceGlide } from './choiceGlide';
+import { EASE_OUT, play } from './review/motion';
 import { h } from './dom';
 import { icon } from './icons';
 import { LANGS, LANG_IDS } from '../lang/registry';
@@ -107,7 +109,7 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
     };
 
     const foot = (canGo: boolean, last: boolean, onGo: () => void) => h('div.wel-foot', null,
-      step > 0 ? h('button.btn', { type: 'button', onclick: () => { step--; draw(); } }, icon('arrowLeft'), tt('Back'))
+      step > 0 ? h('button.btn', { type: 'button', onclick: () => { step--; draw(-1); } }, icon('arrowLeft'), tt('Back'))
         : h('button.btn.btn-ghost.wel-skip', { type: 'button', onclick: opts.again ? close : skip }, opts.again ? tt('Cancel') : tt('Skip')),
       h('span.wel-sr', null, tt('Step {step} of {total}', { step: num(step + 1), total: num(3) })),
       h('span.wel-steps', { 'aria-hidden': 'true' }, [0, 1, 2].map((i) => h(i === step ? 'span.wel-dot.on' : 'span.wel-dot'))),
@@ -133,7 +135,7 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         });
         return b;
       });
-      const f = foot(chosen.size > 0, false, () => { guessTarget(); step = 1; draw(); });
+      const f = foot(chosen.size > 0, false, () => { guessTarget(); step = 1; draw(1); });
       const go = f.querySelector<HTMLButtonElement>('.btn-primary')!;
       return [
         h('div.wel-head', null, mark(), h('div', null,
@@ -186,7 +188,7 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         select,
         warn,
         meanings,
-        foot(true, false, () => { step = 2; draw(); }),
+        foot(true, false, () => { step = 2; draw(1); }),
       ];
     };
 
@@ -202,16 +204,21 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         h('button.wel-goal', { type: 'button', role: 'radio', 'aria-checked': String(at === GOALS.length), tabindex: at === GOALS.length ? 0 : -1 },
           h('span.wel-goal-min', null, tt('Custom')), h('span.wel-goal-name', null, tt('Your own'))) as HTMLButtonElement,
       ];
+      const group = h('div.wel-goals', { role: 'radiogroup', 'aria-label': tt('Daily goal') }, buttons);
+      // The ring slides from the old goal to the new one (ui/choiceGlide.ts), as Settings' controls do.
+      const glide = choiceGlide(group, 'wel-goals');
       const pick = (i: number, typing = false) => {
         const custom = i === GOALS.length;
+        const was = buttons.find((b) => b.getAttribute('aria-checked') === 'true');
+        const from = was !== buttons[i] ? glide.from(was) : null;
         goal = custom ? own.value() : GOALS[i];
         own.el.hidden = !custom;
         keep({ goal });
         buttons.forEach((b, j) => { b.setAttribute('aria-checked', String(j === i)); b.tabIndex = j === i ? 0 : -1; });
+        if (from) glide.to(buttons[i], from);
         if (custom && typing) own.input.focus();
       };
       buttons.forEach((b, i) => b.addEventListener('click', () => pick(i, true)));
-      const group = h('div.wel-goals', { role: 'radiogroup', 'aria-label': tt('Daily goal') }, buttons);
       // A radio group: one tab stop, and the arrows move the choice.
       group.addEventListener('keydown', (ev) => {
         const e = ev as KeyboardEvent;
@@ -235,13 +242,23 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
       ];
     };
 
-    const draw = () => {
+    /**
+     * Shows the current step. `dir` is the way the reader went: forward (1) slides the new step in a short way from the right,
+     * Back (-1) from the left, as it fades in; the first draw (0) just shows it. The footer stays put, so Back and Continue never
+     * move under a finger, and nothing waits on the slide.
+     */
+    const draw = (dir: -1 | 0 | 1 = 0) => {
       box.replaceChildren(...(step === 0 ? stepLangs() : step === 1 ? stepTarget() : stepGoal()));
       box.scrollTop = 0;
       dlg.scrollTop = 0;
       const head = box.querySelector<HTMLElement>('h1, h2');
       head?.setAttribute('tabindex', '-1');
       head?.focus({ preventScroll: true });
+      if (!dir) return;
+      for (const el of box.children) {
+        if (el.classList.contains('wel-foot')) continue;
+        play(el, [{ opacity: 0, transform: `translateX(${dir * 20}px)` }, { opacity: 1, transform: 'none' }], { duration: 260, easing: EASE_OUT });
+      }
     };
 
     // Esc is Cancel from Settings. On the first visit there is nothing behind it to go back to, so it does nothing (and never

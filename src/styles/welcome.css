@@ -45,7 +45,15 @@ body.wel-open { overflow: hidden; }
 
 .wel-select { width: 100%; max-width: 420px; }
 
-.wel-goals { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.wel-goals { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+/* A new goal's ring slides over from the old one (ui/choiceGlide.ts): drawn over the buttons, the same ring and tint as the
+   chosen one's, shown only while it moves, with the chosen button looking unchosen under it. */
+.wel-goals-glide {
+  display: none; position: absolute; z-index: 1; transform-origin: 0 0; pointer-events: none; border-radius: var(--radius);
+  box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.wel-goals-moving > .wel-goals-glide { display: block; }
+.wel-goals.wel-goals-moving > .wel-goal[aria-checked='true'] { border-color: var(--rule); box-shadow: none; background: var(--surface); }
 .wel-goal {
   display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 16px 6px; cursor: pointer;
   background: var(--surface); color: var(--text); border: 1px solid var(--rule); border-radius: var(--radius);

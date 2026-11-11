@@ -50,12 +50,36 @@ function injectFonts(): void {
   document.head.appendChild(h('style', { 'data-fonts': '' }, css));
 }
 
+/** The theme setting last applied, and how many cross-fades have started (applyTheme). */
+let themeShown: Settings['theme'] | null = null;
+let themeFades = 0;
+
+/**
+ * Draws the page in the theme set. A theme picked by hand (in Settings or the reader's menu) cross-fades the whole page, bar
+ * and all, in about a quarter second with the View Transitions API (base.css, .app-theme-fade), so the eye sees the same page
+ * change color rather than a flash. The first draw, the system turning light or dark under Auto, and everything under reduced
+ * motion or without the API change at once.
+ */
 function applyTheme(s: Settings): void {
   const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const theme = s.theme === 'system' ? (dark ? 'dark' : 'light') : s.theme;
-  document.documentElement.dataset.theme = theme;
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || '#f6f2ea');
+  const root = document.documentElement;
+  const show = () => {
+    root.dataset.theme = theme;
+    const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || '#f6f2ea');
+  };
+  const picked = themeShown !== null && themeShown !== s.theme && root.dataset.theme !== theme;
+  themeShown = s.theme;
+  if (!picked || still() || typeof document.startViewTransition !== 'function') { show(); return; }
+  const fade = ++themeFades;
+  root.classList.add('app-theme-fade');
+  const vt = document.startViewTransition(show);
+  // Skipped (a change of screen came first, or the tab is hidden): the theme is still drawn, only the fade is lost. A newer
+  // fade keeps the class until it ends.
+  const off = () => { if (fade === themeFades) root.classList.remove('app-theme-fade'); };
+  vt.ready.catch(() => {});
+  void vt.finished.then(off, off);
 }
 
 const parseHash = () => parseRoute(location.hash, (r) => Object.prototype.hasOwnProperty.call(ROUTES, r));

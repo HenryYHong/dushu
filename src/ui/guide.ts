@@ -6,6 +6,7 @@ import '../styles/guide.css';
 import { h } from './dom';
 import { num, tt } from '../i18n';
 import { animatePengu, penguHtml, type PenguPose } from './pengu';
+import { EASE, canMove } from './review/motion';
 
 /** The library's walkthrough: 'due' once the welcome is finished (or Settings asks for it), 'done' after. */
 export const SITE_GUIDE_KEY = 'dushu.site-guide.v1';
@@ -36,6 +37,10 @@ const PAD = 6;
 const GAP = 12;
 /** The screen edge the card keeps clear of. */
 const GUTTER = 16;
+/** How long the card takes to glide to the next step: the spotlight's glide too (guide.css), so the two move as one. */
+const GLIDE_MS = 260;
+/** How long the next step's words take to fade in. */
+const FADE_MS = 200;
 
 const visible = (el: Element | null | undefined): el is Element => {
   if (!el || !el.isConnected) return false;
@@ -67,6 +72,32 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
   const shade = h('div.rd-guide-shade');
   const el = h('div.rd-guide', { 'data-rd-ui': '' }, shade, spot, card);
   const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  // The card's glide and its words' fade, while they play.
+  let moves: Animation[] = [];
+  const settle = () => { for (const a of moves) a.cancel(); moves = []; card.style.overflow = ''; };
+
+  /**
+   * Moves the card from where it was (`from`, its box before the step changed) to where the new step put it, and fades the new
+   * words in, so the eye follows it to the next thing it points at. The words of the step before go at once: two steps of
+   * text are never seen through each other. Transforms and opacity, plus the card's height when the new step is taller or shorter (one
+   * small box). Nothing waits on it: the buttons work as it goes.
+   */
+  const glide = (from: DOMRect | null) => {
+    if (!from) return;
+    const to = card.getBoundingClientRect();
+    const dx = from.left - to.left;
+    const dy = from.top - to.top;
+    const opts = { duration: GLIDE_MS, easing: EASE };
+    if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) moves.push(card.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], opts));
+    if (Math.abs(from.height - to.height) >= 1) {
+      // The new words are already laid out: a card on its way to a shorter size clips them rather than spilling them.
+      card.style.overflow = 'hidden';
+      const grow = card.animate([{ height: `${from.height}px` }, { height: `${to.height}px` }], opts);
+      grow.onfinish = () => { card.style.overflow = ''; };
+      moves.push(grow);
+    }
+    for (const part of [count, title, body]) moves.push(part.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: 'ease-out' }));
+  };
 
   const place = () => {
     const step = steps[at];
@@ -97,9 +128,13 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
     card.style.top = `${Math.round(top)}px`;
   };
 
+  let shown = false;
   const go = (i: number) => {
     if (i < 0) return;
     if (i >= steps.length) { end(true); return; }
+    // Where the card is now (on its way, if a step was skipped through quickly), for the glide. The first step just appears.
+    const from = shown && canMove(card) ? card.getBoundingClientRect() : null;
+    settle();
     at = i;
     const step = steps[i];
     const last = i === steps.length - 1;
@@ -115,6 +150,8 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
     skip.hidden = last;
     next.textContent = last ? opts.last ?? tt('Done') : tt('Next');
     place();
+    glide(from);
+    shown = true;
     next.focus({ preventScroll: true });
   };
 
@@ -134,7 +171,8 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
     } else return; // Enter or Space on a button: the button's own click
     e.preventDefault();
   };
-  const onResize = () => place();
+  // A new size of window puts the card in its place at once (place measures it, so a glide in the middle gives way first).
+  const onResize = () => { settle(); place(); };
   // Taps, swipes and scrolls outside the card do nothing (caught on the window, before the reader's own listeners see them).
   const swallow = (e: Event) => { if (!card.contains(e.target as Node)) { if (e.cancelable) e.preventDefault(); e.stopPropagation(); } };
   const SWALLOW = ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchmove', 'wheel'] as const;
