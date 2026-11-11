@@ -413,6 +413,7 @@
  "German Wikisource": "德文維基文庫",
  "Getting the dictionary ready…": "正在準備字典…",
  "Google sign-in didn’t finish here. Try again, or sign in with your email.": "Google 登入沒有在這裡完成。請再試一次，或用電子郵件登入。",
+ "Google sign-in doesn’t work inside this app’s browser. Open LinguPengu in Safari or Chrome, or sign in with your email.": "在這個 App 內建的瀏覽器裡無法用 Google 登入。請在 Safari 或 Chrome 中開啟 LinguPengu，或用電子郵件登入。",
  "LinguPengu can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.": "LinguPengu 能查任何漢字，不只常用字。沒有已知讀音的字仍會顯示部首、筆畫數和異體字，罕見字則用內附字型顯示，所以不會出現空白方框。",
  "LinguPengu cannot keep that correction.": "LinguPengu 無法保留這項修正。",
  "LinguPengu cannot open your saved data": "LinguPengu 無法開啟你儲存的資料",

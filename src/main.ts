@@ -493,11 +493,19 @@ async function boot(): Promise<void> {
    * Show answer did nothing for about 300 ms. Never into or out of the reader, which is full screen with its own bar and measures
    * its place as it goes; never for the same screen drawn again, nor under reduced motion.
    */
-  const change = () => {
-    // A Google answer that reached this page without a new load (a fragment typed or pasted into an open tab): taken out
-    // before the router reads it, as at the start.
+  /**
+   * A Google answer that reached this page without a new load: taken out before the router reads it, as at the very start.
+   * On an iPhone's Home Screen app Google's answer may come back as a change of the open page's fragment (the app's window
+   * goes from '#/settings' to '#id_token=…'); and a fragment pasted into an open tab is the same. Asked before each screen
+   * is drawn, the first one included: an answer that arrived while the app was starting, before it listened for changes,
+   * would otherwise stay in the address bar and open the library.
+   */
+  const takeLate = () => {
     const late = takeGoogleReturn();
     if (late) void finishGoogleReturn(late, (message, ms) => ctx.toast(message, { ms }));
+  };
+  const change = () => {
+    takeLate();
     moved = true;
     const from = shownRoute;
     const to = parseHash().route;
@@ -505,6 +513,7 @@ async function boot(): Promise<void> {
     void render(true);
   };
   window.addEventListener('hashchange', change);
+  takeLate();
   await render();
 
   // The dictionary has the connection first. After it, the reading fonts' rules (500 KB, only for libraries that show Chinese

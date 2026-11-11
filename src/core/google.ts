@@ -10,7 +10,7 @@
 // finishGoogleReturn then sends the token and the nonce to the sync server (cloud/src/google.ts checks the token itself) and
 // keeps the session it answers, exactly as an emailed code's sign-in.
 import { tt } from '../i18n';
-import { cloudBase, keepSession, post, type CloudSession } from './cloud';
+import { cloudBase, cloudSession, keepSession, post, type CloudSession } from './cloud';
 import { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } from './cloudUrl';
 
 /** The trip under way: its state and nonce, when it left, and the screen to come back to. */
@@ -35,6 +35,28 @@ export function googleOffered(loc: Pick<Location, 'origin' | 'pathname'> | undef
   if (!GOOGLE_CLIENT_ID || !loc || !cloudBase()) return false;
   try { return `${loc.origin}${loc.pathname}` === GOOGLE_REDIRECT_URI; } catch { return false; }
 }
+
+/**
+ * Another app's built-in browser, where Google refuses to sign anyone in ("Error 403: disallowed_useragent"): Google allows its
+ * sign-in only in a real browser, or in the Safari or Chrome view an app opens over itself, never in a WebView the app draws
+ * itself. A link to LinguPengu shared on Instagram, Facebook, TikTok, LINE, WeChat, Snapchat, LinkedIn, Pinterest or KakaoTalk
+ * opens in such a view first, and marketing sends people exactly there; going to Google from it ends on Google's error page
+ * with no way back. The button says so instead (settings/account.ts), and the email code still works there.
+ * Told by the user agent, as Google itself tells: these apps name themselves in it; any Android app's WebView says '; wv)';
+ * and on an iPhone or iPad, Safari, Safari's view inside an app, Chrome, Firefox and Edge all end with 'Safari/', while a
+ * WebView an app draws does not. The Home Screen app (navigator.standalone) is the app's own window, never refused here.
+ */
+export function embeddedBrowser(nav: { userAgent?: string; standalone?: boolean } | undefined = globalThis.navigator): boolean {
+  const ua = nav?.userAgent ?? '';
+  if (!ua) return false;
+  if (/FBAN|FBAV|FB_IAB|FBIOS|Instagram|musical_ly|BytedanceWebview|TikTok|MicroMessenger|Snapchat|LinkedInApp|Pinterest|KAKAOTALK|\bLine\/\d/.test(ua)) return true;
+  if (/\bAndroid\b/.test(ua) && /; wv\)/.test(ua)) return true;
+  return /\b(iPhone|iPad|iPod)\b/.test(ua) && !/\bSafari\//.test(ua) && nav?.standalone !== true;
+}
+
+/** Said, instead of leaving, in another app's built-in browser (embeddedBrowser). */
+export const GOOGLE_EMBEDDED = (): string =>
+  tt('Google sign-in doesn’t work inside this app’s browser. Open LinguPengu in Safari or Chrome, or sign in with your email.');
 
 /** 32 random bytes in base64url: a state or a nonce. */
 function randomToken(): string {
@@ -115,9 +137,16 @@ export function takeGoogleReturn(win: { location: Location; history: History; lo
 /**
  * Finishes what came back (takeGoogleReturn): a token is sent to the sync server, and its answer kept like an emailed code's
  * (keepSession: this device is signed in, sync starts, the account's books come). Every outcome but a cancel is said in a toast.
+ *
+ * Except on a device that is signed in already, where nothing is done or said. That is someone who pressed Back after signing
+ * in: Google's page is the entry before the app's in the history, and picking the account there again sends back an answer
+ * whose trip is used up. Telling them sign-in "didn't finish" while the top bar says Synced would be wrong, and a fresh token
+ * (a trip given up, then a sign-in another way, then Forward to Google) must not switch the device to another account unasked.
  */
 export async function finishGoogleReturn(r: GoogleReturn, toast: (message: string, ms?: number) => void): Promise<CloudSession | null> {
   if (r.kind === 'cancel') return null;
+  const already = cloudSession();
+  if (already) return already;
   if (r.kind === 'lost') { toast(GOOGLE_LOST(), 9000); return null; }
   try {
     const s = await keepSession(await post('/auth/google', { idToken: r.idToken, nonce: r.nonce }));

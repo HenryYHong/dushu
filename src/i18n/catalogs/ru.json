@@ -461,6 +461,7 @@
  "German Wikisource": "Немецкая Викитека",
  "Getting the dictionary ready…": "Подготовка словаря…",
  "Google sign-in didn’t finish here. Try again, or sign in with your email.": "Вход через Google здесь не завершился. Попробуйте ещё раз или войдите по почте.",
+ "Google sign-in doesn’t work inside this app’s browser. Open LinguPengu in Safari or Chrome, or sign in with your email.": "Вход через Google не работает во встроенном браузере этого приложения. Откройте LinguPengu в Safari или Chrome или войдите по почте.",
  "LinguPengu can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.": "LinguPengu находит любой китайский иероглиф, а не только частые. Если у иероглифа нет известного чтения, всё равно показываются его ключ, число черт и варианты, а редкие иероглифы рисуются встроенным шрифтом, так что пустых квадратиков не бывает.",
  "LinguPengu cannot keep that correction.": "LinguPengu не может сохранить это исправление.",
  "LinguPengu cannot open your saved data": "LinguPengu не может открыть ваши сохранённые данные",

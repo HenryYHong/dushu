@@ -1279,10 +1279,16 @@ books go through the account, and so do the reader's corrections (§4.12: names 
   - *Where.* The button (`ui/settings/account.ts`, first in the panel: Google's white button with its four-color G, Google's dark
     one in the dark theme, per its branding guidelines) shows only where the page's origin and path are exactly the redirect URI
     (`googleOffered`), so localhost and the owner's private copies never start a trip that cannot come back.
+  - *Another app's browser.* Google refuses its sign-in in a WebView an app draws itself ("Error 403: disallowed_useragent"),
+    which is where a link shared on Instagram, Facebook, TikTok, LINE, WeChat and the like opens. There (`embeddedBrowser`, by the
+    user agent: those apps' names, Android's `; wv)`, an iPhone or iPad user agent without `Safari/` that is not the Home Screen
+    app) the button stays but a tap says to open LinguPengu in Safari or Chrome, or to use the email code, instead of leaving for
+    Google's error page. Safari's and Chrome's views that apps open over themselves, and the Home Screen app, go as usual.
   - *Leaving* (`startGoogleSignIn`): a state and a nonce (32 random bytes each, base64url) and `back`, the current `#/…` route, kept
     as `dushu.google.v1` in localStorage (not sessionStorage, which some browsers and Home Screen apps lose on the way), good for 15
     minutes; then `location.assign` to `accounts.google.com/o/oauth2/v2/auth` with `client_id`, `redirect_uri`,
-    `response_type=id_token`, `scope=openid email`, `nonce`, `state`, `prompt=select_account`.
+    `response_type=id_token`, `scope=openid email`, `nonce`, `state`, `prompt=select_account`. The button is disabled while the
+    page leaves, and enabled again on `pageshow` when Back from Google's page brings this one out of the back-forward cache.
   - *Coming back* (`takeGoogleReturn`, the first thing `main.ts` does, before the router or anything else reads the address): Google
     answers `https://henryyhong.com/dushu/#id_token=…&state=…` (or `#error=…&state=…`). The fragment is replaced in place by `back`
     (`history.replaceState`, only an internal `#/…` route, else `#/`), so the token never stays in the address bar, the history or
@@ -1290,7 +1296,10 @@ books go through the account, and so do the reader's corrections (§4.12: names 
     that is missing, wrong or too old (the trip ended in another browser or lost its storage), or another error, says "Google
     sign-in didn't finish here. Try again, or sign in with your email." A good one is finished once the app can say how it went
     (`finishGoogleReturn`): `POST /auth/google {idToken, nonce}`, kept like `/auth/verify`'s answer (`keepSession`: sync starts,
-    the account's books come, the same "Signed in" message).
+    the account's books come, the same "Signed in" message). On a device already signed in nothing is sent or said: that is Back
+    to Google's page after signing in and an account picked again (a used trip), and a fresh token must not switch the device to
+    another account unasked. An answer that arrives as a change of the open page's fragment (an iPhone Home Screen app's window
+    may get it that way, or a fragment pasted into a tab) is taken the same way before each screen is drawn, the first included.
   - *The check* (`verifyGoogleIdToken`, WebCrypto, no library): header `alg` RS256 and a `kid`; the key from Google's JWKS
     (`googleapis.com/oauth2/v3/certs`), kept in the isolate for its Cache-Control max-age (at most a day) and fetched once more for
     a `kid` it does not know (then refused), but not within a minute of the last fetch (`UNKNOWN_KID_GAP_MS`), so tokens naming

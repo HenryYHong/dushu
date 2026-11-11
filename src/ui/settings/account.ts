@@ -5,7 +5,7 @@
 // reach the same one for the same address. Signed in: who it is, a passkey for this device, Sign out and Delete account.
 import { h } from '../dom';
 import { CLOUD_EVENT, accountLabel, cloudBase, cloudSession, deleteAccount, requestCode, signIn, signOut } from '../../core/cloud';
-import { googleOffered, startGoogleSignIn } from '../../core/google';
+import { GOOGLE_EMBEDDED, embeddedBrowser, googleOffered, startGoogleSignIn } from '../../core/google';
 import { addPasskey, passkeyHere, passkeysSupported, signInWithPasskey } from '../../core/passkey';
 import { dropPushHere } from '../../core/reminders';
 import { nextId, row } from './controls';
@@ -96,14 +96,22 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
 
   googleBtn.addEventListener('click', () => {
     say('');
+    // In Instagram's, TikTok's or another app's own browser Google shows only an error page (core/google.ts embeddedBrowser):
+    // say where it works instead of sending the person there.
+    if (embeddedBrowser()) { say(GOOGLE_EMBEDDED(), 'bad'); return; }
     try {
       // The page leaves for Google and comes back signed in (main.ts). Disabled meanwhile so a second tap does not start a
-      // second trip; and again in a moment, for a browser that came Back from Google's page to this one, kept as it was.
+      // second trip; enabled again in a moment for a page that never left (the navigation stopped), and at once for one that
+      // comes Back from Google's page (onShow).
       startGoogleSignIn();
       googleBtn.disabled = true;
       setTimeout(() => { googleBtn.disabled = false; }, 4000);
     } catch (e) { say(e instanceof Error ? e.message : tt('Could not sign in.'), 'bad'); }
   });
+  // Back from Google's page, Safari and Chrome show this page as it was left (the back-forward cache), with the button still
+  // disabled and its 4-second timer paused with the page: without this, it stays grey for those 4 seconds after coming back.
+  const onShow = (e: PageTransitionEvent) => { if (e.persisted) googleBtn.disabled = false; };
+  window.addEventListener('pageshow', onShow);
 
   passkeyBtn.addEventListener('click', async () => {
     passkeyBtn.disabled = true;
@@ -187,7 +195,7 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     el: h('div.set-cloud', null, googleRow, passkeyRow, createRow, orEmail, emailRow, codeRow, outRow, deleteRow, status, result),
     emailId,
     focus: () => (asked ? code : cloudSession() ? email : google ? googleBtn : passkeys ? passkeyBtn : email).focus({ preventScroll: true }),
-    dispose() { window.removeEventListener(CLOUD_EVENT, onChange); },
+    dispose() { window.removeEventListener(CLOUD_EVENT, onChange); window.removeEventListener('pageshow', onShow); },
   };
 }
 

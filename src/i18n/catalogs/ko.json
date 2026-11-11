@@ -414,6 +414,7 @@
  "German Wikisource": "독일어 위키문헌",
  "Getting the dictionary ready…": "사전 준비 중…",
  "Google sign-in didn’t finish here. Try again, or sign in with your email.": "Google 로그인이 여기서 끝나지 않았어요. 다시 해 보거나 이메일로 로그인하세요.",
+ "Google sign-in doesn’t work inside this app’s browser. Open LinguPengu in Safari or Chrome, or sign in with your email.": "이 앱의 브라우저에서는 Google 로그인이 되지 않아요. Safari나 Chrome에서 LinguPengu를 열거나 이메일로 로그인하세요.",
  "LinguPengu can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.": "LinguPengu는 흔한 한자뿐 아니라 어떤 한자든 찾을 수 있어요. 알려진 읽는 법이 없는 한자도 부수, 획수, 이체자를 보여 주고, 희귀 한자는 내장 글꼴로 그려서 빈 상자로 보이지 않아요.",
  "LinguPengu cannot keep that correction.": "LinguPengu가 그 수정을 저장할 수 없어요.",
  "LinguPengu cannot open your saved data": "LinguPengu가 저장된 데이터를 열 수 없어요",

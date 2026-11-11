@@ -2509,6 +2509,11 @@
    "src/core/google.ts"
   ]
  },
+ "Google sign-in doesn’t work inside this app’s browser. Open LinguPengu in Safari or Chrome, or sign in with your email.": {
+  "where": [
+   "src/core/google.ts"
+  ]
+ },
  "Got it": {
   "where": [
    "src/ui/library/library.ts",
