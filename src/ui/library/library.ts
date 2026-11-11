@@ -5,6 +5,7 @@ import { canFindBooks, findBooksDialog, parseBookLink } from './findBooks';
 import { GUIDE_EVENT } from '../guide';
 import { maybeSiteGuide } from '../siteGuide';
 import { penguPeek } from '../pengu';
+import { siteGuideDue } from '../guide';
 import { INCOMING_EVENT, takeIncoming } from './incoming';
 import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
@@ -369,7 +370,8 @@ export const mount: MountFn = (root, _params, ctx) => {
         const card = startCard(first, howToRead(touch, false));
         startShown = { key: startKey, ...card };
         // Pengu peeking over the first book's card (ui/pengu.ts).
-        gridEl.appendChild(penguPeek(card.el).el);
+        // It arrives quietly when the walkthrough is about to start, whose own Pengu pops in.
+        gridEl.appendChild(penguPeek(card.el, { pop: !siteGuideDue() }).el);
         settleFocus();
         return;
       }

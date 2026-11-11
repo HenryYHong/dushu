@@ -100,7 +100,7 @@ export function penguEl(pose: PenguPose, cls = 'pengu-box', opts: { tap?: boolea
   el.className = `${cls} pengu-span`;
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = penguHtml(pose);
-  if (opts.tap !== false) {
+  if (opts.tap !== false && !still()) {
     el.classList.add('pengu-tappable');
     el.addEventListener('click', (e) => { e.stopPropagation(); animatePengu(el, 'boing'); });
   }
@@ -116,7 +116,7 @@ export interface PenguPeek {
 }
 
 /** Pengu peeking over the top edge of a card (Review's flashcard, the library's first book), its lower half hidden behind it. */
-export function penguPeek(card?: HTMLElement): PenguPeek {
+export function penguPeek(card?: HTMLElement, opts: { pop?: boolean } = {}): PenguPeek {
   const pengu = penguEl('read', 'pengu-peek');
   const el = document.createElement('div');
   el.className = 'pengu-peek-host';
@@ -134,7 +134,7 @@ export function penguPeek(card?: HTMLElement): PenguPeek {
     react(move) { animatePengu(pengu, move); },
   };
   if (card) peek.hold(card);
-  animatePengu(pengu, 'pop', 120);
+  if (opts.pop !== false) animatePengu(pengu, 'pop', 120);
   return peek;
 }
 
@@ -180,34 +180,53 @@ export function penguConfetti(from: Element): void {
 }
 
 /**
- * Pengu popping up from the bottom of the screen with `text` in a speech bubble, for a few seconds; a tap puts it away. With
- * `confetti`, a small burst of paper comes from behind it as it arrives (a book finished).
+ * Pengu popping up from the bottom of the screen with `text` in a speech bubble, for a few seconds. It waits while something is
+ * being looked at (a word card or a reader menu open, or a flashcard in Review), so it never covers the thing in hand, and gives
+ * up after a few minutes. Only Pengu and the bubble take taps (a tap puts it away), Escape puts it away too, and screen readers
+ * hear the text once: the bubble is filled after the live region is on the page. `confetti` adds a light burst (a finished book).
  */
 export function penguSays(text: string, ms = 6000, opts: { confetti?: boolean } = {}): void {
-  document.querySelector('.pengu-says')?.remove();
-  const bubble = document.createElement('div');
-  bubble.className = 'pengu-says-bubble';
-  bubble.textContent = text;
-  const pengu = penguEl('cheer', 'pengu-says-pengu', { tap: false });
-  const box = document.createElement('div');
-  box.className = 'pengu-says';
-  box.setAttribute('role', 'status');
-  box.append(pengu, bubble);
-  let gone = false;
-  const away = () => {
-    if (gone) return;
-    gone = true;
-    box.classList.remove('on');
-    window.setTimeout(() => box.remove(), still() ? 0 : 420);
+  const busy = () => !!document.querySelector('.pp-pop, .rd-pop')
+    || (document.body.dataset.route === 'review' && !!document.querySelector('.rev-card'));
+  const started = Date.now();
+  const tryShow = () => {
+    if (!busy()) { show(); return; }
+    if (Date.now() - started < SAYS_WAIT_MS) window.setTimeout(tryShow, 700);
   };
-  box.addEventListener('click', away);
-  document.body.append(box);
-  // On the next frame, so the slide up from below is drawn.
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    box.classList.add('on');
-    animatePengu(pengu, 'cheer', 260);
-    // As Pengu lands its first jump, with the slide up (420 ms) done.
-    if (opts.confetti) window.setTimeout(() => { if (!gone) penguConfetti(pengu); }, 440);
-  }));
-  window.setTimeout(away, ms);
+  const show = () => {
+    document.querySelector('.pengu-says')?.remove();
+    const bubble = document.createElement('div');
+    bubble.className = 'pengu-says-bubble';
+    const pengu = penguEl('cheer', 'pengu-says-pengu', { tap: false });
+    const box = document.createElement('div');
+    box.className = 'pengu-says';
+    box.setAttribute('role', 'status');
+    box.append(pengu, bubble);
+    let gone = false;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') away(); };
+    const away = () => {
+      if (gone) return;
+      gone = true;
+      document.removeEventListener('keydown', onKey);
+      box.classList.remove('on');
+      window.setTimeout(() => box.remove(), still() ? 0 : 420);
+    };
+    pengu.addEventListener('click', away);
+    bubble.addEventListener('click', away);
+    document.addEventListener('keydown', onKey);
+    document.body.append(box);
+    // On the next frame: the slide up from below is drawn, and the live region exists before its text arrives.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      bubble.textContent = text;
+      box.classList.add('on');
+      animatePengu(pengu, 'hop', 260);
+      // As Pengu lands, with the slide up (420 ms) done.
+      if (opts.confetti) window.setTimeout(() => { if (!gone) penguConfetti(pengu); }, 440);
+    }));
+    window.setTimeout(away, ms);
+  };
+  tryShow();
 }
+
+/** How long a message waits for a word card or a flashcard to be put away before it is dropped. */
+const SAYS_WAIT_MS = 3 * 60_000;

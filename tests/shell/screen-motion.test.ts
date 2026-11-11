@@ -24,17 +24,16 @@ vi.mock('../../src/ui/library/library', () => ({ mount: page('lib-page', 'Librar
 vi.mock('../../src/ui/vocab/vocab', () => ({ mount: page('voc-page', 'Vocabulary') }));
 vi.mock('../../src/ui/about/about', () => ({ mount: page('ab-page', 'About') }));
 
-/** Each call to document.startViewTransition, run as the browser would: the update right after (here, a microtask). */
+/** Each fade of #screen (its own opacity animation, which never stands between a tap and the page). */
 const transitions: string[] = [];
 let reduce = false;
 let meta: BookMeta;
 beforeAll(async () => {
   installLayout();
   ({ meta } = await bootApp());
-  (document as unknown as { startViewTransition: unknown }).startViewTransition = (update: () => Promise<void>) => {
+  (document.getElementById('screen') as unknown as { animate: unknown }).animate = () => {
     transitions.push(location.hash);
-    const done = Promise.resolve().then(update);
-    return { ready: done, finished: done, updateCallbackDone: done, skipTransition() {} };
+    return { finished: Promise.resolve(), cancel() {}, play() {}, addEventListener() {} };
   };
   window.matchMedia = ((media: string) => ({
     matches: reduce && media.includes('prefers-reduced-motion: reduce'), media, onchange: null,

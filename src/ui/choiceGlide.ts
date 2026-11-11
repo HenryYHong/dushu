@@ -46,7 +46,8 @@ export function choiceGlide(group: HTMLElement, cls: string): ChoiceGlide {
     to(to, from) {
       const end = from ? boxOf(to) : null;
       stop();
-      if (!from || !end || (Math.abs(from.x - end.x) < 1 && Math.abs(from.y - end.y) < 1)) return;
+      // Another row of a grid (the welcome's goals): a glide would cross the grid diagonally; the choice's own style shows at once.
+      if (!from || !end || (Math.abs(from.x - end.x) < 1 && Math.abs(from.y - end.y) < 1) || Math.abs(from.y - end.y) >= 1) return;
       Object.assign(mark.style, { left: `${end.x}px`, top: `${end.y}px`, width: `${end.w}px`, height: `${end.h}px` });
       group.classList.add(`${cls}-moving`);
       const a = mark.animate([

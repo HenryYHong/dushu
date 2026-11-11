@@ -10,7 +10,7 @@ import { contextEl, pinyinEl, scriptView, textAttrs } from '../vocab/render';
 import { isChinese } from '../../lang/active';
 import { pageTitle } from '../pageHead';
 import { celebrate } from './celebrate';
-import { animatePengu, penguEl, penguPeek, type PenguMove, type PenguPeek } from '../pengu';
+import { animatePengu, penguEl, penguPeek, type PenguPeek } from '../pengu';
 import { describeNextDue, ReviewSession } from './queue';
 import { reviewCards, reviewParts } from './learning';
 import { num, tt, ttm, ttn, ttx } from '../../i18n';
@@ -40,10 +40,10 @@ export const mount: MountFn = (root, _params, ctx) => {
   let alive = true;
   let session: ReviewSession | null = null;
   let revealed = false;
-  // Pengu peeking over the flashcard for the whole session (ui/pengu.ts): it tilts its head when the answer shows, hops at a
-  // remembered word and ducks at a forgotten one. Made with the first card; each next card is put in front of the same Pengu.
+  // Pengu peeking over the flashcard for the whole session (ui/pengu.ts). It keeps still while you study: it hops once when a
+  // run of 3 remembered words begins (showStreak) and cheers at the summary, never at every card, which became noise by the
+  // 20th. Made with the first card; each next card is put in front of the same Pengu.
   let peek: PenguPeek | null = null;
-  let reaction: PenguMove | null = null;
   let busy = false;
   /** The card on screen, and when the last graded one started to leave (performance.now(); -1 when none is leaving). */
   let cardEl: HTMLElement | null = null;
@@ -177,7 +177,6 @@ export const mount: MountFn = (root, _params, ctx) => {
     peek.hold(card);
     cardEl = card;
     screen.append(pageTitle('review', tt('Review'), 'h1', 'rev-sr'), top, progress, peek.el, reveal, grades);
-    if (reaction) { peek.react(reaction); reaction = null; }
     if (take) (revealed ? back : card).focus({ preventScroll: true });
     // After a grade the next word settles in as the last card leaves. It is on the card and usable at once: only its look
     // catches up.
@@ -207,7 +206,6 @@ export const mount: MountFn = (root, _params, ctx) => {
       reveal.hidden = true;
       grades.hidden = false;
       card.classList.add('rev-card-revealed');
-      peek?.react('nod');
       if (takeFocus) back.focus({ preventScroll: true });
       // The answer unfolds from the rule under the word, a small turn toward the reader, and the grades rise in under it.
       play(back, [{ opacity: 0, transform: 'perspective(900px) rotateX(-18deg) translateY(-4px)' }, { opacity: 1, transform: 'none' }], { duration: 300, easing: EASE });
@@ -241,6 +239,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (streakEl) { streakEl.lastChild!.textContent = text; return; }
     streakEl = h('span.rev-streak', null, icon('check'), h('span', null, text));
     host.prepend(streakEl);
+    // The one time Pengu moves during a session before the end: a run of remembered words has begun.
+    peek?.react('hop');
     play(streakEl, [{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: EASE_OUT });
   }
 
@@ -295,7 +295,6 @@ export const mount: MountFn = (root, _params, ctx) => {
       }
       const updated = await store.vocab.review(cur.id, g, now);
       session.answer(g, updated, now);
-      reaction = g === 0 ? 'duck' : 'hop';
     } catch (e) {
       // The word was probably removed in another tab; skip it rather than get stuck.
       console.error(e);
@@ -351,10 +350,12 @@ export const mount: MountFn = (root, _params, ctx) => {
       ),
     );
     screen.append(head(), summary);
-    // A session finished: a short celebration (celebrate.ts).
+    // A session finished. The paper and Pengu's cheer are for one that cleared everything due, with a few cards in it; any other
+    // session ends with a small hop, so the burst still means something on the 50th day (celebrate.ts).
     if (s.reviews > 0) {
-      celebrate(summary);
-      animatePengu(cheering, 'cheer', 180);
+      const cleared = dueNow === 0 && s.cards >= 5;
+      if (cleared) celebrate(summary);
+      animatePengu(cheering, cleared ? 'cheer' : 'hop', 180);
       counts.forEach(([value, to, format], i) => {
         const delay = 120 + i * 50;
         play(value.parentElement, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 280, delay, easing: EASE_OUT, fill: 'backwards' });

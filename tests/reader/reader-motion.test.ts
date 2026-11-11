@@ -232,7 +232,8 @@ describe('the read-aloud bar and the bookmark button', () => {
     markBtn().click();
     await vi.waitFor(() => expect(markBtn().getAttribute('aria-pressed')).toBe('true'));
     expect(pops()).toHaveLength(1);
-    expect(pops()[0].frames.map((f) => f.transform)).toEqual(['scale(1)', 'scale(1.2)', 'scale(1)']);
+    // The same pop as Save and Known in a word card (vocab/motion.ts popIcon): one meaning, one motion.
+    expect(pops()[0].frames.map((f) => f.transform)).toEqual(['none', 'scale(1.15)', 'none']);
     const [mark] = await ctx.store.bookmarks.list(book.id) as Bookmark[];
     markBtn().click();
     await vi.waitFor(() => expect(markBtn().getAttribute('aria-pressed')).toBe('false'));

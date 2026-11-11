@@ -39,6 +39,7 @@ import { penguSays } from '../pengu';
 import { FINISHED_AT, watchFinish } from './bookEnd';
 import { langName, tt, uiLocale } from '../../i18n';
 import { EASE, EASE_IN, play } from '../review/motion';
+import { popIcon } from '../vocab/motion';
 import { onScreen } from '../fly';
 
 const BAR_H = 52;
@@ -718,7 +719,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     markBtn.title = on ? tt('Remove bookmark (B)') : tt('Bookmark this page (B)');
     if (on && !was && markSetAt && performance.now() - markSetAt < 2000) {
       // The ribbon fills with one small pop: the page is marked. Taking a bookmark away needs nothing; the outline says it.
-      play(markBtn.querySelector('svg'), [{ transform: 'scale(1)' }, { transform: 'scale(1.2)', offset: 0.4 }, { transform: 'scale(1)' }], { duration: 260, easing: EASE });
+      popIcon(markBtn);
     }
     if (on) markSetAt = 0;
   }

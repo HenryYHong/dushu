@@ -53,6 +53,8 @@
 }
 @keyframes pp-pop-in { from { opacity: 0; transform: translateY(var(--pp-from, 4px)) scale(0.97); } }
 @keyframes pp-sheet-in { from { transform: translateY(100%); } }
+/* The next word's sheet, opened as the last one closed (host.ts): it stays put and only its contents change. */
+.pp-sheet.pp-sheet-stay { animation: none; }
 @media (prefers-reduced-motion: reduce) { .pp-float, .pp-sheet { animation: pp-fade 1ms; } }
 @keyframes pp-fade { from { opacity: 0; } }
 

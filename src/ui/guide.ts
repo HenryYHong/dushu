@@ -142,7 +142,10 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
     const pose = step.pose ?? (i === 0 ? 'wave' : last ? 'cheer' : 'stand');
     if (pengu.dataset.pose !== pose) { pengu.dataset.pose = pose; pengu.innerHTML = penguHtml(pose); }
     // Pengu arrives with the first step, hops along with each next one, and cheers at the last.
-    animatePengu(pengu, i === 0 && !pengu.dataset.seen ? 'pop' : last ? 'cheer' : 'hop');
+    // Pengu arrives with the first step and cheers at the last; in between it keeps still while the card glides, so the eye
+    // follows the card.
+    if (i === 0 && !pengu.dataset.seen) animatePengu(pengu, 'pop');
+    else if (last) animatePengu(pengu, 'cheer');
     pengu.dataset.seen = '1';
     title.textContent = step.title;
     body.replaceChildren(...step.body);

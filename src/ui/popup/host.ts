@@ -93,12 +93,18 @@ const still = (): boolean => typeof window.matchMedia === 'function' && window.m
 const FADE_OUT_MS = 120;
 /** Set while a new popup replaces the open one: the old one goes at once, so the two never overlap. */
 let replacing = false;
+/** When a phone's sheet last closed: a sheet opened right after it (the next word tapped) stays put instead of rising again. */
+let sheetClosedAt = -Infinity;
+/** How soon after a sheet closed a new one counts as the same sheet with new contents. */
+const SHEET_STAY_MS = 300;
 
 /**
  * A closed card fades out where it was (popup.css .pp-leaving keeps its look). It stops being a popup first: without .pp-pop and
  * its dialog role the reader, which asks whether a card is open, sees none, and a tap meanwhile reaches the page.
  */
 function leave(el: HTMLElement): void {
+  // A phone's sheet goes at once: the next word's sheet takes its place without the old one fading under it.
+  if (el.classList.contains('pp-sheet')) { sheetClosedAt = performance.now(); el.remove(); return; }
   if (replacing || still() || typeof el.animate !== 'function') { el.remove(); return; }
   el.classList.replace('pp-pop', 'pp-leaving');
   el.removeAttribute('role');
@@ -160,6 +166,8 @@ export function createHost(o: HostOptions): PopupHost {
     const natural = content.offsetHeight;
     const p = computePlacement(a, natural, vp, { coarse: isCoarse(), canShift: !!o.onSheetTop, insets: readInsets() });
     const sheet = p.mode === 'sheet';
+    // The next word's sheet, right after the last one closed: it is the same sheet with new contents, so it does not rise again.
+    if (sheet && !el.classList.contains('pp-sheet') && performance.now() - sheetClosedAt < SHEET_STAY_MS) el.classList.add('pp-sheet-stay');
     el.classList.toggle('pp-sheet', sheet);
     el.classList.toggle('pp-float', !sheet);
     el.classList.toggle('pp-sheet-tablet', sheet && p.variant === 'tablet');

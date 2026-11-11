@@ -1,9 +1,10 @@
-// The end of a review session: a short burst of paper in the four tone inks and the accent, falling from the top of the summary
-// card, and the title popping in. About a second and a half, then gone; it takes no taps. With reduced motion asked for, only the
-// title fades in. Styled in review.css (.rev-confetti).
+// A session that cleared everything due: a short burst of paper in the four tone inks and the accent, falling from the top of the
+// summary card, and the title easing in. About a second and a half, then gone; it takes no taps. Smaller than the book-end's
+// moment is meant to feel (reader/bookEnd.ts). With reduced motion asked for, only the title fades in. Styled in review.css
+// (.rev-confetti).
 
 const INKS = ['var(--accent)', 'var(--tone-1)', 'var(--tone-2)', 'var(--tone-3)', 'var(--tone-4)', '#d9a521'];
-const PIECES = 70;
+const PIECES = 24;
 
 /** Celebrates over `card` (the summary). Safe where animation is missing (tests, old browsers): it then does nothing. */
 export function celebrate(card: HTMLElement): void {
@@ -12,8 +13,8 @@ export function celebrate(card: HTMLElement): void {
   if (title && typeof title.animate === 'function') {
     title.animate(reduce
       ? [{ opacity: 0 }, { opacity: 1 }]
-      : [{ transform: 'scale(0.6)', opacity: 0 }, { transform: 'scale(1.08)', opacity: 1, offset: 0.6 }, { transform: 'scale(1)', opacity: 1 }],
-    { duration: reduce ? 300 : 520, easing: 'cubic-bezier(.2,.8,.3,1)' });
+      : [{ transform: 'translateY(6px)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+    { duration: 300, easing: 'cubic-bezier(.2,.8,.3,1)' });
   }
   if (reduce) return;
   const layer = document.createElement('div');

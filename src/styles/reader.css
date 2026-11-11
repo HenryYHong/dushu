@@ -415,6 +415,8 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) { --rd-coach-b: calc(ma
 }
 @supports (transition-behavior: allow-discrete) {
   .rd-pop:not(.rd-sheet) { animation: none; transition: opacity var(--dur) var(--ease), transform var(--dur-pop) var(--ease-pop); }
+  /* A sheet only rises (rd-sheet-up): fading in as well let the page's text show through it. */
+  .rd-pop.rd-sheet { transition: none; }
   @starting-style { .rd-pop:not(.rd-sheet) { opacity: 0; transform: translateY(-4px) scale(0.97); } }
 }
 /* Solid where glass could hurt reading: an engine without blur, any bottom sheet (it sits over the text on a phone, where an

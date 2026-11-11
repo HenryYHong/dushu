@@ -118,5 +118,8 @@ export function flyTo(from: Element | null | undefined, to: Element | null | und
 
 /** A saved word's star from the card's Save button to Vocabulary in the top bar, when the bar is on screen. */
 export function flyToVocab(from: Element | null | undefined): boolean {
-  return flyTo(from, typeof document === 'undefined' ? null : document.querySelector(VOCAB_LINK));
+  const link = typeof document === 'undefined' ? null : document.querySelector(VOCAB_LINK);
+  // Already on Vocabulary: the word is in the list on screen, so nothing flies to the tab.
+  if (link?.getAttribute('aria-current') === 'page') return false;
+  return flyTo(from, link);
 }

@@ -3,8 +3,10 @@
 .pengu-span { display: inline-block; transform-origin: 50% 100%; -webkit-tap-highlight-color: transparent; }
 .pengu { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 100%; -webkit-user-select: none; user-select: none; pointer-events: none; }
 .pengu-tappable { cursor: pointer; }
+/* Pengu breathes twice as it arrives and then rests: still company while you read or study, not something moving at the edge
+   of your eye. Its hops and cheers bring it back to life when something happens. */
 @media (prefers-reduced-motion: no-preference) {
-  .pengu-idle { animation: pengu-breathe 4.4s ease-in-out infinite; }
+  .pengu-idle { animation: pengu-breathe 4.4s ease-in-out 2; }
 }
 @keyframes pengu-breathe {
   0%, 100% { transform: translateY(0) rotate(0) scale(1, 1); }
@@ -23,8 +25,11 @@
 .pengu-says {
   position: fixed; z-index: 95; left: 50%; bottom: 0; display: flex; align-items: flex-end; gap: 10px;
   width: min(440px, calc(100% - 24px)); padding: 0 4px calc(env(safe-area-inset-bottom, 0px) + 12px);
-  transform: translate(-50%, 110%); transition: transform 420ms cubic-bezier(.2, .9, .3, 1.15); cursor: pointer;
+  transform: translate(-50%, 110%); transition: transform 420ms cubic-bezier(.2, .9, .3, 1.15);
+  /* Only Pengu and the bubble take taps: the rest of the box is see-through and lets taps reach the page under it. */
+  pointer-events: none;
 }
+.pengu-says-pengu, .pengu-says-bubble { pointer-events: auto; cursor: pointer; }
 .pengu-says.on { transform: translate(-50%, 0); }
 .pengu-says-pengu { flex: none; width: 96px; height: 96px; margin-bottom: -18px; }
 .pengu-says-bubble {

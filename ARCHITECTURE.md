@@ -1482,9 +1482,9 @@ The reader hides the nav (`body[data-route=read]`) and draws its own top bar.
 On a route change the old screen's cleanup runs before `body[data-route]` changes, so the reader saves its place under its own
 layout (with the nav back in the flow it measured a line early on every visit). A screen that finishes mounting after the route
 moved on is cleaned up at once and never replaces the current screen's cleanup.
-Motion is calm and only says what changed: a change of screen fades through the paper with the View Transitions API (the new screen
-rising 6 px, about 240 ms; the bar is left out of it and taps go through), never into or out of the reader or for the same screen,
-and a plain fade of `#screen` without the API; one underline (`.app-nav-line`, moved and sized with a transform) slides to the new
+Motion is calm and only says what changed: a change of screen fades the new screen in (an opacity fade of `#screen`, 200 ms),
+never into or out of the reader or for the same screen. Not the View Transitions API: while one plays the browser sends every
+tap to the page itself, and a second tab or a quick Show answer was lost for about 300 ms. One underline (`.app-nav-line`, moved and sized with a transform) slides to the new
 tab and is set in place when the bar itself changes; a toast put away fades out (one replaced by a newer one goes at once). The
 first shelf since the app opened eases in a card at a time (`library.ts` shelfAt, under half a second), today's goal bar fills
 with a transform and a new streak number rolls in, and a word card grows from its caret and fades out (`host.ts` leave: no longer
@@ -1909,11 +1909,13 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   corners it is the logo (`ui/pengu/logo.webp`, `penguMark`), `public/icon.svg` and the PNG icons (the maskable one with Pengu
   inside the safe zone). Two of the app's colors and Pengu's grays, so it sits with the rest of the page.
   Pengu is alive (`ui/pengu.ts`, `styles/pengu.css`): the picture breathes and sways (CSS, each one from a different moment), and
-  its span takes one-off moves from the Web Animations API (pop, hop, boing, cheer, duck, nod), so the two add up. It pops in on
-  the welcome screen and the empty screens, hops with each walkthrough step and cheers at the last, jumps when tapped, peeks over
-  the top edge of Review's flashcard (`penguPeek`: tilting its head at the answer, hopping at a remembered word, ducking at a
-  forgotten one) and of the library's first book, cheers over the confetti when a session ends, reads in place of the spinner
-  while the library opens, and pops up from the bottom of the screen to say the day's goal is reached (`penguSays`). The first
+  its span takes one-off moves from the Web Animations API (pop, hop, boing, cheer, duck, nod), so the two add up. It breathes
+  twice as it arrives and then rests. It pops in on the welcome screen and the empty screens, pops in with the walkthrough and
+  cheers at its last step, jumps when tapped, peeks over the top edge of Review's flashcard (`penguPeek`; it keeps still while you
+  study and hops once when a run of three remembered words begins) and of the library's first book, hops or (for a session that
+  cleared everything due, with the confetti) cheers when a session ends, reads in place of the spinner while the library opens,
+  and pops up from the bottom of the screen to say the day's goal is reached (`penguSays`: it waits while a word card, a reader
+  menu or a flashcard is up; only Pengu and the bubble take taps; Escape puts it away). The first
   time a reader gets to the end of a book, it says so with a small burst of paper from behind it (`penguSays(…, { confetti })`,
   `penguConfetti`; the reader's `ui/reader/bookEnd.ts`: once per book on this device, `dushu.books-finished.v1`; never for a book
   that opens at its end, a saved place already "Finished", a chapter still being laid out, or where the browser cannot animate).
@@ -1975,8 +1977,9 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   mark shown only while it moves, so the chosen button's own style is the highlight at rest); never on a first draw or a change from elsewhere.
   Hover washes sit inside `@media (hover: hover)`. Italic only on English the app writes, never on an element that can hold Chinese.
   Respect light/sepia/dark themes (test all four, system dark too). Must work at 390 px wide. A new theme cross-fades the whole page
-  (`main.ts` applyTheme, 240 ms, View Transitions with `.app-theme-fade`); the first draw, the system's own switch under Auto and
-  reduced motion change it at once.
+  (`main.ts` applyTheme: `.app-theme-fade` eases every color for 240 ms, so taps keep working, unlike a View Transition); the first
+  draw, the system's own switch under Auto and reduced motion change it at once. Under reduced motion transitions take 0 s (not
+  0.01 ms), so an element shown by a visibility transition can take focus at once.
 - Icons: `icon(name)` from `ui/icons.ts`. No emoji in the UI.
 - The reading grid (the reading fonts and sizes, the cell, every `--rd-*` variable, `--font-pinyin`) is not styled from outside it, and
   nothing sets `font-feature-settings` on `body` (it inherits into `rt` and moves the pinyin).

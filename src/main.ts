@@ -71,16 +71,18 @@ function applyTheme(s: Settings): void {
   };
   const picked = themeShown !== null && themeShown !== s.theme && root.dataset.theme !== theme;
   themeShown = s.theme;
-  if (!picked || still() || typeof document.startViewTransition !== 'function') { show(); return; }
+  if (!picked || still()) { show(); return; }
+  // Picked by hand: the colors ease to the new ones (base.css .app-theme-fade). Only colors move and nothing is captured or
+  // covered, so a tap during it still lands (a View Transition sent every tap to the page for its length). A newer change keeps
+  // the class until its own ease ends.
   const fade = ++themeFades;
   root.classList.add('app-theme-fade');
-  const vt = document.startViewTransition(show);
-  // Skipped (a change of screen came first, or the tab is hidden): the theme is still drawn, only the fade is lost. A newer
-  // fade keeps the class until it ends.
-  const off = () => { if (fade === themeFades) root.classList.remove('app-theme-fade'); };
-  vt.ready.catch(() => {});
-  void vt.finished.then(off, off);
+  show();
+  window.setTimeout(() => { if (fade === themeFades) root.classList.remove('app-theme-fade'); }, THEME_FADE_MS + 40);
 }
+
+/** How long a theme picked by hand takes to ease in (base.css .app-theme-fade). */
+const THEME_FADE_MS = 240;
 
 const parseHash = () => parseRoute(location.hash, (r) => Object.prototype.hasOwnProperty.call(ROUTES, r));
 
@@ -98,11 +100,6 @@ const HANDOFF_WAIT_MS = 30_000;
 
 /** Under reduced motion nothing in the shell moves: screens change, toasts go and the tab's underline jumps at once. */
 const still = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-/**
- * How long a screen change holds the old screen while the new one mounts before the fade starts anyway (the new screen is
- * live under it, so a slow screen fills in as it fades in). Long enough for a screen whose code is already loaded.
- */
-const SCREEN_HOLD_MS = 150;
 /** How long a dismissed toast takes to fade. */
 const TOAST_FADE_MS = 180;
 
@@ -265,6 +262,7 @@ async function boot(): Promise<void> {
         clearTimeout(timer);
         if (!fade || still() || typeof el.animate !== 'function') { el.remove(); return; }
         el.setAttribute('aria-hidden', 'true');
+        el.inert = true;
         el.style.pointerEvents = 'none';
         const anim = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: TOAST_FADE_MS, easing: 'ease-in', fill: 'forwards' });
         anim.onfinish = anim.oncancel = () => el.remove();
@@ -470,22 +468,17 @@ async function boot(): Promise<void> {
   };
   let moved = false;
   /**
-   * A change of screen fades through the paper, the new screen rising a few pixels, while the bar stays still and its underline
-   * slides (base.css, ::view-transition). Never into or out of the reader, which is full screen with its own bar and measures its
-   * place as it goes; never for the same screen drawn again, nor under reduced motion.
+   * A change of screen fades the new one in (render(true): an opacity fade of #screen) while the bar stays and its underline
+   * slides. Not a View Transition: while one plays, the browser sends every tap to the page itself, so a second tab or a quick
+   * Show answer did nothing for about 300 ms. Never into or out of the reader, which is full screen with its own bar and measures
+   * its place as it goes; never for the same screen drawn again, nor under reduced motion.
    */
   const change = () => {
     moved = true;
     const from = shownRoute;
     const to = parseHash().route;
     if (from === null || from === to || from === 'read' || to === 'read' || still()) { void render(); return; }
-    if (typeof document.startViewTransition !== 'function') { void render(true); return; }
-    // The old screen is held only until the new one has mounted (or SCREEN_HOLD_MS): what is still loading fills in as it fades in.
-    const hold = new Promise<void>((r) => { setTimeout(r, SCREEN_HOLD_MS); });
-    const vt = document.startViewTransition(() => Promise.race([render().catch((e: unknown) => console.error(e)), hold]));
-    // Skipped (another change came first, or the tab is hidden): the screen is still drawn, only the fade is lost.
-    vt.ready.catch(() => {});
-    vt.finished.catch(() => {});
+    void render(true);
   };
   window.addEventListener('hashchange', change);
   await render();

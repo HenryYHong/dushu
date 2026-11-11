@@ -7,6 +7,9 @@ import { goalInput } from './goalInput';
 import { PLAN_KEY, getPlan, setPlan } from '../core/plan';
 import { num, tt, ttn, uiLocale } from '../i18n';
 
+/** The share of today's goal the bar last showed (this page's life), where a card drawn again starts. */
+let barShown = 0;
+
 const FLAME = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.3c.4 3.2 4.9 5.4 4.9 10.6a5.5 5.5 0 0 1-11 0c0-2.5 1.3-4.4 2.9-5.7.1 1.8.9 3 2.1 3.5-.6-3.4.2-6.2 1.1-8.4z"/></svg>';
 /** Stands for the number in "{n} day streak", so the words before and after it can go around the big number. */
 const MARK = '\u0001';
@@ -77,7 +80,12 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
   // where it was when time is added; goal.css moves it with a transform.
   let part = 0;
   let onScreen = false;
-  const paintBar = () => { if (onScreen) fill.style.transform = `translateX(${part - 100}%)`; };
+  // A card drawn again (back from a book) starts at the share it last showed, so the bar does not refill from empty each visit.
+  fill.style.transition = 'none';
+  fill.style.transform = `translateX(${barShown - 100}%)`;
+  void fill.offsetWidth;
+  fill.style.transition = '';
+  const paintBar = () => { if (onScreen) { fill.style.transform = `translateX(${part - 100}%)`; barShown = part; } };
   const io = typeof IntersectionObserver === 'function'
     ? new IntersectionObserver((seen) => {
       if (!seen.some((e) => e.isIntersecting)) return;
