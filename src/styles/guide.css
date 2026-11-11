@@ -2,12 +2,32 @@
 .rd-guide { position: fixed; inset: 0; z-index: 90; }
 .rd-guide-shade { position: fixed; inset: 0; background: rgb(0 0 0 / 0.55); }
 .rd-guide-shade[hidden], .rd-guide-spot[hidden] { display: none; }
-.rd-guide-spot {
-  position: fixed; border-radius: 10px; pointer-events: none;
-  box-shadow: 0 0 0 2px var(--accent), 0 0 0 200vmax rgb(0 0 0 / 0.55);
-  /* The card glides with it, in the same time and curve (guide.ts GLIDE_MS, the app's --ease). */
-  transition: left 260ms var(--ease), top 260ms var(--ease), width 260ms var(--ease), height 260ms var(--ease);
-}
+/* The lit part: a box that paints nothing itself, with the dim around it and a 2px ring on its edge (10px corners inside the
+   ring, 12px outside). Each part follows the box by CSS alone; guide.ts (glideSpot) moves them from the last step's box with
+   transforms, the card's time and curve, so a glide never lays out or paints the page again and keeps step with the card while
+   the page is busy. A single box with a 200vmax shadow could not be scaled without thickening the ring and its corners. */
+.rd-guide-spot { position: fixed; pointer-events: none; }
+.rd-guide-dim, .rd-guide-ring { position: absolute; inset: 0; }
+/* The dim: one box per corner, reaching off screen with that corner rounded and a shadow over the rest of the screen. They
+   overlap, so they are black and dimmed together, as one. */
+.rd-guide-dim { opacity: 0.55; }
+.rd-guide-dim > i { position: absolute; width: 200vmax; height: 200vmax; box-shadow: 0 0 0 200vmax #000; }
+.rd-guide-dim > .rd-guide-tl { left: 0; top: 0; border-top-left-radius: 10px; }
+.rd-guide-dim > .rd-guide-tr { right: 0; top: 0; border-top-right-radius: 10px; }
+.rd-guide-dim > .rd-guide-bl { left: 0; bottom: 0; border-bottom-left-radius: 10px; }
+.rd-guide-dim > .rd-guide-br { right: 0; bottom: 0; border-bottom-right-radius: 10px; }
+/* The ring: four arcs, and four edges between them that stretch along their length only (a pixel into each arc, so no seam
+   shows while they move). */
+.rd-guide-ring > i { position: absolute; width: 12px; height: 12px; box-sizing: border-box; border: 0 solid var(--accent); }
+.rd-guide-ring > .rd-guide-tl { left: -2px; top: -2px; border-width: 2px 0 0 2px; border-top-left-radius: 12px; }
+.rd-guide-ring > .rd-guide-tr { right: -2px; top: -2px; border-width: 2px 2px 0 0; border-top-right-radius: 12px; }
+.rd-guide-ring > .rd-guide-bl { left: -2px; bottom: -2px; border-width: 0 0 2px 2px; border-bottom-left-radius: 12px; }
+.rd-guide-ring > .rd-guide-br { right: -2px; bottom: -2px; border-width: 0 2px 2px 0; border-bottom-right-radius: 12px; }
+.rd-guide-ring > b { position: absolute; background: var(--accent); transform-origin: 0 0; }
+.rd-guide-ring > .rd-guide-t { left: 9px; right: 9px; top: -2px; height: 2px; }
+.rd-guide-ring > .rd-guide-b { left: 9px; right: 9px; bottom: -2px; height: 2px; }
+.rd-guide-ring > .rd-guide-l { top: 9px; bottom: 9px; left: -2px; width: 2px; }
+.rd-guide-ring > .rd-guide-r { top: 9px; bottom: 9px; right: -2px; width: 2px; }
 .rd-guide-card {
   position: fixed; box-sizing: border-box; padding: var(--space-4); border-radius: var(--radius-l);
   background: var(--elev); color: var(--text); box-shadow: var(--shadow-pop); font: 14px/1.5 var(--font-ui);
@@ -19,7 +39,6 @@
 .rd-guide-foot { display: flex; align-items: center; gap: var(--space-2); }
 .rd-guide-gap { flex: 1; }
 .rd-guide-foot .btn[hidden] { display: none; }
-@media (prefers-reduced-motion: reduce) { .rd-guide-spot { transition: none; } }
 .rd-guide-head { display: flex; align-items: center; gap: var(--space-3); }
 .rd-guide-pengu { flex: none; width: 52px; height: 52px; margin: -6px 0 -4px -6px; }
 .rd-guide-pengu img { width: 100%; height: 100%; display: block; object-fit: contain; -webkit-user-select: none; user-select: none; }

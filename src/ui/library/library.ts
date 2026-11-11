@@ -888,9 +888,10 @@ export const mount: MountFn = (root, _params, ctx) => {
     });
   }
 
-  // The library's walkthrough (siteGuide.ts): due after the welcome, or when Settings asks for it again.
+  // The library's walkthrough (siteGuide.ts): due after the welcome, or when Settings asks for it again. On a first visit it
+  // waits for the dictionary.
   let stopGuide = () => {};
-  const startGuide = () => { stopGuide(); stopGuide = maybeSiteGuide(); };
+  const startGuide = () => { stopGuide(); stopGuide = maybeSiteGuide(ctx); };
   window.addEventListener(GUIDE_EVENT, startGuide);
 
   void load().then(async () => {
