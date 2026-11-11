@@ -2067,5 +2067,6 @@
  "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "点顶部的“登录”，输入你的邮箱。我们会发给你一个六位数验证码，第一次登录就会创建你的账户。不需要密码。如果你有邀请链接，也可以改用通行密钥创建账户，像解锁设备一样解锁它：面容 ID、指纹，或电脑的密码或 PIN。",
  "We only use your email to send you sign-in codes.": "我们只用你的邮箱发送登录验证码。",
  "Hi, I’m Pengu!": "嗨，我是 Pengu！",
- "I’ll show you around. Your books live here: start with a free classic, or add your own.": "我来带你看看。你的书都在这里：可以从一本免费经典开始，也可以添加你自己的书。"
+ "I’ll show you around. Your books live here: start with a free classic, or add your own.": "我来带你看看。你的书都在这里：可以从一本免费经典开始，也可以添加你自己的书。",
+ "You finished “{title}”!": "你读完了“{title}”！"
 }

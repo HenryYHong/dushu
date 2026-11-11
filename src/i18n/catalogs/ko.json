@@ -2077,5 +2077,6 @@
  "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "위의 로그인을 탭하고 이메일을 입력하세요. 6자리 코드를 보내 드리고, 처음이면 그걸로 계정이 만들어져요. 비밀번호는 없어요. 초대 링크가 있으면 대신 패스키로 만들 수도 있고, 기기를 여는 방법(Face ID, 지문, 컴퓨터 암호나 PIN)으로 열 수 있어요.",
  "We only use your email to send you sign-in codes.": "이메일은 로그인 코드를 보낼 때만 사용해요.",
  "Hi, I’m Pengu!": "안녕하세요, 저는 Pengu예요!",
- "I’ll show you around. Your books live here: start with a free classic, or add your own.": "제가 안내해 드릴게요. 책은 여기에 있어요. 무료 고전으로 시작하거나 직접 책을 추가해 보세요."
+ "I’ll show you around. Your books live here: start with a free classic, or add your own.": "제가 안내해 드릴게요. 책은 여기에 있어요. 무료 고전으로 시작하거나 직접 책을 추가해 보세요.",
+ "You finished “{title}”!": "“{title}” 책을 다 읽었어요!"
 }

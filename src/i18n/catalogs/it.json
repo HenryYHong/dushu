@@ -2296,5 +2296,6 @@
  "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "Tocca Accedi in alto e scrivi la tua email. Ti mandiamo un codice di sei cifre, e la prima volta crea il tuo account. Non c’è nessuna password. Con un link di invito puoi crearlo invece con una passkey, e sbloccarlo come sblocchi il tuo dispositivo: Face ID, un’impronta, o la password o il PIN del computer.",
  "We only use your email to send you sign-in codes.": "Usiamo la tua email solo per mandarti i codici di accesso.",
  "Hi, I’m Pengu!": "Ciao, sono Pengu!",
- "I’ll show you around. Your books live here: start with a free classic, or add your own.": "Ti faccio fare un giro. I tuoi libri stanno qui: inizia con un classico gratuito, o aggiungi i tuoi."
+ "I’ll show you around. Your books live here: start with a free classic, or add your own.": "Ti faccio fare un giro. I tuoi libri stanno qui: inizia con un classico gratuito, o aggiungi i tuoi.",
+ "You finished “{title}”!": "Hai finito di leggere “{title}”!"
 }

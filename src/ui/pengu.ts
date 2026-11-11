@@ -5,7 +5,8 @@
 //   penguEl(pose, cls)        Pengu in a span: breathing and swaying gently (CSS, on the picture), a jump when tapped
 //   animatePengu(el, move)    a one-off move on that span: pop (arriving), hop, boing, cheer, duck, nod (Web Animations)
 //   penguPeek(card)           Pengu peeking over the top edge of a card, hidden behind it below the edge, reacting on cue
-//   penguSays(text)           Pengu popping up from the bottom of the screen with a speech bubble (the daily goal reached)
+//   penguSays(text)           Pengu popping up from the bottom of the screen with a speech bubble (the daily goal reached; a
+//                             book finished, with a small burst of paper from behind it)
 //
 // The idle motion is on the picture and the moves on its span, so the two add up instead of replacing each other. Everything
 // stops for a reader who asks for reduced motion, and does nothing where the browser cannot animate (tests).
@@ -137,8 +138,52 @@ export function penguPeek(card?: HTMLElement): PenguPeek {
   return peek;
 }
 
-/** Pengu popping up from the bottom of the screen with `text` in a speech bubble, for a few seconds; a tap puts it away. */
-export function penguSays(text: string, ms = 6000): void {
+// The paper of Pengu's burst: the four tone inks, the accent and a gold, as in Review's celebration (review/celebrate.ts).
+const PAPER = ['var(--accent)', 'var(--tone-1)', 'var(--tone-2)', 'var(--tone-3)', 'var(--tone-4)', '#d9a521'];
+const BITS = 26;
+
+/**
+ * A small burst of paper from behind Pengu (`from`, its span): up and out in a fan, then drifting down and fading, about a
+ * second and a half. Lighter than Review's (about a third of the pieces, from one spot), since it shows over the page of a book.
+ * It takes no taps, and does nothing with reduced motion or where the browser cannot animate.
+ */
+export function penguConfetti(from: Element): void {
+  if (still()) return;
+  const layer = document.createElement('div');
+  layer.className = 'pengu-confetti';
+  layer.setAttribute('aria-hidden', 'true');
+  if (typeof layer.animate !== 'function') return;
+  const r = from.getBoundingClientRect();
+  const x0 = r.left + r.width / 2;
+  const y0 = r.top + r.height * 0.35;
+  document.body.append(layer);
+  const ends: Promise<unknown>[] = [];
+  for (let i = 0; i < BITS; i++) {
+    const p = document.createElement('span');
+    // A fan from up-left to up-right, spread by index with a little jitter, so every burst looks alike and none bunch.
+    const a = -Math.PI * (0.18 + 0.64 * (i / (BITS - 1))) + Math.sin(i * 12.9898) * 0.12;
+    const speed = 120 + ((i * 37) % 110);
+    const dx = Math.cos(a) * speed;
+    const up = Math.sin(a) * speed - 30;
+    const w = 5 + (i % 3) * 2;
+    p.style.cssText = `left:${x0}px;top:${y0}px;width:${w}px;height:${(w * (i % 3 ? 0.5 : 1)).toFixed(1)}px;background:${PAPER[i % PAPER.length]};border-radius:${i % 4 === 0 ? '50%' : '1px'}`;
+    layer.append(p);
+    const spin = (i % 2 ? 1 : -1) * (180 + ((i * 53) % 240));
+    ends.push(p.animate([
+      { transform: 'translate(-50%, -50%) scale(.6)', opacity: 0 },
+      { transform: `translate(calc(-50% + ${(dx * 0.7).toFixed(1)}px), calc(-50% + ${up.toFixed(1)}px)) rotate(${spin * 0.4}deg)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(calc(-50% + ${dx.toFixed(1)}px), calc(-50% + ${(up + 90).toFixed(1)}px)) rotate(${spin}deg)`, opacity: 0 },
+    ], { duration: 1250 + (i % 5) * 60, easing: 'cubic-bezier(.2,.6,.35,1)', delay: (i % 6) * 15, fill: 'forwards' }).finished.catch(() => undefined));
+  }
+  void Promise.all(ends).then(() => layer.remove());
+  window.setTimeout(() => layer.remove(), 2500);
+}
+
+/**
+ * Pengu popping up from the bottom of the screen with `text` in a speech bubble, for a few seconds; a tap puts it away. With
+ * `confetti`, a small burst of paper comes from behind it as it arrives (a book finished).
+ */
+export function penguSays(text: string, ms = 6000, opts: { confetti?: boolean } = {}): void {
   document.querySelector('.pengu-says')?.remove();
   const bubble = document.createElement('div');
   bubble.className = 'pengu-says-bubble';
@@ -161,6 +206,8 @@ export function penguSays(text: string, ms = 6000): void {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     box.classList.add('on');
     animatePengu(pengu, 'cheer', 260);
+    // As Pengu lands its first jump, with the slide up (420 ms) done.
+    if (opts.confetti) window.setTimeout(() => { if (!gone) penguConfetti(pengu); }, 440);
   }));
   window.setTimeout(away, ms);
 }

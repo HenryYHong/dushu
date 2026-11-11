@@ -2407,5 +2407,6 @@
  "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "Нажмите «Войти» вверху и введите свою почту. Мы пришлём шестизначный код, и в первый раз он создаст ваш аккаунт. Пароля нет. По ссылке-приглашению можно создать аккаунт с ключом доступа и открывать его так же, как устройство: Face ID, отпечатком пальца или паролем либо PIN-кодом компьютера.",
  "We only use your email to send you sign-in codes.": "Ваша почта нужна только для кодов входа.",
  "Hi, I’m Pengu!": "Привет, я Pengu!",
- "I’ll show you around. Your books live here: start with a free classic, or add your own.": "Я всё покажу. Здесь живут ваши книги: начните с бесплатной классики или добавьте свои."
+ "I’ll show you around. Your books live here: start with a free classic, or add your own.": "Я всё покажу. Здесь живут ваши книги: начните с бесплатной классики или добавьте свои.",
+ "You finished “{title}”!": "Вы дочитали «{title}»!"
 }
