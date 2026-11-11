@@ -1811,6 +1811,11 @@
   "one": "il y a {n} heure",
   "other": "il y a {n} heures"
  },
+ "{n} in a row": {
+  "one": "{n} d’affilée",
+  "many": "{n} d’affilée",
+  "other": "{n} d’affilée"
+ },
  "{n} known words": {
   "many": "{n} mots connus",
   "one": "{n} mot connu",

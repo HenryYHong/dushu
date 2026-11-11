@@ -1683,6 +1683,9 @@
  "{n} hours ago": {
   "other": "{n} 小時前"
  },
+ "{n} in a row": {
+  "other": "連續答對 {n} 張"
+ },
  "{n} known words": {
   "other": "{n} 個已會的詞"
  },

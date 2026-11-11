@@ -21,6 +21,7 @@ export class ReviewSession {
   readonly total: number;
   private finished = new Set<string>();
   private counts: [number, number, number, number] = [0, 0, 0, 0];
+  private run = 0;
 
   constructor(items: VocabItem[]) {
     this.queue = items.slice().sort((a, b) => a.srs.due - b.srs.due);
@@ -31,12 +32,15 @@ export class ReviewSession {
   get remaining(): number { return this.queue.length; }
   get done(): number { return this.finished.size; }
   get isOver(): boolean { return this.queue.length === 0; }
+  /** Answers remembered in a row (anything but Again), back to 0 at a forgotten one. A skipped card leaves it as it was. */
+  get streak(): number { return this.run; }
 
   /** Record a grade. `updated` is the card as the store rescheduled it. */
   answer(grade: Grade, updated: VocabItem, now: number): void {
     const cur = this.queue.shift();
     if (!cur) return;
     this.counts[grade]++;
+    this.run = grade === 0 ? 0 : this.run + 1;
     if (updated.srs.due - now <= REQUEUE_WITHIN_MS) {
       this.queue.push(updated);
     } else {

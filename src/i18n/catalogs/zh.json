@@ -1683,6 +1683,9 @@
  "{n} hours ago": {
   "other": "{n} 小时前"
  },
+ "{n} in a row": {
+  "other": "连续答对 {n} 张"
+ },
  "{n} known words": {
   "other": "{n} 个熟词"
  },

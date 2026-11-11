@@ -1765,6 +1765,14 @@ and opens it. Empty state explains what the app does in two sentences.
   highlighted (pinyin hidden). Space/click = reveal pinyin, gloss, speak. Grades Again/Hard/
   Good/Easy (keys 1–4) with the next interval shown on each button. Session summary at the end.
   Empty state when nothing is due (next due time).
+  Motion (`review/motion.ts`, `swipe.ts`), small and short and only where it says something: the answer unfolds from the rule
+  under the word (300 ms); a graded card leaves to the side of its grade (right remembered, left forgotten) as an inert copy
+  hidden from screen readers while the next word settles in (about 300 ms in all, the next card usable at once); once the
+  answer shows, a finger or pen can swipe the card to grade it (right Got it or Good, left Forgot or Again, a faint tint and
+  label on the way, past about a third of the card or a flick; touch-action pan-y keeps the page scrolling); from 3 remembered
+  in a row a quiet "3 in a row" sits over the card's top-left edge beside Pengu (`ReviewSession.streak`), gone at a forgotten
+  word; the summary's numbers count up as its tiles ease in (screen readers read the final numbers from a hidden copy).
+  Web Animations only, gated on `Element.animate` and reduced motion, so nothing waits on them and tests run without them.
 
 - Looked up (`ui/vocab/lookups.ts`, `practice.ts`; store table `lookups`, keyPath [day, id], DB_VERSION 4): `lookup.ts` openWord calls
   `logLookup` (`ui/popup/lookupLog.ts`) after the card opens, in a timeout, so a lookup never waits on it; stepping with Prev/Next passes

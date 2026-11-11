@@ -1,5 +1,7 @@
 /* Flashcard review. Every class starts with rev-. */
 .rev-page { max-width: 640px; }
+/* A card swiped or leaving to the side may cross the edge of a phone's screen for a moment: never a sideways scroll. */
+body[data-route='review'] #screen { overflow-x: clip; }
 .rev-top { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); font-size: 14px; }
 .rev-exit { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); text-decoration: none; margin-right: auto; }
 @media (hover: hover) { .rev-exit:hover { color: var(--text); } }
@@ -13,8 +15,30 @@
 .rev-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* The card: an index card, raised on the paper. */
-.rev-card { padding: var(--space-6) var(--space-5); min-height: 280px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: center; border-radius: var(--radius-l); box-shadow: var(--shadow); }
-.rev-card-revealed { cursor: default; }
+.rev-card { position: relative; padding: var(--space-6) var(--space-5); min-height: 280px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: center; border-radius: var(--radius-l); box-shadow: var(--shadow); }
+/* With the answer shown a finger can swipe the card sideways to grade it (swipe.ts); up and down still scroll the page. */
+.rev-card-revealed { cursor: default; touch-action: pan-y pinch-zoom; }
+.rev-card-drag { -webkit-user-select: none; user-select: none; will-change: transform; }
+/* The tint and label a swipe shows: green Got it (or Good) to the right, red Forgot (or Again) to the left, clearer as the
+   card nears the point where letting go grades it. */
+.rev-swipe { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: color-mix(in srgb, var(--rev-swipe-tone) 8%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rev-swipe-tone) 30%, transparent); }
+.rev-swipe-right { --rev-swipe-tone: var(--ok); }
+.rev-swipe-left { --rev-swipe-tone: var(--danger); }
+.rev-swipe-label { position: absolute; top: var(--space-3); padding: 3px 10px; border-radius: 999px; font: 600 14px/1.3 var(--font-ui); white-space: nowrap; color: color-mix(in srgb, var(--rev-swipe-tone) 85%, var(--text)); background: var(--elev); box-shadow: inset 0 0 0 1.5px currentColor; }
+.rev-swipe-right .rev-swipe-label { left: var(--space-3); }
+.rev-swipe-left .rev-swipe-label { right: var(--space-3); }
+/* Three or more remembered in a row (review.ts): a quiet line in the green of Got it, over the card's top-left edge in the
+   room Pengu peeks from (pengu.css: 46 px, 40 px on a phone), clear of Pengu on the right. */
+.rev-streak {
+  position: absolute; top: 14px; left: 2px; max-width: calc(100% - 140px); overflow: hidden;
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--ok) 85%, var(--text));
+}
+.rev-streak .icon { width: 14px; height: 14px; flex: none; }
+@media (max-width: 520px) { .rev-streak { top: 11px; } }
+/* A graded card leaving (review.ts): a copy over the card, which waits under it with its words hidden for the next one. */
+.rev-card.rev-ghost { position: absolute; z-index: 2; margin: 0; pointer-events: none; }
+.rev-card-gone > .rev-front, .rev-card-gone > .rev-back { visibility: hidden; }
 /* Focus moves to the card and the answer for screen readers and the keyboard: no ring around the whole card. */
 .rev-card:focus, .rev-back:focus { outline: none; }
 .rev-word { font-size: 84px; line-height: 1.2; font-weight: 400; letter-spacing: 0.04em; overflow-wrap: anywhere; }
@@ -22,7 +46,7 @@
 .rev-word-long { font-size: 40px; }
 .rev-ctx { margin: var(--space-4) auto 0; max-width: 480px; color: var(--text-2); font-size: 18px; line-height: 1.8; text-align: left; overflow-wrap: anywhere; }
 .rev-ctx mark { background: var(--hl); color: var(--text); font-weight: 700; padding: 0 2px; border-radius: 3px; }
-.rev-back { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--hairline); }
+.rev-back { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--hairline); transform-origin: 50% 0; }
 /* The answer keeps its room before it is shown, so the word does not jump up when it appears. */
 .rev-back[hidden] { display: block !important; visibility: hidden; }
 .rev-answer { display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
@@ -66,7 +90,7 @@
 .rev-summary { border-radius: var(--radius-l); }
 .rev-empty p { color: var(--text-2); margin: 0 0 var(--space-4); }
 .rev-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); margin: var(--space-5) 0; }
-.rev-stat { padding: var(--space-3) 4px; border-radius: var(--radius-s); background: var(--wash); }
+.rev-stat { position: relative; padding: var(--space-3) 4px; border-radius: var(--radius-s); background: var(--wash); }
 .rev-stat-value { font: 400 28px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
 .rev-stat-label { font-size: 12px; color: var(--text-3); }
 .rev-next { color: var(--text-2); margin: 0 0 var(--space-4); }

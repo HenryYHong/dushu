@@ -14,6 +14,8 @@ import { animatePengu, penguEl, penguPeek, type PenguMove, type PenguPeek } from
 import { describeNextDue, ReviewSession } from './queue';
 import { reviewCards, reviewParts } from './learning';
 import { num, tt, ttm, ttn, ttx } from '../../i18n';
+import { EASE, EASE_IN, EASE_OUT, canMove, countUp, play } from './motion';
+import { attachSwipe } from './swipe';
 
 const GRADES: { grade: Grade; key: 'again' | 'hard' | 'good' | 'easy'; label: string }[] = [
   { grade: 0, key: 'again', label: ttm('Again') },
@@ -43,6 +45,11 @@ export const mount: MountFn = (root, _params, ctx) => {
   let peek: PenguPeek | null = null;
   let reaction: PenguMove | null = null;
   let busy = false;
+  /** The card on screen, and when the last graded one started to leave (performance.now(); -1 when none is leaving). */
+  let cardEl: HTMLElement | null = null;
+  let leftAt = -1;
+  /** The "3 in a row" line over the card, while there is one: kept from card to card, so it eases in only when it first shows. */
+  let streakEl: HTMLElement | null = null;
   let settings = ctx.settings.get();
   /** The looked-up words in this session, not saved yet: each is saved when it is first graded. */
   let unsaved = new Map<string, VocabItem>();
@@ -75,6 +82,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!due.length) { await showEmpty(); return; }
     session = new ReviewSession(due);
     revealed = false;
+    leftAt = -1;
     showCard(focus);
   }
 
@@ -111,7 +119,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const was = document.activeElement;
     const take = moveFocus
       ? !was || was === document.body || screen.contains(was)
-      : !!was && !!screen.querySelector('.rev-card')?.contains(was);
+      : !!was && !!cardEl?.contains(was);
     clear(screen);
 
     const view = scriptView(settings.script, ctx.dictSync());
@@ -165,11 +173,28 @@ export const mount: MountFn = (root, _params, ctx) => {
       onclick: () => { if (!revealed) reveal_(); },
     }, front, back);
     // The screen's title, for screen readers: a session shows only the card.
-    if (!peek) peek = penguPeek();
+    if (!peek) { peek = penguPeek(); streakEl = null; }
     peek.hold(card);
+    cardEl = card;
     screen.append(pageTitle('review', tt('Review'), 'h1', 'rev-sr'), top, progress, peek.el, reveal, grades);
     if (reaction) { peek.react(reaction); reaction = null; }
     if (take) (revealed ? back : card).focus({ preventScroll: true });
+    // After a grade the next word settles in as the last card leaves. It is on the card and usable at once: only its look
+    // catches up.
+    if (leftAt >= 0) {
+      const wait = Math.max(0, 110 - (performance.now() - leftAt));
+      play(front, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, delay: wait, easing: EASE_OUT, fill: 'backwards' });
+      leftAt = -1;
+    }
+    showStreak(peek.el, session.streak);
+    // On a touch screen, a swipe grades once the answer shows: right remembered, left forgotten (swipe.ts).
+    attachSwipe(card, {
+      ready: () => revealed && !busy && cardEl === card,
+      labels: () => simple
+        ? { left: SIMPLE[0].label(), right: SIMPLE[1].label() }
+        : { left: tt(GRADES[0].label), right: tt(GRADES[2].label) },
+      done: (dir, x, deg) => { void grade(dir > 0 ? 2 : 0, { x, deg }); },
+    });
 
     function reveal_(): void {
       if (revealed) return;
@@ -184,6 +209,9 @@ export const mount: MountFn = (root, _params, ctx) => {
       card.classList.add('rev-card-revealed');
       peek?.react('nod');
       if (takeFocus) back.focus({ preventScroll: true });
+      // The answer unfolds from the rule under the word, a small turn toward the reader, and the grades rise in under it.
+      play(back, [{ opacity: 0, transform: 'perspective(900px) rotateX(-18deg) translateY(-4px)' }, { opacity: 1, transform: 'none' }], { duration: 300, easing: EASE });
+      play(grades, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, delay: 40, easing: EASE_OUT, fill: 'backwards' });
     }
     // Used by the key handler through the DOM so it always acts on the card on screen.
     screen.dataset.state = revealed ? 'back' : 'front';
@@ -192,15 +220,69 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   let revealCurrent: () => void = () => {};
 
+  /**
+   * Three or more remembered in a row: a quiet line just over the card's top edge, left of Pengu (who hops at each one), in
+   * the room that is there anyway, so nothing moves to make space for it in any language. It eases in when it first shows
+   * and fades at the next forgotten word.
+   */
+  function showStreak(host: HTMLElement, run: number): void {
+    if (run < 3) {
+      const el = streakEl;
+      streakEl = null;
+      if (!el) return;
+      el.setAttribute('aria-hidden', 'true');
+      const fade = play(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: EASE_OUT, fill: 'forwards' });
+      if (!fade) { el.remove(); return; }
+      void fade.finished.then(() => el.remove(), () => el.remove());
+      window.setTimeout(() => el.remove(), 600);
+      return;
+    }
+    const text = ttn(run, '{n} in a row', '{n} in a row');
+    if (streakEl) { streakEl.lastChild!.textContent = text; return; }
+    streakEl = h('span.rev-streak', null, icon('check'), h('span', null, text));
+    host.prepend(streakEl);
+    play(streakEl, [{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: EASE_OUT });
+  }
+
   function speakNow(): void {
     const cur = session?.current;
     if (!cur) return;
     void speak(cur.simp, { rate: settings.ttsRate, voice: settings.ttsVoice || undefined });
   }
 
-  async function grade(g: Grade): Promise<void> {
+  /**
+   * The graded card leaves to the side of its grade (right remembered, left forgotten), a short slide and fade, from `from`
+   * when a swipe already moved it. What leaves is a copy, hidden from screen readers and taps; the card itself stays put with
+   * its words hidden, under the copy, until the next card takes its place.
+   */
+  function sendOff(card: HTMLElement | null, dir: 1 | -1, from = { x: 0, deg: 0 }): void {
+    const host = card?.parentElement;
+    if (!card || !host || !canMove(card)) return;
+    const ghost = card.cloneNode(true) as HTMLElement;
+    ghost.classList.add('rev-ghost');
+    ghost.classList.remove('rev-card-drag');
+    for (const a of ['tabindex', 'role', 'aria-label']) ghost.removeAttribute(a);
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.inert = true;
+    Object.assign(ghost.style, { top: `${card.offsetTop}px`, left: `${card.offsetLeft}px`, width: `${card.offsetWidth}px`, height: `${card.offsetHeight}px` });
+    host.append(ghost);
+    card.classList.add('rev-card-gone');
+    card.style.transform = '';
+    const at = `translateX(${from.x}px) rotate(${from.deg}deg)`;
+    const to = `translateX(${from.x + dir * 72}px) rotate(${from.deg + dir * 2}deg)`;
+    const anim = ghost.animate([{ transform: at }, { transform: to }], { duration: 200, easing: EASE_IN, fill: 'forwards' });
+    // It fades sooner than it slides, so its words are nearly gone before the next ones come in under it.
+    ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: 'forwards' });
+    const gone = () => ghost.remove();
+    void anim.finished.then(gone, gone);
+    window.setTimeout(gone, 700);
+    leftAt = performance.now();
+  }
+
+  async function grade(g: Grade, from?: { x: number; deg: number }): Promise<void> {
     if (!session || !session.current || busy || !revealed) return;
     busy = true;
+    sendOff(cardEl, g === 0 ? -1 : 1, from);
     stopSpeaking();
     const cur = session.current;
     const now = Date.now();
@@ -236,17 +318,25 @@ export const mount: MountFn = (root, _params, ctx) => {
     const dueNow = parts.due + parts.fresh;
     if (!alive) return;
     clear(screen);
-    const stat = (value: string, label: string) => h('div.rev-stat', null, h('div.rev-stat-value', null, value), h('div.rev-stat-label', null, label));
+    // Each number counts up from 0 as its tile eases in (motion.ts). The count is for the eye: a screen reader reads the
+    // number from a hidden copy, so it never hears the numbers on the way.
+    const counts: [HTMLElement, number, (n: number) => string][] = [];
+    const stat = (to: number, format: (n: number) => string, label: string) => {
+      const value = h('div.rev-stat-value', { 'aria-hidden': 'true' }, format(to));
+      counts.push([value, to, format]);
+      return h('div.rev-stat', null, value, h('span.rev-sr', null, format(to)), h('div.rev-stat-label', null, label));
+    };
+    const whole = (n: number) => String(Math.round(n));
     const cheering = penguEl('cheer', 'rev-pengu rev-pengu-cheer');
     const summary = h('div.card.rev-summary', null,
       cheering,
       h('h2.rev-summary-title', null, tt('Session complete')),
       h('p.muted', null, tt('{a}, {b}', { a: ttn(s.cards, '{n} card', '{n} cards'), b: ttn(s.reviews, '{n} answer', '{n} answers') })),
       h('div.rev-stats', null,
-        stat(pct(s.recall), tt('Remembered')),
+        stat(s.recall, pct, tt('Remembered')),
         ...(settings.reviewButtons !== 'detailed'
-          ? [stat(String(s.grades[0]), SIMPLE[0].label()), stat(String(s.grades[1] + s.grades[2] + s.grades[3]), SIMPLE[1].label())]
-          : GRADES.map((g) => stat(String(s.grades[g.grade]), tt(g.label)))),
+          ? [stat(s.grades[0], whole, SIMPLE[0].label()), stat(s.grades[1] + s.grades[2] + s.grades[3], whole, SIMPLE[1].label())]
+          : GRADES.map((g) => stat(s.grades[g.grade], whole, tt(g.label)))),
       ),
       // Looked-up words are new cards, not due ones: said apart, as Vocabulary says them.
       h('p.rev-next', null, parts.due && parts.fresh
@@ -262,7 +352,15 @@ export const mount: MountFn = (root, _params, ctx) => {
     );
     screen.append(head(), summary);
     // A session finished: a short celebration (celebrate.ts).
-    if (s.reviews > 0) { celebrate(summary); animatePengu(cheering, 'cheer', 180); }
+    if (s.reviews > 0) {
+      celebrate(summary);
+      animatePengu(cheering, 'cheer', 180);
+      counts.forEach(([value, to, format], i) => {
+        const delay = 120 + i * 50;
+        play(value.parentElement, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 280, delay, easing: EASE_OUT, fill: 'backwards' });
+        countUp(value, to, format, 600, delay);
+      });
+    }
     peek = null;
     session = null;
   }
@@ -295,7 +393,8 @@ export const mount: MountFn = (root, _params, ctx) => {
 
   void start();
   // Sentences follow the reader's script, which needs the dictionary: draw the card again once it has loaded.
-  if (settings.script !== 'original' && !ctx.dictSync()) void ctx.dict().then(() => { if (alive && session?.current) showCard(); }, () => {});
+  // Not while a grade is being saved: the next card is drawn right after, with the dictionary.
+  if (settings.script !== 'original' && !ctx.dictSync()) void ctx.dict().then(() => { if (alive && session?.current && !busy) showCard(); }, () => {});
   return () => {
     alive = false;
     document.removeEventListener('keydown', onKey);

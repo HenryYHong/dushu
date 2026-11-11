@@ -1811,6 +1811,11 @@
   "many": "{n} ore fa",
   "other": "{n} ore fa"
  },
+ "{n} in a row": {
+  "one": "{n} di fila",
+  "many": "{n} di fila",
+  "other": "{n} di fila"
+ },
  "{n} known words": {
   "one": "{n} parola nota",
   "many": "{n} parole note",

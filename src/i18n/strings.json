@@ -9108,6 +9108,12 @@
    "src/ui/settings/sync.ts"
   ]
  },
+ "{n} in a row": {
+  "one": "{n} in a row",
+  "where": [
+   "src/ui/review/review.ts"
+  ]
+ },
  "{n} known words": {
   "one": "{n} known word",
   "where": [
