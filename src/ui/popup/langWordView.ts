@@ -9,6 +9,7 @@ import { headOf, langVocabItem, safeLookup } from '../../lang/words';
 import { speak, stopSpeaking, canSpeak } from '../../speech/tts';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
+import { flyToVocab } from '../fly';
 import type { PopupHost } from './host';
 import type { WordPopupOptions } from './popup';
 import type { WordView } from './wordView';
@@ -97,6 +98,8 @@ export function mountLangWordView(
     const existing = await store.vocab.get(lu.key);
     if (existing) { await store.vocab.remove(existing.id); return; }
     await store.vocab.put(langVocabItem(lu, { token: v.token, context: stack.length === 1 ? o.context : undefined }));
+    // Its star goes to Vocabulary in the top bar, where saved words wait (fly.ts; nothing where the bar is hidden, as in the reader).
+    flyToVocab(host.content.querySelector('.pp-save'));
   }
 
   async function toggleKnown(lu: WordLookup) {

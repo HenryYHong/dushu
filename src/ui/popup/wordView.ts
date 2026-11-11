@@ -23,6 +23,7 @@ import { properGroups } from '../../core/names';
 import type { WordPopupOptions } from './popup';
 import { entriesForReading } from '../../core/reading';
 import { headwordsFor, vocabItemFor } from './saveWord';
+import { flyToVocab } from '../fly';
 import { cardMeanings, type CardMeanings } from './meanings';
 import { tt, ttn } from '../../i18n';
 
@@ -279,6 +280,8 @@ export function mountWordView(
     await store.vocab.put(vocabItemFor(dict, {
       word: v.word, syllables: contextSyllables(v), around: aroundOf(v), bookGloss: bookEntry(v.word)?.gloss, context: o.context,
     }));
+    // Its star goes to Vocabulary in the top bar, where saved words wait (fly.ts; nothing where the bar is hidden, as in the reader).
+    flyToVocab(host.content.querySelector('.pp-save'));
   }
 
   async function toggleKnown(v: View) {
