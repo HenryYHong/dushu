@@ -1,15 +1,19 @@
 <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-<rect width="120" height="120" rx="26" fill="#c13616"/>
-<g transform="translate(60 66) scale(1.32) translate(-60 -52)">
-<ellipse cx="60" cy="86" rx="31" ry="22" fill="#a9b0b9"/>
-<path d="M33 69 Q60 79 87 69 L88 77 Q60 88 32 77 Z" fill="#99290f"/>
-<circle cx="60" cy="46" r="29" fill="#2b303a"/>
-<path d="M40 30 Q48 20 60 19" fill="none" stroke="#454c59" stroke-width="4" stroke-linecap="round" opacity=".9"/>
-<path d="M57 18.5 Q58.5 11.5 64.5 13 Q61 14.5 61.5 18.5 Z" fill="#2b303a"/>
-<path d="M60 39 C54 34 39 35 37 47 C35.5 57 44 66 60 66 C76 66 84.5 57 83 47 C81 35 66 34 60 39 Z" fill="#fbfaf7"/>
-<circle cx="50.5" cy="50" r="4.4" fill="#1b1e23"/><circle cx="52" cy="48.4" r="1.5" fill="#fff"/><circle cx="69.5" cy="50" r="4.4" fill="#1b1e23"/><circle cx="71" cy="48.4" r="1.5" fill="#fff"/>
-<ellipse cx="43.5" cy="57.5" rx="4.2" ry="2.6" fill="#f0a29b" opacity=".75"/>
-<ellipse cx="76.5" cy="57.5" rx="4.2" ry="2.6" fill="#f0a29b" opacity=".75"/>
-<path d="M56 55.5 Q60 53.6 64 55.5 Q62.2 59.8 60 60.8 Q57.8 59.8 56 55.5 Z" fill="#e9a23b"/>
+<defs><clipPath id="pengu-mark-clip"><circle cx="60" cy="60" r="57"/></clipPath></defs>
+<circle cx="60" cy="60" r="57" fill="#8fb2f4"/>
+<g transform="translate(60 60) scale(1) translate(-60 -60)">
+<g clip-path="url(#pengu-mark-clip)"><g transform="translate(60 62) scale(1.22) translate(-60 -70)"><g transform="rotate(-12 92 92)"><path d="M92 89 Q105.6 98 99.65 116 Q93.7 122 87.75 114 Q86.9 100 92 89 Z" fill="#7f8596" stroke="#1f2a5c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M93.7 96 Q98.8 104 95.825 113" fill="none" stroke="#6b7181" stroke-width="3" stroke-linecap="round"/></g><path d="M53 38 Q51.5 30 57 32 Q59.5 26 63 32 Q68.5 30 67 38 Z" fill="#7f8596" stroke="#1f2a5c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M24 132 C22 92 27 56 38 44 C46 35 53 33 60 33 C67 33 74 35 82 44 C93 56 98 92 96 132 Z" fill="#7f8596" stroke="#1f2a5c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M42 45 Q50 39 61 38.5" fill="none" stroke="#a3a8b6" stroke-width="4" stroke-linecap="round"/>
+<path d="M60 60 C55 51 40 52 37 66 C33 82 32 108 34 132 L86 132 C88 108 87 82 83 66 C80 52 65 51 60 60 Z" fill="#ffffff" stroke="#1f2a5c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="49" cy="70" rx="6.2" ry="6.8" fill="#1f2a5c"/>
+<circle cx="50.9" cy="67.6" r="2.4" fill="#fff"/><circle cx="46.6" cy="72.8" r="1.2" fill="#6f86d6"/><ellipse cx="71" cy="70" rx="6.2" ry="6.8" fill="#1f2a5c"/>
+<circle cx="72.9" cy="67.6" r="2.4" fill="#fff"/><circle cx="68.6" cy="72.8" r="1.2" fill="#6f86d6"/>
+<ellipse cx="41.5" cy="78" rx="4.4" ry="2.6" fill="#f7a8b8" opacity=".85"/>
+<ellipse cx="78.5" cy="78" rx="4.4" ry="2.6" fill="#f7a8b8" opacity=".85"/>
+<path d="M53.5 75.5 Q60 72 66.5 75.5 Q65.5 82 60 83 Q54.5 82 53.5 75.5 Z" fill="#f6b13d" stroke="#1f2a5c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-width="2.6"/>
+<path d="M56.5 78.6 Q60 77.4 63.5 78.6 Q62 81.2 60 81.4 Q58 81.2 56.5 78.6 Z" fill="#f27d86"/></g></g>
+<g transform="translate(60 62) scale(1.22) translate(-60 -70)"><g transform="rotate(130 36 88)"><path d="M36 85 Q22.4 94 28.35 112 Q34.3 118 40.25 110 Q41.1 96 36 85 Z" fill="#7f8596" stroke="#1f2a5c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M34.3 92 Q29.2 100 32.175 109" fill="none" stroke="#6b7181" stroke-width="3" stroke-linecap="round"/></g></g>
 </g>
 </svg>

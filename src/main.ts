@@ -267,10 +267,10 @@ async function boot(): Promise<void> {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') accountBooks(); });
   setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, 5 * 60_000);
 
-  /** The app's mark, as on its icon (public/icon.svg): Pengu's head in its scarf, on the red square (ui/pengu.ts). */
+  /** The app's mark, as on its icon (public/icon.svg): Pengu waving on its blue circle (ui/pengu.ts). */
   const brandMark = () => {
     const el = h('span.app-brand-mark', { 'aria-hidden': 'true' });
-    el.innerHTML = penguMark({ rounded: 26 });
+    el.innerHTML = penguMark();
     return el;
   };
   const reviewBadge = h('span.app-badge', { hidden: true });

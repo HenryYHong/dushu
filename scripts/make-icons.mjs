@@ -1,8 +1,8 @@
-// Renders the app icons (PNG), public/icon.svg and the link picture from Pengu (src/ui/pengu.ts: the head in its scarf on the
-// app's red), using headless Chrome.
+// Renders the app icons (PNG), public/icon.svg and the link picture from Pengu (src/ui/pengu.ts: Pengu waving on its blue
+// circle), using headless Chrome.
 // Usage: node scripts/make-icons.mjs        Writes public/icon.svg and public/icons/*.png
 //   apple-touch-icon.png  180, full bleed (iOS rounds the corners itself)
-//   icon-192.png, icon-512.png   rounded, "any" purpose
+//   icon-192.png, icon-512.png   the round logo on transparent, "any" purpose
 //   icon-maskable-512.png        full bleed, Pengu inside the central 80 percent safe zone
 //   og.png                       1200x630, Pengu waving beside the name (index.html og:image)
 import puppeteer from 'puppeteer-core';
@@ -19,8 +19,8 @@ mkdirSync(out, { recursive: true });
 const bundled = await build({ entryPoints: [join(root, 'src', 'ui', 'pengu.ts')], bundle: true, format: 'esm', write: false, platform: 'neutral' });
 const { penguMark, penguSvg } = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`);
 
-/** kind: 'round' (corners drawn, transparent outside), 'bleed' (full square), 'maskable' (full square, Pengu smaller). */
-const svg = (kind) => penguMark({ rounded: kind === 'round' ? 26 : 0, scale: kind === 'maskable' ? 0.8 : 1 })
+/** kind: 'round' (the circle, transparent outside), 'bleed' (full blue square), 'maskable' (full square, Pengu smaller). */
+const svg = (kind) => penguMark({ bg: kind === 'round' ? 'circle' : 'square', scale: kind === 'maskable' ? 0.8 : 1 })
   .replace(' class="pengu-mark"', '').replace(' aria-hidden="true" focusable="false"', '');
 
 writeFileSync(join(root, 'public', 'icon.svg'), svg('round') + '\n');
