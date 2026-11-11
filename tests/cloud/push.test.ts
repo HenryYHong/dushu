@@ -3,7 +3,7 @@
 // signature and claims (RFC 8292), the subscriptions it keeps, and what a push service's answers mean.
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it, vi } from 'vitest';
-import { b64url, encryptPush, fromB64url, pushSubscription, sendPush, vapidAuth, vapidKeys, VAPID_SUBJECT, type PushRecord } from '../../cloud/src/push';
+import { b64url, encryptPush, fromB64url, MAX_PLAINTEXT, PUSH_TIMEOUT_MS, pushSubscription, sendPush, vapidAuth, vapidKeys, VAPID_SUBJECT, type PushRecord } from '../../cloud/src/push';
 import { checkVapid, decryptPush, ecdhPair, newReceiver, subscriptionOf } from './pushReceiver';
 
 /** RFC 8291 Section 5 and Appendix A, as printed there (line breaks and spaces taken out). */
@@ -45,6 +45,16 @@ describe('the encryption (RFC 8291)', () => {
     // And the browser in the example reads it back with its private key.
     const ua = await ecdhPair(RFC.uaPublic, RFC.uaPrivate);
     expect(await decryptPush(body, { privateKey: ua.privateKey, publicKey: fromB64url(RFC.uaPublic)!, auth: fromB64url(RFC.auth)! })).toBe('When I grow up, I want to be a watermelon');
+  });
+
+  it('keeps a message within the 4096 bytes of body every push service takes, header included', async () => {
+    const r = await newReceiver();
+    const to = { p256dh: b64url(r.publicKey), auth: b64url(r.auth) };
+    expect(MAX_PLAINTEXT).toBe(3993);
+    const longest = await encryptPush(to, new Uint8Array(MAX_PLAINTEXT).fill(0x61));
+    expect(longest.length).toBe(4096);
+    expect((await decryptPush(longest, r)).length).toBe(MAX_PLAINTEXT);
+    await expect(encryptPush(to, new Uint8Array(MAX_PLAINTEXT + 1))).rejects.toThrow(/3993 bytes/);
   });
 
   it('uses a fresh salt and key for every message, which the browser decrypts', async () => {
@@ -145,6 +155,30 @@ describe('sending', () => {
     }
     const down = (async () => { throw new TypeError('network'); }) as unknown as typeof fetch;
     expect(await sendPush(to, message, vapid, { fetch: down })).toBe('failed');
+    vi.restoreAllMocks();
+  });
+
+  it('gives up on a push service that does not answer in time', async () => {
+    const vapid = (await vapidKeys(await vapidSecret()))!;
+    const { to } = await record('https://push.example.com/never-answers');
+    let signal: AbortSignal | undefined;
+    // Answers only when asked to stop (as fetch does when its signal aborts).
+    const hang = ((_url: string, init: RequestInit) => new Promise<Response>((_, reject) => {
+      signal = init.signal ?? undefined;
+      signal?.addEventListener('abort', () => reject(signal!.reason));
+    })) as unknown as typeof fetch;
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const started = Date.now();
+    expect(await sendPush(to, { title: 'x' }, vapid, { fetch: hang, timeout: 50 })).toBe('failed');
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(signal?.aborted).toBe(true);
+    // Without a timeout given, the default one still goes with the request.
+    const seen: RequestInit[] = [];
+    const ok = (async (_url: string, init: RequestInit) => { seen.push(init); return new Response(null, { status: 201 }); }) as unknown as typeof fetch;
+    expect(await sendPush(to, { title: 'x' }, vapid, { fetch: ok })).toBe('sent');
+    expect(seen[0].signal).toBeInstanceOf(AbortSignal);
+    expect(seen[0].signal!.aborted).toBe(false);
+    expect(PUSH_TIMEOUT_MS).toBeLessThanOrEqual(30_000);
     vi.restoreAllMocks();
   });
 

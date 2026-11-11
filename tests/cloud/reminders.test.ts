@@ -9,12 +9,12 @@ import { tmpdir } from 'node:os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryStore, wordDueAt } from '../../cloud/src/account';
 import { DirectoryCore, memoryDirectory } from '../../cloud/src/directory';
-import { localHour, mailText, reminderEmail, welcomeEmail } from '../../cloud/src/followups';
+import { EMAIL_GAP_MS, localHour, mailText, reminderEmail, welcomeEmail } from '../../cloud/src/followups';
 import { MAIL_CATALOG } from '../../cloud/src/mailCatalog';
 import type { Mailer } from '../../cloud/src/mail';
 import { b64url } from '../../cloud/src/push';
 import { sqlDirectory, sqlStore } from '../../cloud/src/sqlStore';
-import type { Env } from '../../cloud/src/worker';
+import { directoryAlarm, type Env } from '../../cloud/src/worker';
 import { cleanVocab } from '../../src/store/index';
 import { fakeAuthenticator, type CreateOptions } from './authenticator';
 import { cloud, hasSqlite, sqliteCli } from './helpers';
@@ -47,7 +47,17 @@ async function vapidSecret(): Promise<string> {
 async function server(extra: Partial<Env> = {}, status: (endpoint: string) => number = () => 201) {
   const mail: Mail[] = [];
   const pushes: PushSeen[] = [];
-  const mailer: Mailer = { send: async (m) => { mail.push(m); } };
+  // Notes the most emails ever being sent at the same moment (Resend takes a couple of requests a second).
+  let sending = 0;
+  let mostAtOnce = 0;
+  const mailer: Mailer = {
+    send: async (m) => {
+      mostAtOnce = Math.max(mostAtOnce, ++sending);
+      mail.push(m);
+      await new Promise((done) => setTimeout(done, 0));
+      sending--;
+    },
+  };
   const pushFetch = (async (url: string, init: RequestInit) => {
     pushes.push({ url, headers: new Headers(init.headers), body: init.body as Uint8Array });
     return new Response(null, { status: status(url) });
@@ -57,7 +67,7 @@ async function server(extra: Partial<Env> = {}, status: (endpoint: string) => nu
   const cronAt = async (t: number) => { clock = t; await c.cron(t); };
   /** Follow-up emails only (not sign-in codes). */
   const followups = () => mail.filter((m) => !/sign-in code/.test(m.subject));
-  return { ...c, mail, pushes, cronAt, followups };
+  return { ...c, mail, pushes, cronAt, followups, mostAtOnce: () => mostAtOnce };
 }
 
 /** Signs in with the code from the email the fake mail service was given (helpers' signedIn reads it from the log mode). */
@@ -140,6 +150,32 @@ describe('the directory', () => {
     await c.cronAt(sixPm(2));
     expect(c.followups().map((m) => m.to).sort()).toEqual(tokens.map((_, i) => `reader${i}@example.com`).sort());
     expect(c.directory.pending()).toBe(0);
+    // One email at a time, and a pause after each: Resend refuses more than a couple of requests a second.
+    expect(c.mostAtOnce()).toBe(1);
+    expect(c.pauses).toEqual(Array(30).fill(EMAIL_GAP_MS));
+    expect(EMAIL_GAP_MS).toBeGreaterThanOrEqual(500);
+  });
+
+  it('takes a batch off the queue before asking its accounts, so an alarm cut off and run again asks none of them twice', async () => {
+    const d = new DirectoryCore(memoryDirectory());
+    const ids = Array.from({ length: 30 }, (_, i) => (i + 1).toString(16).padStart(64, '0'));
+    for (const id of ids) d.put(id, 'UTC');
+    expect(d.run(sixPm(11))).toBe(30);
+    // Accounts that never answer: the alarm is cut off while it waits (a deploy, or too long), and Cloudflare runs it again.
+    const asked: string[] = [];
+    const env = {
+      ACCOUNTS: {
+        idFromName: () => { throw new Error('unused'); },
+        idFromString: (id: string) => ({ toString: () => id }),
+        get: (id: { toString(): string }) => ({ fetch: () => { asked.push(id.toString()); return new Promise<Response>(() => {}); } }),
+      },
+    } as unknown as Env;
+    void directoryAlarm(d, env, () => {});
+    void directoryAlarm(d, env, () => {});
+    await Promise.resolve();
+    // Each run asks the first account of its own batch and waits on it; the second never starts on the first one's batch again.
+    expect(asked).toEqual([ids[0], ids[25]]);
+    expect(d.pending()).toBe(0);
   });
 });
 
@@ -254,6 +290,34 @@ describe('the review reminder', () => {
     expect(c.followups()).toHaveLength(2);
   });
 
+  it('comes a week later even when that evening’s run reaches the account sooner, or summer time has started', async () => {
+    const c = await server();
+    await reader(c);
+    // The queue reaches this account a minute and a half after the cron.
+    clock = sixPm(5) + 90_000;
+    await c.cron(sixPm(5));
+    expect(c.followups()).toHaveLength(1);
+    // A week later it is first in line: 90 seconds short of seven days, still the week's reminder (not the eighth day's).
+    for (const day of [6, 7, 8, 9, 10, 11]) await c.cronAt(sixPm(day));
+    expect(c.followups()).toHaveLength(1);
+    await c.cronAt(sixPm(12));
+    expect(c.followups()).toHaveLength(2);
+
+    // New York's 6 PM on March 7, 2027 (EST) and a week later on the 14th (EDT, from that morning): 23 hours apart in UTC, short of
+    // a whole week by one.
+    const ny = await server();
+    clock = Date.UTC(2027, 2, 1, 15);
+    const token = await signedIn(ny);
+    expect((await ny.post('/sync', { about: { tz: 'America/New_York', locale: 'en' }, changes: Array.from({ length: 5 }, (_, i) => ({ key: `v:w${i}`, at: 1, data: word(`w${i}`, Date.UTC(2027, 2, 2)) })) }, token)).status).toBe(200);
+    await ny.cronAt(Date.UTC(2027, 2, 7, 23));
+    expect(ny.followups()).toHaveLength(1);
+    for (let day = 8; day <= 13; day++) await ny.cronAt(Date.UTC(2027, 2, day, 23));
+    expect(ny.followups()).toHaveLength(1);
+    expect(localHour('America/New_York', Date.UTC(2027, 2, 14, 22))).toBe(18);
+    await ny.cronAt(Date.UTC(2027, 2, 14, 22));
+    expect(ny.followups()).toHaveLength(2);
+  });
+
   it('goes by push to every device that turned it on, before email, and forgets a device its push service says is gone', async () => {
     let gone = 'https://updates.push.services.mozilla.com/wpush/v2/laptop';
     const c = await server({}, (endpoint) => (endpoint === gone ? 410 : 201));
@@ -275,11 +339,14 @@ describe('the review reminder', () => {
     expect(claims).toMatchObject({ aud: 'https://fcm.googleapis.com', sub: 'https://henryyhong.com/dushu/' });
     expect(claims.exp * 1000 - sixPm(5)).toBeLessThanOrEqual(DAY);
     expect(await reminders(c, token)).toEqual({ email: true, canEmail: true, devices: 1 });
+    // Push is not Resend: the directory goes straight on to the next account.
+    expect(c.pauses).toEqual([]);
 
     // A week later the phone is gone too: nobody took it, so it goes by email.
     gone = 'https://fcm.googleapis.com/fcm/send/phone';
     await c.cronAt(sixPm(12));
     expect(c.followups().map((m) => m.subject)).toEqual(['6 words are ready to review']);
+    expect(c.pauses).toEqual([EMAIL_GAP_MS]);
     expect(await reminders(c, token)).toEqual({ email: true, canEmail: true, devices: 0 });
   });
 

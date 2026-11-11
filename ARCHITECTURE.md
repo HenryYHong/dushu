@@ -1282,13 +1282,17 @@ books go through the account, and so do the reader's corrections (§4.12: names 
   never an owner's. Email codes stay, for the owner and as a way back.
 - **Follow-ups** (`cloud/src/followups.ts`, `directory.ts`, `push.ts`, the `followup` op in `worker.ts`): a welcome email once, 20 to
   72 hours after an account with an email is made, and a review reminder when at least 5 saved words are due (every language), the
-  newest session's `used` is 3 days old, and no reminder went out in 7 days. Both at the person's 6 PM. A reminder goes by Web
-  Push to every subscription of the account (done when one push service takes it; a 404 or 410 forgets that subscription), else by
-  email when there is an address and emails are on. Accounts signed out everywhere get nothing; passkey accounts get push only.
+  newest session's `used` is 3 days old, and no reminder went out in 7 days (less 3 hours, `REMIND_SLACK_MS`, so a run that
+  reaches the account a little sooner than last week's, or the evening summer time starts, still counts as a week). Both at the
+  person's 6 PM. A reminder goes by Web Push to every subscription of the account (done when one push service takes it; a 404 or
+  410 forgets that subscription), else by email when there is an address and emails are on. Accounts signed out everywhere get
+  nothing; passkey accounts get push only.
   - *Who and when.* The `Directory` Durable Object (one, `idFromName('directory')`, SQLite `people(id, tz, checked)`, no email)
     lists the signed-in accounts. The hourly cron (`scheduled`, `0 * * * *`) asks it to `run`: everyone whose local hour (Intl,
-    UTC for a zone it does not know) is 18 and who was not checked in 20 hours is queued and marked; its alarm then asks 25
-    accounts at a time to do op `followup`, and sets itself again until the queue is empty. An account adds itself on sign-in (code,
+    UTC for a zone it does not know) is 18 and who was not checked in 20 hours is queued and marked; its alarm then takes 25
+    accounts off the queue and asks them one after another to do op `followup` (a second after each email, `EMAIL_GAP_MS`:
+    Resend takes 2 requests a second by default), and sets itself again until the queue is empty. Off the queue before they are asked, so an
+    alarm cut off and run again (a deploy, a timeout) never asks an account twice. An account adds itself on sign-in (code,
     passkey made or used), and on `/sync` when its zone changed or a day has passed (meta `dir` remembers what it told and when);
     deleting it, or a run that finds it signed out everywhere, takes it out until the next sign-in.
   - *Why this shape.* On Workers Free an invocation has about 10 ms of CPU and 50 subrequests, and each Durable Object request is
@@ -1306,8 +1310,9 @@ books go through the account, and so do the reader's corrections (§4.12: names 
     app's languages): kept in meta `tz` and `locale`. An app from before sends none: UTC and English.
   - *Push* (`push.ts`, WebCrypto, no library): RFC 8291 aes128gcm (one 4096-byte record, a fresh key pair and salt per message)
     and RFC 8292 VAPID (an ES256 JWT for the endpoint's origin, 12 hours, `sub` the site's URL; headers TTL 86400, Urgency
-    normal). The secret `VAPID_KEYS` is `{"publicKey": <base64url 65-byte point>, "privateKey": <base64url 32-byte scalar>}`, made
-    by `scripts/make-vapid.mjs` straight into `wrangler secret put`. `tests/cloud/push.test.ts` checks the RFC 8291 example byte
+    normal; a service that has not answered in 10 seconds is a failure). The secret `VAPID_KEYS` is `{"publicKey": <base64url
+    65-byte point>, "privateKey": <base64url 32-byte scalar>}`, made by `scripts/make-vapid.mjs` straight into `wrangler secret
+    put`. `tests/cloud/push.test.ts` checks the RFC 8291 example byte
     for byte. Subscriptions live in meta `push`, 10 at most (the oldest goes), each with the session that added it, so signing
     that device out stops its reminders.
   - *Routes*: `GET /push/key` (`{ key }`, 404 without the secret), `GET|POST /me/reminders` (`{ email, canEmail, devices }`,

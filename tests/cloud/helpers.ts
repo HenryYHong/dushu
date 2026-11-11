@@ -96,13 +96,15 @@ export function cloud(extra: Partial<Env> = {}, opts: { released?: () => boolean
     get: () => ({ fetch: (url, init) => directoryRequest(directory, new Request(url, init), arm) }),
   };
   const env: Env = { ACCOUNTS, LIMITS, DIRECTORY, MAIL_MODE: 'log', ...extra };
+  /** The pauses the directory's alarms took between follow-up emails (noted, not waited for). */
+  const pauses: number[] = [];
   /** The hourly cron at `now` (as Cloudflare's scheduledTime), then the directory's alarms until its queue is empty. */
   const cron = async (now = Date.now()) => {
     await worker.scheduled({ scheduledTime: now }, env);
     for (let i = 0; alarmAt !== null; i++) {
       if (i > 1000) throw new Error('The directory’s alarm never stopped.');
       alarmAt = null;
-      await directoryAlarm(directory, env, arm);
+      await directoryAlarm(directory, env, arm, async (ms) => { pauses.push(ms); });
     }
   };
   const fetch = (request: Request): Promise<Response> => (released() ? (releasedWorker.fetch(request, env as never) as Promise<Response>) : worker.fetch(request, env));
@@ -110,7 +112,7 @@ export function cloud(extra: Partial<Env> = {}, opts: { released?: () => boolean
     ...init, headers: { 'Content-Type': 'application/json', Origin: init.origin ?? 'https://henryyhong.com', ...(init.headers as Record<string, string>) },
   }));
   const post = (path: string, body: unknown, token?: string) => call(path, { method: 'POST', body: JSON.stringify(body), headers: token ? { Authorization: `Bearer ${token}` } : {} });
-  return { env, call, post, fetch, stores, directory, cron };
+  return { env, call, post, fetch, stores, directory, cron, pauses };
 }
 
 /** SQLite through the sqlite3 command (macOS has it), with the bindings written into the query. Enough for the stores' queries. */

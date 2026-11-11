@@ -4,7 +4,7 @@
 // the hashing and the passkey signatures are checked before.
 import { countRecord, exchange, inLang, noCounts, recordSize, shareReader, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
 import { OTHER_LANGS } from '../../src/core/syncKeys';
-import { REMIND_DUE, REMIND_EVERY_MS, REMIND_IDLE_MS, WELCOME_AFTER_MS, WELCOME_WITHIN_MS, isMailLocale, validTimeZone, type FollowupPlan } from './followups';
+import { REMIND_DUE, REMIND_EVERY_MS, REMIND_IDLE_MS, REMIND_SLACK_MS, WELCOME_AFTER_MS, WELCOME_WITHIN_MS, isMailLocale, validTimeZone, type FollowupPlan } from './followups';
 import { MAX_PUSH_DEVICES, pushSubscription, type PushRecord } from './push';
 
 export const CODE_TTL_MS = 10 * 60_000;
@@ -688,7 +688,8 @@ export class AccountCore {
     }
     const used = Math.max(...sessions.map((s) => s.used));
     const reminded = Number(this.store.getMeta('sent:remind') ?? 0) || 0;
-    if (now - used < REMIND_IDLE_MS || now - reminded < REMIND_EVERY_MS) return { kind: 'none' };
+    // A week since the last reminder, give or take how much sooner this evening's run reached the account (REMIND_SLACK_MS).
+    if (now - used < REMIND_IDLE_MS || now - reminded < REMIND_EVERY_MS - REMIND_SLACK_MS) return { kind: 'none' };
     const pushes = this.pushes();
     if (!pushes.length && !emailsOn) return { kind: 'none' };
     // Counted last: the cheap checks above leave most accounts before their records are read.

@@ -13,7 +13,7 @@ import { AccountCore, BOOK_CHUNK, CloudError, LimitsCore, OWNER_ONLY_CLAUDE, all
 import { sqlDirectory, sqlLimits, sqlStore, type SqlStorage } from './sqlStore';
 import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
 import { DirectoryCore, FOLLOWUP_BATCH } from './directory';
-import { FOLLOWUP_EMAILS, runFollowup, unsubscribePage, type FollowupDeps } from './followups';
+import { EMAIL_GAP_MS, FOLLOWUP_EMAILS, runFollowup, unsubscribePage, type FollowupDeps } from './followups';
 import { vapidKeys } from './push';
 import { SYNC_LIMITS, SyncError, syncLang } from '../../src/core/syncExchange';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
@@ -1182,25 +1182,34 @@ export async function directoryRequest(core: DirectoryCore, request: Request, ar
 }
 
 /**
- * One alarm of the directory: the next FOLLOWUP_BATCH queued accounts each do their follow-up (in their own Durable Object, at
- * once), and the alarm is set again while any are left. An account that does not answer is left until tomorrow, never retried in
- * a loop: each one remembers what it sent, so a second run on the same day would send nothing twice anyway.
+ * One alarm of the directory: the next FOLLOWUP_BATCH queued accounts each do their follow-up (in their own Durable Object, one
+ * after another), and the alarm is set again while any are left. An account that does not answer is left until tomorrow, never
+ * retried in a loop.
+ *
+ * The batch leaves the queue before any account is asked. An account notes what it sent only after the push service or Resend
+ * took it, so one cut off in between (a deploy resets every object; an alarm that runs too long is stopped) has sent without
+ * noting it. Cloudflare runs a stopped alarm again, and with the batch still queued it would ask those accounts again, and they
+ * would send again. Taken off first, a cut-off batch is simply skipped until tomorrow: a reminder a day late, never two.
+ *
+ * One account at a time, with EMAIL_GAP_MS after each that sent an email: Resend's API takes a couple of requests a second,
+ * and a batch asked all at once would send its emails together, most of them refused (each still counted against the day).
  */
-export async function directoryAlarm(core: DirectoryCore, env: Env, arm: ArmAlarm): Promise<void> {
+export async function directoryAlarm(core: DirectoryCore, env: Env, arm: ArmAlarm, pause: (ms: number) => Promise<void> = (ms) => new Promise((done) => setTimeout(done, ms))): Promise<void> {
   const ids = core.next(FOLLOWUP_BATCH);
+  core.done(ids);
   const now = Date.now();
-  await Promise.all(ids.map(async (id) => {
+  for (const id of ids) {
     let stub: DurableObjectStub;
-    try { stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromString(id)); } catch { core.drop(id); return; }
+    try { stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromString(id)); } catch { core.drop(id); continue; }
     try {
       const res = await call(env, stub, 'followup', { now });
-      const result = await res.json().catch(() => null) as { drop?: unknown } | null;
+      const result = await res.json().catch(() => null) as { drop?: unknown; sent?: unknown } | null;
       if (res.ok && result?.drop === true) core.drop(id);
+      if (res.ok && (result?.sent === 'welcome' || result?.sent === 'email')) await pause(EMAIL_GAP_MS);
     } catch (e) {
       console.error('LinguPengu follow-up', e instanceof Error ? e.message : e);
     }
-  }));
-  core.done(ids);
+  }
   if (core.pending()) await arm(Date.now() + 1000);
 }
 

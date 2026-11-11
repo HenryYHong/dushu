@@ -36,8 +36,21 @@ export const REMIND_DUE = 5;
 export const REMIND_IDLE_MS = 3 * DAY;
 /** A reminder a week at most, whatever happens: a nudge, not a nag. */
 export const REMIND_EVERY_MS = 7 * DAY;
+/**
+ * How much sooner than REMIND_EVERY_MS the next reminder may still go. The runs are a day apart at the person's 6 PM, but not to
+ * the second: the cron and the directory's queue reach an account a few seconds or minutes later some evenings than others, and
+ * the evening summer time starts comes an hour sooner. Without this, a reminder sent at 6:00:40 PM would miss 6:00:10 PM a week
+ * later by half a minute and wait an eighth day. It is far less than a day, so the evening before is never close enough.
+ */
+export const REMIND_SLACK_MS = 3 * HOUR;
 /** Follow-up emails a day at most, counted with the sign-in codes (DAILY_EMAILS): the rest of the day is the codes'. */
 export const FOLLOWUP_EMAILS = 50;
+/**
+ * The directory waits this long after a follow-up email before asking the next account (worker.ts directoryAlarm). Resend's API
+ * takes 2 requests a second by default, for the whole Resend account: follow-ups use at most one of them, so a sign-in code asked
+ * for in that second still goes. Fifty follow-ups a day wait under a minute in all.
+ */
+export const EMAIL_GAP_MS = 1000;
 
 // ---------------------------------------------------------------- language ---
 

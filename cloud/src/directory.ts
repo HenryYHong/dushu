@@ -1,7 +1,7 @@
 // The directory: who to look at when. One Durable Object (idFromName('directory')) lists every signed-in account by its id and
 // time zone, nothing else (no email address, no name). The hourly cron asks it to `run`: every account whose local hour is
 // SEND_HOUR and that was not looked at in the last CHECK_GAP_MS is queued and marked, and the directory's alarm works through the
-// queue FOLLOWUP_BATCH accounts at a time, asking each account's own Durable Object to do its follow-up (followups.ts).
+// queue FOLLOWUP_BATCH accounts per alarm, asking each account's own Durable Object in turn to do its follow-up (followups.ts).
 //
 // Why this shape: on the Workers Free plan an invocation has about 10 ms of CPU time and 50 subrequests. One cron invocation
 // could not open every account, so it only reads this small table; each alarm invocation then makes FOLLOWUP_BATCH requests

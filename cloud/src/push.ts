@@ -16,10 +16,18 @@ export const VAPID_SUBJECT = 'https://henryyhong.com/dushu/';
 const VAPID_TTL_S = 12 * 3600;
 /** The one record a message is sent in (RFC 8188 "rs"): far more than a reminder needs, and what push services accept. */
 const RECORD_SIZE = 4096;
+/** The longest text a message carries: 4096 bytes of body less the header (86), the delimiter (1) and the tag (16). */
+export const MAX_PLAINTEXT = 4096 - 86 - 1 - 16;
 /** Subscriptions an account keeps (one per browser or phone): past it the oldest goes. */
 export const MAX_PUSH_DEVICES = 10;
 /** The longest endpoint kept. Push services give a few hundred characters; this leaves room without keeping a document. */
 const MAX_ENDPOINT = 2048;
+/**
+ * How long a push service has to answer. A real one answers in well under a second; an endpoint is any https URL (see
+ * pushSubscription), and one that never answers would otherwise hold the account's follow-up, and the directory's whole batch
+ * waiting on it, for as long as Cloudflare lets a request hang.
+ */
+export const PUSH_TIMEOUT_MS = 10_000;
 
 /** Bytes that WebCrypto takes (TypeScript's DOM types want an ArrayBuffer behind them, never a SharedArrayBuffer). */
 type Bytes = Uint8Array<ArrayBuffer>;
@@ -110,8 +118,9 @@ export async function encryptPush(to: Pick<PushRecord, 'p256dh' | 'auth'>, plain
   try { uaKey = await crypto.subtle.importKey('raw', uaPublic, { name: 'ECDH', namedCurve: 'P-256' }, false, []); } catch {
     throw new PushKeyError('The subscription’s key is not a P-256 point.');
   }
-  // One record holds the whole message: its text, the delimiter and the 16-byte tag.
-  if (plaintext.length + 1 + 16 > RECORD_SIZE) throw new Error('A push message is 4 KB at most.');
+  // One record holds the whole message: its text, the delimiter and the 16-byte tag. A push service need take no more than 4096
+  // bytes of body, the 86-byte header included (RFC 8291 Section 4), so the text is 3993 bytes at most.
+  if (MAX_PLAINTEXT < plaintext.length) throw new Error('A push message is 3993 bytes at most.');
   const salt = random.salt ? concat(random.salt) : crypto.getRandomValues(new Uint8Array(16));
   const pair = random.keys ?? await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']) as CryptoKeyPair;
   const asPublic = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey) as ArrayBuffer);
@@ -175,9 +184,9 @@ export type PushResult = 'sent' | 'gone' | 'failed';
 
 /**
  * Sends one message (JSON) to one subscription. Kept a day by the push service when the device is off (TTL), delivered at normal
- * urgency (not woken for, on a phone saving its battery).
+ * urgency (not woken for, on a phone saving its battery). A service that has not answered in PUSH_TIMEOUT_MS is a failure.
  */
-export async function sendPush(to: PushRecord, message: unknown, vapid: Vapid, opts: { fetch?: typeof fetch; now?: number; random?: PushRandom } = {}): Promise<PushResult> {
+export async function sendPush(to: PushRecord, message: unknown, vapid: Vapid, opts: { fetch?: typeof fetch; now?: number; random?: PushRandom; timeout?: number } = {}): Promise<PushResult> {
   let body: Bytes;
   try { body = await encryptPush(to, enc.encode(JSON.stringify(message)), opts.random); } catch (e) {
     if (e instanceof PushKeyError) return 'gone';
@@ -192,6 +201,7 @@ export async function sendPush(to: PushRecord, message: unknown, vapid: Vapid, o
         TTL: '86400', Urgency: 'normal', 'Content-Encoding': 'aes128gcm', 'Content-Type': 'application/octet-stream',
       },
       body,
+      signal: AbortSignal.timeout(opts.timeout ?? PUSH_TIMEOUT_MS),
     });
   } catch (e) {
     console.error('LinguPengu push', e instanceof Error ? e.message : e);
