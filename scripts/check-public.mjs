@@ -209,6 +209,9 @@ if (OWNER_BOOKS.length) {
     const p = join(root, 'public', 'data', name);
     if (existsSync(p)) addPublic(new TextDecoder().decode(gunzipSync(new Uint8Array(readFileSync(p)))));
   }
+  // The rest of ECDICT, in files by first letters (scripts/lang/en/build_rare.py): the same public dictionary as en/entries.
+  const rare = join(root, 'public', 'data', 'en', 'rare');
+  if (existsSync(rare)) for (const p of walk(rare).filter((f) => f.endsWith('.tsv.gz'))) addPublic(new TextDecoder().decode(gunzipSync(new Uint8Array(readFileSync(p)))));
   for (const path of OWNER_BOOKS) {
     const text = await ownerBookText(path);
     if (text === null) { notes.push(`one owner book could not be read (${extname(path)}), so its text was not checked`); continue; }
