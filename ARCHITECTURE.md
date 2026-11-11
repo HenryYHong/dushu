@@ -1280,6 +1280,44 @@ books go through the account, and so do the reader's corrections (§4.12: names 
   is the page's host (henryyhong.com on the public copy). Anyone signed in can add a passkey for this device (`/me/passkey`), the
   owner's email account included. Such an account is named `passkey:<id>` where an email would be, has the person's name, and is
   never an owner's. Email codes stay, for the owner and as a way back.
+- **Follow-ups** (`cloud/src/followups.ts`, `directory.ts`, `push.ts`, the `followup` op in `worker.ts`): a welcome email once, 20 to
+  72 hours after an account with an email is made, and a review reminder when at least 5 saved words are due (every language), the
+  newest session's `used` is 3 days old, and no reminder went out in 7 days. Both at the person's 6 PM. A reminder goes by Web
+  Push to every subscription of the account (done when one push service takes it; a 404 or 410 forgets that subscription), else by
+  email when there is an address and emails are on. Accounts signed out everywhere get nothing; passkey accounts get push only.
+  - *Who and when.* The `Directory` Durable Object (one, `idFromName('directory')`, SQLite `people(id, tz, checked)`, no email)
+    lists the signed-in accounts. The hourly cron (`scheduled`, `0 * * * *`) asks it to `run`: everyone whose local hour (Intl,
+    UTC for a zone it does not know) is 18 and who was not checked in 20 hours is queued and marked; its alarm then asks 25
+    accounts at a time to do op `followup`, and sets itself again until the queue is empty. An account adds itself on sign-in (code,
+    passkey made or used), and on `/sync` when its zone changed or a day has passed (meta `dir` remembers what it told and when);
+    deleting it, or a run that finds it signed out everywhere, takes it out until the next sign-in.
+  - *Why this shape.* On Workers Free an invocation has about 10 ms of CPU and 50 subrequests, and each Durable Object request is
+    an invocation of its own. The cron only touches the small directory; each alarm makes 25 subrequests; and each account does
+    its own work (counting due words, encrypting, calling Resend and the push services) in its own invocation. Push is free and
+    unlimited, so it comes first. Resend's free plan sends 100 emails a day and 3,000 a month, shared with sign-in codes: all email
+    counts as `emails` in the Limits object up to `DAILY_EMAILS` (90, which also keeps a month under 3,000), and a follow-up takes
+    one only below `FOLLOWUP_EMAILS` (50), so at least 40 a day stay with the codes. A follow-up that finds the day used up records
+    nothing and is tried at the next day's 6 PM.
+  - *Due words* mirror the app's Review exactly: a record `v:<id>` or `@<lang>:v:<id>` as `cleanVocab` would keep it (its id is
+    the key's) with `sanitizeSrs`'s due time at or before now (`store.vocab.due`). Those modules load the app's catalogs (Vite
+    only), so the rule is written out twice in the cloud: `wordDueAt` (memory store) and `DUE_WORDS` in `sqlStore.ts`, counted by
+    SQLite's JSON functions so no record is parsed in JavaScript. `tests/cloud/reminders.test.ts` checks both against `cleanVocab`.
+  - *What the app tells it.* `POST /sync` may carry `about: { tz, locale }` (an IANA zone of 64 characters at most, one of the
+    app's languages): kept in meta `tz` and `locale`. An app from before sends none: UTC and English.
+  - *Push* (`push.ts`, WebCrypto, no library): RFC 8291 aes128gcm (one 4096-byte record, a fresh key pair and salt per message)
+    and RFC 8292 VAPID (an ES256 JWT for the endpoint's origin, 12 hours, `sub` the site's URL; headers TTL 86400, Urgency
+    normal). The secret `VAPID_KEYS` is `{"publicKey": <base64url 65-byte point>, "privateKey": <base64url 32-byte scalar>}`, made
+    by `scripts/make-vapid.mjs` straight into `wrangler secret put`. `tests/cloud/push.test.ts` checks the RFC 8291 example byte
+    for byte. Subscriptions live in meta `push`, 10 at most (the oldest goes), each with the session that added it, so signing
+    that device out stops its reminders.
+  - *Routes*: `GET /push/key` (`{ key }`, 404 without the secret), `GET|POST /me/reminders` (`{ email, canEmail, devices }`,
+    POST `{ email: boolean }`), `POST /me/push { subscription }`, `POST /me/push/remove { endpoint }`, and `GET|POST
+    /unsubscribe?a=<account id>&t=<secret>`: the GET shows a button (a mail scanner opening the link turns nothing off), a POST
+    (that button, or a mail app's RFC 8058 one-click) sets meta `emails` to `off`. The secret is meta `unsub`, compared in
+    constant time. Every follow-up email carries `List-Unsubscribe` and `List-Unsubscribe-Post`; sign-in codes never stop.
+  - *Words.* The emails, the push text and the unsubscribe pages are written with `mt` and `mtn` over `MAIL_CATALOG`
+    (`cloud/src/mailCatalog.ts`, keyed like `src/i18n/catalogs`, made by the app's side) in the account's `locale`; a string it
+    lacks is English. Meta also keeps `sent:welcome` and `sent:remind` (when each went).
 - **Translation for everyone signed in** (`POST /ai/translate`): Qwen3 30B-A3B on Workers AI (`@cf/qwen/qwen3-30b-a3b-fp8`) with the
   local model's prompt and checks, names spelled out (`translateChecked`, target `local`, `spelling`), and Qwen's `/no_think` switch, 600 characters at most. It costs
   about 4 neurons a sentence. Three are taken before the call and the rest of `usage.neurons` after, against the reader's UTC day

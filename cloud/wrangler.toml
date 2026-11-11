@@ -5,6 +5,9 @@
 #   ALLOWED_EMAILS  who may sign in, comma separated (everyone when unset)
 #   OWNER_EMAILS    the owners, comma separated: Claude on the owner's key and the larger shares (ALLOWED_EMAILS when unset)
 #   ANTHROPIC_API_KEY  Claude translation through the account (npx wrangler secret put ANTHROPIC_API_KEY < ~/.config/dushu/anthropic-api-key)
+#   VAPID_KEYS      the Web Push key pair for review reminders (src/push.ts): made and stored in one go, never shown or saved,
+#                   node ../scripts/make-vapid.mjs | npx wrangler secret put VAPID_KEYS
+#                   Keep it once set: a new pair makes every device turn reminders on again. Unset, reminders go by email only.
 name = "dushu-sync"
 main = "src/worker.ts"
 compatibility_date = "2025-09-01"
@@ -18,14 +21,34 @@ class_name = "Account"
 name = "LIMITS"
 class_name = "Limits"
 
+# The accounts by time zone, for the follow-ups at each person's 6 PM (src/directory.ts). One instance.
+[[durable_objects.bindings]]
+name = "DIRECTORY"
+class_name = "Directory"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Account", "Limits"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Directory"]
+
+# Every hour on the hour: the directory sends the welcome emails and review reminders of everyone whose local time is 6 PM.
+# On the free plan (5 cron triggers allowed).
+[triggers]
+crons = ["0 * * * *"]
 
 # Read-aloud (MeloTTS) and sentence translation (Qwen3) through the account, capped together under the free daily allowance in
 # src/worker.ts (SPEECH_MAX_CHARS, TRANSLATE_NEURONS).
 [ai]
 binding = "AI"
 
+# DAILY_EMAILS: every email in a day, sign-in codes and follow-ups together (Resend's free plan sends 100, and 3,000 a month).
+# FOLLOWUP_EMAILS: follow-ups send only while fewer than this went out that day, so the rest is always the sign-in codes'.
+# APP_URL is what the follow-ups link to; SYNC_URL is this Worker, for their unsubscribe link.
 [vars]
 DAILY_EMAILS = "90"
+FOLLOWUP_EMAILS = "50"
+APP_URL = "https://henryyhong.com/dushu/"
+SYNC_URL = "https://dushu-sync.henryhong.workers.dev"

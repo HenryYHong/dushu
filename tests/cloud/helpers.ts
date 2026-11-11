@@ -1,7 +1,10 @@
 // The sync server in process: the real Worker, each account in memory instead of a Durable Object's SQLite database.
 import { createHash } from 'node:crypto';
-import worker, { accountRequest, limitsRequest, type DurableObjectNamespace, type Env } from '../../cloud/src/worker';
+import worker, { accountRequest, directoryAlarm, directoryRequest, limitsRequest, type DurableObjectNamespace, type Env } from '../../cloud/src/worker';
 import { AccountCore, LimitsCore, memoryLimits, memoryStore, type AccountStore } from '../../cloud/src/account';
+import { DirectoryCore, memoryDirectory } from '../../cloud/src/directory';
+import type { SqlStorage } from '../../cloud/src/sqlStore';
+import { execFileSync } from 'node:child_process';
 import { recordSize } from '../../src/core/syncExchange';
 import releasedWorker, { accountRequest as releasedAccountRequest } from '../fixtures/released/cloud/worker';
 import { AccountCore as ReleasedAccountCore } from '../fixtures/released/cloud/account';
@@ -72,7 +75,7 @@ export function cloud(extra: Partial<Env> = {}, opts: { released?: () => boolean
       return {
         fetch: (url, init) => (released()
           ? releasedAccountRequest(new ReleasedAccountCore(releasedView(store) as never), new Request(url, init))
-          : accountRequest(new AccountCore(store), new Request(url, init))),
+          : accountRequest(new AccountCore(store), new Request(url, init), { self: key, env })),
       };
     },
   };
@@ -83,14 +86,48 @@ export function cloud(extra: Partial<Env> = {}, opts: { released?: () => boolean
     idFromString: () => ({ toString: () => 'global' }),
     get: () => ({ fetch: (url, init) => limitsRequest(limits, new Request(url, init)) }),
   };
-  const env: Env = { ACCOUNTS, LIMITS, MAIL_MODE: 'log', ...extra };
+  // The directory of accounts by time zone, in memory, with its alarm as a flag that cron() runs until the queue is empty.
+  const directory = new DirectoryCore(memoryDirectory());
+  let alarmAt: number | null = null;
+  const arm = (at: number) => { alarmAt = at; };
+  const DIRECTORY: DurableObjectNamespace = {
+    idFromName: () => ({ toString: () => 'directory' }),
+    idFromString: () => ({ toString: () => 'directory' }),
+    get: () => ({ fetch: (url, init) => directoryRequest(directory, new Request(url, init), arm) }),
+  };
+  const env: Env = { ACCOUNTS, LIMITS, DIRECTORY, MAIL_MODE: 'log', ...extra };
+  /** The hourly cron at `now` (as Cloudflare's scheduledTime), then the directory's alarms until its queue is empty. */
+  const cron = async (now = Date.now()) => {
+    await worker.scheduled({ scheduledTime: now }, env);
+    for (let i = 0; alarmAt !== null; i++) {
+      if (i > 1000) throw new Error('The directory’s alarm never stopped.');
+      alarmAt = null;
+      await directoryAlarm(directory, env, arm);
+    }
+  };
   const fetch = (request: Request): Promise<Response> => (released() ? (releasedWorker.fetch(request, env as never) as Promise<Response>) : worker.fetch(request, env));
   const call = (path: string, init: RequestInit & { origin?: string } = {}) => fetch(new Request(`https://sync.test${path}`, {
     ...init, headers: { 'Content-Type': 'application/json', Origin: init.origin ?? 'https://henryyhong.com', ...(init.headers as Record<string, string>) },
   }));
   const post = (path: string, body: unknown, token?: string) => call(path, { method: 'POST', body: JSON.stringify(body), headers: token ? { Authorization: `Bearer ${token}` } : {} });
-  return { env, call, post, fetch, stores };
+  return { env, call, post, fetch, stores, directory, cron };
 }
+
+/** SQLite through the sqlite3 command (macOS has it), with the bindings written into the query. Enough for the stores' queries. */
+export function sqliteCli(file: string): SqlStorage {
+  const literal = (v: unknown) => (typeof v === 'number' ? String(v) : v === null ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
+  return {
+    exec(query, ...bindings) {
+      let i = 0;
+      const sql = query.replace(/\?/g, () => literal(bindings[i++]));
+      const out = execFileSync('sqlite3', ['-json', file, sql], { encoding: 'utf8' }).trim();
+      const rows = out ? JSON.parse(out) as Record<string, unknown>[] : [];
+      return { toArray: () => rows };
+    },
+  };
+}
+
+export const hasSqlite = (() => { try { execFileSync('sqlite3', ['-version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
 
 export async function signedIn(c: ReturnType<typeof cloud>, email = 'reader@example.com') {
   const { devCode } = await (await c.post('/auth/code', { email })).json() as { devCode: string };
