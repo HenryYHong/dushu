@@ -1811,6 +1811,11 @@
   "many": "há {n} horas",
   "other": "há {n} horas"
  },
+ "{n} in a row": {
+  "one": "{n} acerto seguido",
+  "many": "{n} acertos seguidos",
+  "other": "{n} acertos seguidos"
+ },
  "{n} known words": {
   "one": "{n} palavra conhecida",
   "many": "{n} palavras conhecidas",

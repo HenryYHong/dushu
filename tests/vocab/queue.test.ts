@@ -21,6 +21,17 @@ describe('ReviewSession', () => {
     expect(s.isOver).toBe(true);
     expect(s.done).toBe(1);
   });
+  it('counts the answers remembered in a row, back to 0 at a forgotten one', () => {
+    const s = new ReviewSession([SAMPLE[0], SAMPLE[1], SAMPLE[3]]);
+    expect(s.streak).toBe(0);
+    s.answer(2, later(SAMPLE[0], 86400000), T0);
+    s.answer(1, later(SAMPLE[1], 86400000), T0); // Hard is remembered too
+    expect(s.streak).toBe(2);
+    s.answer(0, later(SAMPLE[3], 60_000), T0);
+    expect(s.streak).toBe(0);
+    s.skip(); // a skipped card is not an answer
+    expect(s.streak).toBe(0);
+  });
   it('summary counts grades and recall', () => {
     const s = new ReviewSession([SAMPLE[0], SAMPLE[1]]);
     s.answer(0, later(SAMPLE[0], 60_000), T0);

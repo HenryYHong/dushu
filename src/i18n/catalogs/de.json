@@ -1748,6 +1748,10 @@
   "one": "vor {n} Stunde",
   "other": "vor {n} Stunden"
  },
+ "{n} in a row": {
+  "one": "{n} in Folge",
+  "other": "{n} in Folge"
+ },
  "{n} known words": {
   "one": "{n} bekanntes Wort",
   "other": "{n} bekannte Wörter"

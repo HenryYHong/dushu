@@ -1690,6 +1690,9 @@
  "{n} hours ago": {
   "other": "{n}시간 전"
  },
+ "{n} in a row": {
+  "other": "{n}장 연속 정답"
+ },
  "{n} known words": {
   "other": "아는 단어 {n}개"
  },

@@ -1684,6 +1684,9 @@
  "{n} hours ago": {
   "other": "{n}時間前"
  },
+ "{n} in a row": {
+  "other": "{n}連続正解"
+ },
  "{n} known words": {
   "other": "既知の単語{n}語"
  },
