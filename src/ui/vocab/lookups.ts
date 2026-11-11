@@ -145,8 +145,11 @@ export function createLookupsView(ctx: AppContext): LookupsView {
   const weekRows = () => distinctWords(rows.filter((r) => r.day >= weekStart));
 
   function summary(): string {
-    return ttn(distinctWords(rows).length, '{n} word looked up, {week} in the last 7 days.', '{n} words looked up, {week} in the last 7 days.',
-      { week: ttn(weekRows().length, '{n} word', '{n} words') });
+    // The counts first: scripts/i18n/extract.mjs reads ttn's strings only when its first argument has no call in it.
+    const all = distinctWords(rows).length;
+    const week = weekRows().length;
+    return ttn(all, '{n} word looked up, {week} in the last 7 days.', '{n} words looked up, {week} in the last 7 days.',
+      { week: ttn(week, '{n} word', '{n} words') });
   }
 
   function draw(popped: HTMLElement[]): void {
