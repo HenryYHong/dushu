@@ -1870,8 +1870,9 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   pinyin one block at a time made it more frames, not cheaper ones. Real iPad GPU and CPU numbers are not measured.
 
 ### 5.8 Shell, fonts, PWA
-- Page heads: `ui/pageHead.ts` `pageTitle(screen, english)` builds each screen's one `h1`: the Chinese name first (书架 生词 复习 设置 关于,
-  `span.page-title-zh[lang=zh-Hans][aria-hidden=true]`), then the English title, which is what a screen reader announces.
+- Page heads: `ui/pageHead.ts` `pageTitle(screen, title)` builds each screen's one `h1`: the screen's name in the library's language first
+  (书架 生词 复习 设置 关于 in the Chinese library, Biblioteca in the Spanish one; `span.page-title-zh[aria-hidden=true]`), then the title in
+  the app's language, which is what a screen reader announces. The name is left out when the title already starts with it.
 - Interface fonts: Newsreader (OFL 1.1, `public/fonts/newsreader-roman.woff2` with the optical-size axis and `newsreader-italic.woff2`,
   wght 400 to 500, Latin-1 plus typographic punctuation, 118 KB together, `Newsreader-OFL.txt` beside them) is declared in `injectFonts()`
   with a matching `unicode-range` and `font-display: swap`, and precached by `sw.js` (`UI_FONTS`). It sets only the app's own English
@@ -2051,7 +2052,8 @@ exists.
   ECDICT's phonetics, which mix the older British notation Chinese textbooks used ('kʌlә, liv) with the current one, all in the
   current one (`ipa.tsv.gz`, `SpacedLang.pronunciations`, read after the engine is ready since it is 460 KB; not on flashcards,
   whose reading field sorts the word list). A sentence from an English book translates into Chinese unless the reader picks another language
-  (`targetFor`), and the screens keep their Chinese names (书架, 生词 …).
+  (`targetFor`), and the screens keep their Chinese names (书架, 生词 …) for a reader whose translations go into Chinese; anyone else sees
+  the English names (once, when the app is in English).
 - **Each language is its own library.** Chinese keeps the `dushu` database and the `dushu.*` keys; another language uses the
   database `dushu-<id>` and the keys `dushu.<id>.*` (`langKey`, `storeName`), so its books, words, places and settings never mix
   with the Chinese ones. A backup records its language and is refused by another one.

@@ -159,12 +159,12 @@
 /* At 0% a hairline would read as a section rule, not as progress: only the words then. */
 .lib-continue-progress .lib-bar[aria-valuenow='0'] { display: none; }
 .lib-continue-go { flex: none; text-decoration: none; height: 42px; padding: 0 20px; font-size: 14px; }
-/* One filled red button a screen: once there is a book to continue, Import steps back to a plain button. */
-.lib-page:has(.lib-continue) .page-head .btn-primary { background: var(--elev); color: var(--text); box-shadow: var(--shadow-s); }
-:root[data-theme='dark'] .lib-page:has(.lib-continue) .page-head .btn-primary { background: var(--surface-2); }
+/* One filled red button a screen: beside a book to continue or the first book's Start reading, Import is a plain button. */
+.lib-page:is(:has(.lib-continue), :has(.lib-start)) .page-head .btn-primary { background: var(--elev); color: var(--text); box-shadow: var(--shadow-s); }
+:root[data-theme='dark'] .lib-page:is(:has(.lib-continue), :has(.lib-start)) .page-head .btn-primary { background: var(--surface-2); }
 @media (hover: hover) {
-  .lib-page:has(.lib-continue) .page-head .btn-primary:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); }
-  :root[data-theme='dark'] .lib-page:has(.lib-continue) .page-head .btn-primary:hover { background: var(--surface-3); }
+  .lib-page:is(:has(.lib-continue), :has(.lib-start)) .page-head .btn-primary:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); }
+  :root[data-theme='dark'] .lib-page:is(:has(.lib-continue), :has(.lib-start)) .page-head .btn-primary:hover { background: var(--surface-3); }
 }
 
 /* ---------- book grid ---------- */

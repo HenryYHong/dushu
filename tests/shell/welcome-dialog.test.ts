@@ -107,10 +107,10 @@ describe('the welcome dialog', () => {
     const select = dialog()!.querySelector<HTMLSelectElement>('select.wel-select')!;
     select.value = 'es';
     select.dispatchEvent(new Event('change'));
-    expect(dialog()!.querySelector('.wel-warn')!.textContent).toBe('Spanish books are already in Spanish, so they are translated into English instead.');
+    expect(dialog()!.querySelector('.wel-warn')!.textContent).toBe('Spanish books will be translated into English instead.');
     select.value = 'en';
     select.dispatchEvent(new Event('change'));
-    expect(dialog()!.querySelector('.wel-warn')!.textContent).toBe('English books are already in English, so they are translated into Simplified Chinese instead.');
+    expect(dialog()!.querySelector('.wel-warn')!.textContent).toBe('English books will be translated into Simplified Chinese instead.');
   });
 
   it('Esc does nothing on a first visit, and never counts as Skip', async () => {

@@ -16,7 +16,7 @@ import { chooseUiLang, isUiLang, langName, num, tt, ttm, uiLang, uiLocale } from
 import type { SettingsStore } from '../types';
 
 /** What each library explains its language in, where that is not English. Shown with tt. */
-const EXPLAINED: Partial<Record<LangId, string>> = { en: ttm('Explained in Chinese, for Chinese speakers') };
+const EXPLAINED: Partial<Record<LangId, string>> = { en: ttm('For Chinese speakers') };
 const GOAL_NAMES: Record<number, string> = { 5: ttm('Casual'), 10: ttm('Regular'), 15: ttm('Serious'), 20: ttm('Intense'), 30: ttm('Devoted') };
 
 /** A translation language named in the app's language: `english` as the list or a sentence has it ("Simplified Chinese"). */
@@ -133,9 +133,9 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
       return [
         h('div.wel-head', null, mark(), h('div', null,
           h('h1.wel-title', null, opts.again ? tt('Your languages') : tt('Welcome to Globereader')),
-          h('p.wel-lede', null, tt('Read real books in the language you are learning, with every word a tap away.')))),
+          h('p.wel-lede', null, tt('Read real books in the language you’re learning. Tap any word to see what it means.')))),
         h('h2.wel-q', null, tt('What do you want to learn?')),
-        h('p.wel-help', null, tt('Pick one or more. Each has its own library of classics to start with.')),
+        h('p.wel-help', null, tt('Pick one or more. Each comes with free classic books.')),
         h('div.wel-langs', null, cards),
         f,
       ];
@@ -157,19 +157,30 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         // What the translator really does with a book in the language picked (translate/targets.ts targetFor).
         const name = langName(own[0], LANGS[own[0]].name);
         const into = targetLanguage(targetFor(target, own[0]));
-        warn.textContent = tt('{lang} books are already in {lang}, so they are translated into {into} instead.',
+        warn.textContent = tt('{lang} books will be translated into {into} instead.',
           { lang: name, into: into ? targetName(into, into.prompt ?? into.name) : langName('en', 'English') });
       };
+      // Where word meanings come from: an English dictionary, a Chinese one for English books. Said only when that is not the
+      // reader's language, with the card's way to translate them (translate/meanings.ts).
+      const dicts = new Set(langs.map((l) => (l === 'en' ? 'zh' : 'en')));
+      const meanings = h('p.wel-help.wel-small');
+      const sayMeanings = () => {
+        const mine = target.split('-')[0];
+        const other = [...dicts].some((d) => d !== mine);
+        meanings.hidden = !other;
+        meanings.textContent = !other ? '' : dicts.size > 1 ? tt('Word meanings are in English (in Chinese for English books). Word cards can translate them for you.')
+          : dicts.has('zh') ? tt('Word meanings are in Chinese. Word cards can translate them for you.')
+            : tt('Word meanings are in English. Word cards can translate them for you.');
+      };
+      sayMeanings();
+      select.addEventListener('change', sayMeanings);
       note();
       return [
         h('h2.wel-q', null, tt('Your language')),
-        h('p.wel-help', null, tt('The one you know best. Sentences you translate are shown in it, and so is the app when it has it. You can change it any time in Settings.')),
+        h('p.wel-help', null, tt('The one you know best. Sentences you translate are shown in it, and it will be the default language of your home screen. You can change it any time in Settings.')),
         select,
         warn,
-        h('p.wel-help.wel-small', null, langs.includes('en') && langs.length === 1
-          ? tt('Word cards explain English words in Chinese, whatever you pick here.')
-          : langs.includes('en') ? tt('Word cards give short meanings in English (in Chinese for English books), whatever you pick here.')
-            : tt('Word cards give short meanings in English, whatever you pick here.')),
+        meanings,
         foot(true, false, () => { step = 2; draw(); }),
       ];
     };
@@ -201,7 +212,7 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
       });
       return [
         h('h2.wel-q', null, tt('Set a daily goal')),
-        h('p.wel-help', null, tt('Minutes of reading or review a day. Each day you reach it adds a day to your streak.')),
+        h('p.wel-help', null, tt('Minutes of reading or review a day. Hit it every day to build a streak. You can change it later.')),
         group,
         foot(true, true, finish),
       ];

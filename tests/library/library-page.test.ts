@@ -116,7 +116,8 @@ describe('the first book', () => {
     expect(go.getAttribute('aria-label')).toBe('Opening “唐诗八首”');
     expect(root.querySelector('.lib-start-title')!.textContent).toBe('唐诗八首');
     expect(root.querySelector('.lib-card-pending')).toBeNull();
-    expect(root.querySelector<HTMLElement>('.lib-actions')!.hidden).toBe(true);
+    // Find a book, Paste text and Import book stay in the header even before the first book.
+    expect(root.querySelector<HTMLElement>('.page-head .lib-actions')!.hidden).toBe(false);
     await release();
     await until(() => navigated.length > 0, 8000);
   });
@@ -151,7 +152,8 @@ describe('the empty library while the classics are coming', () => {
     expect(wait.textContent).toBe('');
     expect(wait.querySelector('button')).toBeNull();
     expect(root.querySelector('.lib-empty')).toBeNull();
-    expect(root.querySelector<HTMLElement>('.lib-actions')!.hidden).toBe(true);
+    // Find a book, Paste text and Import book stay in the header even before the first book.
+    expect(root.querySelector<HTMLElement>('.page-head .lib-actions')!.hidden).toBe(false);
     await vi.advanceTimersByTimeAsync(2000);
     expect(root.querySelector('.lib-empty')).toBeNull();
     await vi.advanceTimersByTimeAsync(600);

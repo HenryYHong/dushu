@@ -206,6 +206,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   headActions.appendChild(macBooks);
   // What this device knows about the Mac: set by refreshMac(), which runs when the library opens and when the connection changes.
   let macState: MacState = 'none';
+  let macChecked = false;
   let macItems: MacBook[] = [];
   const macNote = h('div.lib-mac-note.card', { role: 'status', hidden: true });
   const head = h('div.page-head', null,
@@ -283,6 +284,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     books = list;
     loaded = true;
     progress = new Map(entries.filter((e): e is [string, Progress] => !!e[1]));
+    // The sign-in note counts the reader's own books; drawn again once the Mac has answered, so it never flashes before that.
+    if (macChecked) renderMacNote();
     renderContinue();
     renderGrid();
     renderSamples();
@@ -334,7 +337,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     const startLabel = first ? `“${first.title}”` : null;
     const empty = !books.length && jobs.every((j) => j.label === startLabel);
     libraryTools.hidden = !books.length;
-    headActions.hidden = empty; // the empty state carries the same two buttons, bigger
+    // Find a book, Paste text and Import book stay in the header in every state, so adding a book is always where it was.
+    headActions.hidden = false;
     // A new reader's first screen is about a first book; the goal and streak come once there is one.
     goal.el.hidden = empty;
     // A phone or tablet has no file to drop and no mouse to drag with: it is told its own way to a sentence.
@@ -683,8 +687,13 @@ export const mount: MountFn = (root, _params, ctx) => {
     const signedIn = !!cloudSession();
     const publicCopy = macState === 'none' && !isMacOrigin();
     const seen = (key: string) => { try { return localStorage.getItem(key) === '1'; } catch { return false; } };
-    const forget = (key: string) => { try { localStorage.setItem(key, '1'); } catch { /* ignore */ } renderMacNote(); };
-    const macNeeded = !signedIn && ((publicCopy && !seen('dushu.public-note.v1')) || macState === 'asleep' || macState === 'refused');
+    const forget = (key: string, value = '1') => { try { localStorage.setItem(key, value); } catch { /* ignore */ } renderMacNote(); };
+    // A visitor's own books (not the classics) live only in this browser. Dismissing the note keeps it away until they add
+    // another one: it holds how many they had then ('1', from before, counts as none).
+    const own = books.filter((b) => !b.sourceName?.startsWith('sample:')).length;
+    const dismissedAt = (() => { try { const v = localStorage.getItem('dushu.public-note.v1'); return v === null ? -1 : v === '1' ? 0 : Number(v) || 0; } catch { return 0; } })();
+    const keepNote = publicCopy && (dismissedAt < 0 || own > dismissedAt);
+    const macNeeded = !signedIn && (keepNote || macState === 'asleep' || macState === 'refused');
     // In Safari on an iPhone or iPad, once: the Home Screen is this app's App Store (full screen, offline, and Safari keeps its data).
     const homeTip = !macNeeded && onIPhoneOrIPad() && !isStandalone() && !seen('dushu.home-note.v1');
     macNote.hidden = !macNeeded && !homeTip;
@@ -699,13 +708,13 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (publicCopy) {
       macNote.append(
         h('p', null, cloudBase()
-          ? tt('Your books and words are saved in this browser. Have an account? Sign in to have them on your other devices too.')
+          ? own ? tt('Books you add are only saved in this browser. Sign in to keep them.') : tt('Your books and words are only saved in this browser. Sign in to keep them.')
           : tt('Your books and words are saved in this browser. If you run Globereader on your own Mac, connect this device to it in Settings to use its translator, voices and books.')),
         h('div.lib-actions', null,
           cloudBase()
             ? h('button.btn.btn-sm', { type: 'button', onclick: () => openSignIn() }, tt('Sign in'))
             : h('a.btn.btn-sm', { href: '#/settings' }, tt('Open Settings')),
-          h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.public-note.v1') }, tt('Dismiss'))));
+          h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.public-note.v1', String(own)) }, tt('Dismiss'))));
       return;
     }
     macNote.append(
@@ -720,6 +729,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const listing = await fetchMacBooks();
     if (!alive) return;
     macState = listing.state;
+    macChecked = true;
     // The Mac's books are the owner's Chinese books: another language's library never takes them.
     macItems = isChinese() ? listing.books : [];
     macBooks.hidden = !(macState === 'ready' && macItems.length);

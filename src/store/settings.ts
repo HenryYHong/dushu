@@ -152,7 +152,7 @@ function load(storage: Storage | undefined, key: string, defaults: Settings): Se
  */
 export const TARGET_KEY = 'dushu.translate-to.v1';
 
-function sharedTarget(storage: Storage | undefined): { to: string; at?: number } | undefined {
+export function sharedTarget(storage: Storage | undefined = defaultStorage()): { to: string; at?: number } | undefined {
   try {
     const raw = storage?.getItem(TARGET_KEY);
     if (!raw) return undefined;

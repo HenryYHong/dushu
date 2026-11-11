@@ -893,6 +893,11 @@
    "src/ui/about/about.ts"
   ]
  },
+ "Books you add are only saved in this browser. Sign in to keep them.": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
  "Both aspects": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -2123,11 +2128,6 @@
    "src/ui/popup/translation.ts"
   ]
  },
- "Explained in Chinese, for Chinese speakers": {
-  "where": [
-   "src/ui/welcome.ts"
-  ]
- },
  "Explaining…": {
   "where": [
    "src/ui/popup/translation.ts"
@@ -2280,6 +2280,11 @@
   "where": [
    "src/ui/reader/menus.ts",
    "src/ui/settings/settings.ts"
+  ]
+ },
+ "For Chinese speakers": {
+  "where": [
+   "src/ui/welcome.ts"
   ]
  },
  "Forty-five short fables in rhyming verse, including The Crow and the Fox and The Tortoise and the Hare. Animals talk, and each story has a moral.": {
@@ -3347,7 +3352,7 @@
    "src/ui/settings/settings.ts"
   ]
  },
- "Minutes of reading or review a day. Each day you reach it adds a day to your streak.": {
+ "Minutes of reading or review a day. Hit it every day to build a streak. You can change it later.": {
   "where": [
    "src/ui/welcome.ts"
   ]
@@ -4310,7 +4315,7 @@
    "src/ui/library/library.ts"
   ]
  },
- "Pick one or more. Each has its own library of classics to start with.": {
+ "Pick one or more. Each comes with free classic books.": {
   "where": [
    "src/ui/welcome.ts"
   ]
@@ -4592,7 +4597,7 @@
    "src/ui/popup/wordView.ts"
   ]
  },
- "Read real books in the language you are learning, with every word a tap away.": {
+ "Read real books in the language you’re learning. Tap any word to see what it means.": {
   "where": [
    "src/ui/welcome.ts"
   ]
@@ -6195,7 +6200,7 @@
    "src/ui/library/importer.ts"
   ]
  },
- "The one you know best. Sentences you translate are shown in it, and so is the app when it has it. You can change it any time in Settings.": {
+ "The one you know best. Sentences you translate are shown in it, and it will be the default language of your home screen. You can change it any time in Settings.": {
   "where": [
    "src/ui/welcome.ts"
   ]
@@ -7389,21 +7394,6 @@
    "src/ui/popup/translation.ts"
   ]
  },
- "Word cards explain English words in Chinese, whatever you pick here.": {
-  "where": [
-   "src/ui/welcome.ts"
-  ]
- },
- "Word cards give short meanings in English (in Chinese for English books), whatever you pick here.": {
-  "where": [
-   "src/ui/welcome.ts"
-  ]
- },
- "Word cards give short meanings in English, whatever you pick here.": {
-  "where": [
-   "src/ui/welcome.ts"
-  ]
- },
  "Word cards translate the dictionary’s {original} into your language and keep the {original} under each meaning. Automatic uses Chrome’s free on-device translator, and an online one (Qwen through your account, Claude or MyMemory) only when you press the button on the card. Always uses any of them without asking.": {
   "where": [
    "src/ui/settings/settings.ts"
@@ -7423,6 +7413,21 @@
  "Word frequencies, which decide how a sentence is split into words.": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "Word meanings are in Chinese. Word cards can translate them for you.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Word meanings are in English (in Chinese for English books). Word cards can translate them for you.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
+ "Word meanings are in English. Word cards can translate them for you.": {
+  "where": [
+   "src/ui/welcome.ts"
   ]
  },
  "Word-by-word (offline)": {
@@ -7733,7 +7738,7 @@
    "src/ui/library/library.ts"
   ]
  },
- "Your books and words are saved in this browser. Have an account? Sign in to have them on your other devices too.": {
+ "Your books and words are only saved in this browser. Sign in to keep them.": {
   "where": [
    "src/ui/library/library.ts"
   ]
@@ -8674,7 +8679,7 @@
    "src/ui/settings/sync.ts"
   ]
  },
- "{lang} books are already in {lang}, so they are translated into {into} instead.": {
+ "{lang} books will be translated into {into} instead.": {
   "where": [
    "src/ui/welcome.ts"
   ]
