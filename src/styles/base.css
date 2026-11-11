@@ -427,3 +427,5 @@ dialog.modal:focus { outline: none; }
 .goal-own { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 14px; color: var(--text-2); }
 .goal-own[hidden] { display: none; }
 .goal-own .goal-input { width: 5.5em; text-align: right; font-variant-numeric: tabular-nums; }
+/* Pengu reading while the library opens (main.ts), where the spinner was. */
+.app-opening-pengu { width: 64px; height: 64px; margin-right: 6px; }

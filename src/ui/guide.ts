@@ -5,7 +5,7 @@
 import '../styles/guide.css';
 import { h } from './dom';
 import { num, tt } from '../i18n';
-import { penguHtml, type PenguPose } from './pengu';
+import { animatePengu, penguHtml, type PenguPose } from './pengu';
 
 /** The library's walkthrough: 'due' once the welcome is finished (or Settings asks for it), 'done' after. */
 export const SITE_GUIDE_KEY = 'dushu.site-guide.v1';
@@ -61,7 +61,7 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
   const next = h('button.btn.btn-sm.btn-primary', { type: 'button', onclick: () => go(at + 1) }) as HTMLButtonElement;
   const skip = h('button.btn.btn-sm.btn-ghost.rd-guide-skip', { type: 'button', onclick: () => end(true) }, tt('Skip')) as HTMLButtonElement;
   // Pengu, beside the step's title (ui/pengu.ts).
-  const pengu = h('span.rd-guide-pengu', { 'aria-hidden': 'true' });
+  const pengu = h('span.rd-guide-pengu.pengu-span.pengu-tappable', { 'aria-hidden': 'true', onclick: () => animatePengu(pengu, 'boing') });
   const card = h('section.rd-guide-card', { role: 'dialog', 'aria-modal': 'true', 'aria-label': tt('Walkthrough') },
     h('div.rd-guide-head', null, pengu, h('div', null, count, title)), body, h('div.rd-guide-foot', null, skip, h('span.rd-guide-gap'), back, next));
   const shade = h('div.rd-guide-shade');
@@ -106,6 +106,9 @@ export function showGuide(root: HTMLElement, steps: GuideStep[], opts: { last?: 
     count.textContent = tt('Step {step} of {total}', { step: num(i + 1), total: num(steps.length) });
     const pose = step.pose ?? (i === 0 ? 'wave' : last ? 'cheer' : 'stand');
     if (pengu.dataset.pose !== pose) { pengu.dataset.pose = pose; pengu.innerHTML = penguHtml(pose); }
+    // Pengu arrives with the first step, hops along with each next one, and cheers at the last.
+    animatePengu(pengu, i === 0 && !pengu.dataset.seen ? 'pop' : last ? 'cheer' : 'hop');
+    pengu.dataset.seen = '1';
     title.textContent = step.title;
     body.replaceChildren(...step.body);
     back.hidden = i === 0;

@@ -3,7 +3,7 @@ import '../../styles/about.css';
 import type { DataMeta, MountFn } from '../../types';
 import { h, clear } from '../dom';
 import { pageTitle } from '../pageHead';
-import { penguEl } from '../pengu';
+import { animatePengu, penguEl } from '../pengu';
 import { icon } from '../icons';
 import { SHORTCUTS, keyCaps } from '../shortcuts';
 import { connectedMac, isMacOrigin } from '../../core/macBridge';
@@ -13,6 +13,9 @@ import { aidWord, levelScheme } from '../../lang/labels';
 import type { LangId } from '../../lang/types';
 import { fetchSamples } from '../library/samples';
 import { langName, num, tt, ttm, ttn } from '../../i18n';
+
+/** Pengu arriving with a little pop as it is shown. */
+const popped = (el: HTMLElement): HTMLElement => { animatePengu(el, 'pop', 120); return el; };
 
 export { SHORTCUTS };
 
@@ -222,7 +225,7 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
     h('div.page-head', null, h('div', null, pageTitle('about', tt('About LinguPengu')))),
     h('section.ab-section.ab-intro', null,
       // Pengu with a book beside the opening lines (ui/pengu.ts).
-      penguEl('read', 'ab-pengu'),
+      popped(penguEl('read', 'ab-pengu')),
       h('p.ab-lead', null, furigana
         ? tt('LinguPengu is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.', { language: langName(L.id, L.name) })
         : tt('LinguPengu is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.', { language: langName(L.id, L.name) })),
@@ -319,7 +322,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
     h('div.page-head', null, h('div', null, pageTitle('about', tt('About LinguPengu')))),
 
     h('section.ab-section.ab-intro', null,
-      penguEl('read', 'ab-pengu'),
+      popped(penguEl('read', 'ab-pengu')),
       h('p.ab-lead', null, tt('I made LinguPengu to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.')),
       h('p.ab-p', null, tt('It runs in your browser. Your books and words stay on this device, and in your account if you sign in, where only you can see them. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.'))),
 

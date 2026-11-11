@@ -1,5 +1,5 @@
 // App shell: theme, fonts, nav, hash router, toasts, and the AppContext every screen receives.
-import { penguMark } from './ui/pengu';
+import { penguEl, penguMark, penguSays, preloadPengu } from './ui/pengu';
 import { num, startI18n, tt, ttm, ttn } from './i18n';
 import './styles/tokens.css';
 import './styles/base.css';
@@ -124,7 +124,9 @@ async function boot(): Promise<void> {
 
   // If IndexedDB never answers, the page would stay empty. Say what is happening, and after a while what to try.
   const app = document.getElementById('app')!;
-  const opening = h('div.app-loading.app-opening', { role: 'status' }, h('div.app-spinner'), h('span', null, tt('Opening your library…')));
+  // Pengu reading while the library opens (ui/pengu.ts), in place of a spinner.
+  preloadPengu();
+  const opening = h('div.app-loading.app-opening', { role: 'status' }, penguEl('read', 'app-opening-pengu', { tap: false }), h('span', null, tt('Opening your library…')));
   app.append(opening);
   const slow = setTimeout(() => {
     opening.replaceChildren(h('div.app-spinner'),
@@ -332,7 +334,8 @@ async function boot(): Promise<void> {
 
   // Time in a book or in Review counts toward the day's goal (core/readingClock.ts); reaching it says so once.
   let stopClock: (() => void) | null = null;
-  const onGoal = (days: number, goal: number) => ctx.toast(goalMessage(days, goal), { ms: 6000 });
+  // The day's goal reached: Pengu pops up from the bottom of the screen to say so (ui/pengu.ts).
+  const onGoal = (days: number, goal: number) => penguSays(goalMessage(days, goal), 6500);
   const clockFor = (route: string) => {
     stopClock?.();
     stopClock = route === 'read' || route === 'review' ? startReadingClock(L.id, onGoal) : null;

@@ -4,6 +4,7 @@ import { goalCard } from '../goalCard';
 import { canFindBooks, findBooksDialog, parseBookLink } from './findBooks';
 import { GUIDE_EVENT } from '../guide';
 import { maybeSiteGuide } from '../siteGuide';
+import { penguPeek } from '../pengu';
 import { INCOMING_EVENT, takeIncoming } from './incoming';
 import type { AppContext, BookMeta, MountFn, Progress } from '../../types';
 import { h, clear } from '../dom';
@@ -346,7 +347,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     // A phone or tablet has no file to drop and no mouse to drag with: it is told its own way to a sentence.
     const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
     const startKey = empty && first ? `${first.id}|${sampleShown(first, 'title')}|${touch}|${canFindBooks()}` : '';
-    if (startKey && startShown?.key === startKey && startShown.el.parentElement === gridEl) { startShown.paint(jobs.length > 0); return; }
+    if (startKey && startShown?.key === startKey && gridEl.contains(startShown.el)) { startShown.paint(jobs.length > 0); return; }
     clear(gridEl);
     startShown = null;
     if (!loaded && !jobs.length) return;
@@ -354,7 +355,8 @@ export const mount: MountFn = (root, _params, ctx) => {
       if (first) {
         const card = startCard(first, howToRead(touch, false));
         startShown = { key: startKey, ...card };
-        gridEl.appendChild(card.el);
+        // Pengu peeking over the first book's card (ui/pengu.ts).
+        gridEl.appendChild(penguPeek(card.el).el);
         settleFocus();
         return;
       }

@@ -2,7 +2,7 @@
 // language translations go into, and a daily goal. Shown before the dictionary downloads, so someone learning Spanish never
 // waits for the Chinese one. Finishing opens the first language chosen (from Settings, only when the open one was dropped).
 import '../styles/welcome.css';
-import { penguHtml } from './pengu';
+import { animatePengu, penguEl } from './pengu';
 import { h } from './dom';
 import { icon } from './icons';
 import { LANGS, LANG_IDS } from '../lang/registry';
@@ -67,8 +67,8 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
 
     const box = h('div.wel-box');
     const dlg = h('dialog.wel', { 'aria-label': tt('Welcome to LinguPengu') }, box) as HTMLDialogElement;
-    // Pengu waving hello (ui/pengu.ts).
-    const mark = () => { const el = h('span.wel-mark', { 'aria-hidden': 'true' }); el.innerHTML = penguHtml('wave'); return el; };
+    // Pengu, popping in to say hello (ui/pengu.ts), breathing while the welcome is up; a tap makes it jump.
+    const mark = () => { const el = penguEl('wave', 'wel-mark'); animatePengu(el, 'pop', 80); return el; };
 
     const close = () => {
       if (done) return;

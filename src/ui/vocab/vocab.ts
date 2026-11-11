@@ -2,7 +2,7 @@
 import '../../styles/vocab.css';
 import type { AppContext, MountFn, Settings, VocabItem } from '../../types';
 import { h, clear } from '../dom';
-import { penguEl } from '../pengu';
+import { animatePengu, penguEl } from '../pengu';
 import { icon } from '../icons';
 import { pageTitle } from '../pageHead';
 import { openWordPopup } from '../popup/popup';
@@ -15,6 +15,9 @@ import { createLookupsView } from './lookups';
 import { reviewParts } from '../review/learning';
 import { backupFileName } from '../settings/data';
 import { num, tt, ttm, ttn, uiLocale } from '../../i18n';
+
+/** Pengu arriving with a little pop as it is shown. */
+const popped = (el: HTMLElement): HTMLElement => { animatePengu(el, 'pop', 60); return el; };
 
 /** In English, shown through tt(). */
 const SORT_LABELS: Record<SortKey, string> = { added: ttm('Newest first'), due: ttm('Due soonest'), pinyin: isChinese() ? ttm('Pinyin A to Z') : ttm('A to Z') };
@@ -105,7 +108,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!items.length) {
       list.appendChild(h('div.empty.voc-empty', null,
         // Pengu with a book: the words come from reading.
-        penguEl('read', 'voc-pengu'),
+        popped(penguEl('read', 'voc-pengu')),
         h('h2.voc-empty-title', null, tt('No saved words yet')),
         h('p', null, tt('Tap a word while you read and press the star. It shows up here with the sentence you found it in, and goes into Review.')),
         h('a.btn', { href: '#/' }, icon('book'), tt('Open the library')),

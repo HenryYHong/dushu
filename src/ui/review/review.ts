@@ -10,7 +10,7 @@ import { contextEl, pinyinEl, scriptView, textAttrs } from '../vocab/render';
 import { isChinese } from '../../lang/active';
 import { pageTitle } from '../pageHead';
 import { celebrate } from './celebrate';
-import { penguEl } from '../pengu';
+import { animatePengu, penguEl, penguPeek, type PenguMove, type PenguPeek } from '../pengu';
 import { describeNextDue, ReviewSession } from './queue';
 import { reviewCards, reviewParts } from './learning';
 import { num, tt, ttm, ttn, ttx } from '../../i18n';
@@ -38,6 +38,10 @@ export const mount: MountFn = (root, _params, ctx) => {
   let alive = true;
   let session: ReviewSession | null = null;
   let revealed = false;
+  // Pengu peeking over the flashcard for the whole session (ui/pengu.ts): it tilts its head when the answer shows, hops at a
+  // remembered word and ducks at a forgotten one. Made with the first card; each next card is put in front of the same Pengu.
+  let peek: PenguPeek | null = null;
+  let reaction: PenguMove | null = null;
   let busy = false;
   let settings = ctx.settings.get();
   /** The looked-up words in this session, not saved yet: each is saved when it is first graded. */
@@ -88,7 +92,10 @@ export const mount: MountFn = (root, _params, ctx) => {
          h('p', null, next ? nextDueLine(next) : tt('You are all caught up.')),
          h('a.btn', { href: '#/vocab' }, icon('list'), tt('See your words'))];
     // Pengu: waving at someone with no cards yet, cheering someone who is all caught up.
-    screen.append(head(), h('div.card.rev-empty', null, penguEl(total === 0 ? 'wave' : 'cheer', 'rev-pengu'), ...msg));
+    peek = null;
+    const pengu = penguEl(total === 0 ? 'wave' : 'cheer', 'rev-pengu');
+    screen.append(head(), h('div.card.rev-empty', null, pengu, ...msg));
+    animatePengu(pengu, 'pop', 60);
   }
 
   // -------------------------------------------------------------- card ---
@@ -158,7 +165,10 @@ export const mount: MountFn = (root, _params, ctx) => {
       onclick: () => { if (!revealed) reveal_(); },
     }, front, back);
     // The screen's title, for screen readers: a session shows only the card.
-    screen.append(pageTitle('review', tt('Review'), 'h1', 'rev-sr'), top, progress, card, reveal, grades);
+    if (!peek) peek = penguPeek();
+    peek.hold(card);
+    screen.append(pageTitle('review', tt('Review'), 'h1', 'rev-sr'), top, progress, peek.el, reveal, grades);
+    if (reaction) { peek.react(reaction); reaction = null; }
     if (take) (revealed ? back : card).focus({ preventScroll: true });
 
     function reveal_(): void {
@@ -172,6 +182,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       reveal.hidden = true;
       grades.hidden = false;
       card.classList.add('rev-card-revealed');
+      peek?.react('nod');
       if (takeFocus) back.focus({ preventScroll: true });
     }
     // Used by the key handler through the DOM so it always acts on the card on screen.
@@ -202,6 +213,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       }
       const updated = await store.vocab.review(cur.id, g, now);
       session.answer(g, updated, now);
+      reaction = g === 0 ? 'duck' : 'hop';
     } catch (e) {
       // The word was probably removed in another tab; skip it rather than get stuck.
       console.error(e);
@@ -225,8 +237,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (!alive) return;
     clear(screen);
     const stat = (value: string, label: string) => h('div.rev-stat', null, h('div.rev-stat-value', null, value), h('div.rev-stat-label', null, label));
+    const cheering = penguEl('cheer', 'rev-pengu rev-pengu-cheer');
     const summary = h('div.card.rev-summary', null,
-      penguEl('cheer', 'rev-pengu rev-pengu-cheer'),
+      cheering,
       h('h2.rev-summary-title', null, tt('Session complete')),
       h('p.muted', null, tt('{a}, {b}', { a: ttn(s.cards, '{n} card', '{n} cards'), b: ttn(s.reviews, '{n} answer', '{n} answers') })),
       h('div.rev-stats', null,
@@ -249,7 +262,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     );
     screen.append(head(), summary);
     // A session finished: a short celebration (celebrate.ts).
-    if (s.reviews > 0) celebrate(summary);
+    if (s.reviews > 0) { celebrate(summary); animatePengu(cheering, 'cheer', 180); }
+    peek = null;
     session = null;
   }
 

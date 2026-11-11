@@ -1880,7 +1880,14 @@ protected from eviction, with an ask button; `navigator.storage.persist()` is re
   edge, each pixel as see-through as it is close to the blue, the blue taken out of the edge's colors) and recolors the book to
   the app's vermilion: that is the mascot (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`); on the app's ink blue with rounded
   corners it is the logo (`ui/pengu/logo.webp`, `penguMark`), `public/icon.svg` and the PNG icons (the maskable one with Pengu
-  inside the safe zone). Two of the app's colors and Pengu's grays, so it sits with the rest of the page. `scripts/make-icons.mjs` draws the link picture. One picture serves every pose
+  inside the safe zone). Two of the app's colors and Pengu's grays, so it sits with the rest of the page.
+  Pengu is alive (`ui/pengu.ts`, `styles/pengu.css`): the picture breathes and sways (CSS, each one from a different moment), and
+  its span takes one-off moves from the Web Animations API (pop, hop, boing, cheer, duck, nod), so the two add up. It pops in on
+  the welcome screen and the empty screens, hops with each walkthrough step and cheers at the last, jumps when tapped, peeks over
+  the top edge of Review's flashcard (`penguPeek`: tilting its head at the answer, hopping at a remembered word, ducking at a
+  forgotten one) and of the library's first book, cheers over the confetti when a session ends, reads in place of the spinner
+  while the library opens, and pops up from the bottom of the screen to say the day's goal is reached (`penguSays`). Transforms
+  and opacity only; nothing moves with reduced motion. `scripts/make-icons.mjs` draws the link picture. One picture serves every pose
   for now (`PenguPose` names the use, and styles move it). It waves on the welcome screen, stands
   beside each walkthrough step (`ui/guide.ts`), reads over empty Vocabulary and About, and cheers when a review session ends.
   Fixed colors, not the theme's, so it looks the same in light and dark; its animations stop with reduced motion.
