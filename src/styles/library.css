@@ -180,6 +180,15 @@
 @media (hover: hover) {
   .lib-card-main:hover .lib-cover-wrap { transform: translateY(-3px); box-shadow: var(--shadow-book), 0 18px 30px -14px color-mix(in srgb, var(--shade) 40%, transparent); }
 }
+/* Pressed, the book gives a little, as a button does (base.css .btn:active). */
+.lib-card-main:active .lib-cover-wrap { transform: scale(0.98); transition-duration: var(--dur-fast); }
+/* The first shelf since the app opened (library.ts shelfAt): each card rises 8 px out of nothing, 30 ms after the one before it,
+   the seventh and later together, so a long shelf is in place within half a second. --lib-t is how far in it was when a redraw
+   took over. */
+@media (prefers-reduced-motion: no-preference) {
+  .lib-grid-in > .lib-card { animation: lib-card-in 300ms var(--ease-out) calc(var(--lib-i, 0) * 30ms - var(--lib-t, 0ms)) backwards; }
+}
+@keyframes lib-card-in { from { opacity: 0; transform: translateY(8px); } }
 .lib-card-info { flex: 1; padding-top: 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .lib-card-title {
   padding-right: 26px; font: 400 17px/1.3 var(--font-serif); letter-spacing: 0.05em;

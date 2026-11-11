@@ -1482,6 +1482,13 @@ The reader hides the nav (`body[data-route=read]`) and draws its own top bar.
 On a route change the old screen's cleanup runs before `body[data-route]` changes, so the reader saves its place under its own
 layout (with the nav back in the flow it measured a line early on every visit). A screen that finishes mounting after the route
 moved on is cleaned up at once and never replaces the current screen's cleanup.
+Motion is calm and only says what changed: a change of screen fades through the paper with the View Transitions API (the new screen
+rising 6 px, about 240 ms; the bar is left out of it and taps go through), never into or out of the reader or for the same screen,
+and a plain fade of `#screen` without the API; one underline (`.app-nav-line`, moved and sized with a transform) slides to the new
+tab and is set in place when the bar itself changes; a toast put away fades out (one replaced by a newer one goes at once). The
+first shelf since the app opened eases in a card at a time (`library.ts` shelfAt, under half a second), today's goal bar fills
+with a transform and a new streak number rolls in, and a word card grows from its caret and fades out (`host.ts` leave: no longer
+`.pp-pop`, so the reader sees no card). All of it stops under prefers-reduced-motion and does nothing where the APIs are missing.
 `ctx.dict()` is a cached promise; `ctx.dictSync()` is non-null once loaded. A failed download is not cached: the next use tries
 again, and the toast says "Could not download the dictionary. Check your connection; Dushu will try again."
 

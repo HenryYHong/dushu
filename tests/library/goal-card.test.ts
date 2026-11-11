@@ -86,4 +86,31 @@ describe('the goal card', () => {
     const saved = JSON.parse(localStorage.getItem(ACTIVITY_KEY)!);
     expect(Object.values(saved.days[TODAY])).toEqual([{ s: {}, g: 10, t: NOW }]);
   });
+
+  it('fills today\'s bar to its share of the goal, with a transform', () => {
+    addSeconds('es', 6 * 60, 10, at(TODAY, 9));
+    card = goalCard();
+    // jsdom has no IntersectionObserver: the bar is filled at once, as for a reader who never sees it come on screen.
+    expect(card.el.querySelector<HTMLElement>('.goal-bar-fill')!.style.transform).toBe('translateX(-40%)');
+    addSeconds('es', 20 * 60, 10, at(TODAY, 10));
+    window.dispatchEvent(new Event(ACTIVITY_EVENT));
+    expect(card.el.querySelector<HTMLElement>('.goal-bar-fill')!.style.transform).toBe('translateX(0%)');
+  });
+
+  it('rolls the streak number in only when it changes', () => {
+    const proto = HTMLElement.prototype as unknown as { animate?: unknown };
+    const rolled: Element[] = [];
+    proto.animate = function (this: Element) { rolled.push(this); return {}; };
+    try {
+      for (const d of [-2, -1]) addSeconds('es', 700, 10, at(addDays(TODAY, d)));
+      card = goalCard();
+      expect(text(card.el, '.goal-num')).toBe('2');
+      window.dispatchEvent(new Event(ACTIVITY_EVENT));
+      expect(rolled).toEqual([]);
+      addSeconds('es', 700, 10, at(TODAY, 9));
+      window.dispatchEvent(new Event(ACTIVITY_EVENT));
+      expect(text(card.el, '.goal-num')).toBe('3');
+      expect(rolled).toEqual([card.el.querySelector('.goal-num')]);
+    } finally { delete proto.animate; }
+  });
 });

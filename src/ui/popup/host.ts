@@ -87,9 +87,31 @@ function readInsets(): Insets {
 }
 
 const isCoarse = (): boolean => typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+const still = (): boolean => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** How long a closed card takes to fade out. */
+const FADE_OUT_MS = 120;
+/** Set while a new popup replaces the open one: the old one goes at once, so the two never overlap. */
+let replacing = false;
+
+/**
+ * A closed card fades out where it was (popup.css .pp-leaving keeps its look). It stops being a popup first: without .pp-pop and
+ * its dialog role the reader, which asks whether a card is open, sees none, and a tap meanwhile reaches the page.
+ */
+function leave(el: HTMLElement): void {
+  if (replacing || still() || typeof el.animate !== 'function') { el.remove(); return; }
+  el.classList.replace('pp-pop', 'pp-leaving');
+  el.removeAttribute('role');
+  el.setAttribute('aria-hidden', 'true');
+  el.inert = true;
+  const anim = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_OUT_MS, easing: 'ease-in', fill: 'forwards' });
+  anim.onfinish = anim.oncancel = () => el.remove();
+  setTimeout(() => el.remove(), FADE_OUT_MS + 200); // a tab in the background may not finish it
+}
 
 export function createHost(o: HostOptions): PopupHost {
-  closeActivePopup();
+  replacing = true;
+  try { closeActivePopup(); } finally { replacing = false; }
   const opener = findOpener(o.anchor);
   const content = h('div.pp-content');
   // The card (el) clips nothing so the caret can stick out; the scroller inside it is what scrolls.
@@ -253,7 +275,7 @@ export function createHost(o: HostOptions): PopupHost {
       window.removeEventListener('hashchange', onRoute);
       window.removeEventListener('popstate', onRoute);
       const hadFocus = el.contains(document.activeElement) || document.activeElement === document.body || !document.activeElement;
-      el.remove();
+      leave(el);
       room?.remove();
       reportSheetTop(null, true);
       if (hadFocus) giveFocusBack();

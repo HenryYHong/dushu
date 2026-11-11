@@ -72,6 +72,16 @@ const BROWSER_TEXT = /^(Failed to fetch|Load failed|NetworkError when attempting
 /** How long a first visit waits for its downloads to reach the offline copy before installing it anyway. */
 const HANDOFF_WAIT_MS = 30_000;
 
+/** Under reduced motion nothing in the shell moves: screens change, toasts go and the tab's underline jumps at once. */
+const still = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+/**
+ * How long a screen change holds the old screen while the new one mounts before the fade starts anyway (the new screen is
+ * live under it, so a slow screen fills in as it fades in). Long enough for a screen whose code is already loaded.
+ */
+const SCREEN_HOLD_MS = 150;
+/** How long a dismissed toast takes to fade. */
+const TOAST_FADE_MS = 180;
+
 /**
  * On a first visit (no service worker yet), every dictionary file the page downloads is also put in FIRST_VISIT_CACHE. The
  * worker installs once they are all there, files each one in its language's cache and only asks the server whether it is
@@ -214,23 +224,37 @@ async function boot(): Promise<void> {
       // The label as the screens give it, in the app's language.
       const read = tt('Read');
       const coalesce = opts?.action?.label === read;
-      for (const old of [...toasts.children] as HTMLElement[]) {
+      // A toast fading out is already gone: it is never replaced or counted again.
+      const shown = () => ([...toasts.children] as HTMLElement[]).filter((t) => !t.dataset.gone);
+      for (const old of shown()) {
         if (old.dataset.msg === message || (coalesce && old.dataset.action === read)) old.dispatchEvent(new Event('dismiss'));
       }
       const el = h('div.app-toast', { 'data-msg': message, 'data-action': opts?.action?.label ?? '' });
       const text = h('span.app-toast-text', { title: message }, message);
       el.append(text);
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const dismiss = () => { clearTimeout(timer); el.remove(); };
-      el.addEventListener('dismiss', dismiss);
+      // Put away by its timer or its buttons, a toast fades out where it is. Replaced by a newer one (the event), it goes at once,
+      // so the new one takes its place instead of stacking under a fading copy.
+      const dismiss = (fade = true) => {
+        if (el.dataset.gone) return;
+        el.dataset.gone = '1';
+        clearTimeout(timer);
+        if (!fade || still() || typeof el.animate !== 'function') { el.remove(); return; }
+        el.setAttribute('aria-hidden', 'true');
+        el.style.pointerEvents = 'none';
+        const anim = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: TOAST_FADE_MS, easing: 'ease-in', fill: 'forwards' });
+        anim.onfinish = anim.oncancel = () => el.remove();
+        setTimeout(() => el.remove(), TOAST_FADE_MS + 200); // a tab in the background may never finish it
+      };
+      el.addEventListener('dismiss', () => dismiss(false));
       if (opts?.action) {
         const a = opts.action;
         el.appendChild(h('button.app-toast-action', { type: 'button', onclick: () => { a.run(); dismiss(); } }, a.label));
       }
       // A toast that stays a long time (errors, the update notice) can be put away.
-      if (ms > 6000) el.appendChild(h('button.app-toast-close', { type: 'button', 'aria-label': tt('Dismiss'), title: tt('Dismiss'), onclick: dismiss }, icon('close')));
+      if (ms > 6000) el.appendChild(h('button.app-toast-close', { type: 'button', 'aria-label': tt('Dismiss'), title: tt('Dismiss'), onclick: () => dismiss() }, icon('close')));
       toasts.appendChild(el);
-      while (toasts.children.length > 3) toasts.firstElementChild!.dispatchEvent(new Event('dismiss'));
+      for (let up = shown(); up.length > 3; up = shown()) up[0].dispatchEvent(new Event('dismiss'));
       timer = setTimeout(dismiss, ms);
     },
   };
@@ -287,15 +311,37 @@ async function boot(): Promise<void> {
     navLink('#/settings', tt('Settings'), 'settings'),
     signInButton(),
   );
+  // One underline for the current tab: it slides to the new tab when the screen changes (base.css .app-nav-line).
+  const navLine = h('span.app-nav-line', { 'aria-hidden': 'true' });
+  nav.append(navLine);
   const screen = h('main#screen');
   app.append(nav, screen, toasts);
+  /**
+   * Puts the underline under the current tab, sized to it with a transform. It slides only on a screen change; when the bar itself
+   * changes (a resize, the icons-only bar, a label's font arriving, the Review count) or it was not showing, it is set in place.
+   */
+  const placeNavLine = (slide: boolean) => {
+    const tab = nav.querySelector<HTMLElement>('.app-navlink[aria-current="page"]');
+    const box = tab?.getBoundingClientRect();
+    if (!box?.width) { navLine.classList.remove('app-nav-line-on'); return; }
+    const jump = !slide || !navLine.classList.contains('app-nav-line-on');
+    navLine.classList.toggle('app-nav-line-jump', jump);
+    navLine.style.transform = `translateX(${box.left - nav.getBoundingClientRect().left}px) scaleX(${box.width})`;
+    if (jump) void navLine.offsetWidth; // the move is drawn with the transition off
+    navLine.classList.remove('app-nav-line-jump');
+    navLine.classList.add('app-nav-line-on');
+  };
   // Labels that do not fit (Einstellungen, Bibliothèque on a phone) give way to the icons, as on the narrowest screens; measured
   // with the labels shown, so a wider screen or a shorter language brings them back.
   const fitNav = () => {
     nav.classList.remove('app-nav-tight');
     if (nav.scrollWidth > nav.clientWidth + 1) nav.classList.add('app-nav-tight');
   };
-  if (typeof ResizeObserver === 'function') new ResizeObserver(fitNav).observe(nav);
+  if (typeof ResizeObserver === 'function') {
+    // Every item in the bar, since any of them growing moves the tabs.
+    const ro = new ResizeObserver(() => { fitNav(); placeNavLine(false); });
+    for (const el of [nav, ...nav.children]) if (el !== navLine) ro.observe(el);
+  }
   fitNav();
 
   // Ask the browser not to evict our data. Safari can clear the storage of sites that are not on the Home Screen, so this
@@ -343,7 +389,10 @@ async function boot(): Promise<void> {
 
   let cleanup: (() => void) | void;
   let navSeq = 0;
-  const render = async () => {
+  /** The screen on show, so a change knows where it comes from. */
+  let shownRoute: string | null = null;
+  /** `fade`: the new screen fades in by itself (a browser without the View Transitions API). */
+  const render = async (fade = false) => {
     const seq = ++navSeq;
     const { route, params } = parseHash();
     // The old screen goes first, under its own route: the reader saves its place while body[data-route=read] still hides
@@ -351,6 +400,7 @@ async function boot(): Promise<void> {
     try { cleanup?.(); } catch (e) { console.error(e); }
     cleanup = undefined;
     document.body.dataset.route = route || 'library';
+    shownRoute = route;
     // After the old screen's cleanup, which puts back the title the reader replaced.
     document.title = TITLES[route] ? tt('{screen} - LinguPengu', { screen: tt(TITLES[route]) }) : 'LinguPengu';
     clockFor(route);
@@ -358,6 +408,7 @@ async function boot(): Promise<void> {
       a.toggleAttribute('aria-current', a.dataset.route === route);
       if (a.dataset.route === route) a.setAttribute('aria-current', 'page');
     }
+    placeNavLine(moved);
     clear(screen);
     screen.appendChild(h('div.app-loading', null, h('div.app-spinner'), tt('Loading…')));
     let mod: { mount: MountFn };
@@ -376,6 +427,8 @@ async function boot(): Promise<void> {
     if (seq !== navSeq) return;
     clear(screen);
     window.scrollTo(0, 0);
+    // Opacity only: a transform on the screen would move the fixed elements inside it (menus, the drop overlay) while it plays.
+    if (fade && typeof screen.animate === 'function') screen.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' });
     const done = await mod.mount(screen, params, ctx);
     // The route moved on while this screen was mounting: put it away now, and keep the newer screen's cleanup for its turn.
     if (seq !== navSeq) { try { done?.(); } catch { /* ignore */ } return; }
@@ -392,7 +445,25 @@ async function boot(): Promise<void> {
     }
   };
   let moved = false;
-  window.addEventListener('hashchange', () => { moved = true; void render(); });
+  /**
+   * A change of screen fades through the paper, the new screen rising a few pixels, while the bar stays still and its underline
+   * slides (base.css, ::view-transition). Never into or out of the reader, which is full screen with its own bar and measures its
+   * place as it goes; never for the same screen drawn again, nor under reduced motion.
+   */
+  const change = () => {
+    moved = true;
+    const from = shownRoute;
+    const to = parseHash().route;
+    if (from === null || from === to || from === 'read' || to === 'read' || still()) { void render(); return; }
+    if (typeof document.startViewTransition !== 'function') { void render(true); return; }
+    // The old screen is held only until the new one has mounted (or SCREEN_HOLD_MS): what is still loading fills in as it fades in.
+    const hold = new Promise<void>((r) => { setTimeout(r, SCREEN_HOLD_MS); });
+    const vt = document.startViewTransition(() => Promise.race([render().catch((e: unknown) => console.error(e)), hold]));
+    // Skipped (another change came first, or the tab is hidden): the screen is still drawn, only the fade is lost.
+    vt.ready.catch(() => {});
+    vt.finished.catch(() => {});
+  };
+  window.addEventListener('hashchange', change);
   await render();
 
   // The dictionary has the connection first. After it, the reading fonts' rules (500 KB, only for libraries that show Chinese

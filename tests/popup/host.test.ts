@@ -201,3 +201,48 @@ describe('sheet top', () => {
     expect(document.activeElement).toBe(q('.pp-pop'));
   });
 });
+
+describe('closing', () => {
+  /** jsdom has no Web Animations: a stand-in that finishes when the test says so. */
+  const withAnimations = (run: (finish: () => void) => void) => {
+    const running: { onfinish: null | (() => void) }[] = [];
+    const proto = HTMLElement.prototype as unknown as { animate?: unknown };
+    proto.animate = function () { const a = { onfinish: null, oncancel: null }; running.push(a); return a; };
+    try { run(() => { for (const a of running.splice(0)) a.onfinish?.(); }); } finally { delete proto.animate; }
+  };
+  const open = () => {
+    const host = createHost({ kind: 'word', label: 'test', anchor: anchorRect() });
+    host.content.textContent = 'x';
+    host.placeNow();
+    return host;
+  };
+
+  it('a closed card fades out where it was, no longer a popup to the reader or to taps, then goes', () => {
+    withAnimations((finish) => {
+      const opener = Object.assign(document.createElement('button'), { textContent: 'word' });
+      document.body.appendChild(opener);
+      opener.focus();
+      open().close();
+      // The reader asks whether a card is open by .pp-pop: none is, at once.
+      expect(q('.pp-pop')).toBeNull();
+      const leaving = q('.pp-leaving')!;
+      expect(leaving.getAttribute('role')).toBeNull();
+      expect(leaving.getAttribute('aria-hidden')).toBe('true');
+      expect(document.activeElement).toBe(opener);
+      finish();
+      expect(q('.pp-leaving')).toBeNull();
+    });
+  });
+
+  it('a card replaced by another goes at once, so the two never overlap', () => {
+    withAnimations((finish) => {
+      const first = open();
+      const second = open();
+      expect(first.closed).toBe(true);
+      expect(q('.pp-leaving')).toBeNull();
+      expect(document.querySelectorAll('.pp-pop')).toHaveLength(1);
+      second.close();
+      finish();
+    });
+  });
+});

@@ -8,13 +8,18 @@
 .goal-flame svg { width: 22px; height: 22px; fill: var(--text-3); }
 .goal.met .goal-flame { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .goal.met .goal-flame svg { fill: var(--accent); }
-.goal-num { font: 600 24px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
+.goal-num { display: inline-block; font: 600 24px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
 .goal-unit { font-size: 14px; font-weight: 560; color: var(--text); }
 .goal-best { display: block; margin-top: 3px; font-size: 12.5px; color: var(--text-3); }
 .goal-today { min-width: 0; }
 .goal-today-text { font-size: 14px; color: var(--text-2); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
 .goal-bar { height: 6px; border-radius: 3px; background: var(--wash-2); overflow: hidden; }
-.goal-bar-fill { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--accent); transition: width var(--dur) var(--ease); }
+/* The whole bar's width, slid in from the left as far as today's share (goalCard.ts): a transform, and the track's rounded end
+   clips its start. */
+.goal-bar-fill {
+  display: block; height: 100%; width: 100%; border-radius: 3px; background: var(--accent);
+  transform: translateX(-100%); transition: transform 360ms var(--ease-out);
+}
 .goal-week { display: flex; gap: 6px; }
 .goal-day { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 18px; }
 .goal-day-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--rule-strong); }

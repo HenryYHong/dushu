@@ -1,6 +1,7 @@
 /* Word and phrase popups. Every class here starts with pp-. */
 
-.pp-pop {
+/* .pp-leaving: a closed card fading out (host.ts leave), drawn as it was but no longer a popup to the page or to taps. */
+.pp-pop, .pp-leaving {
   position: fixed;
   z-index: 80;
   display: flex;
@@ -17,6 +18,7 @@
   -webkit-font-smoothing: antialiased;
 }
 .pp-pop:focus, .pp-pop:focus-visible { outline: none; } /* the dialog takes focus for screen readers; it is not a control */
+.pp-leaving { pointer-events: none; }
 /* The card itself clips nothing, so the caret can stick out; the scroll box inside it is what scrolls. */
 .pp-scroll {
   flex: 1 1 auto; min-height: 0;
@@ -25,9 +27,11 @@
   -webkit-overflow-scrolling: touch;
   border-radius: inherit;
 }
+/* A card grows out of the word it explains: from the caret's point (under the word's middle, host.ts sets --pp-caret), moving
+   a few pixels away from the word as it appears. */
 .pp-float { animation: pp-pop-in var(--dur-pop) var(--ease-pop); }
-.pp-float[data-side='above'] { transform-origin: bottom center; }
-.pp-float[data-side='below'] { transform-origin: top center; }
+.pp-float[data-side='above'] { transform-origin: var(--pp-caret, 50%) 100%; --pp-from: 4px; }
+.pp-float[data-side='below'] { transform-origin: var(--pp-caret, 50%) 0; --pp-from: -4px; }
 /* No caret: the highlighted word already says what the card belongs to. */
 .pp-float::before { display: none; }
 .pp-sheet {
@@ -47,7 +51,7 @@
   content: ''; position: absolute; z-index: 2; top: 7px; left: 50%; width: 36px; height: 5px; margin-left: -18px;
   border-radius: 3px; background: var(--wash-3); pointer-events: none;
 }
-@keyframes pp-pop-in { from { opacity: 0; transform: translateY(4px) scale(0.97); } }
+@keyframes pp-pop-in { from { opacity: 0; transform: translateY(var(--pp-from, 4px)) scale(0.97); } }
 @keyframes pp-sheet-in { from { transform: translateY(100%); } }
 @media (prefers-reduced-motion: reduce) { .pp-float, .pp-sheet { animation: pp-fade 1ms; } }
 @keyframes pp-fade { from { opacity: 0; } }

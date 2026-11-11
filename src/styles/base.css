@@ -60,7 +60,16 @@ a { color: var(--ink); }
   transition: color 0.15s var(--ease);
 }
 .app-navlink .icon { display: none; color: currentColor; }
-.app-navlink[aria-current='page'] { color: var(--text); box-shadow: inset 0 -2px 0 var(--text); }
+.app-navlink[aria-current='page'] { color: var(--text); }
+/* The current tab's underline (main.ts placeNavLine): one line, moved and sized with a transform, that slides to the new tab
+   when the screen changes and is set in place when the bar itself changes. */
+.app-nav-line {
+  position: absolute; left: 0; bottom: 0; width: 1px; height: 2px; background: var(--text);
+  transform-origin: 0 0; opacity: 0; pointer-events: none;
+  transition: transform 260ms var(--ease-out), opacity var(--dur) var(--ease);
+}
+.app-nav-line-on { opacity: 1; }
+.app-nav-line-jump { transition: none; }
 .app-navlink:focus-visible { outline-offset: -6px; }
 @media (hover: hover) { .app-navlink:hover { color: var(--text); } }
 .app-badge {
@@ -133,6 +142,20 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) .app-toasts { bottom: c
 @media (hover: hover) { .app-toast .app-toast-close:hover { color: var(--bg); background: color-mix(in srgb, var(--bg) 16%, transparent); } }
 .app-toast .app-toast-close .icon { width: 16px; height: 16px; }
 @keyframes app-toast-in { from { opacity: 0; transform: translateY(12px) scale(0.96); } }
+
+/* A change of screen (main.ts, with the View Transitions API) fades through the paper: the old screen fades out in 90 ms, then
+   the new one fades in, rising 6 px, so two screens of text are never seen through each other. The bar is left out of it, so
+   only its underline moves, and taps reach the new screen while it plays. */
+@media (prefers-reduced-motion: no-preference) {
+  .app-nav { view-transition-name: app-nav; }
+}
+::view-transition { pointer-events: none; background: var(--bg); }
+::view-transition-old(root) { animation: app-screen-out 90ms ease-in both; }
+::view-transition-new(root) { animation: app-screen-in 190ms var(--ease-out) 50ms both; }
+::view-transition-group(app-nav), ::view-transition-new(app-nav) { animation: none; }
+::view-transition-old(app-nav) { animation: none; opacity: 0; }
+@keyframes app-screen-out { to { opacity: 0; } }
+@keyframes app-screen-in { from { opacity: 0; transform: translateY(6px); } }
 
 .app-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 96px 16px; color: var(--text-3); font-size: 14px; animation: app-fade-in 0.4s var(--ease) 0.15s backwards; }
 .app-loading-text { font-variant-numeric: tabular-nums; }

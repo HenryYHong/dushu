@@ -170,6 +170,15 @@ const LEVELS = [
   { key: 'advanced', name: ttm('Advanced'), books: ttm('Advanced books'), note: ttm('Novels and older, richer language') },
 ] as const;
 type LevelKey = (typeof LEVELS)[number]['key'];
+
+/**
+ * When the first shelf since the app opened was drawn. It eases in, a card at a time (library.css .lib-grid-in); a shelf drawn
+ * again while it does (the titles in the reading script once the dictionary is in) carries on from where it was. Later shelves,
+ * a search, a sort, the library again after a book, are simply there.
+ */
+let shelfAt: number | null = null;
+/** How long the first shelf takes to ease in: the seventh card's beat (the last, library.css) and its own rise. */
+const SHELF_EASE_MS = 6 * 30 + 300;
 const levelOf = (s: Sample): LevelKey => (/^(beginner|easy)/i.test(s.level ?? '') ? 'easy' : /^intermediate/i.test(s.level ?? '') ? 'intermediate' : 'advanced');
 
 export const mount: MountFn = (root, _params, ctx) => {
@@ -398,7 +407,15 @@ export const mount: MountFn = (root, _params, ctx) => {
       settleFocus();
       return;
     }
-    gridEl.appendChild(h('div.lib-grid', null, jobs.map(pendingCard), matched.map(bookCard)));
+    const grid = h('div.lib-grid', null, jobs.map(pendingCard), matched.map(bookCard));
+    const now = performance.now();
+    shelfAt ??= now;
+    if (now - shelfAt < SHELF_EASE_MS) {
+      grid.classList.add('lib-grid-in');
+      grid.style.setProperty('--lib-t', `${Math.round(now - shelfAt)}ms`);
+      [...grid.children].forEach((card, i) => (card as HTMLElement).style.setProperty('--lib-i', String(Math.min(i, 6))));
+    }
+    gridEl.appendChild(grid);
     settleFocus();
   }
 

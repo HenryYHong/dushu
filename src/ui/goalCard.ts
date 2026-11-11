@@ -12,6 +12,7 @@ const FLAME = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.3c.4
 const MARK = '\u0001';
 
 const minutes = (sec: number) => Math.floor(sec / 60);
+const still = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** Midday on a day ("2026-11-09"), so its weekday is the same in every time zone. */
 const noonOf = (day: string) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 
@@ -72,8 +73,25 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
       h('span.goal-sr', null, said));
   };
 
+  // Today's bar fills from empty once the card is first on screen (the library draws it hidden until the books are in), and from
+  // where it was when time is added; goal.css moves it with a transform.
+  let part = 0;
+  let onScreen = false;
+  const paintBar = () => { if (onScreen) fill.style.transform = `translateX(${part - 100}%)`; };
+  const io = typeof IntersectionObserver === 'function'
+    ? new IntersectionObserver((seen) => {
+      if (!seen.some((e) => e.isIntersecting)) return;
+      io?.disconnect();
+      onScreen = true;
+      paintBar();
+    })
+    : null;
+  if (io) io.observe(bar);
+  else onScreen = true;
+
   /** The day the card shows as today: past midnight it draws again. */
   let shown = '';
+  let drawn = false;
   const draw = () => {
     const plan = getPlan();
     shown = dayOf();
@@ -86,7 +104,14 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
     const current = s.current;
     const [before, after] = current ? ttn(current, '{n} day streak', '{n} day streak', { n: MARK }).split(MARK) : ['', ''];
     lead.textContent = before ?? '';
-    count.textContent = current ? num(current) : '';
+    const n = current ? num(current) : '';
+    // A new streak number rolls up into place; the same one drawn again stays still.
+    if (count.textContent !== n) {
+      count.textContent = n;
+      if (drawn && n && !still() && typeof count.animate === 'function') {
+        count.animate([{ opacity: 0, transform: 'translateY(0.3em)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+      }
+    }
     unit.textContent = current ? after ?? '' : s.best ? tt('No streak right now') : tt('No streak yet');
     const top = s.best;
     best.textContent = top > current ? ttn(top, 'Best: {n} day', 'Best: {n} days')
@@ -94,11 +119,13 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
     const m = minutes(s.today);
     const goal = s.goal;
     today.textContent = s.met ? tt('{m} min today. Goal of {goal} min reached.', { m: num(m), goal: num(goal) }) : tt('{m} of {goal} min today', { m: num(m), goal: num(goal) });
-    fill.style.width = `${Math.min(100, Math.round((s.today / (s.goal * 60)) * 100))}%`;
+    part = Math.min(100, Math.round((s.today / (s.goal * 60)) * 100));
+    paintBar();
     bar.setAttribute('aria-valuemax', String(s.goal));
     bar.setAttribute('aria-valuenow', String(Math.min(m, s.goal)));
     bar.setAttribute('aria-label', ttn(goal, '{m} of {n} minute today', '{m} of {n} minutes today', { m: num(m) }));
     week.replaceChildren(...s.week.map((d, i) => dayCell(d, i === s.week.length - 1)));
+    drawn = true;
   };
   draw();
   const onStorage = (e: StorageEvent) => { if (e.key === ACTIVITY_KEY || e.key === PLAN_KEY || e.key === null) draw(); };
@@ -115,6 +142,7 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
   return {
     el,
     dispose() {
+      io?.disconnect();
       window.clearInterval(tick);
       window.removeEventListener(ACTIVITY_EVENT, draw);
       window.removeEventListener('storage', onStorage);
