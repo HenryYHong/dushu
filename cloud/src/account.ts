@@ -1,7 +1,8 @@
-// One sync account: its sign-in codes or passkeys, its signed-in devices and its records. The Worker (worker.ts) keeps one of
-// these per email, or per account made with a passkey, in a Durable Object with its own SQLite database (sqlStore.ts); tests
-// keep it in memory. Every method is synchronous over the store, so a Durable Object runs each one as a single transaction;
-// the hashing and the passkey signatures are checked before.
+// One sync account: its sign-in codes, passkeys and Google sign-in, its signed-in devices and its records. The Worker
+// (worker.ts) keeps one of these per email (a code and Google reach the same one), or per account made with a passkey, in a
+// Durable Object with its own SQLite database (sqlStore.ts); tests keep it in memory. Every method is synchronous over the
+// store, so a Durable Object runs each one as a single transaction; the hashing, the passkey signatures and Google's tokens
+// are checked before.
 import { countRecord, exchange, inLang, noCounts, recordSize, shareReader, type RecordTable, type SyncReply } from '../../src/core/syncExchange';
 import { OTHER_LANGS } from '../../src/core/syncKeys';
 import { REMIND_DUE, REMIND_EVERY_MS, REMIND_IDLE_MS, REMIND_SLACK_MS, WELCOME_AFTER_MS, WELCOME_WITHIN_MS, isMailLocale, validTimeZone, type FollowupPlan } from './followups';
@@ -253,6 +254,21 @@ export class AccountCore {
       throw new CloudError(400, tries >= TRIES_PER_CODE ? 'Too many wrong tries. Ask for a new code.' : 'That code is not right. Check the newest email.');
     }
     this.store.setMeta('code', JSON.stringify({ ...c, hash: '' }));
+    return this.addSession(sessionHash, now);
+  }
+
+  /**
+   * Signs in with Google, with no code: worker.ts has checked Google's ID token (google.ts), so `email` is an address Google
+   * verified, and this is the account an emailed code to it reaches ('email:<address>'). Like verify: the device gets a
+   * session, `created` is set the first time, and the address is kept (a code may never have been asked for). Google's id for
+   * the person (`sub`) is noted in meta `google`, the ID Google gives the account (public/privacy.html); a later sign-in by
+   * another Google account with the same verified address replaces it, as a code to that address would let it in anyway.
+   */
+  googleSignIn(email: string, sub: string, sessionHash: string, now: number): SignedIn {
+    const address = normalEmail(email);
+    if (!address || !sub || sub.length > 255) throw new CloudError(400, 'That Google sign-in could not be used.');
+    if (!this.store.getMeta('email')) this.store.setMeta('email', address);
+    if (this.store.getMeta('google') !== sub) this.store.setMeta('google', sub);
     return this.addSession(sessionHash, now);
   }
 
@@ -778,14 +794,14 @@ export function memoryStore(): AccountStore & {
 
 /**
  * What every account shares, kept by one Durable Object: today's counts (the free allowances, sign-ins from one network), the
- * passkey challenges waiting for an answer, and the owner's invites.
+ * passkey challenges waiting for an answer, the owner's invites, and the Google nonces already used.
  */
 export interface LimitsStore {
   get(day: string, name: string): number;
   set(day: string, name: string, n: number): void;
   /** Forgets the days before `day`. */
   prune(day: string): void;
-  /** Small values by kind ('challenge', 'invite') and key; null removes one. */
+  /** Small values by kind ('challenge', 'invite', 'once') and key; null removes one. */
   item(kind: string, key: string): string | undefined;
   putItem(kind: string, key: string, value: string | null): void;
   items(kind: string): { key: string; value: string }[];
@@ -798,6 +814,8 @@ export const CHALLENGE_TTL_MS = 5 * 60_000;
 /** An invite link the owner made: who it is for, how many accounts it may make, and how many it has. */
 export interface Invite { token: string; label: string; max: number; uses: number; created: number; revoked?: boolean }
 export const MAX_INVITE_USES = 500;
+/** How long a used Google nonce is remembered (LimitsCore takeOnce). */
+export const ONCE_TTL_MS = 2 * 86_400_000;
 const INVITE = /^[A-Za-z0-9_-]{16,64}$/;
 
 export class LimitsCore {
@@ -853,6 +871,21 @@ export class LimitsCore {
   revokeInvite(token: string): void {
     const value = INVITE.test(token) ? this.store.item('invite', token) : undefined;
     if (value) this.store.putItem('invite', token, JSON.stringify({ ...JSON.parse(value) as Invite, revoked: true }));
+  }
+
+  /**
+   * Takes a one-time value (the SHA-256 of a Google sign-in's nonce, hex), remembered for ONCE_TTL_MS: false when it was taken
+   * before. A Google ID token holds its nonce in plain sight, so anyone holding a copy of the token (a history, a log) holds the
+   * nonce too; remembering it is what makes the token sign in once. The token itself expires within the hour, so two days is
+   * more than it can ever be good for.
+   */
+  takeOnce(hash: string, now: number): boolean {
+    if (!/^[0-9a-f]{64}$/.test(hash)) return false;
+    const seen = Number(this.store.item('once', hash));
+    if (Number.isFinite(seen) && seen >= now) return false;
+    for (const { key, value } of this.store.items('once')) if (!(Number(value) >= now)) this.store.putItem('once', key, null);
+    this.store.putItem('once', hash, String(now + ONCE_TTL_MS));
+    return true;
   }
 
   /** Adds each `n` to today's count of its `name`, or nothing at all (false) when any would pass its `max`. */

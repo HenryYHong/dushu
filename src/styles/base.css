@@ -395,6 +395,26 @@ dialog.modal:focus { outline: none; }
 .app-nav.app-nav-tight .app-navlink span.app-navlabel { display: none; }
 .set-cloud-or { margin-top: var(--space-1); }
 .signin-dialog .set-cloud-row > .btn-primary:only-child { flex: 1; height: 40px; font-size: 14px; }
+/* Continue with Google (settings/account.ts): Google's own button, as its sign-in branding guidelines draw it: white with a
+   grey ring, dark text and the four-color G, and in the dark theme Google's dark button. Not the app's colors on purpose:
+   people know it on sight. In the Sign in dialog it and the passkey buttons fill the width, one above the other. */
+.set-cloud-google {
+  gap: 10px; padding: 0 14px 0 12px; background: #fff; color: #1f1f1f; box-shadow: inset 0 0 0 1px #747775;
+  font-weight: 500; letter-spacing: 0.01em;
+}
+.set-cloud-google-mark { display: inline-flex; flex: none; width: 18px; height: 18px; }
+.set-cloud-google-mark svg { display: block; width: 18px; height: 18px; }
+:root[data-theme='dark'] .set-cloud-google { background: #131314; color: #e3e3e3; box-shadow: inset 0 0 0 1px #8e918f; }
+@media (hover: hover) {
+  .set-cloud-google:hover:not(:disabled) { background: color-mix(in srgb, #fff 92%, #303030); }
+  :root[data-theme='dark'] .set-cloud-google:hover:not(:disabled) { background: color-mix(in srgb, #131314 88%, #e3e3e3); }
+}
+.signin-dialog .set-cloud-wide > .btn { flex: 1 1 100%; font-size: 14px; }
+.signin-dialog .set-cloud-wide > .btn:not(.btn-ghost) { height: 40px; }
+/* Create an account with a passkey: a quiet link to the Join screen, under the passkey sign-in. */
+.set-cloud-create { color: var(--text-2); font-weight: 500; }
+.set-cloud-status:empty { display: none; }
+@media (pointer: coarse) { .signin-dialog .set-cloud-wide > .btn:not(.btn-ghost) { height: 44px; } }
 
 /* The language being read, beside the name: a quiet chip over a native select (a phone shows its own picker). */
 .app-lang {

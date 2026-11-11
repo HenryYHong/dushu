@@ -1167,7 +1167,8 @@ books go through the account, and so do the reader's corrections (§4.12: names 
 - **The merge** (`core/syncExchange.ts` `exchange`, over a `RecordTable`) is shared by both hubs: the Mac's table is the JSON file, the
   account's is SQLite. A device syncs with one hub: the account when signed in (`core/cloud.ts` `cloudSession`), else the Mac. Switching
   is an epoch change, so the device sends everything to the new hub and takes what it has (the restart path below).
-- **The sync account** (`cloud/`, a Cloudflare Worker; `npm run cloud:deploy`, Node 22 for wrangler): `POST /auth/code {email}` emails a
+- **The sync account** (`cloud/`, a Cloudflare Worker; `npm run cloud:deploy`, Node 22 for wrangler). Three ways in, offered in this
+  order: Continue with Google, a passkey, and an emailed code (**Signing in with Google** and **Passkeys** below). `POST /auth/code {email}` emails a
   six-digit code through Resend (`RESEND_API_KEY`; `ALLOWED_EMAILS` limits who may sign in; `MAIL_MODE=log` prints codes, local only);
   `POST /auth/verify {email, code}` returns a bearer token `<account id>.<secret>`; `GET|POST /sync` is the exchange, `GET /me`,
   `POST /auth/signout`. One Durable Object per email (`idFromName('email:<email>')`) holds `meta` (epoch, version, email, the current
@@ -1269,17 +1270,56 @@ books go through the account, and so do the reader's corrections (§4.12: names 
   Worker secret `ANTHROPIC_API_KEY`. A request is counted before it is sent (`claudeStart`, 429 `daily_limit` past the limits) and its
   tokens after (`claudeUsed`), per account per UTC day. The app's translator (`src/translate/claude.ts`) goes through the account when
   signed in, else the Mac; Local only turns Claude off either way.
+- **Signing in with Google** (`src/core/google.ts`, `cloud/src/google.ts`, `POST /auth/google`): OpenID Connect's implicit flow in the
+  same window, with no popup, no Google script and no client secret. The web client is the Google Cloud project "lingupengu"
+  (`GOOGLE_CLIENT_ID` in `src/core/cloudUrl.ts` and in `cloud/wrangler.toml` `[vars]`; scopes `openid email`; its only authorized
+  redirect URI is `https://henryyhong.com/dushu/`, `GOOGLE_REDIRECT_URI`).
+  - *Why the same window.* A popup (`window.open`, Google's own script) breaks in an iPhone's Home Screen app; a navigation to
+    Google and back works there, in Android Chrome and the installed app, and in every desktop browser.
+  - *Where.* The button (`ui/settings/account.ts`, first in the panel: Google's white button with its four-color G, Google's dark
+    one in the dark theme, per its branding guidelines) shows only where the page's origin and path are exactly the redirect URI
+    (`googleOffered`), so localhost and the owner's private copies never start a trip that cannot come back.
+  - *Leaving* (`startGoogleSignIn`): a state and a nonce (32 random bytes each, base64url) and `back`, the current `#/…` route, kept
+    as `dushu.google.v1` in localStorage (not sessionStorage, which some browsers and Home Screen apps lose on the way), good for 15
+    minutes; then `location.assign` to `accounts.google.com/o/oauth2/v2/auth` with `client_id`, `redirect_uri`,
+    `response_type=id_token`, `scope=openid email`, `nonce`, `state`, `prompt=select_account`.
+  - *Coming back* (`takeGoogleReturn`, the first thing `main.ts` does, before the router or anything else reads the address): Google
+    answers `https://henryyhong.com/dushu/#id_token=…&state=…` (or `#error=…&state=…`). The fragment is replaced in place by `back`
+    (`history.replaceState`, only an internal `#/…` route, else `#/`), so the token never stays in the address bar, the history or
+    a bookmark, and the trip kept for it is used up whatever came back. `error=access_denied` (a cancel) says nothing; a state
+    that is missing, wrong or too old (the trip ended in another browser or lost its storage), or another error, says "Google
+    sign-in didn't finish here. Try again, or sign in with your email." A good one is finished once the app can say how it went
+    (`finishGoogleReturn`): `POST /auth/google {idToken, nonce}`, kept like `/auth/verify`'s answer (`keepSession`: sync starts,
+    the account's books come, the same "Signed in" message).
+  - *The check* (`verifyGoogleIdToken`, WebCrypto, no library): header `alg` RS256 and a `kid`; the key from Google's JWKS
+    (`googleapis.com/oauth2/v3/certs`), kept in the isolate for its Cache-Control max-age (at most a day) and fetched once more for
+    a `kid` it does not know (then refused); an RSASSA-PKCS1-v1_5 SHA-256 signature over `header.payload`; `iss` Google's (either
+    spelling); `aud` the client id (and `azp`, when present); `exp` not past (60 s of clock skew) and `iat` not ahead (5 minutes);
+    `email` present and `email_verified` true (else 403); the token's `nonce` the one the app sent beside it (at least 16
+    characters). Refused tokens are one 401 (`bad_google`) for the app, with the reason for tests. The nonce's hash is then taken
+    once in the Limits object (`takeOnce`, kept 2 days): the token carries its nonce, so a copy of it (a history, a log) would
+    otherwise sign in again for the hour it lasts. 30 a day per network (`GOOGLE_PER_NETWORK`, counted before the check); 503
+    without `GOOGLE_CLIENT_ID`; `ALLOWED_EMAILS` applies.
+  - *The account* is the one an emailed code to the address reaches (`idFromName('email:' + normalEmail(email))`), so a person
+    who signed up by code and later taps Google finds everything there. Op `google` (`AccountCore.googleSignIn`): a session like
+    `verify`, `created` the first time, the address kept, Google's `sub` noted in meta `google` (what `public/privacy.html` calls
+    the ID Google gives the account); answered `{token, email, created}` as `/auth/verify`, and the directory told at once.
 - **Passkeys and invites** (`src/core/passkey.ts`, the passkey routes in `cloud/src/worker.ts`, `@simplewebauthn/server` on the
-  Worker, the browser's own WebAuthn in the app): signing in costs nothing and has no daily limit, unlike email. The owner makes
-  invite links in Settings (`/invites`, owner only; a link names who it is for and how many accounts it may make). Someone invited
-  opens `#/join/<invite>` (`src/ui/join.ts`), types a name, and makes an account with a passkey and no email
-  (`/auth/passkey/join-options`, `/auth/passkey/join`); the invite is counted only once the passkey is checked. The account's
+  Worker, the browser's own WebAuthn in the app): signing in costs nothing and has no daily limit, unlike email. Anyone can make
+  an account with a passkey: the sign-in's "Create an account with a passkey" (shown where `window.PublicKeyCredential` is) opens
+  `#/join` (`src/ui/join.ts`), the person types a name, and the passkey makes the account with no email
+  (`/auth/passkey/join-options`, `/auth/passkey/join` with no invite). Such accounts count against everyone's day,
+  `passkey-accounts` in the Limits object up to `NEW_PASSKEY_ACCOUNTS` (300; "0" turns it off), counted only when the passkey is
+  checked (an attempt given up costs nothing) and asked before the passkey is made; `JOINS_PER_NETWORK` (40) still holds. The
+  owner also makes invite links in Settings (`/invites`, owner only; a link names who it is for and how many accounts it may
+  make). Someone invited opens `#/join/<invite>`, and the same steps count against the invite instead, exactly as before; a
+  named invite that is no good is refused, never taken for none. The invite is counted only once the passkey is checked. The account's
   Durable Object id is the passkey's user handle, so a sign-in (`/auth/passkey/options`, `/auth/passkey/signin`: a discoverable
   passkey, no list sent) goes straight to its account, which holds the public key and checks nothing itself: the Worker checks the
   signature, origin, site and challenge. Challenges are kept by the shared Limits object, taken once within five minutes. The rpID
   is the page's host (henryyhong.com on the public copy). Anyone signed in can add a passkey for this device (`/me/passkey`), the
   owner's email account included. Such an account is named `passkey:<id>` where an email would be, has the person's name, and is
-  never an owner's. Email codes stay, for the owner and as a way back.
+  never an owner's. Email codes stay, for anyone, and as a way back; Google reaches the same email accounts.
 - **Follow-ups** (`cloud/src/followups.ts`, `directory.ts`, `push.ts`, the `followup` op in `worker.ts`): a welcome email once, 20 to
   72 hours after an account with an email is made, and a review reminder when at least 5 saved words are due (every language), the
   newest session's `used` is 3 days old, and no reminder went out in 7 days (less 3 hours, `REMIND_SLACK_MS`, so a run that
@@ -1293,7 +1333,7 @@ books go through the account, and so do the reader's corrections (§4.12: names 
     accounts off the queue and asks them one after another to do op `followup` (a second after each email, `EMAIL_GAP_MS`:
     Resend takes 2 requests a second by default), and sets itself again until the queue is empty. Off the queue before they are asked, so an
     alarm cut off and run again (a deploy, a timeout) never asks an account twice. An account adds itself on sign-in (code,
-    passkey made or used), and on `/sync` when its zone changed or a day has passed (meta `dir` remembers what it told and when);
+    Google, passkey made or used), and on `/sync` when its zone changed or a day has passed (meta `dir` remembers what it told and when);
     deleting it, or a run that finds it signed out everywhere, takes it out until the next sign-in.
   - *Why this shape.* On Workers Free an invocation has about 10 ms of CPU and 50 subrequests, and each Durable Object request is
     an invocation of its own. The cron only touches the small directory; each alarm makes 25 subrequests; and each account does
@@ -1354,8 +1394,14 @@ books go through the account, and so do the reader's corrections (§4.12: names 
   made, or by the first sync for older ones), travels as `book`, and is moved onto the local book whenever that book is here (it arrived, or
   was deleted and added again); deleting a book keeps its bookmarks and sends nothing. A device always takes the Mac's copy of a looked-up word
   (the store merges it with its own row in `store.sync.apply`) and sends again what only it had.
-- **When**: at start, 1.5 s after a change to words, known words, lookups or bookmarks, 5 s after a place is saved, on every screen change, when the page is hidden (keepalive when small) or
-  shown again, when the connected Mac changes, when back online, and every 45 s while visible. The reader waits up to 1.5 s for a sync
+- **When**: at start, 1.5 s after a change to words, known words, lookups or bookmarks, 5 s after a place is saved (3 s after a
+  synced setting or the goal), on every screen change, when the page is hidden (keepalive when small) or shown again, when the
+  window gets the focus, when the connected Mac changes, when back online, on sign-in, and 3 minutes after the last sync while
+  visible (`IDLE_SYNC_MS`; a hidden page lets it lapse). The account's books (`main.ts`): on open, on sign-in, when the page
+  comes back to the front or online, and every 10 minutes while visible. Why: Workers Free answers 100,000 requests a day for
+  everyone together, and every sync is one. At the old 45 s poll and 5-minute books a page left open made about 92 requests an
+  hour, so a thousand readers with the app open an hour and a half a day would have used the day on polls alone; now it is 26.
+  The poll is not what keeps devices in step: changes go out within seconds, and a device asks whenever it is looked at again. The reader waits up to 1.5 s for a sync
   before it reads the saved place (`syncBeforeOpen`), never saves a place that did not move (so opening a book on a stale device cannot
   overwrite a newer place), and when another device's place arrives for the open book it offers "Go there" (`dushu:remote-progress`).
 - **Settings** → Your Mac and iPad → Sync: a switch (localStorage `dushu.sync.off.v1`, or the language's own), Sync now, and the
@@ -1520,7 +1566,8 @@ and one tap clears every place of one. So once a book's names are found, the rea
 
 ### 5.1 Shell (`main.ts`, done)
 Routes: `#/` library · `#/read/<bookId>?ch=<n>` reader · `#/vocab` · `#/review` ·
-`#/settings` · `#/about`. Each screen module exports `mount: MountFn` and returns a cleanup.
+`#/settings` · `#/about` · `#/join` (a passkey account; `#/join/<invite>` on an invite). Each screen module exports `mount: MountFn` and returns a cleanup.
+Before the router first reads the address, a sign-in coming back from Google is taken out of it (§4.11, Signing in with Google).
 The reader hides the nav (`body[data-route=read]`) and draws its own top bar.
 On a route change the old screen's cleanup runs before `body[data-route]` changes, so the reader saves its place under its own
 layout (with the nav back in the flow it measured a line early on every visit). A screen that finishes mounting after the route
@@ -1881,6 +1928,8 @@ screen, the one being read marked with a vermilion ribbon (the first at the top 
 CC BY-SA attribution is required; Noto Serif SC/TC and LXGW WenKai are OFL 1.1), coverage counts, keyboard shortcuts, what can be imported
 (EPUB, MOBI and AZW3 without DRM, TXT, PDF, HTML, Markdown), reading like a book, names and terms, iPad, and a storage card (is the data
 protected from eviction, with an ask button; `navigator.storage.persist()` is requested once after the first import, or at boot when books exist).
+The sync account (`ui/settings/account.ts`, the same panel as the top bar's Sign in dialog): signed out, Continue with Google (on
+the public site only), Sign in with a passkey and Create an account with a passkey (where WebAuthn is), then the email and its code.
 Reminders (`ui/settings/reminders.ts`, `core/reminders.ts`), under the sync account while signed in: "Email reminders" for an account with an
 email (`/me/reminders`), and "Notifications on this device" when the server has a push key (`/push/key`). The browser asks for permission only
 on that tap; the switch reads this device's push subscription, sends it to the account again each time Settings opens, and says why it can't

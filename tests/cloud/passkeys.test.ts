@@ -143,6 +143,61 @@ describe('passkey accounts on an invite', () => {
   });
 });
 
+describe('passkey accounts with no invite', () => {
+  const open = async (c: Cloud, name: string, device: Device = fakeAuthenticator()) => {
+    const options = await body(await c.post('/auth/passkey/join-options', { name }));
+    return { options, device, finish: async () => c.post('/auth/passkey/join', { challenge: options.challenge, response: await device.create(options as CreateOptions, PAGE) }) };
+  };
+
+  it('lets anyone make one, signs in with it again, and tells the directory', async () => {
+    const c = cloud({ OWNER_EMAILS: OWNER, ALLOWED_EMAILS: OWNER });
+    const amy = await open(c, 'Amy');
+    expect(amy.options.rp).toEqual({ id: 'henryyhong.com', name: 'LinguPengu' });
+    const res = await amy.finish();
+    expect(res.status).toBe(200);
+    const joined = await body(res);
+    expect(joined).toMatchObject({ email: expect.stringMatching(/^passkey:[0-9a-f]{64}$/), name: 'Amy', created: expect.any(String) });
+    expect(await me(c, joined.token)).toMatchObject({ name: 'Amy', owner: false, passkeys: 1 });
+    expect(c.directory.person(joined.token.split('.')[0])?.tz).toBe('UTC');
+    const again = await passkeySignIn(c, amy.device);
+    expect(await body(again)).toMatchObject({ email: joined.email, name: 'Amy', created: joined.created });
+  });
+
+  it('counts the day’s accounts when a passkey makes one, up to NEW_PASSKEY_ACCOUNTS, and leaves invites apart', async () => {
+    const c = cloud({ OWNER_EMAILS: OWNER, NEW_PASSKEY_ACCOUNTS: '2' });
+    // Started and given up: not counted.
+    await open(c, 'Gave up');
+    expect((await (await open(c, 'Amy')).finish()).status).toBe(200);
+    // Two asked for before the day is full, both answered after: the second is refused when its passkey comes.
+    const ben = await open(c, 'Ben');
+    const cat = await open(c, 'Cat');
+    expect((await ben.finish()).status).toBe(200);
+    const late = await cat.finish();
+    expect(late.status).toBe(429);
+    expect(await body(late)).toMatchObject({ code: 'daily_limit', error: expect.stringMatching(/new passkey accounts it can today/) });
+    // Full: not even asked.
+    const full = await c.post('/auth/passkey/join-options', { name: 'Dan' });
+    expect(full.status).toBe(429);
+    // An invite still makes accounts, against its own count.
+    const owner = await signedIn(c, OWNER);
+    expect((await join(c, await invite(c, owner, 1), 'Eve')).res.status).toBe(200);
+    // And a named invite that is no good is still refused as one, not taken for no invite.
+    expect(await body(await c.post('/auth/passkey/join-options', { invite: 'x'.repeat(24), name: 'Fay' }))).toMatchObject({ code: 'bad_invite' });
+  });
+
+  it('is off with NEW_PASSKEY_ACCOUNTS "0", and a network starts 40 a day at most', async () => {
+    const off = cloud({ NEW_PASSKEY_ACCOUNTS: '0' });
+    expect((await off.post('/auth/passkey/join-options', { name: 'Amy' })).status).toBe(429);
+    const c = cloud();
+    const from = (ip: string) => c.call('/auth/passkey/join-options', { method: 'POST', body: JSON.stringify({ name: 'Amy' }), headers: { 'CF-Connecting-IP': ip } });
+    for (let i = 0; i < 40; i++) expect((await from('203.0.113.7')).status).toBe(200);
+    const over = await from('203.0.113.7');
+    expect(over.status).toBe(429);
+    expect((await body(over)).error).toMatch(/Too many accounts were started from this network today/);
+    expect((await from('198.51.100.4')).status).toBe(200);
+  });
+});
+
 describe('the app’s passkeys', () => {
   it('joins on an invite, signs out, signs in with the passkey, and the owner adds one', async () => {
     const c = cloud({ OWNER_EMAILS: OWNER, ALLOWED_EMAILS: OWNER });
@@ -174,6 +229,14 @@ describe('the app’s passkeys', () => {
       expect(cloudSession()).toBeNull();
       const back = await signInWithPasskey();
       expect(back).toMatchObject({ email: s.email, name: 'Amy' });
+
+      // Someone with no invite makes an account the same way (the Join screen without one).
+      await signOut();
+      const own = await joinWithPasskey('', 'Ben');
+      expect(cloudSession()).toMatchObject({ email: own.email, name: 'Ben' });
+      expect(own.email).not.toBe(s.email);
+      await signOut();
+      device.held.delete([...device.held.keys()].at(-1)!);
 
       // The owner, signed in by email, adds a passkey on this device; it then signs in to the owner's account.
       localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: owner, email: OWNER }));

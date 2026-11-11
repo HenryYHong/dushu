@@ -1,10 +1,11 @@
 // The sync account from anywhere: the top bar's account button ("Sign in" while signed out; signed in, what sync is doing:
-// "Synced", "Offline", "Not synced" or "Sync off") opens the sign-in (a passkey, or an emailed code), or who is signed in with
-// Sign out, in a dialog: the same panel as Settings' Sync account.
+// "Synced", "Offline", "Not synced" or "Sync off") opens the sign-in (Google, a passkey, or an emailed code), or who is signed
+// in with Sign out, in a dialog: the same panel as Settings' Sync account.
 import { h } from './dom';
 import { icon } from './icons';
 import { CLOUD_EVENT, accountLabel, cloudBase, cloudSession } from '../core/cloud';
 import { passkeysSupported } from '../core/passkey';
+import { googleOffered } from '../core/google';
 import { SYNC_EVENT, currentSyncer, syncEnabled, type Syncer, type SyncStatus } from '../core/sync';
 import { accountPanel } from './settings/account';
 import { describeSync } from './settings/sync';
@@ -24,8 +25,8 @@ export function openSignIn(): void {
     title.textContent = signedIn ? tt('Your account') : tt('Sign in');
     intro.textContent = signedIn
       ? tt('Your books, words and places are the same on every device signed in to this account.')
-      : passkeysSupported()
-        ? tt('Sign in and your books, words and places are the same on every device. Use your passkey, or get a code by email.')
+      : passkeysSupported() || googleOffered()
+        ? tt('Sign in and your books, words and places are the same on every device. The first time makes your account.')
         : tt('Sign in and your books, words and places are the same on every device. We email you a 6-digit code. There’s no password.');
   };
   paintHead();
@@ -33,8 +34,16 @@ export function openSignIn(): void {
     h('div.signin-body', null, title, intro, panel.el),
     h('div.signin-actions', null, h('button.btn', { type: 'button', onclick: () => dlg.close() }, tt('Close'))),
   );
+  // Another screen opened from inside the dialog (Create an account with a passkey, which is the Join screen): the dialog goes.
+  const onRoute = () => dlg.close();
   window.addEventListener(CLOUD_EVENT, paintHead);
-  dlg.addEventListener('close', () => { window.removeEventListener(CLOUD_EVENT, paintHead); panel.dispose(); dlg.remove(); });
+  window.addEventListener('hashchange', onRoute);
+  dlg.addEventListener('close', () => {
+    window.removeEventListener(CLOUD_EVENT, paintHead);
+    window.removeEventListener('hashchange', onRoute);
+    panel.dispose();
+    dlg.remove();
+  });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
   document.body.appendChild(dlg);
   dlg.showModal();
@@ -50,7 +59,7 @@ const SYNCING = ttm('Syncing…');
 /**
  * What the account button says while signed in, from this library's syncer and the connection. Only "Synced" (the green dot)
  * says the words here are on the other devices. A sync under way keeps what was shown before, so the label does not flicker
- * with each sync every 45 seconds; "Syncing…" shows only until the first sync has answered. The label is in English, as
+ * with each sync (after every change, and every few minutes); "Syncing…" shows only until the first sync has answered. The label is in English, as
  * `before` is: the button shows it through tt().
  */
 export function syncLabel(st: SyncStatus | null, enabled: boolean, online: boolean, before: string | null): string {

@@ -1,7 +1,7 @@
-// Dushu's sync account online: a device signs in with a passkey or an emailed code and then syncs exactly as it would with
-// the owner's Mac (src/core/sync.ts speaks the same exchange). One Durable Object per account holds it (account.ts), so its
-// requests run one at a time: per email for the owner, per passkey account for everyone the owner invites. Another holds what
-// they all share: the daily counts, the passkey challenges, and the owner's invites. Sessions are bearer tokens
+// Dushu's sync account online: a device signs in with Google, a passkey or an emailed code and then syncs exactly as it would
+// with the owner's Mac (src/core/sync.ts speaks the same exchange). One Durable Object per account holds it (account.ts), so
+// its requests run one at a time: per email (a code or Google), or per passkey account. Another holds what they all share:
+// the daily counts, the passkey challenges, the owner's invites and the Google nonces already used. Sessions are bearer tokens
 // '<account id>.<secret>': only the secret's SHA-256 is stored. Read-aloud and sentence translation for everyone signed in use
 // Workers AI, kept together under its free daily allowance (SPEECH_MAX_CHARS, TRANSLATE_NEURONS). A third object, the
 // directory, lists the accounts by time zone, so the hourly cron can send review reminders at each person's 6 PM (directory.ts,
@@ -15,6 +15,7 @@ import { codeEmail, logMailer, resendMailer, type Mailer } from './mail';
 import { DirectoryCore, FOLLOWUP_BATCH } from './directory';
 import { EMAIL_GAP_MS, FOLLOWUP_EMAILS, runFollowup, unsubscribePage, type FollowupDeps } from './followups';
 import { vapidKeys } from './push';
+import { verifyGoogleIdToken } from './google';
 import { SYNC_LIMITS, SyncError, syncLang } from '../../src/core/syncExchange';
 import { CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../../src/translate/claudePrompts';
 import { describeError, parseTranslateBody, runClaude, targetEcho, type ServerClient } from '../../src/translate/claudeServer';
@@ -83,6 +84,15 @@ export interface Env {
   FOLLOWUP_EMAILS?: string;
   /** Tests send push messages through this instead of the network. */
   pushFetch?: typeof fetch;
+  /**
+   * The Google OAuth web client the app signs in with (wrangler.toml [vars]; public, it is in every sign-in address). Its
+   * ID tokens must name it. Unset: no Google sign-in (503).
+   */
+  GOOGLE_CLIENT_ID?: string;
+  /** Tests fetch Google's keys through this instead of the network. */
+  googleFetch?: typeof fetch;
+  /** Accounts made in a day with a passkey and no invite, by everyone together (300 when unset; "0" turns that off). */
+  NEW_PASSKEY_ACCOUNTS?: string;
 }
 
 const owners = (env: Env) => env.OWNER_EMAILS ?? env.ALLOWED_EMAILS ?? '';
@@ -118,9 +128,27 @@ const TRANSLATE_UPFRONT = 3;
 const CODES_PER_NETWORK = 40;
 /** Wrong sign-in codes a day from one network. */
 const WRONG_PER_NETWORK = 20;
-/** Accounts started on invites from one network a day (a classroom shares one), and passkey sign-ins and invite checks. */
+/** Accounts started with a passkey from one network a day (a classroom shares one), and passkey sign-ins and invite checks. */
 const JOINS_PER_NETWORK = 40;
 const PASSKEYS_PER_NETWORK = 300;
+/**
+ * Accounts made with a passkey and no invite, by everyone in a day (NEW_PASSKEY_ACCOUNTS). Each is a Durable Object with room
+ * for 40 MB of records and 200 MB of books, and nothing proves a person is behind it, so the day has a ceiling well above a
+ * good day of sign-ups (a few hundred) and far below what would fill the free plan's 5 GB. An invite's accounts are the
+ * invite's own count, apart.
+ */
+const NEW_PASSKEY_ACCOUNTS = 300;
+const OPEN_ACCOUNTS = 'passkey-accounts';
+const openAccounts = (env: Env): number => {
+  const n = Number(env.NEW_PASSKEY_ACCOUNTS);
+  return env.NEW_PASSKEY_ACCOUNTS !== undefined && env.NEW_PASSKEY_ACCOUNTS.trim() !== '' && Number.isFinite(n) && n >= 0 ? Math.floor(n) : NEW_PASSKEY_ACCOUNTS;
+};
+const NO_MORE_ACCOUNTS = 'LinguPengu has made all the new passkey accounts it can today. Try again tomorrow, or continue with Google or your email.';
+/**
+ * Google sign-ins from one network a day. Google does the proving and nothing is emailed, so this only keeps one network from
+ * making the Worker fetch Google's keys or fill the nonce list: a classroom signing in together stays well under it.
+ */
+const GOOGLE_PER_NETWORK = 30;
 /** Books one network may fetch from Project Gutenberg through the Worker in a day (gutenbergBook), and the largest one. */
 const BOOKS_PER_NETWORK = 200;
 const BOOK_MAX_BYTES = 40 * 1024 * 1024;
@@ -437,7 +465,7 @@ async function newPasskey(response: unknown, challenge: string, origin: string, 
   }
 }
 
-/** Passkey sign-in and invites. Null when the path is none of theirs. */
+/** Passkey sign-in, passkey accounts (on an invite or not) and invites. Null when the path is none of theirs. */
 async function passkeyRoute(path: string, request: Request, env: Env): Promise<Response | null> {
   // An invite link, before the person types their name: is it good, and whose is it.
   if (path === '/auth/invite' && request.method === 'POST') {
@@ -447,15 +475,22 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
     return json(200, { label: invite.label });
   }
 
-  // Joining on an invite: a new account, named by the person, made with a passkey on this device.
+  // A new account, named by the person, made with a passkey on this device: on an invite (counted against the invite), or by
+  // anyone with none (counted against everyone's day, OPEN_ACCOUNTS). An invite that is named but no good is refused, as
+  // before; only a request that names none is open.
   if (path === '/auth/passkey/join-options' && request.method === 'POST') {
     const { origin, rpID } = pageOrigin(request);
     const body = await readJson(request, 4096);
     const name = personName(body.name);
     if (!name) throw new CloudError(400, 'Type your name.');
     const token = str(body.invite);
-    const { invite } = await shared(env, 'invite', { token }) as { invite: Invite | null };
-    if (!invite) throw new CloudError(403, 'This invite link is not valid anymore. Ask for a new one.', 'bad_invite');
+    if (token) {
+      const { invite } = await shared(env, 'invite', { token }) as { invite: Invite | null };
+      if (!invite) throw new CloudError(403, 'This invite link is not valid anymore. Ask for a new one.', 'bad_invite');
+    } else if (!await takeShared(env, [{ name: OPEN_ACCOUNTS, n: 0, max: openAccounts(env) - 1 }])) {
+      // Asked (n 0) and not counted: the day is counted only when a passkey makes the account (below).
+      throw new CloudError(429, NO_MORE_ACCOUNTS, 'daily_limit');
+    }
     await perNetwork(request, env, 'join', JOINS_PER_NETWORK, 'Too many accounts were started from this network today. Try again tomorrow.');
     const id = env.ACCOUNTS.idFromName(`passkey:${secret()}`).toString();
     const challenge = secret();
@@ -468,8 +503,12 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
     const challenge = str(body.challenge);
     const w = await answered(env, challenge, 'join', origin);
     const key = await newPasskey(body.response, challenge, origin, rpID);
-    // Counted only now, with the passkey made: an attempt given up does not use the invite.
-    if ((await shared(env, 'invite-use', { token: w.invite })).ok !== true) throw new CloudError(403, 'This invite link is used up. Ask for a new one.', 'bad_invite');
+    // Counted only now, with the passkey made: an attempt given up does not use the invite, nor the day's accounts.
+    if (w.invite) {
+      if ((await shared(env, 'invite-use', { token: w.invite })).ok !== true) throw new CloudError(403, 'This invite link is used up. Ask for a new one.', 'bad_invite');
+    } else if (!await takeShared(env, [{ name: OPEN_ACCOUNTS, n: 1, max: openAccounts(env) }])) {
+      throw new CloudError(429, NO_MORE_ACCOUNTS, 'daily_limit');
+    }
     const s = secret();
     const res = await call(env, env.ACCOUNTS.get(env.ACCOUNTS.idFromString(w.id!)), 'passkey-create', { id: w.id, name: w.name, key, sessionHash: await sha256(s) });
     if (!res.ok) return res;
@@ -550,6 +589,34 @@ async function passkeyRoute(path: string, request: Request, env: Env): Promise<R
     throw new CloudError(405, 'Not allowed.');
   }
   return null;
+}
+
+// ------------------------------------------------------------------ Google ---
+
+/**
+ * Signs in with Google: { idToken, nonce } from the app, which went to Google in the same window and came back with the token
+ * (src/core/google.ts). The token is checked here (google.ts verifyGoogleIdToken: Google's signature, this app's client id,
+ * the time, a verified address, the nonce the app made), its nonce is taken once, and the device is signed in to the account
+ * an emailed code to that address reaches: the same account, whichever way the person comes. Answered exactly as /auth/verify.
+ */
+async function googleSignIn(request: Request, env: Env): Promise<Response> {
+  const clientId = (env.GOOGLE_CLIENT_ID ?? '').trim();
+  if (!clientId) throw new CloudError(503, 'Google sign-in is not set up on the sync server yet. Sign in with your email.', 'no_google');
+  // Counted before the token is checked, so a network sending bad tokens runs out too.
+  await perNetwork(request, env, 'google', GOOGLE_PER_NETWORK, 'Too many Google sign-ins from this network today. Try again tomorrow, or sign in with your email.');
+  const body = await readJson(request, 16384);
+  const who = await verifyGoogleIdToken(body.idToken, body.nonce, clientId, { fetch: env.googleFetch });
+  if (!allowedEmail(who.email, env.ALLOWED_EMAILS)) throw new CloudError(403, 'That email cannot sign in here.');
+  // Once only: the token carries its nonce, so a copy of it would otherwise sign in again for as long as it lasts.
+  if ((await shared(env, 'once', { hash: await sha256(`google-nonce|${str(body.nonce)}`) })).ok !== true) {
+    throw new CloudError(401, 'That Google sign-in was already used. Try again.', 'used');
+  }
+  const id = env.ACCOUNTS.idFromName(`email:${who.email}`);
+  const s = secret();
+  const res = await call(env, env.ACCOUNTS.get(id), 'google', { email: who.email, sub: who.sub, sessionHash: await sha256(s) });
+  if (!res.ok) return res;
+  const { email: named, created } = await res.json() as { email: string; created?: string };
+  return json(200, { token: `${id.toString()}.${s}`, email: named || who.email, ...(created ? { created } : {}) });
 }
 
 /**
@@ -645,6 +712,8 @@ async function route(request: Request, env: Env, ctx?: ExecutionContext): Promis
     const { email: named, created } = await res.json() as { email: string; created?: string };
     return json(200, { token: `${id.toString()}.${s}`, email: named || email, ...(created ? { created } : {}) });
   }
+
+  if (path === '/auth/google' && request.method === 'POST') return googleSignIn(request, env);
 
   if (path === '/auth/mac' && request.method === 'POST') {
     // The owner's Mac, by its key: a session in the first owner's account. The key is compared by hash, in constant time.
@@ -1048,6 +1117,12 @@ export async function accountRequest(core: AccountCore, request: Request, deps?:
         await tellDirectory(core, deps, now, true);
         return json(200, signedIn);
       }
+      case 'google': {
+        // Like a code's sign-in: the directory hears of the account at once.
+        const signedIn = core.googleSignIn(str(body.email), str(body.sub), str(body.sessionHash), now);
+        await tellDirectory(core, deps, now, true);
+        return json(200, signedIn);
+      }
       case 'mac-session': return json(200, core.macSession(str(body.sessionHash), now));
       case 'me': return json(200, core.me(session, now));
       case 'mac': return json(200, core.setMac(session, str(body.mac), now));
@@ -1134,6 +1209,7 @@ export async function limitsRequest(core: LimitsCore, request: Request): Promise
       case 'invite': return json(200, { invite: core.invite(str(body.token)) });
       case 'invite-use': return json(200, { ok: core.useInvite(str(body.token)) });
       case 'invite-revoke': core.revokeInvite(str(body.token)); return json(200, { ok: true });
+      case 'once': return json(200, { ok: core.takeOnce(str(body.hash), now) });
       default: {
         const items = body.items;
         const ok = Array.isArray(items) && items.every((t) => t && typeof t.name === 'string' && typeof t.n === 'number' && typeof t.max === 'number')
@@ -1146,7 +1222,8 @@ export async function limitsRequest(core: LimitsCore, request: Request): Promise
 
 /**
  * What every account shares: the days (sign-in emails, the email service's free allowance; read-aloud and translation, Workers
- * AI's; sign-ins from each network), the passkey challenges waiting for an answer, and the owner's invite links.
+ * AI's; sign-ins from each network; passkey accounts made without an invite), the passkey challenges waiting for an answer,
+ * the owner's invite links, and the Google nonces already used.
  */
 export class Limits {
   private readonly core: LimitsCore;

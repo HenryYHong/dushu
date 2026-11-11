@@ -1410,6 +1410,11 @@
    "src/ui/library/library.ts"
   ]
  },
+ "Continue with Google": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
  "Converting between simplified and traditional characters.": {
   "where": [
    "src/ui/about/about.ts"
@@ -1714,6 +1719,11 @@
  "Covers": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "Create an account with a passkey": {
+  "where": [
+   "src/ui/settings/account.ts"
   ]
  },
  "Creative Commons Attribution-ShareAlike 4.0 license": {
@@ -2492,6 +2502,11 @@
  "Good": {
   "where": [
    "src/ui/review/review.ts"
+  ]
+ },
+ "Google sign-in didn’t finish here. Try again, or sign in with your email.": {
+  "where": [
+   "src/core/google.ts"
   ]
  },
  "Got it": {
@@ -3326,6 +3341,11 @@
    "src/ui/shortcuts.ts"
   ]
  },
+ "Make your LinguPengu account with a passkey: no password, no email.": {
+  "where": [
+   "src/ui/join.ts"
+  ]
+ },
  "Making your passkey…": {
   "where": [
    "src/ui/join.ts"
@@ -3596,11 +3616,6 @@
   "where": [
    "src/ui/reader/wordsTab.ts",
    "src/ui/vocab/model.ts"
-  ]
- },
- "New here? Get a code by email to make your account.": {
-  "where": [
-   "src/ui/settings/account.ts"
   ]
  },
  "Newest first": {
@@ -5459,7 +5474,7 @@
    "src/ui/settings/ipad.ts"
   ]
  },
- "Sign in and your books, words and places are the same on every device. Use your passkey, or get a code by email.": {
+ "Sign in and your books, words and places are the same on every device. The first time makes your account.": {
   "where": [
    "src/ui/signIn.ts"
   ]
@@ -5530,7 +5545,7 @@
    "src/ui/settings/account.ts"
   ]
  },
- "Sign-in by email is closed here. To make an account, open the invite link you were sent.": {
+ "Sign-in by email is closed here. Make an account with a passkey instead.": {
   "where": [
    "src/ui/settings/account.ts"
   ]
@@ -5557,6 +5572,7 @@
  },
  "Signed in. Your books’ places, words and bookmarks are on their way.": {
   "where": [
+   "src/core/google.ts",
    "src/ui/settings/account.ts"
   ]
  },
@@ -5902,7 +5918,7 @@
    "src/ui/signIn.ts"
   ]
  },
- "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": {
+ "Tap Sign in at the top. Continue with Google, use a passkey, or type your email and we send you a six-digit code. The first time makes your account, and there is no password. A passkey unlocks the way your device does: Face ID, a fingerprint, or your computer's password or PIN.": {
   "where": [
    "src/ui/about/about.ts"
   ]
@@ -6794,7 +6810,8 @@
  },
  "This browser would not keep the sign-in. Allow site data for LinguPengu and try again.": {
   "where": [
-   "src/core/cloud.ts"
+   "src/core/cloud.ts",
+   "src/core/google.ts"
   ]
  },
  "This chapter could not be read.": {
@@ -6952,11 +6969,6 @@
  "This language's dictionary is not on this device yet. Connect to the internet once to finish setting it up.": {
   "where": [
    "src/ui/reader/reader.ts"
-  ]
- },
- "This link is missing its invite. Ask for the link again.": {
-  "where": [
-   "src/ui/join.ts"
   ]
  },
  "This link is not valid anymore.": {

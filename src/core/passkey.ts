@@ -1,6 +1,6 @@
 // Passkeys for the sync account (cloud/src/worker.ts): Face ID, a fingerprint, or the computer's password or PIN instead of an emailed code, so
-// signing in costs nothing and has no daily limit. Someone the owner invites makes an account with a passkey on the invite
-// link (no email at all); anyone signed in can add a passkey for the next device. The browser's own WebAuthn does the work:
+// signing in costs nothing and has no daily limit. Anyone can make an account with a passkey (no email at all), and someone
+// the owner invites does it on the invite link; anyone signed in can add a passkey for the next device. The browser's own WebAuthn does the work:
 // this module only turns the server's options into what navigator.credentials takes, and the passkey's answer back into JSON.
 import { tt } from '../i18n';
 import { CLOUD_EVENT, cloudBase, cloudSession, keepSession, post, type CloudSession } from './cloud';
@@ -67,7 +67,10 @@ export async function inviteLabel(invite: string): Promise<string> {
   return data.label ?? '';
 }
 
-/** Makes an account on an invite: a passkey on this device, named `name`. This device is then signed in to it. */
+/**
+ * Makes an account with a passkey on this device, named `name`: on an invite, or with none (`invite` '', counted against the
+ * server's day of such accounts). This device is then signed in to it.
+ */
 export async function joinWithPasskey(invite: string, name: string): Promise<CloudSession> {
   const options = await (await post('/auth/passkey/join-options', { invite, name })).json() as CreationJSON;
   const response = await create(options);

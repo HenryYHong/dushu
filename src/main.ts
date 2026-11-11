@@ -14,6 +14,7 @@ import { icon } from './ui/icons';
 import { watchServiceWorker } from './swUpdate';
 import { startSync } from './core/sync';
 import { CLOUD_EVENT, accountInfo, cloudSession } from './core/cloud';
+import { finishGoogleReturn, takeGoogleReturn } from './core/google';
 import { BOOKS_EVENT, syncBooks, type BooksReport } from './core/cloudBooks';
 import { linkMac } from './core/cloudLink';
 import { watchSignOut } from './core/reminders';
@@ -26,6 +27,14 @@ import { langChip } from './ui/langSwitch';
 import { needsWelcome } from './core/plan';
 import { goalMessage, startReadingClock } from './core/readingClock';
 import { listenForOpenedFiles } from './ui/library/incoming';
+
+/**
+ * A sign-in coming back from Google (core/google.ts) carries its ID token in the address's fragment ('#id_token=…&state=…').
+ * It is taken out first, before the router or anything else reads the address: the screen the person left from takes its
+ * place in the address bar and the history, so the token is never kept in either, nor bookmarked or shared. What it brought
+ * is finished once the app can say how it went (boot, below).
+ */
+const googleReturn = takeGoogleReturn();
 
 const ROUTES: Record<string, () => Promise<{ mount: MountFn }>> = {
   '': () => import('./ui/library/library'),
@@ -95,6 +104,9 @@ const CJK_LIBRARIES = new Set(['zh', 'ja', 'en']);
 
 /** What a browser says itself when a request fails, times out or is cut off (Chrome, Safari, Firefox): never shown as a reason. */
 const BROWSER_TEXT = /^(Failed to fetch|Load failed|NetworkError when attempting to fetch resource\.?|signal timed out|signal is aborted without reason|The (operation|user) (was aborted|timed out|aborted a request)\.?|.*dynamically imported module.*)$/i;
+
+/** How often an open app asks the account for its books (main's accountBooks): see where it is used. */
+const BOOKS_EVERY_MS = 10 * 60_000;
 
 /** How long a first visit waits for its downloads to reach the offline copy before installing it anyway. */
 const HANDOFF_WAIT_MS = 30_000;
@@ -290,6 +302,9 @@ async function boot(): Promise<void> {
   // account (or connected to the Mac), each language's library apart. Signed in, a device also learns where the Mac is, for
   // the Mac's books.
   startSync(store, { settings });
+  // Back from Google: the token goes to the sync server, and its sign-in is kept like an emailed code's (sync starts, the
+  // account's books come, with the same messages).
+  if (googleReturn) void finishGoogleReturn(googleReturn, (message, ms) => ctx.toast(message, { ms }));
   void linkMac();
   window.addEventListener(CLOUD_EVENT, () => void linkMac());
   // Review reminders on this device are the signed-in account's: however the sign-in ends, they end here too.
@@ -297,7 +312,9 @@ async function boot(): Promise<void> {
   // Whether this account is the owner's (the Mac and Claude settings follow it): asked on each start.
   if (cloudSession()) void accountInfo().catch(() => {});
   // Books in the account: this device's go up and the account's come down, on open, on sign-in, when the app comes back to
-  // the front and every few minutes, and each run says what it did (or what went wrong, once).
+  // the front and every 10 minutes while it is in front, and each run says what it did (or what went wrong, once). Ten, not
+  // five: Workers Free answers 100,000 requests a day for everyone together, and each run is at least one (GET /books). A
+  // book added on another device still arrives the moment this one comes back to the front, which is when it is wanted.
   // Not tried without a connection: the first run once it is back says what came down.
   const accountBooks = () => { if (cloudSession() && navigator.onLine !== false) void syncBooks(store); };
   const toldErrors = new Set<string>();
@@ -316,7 +333,7 @@ async function boot(): Promise<void> {
   window.addEventListener(CLOUD_EVENT, accountBooks);
   window.addEventListener('online', accountBooks);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') accountBooks(); });
-  setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, 5 * 60_000);
+  setInterval(() => { if (document.visibilityState === 'visible') accountBooks(); }, BOOKS_EVERY_MS);
 
   /** The app's mark, as in the browser tab (public/icon.svg): Pengu over its book on a white rounded square (ui/pengu.ts). */
   const brandMark = () => {
@@ -477,6 +494,10 @@ async function boot(): Promise<void> {
    * its place as it goes; never for the same screen drawn again, nor under reduced motion.
    */
   const change = () => {
+    // A Google answer that reached this page without a new load (a fragment typed or pasted into an open tab): taken out
+    // before the router reads it, as at the start.
+    const late = takeGoogleReturn();
+    if (late) void finishGoogleReturn(late, (message, ms) => ctx.toast(message, { ms }));
     moved = true;
     const from = shownRoute;
     const to = parseHash().route;

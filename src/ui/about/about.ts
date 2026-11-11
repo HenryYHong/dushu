@@ -92,7 +92,7 @@ const DEVICES = () => [
 ];
 
 const ACCOUNT = () => [
-  tt('Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer\'s password or PIN.'),
+  tt('Tap Sign in at the top. Continue with Google, use a passkey, or type your email and we send you a six-digit code. The first time makes your account, and there is no password. A passkey unlocks the way your device does: Face ID, a fingerprint, or your computer\'s password or PIN.'),
   tt('On an iPhone, iPad or Mac, your passkey is on your other Apple devices too. On another device, sign in once with your phone (the browser offers it), then add a passkey there in Settings.'),
   tt('Your books, saved words, lookups, bookmarks, reading places and settings follow you to any device you sign in on. A few things that depend on the screen, like one or two pages, stay with each device.'),
   tt('Signed in, books are read aloud in your account\'s voice, up to a daily limit. Otherwise LinguPengu uses your device\'s own voices.'),

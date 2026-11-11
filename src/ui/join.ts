@@ -1,5 +1,7 @@
-// An invite link (#/join/<invite>, made by the owner in Settings): someone invited makes an account with a passkey on this
-// device, with their name and no email, and is signed in. The account then works like any other (core/passkey.ts).
+// Making an account with a passkey: someone types their name, this device makes a passkey, and they are signed in, with no
+// email (core/passkey.ts). Anyone can, from the sign-in's "Create an account with a passkey" (#/join), within the server's
+// daily count of such accounts; an invite link (#/join/<invite>, made by the owner in Settings) does the same against the
+// invite's own count and names who it is for. The account then works like any other.
 import '../styles/join.css';
 import type { MountFn } from '../types';
 import { h } from './dom';
@@ -52,7 +54,9 @@ export const mount: MountFn = (root, params, ctx) => {
   } else if (!cloudBase() || !passkeysSupported()) {
     lead.textContent = tt('This browser can’t make passkeys. Open the link in Safari or Chrome, on a phone or computer from the last few years.');
   } else if (!invite) {
-    lead.textContent = tt('This link is missing its invite. Ask for the link again.');
+    lead.textContent = tt('Make your LinguPengu account with a passkey: no password, no email.');
+    form.hidden = note.hidden = false;
+    name.focus();
   } else {
     void inviteLabel(invite).then((label) => {
       if (!alive) return;

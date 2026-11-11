@@ -6,7 +6,7 @@
 import 'fake-indexeddb/auto';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { ACTIVITY_KEY, actKey, addSeconds, dayOf, deviceId } from '../../src/core/activity';
-import { createSyncer } from '../../src/core/sync';
+import { IDLE_SYNC_MS, createSyncer } from '../../src/core/sync';
 import { exchange, inLang, noCounts, type RecordTable, type StoredRecord } from '../../src/core/syncExchange';
 import { openStore } from '../../src/store';
 import type { Store } from '../../src/types';
@@ -71,13 +71,13 @@ async function setup(tzB: string) {
   await sync(a, h); await sync(b, h); await sync(a, h);
   const key = actKey('2026-09-10', id);
   expect(h.data.get(key)?.data).not.toBeNull();
-  /** Both devices sync in turn, 45 s apart, from `iso` on; what was sent and what the hub holds after. */
+  /** Both devices sync in turn, an idle poll apart (IDLE_SYNC_MS), from `iso` on; what was sent and what the hub holds after. */
   const rounds = async (iso: string, count = 6) => {
     let t = new Date(iso).getTime();
     h.sent.length = 0;
     for (let i = 0; i < count; i++) {
-      vi.setSystemTime(t += 45_000); await sync(a, h);
-      vi.setSystemTime(t += 45_000); await sync(b, h);
+      vi.setSystemTime(t += IDLE_SYNC_MS); await sync(a, h);
+      vi.setSystemTime(t += IDLE_SYNC_MS); await sync(b, h);
     }
     const r = h.data.get(key);
     return { sent: [...h.sent], hub: r ? (r.data === null ? 'deleted' : 'record') : 'absent' };

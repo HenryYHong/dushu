@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// The screens around passkeys: the invite link's Join screen, the sign-in panel (a passkey first, email for the owner), and
-// the owner's invite links in Settings. The passkey ceremony itself is tested against the server in tests/cloud/passkeys.test.ts.
+// The screens around passkeys: the Join screen (on an invite link, or with none from "Create an account with a passkey"), the
+// sign-in panel (a passkey first where Google is not offered, then email), and the owner's invite links in Settings. The passkey ceremony itself is tested against the server in tests/cloud/passkeys.test.ts.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppContext } from '../../src/types';
 
@@ -65,6 +65,20 @@ describe('the join screen', () => {
     expect(toasts).toEqual(['Signed in with your passkey.']);
   });
 
+  it('makes an account with no invite: the name, then the passkey (from the sign-in’s Create an account with a passkey)', async () => {
+    pk.joinWithPasskey.mockResolvedValue({ token: 't', email: 'passkey:x', name: 'Amy' });
+    mountJoin(root, {}, ctx());
+    expect(text()).toContain('Make your LinguPengu account with a passkey: no password, no email.');
+    expect(root.querySelector<HTMLElement>('.join-form')!.hidden).toBe(false);
+    expect(root.querySelector<HTMLElement>('.join-note')!.hidden).toBe(false);
+    expect(pk.inviteLabel).not.toHaveBeenCalled();
+    root.querySelector<HTMLInputElement>('.join-name')!.value = 'Amy';
+    root.querySelector<HTMLFormElement>('.join-form')!.requestSubmit();
+    await until(() => text().includes('You’re in, Amy.'));
+    expect(pk.joinWithPasskey).toHaveBeenCalledWith('', 'Amy');
+    expect(toasts).toEqual(['Signed in with your passkey.']);
+  });
+
   it('says so when the invite is no good, the browser has no passkeys, or this device is already signed in', async () => {
     pk.inviteLabel.mockRejectedValue(new Error('This invite link is not valid anymore. Ask for a new one.'));
     mountJoin(root, { invite: 'old' }, ctx());
@@ -86,13 +100,19 @@ describe('the join screen', () => {
 });
 
 describe('the sign-in panel', () => {
-  it('offers a passkey first, with email as the other way in, and a passkey for this device once signed in', async () => {
+  it('offers a passkey first, a passkey account for someone new, email as the other way in, and a passkey for this device once signed in', async () => {
     const panel = accountPanel();
     root.appendChild(panel.el);
     const button = (label: string) => [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === label)!;
     expect(button('Sign in with a passkey').classList.contains('btn-primary')).toBe(true);
     expect(button('Email me a code').classList.contains('btn-primary')).toBe(false);
-    expect(text()).toContain('New here? Get a code by email to make your account.');
+    // Not the public site, so no Google (its trip could not come back here).
+    expect(root.querySelector('.set-cloud-google')!.closest('[hidden]')).not.toBeNull();
+    const create = [...root.querySelectorAll<HTMLAnchorElement>('a')].find((a) => a.textContent === 'Create an account with a passkey')!;
+    expect(create.getAttribute('href')).toBe('#/join');
+    expect(create.closest('[hidden]')).toBeNull();
+    expect(root.querySelector<HTMLElement>('.set-cloud-or')!.hidden).toBe(false);
+    expect(root.querySelector('.set-cloud-status')!.textContent).toBe('');
 
     pk.signInWithPasskey.mockImplementation(async () => {
       localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: 't', email: 'passkey:x', name: 'Amy' }));
@@ -101,6 +121,7 @@ describe('the sign-in panel', () => {
     button('Sign in with a passkey').click();
     await until(() => text().includes('Signed in as Amy.'));
     expect(button('Sign in with a passkey').closest('[hidden]')).not.toBeNull();
+    expect(root.querySelector('.set-cloud-create')!.closest('[hidden]')).not.toBeNull();
     expect(button('Add a passkey on this device').hidden).toBe(false);
     panel.dispose();
   });
@@ -111,6 +132,8 @@ describe('the sign-in panel', () => {
     root.appendChild(panel.el);
     expect([...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Email me a code')!.classList.contains('btn-primary')).toBe(true);
     expect([...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Sign in with a passkey')!.hidden).toBe(true);
+    expect(root.querySelector('.set-cloud-create')!.closest('[hidden]')).not.toBeNull();
+    expect(root.querySelector<HTMLElement>('.set-cloud-or')!.hidden).toBe(true);
     expect(text()).toContain('We only use your email to send you sign-in codes.');
     panel.dispose();
   });
@@ -123,7 +146,7 @@ describe('the sign-in panel', () => {
       root.querySelector<HTMLInputElement>('.set-cloud-email')!.value = 'someone@example.com';
       [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Email me a code')!.click();
       await until(() => !!root.querySelector('.set-cloud-result.set-bad'));
-      expect(root.querySelector('.set-cloud-result')?.textContent).toBe('Sign-in by email is closed here. To make an account, open the invite link you were sent.');
+      expect(root.querySelector('.set-cloud-result')?.textContent).toBe('Sign-in by email is closed here. Make an account with a passkey instead.');
       panel.dispose();
     } finally { vi.unstubAllGlobals(); }
   });

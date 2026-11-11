@@ -1,23 +1,26 @@
 // Signing in to the sync account: the Sync account row in Settings, and the Sign in dialog the top bar opens (ui/signIn.ts).
-// Both are the same panel: a passkey (core/passkey.ts) or an email and its six-digit code, then who is signed in, a passkey
-// for this device, and Sign out.
+// Both are the same panel. Signed out, three ways in, in this order: Continue with Google (core/google.ts, only on the public
+// site, the one address Google sends sign-ins back to), a passkey (core/passkey.ts: sign in with one, or make an account with
+// one on the Join screen), and an email with its six-digit code. Google and the code make the account the first time, and
+// reach the same one for the same address. Signed in: who it is, a passkey for this device, Sign out and Delete account.
 import { h } from '../dom';
 import { CLOUD_EVENT, accountLabel, cloudBase, cloudSession, deleteAccount, requestCode, signIn, signOut } from '../../core/cloud';
+import { googleOffered, startGoogleSignIn } from '../../core/google';
 import { addPasskey, passkeyHere, passkeysSupported, signInWithPasskey } from '../../core/passkey';
 import { dropPushHere } from '../../core/reminders';
 import { nextId, row } from './controls';
 import { tt } from '../../i18n';
 
 /**
- * Anyone may sign in with an email code, which makes the account the first time; invite links make one with a passkey. A server
- * that keeps a list of addresses (ALLOWED_EMAILS) refuses any other with a 403 ("That email cannot sign in here."), which said
+ * Anyone may sign in with an email code, which makes the account the first time, or make one with a passkey. A server that
+ * keeps a list of addresses (ALLOWED_EMAILS) refuses any other with a 403 ("That email cannot sign in here."), which said
  * nothing about why or what to do.
  */
 export function codeRefusal(e: unknown): string {
   const message = e instanceof Error ? e.message : '';
   const status = (e as { status?: unknown } | null)?.status;
   if (status === 403 || /^That email cannot sign in here\.?$/.test(message) || /answered 403\b/.test(message)) {
-    return tt('Sign-in by email is closed here. To make an account, open the invite link you were sent.');
+    return tt('Sign-in by email is closed here. Make an account with a passkey instead.');
   }
   return message || tt('The code could not be sent.');
 }
@@ -35,11 +38,17 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
   const emailId = nextId('cloud-email');
   const email = h('input.input.set-cloud-input.set-cloud-email', { id: emailId, type: 'email', inputmode: 'email', autocomplete: 'email', autocapitalize: 'none',
     spellcheck: 'false', placeholder: tt('you@example.com'), 'aria-label': tt('Email') }) as HTMLInputElement;
-  // With passkeys, the passkey is the one filled button; the email is the owner's way in, and a way back for anyone.
+  // Google first where it is offered: its own white button is the one that stands out, so the passkey button is a plain one
+  // beside it. Elsewhere (localhost, the owner's Mac) the passkey is the one filled button. The email is a way in for anyone,
+  // and a way back.
+  const google = googleOffered();
   const passkeys = passkeysSupported();
-  const passkeyBtn = h(passkeys ? 'button.btn.btn-sm.btn-primary' : 'button.btn.btn-sm', { type: 'button', hidden: !passkeys }, tt('Sign in with a passkey')) as HTMLButtonElement;
+  const googleBtn = h('button.btn.btn-sm.set-cloud-google', { type: 'button' }, googleMark(), h('span', null, tt('Continue with Google'))) as HTMLButtonElement;
+  const passkeyBtn = h(passkeys && !google ? 'button.btn.btn-sm.btn-primary' : 'button.btn.btn-sm', { type: 'button', hidden: !passkeys }, tt('Sign in with a passkey')) as HTMLButtonElement;
+  // The Join screen without an invite (ui/join.ts): a name, then a passkey makes the account.
+  const createLink = h('a.btn.btn-sm.btn-ghost.set-cloud-create', { href: '#/join' }, tt('Create an account with a passkey'));
   const addKeyBtn = h('button.btn.btn-sm', { type: 'button', hidden: true }, tt('Add a passkey on this device')) as HTMLButtonElement;
-  const sendBtn = h(passkeys ? 'button.btn.btn-sm' : 'button.btn.btn-sm.btn-primary', { type: 'button' }, tt('Email me a code')) as HTMLButtonElement;
+  const sendBtn = h(passkeys || google ? 'button.btn.btn-sm' : 'button.btn.btn-sm.btn-primary', { type: 'button' }, tt('Email me a code')) as HTMLButtonElement;
   const code = h('input.input.set-cloud-input.set-cloud-code', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6,
     placeholder: tt('6-digit code'), 'aria-label': tt('Code from the email') }) as HTMLInputElement;
   const signInBtn = h('button.btn.btn-sm.btn-primary', { type: 'button' }, tt('Sign in')) as HTMLButtonElement;
@@ -50,8 +59,10 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
   const keepBtn = h('button.btn.btn-sm', { type: 'button' }, tt('Keep it')) as HTMLButtonElement;
   const status = h('div.set-help.set-cloud-status', { role: 'status', 'aria-live': 'polite' });
   const result = h('div.set-test-out.set-cloud-result', { role: 'status', 'aria-live': 'polite' });
-  const passkeyRow = h('div.set-cloud-row', { hidden: !passkeys }, passkeyBtn);
-  const orEmail = h('div.set-help.set-cloud-or', { hidden: !passkeys }, tt('Or get a code by email:'));
+  const googleRow = h('div.set-cloud-row.set-cloud-wide', { hidden: !google }, googleBtn);
+  const passkeyRow = h('div.set-cloud-row.set-cloud-wide', { hidden: !passkeys }, passkeyBtn);
+  const createRow = h('div.set-cloud-row.set-cloud-wide', { hidden: !passkeys }, createLink);
+  const orEmail = h('div.set-help.set-cloud-or', { hidden: !passkeys && !google }, tt('Or get a code by email:'));
   const emailRow = h('div.set-cloud-row', null, email, sendBtn);
   const codeRow = h('div.set-cloud-row', null, code, signInBtn, againBtn);
   const outRow = h('div.set-cloud-row', null, addKeyBtn, signOutBtn, deleteBtn);
@@ -67,18 +78,32 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
 
   function paint(): void {
     const s = cloudSession();
+    googleRow.hidden = !google || !!s || !!asked;
     passkeyRow.hidden = !passkeys || !!s || !!asked;
-    orEmail.hidden = !passkeys || !!s || !!asked;
+    createRow.hidden = !passkeys || !!s || !!asked;
+    orEmail.hidden = (!passkeys && !google) || !!s || !!asked;
     emailRow.hidden = !!s || !!asked;
     codeRow.hidden = !!s || !asked;
     outRow.hidden = !s;
     addKeyBtn.hidden = !s || !passkeys || passkeyHere();
     if (!s) deleteRow.hidden = true;
+    // Signed out with more than one way in, the buttons say it all; with email alone, what the email is for.
     status.textContent = s ? tt('Signed in as {account}.', { account: accountLabel(s) })
       : asked ? tt('A code was sent to {email}. It works for 10 minutes.', { email: asked })
-      : passkeys ? tt('New here? Get a code by email to make your account.')
+      : passkeys || google ? ''
       : tt('We only use your email to send you sign-in codes.');
   }
+
+  googleBtn.addEventListener('click', () => {
+    say('');
+    try {
+      // The page leaves for Google and comes back signed in (main.ts). Disabled meanwhile so a second tap does not start a
+      // second trip; and again in a moment, for a browser that came Back from Google's page to this one, kept as it was.
+      startGoogleSignIn();
+      googleBtn.disabled = true;
+      setTimeout(() => { googleBtn.disabled = false; }, 4000);
+    } catch (e) { say(e instanceof Error ? e.message : tt('Could not sign in.'), 'bad'); }
+  });
 
   passkeyBtn.addEventListener('click', async () => {
     passkeyBtn.disabled = true;
@@ -159,11 +184,26 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
   window.addEventListener(CLOUD_EVENT, onChange);
   paint();
   return {
-    el: h('div.set-cloud', null, passkeyRow, orEmail, emailRow, codeRow, outRow, deleteRow, status, result),
+    el: h('div.set-cloud', null, googleRow, passkeyRow, createRow, orEmail, emailRow, codeRow, outRow, deleteRow, status, result),
     emailId,
-    focus: () => (asked ? code : passkeys && !cloudSession() ? passkeyBtn : email).focus({ preventScroll: true }),
+    focus: () => (asked ? code : cloudSession() ? email : google ? googleBtn : passkeys ? passkeyBtn : email).focus({ preventScroll: true }),
     dispose() { window.removeEventListener(CLOUD_EVENT, onChange); },
   };
+}
+
+/**
+ * Google's "G" in its four colors, as its sign-in branding guidelines draw it on a Continue with Google button (the mark is
+ * Google's, used as they ask: unchanged, on a white button, or Google's dark one in the dark theme).
+ */
+function googleMark(): HTMLElement {
+  const el = h('span.set-cloud-google-mark', { 'aria-hidden': 'true' });
+  el.innerHTML = '<svg viewBox="0 0 48 48" width="18" height="18" focusable="false">'
+    + '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>'
+    + '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>'
+    + '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>'
+    + '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>'
+    + '</svg>';
+  return el;
 }
 
 /** The Sync account row for the Mac and iPad group, or null when this build has no sync server. */

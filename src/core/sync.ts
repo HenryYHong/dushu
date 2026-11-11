@@ -363,10 +363,23 @@ export async function syncBeforeOpen(ms = 600, recentMs = 20_000): Promise<void>
   await Promise.race([s.run(), new Promise<void>((r) => setTimeout(r, ms))]);
 }
 
+/**
+ * How long a page in front waits, after its last sync, before it asks again when nothing has happened on it. Workers Free
+ * answers 100,000 requests a day for everyone together (its Durable Objects as many), and every sync is one. At the old 45 s a
+ * page left open made 80 polls an hour, and the books 12 more (main.ts): a thousand readers with the app open an hour and a
+ * half a day would have asked 138,000 times, the day used up on polls alone. At 3 minutes it is 20 an hour, with the books'
+ * 6 (every 10 minutes) about 39,000 for the same thousand, which leaves most of the day for the syncs that carry something.
+ * The poll is not what keeps devices in step: a change here goes out 1.5 s after it is made (5 s for a reading place), and a
+ * device asks the moment it comes back to the front, gets the focus, comes back online, signs in, or opens another screen. The
+ * poll only catches what another device did while this one sat open and untouched, and its wait starts again after every sync,
+ * so a page in use hardly polls at all.
+ */
+export const IDLE_SYNC_MS = 3 * 60_000;
+
 export interface SyncOptions {
   /** How the Mac is asked; tests pass a fake. Returns null when no Mac can be asked. */
   send?: (body: string, keepalive: boolean) => Promise<Response> | null;
-  /** Sync while the page is visible, this often. */
+  /** While the page is visible, sync this long after the last sync ended (IDLE_SYNC_MS); 0 never. */
   everyMs?: number;
   /** The settings to keep the same on every device (librarySettings); without it, settings are left alone. */
   settings?: SettingsStore;
@@ -416,8 +429,12 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
   let running: Promise<void> | null = null;
   let again = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  /** The idle poll's timer (rest). */
+  let idle: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
   let leaving = false;
+  const doc = typeof document !== 'undefined' ? document : null;
+  const every = opts.everyMs ?? IDLE_SYNC_MS;
 
   const setStatus = (patch: Partial<SyncStatus>) => {
     status = { ...status, ...patch };
@@ -934,8 +951,19 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     running = (async () => {
       do { again = false; await go(); } while (again && !stopped);
       running = null;
+      rest();
     })();
     return running;
+  }
+
+  /**
+   * The idle poll: `every` after the sync that just ended (IDLE_SYNC_MS), while the page is in front. A hidden page lets it
+   * lapse; coming back to the front syncs at once and starts it again.
+   */
+  function rest(): void {
+    clearTimeout(idle);
+    if (stopped || !(every > 0)) return;
+    idle = setTimeout(() => { if (!doc || doc.visibilityState === 'visible') void run(); }, every);
   }
 
   function soon(ms = 1500): void {
@@ -958,17 +986,17 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
     leaving = document.visibilityState === 'hidden';
     if (leaving) { clearTimeout(timer); void run(); } else soon(200);
   };
+  // Back online, the Mac connected or changed, signed in or out, and the window given the focus (another window was in front:
+  // the reader may have saved a word on another device meanwhile, as when the page comes back to the front).
   const onWake = () => soon(200);
   // Opening another screen (Vocabulary, Review, a book) is when fresh words matter: ask the Mac then too.
   const onRoute = () => soon(300);
-  const doc = typeof document !== 'undefined' ? document : null;
   doc?.addEventListener('visibilitychange', onVisible);
   globalThis.addEventListener?.('online', onWake);
+  globalThis.addEventListener?.('focus', onWake);
   globalThis.addEventListener?.(BRIDGE_EVENT, onWake);
   globalThis.addEventListener?.(CLOUD_EVENT, onWake);
   globalThis.addEventListener?.('hashchange', onRoute);
-  const every = opts.everyMs ?? 45_000;
-  const interval = every > 0 ? setInterval(() => { if (!doc || doc.visibilityState === 'visible') void run(); }, every) : undefined;
 
   const syncer: Syncer = {
     run,
@@ -978,12 +1006,13 @@ export function createSyncer(store: Store, opts: SyncOptions = {}): Syncer {
       stopped = true;
       halt.abort();
       clearTimeout(timer);
-      if (interval) clearInterval(interval);
+      clearTimeout(idle);
       offChange();
       offSettings?.();
       store.progress.set = setProgress;
       doc?.removeEventListener('visibilitychange', onVisible);
       globalThis.removeEventListener?.('online', onWake);
+      globalThis.removeEventListener?.('focus', onWake);
       globalThis.removeEventListener?.(BRIDGE_EVENT, onWake);
       globalThis.removeEventListener?.(CLOUD_EVENT, onWake);
       globalThis.removeEventListener?.('hashchange', onRoute);

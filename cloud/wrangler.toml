@@ -47,8 +47,13 @@ binding = "AI"
 # DAILY_EMAILS: every email in a day, sign-in codes and follow-ups together (Resend's free plan sends 100, and 3,000 a month).
 # FOLLOWUP_EMAILS: follow-ups send only while fewer than this went out that day, so the rest is always the sign-in codes'.
 # APP_URL is what the follow-ups link to; SYNC_URL is this Worker, for their unsubscribe link.
+# GOOGLE_CLIENT_ID: the Google OAuth web client the app signs in with (Google Cloud project "lingupengu"; its only redirect
+#   URI is https://henryyhong.com/dushu/). Public: it is in every sign-in address. Must match src/core/cloudUrl.ts.
+# NEW_PASSKEY_ACCOUNTS: accounts made with a passkey and no invite, by everyone together, in a day ("0" turns that off).
 [vars]
 DAILY_EMAILS = "90"
 FOLLOWUP_EMAILS = "50"
 APP_URL = "https://henryyhong.com/dushu/"
 SYNC_URL = "https://dushu-sync.henryhong.workers.dev"
+GOOGLE_CLIENT_ID = "171830368940-ois90tk41035hftjtf1tk4n357jqhnk4.apps.googleusercontent.com"
+NEW_PASSKEY_ACCOUNTS = "300"
