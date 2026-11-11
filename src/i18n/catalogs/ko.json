@@ -27,7 +27,6 @@
  },
  "Account": "계정",
  "Account, {status}: signed in as {name}. {reason}": "계정, {status}: {name} 계정으로 로그인됨. {reason}",
- "Accounts are by invite for now. We only use your email to send you sign-in codes.": "지금은 초대받은 분만 계정을 만들 수 있어요. 이메일은 로그인 코드를 보낼 때만 써요.",
  "Add": "추가",
  "Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.": "Globereader를 홈 화면에 추가하세요: 공유를 탭한 다음 홈 화면에 추가를 탭하면 돼요. 앱처럼 전체 화면으로 열리고, 오프라인에서도 작동하며, Safari가 책을 지우지 않아요.",
  "Add a passkey on this device": "이 기기에 패스키 추가",
@@ -417,7 +416,6 @@
  "Globereader cannot open your saved data": "Globereader가 저장된 데이터를 열 수 없어요",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.": "Globereader는 {language}로 된 진짜 책을 읽는 앱이에요. 단어를 탭하면 뜻과 읽는 법이 나오고, 두 번 탭하면 문장 전체를 번역해요.",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.": "Globereader는 {language}로 된 진짜 책을 읽는 앱이에요. 단어를 탭하면 뜻이 나오고, 두 번 탭하면 문장 전체를 번역해요.",
- "Globereader is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN. You don't need a Globereader password or an email. After that, tap Sign in at the top and use your passkey.": "Globereader는 지금은 초대받은 분만 쓸 수 있어요. 받은 초대 링크를 열고 패스키로 계정을 만드세요. 패스키는 기기 잠금을 풀 때처럼 Face ID, 지문, 또는 컴퓨터 암호나 PIN으로 풀어요. Globereader 비밀번호나 이메일은 필요 없어요. 그다음 위쪽의 로그인을 탭하고 패스키를 사용하세요.",
  "Globereader is still finding the names in this book. Try again in a moment.": "Globereader가 아직 이 책의 이름을 찾고 있어요. 잠시 후 다시 시도하세요.",
  "Globereader on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": "Mac의 Globereader가 이 페이지보다 오래되어 아직 {language}를 보관하지 않아요. {language} 단어, 읽던 위치, 책갈피는 이 기기에 남고, 업데이트되면 동기화돼요.",
  "Globereader, library": "Globereader, 서재",
@@ -624,7 +622,6 @@
  "Never": "안 함",
  "Never send a sentence to an online translator.": "온라인 번역기로 문장을 보내지 않아요.",
  "New": "새 단어",
- "New here? Open the invite link you were sent to make your account.": "처음이신가요? 받은 초대 링크를 열어 계정을 만드세요.",
  "Newest first": "최신순",
  "Next": "다음",
  "Next chapter": "다음 장",
@@ -2076,5 +2073,8 @@
  "Simple": "간단히",
  "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "간단히는 기억했는지만 물어요: 잊었어요 또는 기억했어요. 자세히는 Anki의 네 가지(다시, 어려움, 알맞음, 쉬움)와 카드가 다시 나오는 때를 보여 줘요. 이 기기에서만 적용돼요.",
  "Your own": "직접 정해요",
- "min a day": "분/일"
+ "min a day": "분/일",
+ "New here? Get a code by email to make your account.": "처음이신가요? 이메일로 코드를 받으면 계정이 만들어져요.",
+ "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "위의 로그인을 탭하고 이메일을 입력하세요. 6자리 코드를 보내 드리고, 처음이면 그걸로 계정이 만들어져요. 비밀번호는 없어요. 초대 링크가 있으면 대신 패스키로 만들 수도 있고, 기기를 여는 방법(Face ID, 지문, 컴퓨터 암호나 PIN)으로 열 수 있어요.",
+ "We only use your email to send you sign-in codes.": "이메일은 로그인 코드를 보낼 때만 사용해요."
 }

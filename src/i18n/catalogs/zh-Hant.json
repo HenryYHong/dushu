@@ -27,7 +27,6 @@
  },
  "Account": "帳號",
  "Account, {status}: signed in as {name}. {reason}": "帳號，{status}：已以 {name} 登入。{reason}",
- "Accounts are by invite for now. We only use your email to send you sign-in codes.": "目前帳號僅限受邀者申請。我們只會用你的電子郵件寄送登入驗證碼。",
  "Add": "加入",
  "Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.": "將 Globereader 加入主畫面：點「分享」，再點「加入主畫面」。它會像 App 一樣全螢幕開啟、可離線使用，Safari 也會保留你的書。",
  "Add a passkey on this device": "在這台裝置上新增通行密鑰",
@@ -416,7 +415,6 @@
  "Globereader cannot open your saved data": "Globereader 無法開啟你儲存的資料",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.": "Globereader 讓你閱讀真正的{language}書籍。點一下詞可查看意思和讀音，點兩下可翻譯整句。",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.": "Globereader 讓你閱讀真正的{language}書籍。點一下詞可查看意思，點兩下可翻譯整句。",
- "Globereader is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN. You don't need a Globereader password or an email. After that, tap Sign in at the top and use your passkey.": "Globereader 目前只接受邀請加入。請打開你收到的邀請連結，用通行密鑰建立帳號。解鎖方式和解鎖裝置一樣：Face ID、指紋，或電腦的密碼或 PIN 碼。不需要 Globereader 密碼，也不需要電子郵件。之後點頂端的「登入」，使用你的通行密鑰即可。",
  "Globereader is still finding the names in this book. Try again in a moment.": "Globereader 仍在找這本書裡的專名。請稍後再試。",
  "Globereader on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": "你 Mac 上的 Globereader 比這個頁面舊，還無法保存{language}。你的{language}詞彙、閱讀位置和書籤會先留在這台裝置上，等它更新後再同步。",
  "Globereader, library": "Globereader，書庫",
@@ -622,7 +620,6 @@
  "Never": "從不",
  "Never send a sentence to an online translator.": "永遠不將句子傳送到線上翻譯服務。",
  "New": "新詞",
- "New here? Open the invite link you were sent to make your account.": "第一次使用？請打開你收到的邀請連結來建立帳號。",
  "Newest first": "最新優先",
  "Next": "下一個",
  "Next chapter": "下一章",
@@ -2066,5 +2063,8 @@
  "Simple": "簡單",
  "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "簡單：只問你記不記得，「忘了」或「記得」。詳細：Anki 的四個按鈕，「重來」「困難」「良好」「簡單」，並顯示卡片下次出現的時間。只對這台裝置有效。",
  "Your own": "自己訂",
- "min a day": "分鐘/天"
+ "min a day": "分鐘/天",
+ "New here? Get a code by email to make your account.": "第一次來？用電子郵件取得驗證碼，就能建立帳號。",
+ "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "點頂部的「登入」，輸入你的電子郵件。我們會寄給你一組六位數驗證碼，第一次登入就會建立你的帳號。不需要密碼。如果你有邀請連結，也可以改用通行密鑰建立帳號，像解鎖裝置一樣解鎖它：Face ID、指紋，或電腦的密碼或 PIN。",
+ "We only use your email to send you sign-in codes.": "我們只用你的電子郵件寄送登入驗證碼。"
 }

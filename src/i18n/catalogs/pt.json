@@ -29,7 +29,6 @@
  },
  "Account": "Conta",
  "Account, {status}: signed in as {name}. {reason}": "Conta, {status}: conectado como {name}. {reason}",
- "Accounts are by invite for now. We only use your email to send you sign-in codes.": "Por enquanto, as contas são só por convite. Só usamos seu e-mail para enviar códigos de acesso.",
  "Add": "Adicionar",
  "Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.": "Adicione o Globereader à Tela de Início: toque em Compartilhar e depois em Adicionar à Tela de Início. Ele abre em tela cheia como um app, funciona offline e o Safari guarda seus livros.",
  "Add a passkey on this device": "Adicionar uma chave de acesso neste dispositivo",
@@ -448,7 +447,6 @@
  "Globereader cannot open your saved data": "O Globereader não consegue abrir seus dados salvos",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.": "O Globereader é para ler livros de verdade em {language}. Toque numa palavra para ver o significado e a leitura, e toque duas vezes para traduzir a frase inteira.",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.": "O Globereader é para ler livros de verdade em {language}. Toque numa palavra para ver o significado, e toque duas vezes para traduzir a frase inteira.",
- "Globereader is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN. You don't need a Globereader password or an email. After that, tap Sign in at the top and use your passkey.": "Por enquanto, o Globereader funciona só com convite. Abra o link de convite que você recebeu e crie sua conta com uma chave de acesso. Você a desbloqueia do mesmo jeito que desbloqueia seu dispositivo: Face ID, impressão digital ou a senha ou o PIN do computador. Você não precisa de senha nem de e-mail no Globereader. Depois, toque em Entrar no topo e use sua chave de acesso.",
  "Globereader is still finding the names in this book. Try again in a moment.": "O Globereader ainda está procurando os nomes deste livro. Tente de novo daqui a pouco.",
  "Globereader on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": "O Globereader no seu Mac é mais antigo que esta página e ainda não guarda {language}. Suas palavras, posições e marcadores em {language} ficam neste dispositivo e serão sincronizados quando ele for atualizado.",
  "Globereader, library": "Globereader, biblioteca",
@@ -663,7 +661,6 @@
  "Never": "Nunca",
  "Never send a sentence to an online translator.": "Nunca enviar uma frase a um tradutor online.",
  "New": "Nova",
- "New here? Open the invite link you were sent to make your account.": "Novo por aqui? Abra o link de convite que você recebeu para criar sua conta.",
  "Newest first": "Mais recentes primeiro",
  "Next": "Próxima",
  "Next chapter": "Próximo capítulo",
@@ -2295,5 +2292,8 @@
  "Simple": "Simples",
  "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "Simples pergunta só se você lembrou: Esqueci ou Lembrei. Detalhado tem os quatro do Anki, De novo, Difícil, Bom e Fácil, cada um com quando o cartão volta. Vale só para este aparelho.",
  "Your own": "O seu",
- "min a day": "min por dia"
+ "min a day": "min por dia",
+ "New here? Get a code by email to make your account.": "É novo por aqui? Receba um código por e-mail para criar sua conta.",
+ "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "Toque em Entrar no topo e digite seu e-mail. Enviamos um código de seis dígitos e, na primeira vez, isso cria sua conta. Não há senha. Com um link de convite, você também pode criá-la com uma chave de acesso e desbloqueá-la como desbloqueia seu dispositivo: Face ID, digital, ou a senha ou o PIN do computador.",
+ "We only use your email to send you sign-in codes.": "Usamos seu e-mail só para enviar códigos de acesso."
 }

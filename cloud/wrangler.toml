@@ -1,5 +1,7 @@
 # Dushu's sync account online (cloud/src/worker.ts). Deploy: npm run cloud:deploy. Secrets, never in this file:
 #   RESEND_API_KEY  the sign-in emails (resend.com)
+#   MAIL_FROM       their sender, "Name <address>" on a domain verified in Resend (Resend's own test sender, which reaches
+#                   only the Resend account's owner, when unset). A secret so the address is not in this public repo.
 #   ALLOWED_EMAILS  who may sign in, comma separated (everyone when unset)
 #   OWNER_EMAILS    the owners, comma separated: Claude on the owner's key and the larger shares (ALLOWED_EMAILS when unset)
 #   ANTHROPIC_API_KEY  Claude translation through the account (npx wrangler secret put ANTHROPIC_API_KEY < ~/.config/dushu/anthropic-api-key)
@@ -26,5 +28,4 @@ new_sqlite_classes = ["Account", "Limits"]
 binding = "AI"
 
 [vars]
-MAIL_FROM = "Globereader <onboarding@resend.dev>"
 DAILY_EMAILS = "90"

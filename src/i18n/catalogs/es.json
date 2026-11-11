@@ -1,7 +1,6 @@
 {
  "6-digit code": "Código de 6 dígitos",
  "A code was sent to {email}. It works for 10 minutes.": "Enviamos un código a {email}. Vale durante 10 minutos.",
- "Accounts are by invite for now. We only use your email to send you sign-in codes.": "Por ahora, las cuentas son solo por invitación. Solo usamos tu correo para enviarte códigos de inicio de sesión.",
  "Add a passkey on this device": "Añadir una llave de acceso en este dispositivo",
  "Another email": "Otro correo",
  "Code from the email": "Código del correo",
@@ -13,7 +12,6 @@
  "Email me a code": "Enviarme un código por correo",
  "Enter your email address.": "Escribe tu dirección de correo.",
  "Keep it": "Conservarla",
- "New here? Open the invite link you were sent to make your account.": "¿Primera vez aquí? Abre el enlace de invitación que te enviaron para crear tu cuenta.",
  "Or get a code by email:": "O recibe un código por correo:",
  "Passkey added. Next time, sign in here the way you unlock this device.": "Llave de acceso añadida. La próxima vez, inicia sesión aquí igual que desbloqueas este dispositivo.",
  "Sending…": "Enviando…",
@@ -661,7 +659,6 @@
  "Globereader can look up any Chinese character, not just common ones. A character with no known reading still shows its radical, stroke count and variants, and rare characters are drawn with a bundled font, so you never get an empty box.": "Globereader puede consultar cualquier carácter chino, no solo los comunes. Un carácter sin lectura conocida muestra igualmente su radical, su número de trazos y sus variantes, y los caracteres raros se dibujan con una fuente incluida, así que nunca verás un recuadro vacío.",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.": "Globereader sirve para leer libros reales en {language}. Toca una palabra para ver su significado y su lectura, y tócala dos veces para traducir la frase completa.",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.": "Globereader sirve para leer libros reales en {language}. Toca una palabra para ver su significado, y tócala dos veces para traducir la frase completa.",
- "Globereader is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN. You don't need a Globereader password or an email. After that, tap Sign in at the top and use your passkey.": "Por ahora, Globereader funciona solo con invitación. Abre el enlace de invitación que te enviaron y crea tu cuenta con una llave de acceso. La desbloqueas igual que tu dispositivo: con Face ID, con la huella o con la contraseña o el PIN de tu computadora. No necesitas una contraseña de Globereader ni un correo. Después, toca Iniciar sesión arriba y usa tu llave de acceso.",
  "Glyphs for rare characters, so nothing shows as an empty box.": "Glifos para caracteres raros, para que nada aparezca como un recuadro vacío.",
  "HSK 2.0 levels, word frequency on the HSK list, and the HSK words CC-CEDICT lacks.": "Niveles del HSK 2.0, frecuencia de las palabras de la lista del HSK y las palabras del HSK que le faltan a CC-CEDICT.",
  "HSK 3.0 levels for each reading of a word, from the official 2021 list (GF0025-2021).": "Niveles del HSK 3.0 para cada lectura de una palabra, de la lista oficial de 2021 (GF0025-2021).",
@@ -2286,5 +2283,8 @@
  "Simple": "Sencillo",
  "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "Sencillo pregunta si lo recordaste: Lo olvidé o Lo recordé. Detallado tiene los cuatro de Anki, Otra vez, Difícil, Bien y Fácil, cada uno con cuándo vuelve la tarjeta. Solo en este dispositivo.",
  "Your own": "El tuyo",
- "min a day": "min al día"
+ "min a day": "min al día",
+ "New here? Get a code by email to make your account.": "¿Eres nuevo? Pide un código por correo para crear tu cuenta.",
+ "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "Toca Iniciar sesión arriba y escribe tu correo. Te enviamos un código de seis dígitos, y la primera vez eso crea tu cuenta. No hay contraseña. Con un enlace de invitación puedes crearla con una llave de acceso, y abrirla como abres tu dispositivo: Face ID, una huella o la contraseña o el PIN de tu ordenador.",
+ "We only use your email to send you sign-in codes.": "Solo usamos tu correo para enviarte códigos de inicio de sesión."
 }

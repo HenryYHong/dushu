@@ -381,11 +381,6 @@
    "src/ui/signIn.ts"
   ]
  },
- "Accounts are by invite for now. We only use your email to send you sign-in codes.": {
-  "where": [
-   "src/ui/settings/account.ts"
-  ]
- },
  "Add": {
   "where": [
    "src/ui/library/findBooks.ts",
@@ -2468,11 +2463,6 @@
    "src/ui/about/about.ts"
   ]
  },
- "Globereader is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN. You don't need a Globereader password or an email. After that, tap Sign in at the top and use your passkey.": {
-  "where": [
-   "src/ui/about/about.ts"
-  ]
- },
  "Globereader is still finding the names in this book. Try again in a moment.": {
   "where": [
    "src/ui/reader/reader.ts"
@@ -3577,7 +3567,7 @@
    "src/ui/vocab/model.ts"
   ]
  },
- "New here? Open the invite link you were sent to make your account.": {
+ "New here? Get a code by email to make your account.": {
   "where": [
    "src/ui/settings/account.ts"
   ]
@@ -5850,6 +5840,11 @@
    "src/ui/signIn.ts"
   ]
  },
+ "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
  "Tap a word for its meaning, reading and kanji. Globereader looks up the dictionary form, so a verb in any tense finds its entry and says which form it is. Tap twice for the whole sentence and its translation.": {
   "where": [
    "src/ui/about/about.ts"
@@ -7434,6 +7429,11 @@
   "where": [
    "src/ui/guide.ts",
    "src/ui/settings/settings.ts"
+  ]
+ },
+ "We only use your email to send you sign-in codes.": {
+  "where": [
+   "src/ui/settings/account.ts"
   ]
  },
  "Welcome screen": {

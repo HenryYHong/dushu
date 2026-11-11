@@ -8,8 +8,9 @@ import { nextId, row } from './controls';
 import { tt } from '../../i18n';
 
 /**
- * Accounts are made from invite links; the email code is for someone who has one. The server refuses any other address with a
- * 403 ("That email cannot sign in here."), which said nothing about why or what to do.
+ * Anyone may sign in with an email code, which makes the account the first time; invite links make one with a passkey. A server
+ * that keeps a list of addresses (ALLOWED_EMAILS) refuses any other with a 403 ("That email cannot sign in here."), which said
+ * nothing about why or what to do.
  */
 export function codeRefusal(e: unknown): string {
   const message = e instanceof Error ? e.message : '';
@@ -74,8 +75,8 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     if (!s) deleteRow.hidden = true;
     status.textContent = s ? tt('Signed in as {account}.', { account: accountLabel(s) })
       : asked ? tt('A code was sent to {email}. It works for 10 minutes.', { email: asked })
-      : passkeys ? tt('New here? Open the invite link you were sent to make your account.')
-      : tt('Accounts are by invite for now. We only use your email to send you sign-in codes.');
+      : passkeys ? tt('New here? Get a code by email to make your account.')
+      : tt('We only use your email to send you sign-in codes.');
   }
 
   passkeyBtn.addEventListener('click', async () => {

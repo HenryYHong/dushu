@@ -92,7 +92,7 @@ describe('the sign-in panel', () => {
     const button = (label: string) => [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === label)!;
     expect(button('Sign in with a passkey').classList.contains('btn-primary')).toBe(true);
     expect(button('Email me a code').classList.contains('btn-primary')).toBe(false);
-    expect(text()).toContain('New here? Open the invite link you were sent');
+    expect(text()).toContain('New here? Get a code by email to make your account.');
 
     pk.signInWithPasskey.mockImplementation(async () => {
       localStorage.setItem('dushu.cloud.v1', JSON.stringify({ token: 't', email: 'passkey:x', name: 'Amy' }));
@@ -105,13 +105,13 @@ describe('the sign-in panel', () => {
     panel.dispose();
   });
 
-  it('keeps email first where the browser has no passkeys, and says accounts are by invite', () => {
+  it('keeps email first where the browser has no passkeys, and says what the email is for', () => {
     pk.supported = false;
     const panel = accountPanel();
     root.appendChild(panel.el);
     expect([...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Email me a code')!.classList.contains('btn-primary')).toBe(true);
     expect([...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Sign in with a passkey')!.hidden).toBe(true);
-    expect(text()).toContain('Accounts are by invite for now.');
+    expect(text()).toContain('We only use your email to send you sign-in codes.');
     panel.dispose();
   });
 

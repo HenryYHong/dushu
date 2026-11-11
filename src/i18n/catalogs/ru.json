@@ -30,7 +30,6 @@
  },
  "Account": "Аккаунт",
  "Account, {status}: signed in as {name}. {reason}": "Аккаунт, {status}: вы вошли как {name}. {reason}",
- "Accounts are by invite for now. We only use your email to send you sign-in codes.": "Пока аккаунты создаются только по приглашению. Почта нужна нам только для отправки кодов входа.",
  "Add": "Добавить",
  "Add Globereader to your Home Screen: tap Share, then Add to Home Screen. It opens full screen like an app, works offline, and Safari keeps your books.": "Добавьте Globereader на экран «Домой»: нажмите «Поделиться», затем «На экран „Домой“». Он будет открываться на весь экран, как приложение, работать офлайн, а Safari сохранит ваши книги.",
  "Add a passkey on this device": "Добавить ключ доступа на этом устройстве",
@@ -464,7 +463,6 @@
  "Globereader cannot open your saved data": "Globereader не может открыть ваши сохранённые данные",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning and reading, and tap it twice to translate the whole sentence.": "Globereader — для чтения настоящих книг на изучаемом языке ({language}). Нажмите на слово, чтобы увидеть значение и чтение, а нажмите дважды — чтобы перевести всё предложение.",
  "Globereader is for reading real books in {language}. Tap a word to see its meaning, and tap it twice to translate the whole sentence.": "Globereader — для чтения настоящих книг на изучаемом языке ({language}). Нажмите на слово, чтобы увидеть значение, а нажмите дважды — чтобы перевести всё предложение.",
- "Globereader is invite-only for now. Open the invite link you were sent and make your account with a passkey. You unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN. You don't need a Globereader password or an email. After that, tap Sign in at the top and use your passkey.": "Пока в Globereader можно попасть только по приглашению. Откройте присланную ссылку-приглашение и создайте аккаунт с ключом доступа. Он открывается так же, как ваше устройство: Face ID, отпечатком пальца или паролем либо PIN-кодом компьютера. Ни пароль Globereader, ни почта не нужны. Затем нажмите «Войти» вверху и воспользуйтесь ключом доступа.",
  "Globereader is still finding the names in this book. Try again in a moment.": "Globereader ещё ищет имена в этой книге. Попробуйте через минуту.",
  "Globereader on your Mac is older than this page and does not keep {language} yet. Your {language} words, places and bookmarks stay on this device and sync once it is updated.": "Globereader на вашем Mac устарел и пока не поддерживает {language} язык. Ваши слова, места чтения и закладки остаются на этом устройстве и синхронизируются после обновления.",
  "Globereader, library": "Globereader, библиотека",
@@ -683,7 +681,6 @@
  "Never": "Никогда",
  "Never send a sentence to an online translator.": "Никогда не отправлять предложения онлайн-переводчику.",
  "New": "Новое",
- "New here? Open the invite link you were sent to make your account.": "Впервые здесь? Откройте присланную ссылку-приглашение, чтобы создать аккаунт.",
  "Newest first": "Сначала новые",
  "Next": "След.",
  "Next chapter": "Следующая глава",
@@ -2406,5 +2403,8 @@
  "Simple": "Просто",
  "Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.": "«Просто» спрашивает только, помните ли вы: «Забыл» или «Помню». «Подробно» — четыре кнопки Anki: «Снова», «Трудно», «Хорошо» и «Легко», у каждой видно, когда карточка вернётся. Только для этого устройства.",
  "Your own": "Своя цель",
- "min a day": "мин в день"
+ "min a day": "мин в день",
+ "New here? Get a code by email to make your account.": "Впервые здесь? Получите код по почте, чтобы создать аккаунт.",
+ "Tap Sign in at the top and type your email. We send you a six-digit code, and the first time that makes your account. There is no password. With an invite link you can make it with a passkey instead, and unlock it the way you unlock your device: Face ID, a fingerprint, or your computer's password or PIN.": "Нажмите «Войти» вверху и введите свою почту. Мы пришлём шестизначный код, и в первый раз он создаст ваш аккаунт. Пароля нет. По ссылке-приглашению можно создать аккаунт с ключом доступа и открывать его так же, как устройство: Face ID, отпечатком пальца или паролем либо PIN-кодом компьютера.",
+ "We only use your email to send you sign-in codes.": "Ваша почта нужна только для кодов входа."
 }

@@ -41,6 +41,7 @@ The sync server is a Cloudflare Worker in `cloud/` (one small SQLite database pe
 
 1. Make free accounts at Cloudflare and Resend (resend.com, which sends the codes), then `npx wrangler login`.
 2. `npm run cloud:deploy`, then add the secrets: `npx wrangler secret put RESEND_API_KEY` and, to let only you sign in, `npx wrangler secret put ALLOWED_EMAILS` (both run in `cloud/`).
+   To send codes to anyone else, verify a domain in Resend (its DNS records) and set the sender as a secret, `npx wrangler secret put MAIL_FROM` ("Name <address>" on that domain): Resend's test address only reaches your own inbox.
 3. Put the Worker's address in `CLOUD_URL` (`src/core/cloudUrl.ts`) and build. Until it is set, Settings does not offer to sign in.
 4. For Claude through the account: `npx wrangler secret put ANTHROPIC_API_KEY < ~/.config/dushu/anthropic-api-key` (in `cloud/`). Each account gets the Mac's daily limit (3,000 requests or 3 million input tokens; `CLAUDE_MAX_REQUESTS`, `CLAUDE_MAX_INPUT_TOKENS`).
 
