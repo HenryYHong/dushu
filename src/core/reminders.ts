@@ -4,15 +4,31 @@
 // on. Settings shows both switches (ui/settings/reminders.ts); this file is how they talk to the server and the browser.
 import { tt } from '../i18n';
 import { CLOUD_EVENT, cloudFetch, cloudSession } from './cloud';
+import { workerScript } from '../swUpdate';
 
 /** The account's reminder settings: follow-up emails on, whether it has an email address at all, and the devices with notifications. */
 export interface ReminderPrefs { email: boolean; canEmail: boolean; devices: number }
 
 /**
- * How long to wait for the service worker. On a first visit it is registered only once the dictionary has downloaded
- * (main.ts), and in dev never: the tap then says it did not work, and a later one does.
+ * How long to wait for the service worker to be ready. On a first visit main.ts registers it only once the dictionary has
+ * downloaded; a tap before then registers it at once (readyWorker), and its install takes a few seconds on a slow phone. In
+ * dev it is never registered: the tap then says it did not work.
  */
-const WORKER_WAIT_MS = 10_000;
+const WORKER_WAIT_MS = 30_000;
+
+/**
+ * The service worker, registered now if main.ts has not yet (a first visit whose dictionary is still downloading): the person
+ * asked for notifications, and they need it. That install misses the dictionary the page is still downloading, so the offline
+ * copy stores it the first time it is fetched instead.
+ */
+async function readyWorker(): Promise<ServiceWorkerRegistration | null> {
+  const sw = navigator.serviceWorker;
+  if (import.meta.env.PROD && !(await sw.getRegistration().catch(() => undefined))) sw.register(workerScript()).catch(() => {});
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const reg = await Promise.race([sw.ready, new Promise<null>((r) => { timer = setTimeout(() => r(null), WORKER_WAIT_MS); })]);
+  clearTimeout(timer);
+  return reg;
+}
 
 /** A signed-in request, with the sync server's own error message when it gives one, as core/cloud.ts post() does. */
 async function call(path: string, body?: unknown): Promise<Response> {
@@ -112,9 +128,7 @@ export function madeWithKey(sub: PushSubscription, key: string): boolean {
  * dropped again, so the switch never says on for a device the server does not know. Returns how many devices the account has.
  */
 export async function subscribePush(key: string): Promise<number> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const reg = await Promise.race([navigator.serviceWorker.ready, new Promise<null>((r) => { timer = setTimeout(() => r(null), WORKER_WAIT_MS); })]);
-  clearTimeout(timer);
+  const reg = await readyWorker();
   if (!reg) throw new Error(tt('That did not work. Try again.'));
   const bytes = fromBase64Url(key);
   let sub: PushSubscription;
@@ -150,10 +164,12 @@ export async function unsubscribePush(): Promise<void> {
 
 /**
  * Signing out: this device stops getting the account's reminders, and the next person to sign in here turns them on for their
- * own. Runs while still signed in (the account is told); never stops the sign-out.
+ * own. Only ended here, and the sign-out never waits on it: the server's sign-out forgets the subscription that session added
+ * (cloud/src/account.ts signOut), and if that never reaches it, the push service answers its next try that it is gone.
  */
 export async function dropPushHere(): Promise<void> {
-  await unsubscribePush().catch(() => {});
+  const sub = await currentSubscription();
+  await sub?.unsubscribe().catch(() => false);
 }
 
 /**
@@ -170,8 +186,8 @@ export async function refreshPush(key: string): Promise<void> {
 }
 
 /**
- * Ends this device's subscription when it is no longer signed in. Sign out in Settings does it while still signed in, so the
- * account is told (dropPushHere); this covers the other ways a sign-in ends: the server saying it is over (401, from another
+ * Ends this device's subscription when it is no longer signed in. Sign out in Settings does it too (dropPushHere); this covers
+ * the other ways a sign-in ends: the server saying it is over (401, from another
  * device or after the account dropped it), and a deleted account. A subscription left alive would still get the old account's
  * reminders from the server, which keeps it, and Settings would hand it to the next account signed in here, which never chose
  * notifications. Only ended here: there is no account left to tell, and the push service answers the server's next try that

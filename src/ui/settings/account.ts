@@ -162,12 +162,11 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     finally { signInBtn.disabled = false; paint(); }
   });
   againBtn.addEventListener('click', () => { asked = ''; say(''); paint(); email.focus(); });
-  signOutBtn.addEventListener('click', async () => {
-    signOutBtn.disabled = true;
-    // Notifications here were the account's: they stop with the sign-in (told to the account while it still is one).
-    await dropPushHere();
-    await signOut();
-    signOutBtn.disabled = false;
+  signOutBtn.addEventListener('click', () => {
+    // Signed out here at once. Telling the server (which also stops this device's reminders) goes on in the background, so a
+    // slow or missing connection never holds it up; notifications here were the account's and end with it.
+    void dropPushHere().catch(() => {});
+    void signOut();
     say(tt('Signed out. Everything stays on this device; it no longer syncs through your account.'));
     paint();
   });

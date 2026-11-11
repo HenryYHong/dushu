@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { remindersRow } from '../../src/ui/settings/reminders';
 import { accountPanel } from '../../src/ui/settings/account';
 import { watchSignOut } from '../../src/core/reminders';
-import { CLOUD_EVENT, forgetSession } from '../../src/core/cloud';
+import { CLOUD_EVENT, cloudSession, forgetSession } from '../../src/core/cloud';
 
 /** A P-256 public key as the server sends it: 65 bytes, 0x04 first, base64url. */
 const KEY_BYTES = Uint8Array.from({ length: 65 }, (_, i) => (i === 0 ? 4 : i));
@@ -284,7 +284,7 @@ describe('the Reminders row', () => {
 });
 
 describe('signing out', () => {
-  it('stops this device’s notifications for the account before the sign-in ends', async () => {
+  it('signs out at once and ends this device’s notifications, with the server told in the background', async () => {
     withPush();
     permission = 'granted';
     sub = makeSub(KEY_BYTES);
@@ -293,10 +293,14 @@ describe('signing out', () => {
     const panel = accountPanel();
     root.appendChild(panel.el);
     [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Sign out')!.click();
+    // Nothing is waited on: the device is signed out before the server answers.
+    expect(cloudSession()).toBeNull();
+    expect(panel.el.textContent).toContain('Signed out. Everything stays on this device');
     await until(() => calls.some((c) => c.path === '/auth/signout'));
-    expect(calls.map((c) => c.path)).toEqual(['/me/push/remove', '/auth/signout']);
+    // The server's sign-out forgets the subscription that session added (tests/cloud/reminders.test.ts): no second request.
+    expect(calls.map((c) => c.path)).toEqual(['/auth/signout']);
     expect(calls[0].auth).toBe('Bearer tok');
-    expect(made.unsubscribe).toHaveBeenCalled();
+    await until(() => made.unsubscribe.mock.calls.length > 0);
     panel.dispose();
   });
 

@@ -8,6 +8,13 @@ import { tt } from './i18n';
  * the page, and WebKit can deliver "installed" after the claim, so the live controller alone would call the first install an
  * update. `reload` runs when a new worker takes over a page that was already controlled.
  */
+/**
+ * The service worker's script. watchServiceWorker registers it (main.ts: on a first visit only once the dictionary has
+ * downloaded), and turning notifications on registers it sooner when it is not yet (core/reminders.ts). Registering the same
+ * script again is the same registration.
+ */
+export const workerScript = (): URL => new URL('sw.js', document.baseURI);
+
 /** How long after opening (or coming back to the front) a new version takes over without asking. */
 export const AUTO_UPDATE_MS = 20_000;
 
@@ -39,7 +46,7 @@ export function watchServiceWorker(
     reloading = true;
     reload();
   });
-  container.register(new URL('sw.js', document.baseURI)).then((reg) => {
+  container.register(workerScript()).then((reg) => {
     // Called when a worker starts installing, while the one it replaces (if any) is still the active one.
     const watch = (worker: ServiceWorker | null) => {
       if (!worker) return;
