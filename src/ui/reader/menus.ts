@@ -11,13 +11,33 @@ import { rateLabel } from '../settings/speech';
 import { isChinese, lang } from '../../lang/active';
 import { autoKnownHelp, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { tt, ttm, uiLocale } from '../../i18n';
+import { EASE_IN, play } from '../review/motion';
 
-export interface Popover { el: HTMLElement; anchor: HTMLElement; close(): void }
+export interface Popover { el: HTMLElement; anchor: HTMLElement; close(now?: boolean): void }
 
 let current: Popover | null = null;
+/** A menu on its way out: it takes no taps, and is gone at once if another menu opens. */
+let leaving: HTMLElement | null = null;
 
-export function closePopover(): void {
-  current?.close();
+/** Closes the open menu. `now` skips the short fade (the reader is going away, so nothing should linger). */
+export function closePopover(now = false): void {
+  current?.close(now);
+}
+
+/**
+ * Takes a closed menu off the screen: a bubble fades back toward its button, a sheet slides down from wherever the finger left
+ * it. The menu is already closed for everything else (focus, keys, the next menu); this is only the picture going away.
+ */
+function leave(el: HTMLElement, sheet: boolean, now: boolean): void {
+  const out = now ? null : sheet
+    ? play(el, [{ transform: el.style.transform || 'translate(-50%, 0)' }, { transform: 'translate(-50%, 100%)' }], { duration: 220, easing: EASE_IN })
+    : play(el, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 140, easing: EASE_IN });
+  if (!out) { el.remove(); return; }
+  el.inert = true;
+  el.classList.add('rd-leaving');
+  leaving = el;
+  const gone = () => { el.remove(); if (leaving === el) leaving = null; };
+  out.finished.then(gone, gone);
 }
 
 export function popoverOpenFor(anchor: HTMLElement): boolean {
@@ -36,13 +56,15 @@ export interface PopoverOptions {
 
 /** A panel under `anchor` (or a bottom sheet). Clicking the anchor again, pressing Esc or clicking elsewhere closes it. */
 export function openPopover(anchor: HTMLElement, content: HTMLElement, onClose?: () => void, opts: PopoverOptions = { label: tt('Menu') }): Popover {
-  closePopover();
+  closePopover(true);
+  leaving?.remove();
+  leaving = null;
   const el = h('div.rd-pop', { role: 'dialog', 'aria-label': opts.label, tabindex: '-1' });
   let sheet = false;
   const pop: Popover = {
     el,
     anchor,
-    close() {
+    close(now = false) {
       if (current !== pop) return;
       current = null;
       document.removeEventListener('pointerdown', onDown, true);
@@ -51,7 +73,7 @@ export function openPopover(anchor: HTMLElement, content: HTMLElement, onClose?:
       el.removeEventListener('scroll', cue);
       anchor.setAttribute('aria-expanded', 'false');
       const hadFocus = el.contains(document.activeElement) || document.activeElement === document.body || !document.activeElement;
-      el.remove();
+      leave(el, sheet, now);
       // Focus goes back to the button that opened the menu, not to the page behind it.
       if (hadFocus && anchor.isConnected) anchor.focus({ preventScroll: true });
       onClose?.();
@@ -85,12 +107,15 @@ export function openPopover(anchor: HTMLElement, content: HTMLElement, onClose?:
       if (sheet) el.prepend(grabber());
     }
     if (sheet) {
-      el.style.left = el.style.right = el.style.top = el.style.width = el.style.maxHeight = '';
+      el.style.left = el.style.right = el.style.top = el.style.width = el.style.maxHeight = el.style.transformOrigin = '';
     } else {
       const r = anchor.getBoundingClientRect();
       const w = el.offsetWidth || 372;
       const left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
       Object.assign(el.style, { left: `${Math.round(left)}px`, right: 'auto', width: '', top: `${Math.round(r.bottom + 6)}px` });
+      // It grows from its own button and shrinks back into it: the Aa and pinyin buttons sit side by side, and a menu that
+      // opened from the bubble's corner could seem to belong to either.
+      el.style.transformOrigin = `${Math.round(Math.min(w, Math.max(0, r.left + r.width / 2 - left)))}px top`;
       el.style.maxHeight = `${Math.max(160, window.innerHeight - r.bottom - 16)}px`;
     }
     cue();
