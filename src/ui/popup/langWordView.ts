@@ -10,6 +10,7 @@ import { speak, stopSpeaking, canSpeak } from '../../speech/tts';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { flyToVocab } from '../fly';
+import { popIcon } from '../vocab/motion';
 import type { PopupHost } from './host';
 import type { WordPopupOptions } from './popup';
 import type { WordView } from './wordView';
@@ -202,15 +203,23 @@ export function mountLangWordView(
     const root = h('div.pp-word-view.pp-lang');
 
     const saveBtn = h('button.icon-btn.pp-save', { onclick: () => void toggleSave(v, lu), title: tt('Save word (S)'), 'aria-label': tt('Save word') });
-    const knownBtn = h('button.icon-btn.pp-known', { onclick: () => void toggleKnown(lu), title: tt('Mark as known (K)'), 'aria-label': tt('Mark as known') });
+    const knownBtn = h('button.icon-btn.pp-known', { onclick: () => void toggleKnown(lu), title: tt('Mark as known (K)'), 'aria-label': tt('Mark as known') }, icon('checkCircle'));
+    // A star or check that turns on gives one small pop (vocab/motion.ts), as on the Chinese card; the first drawing has none.
+    let wasSaved: boolean | undefined;
+    let wasKnown: boolean | undefined;
     const sync = () => {
       const saved = store.vocab.has(lu.key);
-      saveBtn.replaceChildren(icon(saved ? 'starFill' : 'star'));
+      if (saved !== wasSaved) {
+        saveBtn.replaceChildren(icon(saved ? 'starFill' : 'star'));
+        if (saved && wasSaved === false) popIcon(saveBtn);
+        wasSaved = saved;
+      }
       saveBtn.setAttribute('aria-pressed', String(saved));
       saveBtn.title = saved ? tt('Remove from saved words (S)') : tt('Save word (S)');
       const known = store.known.has(lu.key);
       const learned = known && store.known.isAuto(lu.key);
-      knownBtn.replaceChildren(icon('checkCircle'));
+      if (known && wasKnown === false) popIcon(knownBtn);
+      wasKnown = known;
       knownBtn.setAttribute('aria-pressed', String(known));
       knownBtn.classList.toggle('pp-learned', learned);
       knownBtn.title = learned ? tt('Learned from reading. Click to unmark (K)') : known ? tt('Known. Click to unmark (K)') : tt('Mark as known (K)');

@@ -6,7 +6,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { LookupRow } from '../../src/types';
 import { openStore } from '../../src/store';
 import { localDay, logLookup } from '../../src/ui/popup/lookupLog';
-import { dayLabel, distinctWords, groupByDay } from '../../src/ui/vocab/lookups';
+import { createLookupsView, dayLabel, distinctWords, groupByDay } from '../../src/ui/vocab/lookups';
 import { openPractice } from '../../src/ui/vocab/practice';
 import { makeCtx, stubBrowser } from '../reader/helpers';
 
@@ -94,6 +94,40 @@ describe('logLookup', () => {
     logLookup(ctx, dict, { word: 'OK', syllables: [] }, NOW);
     await new Promise((r) => setTimeout(r, 5));
     expect(log).not.toHaveBeenCalled();
+  });
+});
+
+describe('the Looked up view', () => {
+  it('pops a star as it turns on (saved here or anywhere), not one that was already on or a drawing again', async () => {
+    const pops: Element[] = [];
+    const proto = Element.prototype as { animate?: unknown };
+    const real = proto.animate;
+    proto.animate = function (this: Element, frames: Keyframe[]) {
+      if (frames.some((f) => String(f.transform).includes('scale(1.15)'))) pops.push(this);
+      return { finished: new Promise(() => {}) };
+    };
+    try {
+      const { ctx } = await makeCtx();
+      const today = localDay(Date.now());
+      await ctx.store.lookups.log({ day: today, id: '书', word: '书', pinyin: 'shu1', gloss: 'book' }, Date.now());
+      await ctx.store.lookups.log({ day: today, id: '水', word: '水', pinyin: 'shui3', gloss: 'water' }, Date.now() - 1000);
+      await ctx.store.vocab.put({ id: '水', simp: '水', trad: '水', pinyin: 'shui3', gloss: 'water', addedAt: 1, srs: { due: 1, interval: 0, ease: 2.5, reps: 0, lapses: 0 } });
+      const view = createLookupsView(ctx);
+      document.body.append(view.el);
+      // The Vocabulary screen draws the stars again when the saved words change.
+      const off = ctx.store.onChange((what) => { if (what === 'vocab') view.render(); });
+      await view.refresh();
+      expect(pops).toHaveLength(0);
+      const star = (id: string) => [...document.querySelectorAll<HTMLElement>('.voc-lk-row')].find((r) => r.dataset.flip?.endsWith(` ${id}`))!.querySelector<HTMLElement>('.voc-lk-save')!;
+      star('书').click();
+      await vi.waitFor(() => expect(star('书').getAttribute('aria-pressed')).toBe('true'));
+      expect(pops).toEqual([star('书').querySelector('svg')]);
+      view.render();
+      expect(pops).toHaveLength(1);
+      off();
+    } finally {
+      proto.animate = real;
+    }
   });
 });
 

@@ -159,12 +159,13 @@
 /* At 0% a hairline would read as a section rule, not as progress: only the words then. */
 .lib-continue-progress .lib-bar[aria-valuenow='0'] { display: none; }
 .lib-continue-go { flex: none; text-decoration: none; height: 42px; padding: 0 20px; font-size: 14px; }
-/* One filled red button a screen: beside a book to continue or the first book's Start reading, Import is a plain button. */
-.lib-page:is(:has(.lib-continue), :has(.lib-start)) .page-head .btn-primary { background: var(--elev); color: var(--text); box-shadow: var(--shadow-s); }
-:root[data-theme='dark'] .lib-page:is(:has(.lib-continue), :has(.lib-start)) .page-head .btn-primary { background: var(--surface-2); }
+/* One filled red button a screen: beside a book to continue or the first book's Start reading, Import is a plain button (already
+   while the first book's card is on its way, so the button does not change as it comes). */
+.lib-page:is(:has(.lib-continue), :has(.lib-start), :has(.lib-start-wait)) .page-head .btn-primary { background: var(--elev); color: var(--text); box-shadow: var(--shadow-s); }
+:root[data-theme='dark'] .lib-page:is(:has(.lib-continue), :has(.lib-start), :has(.lib-start-wait)) .page-head .btn-primary { background: var(--surface-2); }
 @media (hover: hover) {
-  .lib-page:is(:has(.lib-continue), :has(.lib-start)) .page-head .btn-primary:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); }
-  :root[data-theme='dark'] .lib-page:is(:has(.lib-continue), :has(.lib-start)) .page-head .btn-primary:hover { background: var(--surface-3); }
+  .lib-page:is(:has(.lib-continue), :has(.lib-start), :has(.lib-start-wait)) .page-head .btn-primary:hover { background: color-mix(in srgb, var(--elev) 93%, var(--text)); }
+  :root[data-theme='dark'] .lib-page:is(:has(.lib-continue), :has(.lib-start), :has(.lib-start-wait)) .page-head .btn-primary:hover { background: var(--surface-3); }
 }
 
 /* ---------- book grid ---------- */
@@ -383,12 +384,45 @@
 .lib-start-other { margin: 14px 0 0; color: var(--text-3); font-size: 13.5px; }
 .lib-start-link { padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; cursor: pointer; }
 @media (hover: hover) { .lib-start-link:hover { text-decoration-color: currentColor; } }
+/* Waiting for the classics on a slow network: soft blocks laid out like the first book's card, where its cover, title, lines and
+   button will be, so the card fills in rather than changing shape. They come into view only when the wait is long enough to
+   notice (a quick answer shows the plain card, as before), then a soft band passes over them now and then at an even pace. The
+   band is the card's own color, so it shows only on the blocks. With reduced motion the blocks are simply there, still. */
+.lib-start-wait-host { padding-top: 46px; } /* the room Pengu peeks over the first book's card in (pengu.css .pengu-peek-host) */
+.lib-start-wait { position: relative; overflow: hidden; }
+.lib-skel-start { display: flex; gap: var(--space-5); align-items: flex-start; padding: var(--space-5); animation: lib-skel-in 400ms var(--ease) 300ms backwards; }
+.lib-skel { display: block; border-radius: 3px; background: var(--wash-2); }
+.lib-skel-cover { flex: none; width: 132px; aspect-ratio: 5 / 7; border-radius: 2px; }
+.lib-skel-body { flex: 1; min-width: 0; }
+.lib-skel-kicker { width: 96px; height: 10px; margin-top: 4px; }
+.lib-skel-title { width: min(220px, 70%); height: 24px; margin-top: 12px; }
+.lib-skel-author { width: 104px; height: 12px; margin-top: 14px; }
+.lib-skel-line { width: min(480px, 94%); height: 12px; margin-top: 19px; }
+.lib-skel-line + .lib-skel-line { margin-top: 19px; }
+.lib-skel-line + .lib-skel-line + .lib-skel-line { margin-top: 8px; }
+.lib-skel-line.lib-skel-short { width: min(400px, 76%); }
+.lib-skel-btn { width: 156px; height: 44px; margin-top: 20px; border-radius: var(--radius); }
+.lib-skel-line.lib-skel-faint { width: min(560px, 88%); margin-top: 19px; opacity: 0.6; }
+@media (prefers-reduced-motion: no-preference) {
+  .lib-start-wait::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(100deg, transparent 35%, color-mix(in srgb, var(--surface) 65%, transparent) 50%, transparent 65%);
+    transform: translateX(-100%); animation: lib-skel-sweep 2.8s linear 700ms infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) { .lib-skel-start { animation-duration: 1ms; } }
+@media (max-width: 520px) { .lib-start-wait-host { padding-top: 40px; } }
+@keyframes lib-skel-in { from { opacity: 0; } }
+@keyframes lib-skel-sweep { 0% { transform: translateX(-100%); } 70%, 100% { transform: translateX(100%); } }
 @media (max-width: 560px) {
   .lib-start { flex-direction: column; align-items: stretch; padding: var(--space-4); gap: var(--space-4); }
   .lib-start-cover { width: 104px; }
   .lib-start-cover .lib-cover-wrap { width: 104px; }
   .lib-start-title { font-size: 24px; }
   .lib-start-go { width: 100%; }
+  .lib-skel-start { flex-direction: column; align-items: stretch; padding: var(--space-4); gap: var(--space-4); }
+  .lib-skel-cover { width: 104px; }
+  .lib-skel-btn { width: 100%; }
 }
 .lib-find-tabs { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border-radius: 999px; background: var(--wash-2); }
 .lib-find-tab { height: 30px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-2); font-size: 13.5px; font-weight: 560; cursor: pointer; }

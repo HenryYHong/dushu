@@ -141,6 +141,41 @@ describe('saving', () => {
   });
 });
 
+describe('the Save and Known buttons', () => {
+  it('pop a little as they turn on, not when the card opens or as they turn off', async () => {
+    const pops: Element[] = [];
+    const proto = Element.prototype as { animate?: unknown };
+    const real = proto.animate;
+    proto.animate = function (this: Element, frames: Keyframe[]) {
+      if (frames.some((f) => String(f.transform).includes('scale(1.15)'))) pops.push(this);
+      return { finished: new Promise(() => {}) };
+    };
+    try {
+      const { ctx } = await makeCtx();
+      openWordPopup({ ctx, word: '因', anchor: anchorRect() });
+      const wait = () => new Promise((r) => setTimeout(r, 50));
+      expect(pops).toHaveLength(0);
+      q('.pp-save')!.click();
+      await wait();
+      expect(q('.pp-save')!.getAttribute('aria-pressed')).toBe('true');
+      expect(pops).toEqual([q('.pp-save svg')]);
+      q('.pp-save')!.click();
+      await wait();
+      expect(q('.pp-save')!.getAttribute('aria-pressed')).toBe('false');
+      expect(pops).toHaveLength(1);
+      q('.pp-known')!.click();
+      await wait();
+      expect(pops).toHaveLength(2);
+      expect(pops[1]).toBe(q('.pp-known svg'));
+      q('.pp-known')!.click();
+      await wait();
+      expect(pops).toHaveLength(2);
+    } finally {
+      proto.animate = real;
+    }
+  });
+});
+
 describe('script variants belong to the reading on screen', () => {
   it('shows no traditional form for the particle 了, whose 瞭 is only the liǎo "understand" row', async () => {
     const { ctx } = await makeCtx();

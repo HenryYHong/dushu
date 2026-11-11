@@ -12,6 +12,7 @@ import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
 import { activeEngine, isChinese } from '../../lang/active';
 import { aidName, aidWord, levelCount, levelLabel, levelScheme } from '../../lang/labels';
 import { createLookupsView } from './lookups';
+import { redraw } from './motion';
 import { reviewParts } from '../review/learning';
 import { backupFileName } from '../settings/data';
 import { num, tt, ttm, ttn, uiLocale } from '../../i18n';
@@ -61,6 +62,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   let sort: SortKey = savedSort();
   let settings = ctx.settings.get();
   let alive = true;
+  let listed = false;
 
   // ------------------------------------------------------------ header ---
   const sub = h('p.page-sub');
@@ -100,7 +102,15 @@ export const mount: MountFn = (root, _params, ctx) => {
   // ------------------------------------------------------------- list ---
   function shown(): VocabItem[] { return filterAndSort(items, query, sort); }
 
-  function renderList(): void {
+  /**
+   * Draws the words. `changed`: the saved words themselves changed (a word removed, put back, saved elsewhere), so a row that
+   * left folds away and one that came eases in (motion.ts); a search, a sort or a setting just draws the list as it is now.
+   */
+  function renderList(changed = false): void {
+    redraw(list, changed, drawList);
+  }
+
+  function drawList(): void {
     clear(list);
     const rows = shown();
     count.textContent = query.trim() ? ttn(rows.length, '{n} match of {total}', '{n} matches of {total}', { total: num(items.length) }) : '';
@@ -130,7 +140,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const ta = textAttrs(shownWord === it.trad && it.trad !== it.simp);
     const word = h('span', { class: `voc-word ${ta.cls}`, lang: ta.lang }, shownWord);
     const meta = [it.context?.bookTitle && view.text(it.context.bookTitle), tt('Added {date}', { date: fmtDate(it.addedAt) })].filter(Boolean).join(' · ');
-    const el = h('div', { class: 'voc-row', role: 'listitem', tabindex: 0, 'aria-label': `${it.simp}, ${it.gloss}` },
+    const el = h('div', { class: 'voc-row', role: 'listitem', tabindex: 0, 'aria-label': `${it.simp}, ${it.gloss}`, 'data-flip': it.id },
       h('div.voc-main', null,
         h('div.voc-line', null, word, pinyinEl(it.pinyin, settings.pinyinStyle, settings.toneColors, 'voc-py')),
         h('div.voc-gloss', null, it.gloss),
@@ -398,7 +408,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     }
     await refreshHead();
     if (!alive) return;
-    renderList();
+    // The first list is simply there; later ones show what changed.
+    renderList(listed);
+    listed = true;
     renderKnown();
     // With nothing saved yet, open on what was looked up (unless a tab was chosen before).
     if (!items.length && !savedTab()) setTab('lookups');

@@ -12,8 +12,11 @@
 .voc-count { min-height: 20px; margin-bottom: var(--space-2); font: italic 400 15px/1.3 var(--font-display); }
 .voc-count:empty { display: none; }
 
-.voc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 0 var(--space-6); align-items: start; }
+.voc-list { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 0 var(--space-6); align-items: start; }
 .voc-list > .empty { grid-column: 1 / -1; }
+/* A word that left the list, fading where it was while the rows after it close the gap (ui/vocab/motion.ts). */
+.voc-lk-days { position: relative; }
+.voc-ghost { position: absolute; margin: 0; pointer-events: none; }
 /* Words as a ruled list, like the entries of a word book. */
 .voc-row {
   display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3);
@@ -124,6 +127,7 @@
 .prc-ctx b { color: var(--text); font-weight: 600; }
 .prc-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }
 .prc-save[aria-pressed='true'] { color: var(--accent); }
+.prc-save[aria-pressed='true'] svg { fill: currentColor; }
 .prc-foot { display: flex; justify-content: center; gap: var(--space-3); padding: var(--space-4) var(--space-5) var(--space-5); }
 .prc-foot .btn { min-width: 120px; min-height: 44px; justify-content: center; }
 .prc-end { display: grid; gap: var(--space-2); }

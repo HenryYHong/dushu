@@ -9,6 +9,7 @@ import { speak } from '../../speech/tts';
 import { goalMessage, startReadingClock } from '../../core/readingClock';
 import { langId } from '../../lang/active';
 import { contextEl, pinyinEl, scriptView, textAttrs } from './render';
+import { popIcon } from './motion';
 import { tt, ttn } from '../../i18n';
 
 const nodes = (...list: (HTMLElement | null)[]): HTMLElement[] => list.filter((n): n is HTMLElement => n !== null);
@@ -97,7 +98,8 @@ export function openPractice(ctx: AppContext, words: LookupRow[], title: string)
       const dict = await ctx.dict();
       await ctx.store.vocab.put(itemFromLookupRow(dict, r, Date.now(), { bookGloss: false }));
       ctx.toast(tt('Saved {word} to your flashcards.', { word: r.id }));
-      if (overlay.isConnected) draw();
+      // Drawn again with the star filled, which gives one small pop as it turns on.
+      if (overlay.isConnected) { draw(); popIcon(body.querySelector('.prc-save')); }
     } catch (e) {
       ctx.toast(e instanceof Error ? e.message : tt('Could not save the word.'));
     }

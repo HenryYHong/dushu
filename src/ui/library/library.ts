@@ -357,6 +357,10 @@ export const mount: MountFn = (root, _params, ctx) => {
     const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
     const startKey = empty && first ? `${first.id}|${sampleShown(first, 'title')}|${touch}|${canFindBooks()}` : '';
     if (startKey && startShown?.key === startKey && gridEl.contains(startShown.el)) { startShown.paint(jobs.length > 0); return; }
+    // Drawn again while the classics are still coming (the dictionary came in, say), the placeholder stays as it is, so its
+    // blocks never blink out and start over.
+    const waiting = empty && !first && loaded && !samplesSettled && !samplesGaveUp;
+    if (waiting && gridEl.querySelector('.lib-start-wait')) return;
     clear(gridEl);
     startShown = null;
     if (!loaded && !jobs.length) return;
@@ -370,10 +374,18 @@ export const mount: MountFn = (root, _params, ctx) => {
         return;
       }
       // The classics are still on their way: a quiet card where the first book will be, about its height (a column on a phone,
-      // library.css), with nothing to read or press yet.
+      // library.css), with nothing to read or press yet. On a slow network it shows soft blocks where the cover, the title, the
+      // lines and the button will come (startCard), so the card fills in rather than changing shape.
       if (!samplesSettled && !samplesGaveUp) {
         const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 560px)').matches;
-        gridEl.appendChild(h('div.card.lib-start-wait', { 'aria-busy': 'true', style: `min-height: ${narrow ? 520 : 310}px` }));
+        const block = (cls: string) => h(`span.lib-skel.${cls}`);
+        // Its host leaves the room Pengu will peek over the card in (pengu.css), so the card is already where it will be.
+        gridEl.appendChild(h('div.lib-start-wait-host', null, h('div.card.lib-start-wait', { 'aria-busy': 'true', style: `min-height: ${narrow ? 520 : 310}px` },
+          h('div.lib-skel-start', { 'aria-hidden': 'true' },
+            block('lib-skel-cover'),
+            h('div.lib-skel-body', null, block('lib-skel-kicker'), block('lib-skel-title'), block('lib-skel-author'),
+              block('lib-skel-line'), block('lib-skel-line'), block('lib-skel-line.lib-skel-short'), block('lib-skel-btn'),
+              block('lib-skel-line.lib-skel-faint'))))));
         return;
       }
       const name = readingName();
