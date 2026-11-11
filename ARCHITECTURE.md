@@ -1695,6 +1695,11 @@ and opens it. Empty state explains what the app does in two sentences.
   the language switch and Sign in, and says the reader shows itself the first time a book opens. Settings › Learning › Walkthrough
   shows both again. The welcome's next step slides in 20 px from the side the reader went to as it fades in (the footer stays
   put); a walkthrough's card glides with the spotlight to the next step (260 ms, its height with it) while the new words fade in.
+  The spotlight (`.rd-guide-spot`) is a box that paints nothing, with the dim (four corner boxes with one shadow each, dimmed
+  together) and the ring (four arcs, four edges) as parts that follow it by CSS; a glide sets the new box at once and moves the
+  parts by transforms only (FLIP), so it lays nothing out and keeps step with the card while the page is busy. On a first
+  visit the library's walkthrough waits for the dictionary's parse to finish and the next idle moment (at most 8 s, then 1 s),
+  so its first steps do not share the page with it.
 - needsWelcome writes the unfinished plan (`welcomed: 0`) at once, so a reload or a second tab during the welcome brings it back.
   The welcome is a modal `<dialog>`. Skip keeps a language already picked; with none picked the bar keeps its language chip. From
   Settings, Done stays in the open library unless that language was dropped, and Esc acts as Cancel.

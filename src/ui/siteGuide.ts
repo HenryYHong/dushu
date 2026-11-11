@@ -2,6 +2,30 @@
 // the top bar (Vocabulary, Review, Settings, the language switch, Sign in). The reader has its own, the first time a book opens.
 import { showGuide, markSiteGuide, siteGuideDue, type GuideStep } from './guide';
 import { tt } from '../i18n';
+import type { AppContext } from '../types';
+
+/**
+ * On a first visit the dictionary is still being read when the library shows, and its parse takes the page in long slices for
+ * a few seconds: the walkthrough waits for it, so its first steps glide on a free page. It waits this long at most, then starts
+ * anyway (a slow connection, a dictionary that never comes).
+ */
+export const DICT_WAIT_MS = 8000;
+/** After the dictionary, the page's next quiet moment (the work that follows it goes first), at most this long. */
+export const IDLE_WAIT_MS = 1000;
+
+/** Resolves once `first` settles (or DICT_WAIT_MS pass) and then the page is idle (or IDLE_WAIT_MS pass). Never rejects. */
+function afterQuiet(first: Promise<unknown>): Promise<void> {
+  const settled = new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, DICT_WAIT_MS);
+    void first.then(() => {}, () => {}).then(() => { clearTimeout(timer); resolve(); });
+  });
+  return settled.then(() => new Promise<void>((resolve) => {
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    // Browsers without idle callbacks (Safari) give the work that follows the dictionary a moment.
+    if (typeof idle === 'function') idle(() => resolve(), { timeout: IDLE_WAIT_MS });
+    else setTimeout(resolve, 300);
+  }));
+}
 
 /** Shown while the library is on screen and nothing else is open over it (the welcome, a dialog). */
 const busy = (): boolean => document.body.classList.contains('wel-open') || !!document.querySelector('dialog[open], .rd-guide');
@@ -11,10 +35,11 @@ const q = (sel: string) => (): Element | null => document.querySelector(sel);
 const nav = (route: string) => q(`.app-nav .app-navlink[data-route="${route}"]`);
 
 /**
- * Starts the walkthrough over the library when it is due, once nothing else is open over it. Returns what takes it down when
- * the library goes (a walkthrough cut short that way stays due).
+ * Starts the walkthrough over the library when it is due, once nothing else is open over it and the dictionary is read (on a
+ * first visit it is not yet: see DICT_WAIT_MS). Returns what takes it down when the library goes (a walkthrough cut short that
+ * way stays due). The library never waits on it.
  */
-export function maybeSiteGuide(): () => void {
+export function maybeSiteGuide(ctx?: Pick<AppContext, 'dict' | 'dictSync'>): () => void {
   let stop: (() => void) | null = null;
   let timer = 0;
   let gone = false;
@@ -23,7 +48,9 @@ export function maybeSiteGuide(): () => void {
     if (busy()) { timer = window.setTimeout(tryNow, 800); return; }
     stop = start();
   };
-  tryNow();
+  // Asked only when the walkthrough is due, so a library drawn while offline does not ask for the dictionary again for it.
+  if (ctx && siteGuideDue() && !ctx.dictSync()) void afterQuiet(ctx.dict()).then(tryNow);
+  else tryNow();
   return () => { gone = true; window.clearTimeout(timer); stop?.(); };
 }
 
