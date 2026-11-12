@@ -100,7 +100,7 @@ describe('the join screen', () => {
 });
 
 describe('the sign-in panel', () => {
-  it('offers a passkey first, a passkey account for someone new, email as the other way in, and a passkey for this device once signed in', async () => {
+  it('offers a passkey first, a passkey account for someone new, email behind a link as the other way in, and a passkey for this device once signed in', async () => {
     const panel = accountPanel();
     root.appendChild(panel.el);
     const button = (label: string) => [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === label)!;
@@ -111,7 +111,14 @@ describe('the sign-in panel', () => {
     const create = [...root.querySelectorAll<HTMLAnchorElement>('a')].find((a) => a.textContent === 'Create an account with a passkey')!;
     expect(create.getAttribute('href')).toBe('#/join');
     expect(create.closest('[hidden]')).toBeNull();
+    // The email waits behind "Sign in with email instead" (a free email service sends only so many codes a day).
+    expect(root.querySelector<HTMLElement>('.set-cloud-or')!.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>('.set-cloud-email')!.closest('[hidden]')).not.toBeNull();
+    button('Sign in with email instead').click();
     expect(root.querySelector<HTMLElement>('.set-cloud-or')!.hidden).toBe(false);
+    expect(root.querySelector<HTMLElement>('.set-cloud-email')!.closest('[hidden]')).toBeNull();
+    expect(document.activeElement).toBe(root.querySelector('.set-cloud-email'));
+    expect(button('Sign in with email instead').closest('[hidden]')).not.toBeNull();
     expect(root.querySelector('.set-cloud-status')!.textContent).toBe('');
 
     pk.signInWithPasskey.mockImplementation(async () => {

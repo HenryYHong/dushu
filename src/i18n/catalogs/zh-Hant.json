@@ -959,6 +959,7 @@
  "Sign in to use": "登入後使用",
  "Sign in to use it": "登入後即可使用",
  "Sign in with a passkey": "使用通行密鑰登入",
+ "Sign in with email instead": "改用電子郵件登入",
  "Sign in, or connect this device to your Mac": "登入，或將這台裝置連接到你的 Mac",
  "Sign in, or connect this device to your Mac, in Settings to use Claude.": "請在「設定」中登入，或將這台裝置連接到你的 Mac，才能使用 Claude。",
  "Sign out": "登出",

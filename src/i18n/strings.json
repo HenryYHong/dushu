@@ -5535,6 +5535,11 @@
    "src/ui/settings/account.ts"
   ]
  },
+ "Sign in with email instead": {
+  "where": [
+   "src/ui/settings/account.ts"
+  ]
+ },
  "Sign in, or connect this device to your Mac": {
   "where": [
    "src/ui/popup/translation.ts"

@@ -2,7 +2,8 @@
 // Both are the same panel. Signed out, three ways in, in this order: Continue with Google (core/google.ts, only on the public
 // site, the one address Google sends sign-ins back to), a passkey (core/passkey.ts: sign in with one, or make an account with
 // one on the Join screen), and an email with its six-digit code. Google and the code make the account the first time, and
-// reach the same one for the same address. Signed in: who it is, a passkey for this device, Sign out and Delete account.
+// reach the same one for the same address. Where Google or passkeys work, the email is behind "Sign in with email instead":
+// still a way in, and the way back for an account made by email, but a free email service sends only so many codes a day. Signed in: who it is, a passkey for this device, Sign out and Delete account.
 import { h } from '../dom';
 import { CLOUD_EVENT, accountLabel, cloudBase, cloudSession, deleteAccount, requestCode, signIn, signOut } from '../../core/cloud';
 import { GOOGLE_EMBEDDED, embeddedBrowser, googleOffered, startGoogleSignIn } from '../../core/google';
@@ -63,6 +64,11 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
   const passkeyRow = h('div.set-cloud-row.set-cloud-wide', { hidden: !passkeys }, passkeyBtn);
   const createRow = h('div.set-cloud-row.set-cloud-wide', { hidden: !passkeys }, createLink);
   const orEmail = h('div.set-help.set-cloud-or', { hidden: !passkeys && !google }, tt('Or get a code by email:'));
+  // Where Google or a passkey works, the email waits behind this; elsewhere it is the way in, shown at once.
+  const fallback = passkeys || google;
+  let emailOpen = false;
+  const emailOpenBtn = h('button.btn.btn-sm.btn-ghost.set-cloud-email-open', { type: 'button', hidden: !fallback }, tt('Sign in with email instead')) as HTMLButtonElement;
+  const emailOpenRow = h('div.set-cloud-row.set-cloud-wide', { hidden: !fallback }, emailOpenBtn);
   const emailRow = h('div.set-cloud-row', null, email, sendBtn);
   const codeRow = h('div.set-cloud-row', null, code, signInBtn, againBtn);
   const outRow = h('div.set-cloud-row', null, addKeyBtn, signOutBtn, deleteBtn);
@@ -81,8 +87,9 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
     googleRow.hidden = !google || !!s || !!asked;
     passkeyRow.hidden = !passkeys || !!s || !!asked;
     createRow.hidden = !passkeys || !!s || !!asked;
-    orEmail.hidden = (!passkeys && !google) || !!s || !!asked;
-    emailRow.hidden = !!s || !!asked;
+    emailOpenRow.hidden = !fallback || emailOpen || !!s || !!asked;
+    orEmail.hidden = !fallback || !emailOpen || !!s || !!asked;
+    emailRow.hidden = !!s || !!asked || (fallback && !emailOpen);
     codeRow.hidden = !!s || !asked;
     outRow.hidden = !s;
     addKeyBtn.hidden = !s || !passkeys || passkeyHere();
@@ -94,6 +101,11 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
       : tt('We only use your email to send you sign-in codes.');
   }
 
+  emailOpenBtn.addEventListener('click', () => {
+    emailOpen = true;
+    paint();
+    email.focus({ preventScroll: true });
+  });
   googleBtn.addEventListener('click', () => {
     say('');
     // In Instagram's, TikTok's or another app's own browser Google shows only an error page (core/google.ts embeddedBrowser):
@@ -191,7 +203,7 @@ export function accountPanel(onSignedIn?: () => void): AccountPanel {
   window.addEventListener(CLOUD_EVENT, onChange);
   paint();
   return {
-    el: h('div.set-cloud', null, googleRow, passkeyRow, createRow, orEmail, emailRow, codeRow, outRow, deleteRow, status, result),
+    el: h('div.set-cloud', null, googleRow, passkeyRow, createRow, emailOpenRow, orEmail, emailRow, codeRow, outRow, deleteRow, status, result),
     emailId,
     focus: () => (asked ? code : cloudSession() ? email : google ? googleBtn : passkeys ? passkeyBtn : email).focus({ preventScroll: true }),
     dispose() { window.removeEventListener(CLOUD_EVENT, onChange); window.removeEventListener('pageshow', onShow); },
