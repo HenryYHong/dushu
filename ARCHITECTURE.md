@@ -2032,23 +2032,24 @@ to the account tells it the time zone and the app's language (`about`), so remin
   pinyin one block at a time made it more frames, not cheaper ones. Real iPad GPU and CPU numbers are not measured.
 
 ### 5.8 Shell, fonts, PWA
-- Pengu, the mascot (`ui/pengu.ts`): a fluffy emperor penguin chick peeking over an open book, a sticker (`art/pengu-logo.png`,
-  a generated picture, on pale blue). `scripts/make-pengu.py` cuts the sticker out of the blue (the blue region reachable from the
-  edge, each pixel as see-through as it is close to the blue, the blue taken out of the edge's colors) and recolors the book to
-  the app's vermilion: that is the mascot (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`). On a white square with rounded
-  corners it is the logo: the brand mark in the bar (`ui/pengu/logo.webp`, `penguMark`, with a hairline so it reads on the paper
-  page), the browser tab's icon (`public/icon.svg`) and the installed app's PNG icons (the maskable one with Pengu inside the
-  safe zone); the manifest lists only the PNGs. Two of the app's colors and Pengu's grays, so it sits with the rest of the page.
-  Pengu has three poses, generated from that picture in ChatGPT so they match it (the same book in the same place): reading
-  (`pengu.webp`), waving (`art/pengu-wave.png`, `pengu-wave.webp`: the welcome, the walkthrough's first step, Review with no cards)
-  and cheering (`art/pengu-cheer.png`, `pengu-cheer.webp`: the walkthrough's last step, a review finished, the daily goal, a book
-  finished). `make-pengu.py` cuts every pose to the reading Pengu's square, so one takes another's place without Pengu moving, and
+- Pengu, the mascot (`ui/pengu.ts`): a round, flat emperor penguin chick peeking over an open terracotta book, in two generated
+  pictures on white, the same size with Pengu in the same place (2026-11-12): calm, beak closed (`art/pengu-logo.png`) and happy,
+  beak open (`art/pengu-read.png`). `scripts/make-pengu.py` cuts each out of its white (the white reachable from the edge, outside
+  Pengu's dark outline, each pixel as see-through as it is close to the white) and keeps its colors. The happy one is the mascot
+  (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`). The calm one on a white square with rounded corners is the logo: the brand mark
+  in the bar (`ui/pengu/logo.webp`, `penguMark`, with a hairline so it reads on the paper page), the browser tab's icon
+  (`public/icon.svg`) and the installed app's PNG icons (the maskable one with Pengu inside the safe zone); the manifest lists
+  only the PNGs. Both are cut to one square, so the mascot and the logo frame Pengu alike.
+  Pengu has three poses: reading (`pengu.webp`), waving (`pengu-wave.webp`: the welcome, the walkthrough's first step, Review with
+  no cards) and cheering (`pengu-cheer.webp`: the walkthrough's last step, a review finished, the daily goal, a book finished).
+  Until waving and cheering are drawn in this style, both are the happy Pengu; a pose drawn later goes in the same square, so one
+  takes another's place without Pengu moving, and
   `preloadPengu` loads and decodes all three at the start, so a pose that changes (the walkthrough) never blinks.
   Pengu is alive (`ui/pengu.ts`, `styles/pengu.css`): the picture breathes and sways (CSS, each one from a different moment), and
   its span takes one-off moves from the Web Animations API (pop, hop, boing, cheer, duck, nod), so the two add up. It breathes
   twice as it arrives and then rests. It pops in on the welcome screen and the empty screens, pops in with the walkthrough and
-  cheers at its last step, jumps when tapped, peeks over the top edge of Review's flashcard (`penguPeek`; it keeps still while you
-  study and hops once when a run of three remembered words begins) and of the library's first book, hops or (for a session that
+  cheers at its last step, jumps when tapped, peeks over the top edge of the library's first book (`penguPeek`; never over Review's
+  flashcard, where it got in the way of studying), hops or (for a session that
   cleared everything due, with the confetti) cheers when a session ends, reads in place of the spinner while the library opens,
   and pops up from the bottom of the screen to say the day's goal is reached (`penguSays`: it waits while a word card, a reader
   menu or a flashcard is up; only Pengu and the bubble take taps; Escape puts it away). The first

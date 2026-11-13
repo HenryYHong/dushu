@@ -16,10 +16,11 @@
 }
 
 /* Pengu peeking over the top edge of a card: behind it, so only its head shows above the edge. */
+/* A little above the host's top, so its smile clears the edge (the round head sits low in its square). */
 .pengu-peek-host { position: relative; padding-top: 46px; }
-.pengu-peek { position: absolute; z-index: 0; top: 0; right: 22px; width: 92px; height: 92px; }
+.pengu-peek { position: absolute; z-index: 0; top: -5px; right: 22px; width: 92px; height: 92px; }
 .pengu-peek-card { position: relative; z-index: 1; }
-@media (max-width: 520px) { .pengu-peek { width: 78px; height: 78px; right: 14px; } .pengu-peek-host { padding-top: 40px; } }
+@media (max-width: 520px) { .pengu-peek { width: 78px; height: 78px; right: 14px; top: -4px; } .pengu-peek-host { padding-top: 40px; } }
 
 /* Pengu with something to say: up from the bottom of the screen, a speech bubble beside it. */
 .pengu-says {

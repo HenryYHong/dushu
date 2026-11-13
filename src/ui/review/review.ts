@@ -10,7 +10,7 @@ import { contextEl, pinyinEl, scriptView, textAttrs } from '../vocab/render';
 import { isChinese } from '../../lang/active';
 import { pageTitle } from '../pageHead';
 import { celebrate } from './celebrate';
-import { animatePengu, penguEl, penguPeek, type PenguPeek } from '../pengu';
+import { animatePengu, penguEl } from '../pengu';
 import { describeNextDue, ReviewSession } from './queue';
 import { reviewCards, reviewParts } from './learning';
 import { num, tt, ttm, ttn, ttx } from '../../i18n';
@@ -40,10 +40,11 @@ export const mount: MountFn = (root, _params, ctx) => {
   let alive = true;
   let session: ReviewSession | null = null;
   let revealed = false;
-  // Pengu peeking over the flashcard for the whole session (ui/pengu.ts). It keeps still while you study: it hops once when a
-  // run of 3 remembered words begins (showStreak) and cheers at the summary, never at every card, which became noise by the
-  // 20th. Made with the first card; each next card is put in front of the same Pengu.
-  let peek: PenguPeek | null = null;
+  // The flashcard's place, with room over it for the "3 in a row" line, made with the first card: each next card takes the
+  // last one's place in it. Pengu stays off the card (it was in the way of studying); it waves and cheers on the empty and
+  // summary screens.
+  let cardHost: HTMLElement | null = null;
+  let heldCard: HTMLElement | null = null;
   let busy = false;
   /** The card on screen, and when the last graded one started to leave (performance.now(); -1 when none is leaving). */
   let cardEl: HTMLElement | null = null;
@@ -100,7 +101,7 @@ export const mount: MountFn = (root, _params, ctx) => {
          h('p', null, next ? nextDueLine(next) : tt('You are all caught up.')),
          h('a.btn', { href: '#/vocab' }, icon('list'), tt('See your words'))];
     // Pengu: waving at someone with no cards yet, cheering someone who is all caught up.
-    peek = null;
+    cardHost = null;
     const pengu = penguEl(total === 0 ? 'wave' : 'cheer', 'rev-pengu');
     screen.append(head(), h('div.card.rev-empty', null, pengu, ...msg));
     animatePengu(pengu, 'pop', 60);
@@ -174,10 +175,10 @@ export const mount: MountFn = (root, _params, ctx) => {
       onclick: () => { if (!revealed) reveal_(); },
     }, front, back);
     // The screen's title, for screen readers: a session shows only the card.
-    if (!peek) { peek = penguPeek(); streakEl = null; }
-    peek.hold(card);
+    if (!cardHost) { cardHost = h('div.rev-card-host'); heldCard = null; streakEl = null; }
+    if (heldCard !== card) { heldCard?.remove(); heldCard = card; cardHost.append(card); }
     cardEl = card;
-    screen.append(pageTitle('review', tt('Review'), 'h1', 'rev-sr'), top, progress, peek.el, reveal, grades);
+    screen.append(pageTitle('review', tt('Review'), 'h1', 'rev-sr'), top, progress, cardHost, reveal, grades);
     if (take) (revealed ? back : card).focus({ preventScroll: true });
     // After a grade the next word settles in as the last card leaves. It is on the card and usable at once: only its look
     // catches up.
@@ -186,7 +187,7 @@ export const mount: MountFn = (root, _params, ctx) => {
       play(front, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, delay: wait, easing: EASE_OUT, fill: 'backwards' });
       leftAt = -1;
     }
-    showStreak(peek.el, session.streak);
+    showStreak(cardHost, session.streak);
     // On a touch screen, a swipe grades once the answer shows: right remembered, left forgotten (swipe.ts).
     attachSwipe(card, {
       ready: () => revealed && !busy && cardEl === card,
@@ -220,8 +221,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   let revealCurrent: () => void = () => {};
 
   /**
-   * Three or more remembered in a row: a quiet line just over the card's top edge, left of Pengu (who hops at each one), in
-   * the room that is there anyway, so nothing moves to make space for it in any language. It eases in when it first shows
+   * Three or more remembered in a row: a quiet line just over the card's top edge, in the room kept over it anyway, so nothing moves to make space for it in any language. It eases in when it first shows
    * and fades at the next forgotten word.
    */
   function showStreak(host: HTMLElement, run: number): void {
@@ -240,8 +240,6 @@ export const mount: MountFn = (root, _params, ctx) => {
     if (streakEl) { streakEl.lastChild!.textContent = text; return; }
     streakEl = h('span.rev-streak', null, icon('check'), h('span', null, text));
     host.prepend(streakEl);
-    // The one time Pengu moves during a session before the end: a run of remembered words has begun.
-    peek?.react('hop');
     play(streakEl, [{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: EASE_OUT });
   }
 
@@ -363,7 +361,7 @@ export const mount: MountFn = (root, _params, ctx) => {
         countUp(value, to, format, 600, delay);
       });
     }
-    peek = null;
+    cardHost = null;
     session = null;
   }
 

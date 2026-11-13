@@ -127,7 +127,7 @@ export interface PenguPeek {
   react(move: PenguMove): void;
 }
 
-/** Pengu peeking over the top edge of a card (Review's flashcard, the library's first book), its lower half hidden behind it. */
+/** Pengu peeking over the top edge of a card (the library's first book), its lower half hidden behind it. */
 export function penguPeek(card?: HTMLElement, opts: { pop?: boolean } = {}): PenguPeek {
   const pengu = penguEl('read', 'pengu-peek');
   const el = document.createElement('div');

@@ -27,15 +27,16 @@ body[data-route='review'] #screen { overflow-x: clip; }
 .rev-swipe-label { position: absolute; top: var(--space-3); padding: 3px 10px; border-radius: 999px; font: 600 14px/1.3 var(--font-ui); white-space: nowrap; color: color-mix(in srgb, var(--rev-swipe-tone) 85%, var(--text)); background: var(--elev); box-shadow: inset 0 0 0 1.5px currentColor; }
 .rev-swipe-right .rev-swipe-label { left: var(--space-3); }
 .rev-swipe-left .rev-swipe-label { right: var(--space-3); }
-/* Three or more remembered in a row (review.ts): a quiet line in the green of Got it, over the card's top-left edge in the
-   room Pengu peeks from (pengu.css: 46 px, 40 px on a phone), clear of Pengu on the right. */
+/* The flashcard's place (review.ts), with room over it for the streak line, so the card never moves when the line shows. It
+   holds the leaving card's copy too (position). */
+.rev-card-host { position: relative; padding-top: 28px; }
+/* Three or more remembered in a row (review.ts): a quiet line in the green of Got it, over the card's top-left edge. */
 .rev-streak {
-  position: absolute; top: 14px; left: 2px; max-width: calc(100% - 140px); overflow: hidden;
+  position: absolute; top: 4px; left: 2px; max-width: 100%; overflow: hidden;
   display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
   font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--ok) 85%, var(--text));
 }
 .rev-streak .icon { width: 14px; height: 14px; flex: none; }
-@media (max-width: 520px) { .rev-streak { top: 11px; } }
 /* A graded card leaving (review.ts): a copy over the card, which waits under it with its words hidden for the next one. */
 .rev-card.rev-ghost { position: absolute; z-index: 2; margin: 0; pointer-events: none; }
 .rev-card-gone > .rev-front, .rev-card-gone > .rev-back { visibility: hidden; }

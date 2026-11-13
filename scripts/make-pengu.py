@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
-"""Pengu, LinguPengu's mascot, from its picture: the app's images and icons.
+"""Pengu, LinguPengu's mascot, from its pictures: the app's images and icons.
 
     python3 -I scripts/make-pengu.py        (needs Pillow: pip install pillow)
 
-art/pengu-logo.png is Pengu: a fluffy emperor penguin chick peeking over an open red book, in a white sticker edge, on a flat
-pale blue square (made by Henry with an AI image generator, 2026-11-11). art/pengu-wave.png (a flipper raised, waving) and
-art/pengu-cheer.png (both flippers up, eyes closed happily) are the same picture in other poses, made from it the same way, the
-book and the frame unchanged: each is cut to the same square as the reading Pengu, so a pose can take another's place without
-Pengu moving. The sticker is cut out of the blue (every pixel as
-see-through as it is close to the blue, and the blue taken out of the colors along the edge, so it sits cleanly on a light or a
-dark page), and its book recolored to the app's vermilion, so Pengu wears the app's own two colors. The mascot inside the app
-is that sticker by itself; the logo (the brand mark in the bar, the browser tab's icon, the installed app's icons) is it on a
-white square with rounded corners (a home screen wants a solid square anyway: iOS fills a see-through one with black). It writes:
+Two pictures by Henry (an AI image generator, 2026-11-12), the same flat Pengu, a round emperor penguin chick peeking over an
+open terracotta book, on white, the same size and in the same place:
 
-    src/ui/pengu/pengu.webp        the mascot, the sticker cut out (peeking over a card, empty screens), 512 px
-    src/ui/pengu/pengu-wave.webp   the mascot waving (the welcome, the walkthrough's first step, nothing to review), 512 px
-    src/ui/pengu/pengu-cheer.webp  the mascot cheering (a review finished, the daily goal, a book finished), 512 px
+    art/pengu-logo.png   Pengu calm, beak closed: the logo (the brand mark in the bar, the browser tab, the app's icons)
+    art/pengu-read.png   Pengu happy, beak open: the mascot inside the app
+
+Each is cut out of its white (every pixel outside Pengu's dark outline as see-through as it is close to the white, so it sits
+cleanly on a light or a dark page) and kept in its own colors. The logo is the cutout on a white square with rounded corners
+(a home screen wants a solid square anyway: iOS fills a see-through one with black). Until there are waving and cheering
+poses drawn in this style, those two are the happy Pengu too. It writes:
+
+    src/ui/pengu/pengu.webp        the mascot (peeking over a card, empty screens), 512 px
+    src/ui/pengu/pengu-wave.webp   the waving pose (the welcome, the walkthrough's first step, nothing to review), 512 px
+    src/ui/pengu/pengu-cheer.webp  the cheering pose (a review finished, the daily goal, a book finished), 512 px
     src/ui/pengu/logo.webp         the logo, the brand mark in the bar, 128 px
     art/pengu-cutout.png           the mascot at full size, for scripts/make-icons.mjs (the link picture)
     public/icon.svg                the logo for the browser tab, a 128 px picture inside an SVG
@@ -23,17 +24,17 @@ white square with rounded corners (a home screen wants a solid square anyway: iO
     public/icons/apple-touch-icon.png (180)        the square, full bleed (iOS rounds the corners)
     public/icons/icon-maskable-512.png             the square with Pengu smaller, inside the central safe zone
 """
-import base64, colorsys, io, os
+import base64, io, os
 from collections import deque
 from PIL import Image, ImageDraw
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-SRC = os.path.join(REPO, 'art', 'pengu-logo.png')
-# The other poses: the picture each comes from and the mascot image it makes.
-POSES = {'wave': 'pengu-wave', 'cheer': 'pengu-cheer'}
+LOGO = os.path.join(REPO, 'art', 'pengu-logo.png')
+MASCOT = os.path.join(REPO, 'art', 'pengu-read.png')
+# The poses the app shows, by the mascot image each one writes: the happy Pengu for now (see above).
+POSES = ['pengu-wave', 'pengu-cheer']
 SOFT = (10, 60)   # distance from the background color (RGB) at which a pixel starts to show, and at which it is solid
 GROUND = (255, 255, 255)        # the logo's ground: white
-VERMILION = (0xc1, 0x36, 0x16)  # the app's accent (--accent): the book
 
 
 def background(im: Image.Image) -> tuple[tuple[int, int, int], Image.Image]:
@@ -89,25 +90,6 @@ def cutout(im: Image.Image) -> Image.Image:
     return out
 
 
-def recolor_book(im: Image.Image) -> Image.Image:
-    """The book's reds moved to the app's vermilion: hue and saturation taken from it, lightness scaled to match. Only the
-    picture's lower part, where the book is (the cheeks and an open mouth, also reddish, stay as they are)."""
-    th, tl, ts = colorsys.rgb_to_hls(*[c / 255 for c in VERMILION])
-    out = im.copy()
-    px = out.load()
-    w, h = out.size
-    for y in range(int(h * 0.6), h):
-        for x in range(w):
-            r, g, b, a = px[x, y]
-            if not a:
-                continue
-            hh, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-            if s > 0.45 and (hh > 0.92 or hh < 0.04) and l < 0.8:
-                nr, ng, nb = colorsys.hls_to_rgb(th, min(1, l * tl / 0.53), min(1, ts * s / 0.8))
-                px[x, y] = (round(nr * 255), round(ng * 255), round(nb * 255), a)
-    return out
-
-
 def on_ground(sticker: Image.Image, size: int, share: float) -> Image.Image:
     """A white square with the sticker taking `share` of its width, a little below the middle."""
     sq = Image.new('RGBA', (size, size), GROUND + (255,))
@@ -143,27 +125,27 @@ def save(im: Image.Image, path: str, size: int, **kw) -> None:
 
 
 def main() -> None:
-    src = Image.open(SRC).convert('RGB')
-    sticker = cutout(src)
-    box = sticker.getbbox()
-    mascot = recolor_book(trim_square(sticker, box=box))
+    logo_cut = cutout(Image.open(LOGO).convert('RGB'))
+    read_cut = cutout(Image.open(MASCOT).convert('RGB'))
+    if read_cut.size != logo_cut.size:
+        raise SystemExit(f'art/pengu-read.png is {read_cut.size}, not {logo_cut.size} like art/pengu-logo.png')
+    # Both cut to the same box (the two together), so the mascot and the logo frame Pengu alike.
+    box = tuple(f(a, b) for f, a, b in zip((min, min, max, max), logo_cut.getbbox(), read_cut.getbbox()))
+    mascot = trim_square(read_cut, box=box)
     mascot.save(os.path.join(REPO, 'art', 'pengu-cutout.png'), optimize=True)
     print('wrote art/pengu-cutout.png')
     save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', 'pengu.webp'), 512, quality=90, method=6)
-    for name, out in POSES.items():
-        pose = cutout(Image.open(os.path.join(REPO, 'art', f'pengu-{name}.png')).convert('RGB'))
-        if pose.size != sticker.size:
-            raise SystemExit(f'art/pengu-{name}.png is {pose.size}, not {sticker.size} like art/pengu-logo.png')
-        # Cut to the reading Pengu's box, not its own: the same book in the same place in every pose.
-        save(recolor_book(trim_square(pose, box=box)), os.path.join(REPO, 'src', 'ui', 'pengu', f'{out}.webp'), 512, quality=90, method=6)
-    square = on_ground(mascot, 1024, 0.86)
+    for out in POSES:
+        save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', f'{out}.webp'), 512, quality=90, method=6)
+    mark = trim_square(logo_cut, box=box)
+    square = on_ground(mark, 1024, 0.86)
     logo = rounded(square)
     save(logo, os.path.join(REPO, 'src', 'ui', 'pengu', 'logo.webp'), 128, quality=90, method=6)
     save(logo, os.path.join(REPO, 'public', 'icons', 'icon-192.png'), 192, optimize=True)
     save(logo, os.path.join(REPO, 'public', 'icons', 'icon-512.png'), 512, optimize=True)
     save(square.convert('RGB'), os.path.join(REPO, 'public', 'icons', 'apple-touch-icon.png'), 180, optimize=True)
     # The safe zone is the middle 80 percent, a circle: Pengu shrunk to fit inside it.
-    save(on_ground(mascot, 1024, 0.64).convert('RGB'), os.path.join(REPO, 'public', 'icons', 'icon-maskable-512.png'), 512, optimize=True)
+    save(on_ground(mark, 1024, 0.64).convert('RGB'), os.path.join(REPO, 'public', 'icons', 'icon-maskable-512.png'), 512, optimize=True)
     buf = io.BytesIO()
     logo.resize((128, 128), Image.LANCZOS).save(buf, 'PNG', optimize=True)
     data = base64.b64encode(buf.getvalue()).decode()
