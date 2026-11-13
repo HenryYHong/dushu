@@ -478,6 +478,23 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) { --rd-coach-b: calc(ma
 .rd-sec { padding: 4px 0 6px; }
 .rd-sec + .rd-sec { border-top: 1px solid var(--hairline); padding-top: 8px; }
 .rd-sec-title { margin: 6px 10px 4px; font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--text-3); }
+/* "More settings" at the foot of a reader menu (menus.ts more()): a quiet line; its sections keep their own rules. */
+.rd-more { border-top: 1px solid var(--hairline); }
+.rd-more-title {
+  display: flex; align-items: center; gap: 8px; width: max-content; min-height: 44px; padding: 0 10px; list-style: none;
+  font-size: 13.5px; font-weight: 560; color: var(--text-2); cursor: pointer;
+}
+.rd-more-title::-webkit-details-marker { display: none; }
+.rd-more-title::after {
+  content: ''; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg); transition: transform var(--dur-fast) var(--ease);
+}
+.rd-more[open] > .rd-more-title::after { transform: translateY(1px) rotate(-135deg); }
+@media (hover: hover) { .rd-more-title:hover { color: var(--text); } }
+.rd-more-hide, .rd-more[open] .rd-more-show { display: none; }
+.rd-more[open] .rd-more-hide { display: inline; }
+.rd-more > .rd-sec { border-top: 1px solid var(--hairline); padding-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .rd-more-title::after { transition: none; } }
 /* One line per setting: the name on the left, the control on the right, at least 44 px tall. */
 .rd-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 4px 10px; }
 .rd-row[hidden] { display: none; }
@@ -726,7 +743,9 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 
 /* ---------- names and terms ---------- */
 .rd-toc-tabs { display: flex; margin: 0 var(--space-4) var(--space-2); }
-.rd-toc-tab { flex: 1; height: 30px; }
+/* Each tab as wide as its name (Corrections and Lesezeichen are long), so four fit a phone's drawer; a little smaller there. */
+.rd-toc-tab { flex: 1 1 auto; min-width: 0; height: 30px; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 430px) { .rd-toc-tab { padding: 0 6px; font-size: 13px; } }
 .rd-names { padding-top: var(--space-1); }
 .rd-name { display: flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-s); }
 @media (hover: hover) { .rd-name:hover { background: var(--wash); } }

@@ -2188,6 +2188,7 @@
  },
  "Fewer settings": {
   "where": [
+   "src/ui/reader/menus.ts",
    "src/ui/settings/controls.ts"
   ]
  },
@@ -3470,6 +3471,7 @@
  },
  "More settings": {
   "where": [
+   "src/ui/reader/menus.ts",
    "src/ui/settings/controls.ts"
   ]
  },

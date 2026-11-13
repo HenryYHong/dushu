@@ -192,6 +192,28 @@ function section(title: string, ...rows: (Node | null)[]): HTMLElement {
   return h('section.rd-sec', { 'aria-label': title }, h('h3.rd-sec-title', null, title), ...rows.filter((r): r is Node => !!r));
 }
 
+/** A menu's first rows, under the menu's own title: no heading of their own. */
+function plain(label: string, ...rows: (Node | null)[]): HTMLElement {
+  return h('section.rd-sec', { 'aria-label': label }, ...rows.filter((r): r is Node => !!r));
+}
+
+/**
+ * What few readers change, folded under "More settings" at the foot of a menu (as in Settings, ui/settings/controls.ts more()).
+ * Once opened it stays open on this device, per menu (`key`).
+ */
+function more(key: string, ...parts: (Node | null)[]): HTMLDetailsElement {
+  const stored = `dushu.reader.more.${key}`;
+  let kept = false;
+  try { kept = localStorage.getItem(stored) === '1'; } catch { /* storage blocked: it starts folded */ }
+  const el = h('details.rd-more', { open: kept },
+    h('summary.rd-more-title', null, h('span.rd-more-show', null, tt('More settings')), h('span.rd-more-hide', null, tt('Fewer settings'))),
+    parts.filter((p): p is Node => !!p)) as HTMLDetailsElement;
+  el.addEventListener('toggle', () => {
+    try { if (el.open) localStorage.setItem(stored, '1'); else localStorage.removeItem(stored); } catch { /* storage blocked */ }
+  });
+  return el;
+}
+
 function toggle(get: () => boolean, set: (v: boolean) => void): { el: HTMLElement; sync(): void } {
   const btn = h('button.rd-switch', { type: 'button', role: 'switch', onclick: () => set(!get()) }, h('span.rd-switch-dot'));
   const sync = () => btn.setAttribute('aria-checked', String(get()));
@@ -306,9 +328,10 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const stress = add(toggle(() => get().stress ?? true, (v) => set({ stress: v })));
   const look = zh ? section(tt('Look'), row(tt('Style'), style.el), row(tt('Tone colors'), tones.el), row(tt('Tone changes'), sandhi.el, 'yí gè, bú shì'))
     : lang().stress ? section(tt('Look'), row(tt('Stress marks'), stress.el, tt('The stressed vowel of each word'))) : null;
+  // How the aid looks (style, tone colors, tone changes, stress) is set once and left: it waits under More settings.
   const el = h('div.rd-menu.rd-pinyin-menu', null,
     section(showAid(), modes, share, learnRow),
-    look);
+    look ? more('pinyin', look) : null);
   const sync = () => {
     const s = get();
     items.forEach((b, i) => b.setAttribute('aria-checked', String(modeList[i].value === s.pinyin)));
@@ -388,25 +411,27 @@ export function buildDisplayMenu(ctx: AppContext, opts: { guide?: () => void } =
     ? row(tt('Full screen'), full.el, tt('Hides the browser bars (F)'))
     : isStandalone() ? row(tt('Full screen'), h('span.rd-row-note', null, tt('On')), tt('Opened from the Home Screen: no browser bars'))
     : row(tt('Full screen'), h('span.rd-row-note', null, tt('Add to Home Screen')), tt('In Safari: Share, then Add to Home Screen. Open LinguPengu from there to read without the browser bars.'));
+  // What a reader reaches for (size, font, theme, pages or scroll) first, as in a book app; the rest under More settings.
   const el = h('div.rd-menu.rd-display', null,
-    section(tt('Text'),
+    plain(tt('Text'),
       row(tt('Text size'), size),
       row(tt('Font'), font.el),
-      row(tt('Line spacing'), lh.el),
-      row(tt('Theme'), theme.el)),
-    section(tt('Page'),
-      row(tt('Layout'), layout.el),
-      spreadRow,
-      turnRow,
-      widthRow,
-      fullRow),
-    section(tt('Reading'),
-      isChinese() ? row(tt('Characters'), script.el, tt('简体 or 繁體')) : null,
-      touch ? null : lookRow,
-      // The switch only shows the hover button beside each paragraph; a touch screen has no hover (a double tap translates anyway).
-      touch ? null : row(tt('Translate paragraphs'), ptrans.el, tt('Drag across a sentence (Pages) or use the button (Scroll)')),
-      row(tt('Read-aloud speed'), rate.el),
-      opts.guide ? row(tt('Reading guide'), h('button.btn.btn-sm', { type: 'button', onclick: opts.guide }, tt('Show'))) : null),
+      row(tt('Theme'), theme.el),
+      row(tt('Layout'), layout.el)),
+    more('display',
+      section(tt('Page'),
+        row(tt('Line spacing'), lh.el),
+        spreadRow,
+        turnRow,
+        widthRow,
+        fullRow),
+      section(tt('Reading'),
+        isChinese() ? row(tt('Characters'), script.el, tt('简体 or 繁體')) : null,
+        touch ? null : lookRow,
+        // The switch only shows the hover button beside each paragraph; a touch screen has no hover (a double tap translates anyway).
+        touch ? null : row(tt('Translate paragraphs'), ptrans.el, tt('Drag across a sentence (Pages) or use the button (Scroll)')),
+        row(tt('Read-aloud speed'), rate.el),
+        opts.guide ? row(tt('Reading guide'), h('button.btn.btn-sm', { type: 'button', onclick: opts.guide }, tt('Show'))) : null)),
   );
   syncs.push(() => {
     const s = get();

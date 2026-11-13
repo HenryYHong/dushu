@@ -1641,8 +1641,9 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
 
 ### 5.3 Reader (`ui/reader/`)
 - Top bar: back to library, book title + chapter title, chapter menu (TOC drawer),
-  pinyin mode quick toggle (Off / All / Unknown / HSK), Aa menu (font size, family, line height,
-  width, theme), progress %. The bar is opaque paper with no backdrop blur in both layouts (scrolled text ghosted through a
+  pinyin mode quick toggle (Off / All / New words / HSK), Aa menu (text size, font, theme and Pages or Scroll first; line
+  spacing, page width, page turn, full screen, characters, lookup and read-aloud speed folded under "More settings", `more()` in
+  `ui/reader/menus.ts`, remembered per device; the pinyin menu folds its Look section the same way), progress %. The bar is opaque paper with no backdrop blur in both layouts (scrolled text ghosted through a
   translucent one in WebKit). The pinyin button is a 拼 seal (`span.rd-seal`, set in `--font-serif`, aria-hidden) followed by the mode
   label: a solid seal while pinyin shows, an outline (朱文) when it is off. Its accessible name stays `Pinyin: <mode>`. On a phone the label
   is set smaller; at 360 px and below only the HSK level stays beside the seal (`span.rd-pill-pre` holds the "HSK " that hides).
