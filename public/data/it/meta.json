@@ -56,12 +56,17 @@
  ],
  "native": {
   "built": "2026-11-13",
-  "entries": 48835,
+  "entries": 54351,
   "sources": [
    {
     "name": "Italian Wiktionary (via kaikki.org)",
     "license": "CC BY-SA 4.0",
     "url": "https://kaikki.org/itwiktionary/"
+   },
+   {
+    "name": "Meanings written for LinguPengu where Wiktionary has none",
+    "license": "CC BY-SA 4.0",
+    "url": "https://github.com/HenryYHong/dushu/tree/main/scripts/lang/native/written"
    }
   ]
  }

@@ -41,12 +41,17 @@
  ],
  "native": {
   "built": "2026-11-13",
-  "entries": 51594,
+  "entries": 51960,
   "sources": [
    {
     "name": "Russian Wiktionary (via kaikki.org)",
     "license": "CC BY-SA 4.0",
     "url": "https://kaikki.org/ruwiktionary/"
+   },
+   {
+    "name": "Meanings written for LinguPengu where Wiktionary has none",
+    "license": "CC BY-SA 4.0",
+    "url": "https://github.com/HenryYHong/dushu/tree/main/scripts/lang/native/written"
    }
   ]
  }

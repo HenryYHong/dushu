@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { LangEngine, WordEntry, WordLookup } from '../../src/lang/types';
 import {
-  glossCode, loadOwnDictionary, ownDictionary, ownMeanings, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
+  OWN_SOURCE, glossCode, loadOwnDictionary, ownDictionary, ownMeanings, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
   setReaderLanguage, withOwnDictionary,
 } from '../../src/lang/ownDictionary';
 import { LANGS } from '../../src/lang/registry';
@@ -80,7 +80,7 @@ describe('the wrapped engine', () => {
     const lu = engine.lookup('casas');
     expect(lu.key).toBe('casas');
     expect(lu.entries[0].senses.map((s) => s.glosses[0])).toEqual(['Edificación destinada a vivienda.', 'Domicilio.']);
-    expect(lu.entries[0].source).toBe('Wiktionary');
+    expect(lu.entries[0].source).toBe(OWN_SOURCE);
     setReaderLanguage('en');
     expect(engine.lookup('casas').entries[0].senses[0].glosses).toEqual(['house']);
   });

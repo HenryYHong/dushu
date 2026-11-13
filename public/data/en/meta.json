@@ -22,7 +22,7 @@
  ],
  "native": {
   "built": "2026-11-13",
-  "entries": 60702,
+  "entries": 61235,
   "sources": [
    {
     "name": "Simple English Wiktionary",
@@ -33,6 +33,11 @@
     "name": "English Wiktionary (via kaikki.org)",
     "license": "CC BY-SA 4.0",
     "url": "https://kaikki.org/"
+   },
+   {
+    "name": "Meanings written for LinguPengu where Wiktionary has none",
+    "license": "CC BY-SA 4.0",
+    "url": "https://github.com/HenryYHong/dushu/tree/main/scripts/lang/native/written"
    }
   ]
  }

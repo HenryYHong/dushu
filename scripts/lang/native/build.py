@@ -36,7 +36,15 @@ Sources:
 
 Markup kaikki could not expand is taken out of every meaning (clean, residue): magic words, templates, links missing a
 bracket, footnote marks, and meanings that are only a request for one. A Chinese variant whose page only points at another
-character (㕑: "請見「廚」") gets a note of what it is to it (「廚」的異體字) and that character's meanings.
+character (㕑: "請見「廚」") gets a note of what it is to it (「廚」的異體字) and that character's meanings. So does a form whose
+entry only says what it is a form of (Spanish "hija": "Forma del femenino singular de hijo.", then hijo's meanings), and an
+adjective's meanings that are also a noun's ("se usa también como sustantivo") are the noun's too. A part of speech a
+Wiktionary names otherwise than the main dictionary (Spanish "su": adjective there, determiner here) is named as the main
+dictionary names it (SAME_POS).
+
+Where Wiktionary leaves a word with a level (the 20,000 commonest, the HSK and JLPT words) without a meaning, one written for
+the app fills it: scripts/lang/native/written/<id>.tsv (below). tests/lang/own-coverage.test.ts holds every such word to
+having one.
 
     python3 -I scripts/lang/native/build.py --extract-en   # writes .cache/raw/kaikki-en-slim.jsonl.gz (a 534 MB stream)
 """
@@ -65,7 +73,8 @@ NAMES = {'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it':
 # kaikki's part-of-speech codes, named as the main dictionaries name them.
 POS = {'noun': 'noun', 'verb': 'verb', 'adj': 'adjective', 'adv': 'adverb', 'name': 'proper noun', 'intj': 'interjection',
        'prep': 'preposition', 'pron': 'pronoun', 'num': 'numeral', 'conj': 'conjunction', 'det': 'determiner',
-       'article': 'article', 'particle': 'particle', 'contraction': 'contraction', 'postp': 'postposition', 'phrase': 'phrase'}
+       'article': 'article', 'particle': 'particle', 'contraction': 'contraction', 'postp': 'postposition', 'phrase': 'phrase',
+       'abbrev': 'abbreviation'}
 # Simple English Wiktionary's section names.
 SIMPLE_POS = {'noun': 'noun', 'verb': 'verb', 'adjective': 'adjective', 'adverb': 'adverb', 'proper noun': 'proper noun',
               'pronoun': 'pronoun', 'preposition': 'preposition', 'conjunction': 'conjunction', 'interjection': 'interjection',
@@ -174,9 +183,11 @@ def residue(text):
     text = HALF_LINK.sub(lambda m: last_part(m.group(1)), text)
     text = HALF_CLOSED.sub(lambda m: last_part(m.group(1)), text)
     text = re.sub(r'\{\[?(?:ant|syn)/[^{}]*\}\}?', '', text).strip()  # "{[ant|parent}}": an antonym template
-    label = re.match(r'^\[*([^\s{}/\[\]]+)(?:/[a-z]{2,3})?\}\}\s*', text)  # "[[fleurs|fr}} Fleur", "biology}} Eczema": a label
+    label = re.match(r'^[\[{]*([^\s{}/\[\]]+)(?:/[a-z]{2,3})?\}\}\s*', text)  # "[[fleurs|fr}} Fleur", "biology}} Eczema": a label
+    # "Modo di dire}Quando…", "chiefly / Uttarakhand} A member…": a label that lost its opening brace.
+    label = label or re.match(r"^\{?([^\W\d_][\w .,'’/()-]{0,60}?)\}(?!\})\s*(?=[^\s_^{}])", text)
     if label:
-        text = f'({label.group(1)}) {text[label.end():]}'
+        text = f'({label.group(1).strip()}) {text[label.end():]}'
     else:
         text = re.sub(r'^\[\[[^\s/\[\]]+/(?=\S)', '', text)  # "[[armature|Armature en forme…": an unclosed link's target
     text = re.sub(r'\[\[(?!\()', '', text)  # an unclosed link (not chemistry's "[[(")
@@ -203,6 +214,7 @@ def simple_line(raw):
     labels, syns = [], []
     s = re.sub(r'<ref[^>]*/>|<ref[^>]*>.*?</ref>|<!--.*?-->', '', raw, flags=re.S)
     s = FILE_LINK.sub('', s)
+    s = re.sub(r'(?<!\{)\{([A-Za-z][A-Za-z ]*)\}\}', r'{{\1}}', s)  # "{transitive}}": a template missing a brace
 
     def template(m):
         parts = [p.strip() for p in m.group(1).split('|')]
@@ -443,17 +455,55 @@ def write_lines(path, lines):
         f.write('\n'.join(lines) + '\n')
 
 
+# A part of speech the main dictionary names one way and a Wiktionary another: Spanish "su" is a determiner there and an
+# adjective here, Russian "первый" an adjective and a numeral, German "nicht" an adverb and a particle. Only these: a proper
+# noun is never the noun (Spanish "novia" is also a surname), nor a noun the pronoun (Russian "я" is also the letter).
+SAME_POS = {
+    'determiner': ('adjective', 'pronoun', 'article', 'numeral'),
+    'pronoun': ('determiner', 'adjective'),
+    'adjective': ('determiner', 'pronoun', 'numeral', 'verb'),
+    'numeral': ('adjective', 'noun', 'determiner'),
+    'adverb': ('particle', 'conjunction', 'pronoun', 'numeral'),
+    'particle': ('adverb', 'interjection', 'conjunction'),
+    'conjunction': ('adverb', 'particle'),
+    'interjection': ('particle', 'phrase'),
+    'preposition': ('contraction', 'particle', 'adverb', 'conjunction'),
+    'contraction': ('preposition', 'abbreviation', 'article'),
+    'article': ('determiner',),
+}
+
+
+def as_main_pos(found, poses):
+    """`found` with a copy of an entry under the main dictionary's name for its part of speech (SAME_POS), for each part of
+    speech the main dictionary has and the Wiktionary names otherwise."""
+    have = {e['pos'] for e in found}
+    extra = []
+    for p in sorted(poses):
+        if p in have:
+            continue
+        for alt in SAME_POS.get(p, ()):
+            e = next((x for x in found if x['pos'] == alt and alt not in poses), None)
+            if e:
+                extra.append(dict(e, pos=p))
+                break
+    return found + extra
+
+
 def order_entries(found, poses):
     """The main dictionary's parts of speech first, in its order of commonness, each once (two of a part merged)."""
     merged = collections.OrderedDict()
+    found = as_main_pos(found, poses)
     for e in found:
         m = merged.get(e['pos'])
         if m is None:
-            merged[e['pos']] = {'pos': e['pos'], 'senses': list(e['senses']), 'syn': list(e['syn']), 'first_syn': list(e.get('first_syn') or [])}
+            merged[e['pos']] = {'pos': e['pos'], 'senses': list(e['senses']), 'syn': list(e['syn']),
+                                'first_syn': list(e.get('first_syn') or []), 'written': e.get('written')}
         else:
             m['senses'].extend(x for x in e['senses'] if len(m['senses']) < MAX_SENSES and x not in m['senses'])
             m['syn'].extend(e['syn'])
-    have = [e for e in merged.values() if e['pos'] in poses]
+    # A meaning written for the app is for the part of speech the card's entry has, which the main dictionary's rows may not
+    # name (German "lieben" as an adjective is its participle's).
+    have = [e for e in merged.values() if e['pos'] in poses or e.get('written')]
     return have or list(merged.values())
 
 
@@ -478,6 +528,7 @@ def build_en():
         found += [e for w in words for e in wikt.get(w, []) if e['pos'] not in have_pos]
         return found
 
+    written = written_entries('en')
     lines = []
     phrases = phrase_keys('en')
     for norm, key in phrases.items():
@@ -485,14 +536,15 @@ def build_en():
         if found:
             lines.extend(row(key, dict(e, pos='phrase'), '') for e in order_entries(found, set())[:1])
     for key in rank:
-        found = entries_for(key)
+        found = entries_for(key) or written.get(key)
         if not found:
             continue
         ordered = order_entries(found, poses[key])
         hint = pick_hint('en', key, ordered, rank, poses)
         lines.extend(row(key, e, hint) for e in ordered)
     write_lines(os.path.join(DATA, 'en', 'native.tsv.gz'),
-                header('en', 'Simple English Wiktionary and English Wiktionary (CC BY-SA 4.0, English Wiktionary via kaikki.org)') + lines)
+                header('en', 'Simple English Wiktionary and English Wiktionary (CC BY-SA 4.0, English Wiktionary via kaikki.org)'
+                       + (WRITTEN_NOTE if written else '')) + lines)
     print(f'wrote public/data/en/native.tsv.gz: {len(lines)} entries of {len(rank)} words')
 
     # The rare words, by shard, as data/en/rare has them.
@@ -521,26 +573,94 @@ def build_en():
     update_meta('en', len(lines), [
         {'name': 'Simple English Wiktionary', 'license': 'CC BY-SA 4.0', 'url': 'https://simple.wiktionary.org/'},
         {'name': 'English Wiktionary (via kaikki.org)', 'license': 'CC BY-SA 4.0', 'url': 'https://kaikki.org/'},
-    ])
+    ] + ([WRITTEN_SOURCE] if written else []))
+
+
+# A meaning that only names the verb a participle is of ("Participio de unir.", "participio passato di unire").
+PARTICIPLE = re.compile(r"^(?:participio(?: passato| presente)?|particípio(?: passado| presente)?|participe (?:passé|présent))"
+                        r"(?: (?:masculin|singulier|masculino|singular|maschile|singolare))* (?:de|di|du|d['’]) ?([^\W\d_]+)\.?$", re.I)
+
+
+def pointer_of(rec):
+    """(note, word) when every meaning of a kaikki entry only says it is a form of one word ("Forma del femenino singular de
+    hijo.", "femminile di figlio", "Participio de unir."): the note, cleaned, and that word."""
+    note, target = None, None
+    for s in rec['s']:
+        g = clean(s['g'][-1]) if s.get('g') else ''
+        words = s.get('fo') or s.get('ao') or []
+        m = PARTICIPLE.match(g) if not words else None
+        words = words or ([m.group(1)] if m else [])
+        if not words or not g:
+            return None
+        if target is None:
+            note, target = g, words[0]
+        elif words[0] != target:
+            return None
+    return (note, target) if target else None
+
+
+def pointed(note, base, pos):
+    """A form's entry: the note of what it is, then its word's first meanings in the same part of speech (else its first)."""
+    same = [b for b in base if b['pos'] == pos] or base
+    meant = [x for x in (same[0]['senses'] if same else []) if x[0] != note][:POINTED_SENSES]
+    return {'pos': pos, 'senses': [(note, [])] + meant, 'syn': []} if meant else None
+
+
+POINTED_SENSES = 3
+USED_AS_NOUN = re.compile(r'(?:sustantiv|substantiv|sostantiv)', re.I)
 
 
 def build_edition(code):
     rank, poses = main_dictionary(code)
     phrases = phrase_keys(code)
     found = collections.defaultdict(list)
+    # Every entry by its word, for the word a form points at (hija: hijo), and the forms that only point (hija, unido).
+    by_word = collections.defaultdict(list)
+    pointers = collections.defaultdict(list)
     n = kept = 0
     for e in cjk_entries(code):
             n += 1
-            key = fold(code, e.get('word'))
+            word = fold(code, e.get('word'))
+            rec = slim_sense_entry(e)
+            ptr = rec and POS.get(rec.get('p')) and pointer_of(rec)
+            entry = None if ptr else rec and kaikki_entry(rec, edition_labels)
+            if entry:
+                by_word[word].append(entry)
+            # An adjective's meanings that are also a noun's (Spanish "enemigo", "vecino": "se usa también como sustantivo").
+            noun = rec and rec.get('p') == 'adj' and [x for x in rec['s'] if 'noun' in (x.get('t') or [])
+                                                       or any(USED_AS_NOUN.search(t) for t in x.get('rt') or [])]
+            noun = noun and kaikki_entry(dict(rec, p='noun', s=noun), edition_labels)
+            if noun:
+                by_word[word].append(noun)
+            key = word
             if key not in rank:
                 key = phrases.get(phrase_norm(code, e.get('word') or ''))
                 if not key or ' ' not in key:
                     continue
-            rec = slim_sense_entry(e)
-            entry = rec and kaikki_entry(rec, edition_labels)
             if entry:
                 found[key].append(entry)
                 kept += 1
+                if noun:
+                    found[key].append(noun)
+            elif ptr and key in rank:
+                pointers[key].append((POS[rec['p']], *ptr))
+    # Meanings written for the app, for the common words Wiktionary leaves without one (and for the words forms point at).
+    written = written_entries(code)
+    for key, entries in written.items():
+        by_word[key].extend(entries)
+        have = {e['pos'] for e in as_main_pos(found.get(key, []), poses.get(key, set()))}
+        found[key].extend(e for e in entries if e['pos'] not in have)
+    n_pointed = 0
+    for key, ptrs in pointers.items():
+        have = {e['pos'] for e in as_main_pos(found.get(key, []), poses[key])}
+        for pos, note, target in ptrs:
+            if pos in have:
+                continue
+            e = pointed(note, by_word.get(fold(code, target), []), pos)
+            if e:
+                found[key].append(e)
+                have.add(pos)
+                n_pointed += 1
     lines = []
     for key in phrases.values():
         if key in found and key not in rank:
@@ -551,12 +671,50 @@ def build_edition(code):
         ordered = order_entries(found[key], poses[key])
         hint = pick_hint(code, key, ordered, rank, poses)
         lines.extend(row(key, e, hint) for e in ordered)
-    write_lines(os.path.join(DATA, code, 'native.tsv.gz'),
-                header(code, f'{NAMES[code]} Wiktionary (CC BY-SA 4.0, via kaikki.org)') + lines)
-    print(f'{code}: read {n} entries, kept {kept}; wrote public/data/{code}/native.tsv.gz: {len(lines)} entries for '
-          f'{len(found)} of {len(rank)} words')
+    sources = f'{NAMES[code]} Wiktionary (CC BY-SA 4.0, via kaikki.org)' + (WRITTEN_NOTE if written else '')
+    write_lines(os.path.join(DATA, code, 'native.tsv.gz'), header(code, sources) + lines)
+    print(f'{code}: read {n} entries, kept {kept}, {n_pointed} forms pointed at their word, {len(written)} written; wrote '
+          f'public/data/{code}/native.tsv.gz: {len(lines)} entries for {len(found)} of {len(rank)} words')
     update_meta(code, len(lines), [{'name': f'{NAMES[code]} Wiktionary (via kaikki.org)', 'license': 'CC BY-SA 4.0',
-                                    'url': f'https://kaikki.org/{code}wiktionary/'}])
+                                    'url': f'https://kaikki.org/{code}wiktionary/'}] + ([WRITTEN_SOURCE] if written else []))
+
+
+# ------------------------------------------------------------------------------------------- meanings written here ---
+#
+# scripts/lang/native/written/<id>.tsv: meanings written for LinguPengu, in plain words, for the words a reader meets most
+# (every word with a level: the 20,000 commonest, the HSK and JLPT lists) that Wiktionary leaves without one. One line per
+# word and part of speech, as native.tsv.gz has them without the hint: key, part of speech (empty for Chinese and Japanese,
+# which are keyed by traditional spelling and by JMdict spelling), then the meanings ("{label}meaning"). Wiktionary's meanings
+# win wherever it has the word: these only fill what it leaves, except a Chinese or Japanese line whose part of speech is "!",
+# which takes the place of Wiktionary's entry for the word.
+
+WRITTEN = os.path.join(ROOT, 'scripts', 'lang', 'native', 'written')
+WRITTEN_NOTE = ' and meanings written for LinguPengu'
+WRITTEN_SOURCE = {'name': 'Meanings written for LinguPengu where Wiktionary has none', 'license': 'CC BY-SA 4.0',
+                  'url': 'https://github.com/HenryYHong/dushu/tree/main/scripts/lang/native/written'}
+
+
+def written_entries(code):
+    """written/<code>.tsv by key: [{'pos', 'senses', 'syn'}]."""
+    out = collections.defaultdict(list)
+    path = os.path.join(WRITTEN, f'{code}.tsv')
+    if not os.path.exists(path):
+        return out
+    with open(path, encoding='utf-8') as f:
+        for line in f:
+            line = line.rstrip('\n')
+            if not line.strip() or line.startswith('#'):
+                continue
+            c = line.split('\t')
+            senses = []
+            for cell in c[2:]:
+                m = re.match(r'^\{([^}]*)\}', cell)
+                gloss = (cell[m.end():] if m else cell).strip()
+                if gloss and len(senses) < MAX_SENSES:
+                    senses.append((gloss, [x.strip() for x in m.group(1).split(',') if x.strip()] if m else []))
+            if senses:
+                out[c[0]].append({'pos': c[1], 'senses': senses, 'syn': [], 'written': True})
+    return out
 
 
 def update_meta(code, count, sources):
@@ -754,6 +912,12 @@ def build_cjk(code):
                     if want and e['pos'] not in want and not (e['pos'] == 'adj_noun' and 'noun' in want):
                         continue
                     found[kanji].append({'pos': '', 'senses': e['senses'], 'syn': []})
+    # Meanings written for the app (keyed by traditional spelling, and by JMdict spelling), where Wiktionary has none: before the
+    # variants, so a simplified spelling that points at its traditional one (国: 國) gets them too.
+    written = written_entries(code)
+    for key, entries in written.items():
+        if key not in found or any(e['pos'] == '!' for e in entries):
+            found[key] = [{'pos': '', 'senses': e['senses'], 'syn': []} for e in entries]
     # A Chinese variant: after any meanings of its own, for each character it points at a note of what it is to it, then that
     # character's first meanings (as many as fit: 〇 points at 零, 空 and 星).
     variants = {}
@@ -775,10 +939,10 @@ def build_cjk(code):
         merged += [x for x in variants.get(key, []) if x not in merged]
         lines.append(row(key, {'pos': '', 'senses': merged[:CJK_SENSES]}, ''))
     out = os.path.join(DATA, 'native.tsv.gz') if code == 'zh' else os.path.join(DATA, code, 'native.tsv.gz')
-    write_lines(out, header(code, f'{NAMES[code]} Wiktionary (CC BY-SA 4.0, via kaikki.org)') + lines)
-    print(f'{code}: read {n} entries, kept {kept}; wrote {os.path.relpath(out, ROOT)}: {len(lines)} words of {len(keys)}')
+    write_lines(out, header(code, f'{NAMES[code]} Wiktionary (CC BY-SA 4.0, via kaikki.org)' + (WRITTEN_NOTE if written else '')) + lines)
+    print(f'{code}: read {n} entries, kept {kept}, {len(written)} written; wrote {os.path.relpath(out, ROOT)}: {len(lines)} words of {len(keys)}')
     update_meta(code, len(lines), [{'name': f'{NAMES[code]} Wiktionary (via kaikki.org)', 'license': 'CC BY-SA 4.0',
-                                    'url': f'https://kaikki.org/{code}wiktionary/'}])
+                                    'url': f'https://kaikki.org/{code}wiktionary/'}] + ([WRITTEN_SOURCE] if written else []))
 
 
 if __name__ == '__main__':

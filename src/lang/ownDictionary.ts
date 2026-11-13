@@ -164,8 +164,13 @@ export function resetOwnDictionary(): void {
 
 // --------------------------------------------------------------------------------------------------------- engine ---
 
-/** Credited under an entry from the own-language dictionary. */
-export const OWN_SOURCE = 'Wiktionary';
+/**
+ * Marks an entry whose meanings are the own-language dictionary's (Wiktionary's, or written for the app where it has none).
+ * The main dictionaries mark theirs 'Wiktionary' and 'JMdict', so this is a name of its own.
+ */
+export const OWN_SOURCE = 'own language';
+/** The most meanings an entry shows when it gathers them from two parts of speech. */
+const MAX_SENSES = 8;
 
 /**
  * `engine` with its meanings and hints in the book's own language when this reader gets them (ownDictionary). The main
@@ -184,8 +189,11 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
     }
     const list = table.get(key) ?? table.get(engine.normalize(e.head));
     if (!list?.length) return null;
-    const pos = e.senses[0]?.pos;
-    const own = list.find((x) => x.pos === pos) ?? (engine.id === 'en' || !pos ? list[0] : undefined);
+    // Every part of speech the entry's meanings have, in order (Spanish "mierda" is "nothing" as a pronoun, then the noun).
+    const poses = [...new Set(e.senses.map((s) => s.pos ?? ''))];
+    const mine = poses.flatMap((p) => list.filter((x) => x.pos === p));
+    if (mine.length) return { ...e, senses: mine.flatMap((x) => x.senses).slice(0, MAX_SENSES), source: OWN_SOURCE };
+    const own = engine.id === 'en' || !poses[0] ? list[0] : undefined;
     return own ? { ...e, senses: own.senses, source: OWN_SOURCE } : null;
   };
   const lookup = (surface: string, ctx?: { token?: Token; sentence?: string }): WordLookup => {

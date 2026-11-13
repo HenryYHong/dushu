@@ -1,0 +1,537 @@
+# English meanings written for LinguPengu, for the words with a level that Wiktionary leaves without one (scripts/lang/native/build.py). CC BY-SA 4.0.
+# key	part of speech	meanings ("{label}meaning")...
+these	determiner	Used for more than one person or thing that is near you or was just talked about.
+these	pronoun	The people or things that are near you or were just talked about.
+those	determiner	Used for more than one person or thing that is far from you or was already talked about.
+those	pronoun	The people or things that are far from you or were already talked about.
+mr	proper noun	Short for "mister". It is a title put before a man's name.
+uk	noun	Short for "United Kingdom". It is a country made up of England, Scotland, Wales, and Northern Ireland.
+tv	noun	Short for "television". It is a machine with a screen that shows programs.	Programs that are shown on a television.
+pm	noun	Short for "post meridiem", which means after noon. It is used for times from noon to midnight.	Short for "prime minister", the leader of a government.
+eg	noun	Short for "exempli gratia", which means "for example".
+ec	noun	Short for "European Community", a group of European countries that worked together.
+ltd	proper noun	Short for "limited". It is put after the name of a company to show it is a limited company.
+usa	noun	Short for "United States of America". It is a large country in North America.
+iii	numeral	The number three, written in Roman numerals.
+ibm	noun	Short for "International Business Machines". It is a large American company that makes computers.
+bbc	noun	Short for "British Broadcasting Corporation". It is a company in the UK that makes radio and television programs.
+ceo	noun	Short for "chief executive officer". It is the person with the highest job in a company.
+th	proper noun	The symbol for thorium, a heavy metal that gives off radiation.	Letters added to a number to make it an order word, as in "4th".
+oct	noun	Short for "October", the tenth month of the year.
+ie	noun	Short for "id est", which means "that is". It is used before saying the same thing in other words.
+qv	noun	Short for "quod vide", which means "which see". It tells the reader to look at another place for more information.
+feb	noun	Short for "February", the second month of the year.
+aug	proper noun	Short for "August", the eighth month of the year.
+dna	noun	Short for "deoxyribonucleic acid". It is a chemical in living things that carries the information for how they grow and look.
+iv	noun	The number four, written in Roman numerals.	Short for "intravenous". It is a way of putting liquid into the body through a vein.
+pc	noun	Short for "personal computer". It is a computer that one person uses.	Short for "police constable", a police officer of the lowest rank in the UK.
+etc	noun	Short for "et cetera", which means "and so on". It is used at the end of a list.
+nhs	noun	Short for "National Health Service". It is the system that gives health care to people in the UK.
+cm	noun	Short for "centimeter". It is a unit of length, one hundredth of a meter.
+dc	noun	Short for "direct current", electricity that flows in one direction.	Short for "District of Columbia", the area where Washington, the capital of the United States, is.
+gp	noun	Short for "general practitioner". It is a doctor who treats all kinds of common illnesses.
+ussr	noun	Short for "Union of Soviet Socialist Republics". It was a large country in eastern Europe and Asia that existed until 1991.
+hiv	noun	Short for "human immunodeficiency virus". It is a virus that harms the body's defense against illness and can lead to AIDS.
+ph	noun	A number that shows how acid or how basic a liquid is.
+ca	proper noun	The symbol for calcium, a soft white metal that is found in bones and teeth.	Short for "circa", which means "about". It is used before a date that is not exact.
+km	noun	Short for "kilometer". It is a unit of length, one thousand meters.
+nt	proper noun	Short for "New Testament", the second part of the Christian Bible.
+eec	noun	Short for "European Economic Community". It was a group of European countries that traded together, now part of the European Union.
+ft	noun	Short for "foot". It is a unit of length, about 30 centimeters.	Short for "Financial Times", a newspaper about business.
+mps	noun	More than one MP. An MP is a "Member of Parliament", a person elected to make laws.
+ch	noun	Short for "chapter", a part of a book.	Short for "church".
+hp	noun	Short for "horsepower". It is a unit that measures how strong an engine is.	Short for "hire purchase", a way of paying for something in small parts over time.
+ml	noun	Short for "milliliter". It is a unit for measuring liquid, one thousandth of a liter.
+imf	noun	Short for "International Monetary Fund". It is a group that helps countries with money problems.
+von	proper noun	A word used in German family names, often to show a noble family.
+sri	noun	A title of respect used before the name of a man in India.	Part of the name of the country Sri Lanka.
+gaulle	proper noun	Part of the name of Charles de Gaulle, a French general who was president of France.
+anc	noun	Short for "African National Congress". It is a political party in South Africa.
+ruine	noun	A French word for a ruin. It is what is left of a building that has fallen down.
+watercolor	noun	A paint that is mixed with water.	A picture painted with this kind of paint.
+itv	noun	Short for "Independent Television". It is a group of television channels in the UK.
+dos	noun	Short for "disk operating system". It is an old kind of computer program that controls a computer.	The number two in Spanish.
+lj	noun	Short for "Lord Justice". It is a title for a judge in a high court in the UK.
+risc	noun	Short for "reduced instruction set computer". It is a kind of computer chip that uses a small set of simple commands.
+vii	numeral	The number seven, written in Roman numerals.
+lp	noun	Short for "long-playing record". It is a large record that plays music, with many songs on it.
+novell	proper noun	The name of an American company that makes computer network software.
+oesophageal	adjective	Having to do with the tube that carries food from the mouth to the stomach.
+coun	noun	Short for "councillor", a person who is a member of a town or city council.
+ux	noun	Short for "user experience". It is how easy and pleasant something is to use.
+guil	noun	A short form of a man's name, such as Guillaume.
+hmo	noun	Short for "health maintenance organization". It is a company in the United States that provides health care for a fixed fee.
+gdp	noun	Short for "gross domestic product". It is the total value of all goods and services a country makes in a year.
+saut	noun	A French word for a jump or leap. In ballet, it is a jump.
+viii	numeral	The number eight, written in Roman numerals.
+cf	noun	Short for "confer", which means "compare". It tells the reader to look at something else for comparison.
+qc	noun	Short for "quality control". It is checking that things are made well.	Short for "Queen's Counsel", a senior lawyer in the UK.
+icl	noun	Short for "International Computers Limited", a British computer company.
+mcallister	proper noun	A family name of Scottish origin.
+gmt	noun	Short for "Greenwich Mean Time". It is the time at Greenwich in London, used as the base for time around the world.
+mips	noun	Short for "million instructions per second". It is a way to measure how fast a computer works.
+wh	noun	Short for "watt hour". It is a unit that measures an amount of energy.
+sparc	noun	A kind of computer chip, made by the company Sun, used in powerful computers.
+spr	noun	Short for "Society for Psychical Research". It is a group that studies ghosts and other strange events.
+phd	noun	Short for "Doctor of Philosophy". It is the highest degree that a university gives.
+iq	noun	Short for "intelligence quotient". It is a number that shows how well someone does on a test of thinking skills.
+et	proper noun	A short form of the Latin word for "and". It is used in "et al." and "et cetera".
+pr	noun	Short for "public relations". It is the work of making a good picture of a person or company in people's minds.
+bmw	noun	Short for "Bayerische Motoren Werke". It is a German company that makes cars and motorcycles.
+cia	noun	Short for "Central Intelligence Agency". It is a United States group that gathers secret information about other countries.
+savor	noun	The taste or smell of something.	A quality that makes something interesting.
+savor	verb	To enjoy the taste or feeling of something slowly.	To have a little of a certain quality.
+nec	noun	A large Japanese company that makes computers and electronic products.
+kgb	noun	The secret police and spy group of the Soviet Union.
+mitterrand	proper noun	The family name of François Mitterrand, a president of France from 1981 to 1995.
+ruc	noun	Short for "Royal Ulster Constabulary". It was the police force of Northern Ireland until 2001.
+corneliu	proper noun	A man's first name used in Romania.
+modigliani	proper noun	A family name. Amedeo Modigliani was an Italian painter.
+nme	noun	Short for "New Musical Express". It is a British music magazine.
+tha	noun	Short for "total hydrocarbon analyzer", a machine that measures certain gases in the air.	Short for "Thailand", a country in Asia.
+cdna	noun	Short for "complementary DNA". It is DNA that is made from RNA in a laboratory.
+solaris	proper noun	The name of a computer operating system made by Sun.
+ssr	noun	Short for "Soviet Socialist Republic". It was one of the member states of the Soviet Union.
+grandchildren	noun	The children of a person's son or daughter.
+fulfillment	noun	The good feeling of having done or got what you wanted.	The act of doing something that was promised or needed.
+lense	noun	A family name.
+cliche	noun	A phrase or idea that has been used so much that it is no longer interesting.
+cliche	adjective	Used so much that it is no longer interesting or new.
+entree	noun	The main dish of a meal in the United States.	The right to enter a place or join a group.
+mcdonald	noun	A family name of Scottish origin.	The name of a very large chain of fast food restaurants.
+falklands	proper noun	A group of islands in the South Atlantic Ocean that belong to the UK.
+pyjamas	noun	Loose clothes that people wear in bed. This is the British spelling.
+tesco	proper noun	The name of a large chain of food shops in the UK.
+mph	noun	Short for "miles per hour". It is a unit that shows how fast something moves.
+lt	proper noun	Short for "lieutenant", a rank in the army or navy.
+kg	noun	Short for "kilogram". It is a unit of weight, one thousand grams.
+limo	noun	Short for "limousine". It is a long, fancy car that has a driver.
+cid	noun	Short for "Criminal Investigation Department". It is the part of the police in the UK that looks into crimes.
+dti	noun	Short for "Department of Trade and Industry". It was a part of the government in the UK that dealt with business.
+mclaren	proper noun	A family name of Scottish origin.	The name of a British company that makes racing cars.
+oecd	proper noun	Short for "Organisation for Economic Co-operation and Development". It is a group of countries that work together on money and trade.
+rouble	noun	The money used in Russia. This is the British spelling.
+wwf	noun	Short for "World Wildlife Fund". It is a group that works to protect wild animals and nature.
+edouard	proper noun	A man's first name used in France.
+hl	noun	Short for "hectoliter". It is a unit for measuring liquid, one hundred liters.
+tbsp	noun	Short for "tablespoon". It is a large spoon used to measure food in cooking.
+ftse	noun	A list of the share prices of large companies in the UK, used to show how the stock market is doing.
+aea	noun	Short for "Atomic Energy Authority". It is a group that runs work on nuclear energy.
+urgh	noun	A sound that people make to show that something is disgusting.
+sco	noun	A computer company that sold a version of the Unix system.
+netware	proper noun	The name of a computer program from Novell that connects computers in a network.
+flier	noun	A person who flies, or a pilot.	A small sheet of paper that advertises something.
+eqn	noun	Short for "equation". It is a math statement that shows two things are equal.
+ronni	proper noun	A first name, often for a girl.
+usl	noun	Short for "Unix System Laboratories", a company that worked on the Unix computer system.
+burun	proper noun	A family name.
+interpretive	noun	Helping to explain what something means.
+dj	noun	Short for "disc jockey". It is a person who plays recorded music for people to hear or dance to.
+farther	adjective	More far away.	More than before.
+farther	adverb	To or at a greater distance.	To a greater degree.
+schoolchildren	noun	Children who go to school.
+lcd	noun	Short for "liquid crystal display". It is a flat screen that shows pictures and numbers.
+ss	noun	Short for "steamship", a ship driven by steam.	A German police force under Hitler that was known for its cruelty.
+mony	adjective	A Scottish way of saying "many".
+rbi	noun	Short for "run batted in". In baseball, it is a point that a player earns when his hit lets a teammate score.
+gnp	noun	Short for "gross national product". It is the total value of all goods and services made by a country's people in a year.
+mccarthy	noun	A family name of Irish origin.
+diy	noun	Short for "do it yourself". It is the activity of building or fixing things at home yourself.
+hms	noun	Short for "His Majesty's Ship" or "Her Majesty's Ship". It is put before the name of a ship in the British navy.
+agm	noun	Short for "annual general meeting". It is a yearly meeting of the members of a group or company.
+fr	proper noun	The symbol for francium, a very rare metal.	Short for "father", a title for a priest.
+notts	proper noun	Short for "Nottinghamshire", a county in England.
+cbi	noun	Short for "Confederation of British Industry". It is a group that speaks for businesses in the UK.
+tuc	noun	Short for "Trades Union Congress". It is a group of workers' unions in the UK.
+helmut	proper noun	A man's first name used in Germany.
+emi	noun	Short for "electromagnetic interference". It is noise or trouble in electrical signals caused by other electrical machines.	A large British company that makes music recordings.
+natwest	proper noun	Short for "National Westminster Bank". It is a large bank in the UK.
+atm	noun	Short for "automated teller machine". It is a machine that gives out money from a bank account.
+delors	proper noun	A family name. Jacques Delors was a French leader of the European Commission.
+sgt	noun	Short for "sergeant", a rank in the army or police.
+opec	noun	Short for "Organization of the Petroleum Exporting Countries". It is a group of countries that sell oil.
+rsc	noun	Short for "Royal Shakespeare Company". It is a British group of actors that performs plays by Shakespeare and others.
+olivetti	proper noun	The name of an Italian company that makes office machines and computers.
+nra	noun	Short for "National Rifle Association". It is a group in the United States that supports the right to own guns.
+kpmg	noun	The name of a large company that gives help with money records, taxes, and business.
+det	proper noun	Short for "detective" or "detachment".	A chemical put on skin to keep mosquitoes away.
+masai	proper noun	A people who live in Kenya and Tanzania, in East Africa.
+althusser	proper noun	A family name. Louis Althusser was a French thinker.
+fujitsu	proper noun	The name of a large Japanese company that makes computers and electronics.
+lennie	proper noun	A first name, for a man or a woman.
+romanov	proper noun	The family that ruled Russia from 1613 until 1917.
+spd	noun	Short for "Social Democratic Party of Germany". It is a major political party in Germany.	Short for "surge protective device", something that protects machines from sudden strong electricity.
+ncr	noun	Short for "no carbon required". It is paper that copies what you write onto the sheet under it without carbon paper.	An American company that makes cash registers.
+mahmoud	proper noun	A man's first name used in Arab countries.
+sql	noun	Short for "Structured Query Language". It is a computer language used to ask for and change information in a database.
+karpov	proper noun	A family name. Anatoly Karpov is a Russian chess champion.
+pcr	noun	Short for "polymerase chain reaction". It is a way to make many copies of a small piece of DNA.
+wha	noun	A sound or short word that people say to show surprise.
+oem	noun	Short for "original equipment manufacturer". It is a company that makes parts or products that other companies sell under their own names.
+svq	noun	A code for the airport of Seville, a city in Spain.
+vitor	proper noun	A man's first name used in Portugal and Brazil.
+defries	noun	A family name.
+eline	proper noun	A girl's first name.
+buz	noun	A short form of "buzzer" or a nickname for a man named Buzz.
+ipod	noun	A small music player made by Apple.
+adrenalin	noun	A chemical in the body that makes the heart beat fast when someone is scared or excited.
+guidebook	noun	A book that gives information to people who visit a place.
+tnt	noun	Short for "trinitrotoluene". It is a strong chemical used to make explosives.
+hath	verb	{old-fashioned}An old way of saying "has".
+kickoff	noun	The start of a game of football or soccer, when the ball is first kicked.	The start of something.
+messrs	proper noun	More than one "Mr". It is used before the names of several men.
+mc	noun	Short for "master of ceremonies". It is a person who introduces speakers or performers at an event.	A person who raps or leads a musical performance.
+bs	noun	Short for "Bachelor of Science". It is a first university degree in science.	{rude}Nonsense.
+ix	noun	The number nine, written in Roman numerals.
+ipo	noun	Short for "initial public offering". It is the first time a company sells its shares to the public.
+anova	noun	Short for "analysis of variance". It is a way to test if the averages of several groups are different.
+fbi	noun	Short for "Federal Bureau of Investigation". It is the main police group in the United States that looks into crimes across the country.
+abc	noun	The letters of the alphabet.	The most basic things about a subject.	The name of a television company in the United States.
+fm	noun	Short for "frequency modulation". It is a way of sending radio sound that is clear.	Short for "field marshal", a very high rank in the British army.
+albans	proper noun	Part of "St Albans", the name of a city in England.
+pt	noun	Short for "pint", a unit for measuring liquid.	The symbol for platinum, a valuable silver-white metal.
+wc	noun	Short for "water closet". It is a toilet.
+nonverbal	adjective	Done without using words.
+scallions	noun	Long thin onions with a white bottom and green top, eaten raw or cooked.
+approx	noun	Short for "approximately", which means "about".
+bc	noun	Short for "before Christ". It is used for years before the birth of Jesus.
+dm	noun	Short for "Doctor of Medicine", a degree for doctors.	Short for "direct message", a private message sent to one person online.
+sae	noun	Short for "stamped addressed envelope". It is an envelope with your own address and a stamp, which you send so that someone can reply.
+fc	noun	Short for "football club", a team that plays soccer.
+gogh	noun	Part of the name of Vincent van Gogh, a Dutch painter.
+philippe	proper noun	A man's first name used in France.	The name of a Swiss maker of expensive watches.
+dept	noun	Short for "department". It is a part of a company, school, or government.
+industrialisation	noun	The process of building many factories and making a place depend on them. This is the British spelling.
+xv	noun	The number fifteen, written in Roman numerals.
+vip	noun	Short for "very important person". It is someone who gets special treatment.
+roberto	proper noun	A man's first name used in Spain, Italy, and Latin America.
+rica	noun	Part of the name "Costa Rica", a country in Central America.	A girl's first name.
+dss	noun	Short for "Department of Social Security", a part of the British government that gave money help to people.
+gm	noun	Short for "General Motors", a large American company that makes cars.	Short for "general manager", a person who runs a business.
+capt	proper noun	Short for "captain", a rank in the army, navy, or a title for the leader of a ship.
+mclean	proper noun	A family name of Scottish origin.	A town in the state of Virginia.
+ap	noun	Short for "Associated Press". It is a company that gathers and sells news stories.
+mcc	noun	Short for "Marylebone Cricket Club". It is a famous cricket club in London.
+glc	noun	Short for "gas-liquid chromatography". It is a way of separating the parts of a mixture in a laboratory.	Short for "Greater London Council", the old government of London.
+itn	noun	Short for "Independent Television News". It is a company in the UK that makes news programs for television.
+rspca	noun	Short for "Royal Society for the Prevention of Cruelty to Animals". It is a group in the UK that protects animals from being hurt.
+fiberglass	noun	A material made of very thin threads of glass, used for boats and for keeping heat in.
+ir	noun	Short for "infrared". It is a kind of light that people cannot see.	The symbol for iridium, a hard and heavy metal.
+ncc	noun	Short for "network control center". It is a place that watches and manages a computer network.
+equaliser	noun	A goal or point that makes the score of two teams the same. This is the British spelling.	A device that changes the sound of music by making some tones louder or softer.
+hmi	noun	Short for "human machine interface". It is the screen or controls that a person uses to work a machine.
+rna	noun	Short for "ribonucleic acid". It is a chemical in living things that helps cells use the information in DNA.
+matisse	proper noun	A family name. Henri Matisse was a French painter.
+sb	noun	Short for "somebody".	The symbol for antimony, a silver-white metal.
+cr	noun	The symbol for chromium, a hard shiny metal.	Short for "credit".
+fri	noun	Short for "Friday", the day after Thursday.
+durkheim	proper noun	A family name. Émile Durkheim was a French thinker who studied how societies work.
+lms	noun	Short for "learning management system". It is a computer program that schools use to give lessons and tests online.
+tec	noun	{informal}Short for "detective".
+pcb	noun	Short for "printed circuit board". It is a flat board with lines of metal that connect the parts inside electronic things.	Short for "polychlorinated biphenyl", a harmful chemical.
+sd	noun	Short for "standard deviation". It is a number that shows how spread out a set of numbers is.	Short for "secure digital", a small card that stores data.
+frs	noun	Short for "Fellow of the Royal Society". It is a title given to a respected scientist in the UK.
+compaq	noun	An American company that made computers.
+creme	noun	A French word for cream. It is a thick soft cream or a sweet liquid.
+ldc	noun	Short for "less developed country". It is a country that is poor and has little industry.
+lucien	proper noun	A man's first name used in France.
+lr	noun	Short for "long range", meaning able to reach a long way.
+snp	noun	Short for "Scottish National Party". It is a political party in Scotland that wants Scotland to be independent.	Short for "single nucleotide polymorphism", a small difference in DNA between people.
+apr	noun	Short for "annual percentage rate". It is the yearly cost of a loan, shown as a percent.	Short for "April", the fourth month of the year.
+esrc	noun	Short for "Economic and Social Research Council". It is a British group that gives money for studies about society.
+fiancee	noun	A woman who has promised to marry a man.
+braque	proper noun	A family name. Georges Braque was a French painter.
+wordperfect	noun	A computer program for writing and editing documents.
+vga	noun	Short for "video graphics array". It is a standard for showing pictures on a computer screen.
+oed	noun	Short for "Oxford English Dictionary". It is a very large dictionary of English.
+tsp	noun	Short for "teaspoon". It is a small spoon used to measure food in cooking.
+unita	proper noun	A political group in Angola that fought a long war against the government.
+udf	noun	Short for "Union for French Democracy", a political group in France.	Short for "user-defined function", a part of a program written by the user.
+icu	noun	Short for "intensive care unit". It is the part of a hospital for people who are very sick.
+cdu	noun	Short for "Christian Democratic Union". It is a major political party in Germany.
+csce	proper noun	A market in New York where coffee, sugar, and cocoa are bought and sold.
+ilp	noun	Short for "integer linear programming", a math method for finding the best answer under rules.
+cantona	proper noun	A family name. Eric Cantona is a French soccer player.
+unisys	proper noun	The name of an American company that makes computers and gives computer help.
+ldp	noun	Short for "Liberal Democratic Party". It is a political party in Japan.
+bgs	noun	Short for "British Geological Survey". It is a group in the UK that studies rocks and the ground.
+karajan	proper noun	A family name. Herbert von Karajan was an Austrian music conductor.
+papillae	noun	Small bumps on the body, such as the ones on the tongue.
+mrna	noun	Short for "messenger RNA". It is a chemical in cells that carries instructions for making proteins.
+jehan	proper noun	An old French form of the name John.
+informix	proper noun	The name of a company that made database software.
+bsl	noun	Short for "British Sign Language", the language of signs used by deaf people in the UK.
+pnp	proper noun	Short for "plug and play". It means a device that works as soon as you connect it to a computer.
+nez	proper noun	A family name.	A French word for a nose.
+sybase	noun	The name of an American company that made database software.
+powerpc	noun	A kind of computer chip made by IBM, Apple, and Motorola.
+oesophagitis	noun	A sore or swollen tube between the mouth and stomach. This is the British spelling.
+gazzer	proper noun	A nickname for a man named Gary or Gareth.
+blondel	proper noun	A family name.	A unit of how bright a light looks.
+qqv	noun	Short for "quae vide", which means "which see". It is used to point to more than one other place in a text.
+enquirer	noun	A person who asks a question or asks for information.
+townspeople	noun	The people who live in a town.
+mp	noun	Short for "Member of Parliament". It is a person elected to help make laws in some countries.	Short for "military police", soldiers who act as police.
+cpu	noun	Short for "central processing unit". It is the main part of a computer that does the work.
+ambience	noun	The feeling or mood of a place.
+protege	noun	A young person who is helped and taught by an older, more experienced person.
+biosolids	noun	The solid material left after waste water is cleaned, often used to help plants grow.
+sociopolitical	adjective	Having to do with both society and politics.
+panick	verb	To feel sudden strong fear and not think clearly.
+pvc	noun	Short for "polyvinyl chloride". It is a strong plastic used for pipes and clothing.
+lsd	noun	A strong drug that makes people see and feel things that are not real.	Short for "pounds, shillings, and pence", the old money of the UK.
+ballplayer	noun	A person who plays baseball or another game with a ball.
+jalapeno	noun	A small green pepper from Mexico that tastes hot.
+salespeople	noun	People whose job is to sell things.
+cpa	noun	Short for "certified public accountant". It is an accountant in the United States who has passed special tests.
+coed	noun	{old-fashioned}A woman who studies at a college or university where men and women study together.
+himalaya	proper noun	A very high chain of mountains in Asia, between India and China.
+viz	adverb	Short for "videlicet", which means "that is to say" or "namely". It is used before a list or an explanation.
+longstanding	adjective	Having existed for a long time.
+xiv	numeral	The number fourteen, written in Roman numerals.
+hmso	noun	Short for "His Majesty's Stationery Office". It was the group that printed and sold government papers in the UK.
+mm	noun	Short for "millimeter". It is a very small unit of length, one thousandth of a meter.
+eave	noun	The lower edge of a roof that sticks out past the wall.
+gb	noun	Short for "gigabyte". It is a unit that measures the size of computer data.	Short for "Great Britain", the island with England, Scotland, and Wales.
+sh	interjection	Used to tell someone to be quiet.
+evaluator	noun	A person or thing that judges how good or valuable something is.
+mimick	verb	To copy the way someone speaks or acts, often to be funny.
+md	noun	Short for "Doctor of Medicine". It is a doctor.	Short for "managing director", a person who runs a company.	Short for "Maryland", a state in the United States.
+cv	noun	Short for "curriculum vitae". It is a paper that lists a person's school, jobs, and skills when they ask for work.
+cfc	noun	Short for "chlorofluorocarbon". It is a gas that was used in fridges and sprays and harms the ozone layer.
+subsystem	noun	A smaller system that is part of a larger system.
+cutout	noun	A shape that has been cut out of paper or other material.	A switch that stops electricity when there is too much.
+buenos	proper noun	Part of "Buenos Aires", the capital city of Argentina. In Spanish it means "good".
+ande	noun	A man's first name.
+annexe	noun	A building or part added to a larger one. This is the British spelling.
+safeway	proper noun	The name of a chain of supermarkets.
+mcgregor	proper noun	A family name of Scottish origin.
+tb	noun	Short for "tuberculosis". It is a serious disease that mostly harms the lungs.	Short for "terabyte", a unit of computer data, one thousand gigabytes.
+astra	proper noun	A name of a make of car sold by Vauxhall and Opel.
+mri	noun	Short for "magnetic resonance imaging". It is a way to take pictures of the inside of the body using magnets.
+unilever	proper noun	The name of a very large company that makes food, soap, and other things used at home.
+xii	numeral	The number twelve, written in Roman numerals.
+antennae	noun	The two thin parts on the head of an insect that it uses to feel and smell.	More than one antenna.
+cnd	noun	Short for "Campaign for Nuclear Disarmament". It is a British group that wants to get rid of nuclear weapons.
+barones	noun	A family name.	The Spanish word for barons.
+paneling	noun	Flat boards of wood that cover a wall or a door.
+hr	noun	Short for "hour", a unit of time of sixty minutes.	Short for "human resources", the part of a company that deals with workers.
+eastender	noun	A person who comes from the East End, a part of London.
+mccartney	proper noun	A family name. Paul McCartney is a British singer and a member of the Beatles.
+tvs	noun	More than one TV. A TV is a machine with a screen that shows programs.
+etiology	noun	The study of the causes of a disease.	The cause of something, mainly a disease.
+pda	noun	Short for "personal digital assistant". It is a small hand-held computer.	Short for "public display of affection", such as kissing in public.
+sportswriter	noun	A person who writes about sports for a newspaper or magazine.
+mb	noun	Short for "megabyte". It is a unit that measures the size of computer data.
+naivete	noun	The quality of being simple and trusting, and not knowing how the world really is.
+umm	noun	A sound people make when they are thinking or not sure what to say.
+cbs	noun	Short for "Columbia Broadcasting System". It is a large American television and radio company.
+domesday	noun	A big book of records made in England in 1086 that listed all land and who owned it.
+jp	noun	Short for "Justice of the Peace". It is a person who can judge small cases in a court.
+marwick	proper noun	A family name.
+liberalisation	noun	The act of making rules or laws less strict. This is the British spelling.
+communique	noun	An official message or report given to the public.
+rac	noun	Short for "Royal Automobile Club". It is a British group that helps drivers.
+hants	noun	Short for "Hampshire", a county in England.
+epicenter	noun	The place on the ground right above where an earthquake begins.	The center of something.
+cc	noun	Short for "cubic centimeter". It is a unit for measuring volume.	Short for "carbon copy". It is used in emails to send a copy to another person.
+rc	noun	Short for "Roman Catholic", a member of the Catholic Church.	Short for "Red Cross", a group that helps people in need.
+paulo	noun	A man's first name used in Portugal and Brazil.
+deutschmark	noun	The money used in Germany before the euro.
+bma	noun	Short for "British Medical Association". It is a group for doctors in the UK.
+gec	noun	Short for "General Electric Company". It was a large British company that made electrical goods.
+vdu	noun	Short for "visual display unit". It is a computer screen.
+deutsche	noun	The German word for "German", used in names such as Deutsche Bank.
+jeez	interjection	{informal}Used to show surprise, anger, or annoyance.
+ds	noun	Short for "double-sided". It is used for a disk or paper with writing or data on both sides.	A handheld game machine made by Nintendo.
+lancs	proper noun	Short for "Lancashire", a county in England.
+sugarcane	noun	A tall plant with thick stems that sugar is made from.
+tsb	noun	Short for "Trustee Savings Bank". It was a bank in the UK.
+mckay	proper noun	A family name of Scottish origin.
+unesco	noun	Short for "United Nations Educational, Scientific and Cultural Organization". It is a group that works on education, science, and culture around the world.
+ballgame	noun	A game played with a ball, mostly baseball in the United States.
+sdp	noun	Short for "Social Democratic Party". It was a political party in the UK.
+asda	proper noun	The name of a chain of supermarkets in the UK.
+floured	noun	Covered with flour, which is a fine powder made from grain.
+dh	noun	Short for "dear husband", used in online messages.	Short for "designated hitter", a baseball player who bats instead of the pitcher.
+uv	noun	Short for "ultraviolet". It is a kind of light that people cannot see and that can burn the skin.
+balliol	proper noun	One of the colleges of the University of Oxford.
+rpm	noun	Short for "revolutions per minute". It is how many times something turns around in one minute.
+sheik	noun	An Arab leader or ruler, or a respected older man in an Arab community.
+northants	proper noun	Short for "Northamptonshire", a county in England.
+jc	noun	Short for "Jesus Christ".	Short for "Julius Caesar".
+vw	noun	Short for "Volkswagen". It is a German company that makes cars.
+touche	interjection	Said to admit that someone has made a good point against you.
+dpp	noun	Short for "Director of Public Prosecutions". It is the person in the UK who decides if people are taken to court for crimes.
+wellcome	proper noun	A family name.	The name of a British group that gives money for health research.
+mgm	noun	Short for "Metro-Goldwyn-Mayer". It is an American company that makes films.
+lc	noun	Short for "Library of Congress", the main library of the United States.	Short for "lower case", small letters.
+js	noun	Short for "JavaScript", a computer language used for web pages.
+bundesbank	noun	The central bank of Germany.
+meself	pronoun	{informal}A way of saying "myself" used in some parts of Britain and Ireland.
+mcdermott	proper noun	A family name of Irish origin.
+mcgrath	proper noun	A family name of Irish origin.
+nm	noun	Short for "nanometer". It is a very small unit of length, one billionth of a meter.	Short for "New Mexico", a state in the United States.
+mk	noun	Short for "Mark", the second book of the New Testament.	Short for "mark", used for a version of a machine.
+mcmahon	proper noun	A family name of Irish origin.
+glaxo	proper noun	The name of a large British company that makes medicines.
+iphone	noun	A smartphone made by Apple.
+soundbite	noun	A short, catchy phrase taken from a speech, often used on the news.
+bandanna	noun	A large colored cloth that people wear around the head or neck.
+gc	noun	Short for "gas chromatography". It is a way of separating the parts of a mixture in a laboratory.	Short for "George Cross", a British medal for bravery.
+cj	noun	Short for "chief justice". It is the top judge of a court.
+medallist	noun	A person who has won a medal, often in sports. This is the British spelling.
+favoritism	noun	Unfair special treatment given to one person or group over others.
+msc	proper noun	Short for "Master of Science". It is a degree from a university.
+neurone	noun	A cell in the body that carries messages between the brain and other parts. This is the British spelling.
+willfully	adverb	In a way that is done on purpose, often when you know it is wrong.	In a stubborn way, doing what you want and not listening to others.
+dp	noun	Short for "data processing". It is the work of using a computer to handle information.	Short for "decimal places".
+rp	noun	Short for "Received Pronunciation". It is the way of speaking English that is seen as standard in Britain.
+tc	noun	Short for "technical college".	Short for "traffic control".
+mcenroe	proper noun	A family name. John McEnroe is an American tennis player.
+gce	noun	Short for "General Certificate of Education". It is a school exam in the UK.
+mcbride	proper noun	A family name of Scottish or Irish origin.
+efta	noun	Short for "European Free Trade Association". It is a group of European countries that trade freely with each other.
+dg	noun	Short for "decigram". It is a small unit of weight, one tenth of a gram.	Short for "director general", the head of a large group.
+edn	noun	Short for "edition", one version of a book or newspaper.
+nervosa	noun	A word used in "anorexia nervosa", an illness in which a person eats very little because of fear of being fat.
+lcc	noun	Short for "London County Council", the old government of London.
+revd	proper noun	Short for "Reverend". It is a title put before the name of a priest or church leader.
+signor	noun	An Italian word for "mister" or "sir". It is used before a man's name.
+mccann	proper noun	A family name of Irish origin.
+mw	noun	Short for "megawatt". It is a unit of power, one million watts.	Short for "medium wave", a kind of radio signal.
+didier	proper noun	A man's first name used in France.
+atp	noun	Short for "adenosine triphosphate". It is a chemical in cells that gives them energy.	Short for "Association of Tennis Professionals", a group for men's professional tennis.
+ppm	noun	Short for "parts per million". It is a way to say how small an amount of something is in a mixture.
+serps	noun	Short for "State Earnings-Related Pension Scheme". It was a way of giving older people in the UK extra money from the government.
+esa	noun	Short for "European Space Agency". It is a group that works on space travel for European countries.
+utd	noun	Short for "United", used in the name of a sports team.
+epa	proper noun	Short for "Environmental Protection Agency". It is a United States government group that protects air, water, and land.
+maj	noun	Short for "major", a rank in the army.
+ababa	proper noun	Part of "Addis Ababa", the capital city of Ethiopia.
+clacton	proper noun	A town by the sea in the county of Essex in England.
+ingres	proper noun	A family name. Jean Ingres was a French painter.
+facedown	noun	With the face or front side toward the ground.	A direct fight or argument in which each side faces the other.
+gonorrhoea	noun	A disease that passes from person to person through sex. This is the British spelling.
+qpr	noun	Short for "Queens Park Rangers", a soccer team in London.
+mmc	noun	Short for "multimedia card". It is a small card that stores data in cameras and phones.
+minh	proper noun	A first name used in Vietnam.
+stockmarket	noun	A place where people buy and sell shares of companies.
+lothar	proper noun	A man's first name used in Germany.
+icc	noun	Short for "International Cricket Council". It is the group that runs world cricket.	Short for "International Criminal Court", a court that judges serious crimes between nations.
+caa	noun	Short for "Civil Aviation Authority". It is a group that watches over air travel in the UK.
+gdr	noun	Short for "German Democratic Republic". It was the country of East Germany, from 1949 to 1990.
+rodrigo	proper noun	A man's first name used in Spain and Portugal.
+filet	noun	A piece of meat or fish with no bones.
+filet	verb	To cut meat or fish into pieces with no bones.
+supt	noun	Short for "superintendent", a person in charge of a place or a police rank.
+ahh	noun	A sound that people make to show relief, pleasure, or understanding.
+fer	noun	{informal}A way of saying "for" in speech.
+matthey	proper noun	A family name.
+phnom	proper noun	Part of "Phnom Penh", the capital city of Cambodia.
+penh	proper noun	Part of "Phnom Penh", the capital city of Cambodia.
+honecker	proper noun	A family name. Erich Honecker was the leader of East Germany from 1971 to 1989.
+palaeozoic	adjective	Having to do with a very long time in the past, from about 540 to 250 million years ago.
+palaeozoic	noun	The very long time in the past, from about 540 to 250 million years ago, when fish and the first land animals appeared.
+bom	noun	Short for "bill of materials". It is a list of all the parts needed to make something.	Short for "Book of Mormon", a holy book.
+fsa	noun	Short for "Financial Services Authority". It was a group in the UK that watched over banks and money companies.
+sfa	noun	Short for "Scottish Football Association". It is the group that runs soccer in Scotland.
+maman	noun	The French word for "mom".
+timex	proper noun	The name of a company that makes watches.
+cobol	noun	Short for "common business-oriented language". It is an old computer language used for business work.
+bst	noun	Short for "British Summer Time". It is the time used in the UK in summer, one hour ahead of Greenwich Mean Time.
+homoeopathic	adjective	Having to do with a way of treating illness with very small amounts of substances.
+wbc	noun	Short for "white blood cell". It is a cell in the blood that fights infection.	Short for "World Boxing Council", a group that runs boxing.
+bmc	noun	Short for "British Medical Council".	Short for "British Motor Corporation", an old British car company.
+eq	noun	Short for "emotional quotient". It is a measure of how well someone understands feelings.	Short for "equalizer", a device that changes the sound of music.
+whir	noun	A low, steady sound made by something that spins fast.
+whir	verb	To make a low, steady sound while spinning fast.
+ppp	noun	Short for "point-to-point protocol". It is a way to connect two computers over a line.	Short for "purchasing power parity", a way of comparing the money of different countries.
+galerie	proper noun	The French word for "gallery", a place where art is shown.	A family name.
+smp	noun	Short for "symmetric multiprocessing". It is a kind of computer that has more than one processor.
+hybridisation	noun	The act of mixing two kinds of plant or animal to make a new kind. This is the British spelling.
+lm	noun	Short for "lunar module". It was the part of a spaceship that landed on the moon.	Short for "light microscope".
+esophagus	noun	The tube that carries food from the mouth to the stomach.
+gcc	noun	Short for "Gulf Cooperation Council". It is a group of six countries near the Persian Gulf that work together.	Short for "GNU Compiler Collection", a computer program that turns code into programs.
+csa	noun	Short for "Confederate States of America". It was the group of southern states that left the United States in 1861.	Short for "Child Support Agency".
+nsf	noun	Short for "National Science Foundation". It is a United States group that gives money for science studies.
+pwr	noun	Short for "pressurized water reactor". It is a kind of nuclear power station.	Short for "power".
+collor	proper noun	A family name. Fernando Collor was a president of Brazil.
+homoeopathy	noun	A way of treating illness with very small amounts of substances. This is the British spelling.
+nacl	noun	The chemical symbol for sodium chloride, which is common salt.
+ssd	noun	Short for "solid-state drive". It is a fast computer part that stores data and has no moving parts.
+aargh	noun	A sound that people make to show fear, pain, or anger.
+camra	noun	Short for "Campaign for Real Ale". It is a British group that works to protect traditional beer.
+fis	noun	Short for "Family Income Supplement". It was extra money given to poor working families in the UK.
+fn	noun	Short for "function", a part of a computer program that does one job.
+bu	noun	Short for "bushel", a unit for measuring grain.	Short for "Boston University".
+whe	noun	An old short form of "whether".
+psc	noun	Short for "Public Service Commission", a group that handles government jobs.
+qa	noun	Short for "quality assurance". It is the work of checking that a product or service is good.	Short for "questions and answers".
+therese	proper noun	A girl's first name used in several countries.
+fdp	noun	Short for "Free Democratic Party". It is a political party in Germany.
+scsi	noun	Short for "small computer system interface". It is a standard way to connect disks and other devices to a computer.
+mdc	noun	Short for "more developed country". It is a country that is rich and has a lot of industry.
+cissie	proper noun	A girl's first name.
+luisa	proper noun	A girl's first name used in Spain, Italy, and Portugal.
+ngc	noun	Short for "New General Catalogue". It is a list of stars, clusters, and galaxies in the sky.	Short for "National Geographic Channel", a television channel.
+cfa	noun	Short for "Chartered Financial Analyst". It is a title for a person who has passed tests on money and investing.
+weu	noun	Short for "Western European Union". It was a group of European countries that worked together on defense.
+claudel	proper noun	A family name. Paul Claudel was a French writer.
+sched	noun	{informal}Short for "schedule", a plan that shows when things will happen.
+cyclosporin	noun	A medicine that stops the body from rejecting a new organ after a transplant.
+kb	noun	Short for "kilobyte". It is a unit that measures the size of computer data.	Short for "keyboard".
+ui	noun	Short for "user interface". It is the part of a program that a person sees and uses.
+osf	noun	Short for "Open Software Foundation", a group that made standards for computer software.
+mccready	proper noun	A family name.
+crp	noun	Short for "C-reactive protein". It is a chemical in the blood that rises when the body has swelling or infection.
+mineralisation	noun	The process of turning into a mineral or filling with minerals. This is the British spelling.
+dce	noun	Short for "data circuit-terminating equipment". It is a device that connects a computer to a network.
+grainne	proper noun	A girl's first name used in Ireland.
+bpd	noun	Short for "barrels per day". It is a way to say how much oil is produced each day.	Short for "borderline personality disorder", a mental illness.
+clearinghouse	noun	A place or group that collects and shares information or checks payments between banks.
+ltp	noun	Short for "long-term potentiation". It is a lasting increase in how strongly brain cells talk to each other.
+nct	noun	Short for "noncontact tonometer". It is a machine that measures the pressure inside the eye.
+tcr	noun	Short for "T-cell receptor". It is a part on a cell that helps the body fight sickness.
+shai	proper noun	A first name used in Israel.
+trna	noun	Short for "transfer RNA". It is a chemical in cells that brings the parts needed to build proteins.
+lissa	proper noun	A girl's first name.
+twelfths	noun	More than one twelfth. A twelfth is one of twelve equal parts of something.
+lfa	noun	Short for "left frontoanterior", a position of a baby in the womb.	Short for "lateral flow assay", a simple test for a disease.
+dlp	noun	Short for "Democratic Labour Party", a political party.	Short for "digital light processing", a way to make pictures on a screen or projector.
+visuals	noun	Pictures, films, or other things that you see, used to explain or show something.
+unixware	proper noun	The name of a version of the Unix computer system.
+indomethacin	noun	A medicine that stops pain and swelling.
+ecr	noun	Short for "electronic cash register". It is a machine in a shop that adds up prices and holds money.
+ccg	noun	Short for "Clinical Commissioning Group", a group that plans health care in England.
+zeinab	proper noun	A girl's first name used in Arab countries.
+macquillan	proper noun	A family name of Scottish origin.
+titford	noun	A family name.
+acet	noun	A short form used in chemistry for words that start with "acet", about acetic acid.
+fabliaux	noun	Short funny stories in verse from France long ago, often rude.
+gedanken	adjective	Used about an experiment that is done only in the mind.
+gedanken	proper noun	The German word for "thoughts".
+connon	proper noun	A family name.
+reveler	noun	A person who is having a fun, noisy time at a party.
+orthopaedic	adjective	Having to do with the treatment of bones and joints. This is the British spelling.
+defenseman	noun	A player in hockey who tries to stop the other team from scoring.
+unsavoury	adjective	Not pleasant, or not morally good. This is the British spelling.
+preventative	adjective	Meant to stop something bad from happening.
+preventative	noun	Something that stops something bad from happening.
+thril	noun	A short form that is sometimes used for "thrill", a strong feeling of excitement.
+enthral	verb	To hold someone's attention so strongly that they can think of nothing else.
+nonmember	noun	A person who is not a member of a group.
+postpon	noun	A short form of "postpone". To postpone is to move something to a later time.
+lacklustre	adjective	Not exciting or full of life. This is the British spelling.
+lacklustre	noun	The state of being dull and not full of life.
+pricy	adjective	{informal}Costing a lot of money.
+collectibles	noun	Things that people collect because they are interesting or valuable.
+thru	adverb	{American}From one end or side to the other.
+thru	preposition	{American}A short way of writing "through".
+showbiz	noun	{informal}The business of making films, television, and live shows.
+sethe	noun	A family name.
+letdown	noun	A feeling of disappointment when something is not as good as you hoped.
+genocidal	adjective	Meant to kill a whole group of people because of who they are.
+esthetic	adjective	Having to do with beauty and how things look.
+shalt	verb	{old-fashioned}An old way of saying "will" or "must" when talking to one person.
+archeologist	noun	A person who studies the past by digging up old things and looking at them.
