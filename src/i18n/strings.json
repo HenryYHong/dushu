@@ -2553,6 +2553,11 @@
    "src/ui/review/review.ts"
   ]
  },
+ "Help and about": {
+  "where": [
+   "src/ui/settings/settings.ts"
+  ]
+ },
  "Here only": {
   "where": [
    "src/ui/popup/fixView.ts"
@@ -4085,6 +4090,11 @@
    "src/ui/popup/translation.ts"
   ]
  },
+ "On this page": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
  "One": {
   "where": [
    "src/ui/reader/menus.ts"
@@ -4588,6 +4598,11 @@
   "where": [
    "src/ui/popup/langWordView.ts",
    "src/ui/popup/wordView.ts"
+  ]
+ },
+ "Privacy policy": {
+  "where": [
+   "src/ui/settings/settings.ts"
   ]
  },
  "Private Mac AI (Ollama)": {

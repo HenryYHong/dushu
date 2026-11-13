@@ -190,6 +190,10 @@
 .set-cloud-row { justify-content: flex-end; }
 .set-cloud-status { text-align: right; }
 /* "Use your own Mac" in the Sync group of someone who is not the owner (settings/ipad.ts): the Mac rows, folded. */
+/* Help and privacy at the foot of the page: plain links, not another group. */
+.set-foot { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--hairline); }
+.set-foot-link { color: var(--text-2); font-size: 13.5px; text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; }
+@media (hover: hover) { .set-foot-link:hover { color: var(--text); text-decoration-color: currentColor; } }
 /* "More settings": the rows few readers change, folded at the foot of a group (controls.ts more()). A quiet line, not a row. */
 .set-more { border-top: 1px solid var(--hairline); }
 .set-more-title {

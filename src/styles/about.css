@@ -2,7 +2,14 @@
 
 .ab-page { max-width: 820px; }
 .ab-section { margin-top: var(--space-5); }
-.ab-section .section-title { margin-top: var(--space-6); }
+.ab-section .section-title { margin-top: var(--space-6); scroll-margin-top: calc(var(--nav-h) + var(--safe-t, 0px) + 16px); }
+/* The page's sections, as a row of quiet chips under the intro (about.ts withContents). */
+.ab-contents { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--space-5) 0 0; max-width: 70ch; }
+.ab-contents-link {
+  padding: 5px 11px; border: 0; border-radius: 999px; background: var(--wash); color: var(--text-2); font: inherit; font-size: 13px; cursor: pointer;
+  transition: color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+@media (hover: hover) { .ab-contents-link:hover { color: var(--text); background: var(--surface-2); } }
 .ab-lead { margin: 0 0 var(--space-3); font: 400 20px/1.55 var(--font-book); color: var(--text); max-width: 62ch; }
 .ab-p { margin: 0 0 var(--space-3); line-height: 1.7; color: var(--text-2); max-width: 70ch; }
 .ab-fine { margin: var(--space-3) 0 0; font-size: 13px; color: var(--text-3); }

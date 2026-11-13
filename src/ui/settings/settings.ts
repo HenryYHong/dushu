@@ -177,9 +177,13 @@ export const mount: MountFn = (root, params, ctx) => {
   } }, sec.label) as HTMLButtonElement);
   const nav = h('nav.set-nav', { 'aria-label': tt('Sections') }, navButtons);
 
+  // The way to the help (About: how to use it, shortcuts, sources) and the privacy page, quietly at the foot of the page.
+  const foot = h('footer.set-foot', null,
+    h('a.set-foot-link', { href: '#/about' }, tt('Help and about')),
+    h('a.set-foot-link', { href: 'privacy.html' }, tt('Privacy policy')));
   root.appendChild(h('div.page.set-page', null,
     h('div.page-head', null, h('div', null, pageTitle('settings', tt('Settings')))),
-    h('div.set-layout', null, nav, h('div.set-main', null, preview, ...sections.map((sec) => sec.el)))));
+    h('div.set-layout', null, nav, h('div.set-main', null, preview, ...sections.map((sec) => sec.el), foot))));
 
   // The preview sticks under the top bar, so a section the list scrolls to must stop below it, not behind it. The sticky height is
   // measured (it changes with the width, the font size and a wrapped sample) and handed to the stylesheet; a preview that is not

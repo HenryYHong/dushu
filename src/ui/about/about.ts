@@ -402,11 +402,30 @@ async function fetchMeta(): Promise<DataMeta | null> {
   }
 }
 
+/**
+ * The page is long (it is the app's whole help), so a row of its section titles sits under the intro and jumps to each one. Buttons,
+ * not #links: the hash is the app's route.
+ */
+function withContents(page: HTMLElement): HTMLElement {
+  const titles = [...page.querySelectorAll<HTMLElement>('.ab-section > h2.section-title')];
+  const intro = page.querySelector('.ab-intro');
+  if (titles.length < 4 || !intro) return page;
+  const reduce = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const go = (t: HTMLElement) => {
+    t.scrollIntoView({ behavior: reduce() ? 'auto' : 'smooth', block: 'start' });
+    t.setAttribute('tabindex', '-1');
+    t.focus({ preventScroll: true });
+  };
+  intro.after(h('nav.ab-contents', { 'aria-label': tt('On this page') },
+    titles.map((t) => h('button.ab-contents-link', { type: 'button', onclick: () => go(t) }, t.textContent ?? ''))));
+  return page;
+}
+
 export const mount: MountFn = (root, _params, ctx) => {
   let alive = true;
   const host = h('div.ab-host');
   root.appendChild(host);
-  const show = (meta: DataMeta | null, loading: boolean) => { clear(host); host.appendChild(buildPage(meta, loading)); };
+  const show = (meta: DataMeta | null, loading: boolean) => { clear(host); host.appendChild(withContents(buildPage(meta, loading))); };
 
   const ready = ctx.dictSync()?.meta;
   show(ready?.sources.length ? ready : null, !ready);
