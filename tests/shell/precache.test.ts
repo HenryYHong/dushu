@@ -20,6 +20,7 @@ const FILES: Record<string, string> = {
   'assets/pdf.worker.min-yatZIOMy.mjs': 'worker',
   'assets/pdf.worker.min-DgRcL-GR.js': 'shim',
   'assets/GBK-EUC-H-Xy12Ab34.bcmap': 'cmap',
+  'assets/pengu-blink-Ab12Cd34.webp': 'frame',
   'assets/noto-serif-sc-0-400-normal-Qw12Er34.woff2': 'slice',
   'data/cedict.tsv.gz': 'dictionary',
   'data/names.tsv.gz': 'names',
@@ -58,6 +59,10 @@ describe('sw.js precache list', () => {
     expect(precache).toContain('assets/GBK-EUC-H-Xy12Ab34.bcmap');
     expect(precache).toContain('assets/index-AbCd1234.js');
     expect(precache.some((p) => p.endsWith('.woff2') && p.startsWith('assets/'))).toBe(false);
+  });
+
+  it('holds the images the code imports, so a Pengu frame first drawn offline (a blink, a jump) is there', () => {
+    expect(build().shell).toContain('assets/pengu-blink-Ab12Cd34.webp');
   });
 
   it('holds the short classics but not the long novels, which are stored when first added', () => {

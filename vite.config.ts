@@ -107,7 +107,8 @@ export function serviceWorker(): Plugin {
       // fonts' rules (fontSheets), which a device keeps once its page has loaded them. The PDF worker
       // (1.4 MB) and the Chinese CMaps (0.8 MB) are, so a PDF imports offline; sw.js copies unchanged hashed files from the
       // previous build's cache, so an update does not download them again.
-      const assets = readdirSync(join(dist, 'assets')).filter((f) => /\.(js|mjs|css|bcmap)$/.test(f));
+      // The images the code imports (Pengu's frames, 130 KB): a frame first drawn offline (a jump, a blink) must be stored already.
+      const assets = readdirSync(join(dist, 'assets')).filter((f) => /\.(js|mjs|css|bcmap|webp|png|jpe?g|gif|svg)$/.test(f));
       // Chinese data only: another language's folder is a directory here, and it is never downloaded ahead (on a first visit
       // the page hands the files it downloaded over; otherwise each is stored the first time that language is opened, in a
       // cache of its own named by its own contents, so a Chinese update keeps it).

@@ -4,6 +4,7 @@ the language they speak, and for English, for anyone.
 
     python3 -I scripts/lang/native/build.py en             # Simple English Wiktionary, then English Wiktionary
     python3 -I scripts/lang/native/build.py es fr de it pt ru
+    python3 -I scripts/lang/native/build.py ja zh
 
 Standard library only. Writes public/data/<id>/native.tsv.gz (and for English, public/data/en/native-rare/<shard>.tsv.gz for
 the rare words the main dictionary leaves out, sharded as data/en/rare is: src/lang/spaced/rareWords.ts rareShard):
@@ -30,7 +31,12 @@ Sources:
             a slim extract of kaikki.org's English Wiktionary for the words the English dictionary has, at
             .cache/raw/kaikki-en-slim.jsonl.gz (made by --extract-en, below).
   others    that language's own Wiktionary (CC BY-SA 4.0), via kaikki.org's extract of it (kaikki.org/<id>wiktionary/),
-            streamed off the network and never saved.
+            streamed off the network and never saved; for Chinese and Japanese the fields used are kept the first time at
+            .cache/raw/kaikki-<id>-slim.jsonl.gz (a few MB), so a rebuild takes seconds (delete it to fetch anew).
+
+Markup kaikki could not expand is taken out of every meaning (clean, residue): magic words, templates, links missing a
+bracket, footnote marks, and meanings that are only a request for one. A Chinese variant whose page only points at another
+character (㕑: "請見「廚」") gets a note of what it is to it (「廚」的異體字) and that character's meanings.
 
     python3 -I scripts/lang/native/build.py --extract-en   # writes .cache/raw/kaikki-en-slim.jsonl.gz (a 534 MB stream)
 """
@@ -135,9 +141,54 @@ TEMPLATE_LEFTOVER = re.compile(r'\s*\(\s+[^\s()]+\s*\)')
 EMPTY_GLOSS = re.compile(r'^\S+( [mf]( sing| pl)?)?$', re.I)
 
 
+# Wiki markup a few glosses keep where kaikki could not expand it: magic words (__NOTITLECONVERT__), the dagger Chinese
+# Wiktionary sets before a meaning only old dictionaries give, footnote marks, templates, and links missing a bracket.
+MAGIC_WORD = re.compile(r'__[A-Z]+__')
+OLD_MARK = re.compile(r'^(?:(?:\^?[‡⁜†]+|\^\(\[\d+\]\))\s*)+')
+LABEL_TEMPLATE = re.compile(r'\{\{(?:lexique|Term|term)/([^/{}]+)/[^{}]*\}\}?\s*')
+TEMPLATE_REST = re.compile(r'\{\{[^{}]*\}\}?')
+DOUBLE_LINK = re.compile(r'\[\[([^\[\]]*)\]\]')
+# "[[活动]（如诉讼": a link that lost a closing bracket (not chemistry's "3-[[(3-methylphenyl)amino]carbonyl]").
+HALF_CLOSED = re.compile(r'\[\[([^\[\]\d()]+)\](?!\])')
+HALF_LINK = re.compile(r'(?<!\[)\[([^\[\]]*/[^\[\]]*)\]\]')
+# A meaning that is only a request for one ("本詞語需要翻譯為漢語。請協助添加"), says it is not known, or is a table's markup.
+NO_MEANING = re.compile(r'需要翻譯為漢語|請協助添加|\{\{rfdef|rfdef\}\}|此詞的含意不確定|^\*?\s*\[[ST]:|class=[\'"]|wikitable|style=[\'"]|displaystyle')
+
+
+def last_part(text):
+    """A link's shown text: what follows its last slash (the pipe is a slash by then), or all of it."""
+    parts = [x for x in text.split('/') if x.strip()]
+    return parts[-1].strip() if parts else ''
+
+
+def residue(text):
+    if NO_MEANING.search(text):
+        return ''
+    text = MAGIC_WORD.sub('', text).strip()
+    text = OLD_MARK.sub('', text)
+    # A mark in the text: a reference to other senses ("von ^([1]) abgeleitet": sense 1) or a note (^([來源請求]), citation needed).
+    text = re.sub(r'\^\((\[[^()]*)\)', lambda m: f"({', '.join(re.findall(r'\d+', m.group(1)))})" if re.search(r'\d', m.group(1)) else '', text)
+    text = LABEL_TEMPLATE.sub(lambda m: f'({m.group(1)}) ', text)
+    text = TEMPLATE_REST.sub('', text)
+    text = DOUBLE_LINK.sub(lambda m: last_part(m.group(1)), text)
+    text = HALF_LINK.sub(lambda m: last_part(m.group(1)), text)
+    text = HALF_CLOSED.sub(lambda m: last_part(m.group(1)), text)
+    text = re.sub(r'\{\[?(?:ant|syn)/[^{}]*\}\}?', '', text).strip()  # "{[ant|parent}}": an antonym template
+    label = re.match(r'^\[*([^\s{}/\[\]]+)(?:/[a-z]{2,3})?\}\}\s*', text)  # "[[fleurs|fr}} Fleur", "biology}} Eczema": a label
+    if label:
+        text = f'({label.group(1)}) {text[label.end():]}'
+    else:
+        text = re.sub(r'^\[\[[^\s/\[\]]+/(?=\S)', '', text)  # "[[armature|Armature en forme…": an unclosed link's target
+    text = re.sub(r'\[\[(?!\()', '', text)  # an unclosed link (not chemistry's "[[(")
+    if re.fullmatch(r'[\W_]*[a-z]{0,3}:[\W_]*', text):
+        return ''
+    text = re.sub(r'^(?:[\]};,:]\s*)+', '', text)
+    return re.sub(r'\s+', ' ', text).strip()
+
+
 def clean(text):
     text = TEMPLATE_LEFTOVER.sub('', re.sub(r'\s+', ' ', text or '')).strip()
-    return text.replace('\t', ' ').replace('|', '/')
+    return residue(text.replace('\t', ' ').replace('|', '/'))
 
 
 # ------------------------------------------------------------------------------------------------ Simple Wiktionary ---
@@ -371,7 +422,12 @@ def pick_hint(code, key, entries, rank, poses):
 
 
 def row(key, entry, hint):
-    senses = [('{' + ', '.join(labels) + '}' if labels else '') + gloss for gloss, labels in entry['senses']]
+    # Braces mark the labels in this file ({veraltet}gloss), so a label or a gloss never carries one where it would be read so.
+    def sense(gloss, labels):
+        labels = [x.strip('{} ') for x in labels if x.strip('{} ')]
+        gloss = re.sub(r'^[{}\s]+', '', gloss)
+        return ('{' + ', '.join(labels) + '}' if labels else '') + gloss
+    senses = [sense(gloss, labels) for gloss, labels in entry['senses']]
     return '\t'.join([key, entry['pos'], hint] + senses)
 
 
@@ -473,18 +529,8 @@ def build_edition(code):
     phrases = phrase_keys(code)
     found = collections.defaultdict(list)
     n = kept = 0
-    url = f'https://kaikki.org/{code}wiktionary/raw-wiktextract-data.jsonl.gz'
-    with kaikki.open_url(url) as res, gzip.open(res, 'rt', encoding='utf-8') as f:
-        for line in f:
-            if not line.startswith('{'):
-                continue
-            try:
-                e = json.loads(line)
-            except json.JSONDecodeError:
-                continue
+    for e in cjk_entries(code):
             n += 1
-            if e.get('lang_code') != code:
-                continue
             key = fold(code, e.get('word'))
             if key not in rank:
                 key = phrases.get(phrase_norm(code, e.get('word') or ''))
@@ -575,6 +621,9 @@ def ja_classes():
 
 
 READING_NOTE = re.compile(r'^（[\u3040-\u30ff・、ー\s]+）')
+# Chinese Wiktionary's page for a variant only points at the character it is a variant of: "關於「㕑」的發音和釋義，請見「廚」。
+# （此字是「廚」的異體字。）". The variant gets that character's meanings, after a note of what it is to it (「廚」的異體字).
+POINTER = re.compile(r'關於「[^」]+」的發音和釋義，請見「([^」（]+)(?:（.*?）)?」。\s*(?:（此[字詞]是(.+?)。）)?')
 
 
 def cjk_keys(code):
@@ -603,16 +652,31 @@ def cjk_keys(code):
     return keys
 
 
-def build_cjk(code):
-    keys = cjk_keys(code)
-    found = collections.defaultdict(list)
-    # Japanese: entries by their kana word (with their part of speech and kanji spellings), and the kanji pages that only point
-    # at a kana word (古い: "ふるいの漢字表記"), to key each kanji spelling under the right one of its reading's words.
-    by_kana = collections.defaultdict(list)
-    points = collections.defaultdict(set)
-    n = kept = 0
+def merge_senses(entries):
+    """Each entry's first meaning, then each one's second, and so on: a character's entries are its etymologies (了 to finish,
+    了 the particle), and the first one alone would fill the list."""
+    merged = []
+    for i in range(max((len(e['senses']) for e in entries), default=0)):
+        for e in entries:
+            if i < len(e['senses']) and e['senses'][i] not in merged:
+                merged.append(e['senses'][i])
+    return merged
+
+
+def cjk_entries(code):
+    """The language's own entries in its Wiktionary, from kaikki.org's extract (a stream of every language's entries there,
+    gigabytes). The first run keeps the fields used here at .cache/raw/kaikki-<code>-slim.jsonl.gz; later runs read that."""
+    slim = os.path.join(ROOT, '.cache', 'raw', f'kaikki-{code}-slim.jsonl.gz')
+    if os.path.exists(slim):
+        with gzip.open(slim, 'rt', encoding='utf-8') as f:
+            for line in f:
+                yield json.loads(line)
+        return
+    keep_sense = ('glosses', 'tags', 'raw_tags', 'form_of', 'alt_of')
+    tmp = slim + '.part'
+    os.makedirs(os.path.dirname(slim), exist_ok=True)
     url = f'https://kaikki.org/{code}wiktionary/raw-wiktextract-data.jsonl.gz'
-    with kaikki.open_url(url) as res, gzip.open(res, 'rt', encoding='utf-8') as f:
+    with kaikki.open_url(url) as res, gzip.open(res, 'rt', encoding='utf-8') as f, gzip.open(tmp, 'wt', encoding='utf-8') as out:
         for line in f:
             if not line.startswith('{'):
                 continue
@@ -620,9 +684,27 @@ def build_cjk(code):
                 e = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            n += 1
             if e.get('lang_code') != code:
                 continue
+            e = {'word': e.get('word'), 'lang_code': code, 'pos': e.get('pos'),
+                 'forms': [{'form': fm.get('form'), 'tags': fm.get('tags')} for fm in e.get('forms') or [] if 'kanji' in (fm.get('tags') or [])],
+                 'senses': [{k: sn[k] for k in keep_sense if sn.get(k)} for sn in e.get('senses') or []]}
+            out.write(json.dumps(e, ensure_ascii=False) + '\n')
+            yield e
+    os.replace(tmp, slim)
+
+
+def build_cjk(code):
+    keys = cjk_keys(code)
+    found = collections.defaultdict(list)
+    # Japanese: entries by their kana word (with their part of speech and kanji spellings), and the kanji pages that only point
+    # at a kana word (古い: "ふるいの漢字表記"), to key each kanji spelling under the right one of its reading's words.
+    by_kana = collections.defaultdict(list)
+    points = collections.defaultdict(set)
+    variant_of = collections.defaultdict(list)
+    n = kept = 0
+    for e in cjk_entries(code):
+            n += 1
             if code == 'ja' and e.get('pos') == 'character':
                 for sn in e.get('senses') or []:
                     for fo in sn.get('form_of') or []:
@@ -634,6 +716,12 @@ def build_cjk(code):
             senses = []
             for sn in e.get('senses') or []:
                 if sn.get('form_of') or sn.get('alt_of') or 'form-of' in (sn.get('tags') or []) or not sn.get('glosses'):
+                    continue
+                if code == 'zh' and POINTER.search(sn['glosses'][-1]):
+                    for m in POINTER.finditer(sn['glosses'][-1]):
+                        note = m.group(2) or f'見「{m.group(1)}」'
+                        if (m.group(1), note) not in variant_of[e.get('word') or '']:
+                            variant_of[e.get('word') or ''].append((m.group(1), note))
                     continue
                 gloss = clean(READING_NOTE.sub('', sn['glosses'][-1]))
                 if FORM_NOTE.match(gloss):
@@ -666,16 +754,25 @@ def build_cjk(code):
                     if want and e['pos'] not in want and not (e['pos'] == 'adj_noun' and 'noun' in want):
                         continue
                     found[kanji].append({'pos': '', 'senses': e['senses'], 'syn': []})
+    # A Chinese variant: after any meanings of its own, for each character it points at a note of what it is to it, then that
+    # character's first meanings (as many as fit: 〇 points at 零, 空 and 星).
+    variants = {}
+    for word, targets in variant_of.items():
+        if word not in keys:
+            continue
+        each = max(1, (CJK_SENSES - len(targets)) // len(targets))
+        block = []
+        for target, note in targets:
+            meant = merge_senses(found.get(target, []))
+            block += [(clean(note), [])] + meant[:each]
+        # A note alone (国 points at 國, which has no meanings here) says nothing of the meaning: the app's own dictionary does.
+        if len(block) > len(targets) or found.get(word):
+            variants[word] = block
+        kept += 1
     lines = []
-    for key in sorted(found):
-        # Each entry's first meaning, then each one's second, and so on: a character's entries are its etymologies (了 to
-        # finish, 了 the particle), and the first one alone would fill the list.
-        merged = []
-        entries = found[key]
-        for i in range(max(len(e['senses']) for e in entries)):
-            for e in entries:
-                if i < len(e['senses']) and e['senses'][i] not in merged:
-                    merged.append(e['senses'][i])
+    for key in sorted(set(found) | set(variants)):
+        merged = merge_senses(found.get(key, []))
+        merged += [x for x in variants.get(key, []) if x not in merged]
         lines.append(row(key, {'pos': '', 'senses': merged[:CJK_SENSES]}, ''))
     out = os.path.join(DATA, 'native.tsv.gz') if code == 'zh' else os.path.join(DATA, code, 'native.tsv.gz')
     write_lines(out, header(code, f'{NAMES[code]} Wiktionary (CC BY-SA 4.0, via kaikki.org)') + lines)
