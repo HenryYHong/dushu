@@ -135,7 +135,8 @@ export const mount: MountFn = (root, _params, ctx) => {
     const top = h('div.rev-top', null,
       h('a.rev-exit', { href: '#/vocab' }, icon('arrowLeft'), tt('Words')),
       h('span.rev-counter', null, tt('{done} of {total} done', { done: session.done, total: session.total })),
-      h('span.rev-left.muted', null, tt('{n} left', { n: session.remaining })),
+      // "5 left" beside "0 of 5 done" says it twice: only when a card missed and coming back makes the two differ.
+      session.remaining !== session.total - session.done ? h('span.rev-left.muted', null, tt('{n} left', { n: session.remaining })) : null,
     );
 
     const front = h('div.rev-front', null,

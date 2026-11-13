@@ -64,11 +64,6 @@
   "many": "{n} correções adicionadas.",
   "other": "{n} correções adicionadas."
  },
- "Added {n} words, updated {updated}": {
-  "one": "{n} palavra adicionada; atualizadas: {updated}",
-  "many": "{n} palavras adicionadas; atualizadas: {updated}",
-  "other": "{n} palavras adicionadas; atualizadas: {updated}"
- },
  "Added “{first}” and “{second}” from your Mac.": "“{first}” e “{second}” adicionados do seu Mac.",
  "Added “{title}” from your Mac.": "“{title}” adicionado do seu Mac.",
  "Added “{title}” from your account.": "“{title}” adicionado da sua conta.",
@@ -134,7 +129,6 @@
  "Back to words": "Voltar às palavras",
  "Backup": "Backup",
  "Backup saved to your downloads.": "Backup salvo nos seus downloads.",
- "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": "Backup salvo: suas palavras salvas, palavras conhecidas, palavras consultadas, marcadores, progresso e histórico de revisão.",
  "Best: {n} days": {
   "one": "Recorde: {n} dia",
   "many": "Recorde: {n} dias",
@@ -907,7 +901,6 @@
  "Rename": "Renomear",
  "Rename book": "Renomear livro",
  "Replay": "Repetir",
- "Restore": "Restaurar",
  "Resume": "Retomar",
  "Resume audio": "Retomar áudio",
  "Resume reading": "Retomar leitura",
@@ -1713,8 +1706,6 @@
  "{link} has thousands of Italian books in the public domain.": "{link} tem milhares de livros em italiano em domínio público.",
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link} tem milhares de livros de domínio público, dos clássicos a Lu Xun. Abra um livro e toque em 下载 (Baixar) para obter um EPUB.",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link} tem milhares de textos de domínio público, muitos em EPUB.",
- "{list}.": "{list}.",
- "{list}. Settings restored.": "{list}. Configurações restauradas.",
  "{min} min": "{min} min",
  "{min} min a day": "{min} min por dia",
  "{m} min today. Goal of {goal} min reached.": "{m} min hoje. Meta de {goal} min atingida.",
@@ -1733,11 +1724,6 @@
   "one": "{n} marcador",
   "many": "{n} marcadores",
   "other": "{n} marcadores"
- },
- "{n} bookmarks added": {
-  "one": "{n} marcador adicionado",
-  "many": "{n} marcadores adicionados",
-  "other": "{n} marcadores adicionados"
  },
  "{n} books": {
   "one": "{n} livro",
@@ -1819,17 +1805,7 @@
   "many": "{n} palavras conhecidas",
   "other": "{n} palavras conhecidas"
  },
- "{n} known words added": {
-  "one": "{n} palavra conhecida adicionada",
-  "many": "{n} palavras conhecidas adicionadas",
-  "other": "{n} palavras conhecidas adicionadas"
- },
  "{n} left": "Restantes: {n}",
- "{n} looked-up words added": {
-  "one": "{n} palavra consultada adicionada",
-  "many": "{n} palavras consultadas adicionadas",
-  "other": "{n} palavras consultadas adicionadas"
- },
  "{n} matches of {total}": {
   "one": "{n} resultado de {total}",
   "many": "{n} resultados de {total}",

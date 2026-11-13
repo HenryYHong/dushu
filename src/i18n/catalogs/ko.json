@@ -54,9 +54,6 @@
  "Added {n} corrections.": {
   "other": "수정 {n}개를 추가했어요."
  },
- "Added {n} words, updated {updated}": {
-  "other": "단어 {n}개 추가, {updated}개 업데이트"
- },
  "Added “{first}” and “{second}” from your Mac.": "Mac에서 “{first}”, “{second}” 책을 추가했어요.",
  "Added “{title}” from your Mac.": "Mac에서 “{title}” 책을 추가했어요.",
  "Added “{title}” from your account.": "계정에서 “{title}” 책을 추가했어요.",
@@ -118,7 +115,6 @@
  "Back to words": "단어로 돌아가기",
  "Backup": "백업",
  "Backup saved to your downloads.": "백업을 다운로드 폴더에 저장했어요.",
- "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": "백업을 저장했어요: 저장한 단어, 아는 단어, 찾아본 단어, 책갈피, 진행 상황, 복습 기록.",
  "Best: {n} days": {
   "other": "최고 기록: {n}일"
  },
@@ -868,7 +864,6 @@
  "Rename": "이름 바꾸기",
  "Rename book": "책 이름 바꾸기",
  "Replay": "다시 재생",
- "Restore": "복원",
  "Resume": "계속",
  "Resume audio": "오디오 계속",
  "Resume reading": "읽어 주기 계속",
@@ -1628,8 +1623,6 @@
  "{link} has thousands of Italian books in the public domain.": "{link}에는 퍼블릭 도메인 이탈리아어 책이 수천 권 있어요.",
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link}에는 고전부터 루쉰까지 퍼블릭 도메인 책이 수천 권 있어요. 책을 열고 下载(다운로드)를 탭하면 EPUB을 받을 수 있어요.",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link}에는 퍼블릭 도메인 텍스트가 수천 개 있고, 상당수가 EPUB이에요.",
- "{list}.": "{list}.",
- "{list}. Settings restored.": "{list}. 설정도 복원했어요.",
  "{min} min": "{min}분",
  "{min} min a day": "하루 {min}분",
  "{m} min today. Goal of {goal} min reached.": "오늘 {m}분. 목표 {goal}분을 달성했어요.",
@@ -1642,9 +1635,6 @@
  },
  "{n} bookmarks": {
   "other": "책갈피 {n}개"
- },
- "{n} bookmarks added": {
-  "other": "책갈피 {n}개 추가"
  },
  "{n} books": {
   "other": "{n}권"
@@ -1694,13 +1684,7 @@
  "{n} known words": {
   "other": "아는 단어 {n}개"
  },
- "{n} known words added": {
-  "other": "아는 단어 {n}개 추가"
- },
  "{n} left": "{n}개 남음",
- "{n} looked-up words added": {
-  "other": "찾아본 단어 {n}개 추가"
- },
  "{n} matches of {total}": {
   "other": "{total}개 중 {n}개 일치"
  },

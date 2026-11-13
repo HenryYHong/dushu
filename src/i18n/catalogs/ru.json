@@ -69,12 +69,6 @@
   "many": "Добавлено {n} исправлений.",
   "other": "Добавлено {n} исправления."
  },
- "Added {n} words, updated {updated}": {
-  "one": "Добавлено {n} слово, обновлено {updated}",
-  "few": "Добавлено {n} слова, обновлено {updated}",
-  "many": "Добавлено {n} слов, обновлено {updated}",
-  "other": "Добавлено {n} слова, обновлено {updated}"
- },
  "Added “{first}” and “{second}” from your Mac.": "С вашего Mac добавлены «{first}» и «{second}».",
  "Added “{title}” from your Mac.": "С вашего Mac добавлена книга «{title}».",
  "Added “{title}” from your account.": "Из аккаунта добавлена книга «{title}».",
@@ -142,7 +136,6 @@
  "Back to words": "Назад к словам",
  "Backup": "Резервная копия",
  "Backup saved to your downloads.": "Резервная копия сохранена в загрузки.",
- "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": "Резервная копия сохранена: сохранённые слова, знакомые слова, просмотренные слова, закладки, прогресс и история повторений.",
  "Best: {n} days": {
   "one": "Рекорд: {n} день",
   "few": "Рекорд: {n} дня",
@@ -928,7 +921,6 @@
  "Rename": "Переименовать",
  "Rename book": "Переименовать книгу",
  "Replay": "Ещё раз",
- "Restore": "Восстановить",
  "Resume": "Продолжить",
  "Resume audio": "Продолжить аудио",
  "Resume reading": "Продолжить чтение",
@@ -1757,8 +1749,6 @@
  "{link} has thousands of Italian books in the public domain.": "{link} — тысячи итальянских книг из общественного достояния.",
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link} — тысячи книг из общественного достояния, от классики до Лу Синя. Откройте книгу и нажмите 下载 (Скачать), чтобы получить EPUB.",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link} — тысячи текстов из общественного достояния, многие в EPUB.",
- "{list}.": "{list}.",
- "{list}. Settings restored.": "{list}. Настройки восстановлены.",
  "{min} min": "{min} мин",
  "{min} min a day": "{min} мин в день",
  "{m} min today. Goal of {goal} min reached.": "Сегодня {m} мин. Цель в {goal} мин выполнена.",
@@ -1780,12 +1770,6 @@
   "few": "{n} закладки",
   "many": "{n} закладок",
   "other": "{n} закладки"
- },
- "{n} bookmarks added": {
-  "one": "{n} закладка добавлена",
-  "few": "{n} закладки добавлены",
-  "many": "{n} закладок добавлено",
-  "other": "{n} закладки добавлены"
  },
  "{n} books": {
   "one": "{n} книга",
@@ -1883,19 +1867,7 @@
   "many": "{n} знакомых слов",
   "other": "{n} знакомых слова"
  },
- "{n} known words added": {
-  "one": "{n} знакомое слово добавлено",
-  "few": "{n} знакомых слова добавлено",
-  "many": "{n} знакомых слов добавлено",
-  "other": "{n} знакомых слова добавлено"
- },
  "{n} left": "Осталось {n}",
- "{n} looked-up words added": {
-  "one": "{n} просмотренное слово добавлено",
-  "few": "{n} просмотренных слова добавлено",
-  "many": "{n} просмотренных слов добавлено",
-  "other": "{n} просмотренных слова добавлено"
- },
  "{n} matches of {total}": {
   "one": "{n} совпадение из {total}",
   "few": "{n} совпадения из {total}",

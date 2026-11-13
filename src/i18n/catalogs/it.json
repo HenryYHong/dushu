@@ -64,11 +64,6 @@
   "many": "Aggiunte {n} correzioni.",
   "other": "Aggiunte {n} correzioni."
  },
- "Added {n} words, updated {updated}": {
-  "one": "Aggiunta {n} parola, aggiornate: {updated}",
-  "many": "Aggiunte {n} parole, aggiornate: {updated}",
-  "other": "Aggiunte {n} parole, aggiornate: {updated}"
- },
  "Added “{first}” and “{second}” from your Mac.": "Aggiunti “{first}” e “{second}” dal tuo Mac.",
  "Added “{title}” from your Mac.": "Aggiunto “{title}” dal tuo Mac.",
  "Added “{title}” from your account.": "Aggiunto “{title}” dal tuo account.",
@@ -134,7 +129,6 @@
  "Back to words": "Torna alle parole",
  "Backup": "Backup",
  "Backup saved to your downloads.": "Backup salvato nei download.",
- "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": "Backup salvato: parole salvate, parole note, parole cercate, segnalibri, progressi e cronologia dei ripassi.",
  "Best: {n} days": {
   "one": "Record: {n} giorno",
   "many": "Record: {n} giorni",
@@ -907,7 +901,6 @@
  "Rename": "Rinomina",
  "Rename book": "Rinomina libro",
  "Replay": "Ripeti",
- "Restore": "Ripristina",
  "Resume": "Riprendi",
  "Resume audio": "Riprendi l'audio",
  "Resume reading": "Riprendi la lettura",
@@ -1713,8 +1706,6 @@
  "{link} has thousands of Italian books in the public domain.": "{link} ha migliaia di libri italiani di pubblico dominio.",
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link} ha migliaia di libri di pubblico dominio, dai classici a Lu Xun. Apri un libro e tocca 下载 (Scarica) per avere un EPUB.",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link} ha migliaia di testi di pubblico dominio, molti in EPUB.",
- "{list}.": "{list}.",
- "{list}. Settings restored.": "{list}. Impostazioni ripristinate.",
  "{min} min": "{min} min",
  "{min} min a day": "{min} min al giorno",
  "{m} min today. Goal of {goal} min reached.": "{m} min oggi. Obiettivo di {goal} min raggiunto.",
@@ -1733,11 +1724,6 @@
   "one": "{n} segnalibro",
   "many": "{n} segnalibri",
   "other": "{n} segnalibri"
- },
- "{n} bookmarks added": {
-  "one": "{n} segnalibro aggiunto",
-  "many": "{n} segnalibri aggiunti",
-  "other": "{n} segnalibri aggiunti"
  },
  "{n} books": {
   "one": "{n} libro",
@@ -1819,17 +1805,7 @@
   "many": "{n} parole note",
   "other": "{n} parole note"
  },
- "{n} known words added": {
-  "one": "{n} parola nota aggiunta",
-  "many": "{n} parole note aggiunte",
-  "other": "{n} parole note aggiunte"
- },
  "{n} left": "Ancora {n}",
- "{n} looked-up words added": {
-  "one": "{n} parola cercata aggiunta",
-  "many": "{n} parole cercate aggiunte",
-  "other": "{n} parole cercate aggiunte"
- },
  "{n} matches of {total}": {
   "one": "{n} risultato su {total}",
   "many": "{n} risultati su {total}",

@@ -15,7 +15,6 @@ import { createLookupsView } from './lookups';
 import { redraw } from './motion';
 import { applyPatch, focusedRow, planPatch, refocus } from './patch';
 import { reviewParts } from '../review/learning';
-import { backupFileName } from '../settings/data';
 import { num, tt, ttm, ttn, uiLocale } from '../../i18n';
 
 /** Pengu arriving with a little pop as it is shown. */
@@ -53,8 +52,6 @@ function download(name: string, text: string, type: string): void {
 }
 
 const fmtDate = (ms: number) => new Date(ms).toLocaleDateString(uiLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
-/** Clauses said one after another: "Added 3 words, updated 1, 2 bookmarks added". */
-const clauses = (list: string[]) => list.reduce((a, b) => tt('{a}, {b}', { a, b }));
 
 /** Everything a row shows of a saved word but its due chip, in one string: a word whose row would look different is drawn again. */
 const rowShows = (it: VocabItem) => JSON.stringify([it.simp, it.trad, it.pinyin, it.gloss, it.context?.sentence, it.context?.bookTitle, it.addedAt]);
@@ -103,17 +100,16 @@ export const mount: MountFn = (root, _params, ctx) => {
     renderList();
   } }, (Object.keys(SORT_LABELS) as SortKey[]).map((k) => h('option', { value: k, selected: k === sort }, tt(SORT_LABELS[k]))));
   const exportBtn = (label: string, onclick: () => void) => h('button.btn.btn-sm', { type: 'button', onclick }, icon('download'), label);
-  const fileInput = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: () => void importFile() });
-  const toolbar = h('div.voc-toolbar', null,
-    h('div.voc-search', null, icon('search'), search),
-    sortSel,
-  );
+  // Only the word lists for other apps. A whole backup (and restoring one) is Settings › Data's, the same file.
   const tools = h('div.voc-tools', null,
     exportBtn('Anki', () => exportAs('anki')),
     exportBtn('CSV', () => exportAs('csv')),
-    exportBtn(tt('Backup'), () => void exportBackup()),
-    h('button.btn.btn-sm', { type: 'button', onclick: () => fileInput.click() }, icon('upload'), tt('Restore')),
-    fileInput,
+  );
+  // One row: search, sort and the two exports (on a phone, the search on a line of its own above the rest).
+  const toolbar = h('div.voc-toolbar', null,
+    h('div.voc-search', null, icon('search'), search),
+    sortSel,
+    tools,
   );
 
   const list = h('div.voc-list', { role: 'list' });
@@ -269,36 +265,6 @@ export const mount: MountFn = (root, _params, ctx) => {
       : ttn(rows.length, 'Exported {n} word.', 'Exported {n} words.'));
   }
 
-  async function exportBackup(): Promise<void> {
-    try {
-      // The same name as Settings > Data gives the same backup.
-      download(backupFileName(), await store.exportBackup(), 'application/json');
-      ctx.toast(tt('Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.'), { ms: 5000 });
-    } catch (e) {
-      ctx.toast(e instanceof Error ? e.message : tt('Could not create the backup.'));
-    }
-  }
-
-  async function importFile(): Promise<void> {
-    const file = fileInput.files?.[0];
-    fileInput.value = '';
-    if (!file) return;
-    try {
-      const json = await file.text();
-      const r = await store.importBackup(json);
-      let restored = false;
-      if (r.settings && Object.keys(r.settings).length) { ctx.settings.set(r.settings); restored = true; }
-      const bits = [ttn(r.vocab.added, 'Added {n} word, updated {updated}', 'Added {n} words, updated {updated}', { updated: r.vocab.updated })];
-      if (r.known.added) bits.push(ttn(r.known.added, '{n} known word added', '{n} known words added'));
-      if (r.bookmarks.added) bits.push(ttn(r.bookmarks.added, '{n} bookmark added', '{n} bookmarks added'));
-      if (r.lookups.added) bits.push(ttn(r.lookups.added, '{n} looked-up word added', '{n} looked-up words added'));
-      const list = clauses(bits);
-      ctx.toast(restored ? tt('{list}. Settings restored.', { list }) : tt('{list}.', { list }), { ms: 6000 });
-    } catch (e) {
-      ctx.toast(e instanceof Error ? e.message : tt('That file is not a LinguPengu backup.'), { ms: 6000 });
-    }
-  }
-
   // ------------------------------------------------------ known panel ---
   const knownCount = h('span.voc-known-count');
   /**
@@ -450,7 +416,7 @@ export const mount: MountFn = (root, _params, ctx) => {
   const tabSaved = tabBtn('saved', tt('Saved'));
   const tabLookups = tabBtn('lookups', tt('Looked up'));
   const tabs = h('div.rd-seg.voc-tabs', { role: 'group', 'aria-label': tt('Words to show') }, tabSaved, tabLookups);
-  const savedPane = h('div.voc-saved', null, knownPanel, h('div.voc-bar', null, toolbar, tools), count, list);
+  const savedPane = h('div.voc-saved', null, knownPanel, h('div.voc-bar', null, toolbar), count, list);
   function setTab(t: Tab, remember = false): void {
     tab = t;
     tabSaved.setAttribute('aria-pressed', String(t === 'saved'));

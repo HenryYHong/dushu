@@ -481,12 +481,6 @@
    "src/ui/reader/bookFixes.ts"
   ]
  },
- "Added {n} words, updated {updated}": {
-  "one": "Added {n} word, updated {updated}",
-  "where": [
-   "src/ui/vocab/vocab.ts"
-  ]
- },
  "Added “{first}” and “{second}” from your Mac.": {
   "where": [
    "src/ui/library/macBooks.ts"
@@ -809,18 +803,12 @@
  },
  "Backup": {
   "where": [
-   "src/ui/settings/data.ts",
-   "src/ui/vocab/vocab.ts"
+   "src/ui/settings/data.ts"
   ]
  },
  "Backup saved to your downloads.": {
   "where": [
    "src/ui/settings/data.ts"
-  ]
- },
- "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": {
-  "where": [
-   "src/ui/vocab/vocab.ts"
   ]
  },
  "Best: {n} days": {
@@ -1491,8 +1479,7 @@
  },
  "Could not create the backup.": {
   "where": [
-   "src/ui/settings/data.ts",
-   "src/ui/vocab/vocab.ts"
+   "src/ui/settings/data.ts"
   ]
  },
  "Could not delete that.": {
@@ -4952,11 +4939,6 @@
    "src/ui/popup/writer.ts"
   ]
  },
- "Restore": {
-  "where": [
-   "src/ui/vocab/vocab.ts"
-  ]
- },
  "Resume": {
   "where": [
    "src/ui/reader/reader.ts"
@@ -6035,8 +6017,7 @@
  "That file is not a LinguPengu backup.": {
   "where": [
    "src/store/index.ts",
-   "src/ui/settings/data.ts",
-   "src/ui/vocab/vocab.ts"
+   "src/ui/settings/data.ts"
   ]
  },
  "That file is not a LinguPengu corrections file.": {
@@ -8833,8 +8814,7 @@
  },
  "{a}, {b}": {
   "where": [
-   "src/ui/review/review.ts",
-   "src/ui/vocab/vocab.ts"
+   "src/ui/review/review.ts"
   ]
  },
  "{chapter} did not draw. Your place in the book is kept. You can read another chapter now.": {
@@ -9013,16 +8993,6 @@
    "src/ui/about/about.ts"
   ]
  },
- "{list}.": {
-  "where": [
-   "src/ui/vocab/vocab.ts"
-  ]
- },
- "{list}. Settings restored.": {
-  "where": [
-   "src/ui/vocab/vocab.ts"
-  ]
- },
  "{min} min": {
   "where": [
    "src/ui/welcome.ts"
@@ -9059,12 +9029,6 @@
   "one": "{n} bookmark",
   "where": [
    "src/ui/settings/sync.ts"
-  ]
- },
- "{n} bookmarks added": {
-  "one": "{n} bookmark added",
-  "where": [
-   "src/ui/vocab/vocab.ts"
   ]
  },
  "{n} books": {
@@ -9165,21 +9129,9 @@
    "src/ui/settings/sync.ts"
   ]
  },
- "{n} known words added": {
-  "one": "{n} known word added",
-  "where": [
-   "src/ui/vocab/vocab.ts"
-  ]
- },
  "{n} left": {
   "where": [
    "src/ui/review/review.ts"
-  ]
- },
- "{n} looked-up words added": {
-  "one": "{n} looked-up word added",
-  "where": [
-   "src/ui/vocab/vocab.ts"
   ]
  },
  "{n} matches of {total}": {

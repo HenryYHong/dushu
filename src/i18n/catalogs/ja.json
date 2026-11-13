@@ -54,9 +54,6 @@
  "Added {n} corrections.": {
   "other": "{n}件の修正を追加しました。"
  },
- "Added {n} words, updated {updated}": {
-  "other": "{n}語を追加、{updated}語を更新"
- },
  "Added “{first}” and “{second}” from your Mac.": "Macから「{first}」と「{second}」を追加しました。",
  "Added “{title}” from your Mac.": "Macから「{title}」を追加しました。",
  "Added “{title}” from your account.": "アカウントから「{title}」を追加しました。",
@@ -118,7 +115,6 @@
  "Back to words": "単語帳に戻る",
  "Backup": "バックアップ",
  "Backup saved to your downloads.": "バックアップをダウンロードフォルダに保存しました。",
- "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": "バックアップを保存しました：保存した単語、既知の単語、調べた単語、ブックマーク、進捗、復習履歴。",
  "Best: {n} days": {
   "other": "最高記録：{n}日"
  },
@@ -865,7 +861,6 @@
  "Rename": "名前を変更",
  "Rename book": "本の名前を変更",
  "Replay": "もう一度再生",
- "Restore": "復元",
  "Resume": "再開",
  "Resume audio": "音声を再開",
  "Resume reading": "読み上げを再開",
@@ -1622,8 +1617,6 @@
  "{link} has thousands of Italian books in the public domain.": "{link}には、数千冊のパブリックドメインのイタリア語の本があります。",
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link}には、名作から魯迅まで、数千冊のパブリックドメインの本があります。本を開いて「下载」（ダウンロード）をタップすると、EPUBを入手できます。",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link}には、数千点のパブリックドメインのテキストがあり、多くはEPUBです。",
- "{list}.": "{list}。",
- "{list}. Settings restored.": "{list}。設定を復元しました。",
  "{min} min": "{min}分",
  "{min} min a day": "1日{min}分",
  "{m} min today. Goal of {goal} min reached.": "今日は{m}分。目標の{goal}分を達成しました。",
@@ -1636,9 +1629,6 @@
  },
  "{n} bookmarks": {
   "other": "ブックマーク{n}件"
- },
- "{n} bookmarks added": {
-  "other": "ブックマーク{n}件を追加"
  },
  "{n} books": {
   "other": "{n}冊"
@@ -1688,13 +1678,7 @@
  "{n} known words": {
   "other": "既知の単語{n}語"
  },
- "{n} known words added": {
-  "other": "既知の単語{n}語を追加"
- },
  "{n} left": "残り{n}",
- "{n} looked-up words added": {
-  "other": "調べた単語{n}語を追加"
- },
  "{n} matches of {total}": {
   "other": "{total}件中{n}件が一致"
  },

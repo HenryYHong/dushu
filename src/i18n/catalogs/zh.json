@@ -54,9 +54,6 @@
  "Added {n} corrections.": {
   "other": "已添加 {n} 条修正。"
  },
- "Added {n} words, updated {updated}": {
-  "other": "已添加 {n} 个词，更新 {updated} 个"
- },
  "Added “{first}” and “{second}” from your Mac.": "已从你的 Mac 添加“{first}”和“{second}”。",
  "Added “{title}” from your Mac.": "已从你的 Mac 添加“{title}”。",
  "Added “{title}” from your account.": "已从你的账号添加“{title}”。",
@@ -118,7 +115,6 @@
  "Back to words": "返回词汇",
  "Backup": "备份",
  "Backup saved to your downloads.": "已将备份保存到你的下载文件夹。",
- "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": "备份已保存：你收藏的词、熟词、查过的词、书签、进度和复习记录。",
  "Best: {n} days": {
   "other": "最长：{n} 天"
  },
@@ -864,7 +860,6 @@
  "Rename": "重命名",
  "Rename book": "重命名书籍",
  "Replay": "重播",
- "Restore": "恢复",
  "Resume": "继续",
  "Resume audio": "继续播放",
  "Resume reading": "继续朗读",
@@ -1621,8 +1616,6 @@
  "{link} has thousands of Italian books in the public domain.": "{link} 有数千本公有领域的意大利语书。",
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link}有数千本公有领域的书，从古典名著到鲁迅。打开一本书，点“下载”即可获取 EPUB。",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link}有数千篇公有领域的文本，很多提供 EPUB。",
- "{list}.": "{list}。",
- "{list}. Settings restored.": "{list}。设置已恢复。",
  "{min} min": "{min} 分钟",
  "{min} min a day": "每天 {min} 分钟",
  "{m} min today. Goal of {goal} min reached.": "今天已读 {m} 分钟，达成 {goal} 分钟的目标。",
@@ -1635,9 +1628,6 @@
  },
  "{n} bookmarks": {
   "other": "{n} 个书签"
- },
- "{n} bookmarks added": {
-  "other": "添加了 {n} 个书签"
  },
  "{n} books": {
   "other": "{n} 本书"
@@ -1687,13 +1677,7 @@
  "{n} known words": {
   "other": "{n} 个熟词"
  },
- "{n} known words added": {
-  "other": "添加了 {n} 个熟词"
- },
  "{n} left": "还剩 {n} 张",
- "{n} looked-up words added": {
-  "other": "添加了 {n} 个查过的词"
- },
  "{n} matches of {total}": {
   "other": "匹配 {n} 个，共 {total} 个"
  },

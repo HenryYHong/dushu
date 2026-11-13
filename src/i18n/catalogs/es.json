@@ -413,17 +413,11 @@
  "A word read more than one way counts at its easiest reading, and is known in all of them (行 xíng is HSK 1, so 行 háng goes too).": "Una palabra con varias lecturas cuenta en su lectura más fácil y se marca como conocida en todas (行 xíng es HSK 1, así que 行 háng también).",
  "Add {n}": "Añadir {n}",
  "Added {date}": "Añadida el {date}",
- "Added {n} words, updated {updated}": {
-  "one": "{n} palabra añadida; actualizadas: {updated}",
-  "many": "{n} palabras añadidas; actualizadas: {updated}",
-  "other": "{n} palabras añadidas; actualizadas: {updated}"
- },
  "All {n} words from {level} are already marked as known.": {
   "one": "La palabra de {level} ({n}) ya está marcada como conocida.",
   "many": "Las {n} palabras de {level} ya están marcadas como conocidas.",
   "other": "Las {n} palabras de {level} ya están marcadas como conocidas."
  },
- "Backup saved: your saved words, known words, looked-up words, bookmarks, progress and review history.": "Copia de seguridad guardada: tus palabras guardadas, palabras conocidas, palabras consultadas, marcadores, progreso e historial de repaso.",
  "Clear all known words?": "¿Borrar todas las palabras conocidas?",
  "Clear known words": "Borrar palabras conocidas",
  "Clear learned words": "Borrar palabras aprendidas",
@@ -467,7 +461,6 @@
  "Pinyin A to Z": "Pinyin A-Z",
  "Remove {word}": "Quitar {word}",
  "Removed {word}": "Se quitó {word}",
- "Restore": "Restaurar",
  "Review {n}": "Repasar {n}",
  "Saved": "Guardadas",
  "Search vocabulary": "Buscar en el vocabulario",
@@ -495,22 +488,6 @@
   "one": "y {n} más",
   "many": "y {n} más",
   "other": "y {n} más"
- },
- "{list}. Settings restored.": "{list}. Ajustes restaurados.",
- "{n} bookmarks added": {
-  "one": "{n} marcador añadido",
-  "many": "{n} marcadores añadidos",
-  "other": "{n} marcadores añadidos"
- },
- "{n} known words added": {
-  "one": "{n} palabra conocida añadida",
-  "many": "{n} palabras conocidas añadidas",
-  "other": "{n} palabras conocidas añadidas"
- },
- "{n} looked-up words added": {
-  "one": "{n} palabra consultada añadida",
-  "many": "{n} palabras consultadas añadidas",
-  "other": "{n} palabras consultadas añadidas"
  },
  "{n} matches of {total}": {
   "one": "{n} coincidencia de {total}",
