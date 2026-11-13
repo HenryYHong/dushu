@@ -465,7 +465,6 @@
  "Glyphs for rare characters, so nothing shows as an empty box.": "Глифы для редких иероглифов, чтобы ничего не показывалось пустым квадратиком.",
  "Go there": "Перейти",
  "Go to my library": "Перейти в библиотеку",
- "Goal": "Цель",
  "Goal met today": "Цель на сегодня выполнена",
  "Good": "Хорошо",
  "Got it": "Понятно",
@@ -513,7 +512,6 @@
  "In this sentence": "В этом предложении",
  "In use. Turn off to read the page without it.": "Используется. Выключите, чтобы читать страницу без него.",
  "In your flashcards": "В ваших карточках",
- "In your library": "В вашей библиотеке",
  "Install": "Установить",
  "Intense": "Интенсивно",
  "Intermediate": "Средне",
@@ -789,7 +787,6 @@
  "Open the names and terms of this book": "Открыть имена и термины этой книги",
  "Open the words of this chapter": "Открыть слова этой главы",
  "Open this link once on a device that uses the public LinguPengu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": "Откройте эту ссылку один раз на устройстве, где вы пользуетесь публичным сайтом LinguPengu. Она подключит это устройство к вашему Mac. Ссылка — не пароль: Mac всё равно принимает только ваш аккаунт Tailscale.",
- "Open “{title}”": "Открыть «{title}»",
  "Opened from the Home Screen, LinguPengu already reads without the browser bars.": "При запуске с экрана «Домой» LinguPengu и так работает без панелей браузера.",
  "Opened from the Home Screen: no browser bars": "Запуск с экрана «Домой»: без панелей браузера",
  "Opened from your Home Screen, LinguPengu already reads without the browser bars.": "При запуске с экрана «Домой» LinguPengu и так работает без панелей браузера.",
@@ -1745,7 +1742,6 @@
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link} — тысячи книг из общественного достояния, от классики до Лу Синя. Откройте книгу и нажмите 下载 (Скачать), чтобы получить EPUB.",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link} — тысячи текстов из общественного достояния, многие в EPUB.",
  "{min} min": "{min} мин",
- "{min} min a day": "{min} мин в день",
  "{m} min today. Goal of {goal} min reached.": "Сегодня {m} мин. Цель в {goal} мин выполнена.",
  "{m} of {goal} min today": "Сегодня {m} из {goal} мин",
  "{m} of {n} minutes today": {
@@ -2346,7 +2342,6 @@
  "Looking it up…": "Ищем…",
  "A rare word, from the full ECDICT dictionary.": "Редкое слово из полного словаря ECDICT.",
  "Custom": "Свой",
- "Custom…": "Свой…",
  "Detailed": "Подробно",
  "Flashcard buttons": "Кнопки карточек",
  "Forgot": "Забыл",
@@ -2419,5 +2414,6 @@
  "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.": "Из этого браузера будут удалены все книги, слова, история повторений, места чтения и настройки библиотеки этого языка ({language}). Отменить это нельзя. Другие языки останутся как есть. Синхронизация этого языка здесь будет выключена, поэтому то, что хранится в вашем аккаунте, останется там, пока вы снова её не включите.",
  "Sign in above, and your words, reading places and bookmarks sync.": "Войдите выше — и слова, места чтения и закладки будут синхронизироваться.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "Включён режим «Только локально», поэтому предложение остаётся на этом устройстве. Выключите его в настройках, чтобы пользоваться Claude.",
- "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "Включён режим «Только локально», поэтому предложение остаётся на этом устройстве. Выключите его в настройках, чтобы пользоваться этим сервисом."
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "Включён режим «Только локально», поэтому предложение остаётся на этом устройстве. Выключите его в настройках, чтобы пользоваться этим сервисом.",
+ "More classics": "Ещё классика"
 }

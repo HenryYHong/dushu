@@ -420,7 +420,6 @@
  "Glyphs for rare characters, so nothing shows as an empty box.": "珍しい漢字のグリフ。空白の四角形になりません。",
  "Go there": "移動",
  "Go to my library": "ライブラリへ",
- "Goal": "目標",
  "Goal met today": "今日の目標を達成",
  "Good": "正解",
  "Got it": "わかった",
@@ -468,7 +467,6 @@
  "In this sentence": "この文での意味",
  "In use. Turn off to read the page without it.": "使用中。オフにすると、これなしでページを読めます。",
  "In your flashcards": "フラッシュカードに保存済み",
- "In your library": "ライブラリにあり",
  "Install": "インストール",
  "Intense": "がっつり",
  "Intermediate": "中級",
@@ -729,7 +727,6 @@
  "Open the names and terms of this book": "この本の固有名詞と用語を開く",
  "Open the words of this chapter": "この章の単語を開く",
  "Open this link once on a device that uses the public LinguPengu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": "公開版のLinguPenguサイトを使うデバイスで、このリンクを一度開いてください。そのデバイスがMacに接続されます。リンクはパスワードではありません。Macが受け入れるのは、あなたのTailscaleアカウントだけです。",
- "Open “{title}”": "「{title}」を開く",
  "Opened from the Home Screen, LinguPengu already reads without the browser bars.": "ホーム画面から開いているので、LinguPenguはすでにブラウザのバーなしで表示されています。",
  "Opened from the Home Screen: no browser bars": "ホーム画面から起動：ブラウザのバーなし",
  "Opened from your Home Screen, LinguPengu already reads without the browser bars.": "ホーム画面から開いているので、LinguPenguはすでにブラウザのバーなしで表示されています。",
@@ -1613,7 +1610,6 @@
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link}には、名作から魯迅まで、数千冊のパブリックドメインの本があります。本を開いて「下载」（ダウンロード）をタップすると、EPUBを入手できます。",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link}には、数千点のパブリックドメインのテキストがあり、多くはEPUBです。",
  "{min} min": "{min}分",
- "{min} min a day": "1日{min}分",
  "{m} min today. Goal of {goal} min reached.": "今日は{m}分。目標の{goal}分を達成しました。",
  "{m} of {goal} min today": "今日 {m}/{goal}分",
  "{m} of {n} minutes today": {
@@ -2019,7 +2015,6 @@
  "Looking it up…": "調べています…",
  "A rare word, from the full ECDICT dictionary.": "まれな単語です。完全版の ECDICT 辞書から。",
  "Custom": "カスタム",
- "Custom…": "カスタム…",
  "Detailed": "詳細",
  "Flashcard buttons": "フラッシュカードのボタン",
  "Forgot": "忘れた",
@@ -2083,5 +2078,6 @@
  "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.": "このブラウザから、{language}ライブラリの本、単語、復習記録、読書位置、設定をすべて削除します。元に戻すことはできません。ほかの言語はそのまま残ります。ここでは{language}の同期がオフになるため、アカウントに保存されているこの言語のデータは、同期をオンに戻すまでそのまま残ります。",
  "Sign in above, and your words, reading places and bookmarks sync.": "上でサインインすると、単語、読書位置、ブックマークが同期されます。",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "「ローカルのみ」がオンのため、この文はこのデバイスの外に送信されません。Claudeを使うには、設定でオフにしてください。",
- "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "「ローカルのみ」がオンのため、この文はこのデバイスの外に送信されません。このサービスを使うには、設定でオフにしてください。"
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "「ローカルのみ」がオンのため、この文はこのデバイスの外に送信されません。このサービスを使うには、設定でオフにしてください。",
+ "More classics": "ほかの名作"
 }

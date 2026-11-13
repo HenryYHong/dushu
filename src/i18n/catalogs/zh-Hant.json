@@ -420,7 +420,6 @@
  "Glyphs for rare characters, so nothing shows as an empty box.": "罕見字的字形，讓所有字都不會顯示成空白方框。",
  "Go there": "前往",
  "Go to my library": "前往我的書庫",
- "Goal": "目標",
  "Goal met today": "今天已達標",
  "Good": "良好",
  "Got it": "知道了",
@@ -467,7 +466,6 @@
  "In this sentence": "在這句中",
  "In use. Turn off to read the page without it.": "使用中。關閉後，這一頁會不套用它來顯示。",
  "In your flashcards": "已在複習卡中",
- "In your library": "已在書庫中",
  "Install": "安裝",
  "Intense": "密集",
  "Intermediate": "中等",
@@ -728,7 +726,6 @@
  "Open the names and terms of this book": "開啟這本書的專名與術語",
  "Open the words of this chapter": "開啟本章的詞語",
  "Open this link once on a device that uses the public LinguPengu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": "在使用公開 LinguPengu 網站的裝置上開啟這個連結一次，就能將該裝置連接到你的 Mac。這個連結不是密碼：Mac 仍只接受你的 Tailscale 帳號。",
- "Open “{title}”": "開啟《{title}》",
  "Opened from the Home Screen, LinguPengu already reads without the browser bars.": "從主畫面開啟時，LinguPengu 本來就不會顯示瀏覽器列。",
  "Opened from the Home Screen: no browser bars": "從主畫面開啟：沒有瀏覽器列",
  "Opened from your Home Screen, LinguPengu already reads without the browser bars.": "從主畫面開啟時，LinguPengu 本來就不會顯示瀏覽器列。",
@@ -1612,7 +1609,6 @@
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link} 收錄數千本公有領域書籍，從古典名著到魯迅都有。打開一本書，點「下载」（下載）即可取得 EPUB。",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link} 收錄數千篇公有領域文本，很多有 EPUB 版。",
  "{min} min": "{min} 分鐘",
- "{min} min a day": "每天 {min} 分鐘",
  "{m} min today. Goal of {goal} min reached.": "今天 {m} 分鐘。已達成 {goal} 分鐘的目標。",
  "{m} of {goal} min today": "今天 {m}/{goal} 分鐘",
  "{m} of {n} minutes today": {
@@ -2015,7 +2011,6 @@
  "Looking it up…": "正在查詢…",
  "A rare word, from the full ECDICT dictionary.": "罕見詞，出自完整版 ECDICT 詞典。",
  "Custom": "自訂",
- "Custom…": "自訂…",
  "Detailed": "詳細",
  "Flashcard buttons": "複習卡按鈕",
  "Forgot": "忘了",
@@ -2079,5 +2074,6 @@
  "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.": "這會從這個瀏覽器移除你{language}書庫中的所有書籍、詞彙、複習紀錄、閱讀位置和設定，而且無法復原。你的其他語言不受影響。這裡的{language}同步會關閉，所以你的帳號保存的相關資料會留在那裡，直到你重新開啟同步。",
  "Sign in above, and your words, reading places and bookmarks sync.": "在上方登入，你的詞彙、閱讀位置和書籤就會同步。",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "已開啟「僅限本機」，這個句子不會離開這台裝置。若要使用 Claude，請到「設定」關閉。",
- "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "已開啟「僅限本機」，這個句子不會離開這台裝置。若要使用這項服務，請到「設定」關閉。"
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "已開啟「僅限本機」，這個句子不會離開這台裝置。若要使用這項服務，請到「設定」關閉。",
+ "More classics": "更多經典"
 }

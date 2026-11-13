@@ -421,7 +421,6 @@
  "Glyphs for rare characters, so nothing shows as an empty box.": "희귀 한자용 글리프. 빈 상자로 보이는 글자가 없게 해 줘요.",
  "Go there": "이동",
  "Go to my library": "내 서재로 가기",
- "Goal": "목표",
  "Goal met today": "오늘 목표 달성",
  "Good": "알맞음",
  "Got it": "알겠어요",
@@ -469,7 +468,6 @@
  "In this sentence": "이 문장에서",
  "In use. Turn off to read the page without it.": "사용 중이에요. 끄면 이 수정 없이 페이지를 읽어요.",
  "In your flashcards": "플래시카드에 있음",
- "In your library": "서재에 있음",
  "Install": "설치",
  "Intense": "열심히",
  "Intermediate": "중급",
@@ -730,7 +728,6 @@
  "Open the names and terms of this book": "이 책의 이름과 용어 열기",
  "Open the words of this chapter": "이 장의 단어 열기",
  "Open this link once on a device that uses the public LinguPengu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": "공개 LinguPengu 사이트를 쓰는 기기에서 이 링크를 한 번 여세요. 그 기기가 Mac에 연결돼요. 링크는 비밀번호가 아니에요. Mac은 여전히 내 Tailscale 계정만 허용해요.",
- "Open “{title}”": "“{title}” 열기",
  "Opened from the Home Screen, LinguPengu already reads without the browser bars.": "홈 화면에서 열어서 LinguPengu가 이미 브라우저 막대 없이 보이고 있어요.",
  "Opened from the Home Screen: no browser bars": "홈 화면에서 열림: 브라우저 막대 없음",
  "Opened from your Home Screen, LinguPengu already reads without the browser bars.": "홈 화면에서 열어서 LinguPengu가 이미 브라우저 막대 없이 보이고 있어요.",
@@ -1619,7 +1616,6 @@
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link}에는 고전부터 루쉰까지 퍼블릭 도메인 책이 수천 권 있어요. 책을 열고 下载(다운로드)를 탭하면 EPUB을 받을 수 있어요.",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link}에는 퍼블릭 도메인 텍스트가 수천 개 있고, 상당수가 EPUB이에요.",
  "{min} min": "{min}분",
- "{min} min a day": "하루 {min}분",
  "{m} min today. Goal of {goal} min reached.": "오늘 {m}분. 목표 {goal}분을 달성했어요.",
  "{m} of {goal} min today": "오늘 {goal}분 중 {m}분",
  "{m} of {n} minutes today": {
@@ -2025,7 +2021,6 @@
  "Looking it up…": "찾는 중…",
  "A rare word, from the full ECDICT dictionary.": "드문 단어예요. 전체 ECDICT 사전에서 가져왔어요.",
  "Custom": "직접 설정",
- "Custom…": "직접 설정…",
  "Detailed": "자세히",
  "Flashcard buttons": "플래시카드 버튼",
  "Forgot": "잊었어요",
@@ -2089,5 +2084,6 @@
  "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.": "이 브라우저에서 {language} 서재의 모든 책, 단어, 복습 기록, 읽던 위치, 설정을 삭제하며, 되돌릴 수 없어요. 다른 언어는 그대로예요. 여기서는 {language} 동기화가 꺼지므로, 계정에 있는 데이터는 동기화를 다시 켤 때까지 그대로 남아요.",
  "Sign in above, and your words, reading places and bookmarks sync.": "위에서 로그인하면 단어, 읽던 위치, 책갈피가 동기화돼요.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "로컬 전용이 켜져 있어서 이 문장은 이 기기에만 머물러요. Claude를 쓰려면 설정에서 끄세요.",
- "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "로컬 전용이 켜져 있어서 이 문장은 이 기기에만 머물러요. 이 서비스를 쓰려면 설정에서 끄세요."
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "로컬 전용이 켜져 있어서 이 문장은 이 기기에만 머물러요. 이 서비스를 쓰려면 설정에서 끄세요.",
+ "More classics": "고전 더 보기"
 }

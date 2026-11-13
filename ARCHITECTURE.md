@@ -1784,7 +1784,10 @@ import reproduces a book already here (same chapter count, size and chapter titl
 again: a toast says it is already in the library and offers Open (the Mac's own books are always added; `macCopyOf` covers a pick of the
 Mac's file). A progress row past the start of a long book shows at least 1%, never "Not started". Card menu: rename, delete (confirm), cover (Automatic, Classic, Modern). "Start with a classic"
 section listing `public/samples/index.json` (title, author, level hint, blurb) → one click adds
-and opens it. Empty state explains what the app does in two sentences.
+and opens it. Once there are books it is "More classics" and leaves out the classics already on the shelf (none left: no list).
+Search and sort show from six books on (`SEARCH_FROM`); with fewer, the shelf is just its covers. The goal card above the shelf
+shows the streak, today's minutes and the week; the goal itself is set in the welcome and Settings › Learning.
+Empty state explains what the app does in two sentences.
 
 ### 5.4.1 Welcome, goal and streak (`ui/welcome.ts`, `ui/goalCard.ts`, `core/plan.ts`, `core/readingClock.ts`)
 
@@ -1796,10 +1799,9 @@ and opens it. Empty state explains what the app does in two sentences.
   and nothing is open over it, it lights up, in three steps at most, the first book (and the three ways to add one), Review (where
   saved words go) and Sign in. Settings › Learning › Walkthrough
   shows both again. The welcome's next step slides in 20 px from the side the reader went to as it fades in (the footer stays
-  put); a walkthrough's card glides with the spotlight to the next step (260 ms, its height with it) while the new words fade in.
-  The spotlight (`.rd-guide-spot`) is a box that paints nothing, with the dim (four corner boxes with one shadow each, dimmed
-  together) and the ring (four arcs, four edges) as parts that follow it by CSS; a glide sets the new box at once and moves the
-  parts by transforms only (FLIP), so it lays nothing out and keeps step with the card while the page is busy. On a first
+  put); a walkthrough's card fades in at the next step (180 ms) and never travels across the screen (a card flying about with
+  Pengu on it looked odd). The spotlight (`.rd-guide-spot`) is a box that paints nothing, with the dim (four corner boxes with one
+  shadow each, dimmed together) and the ring (four arcs, four edges) as parts that follow it by CSS, so a step moves it at once. On a first
   visit the library's walkthrough waits for the dictionary's parse to finish and the next idle moment (at most 8 s, then 1 s),
   so its first steps do not share the page with it.
 - needsWelcome writes the unfinished plan (`welcomed: 0`) at once, so a reload or a second tab during the welcome brings it back.
@@ -2046,10 +2048,10 @@ to the account tells it the time zone and the app's language (`about`), so remin
   Until waving and cheering are drawn in this style, both are the happy Pengu; a pose drawn later goes in the same square, so one
   takes another's place without Pengu moving, and
   `preloadPengu` loads and decodes all three at the start, so a pose that changes (the walkthrough) never blinks.
-  Pengu is alive (`ui/pengu.ts`, `styles/pengu.css`): the picture breathes and sways (CSS, each one from a different moment), and
-  its span takes one-off moves from the Web Animations API (pop, hop, boing, cheer, duck, nod), so the two add up. It breathes
-  twice as it arrives and then rests. It pops in on the welcome screen and the empty screens, pops in with the walkthrough and
-  cheers at its last step, jumps when tapped, peeks over the top edge of the library's first book (`penguPeek`; never over Review's
+  Pengu is a flat sticker and moves like one (`ui/pengu.ts`, `styles/pengu.css`): it never bobs or sways on its own and is never
+  squashed, stretched or tilted (that looked rubbery and odd). Its span takes small one-off moves from the Web Animations API:
+  pop (a fade in as it rises a little), hop, boing, cheer (small hops of the whole picture), duck and nod. It fades in on the
+  welcome screen and the empty screens, sits still in the walkthrough's card, hops a little when tapped, peeks over the top edge of the library's first book (`penguPeek`; never over Review's
   flashcard, where it got in the way of studying), hops or (for a session that
   cleared everything due, with the confetti) cheers when a session ends, reads in place of the spinner while the library opens,
   and pops up from the bottom of the screen to say the day's goal is reached (`penguSays`: it waits while a word card, a reader

@@ -450,7 +450,6 @@
  "Glyphs for rare characters, so nothing shows as an empty box.": "Glifos para caracteres raros, para que nada apareça como uma caixa vazia.",
  "Go there": "Ir para lá",
  "Go to my library": "Ir para minha biblioteca",
- "Goal": "Meta",
  "Goal met today": "Meta cumprida hoje",
  "Good": "Bom",
  "Got it": "Entendi",
@@ -498,7 +497,6 @@
  "In this sentence": "Nesta frase",
  "In use. Turn off to read the page without it.": "Em uso. Desative para ler a página sem ela.",
  "In your flashcards": "Nos seus cartões",
- "In your library": "Na sua biblioteca",
  "Install": "Instalar",
  "Intense": "Intenso",
  "Intermediate": "Intermediário",
@@ -769,7 +767,6 @@
  "Open the names and terms of this book": "Abrir os nomes e termos deste livro",
  "Open the words of this chapter": "Abrir as palavras deste capítulo",
  "Open this link once on a device that uses the public LinguPengu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": "Abra este link uma vez num dispositivo que usa o site público do LinguPengu. Ele conecta esse dispositivo ao seu Mac. O link não é uma senha: o Mac continua aceitando só a sua conta do Tailscale.",
- "Open “{title}”": "Abrir “{title}”",
  "Opened from the Home Screen, LinguPengu already reads without the browser bars.": "Aberto pela Tela de Início, o LinguPengu já lê sem as barras do navegador.",
  "Opened from the Home Screen: no browser bars": "Aberto pela Tela de Início: sem barras do navegador",
  "Opened from your Home Screen, LinguPengu already reads without the browser bars.": "Aberto pela Tela de Início, o LinguPengu já lê sem as barras do navegador.",
@@ -1702,7 +1699,6 @@
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "{link} tem milhares de livros de domínio público, dos clássicos a Lu Xun. Abra um livro e toque em 下载 (Baixar) para obter um EPUB.",
  "{link} has thousands of public-domain texts, many as EPUB.": "{link} tem milhares de textos de domínio público, muitos em EPUB.",
  "{min} min": "{min} min",
- "{min} min a day": "{min} min por dia",
  "{m} min today. Goal of {goal} min reached.": "{m} min hoje. Meta de {goal} min atingida.",
  "{m} of {goal} min today": "{m} de {goal} min hoje",
  "{m} of {n} minutes today": {
@@ -2238,7 +2234,6 @@
  "Looking it up…": "Procurando…",
  "A rare word, from the full ECDICT dictionary.": "Uma palavra rara, do dicionário ECDICT completo.",
  "Custom": "Personalizado",
- "Custom…": "Personalizado…",
  "Detailed": "Detalhado",
  "Flashcard buttons": "Botões dos cartões",
  "Forgot": "Esqueci",
@@ -2308,5 +2303,6 @@
  "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.": "Isso remove deste navegador todos os livros, palavras, registros de revisão, posições de leitura e configurações da sua biblioteca de {language}, e não pode ser desfeito. Seus outros idiomas continuam como estão. A sincronização de {language} é desativada aqui, então o que sua conta guarda dele continua lá até você reativar a sincronização.",
  "Sign in above, and your words, reading places and bookmarks sync.": "Entre na conta acima, e suas palavras, posições de leitura e marcadores sincronizam.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "O modo Somente local está ativado, então esta frase fica neste dispositivo. Desative-o em Configurações para usar o Claude.",
- "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "O modo Somente local está ativado, então esta frase fica neste dispositivo. Desative-o em Configurações para usar este serviço."
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "O modo Somente local está ativado, então esta frase fica neste dispositivo. Desative-o em Configurações para usar este serviço.",
+ "More classics": "Mais clássicos"
 }

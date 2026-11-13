@@ -108,7 +108,7 @@ export async function sampleCover(s: Pick<Sample, 'cover'>): Promise<Blob | null
   } catch { return null; }
 }
 
-/** Marks a stored book as coming from a sample, so the list can show "In your library". */
+/** Marks a stored book as coming from a sample, so the list can leave out the ones already in the library. */
 export const sampleSourceName = (id: string): string => `sample:${id}`;
 
 /** A whole message (importer.ts errorText shows it as it is, in any language), not a reason to put after "Could not add". */

@@ -435,7 +435,6 @@
  "Glyphs for rare characters, so nothing shows as an empty box.": "Glyphen für seltene Zeichen, damit nichts als leeres Kästchen erscheint.",
  "Go there": "Dorthin",
  "Go to my library": "Zu meiner Bibliothek",
- "Goal": "Ziel",
  "Goal met today": "Ziel heute erreicht",
  "Good": "Gut",
  "Got it": "Verstanden",
@@ -483,7 +482,6 @@
  "In this sentence": "In diesem Satz",
  "In use. Turn off to read the page without it.": "Aktiv. Ausschalten, um die Seite ohne sie zu lesen.",
  "In your flashcards": "In deinen Karteikarten",
- "In your library": "In deiner Bibliothek",
  "Install": "Installieren",
  "Intense": "Intensiv",
  "Intermediate": "Mittel",
@@ -749,7 +747,6 @@
  "Open the names and terms of this book": "Namen und Begriffe dieses Buchs öffnen",
  "Open the words of this chapter": "Wörter dieses Kapitels öffnen",
  "Open this link once on a device that uses the public LinguPengu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": "Öffne diesen Link einmal auf einem Gerät, das die öffentliche LinguPengu-Website nutzt. Er verbindet das Gerät mit deinem Mac. Der Link ist kein Passwort: Der Mac akzeptiert trotzdem nur dein Tailscale-Konto.",
- "Open “{title}”": "„{title}“ öffnen",
  "Opened from the Home Screen, LinguPengu already reads without the browser bars.": "Vom Home-Bildschirm geöffnet, liest LinguPengu schon ohne Browserleisten.",
  "Opened from the Home Screen: no browser bars": "Vom Home-Bildschirm geöffnet: keine Browserleisten",
  "Opened from your Home Screen, LinguPengu already reads without the browser bars.": "Vom Home-Bildschirm geöffnet, liest LinguPengu schon ohne Browserleisten.",
@@ -1658,7 +1655,6 @@
  "{link} has thousands of public-domain books, from the classics to Lu Xun. Open a book and tap 下载 (Download) for an EPUB.": "Bei {link} gibt es Tausende gemeinfreie Bücher, von den Klassikern bis Lu Xun. Öffne ein Buch und tippe auf 下载 (Herunterladen), um ein EPUB zu bekommen.",
  "{link} has thousands of public-domain texts, many as EPUB.": "Bei {link} gibt es Tausende gemeinfreie Texte, viele als EPUB.",
  "{min} min": "{min} Min.",
- "{min} min a day": "{min} Min. pro Tag",
  "{m} min today. Goal of {goal} min reached.": "Heute {m} Min. Ziel von {goal} Min. erreicht.",
  "{m} of {goal} min today": "Heute {m} von {goal} Min.",
  "{m} of {n} minutes today": {
@@ -2129,7 +2125,6 @@
  "Looking it up…": "Wird nachgeschlagen …",
  "A rare word, from the full ECDICT dictionary.": "Ein seltenes Wort, aus dem vollständigen ECDICT-Wörterbuch.",
  "Custom": "Eigenes",
- "Custom…": "Eigenes …",
  "Detailed": "Ausführlich",
  "Flashcard buttons": "Karteikarten-Tasten",
  "Forgot": "Vergessen",
@@ -2196,5 +2191,6 @@
  "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.": "Das entfernt alle Bücher, Wörter, Wiederholungsdaten, Lesepositionen und Einstellungen deiner Bibliothek für {language} aus diesem Browser und lässt sich nicht rückgängig machen. Deine anderen Sprachen bleiben, wie sie sind. Der Sync für {language} wird hier ausgeschaltet, sodass das, was dein Konto davon speichert, dort bleibt, bis du den Sync wieder einschaltest.",
  "Sign in above, and your words, reading places and bookmarks sync.": "Melde dich oben an, dann werden deine Wörter, Lesepositionen und Lesezeichen synchronisiert.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "„Nur lokal“ ist an, daher bleibt dieser Satz auf diesem Gerät. Schalte es in den Einstellungen aus, um Claude zu nutzen.",
- "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "„Nur lokal“ ist an, daher bleibt dieser Satz auf diesem Gerät. Schalte es in den Einstellungen aus, um diesen Dienst zu nutzen."
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "„Nur lokal“ ist an, daher bleibt dieser Satz auf diesem Gerät. Schalte es in den Einstellungen aus, um diesen Dienst zu nutzen.",
+ "More classics": "Weitere Klassiker"
 }

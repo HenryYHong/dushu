@@ -879,7 +879,6 @@
  "Got it": "Entendido",
  "Import an EPUB, a Kindle file without DRM, a text file or a PDF.": "Importa un EPUB, un archivo de Kindle sin DRM, un archivo de texto o un PDF.",
  "Import book": "Importar libro",
- "In your library": "En tu biblioteca",
  "Intermediate": "Intermedio",
  "Intermediate books": "Libros intermedios",
  "Modern": "Moderna",
@@ -887,7 +886,6 @@
  "No books yet": "Aún no hay libros",
  "Novels and older, richer language": "Novelas y un lenguaje más antiguo y rico",
  "Open Settings": "Abrir Ajustes",
- "Open “{title}”": "Abrir “{title}”",
  "Opening “{title}”": "Abriendo “{title}”",
  "Opening…": "Abriendo…",
  "Options for {title}": "Opciones de {title}",
@@ -1390,7 +1388,6 @@
  },
  "Daily goal": "Meta diaria",
  "Daily goal and streak": "Meta diaria y racha",
- "Goal": "Meta",
  "Goal met today": "Meta cumplida hoy",
  "No streak right now": "Sin racha por ahora",
  "No streak yet": "Aún no hay racha",
@@ -1418,7 +1415,6 @@
   "many": "{day}: {m} de {n} minutos, hoy",
   "other": "{day}: {m} de {n} minutos, hoy"
  },
- "{min} min a day": "{min} min al día",
  "{m} min today. Goal of {goal} min reached.": "{m} min hoy. Meta de {goal} min cumplida.",
  "{m} of {goal} min today": "{m} de {goal} min hoy",
  "{m} of {n} minutes today": {
@@ -2230,7 +2226,6 @@
  "Looking it up…": "Buscando…",
  "A rare word, from the full ECDICT dictionary.": "Una palabra poco común, del diccionario ECDICT completo.",
  "Custom": "Personalizado",
- "Custom…": "Personalizado…",
  "Detailed": "Detallado",
  "Flashcard buttons": "Botones de las tarjetas",
  "Forgot": "Lo olvidé",
@@ -2300,5 +2295,6 @@
  "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.": "Esto quita de este navegador todos los libros, palabras, registros de repaso, posiciones de lectura y ajustes de tu biblioteca de {language}, y no se puede deshacer. Tus otros idiomas quedan como están. Aquí se desactiva la sincronización del {language}, así que lo que tu cuenta guarde de él se queda allí hasta que vuelvas a activar su sincronización.",
  "Sign in above, and your words, reading places and bookmarks sync.": "Inicia sesión arriba y tus palabras, posiciones de lectura y marcadores se sincronizarán.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "Solo local está activado, así que esta frase se queda en este dispositivo. Desactívalo en Ajustes para usar Claude.",
- "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "Solo local está activado, así que esta frase se queda en este dispositivo. Desactívalo en Ajustes para usar este servicio."
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "Solo local está activado, así que esta frase se queda en este dispositivo. Desactívalo en Ajustes para usar este servicio.",
+ "More classics": "Más clásicos"
 }

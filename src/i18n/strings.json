@@ -1708,11 +1708,6 @@
    "src/ui/welcome.ts"
   ]
  },
- "Custom…": {
-  "where": [
-   "src/ui/goalCard.ts"
-  ]
- },
  "Cycle pinyin: off, all, unknown, HSK": {
   "where": [
    "src/ui/shortcuts.ts"
@@ -1725,7 +1720,6 @@
  },
  "Daily goal": {
   "where": [
-   "src/ui/goalCard.ts",
    "src/ui/settings/learning.ts",
    "src/ui/settings/settings.ts",
    "src/ui/welcome.ts"
@@ -2450,11 +2444,6 @@
    "src/ui/welcome.ts"
   ]
  },
- "Goal": {
-  "where": [
-   "src/ui/goalCard.ts"
-  ]
- },
  "Goal met today": {
   "where": [
    "src/ui/goalCard.ts"
@@ -2726,11 +2715,6 @@
   "where": [
    "src/ui/vocab/lookups.ts",
    "src/ui/vocab/practice.ts"
-  ]
- },
- "In your library": {
-  "where": [
-   "src/ui/library/library.ts"
   ]
  },
  "Install": {
@@ -3464,6 +3448,11 @@
    "src/ui/library/findBooks.ts"
   ]
  },
+ "More classics": {
+  "where": [
+   "src/ui/library/library.ts"
+  ]
+ },
  "More languages": {
   "where": [
    "src/ui/langSwitch.ts"
@@ -4129,8 +4118,7 @@
   "where": [
    "src/ui/library/dialogs.ts",
    "src/ui/library/findBooks.ts",
-   "src/ui/library/importer.ts",
-   "src/ui/library/library.ts"
+   "src/ui/library/importer.ts"
   ]
  },
  "Open LinguPengu from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.": {
@@ -4199,11 +4187,6 @@
  "Open this link once on a device that uses the public LinguPengu site. It connects that device to your Mac. The link is not a password: the Mac still accepts only your Tailscale account.": {
   "where": [
    "src/ui/settings/mac.ts"
-  ]
- },
- "Open “{title}”": {
-  "where": [
-   "src/ui/library/library.ts"
   ]
  },
  "Opened from the Home Screen, LinguPengu already reads without the browser bars.": {
@@ -9023,11 +9006,6 @@
  "{min} min": {
   "where": [
    "src/ui/welcome.ts"
-  ]
- },
- "{min} min a day": {
-  "where": [
-   "src/ui/goalCard.ts"
   ]
  },
  "{m} min today. Goal of {goal} min reached.": {

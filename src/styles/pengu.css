@@ -1,19 +1,8 @@
-/* Pengu (ui/pengu.ts): alive wherever it is. The picture breathes and sways (here); its span takes the one-off moves (hops,
-   cheers, Web Animations), so the two add up. Transforms and opacity only, so it stays smooth. */
-.pengu-span { display: inline-block; transform-origin: 50% 100%; -webkit-tap-highlight-color: transparent; }
-.pengu { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 100%; -webkit-user-select: none; user-select: none; pointer-events: none; }
+/* Pengu (ui/pengu.ts): a flat sticker. It holds still; its span takes the one-off moves (a fade in, small hops), so the
+   picture is never bent or stretched. */
+.pengu-span { display: inline-block; -webkit-tap-highlight-color: transparent; }
+.pengu { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-select: none; user-select: none; pointer-events: none; }
 .pengu-tappable { cursor: pointer; }
-/* Pengu breathes twice as it arrives and then rests: still company while you read or study, not something moving at the edge
-   of your eye. Its hops and cheers bring it back to life when something happens. */
-@media (prefers-reduced-motion: no-preference) {
-  .pengu-idle { animation: pengu-breathe 4.4s ease-in-out 2; }
-}
-@keyframes pengu-breathe {
-  0%, 100% { transform: translateY(0) rotate(0) scale(1, 1); }
-  28% { transform: translateY(-2.4%) rotate(-1.6deg) scale(1.012, .992); }
-  52% { transform: translateY(-.6%) rotate(0) scale(1, 1); }
-  76% { transform: translateY(-2%) rotate(1.4deg) scale(.994, 1.01); }
-}
 
 /* Pengu peeking over the top edge of a card: behind it, so only its head shows above the edge. */
 /* A little above the host's top, so its smile clears the edge (the round head sits low in its square). */
@@ -22,11 +11,11 @@
 .pengu-peek-card { position: relative; z-index: 1; }
 @media (max-width: 520px) { .pengu-peek { width: 78px; height: 78px; right: 14px; top: -4px; } .pengu-peek-host { padding-top: 40px; } }
 
-/* Pengu with something to say: up from the bottom of the screen, a speech bubble beside it. */
+/* Pengu with something to say: slides up from the bottom of the screen, a speech bubble beside it, with no bounce. */
 .pengu-says {
   position: fixed; z-index: 95; left: 50%; bottom: 0; display: flex; align-items: flex-end; gap: 10px;
   width: min(440px, calc(100% - 24px)); padding: 0 4px calc(env(safe-area-inset-bottom, 0px) + 12px);
-  transform: translate(-50%, 110%); transition: transform 420ms cubic-bezier(.2, .9, .3, 1.15);
+  transform: translate(-50%, 110%); transition: transform 420ms var(--ease-out);
   /* Only Pengu and the bubble take taps: the rest of the box is see-through and lets taps reach the page under it. */
   pointer-events: none;
 }

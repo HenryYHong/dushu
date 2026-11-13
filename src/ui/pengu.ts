@@ -3,14 +3,16 @@
 // mark in the bar (logo.webp), the browser tab's icon and the app's icons. The mascot is alive around the app, in three poses
 // drawn alike (the same book in the same place, so one can take another's place): reading (pengu.webp), waving and cheering.
 //
-//   penguEl(pose, cls)        Pengu in a span: breathing and swaying gently (CSS, on the picture), a jump when tapped
+// Pengu is a flat sticker, so it moves like one: it fades in where it lands and makes small hops, the whole picture at once.
+// It never bobs on its own, and is never squashed, stretched or tilted (that looked rubbery and odd on a flat drawing).
+//
+//   penguEl(pose, cls)        Pengu in a span, a small hop when tapped
 //   animatePengu(el, move)    a one-off move on that span: pop (arriving), hop, boing, cheer, duck, nod (Web Animations)
 //   penguPeek(card)           Pengu peeking over the top edge of a card, hidden behind it below the edge, reacting on cue
 //   penguSays(text)           Pengu popping up from the bottom of the screen with a speech bubble (the daily goal reached; a
 //                             book finished, with a small burst of paper from behind it)
 //
-// The idle motion is on the picture and the moves on its span, so the two add up instead of replacing each other. Everything
-// stops for a reader who asks for reduced motion, and does nothing where the browser cannot animate (tests).
+// Everything stops for a reader who asks for reduced motion, and does nothing where the browser cannot animate (tests).
 import '../styles/pengu.css';
 import penguUrl from './pengu/pengu.webp';
 import waveUrl from './pengu/pengu-wave.webp';
@@ -37,11 +39,9 @@ export function preloadPengu(): void {
   }
 }
 
-/** Pengu as an <img> (HTML), breathing gently. `label` names it for screen readers; without one it is decoration, hidden from them. */
+/** Pengu as an <img> (HTML). `label` names it for screen readers; without one it is decoration, hidden from them. */
 export function penguHtml(pose: PenguPose = 'stand', label = ''): string {
-  // Each Pengu starts its breath at a different moment, so two on one screen never move in step.
-  const delay = `${-(Math.random() * 4).toFixed(2)}s`;
-  return `<img class="pengu pengu-${pose} pengu-idle" style="animation-delay:${delay}" src="${POSE_URL[pose]}" alt="${attr(label)}"${label ? '' : ' aria-hidden="true"'} draggable="false" decoding="async">`;
+  return `<img class="pengu pengu-${pose}" src="${POSE_URL[pose]}" alt="${attr(label)}"${label ? '' : ' aria-hidden="true"'} draggable="false" decoding="async">`;
 }
 
 /** The brand mark in the bar: Pengu over its book on a white rounded square, as an <img> (HTML), hidden from screen readers. */
@@ -49,53 +49,29 @@ export function penguMark(): string {
   return `<img class="pengu-mark" src="${logoUrl}" alt="" aria-hidden="true" draggable="false" decoding="async">`;
 }
 
+/** A small hop: up a little and down again, the whole picture at once. */
+const hop = (ms: number, up: number): { frames: Keyframe[]; ms: number; easing: string } => ({ ms, easing: 'ease-in-out', frames: [
+  { transform: 'none' },
+  { transform: `translateY(-${up}%)`, offset: 0.45 },
+  { transform: 'none' }] });
+
 const MOVES: Record<PenguMove, { frames: Keyframe[]; ms: number; easing: string }> = {
-  // Arriving: from small and low, a springy overshoot, then settled.
-  pop: { ms: 640, easing: 'cubic-bezier(.2,.9,.3,1)', frames: [
-    { transform: 'translateY(16%) scale(.55)', opacity: 0 },
-    { transform: 'translateY(-5%) scale(1.07)', opacity: 1, offset: 0.55 },
-    { transform: 'translateY(1%) scale(.97)', offset: 0.78 },
+  // Arriving: fades in as it rises a little into place.
+  pop: { ms: 360, easing: 'ease-out', frames: [
+    { transform: 'translateY(6%)', opacity: 0 },
     { transform: 'none', opacity: 1 }] },
-  // A happy hop: a squash to push off, a stretch in the air, a squash on landing.
-  hop: { ms: 620, easing: 'ease-out', frames: [
+  hop: hop(420, 8),
+  // Tapped: the same small hop.
+  boing: hop(420, 8),
+  // Well done: one hop, a little higher.
+  cheer: hop(520, 12),
+  // Oops: down a little and back up.
+  duck: { ms: 600, easing: 'ease-in-out', frames: [
     { transform: 'none' },
-    { transform: 'translateY(3%) scale(1.07,.9)', offset: 0.14 },
-    { transform: 'translateY(-24%) scale(.95,1.06)', offset: 0.45 },
-    { transform: 'translateY(0) scale(1.07,.92)', offset: 0.7 },
-    { transform: 'scale(.98,1.02)', offset: 0.85 },
+    { transform: 'translateY(14%)', offset: 0.45 },
     { transform: 'none' }] },
-  // Tapped: a bigger jump with a wiggle in the air.
-  boing: { ms: 820, easing: 'ease-out', frames: [
-    { transform: 'none' },
-    { transform: 'translateY(4%) scale(1.1,.86)', offset: 0.12 },
-    { transform: 'translateY(-34%) scale(.93,1.08) rotate(-7deg)', offset: 0.4 },
-    { transform: 'translateY(-30%) scale(.95,1.06) rotate(6deg)', offset: 0.55 },
-    { transform: 'translateY(0) scale(1.1,.88) rotate(0)', offset: 0.75 },
-    { transform: 'scale(.97,1.03)', offset: 0.88 },
-    { transform: 'none' }] },
-  // A whole celebration: two jumps, leaning one way then the other.
-  cheer: { ms: 1500, easing: 'ease-in-out', frames: [
-    { transform: 'none' },
-    { transform: 'translateY(3%) scale(1.08,.9)', offset: 0.08 },
-    { transform: 'translateY(-30%) scale(.94,1.07) rotate(-8deg)', offset: 0.26 },
-    { transform: 'translateY(0) scale(1.08,.9) rotate(0)', offset: 0.44 },
-    { transform: 'translateY(-26%) scale(.95,1.06) rotate(8deg)', offset: 0.64 },
-    { transform: 'translateY(0) scale(1.07,.92) rotate(0)', offset: 0.82 },
-    { transform: 'scale(.98,1.02)', offset: 0.92 },
-    { transform: 'none' }] },
-  // Oops: ducking down out of sight a little, then peeking back up.
-  duck: { ms: 900, easing: 'ease-in-out', frames: [
-    { transform: 'none' },
-    { transform: 'translateY(26%) scale(1.03,.97)', offset: 0.3 },
-    { transform: 'translateY(26%) rotate(-3deg)', offset: 0.55 },
-    { transform: 'translateY(6%) rotate(2deg)', offset: 0.8 },
-    { transform: 'none' }] },
-  // Interested: a small tilt of the head, one way and back.
-  nod: { ms: 560, easing: 'ease-in-out', frames: [
-    { transform: 'none' },
-    { transform: 'translateY(-4%) rotate(-6deg)', offset: 0.35 },
-    { transform: 'translateY(-2%) rotate(4deg)', offset: 0.7 },
-    { transform: 'none' }] },
+  // Interested: the smallest hop.
+  nod: hop(360, 4),
 };
 
 /** Plays `move` on Pengu's span (from penguEl or penguPeek); a move already playing gives way to the new one. */
@@ -231,8 +207,7 @@ export function penguSays(text: string, ms = 6000, opts: { confetti?: boolean } 
     requestAnimationFrame(() => requestAnimationFrame(() => {
       bubble.textContent = text;
       box.classList.add('on');
-      animatePengu(pengu, 'hop', 260);
-      // As Pengu lands, with the slide up (420 ms) done.
+      // Once the slide up (420 ms) is done.
       if (opts.confetti) window.setTimeout(() => { if (!gone) penguConfetti(pengu); }, 440);
     }));
     window.setTimeout(away, ms);

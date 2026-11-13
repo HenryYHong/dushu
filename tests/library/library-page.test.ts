@@ -274,7 +274,8 @@ describe('names and languages', () => {
     cleanup = await mountLibrary(root, {}, ctx);
     await until(() => !!root.querySelector('.lib-sample .lib-add') && !!root.querySelector('.lib-card'));
     expect([...root.querySelectorAll('.lib-sample .lib-add')].map((b) => b.getAttribute('aria-label'))).toEqual(['Add and read “唐诗八首”']);
-    expect(root.querySelector('.lib-sample a.btn')!.getAttribute('aria-label')).toBe('Open “小故事”');
+    // The classic already added is on the shelf, not in the list.
+    expect(root.querySelectorAll('.lib-sample')).toHaveLength(1);
     for (const sel of ['.lib-sample-title', '.lib-sample-author', '.lib-card-title', '.lib-card-author']) {
       expect(root.querySelector(sel)!.getAttribute('lang'), sel).toBe('zh');
     }

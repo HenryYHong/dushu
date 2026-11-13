@@ -257,11 +257,20 @@ describe('library screen', () => {
     expect(document.querySelector('dialog')).toBeNull();
   });
 
+  it('has no search or sort for a few books', async () => {
+    for (const t of ['一', '二', '三', '四', '五']) await store.books.add(book(t));
+    cleanup = await mountLibrary(root, {}, ctx);
+    await until(() => root.querySelectorAll('.lib-card').length === 5);
+    expect(root.querySelector<HTMLElement>('.lib-filters')!.hidden).toBe(true);
+  });
+
   it('filters by author or title and clears an empty search without changing the library', async () => {
     await store.books.add(book('活着', '余华'));
     await store.books.add(book('天龙八部', '金庸'));
+    for (const t of ['一', '二', '三', '四']) await store.books.add(book(t));
     cleanup = await mountLibrary(root, {}, ctx);
-    await until(() => root.querySelectorAll('.lib-card').length === 2);
+    await until(() => root.querySelectorAll('.lib-card').length === 6);
+    expect(root.querySelector<HTMLElement>('.lib-filters')!.hidden).toBe(false);
     const search = root.querySelector<HTMLInputElement>('input[type="search"]')!;
     search.value = '金庸';
     search.dispatchEvent(new Event('input'));
@@ -273,8 +282,8 @@ describe('library screen', () => {
     expect(root.querySelector('.lib-no-results')?.textContent).toContain('No books match');
     root.querySelector<HTMLButtonElement>('.lib-no-results button')!.click();
     expect(search.value).toBe('');
-    expect(root.querySelectorAll('.lib-card')).toHaveLength(2);
-    expect(await store.books.list()).toHaveLength(2);
+    expect(root.querySelectorAll('.lib-card')).toHaveLength(6);
+    expect(await store.books.list()).toHaveLength(6);
   });
 
   it('asks before deleting and keeps the book on cancel', async () => {
@@ -331,7 +340,7 @@ describe('library screen', () => {
     expect(await store.books.list()).toEqual([]);
   });
 
-  it('adds and opens a sample with one click, then shows it as in the library', async () => {
+  it('adds and opens a sample with one click, then leaves it out of the list (it is on the shelf)', async () => {
     const index = [{ id: 'x1', title: '小故事', author: '某人', script: 'simplified', file: 'x1.txt', level: 'Beginner', blurb: 'Short.', source: 'https://example.org/x', note: 'Public domain.' }];
     vi.stubGlobal('fetch', async (url: string) => {
       const u = String(url);
@@ -345,8 +354,10 @@ describe('library screen', () => {
     await until(() => navigated.length > 0, 8000);
     const [added] = await store.books.list();
     expect(added).toMatchObject({ title: '小故事', author: '某人', format: 'sample', sourceName: 'sample:x1' });
-    await until(() => root.querySelector('.lib-sample .lib-add') === null);
-    expect(root.querySelector('.lib-sample')?.textContent).toContain('In your library');
+    await until(() => root.querySelector('.lib-card') !== null);
+    // The only classic is in the library, so there is no list of classics left.
+    expect(root.querySelector('.lib-sample')).toBeNull();
+    expect(root.querySelector('.lib-samples-title')).toBeNull();
   });
 
   it('writes a classic\'s cover title in the reading script, like the words under it, before and after it is added', async () => {
@@ -365,9 +376,11 @@ describe('library screen', () => {
     expect(root.querySelector('.lib-sample .lib-cover-author')?.textContent).toBe('吴承恩');
     (root.querySelector('.lib-sample .lib-add') as HTMLElement).click();
     await until(() => navigated.length > 0, 8000);
-    await until(() => root.querySelector('.lib-sample .lib-add') === null);
+    await until(() => root.querySelector('.lib-card .lib-cover-title') !== null);
     expect((await store.books.list())[0].title).toBe('西遊記');
-    expect(coverTitle()).toBe('西游记');
+    // Added, it is on the shelf (and no longer in the list), its cover still in the reading script.
+    expect(root.querySelector('.lib-sample')).toBeNull();
+    expect(root.querySelector('.lib-card .lib-cover-title')?.textContent).toBe('西游记');
   });
 
   it('gives a classic already added the new painting when its cover is replaced, once', async () => {
@@ -398,7 +411,7 @@ describe('library screen', () => {
 
     cleanup?.(); asked.length = 0;
     cleanup = await mountLibrary(root, {}, ctx);
-    await until(() => !!root.querySelector('.lib-sample'));
+    await until(() => !!root.querySelector('.lib-card'));
     await flush(50);
     expect(asked.filter((x) => x === 'x1-new')).toHaveLength(0); // already has it, so not fetched for the book again
   });

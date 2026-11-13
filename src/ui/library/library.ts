@@ -180,6 +180,8 @@ type LevelKey = (typeof LEVELS)[number]['key'];
 let shelfAt: number | null = null;
 /** How long the first shelf takes to ease in: the seventh card's beat (the last, library.css) and its own rise. */
 const SHELF_EASE_MS = 6 * 30 + 300;
+/** The library's search and sort show from this many books on. */
+const SEARCH_FROM = 6;
 const levelOf = (s: Sample): LevelKey => (/^(beginner|easy)/i.test(s.level ?? '') ? 'easy' : /^intermediate/i.test(s.level ?? '') ? 'intermediate' : 'advanced');
 
 export const mount: MountFn = (root, _params, ctx) => {
@@ -236,9 +238,10 @@ export const mount: MountFn = (root, _params, ctx) => {
     h('option', { value: 'title' }, tt('Title')),
     h('option', { value: 'added' }, tt('Recently added'))) as HTMLSelectElement;
   sort.addEventListener('change', () => { order = sort.value as typeof order; renderGrid(); });
+  // Search and sort come once there are enough books to look for one: a few fit on the screen at a glance.
+  const filters = h('div.lib-filters', null, h('div.lib-search-wrap', null, icon('search'), search), sort);
   const libraryTools = h('section.lib-toolbar', { 'aria-label': tt('Your library') },
-    h('div.lib-toolbar-head', null, libraryTitle, libraryCount),
-    h('div.lib-filters', null, h('div.lib-search-wrap', null, icon('search'), search), sort));
+    h('div.lib-toolbar-head', null, libraryTitle, libraryCount), filters);
   libraryTools.hidden = true;
   const gridEl = h('div.lib-body');
   const samplesEl = h('div.lib-samples');
@@ -350,6 +353,9 @@ export const mount: MountFn = (root, _params, ctx) => {
     const startLabel = first ? `“${first.title}”` : null;
     const empty = !books.length && jobs.every((j) => j.label === startLabel);
     libraryTools.hidden = !books.length;
+    filters.hidden = books.length < SEARCH_FROM;
+    // Down to a few books again (some deleted), a search that was typed goes with the field.
+    if (filters.hidden && query) { query = ''; search.value = ''; }
     // Find a book, Paste text and Import book stay in the header in every state, so adding a book is always where it was.
     headActions.hidden = false;
     // A new reader's first screen is about a first book; the goal and streak come once there is one.
@@ -447,7 +453,7 @@ export const mount: MountFn = (root, _params, ctx) => {
     const same = cardOf(want.id);
     const target = same?.querySelector<HTMLElement>('.lib-card-menu')
       ?? cardOf(want.next)?.querySelector<HTMLElement>('.lib-card-main')
-      ?? (libraryTools.hidden ? gridEl.querySelector<HTMLElement>('button:not([disabled]), a[href]') : search);
+      ?? (libraryTools.hidden || filters.hidden ? gridEl.querySelector<HTMLElement>('button:not([disabled]), a[href]') : search);
     if (!target) return;
     refocus = null;
     target.focus({ preventScroll: true });
@@ -607,14 +613,17 @@ export const mount: MountFn = (root, _params, ctx) => {
   function renderSamples(): void {
     clear(samplesEl);
     if (!loaded || !samples.length) return;
-    const have = new Map(books.filter((b) => b.sourceName?.startsWith('sample:')).map((b) => [b.sourceName!, b]));
-    const card = (s: Sample) => sampleCard(s, have.get(sampleSourceName(s.id)));
+    // A classic already in the library is on the shelf above, so the list leaves it out; with every one added, there is no list.
+    const have = new Set(books.map((b) => b.sourceName).filter((n) => n?.startsWith('sample:')));
+    const left = samples.filter((s) => !have.has(sampleSourceName(s.id)));
+    if (!left.length) return;
+    const card = (s: Sample) => sampleCard(s);
 
-    samplesEl.appendChild(h('h2.lib-samples-title', null, tt('Start with a classic')));
+    samplesEl.appendChild(h('h2.lib-samples-title', null, books.length ? tt('More classics') : tt('Start with a classic')));
     // By level, easiest first, so a reader picks a first book by how hard it is; a named set (the four great novels) stays
     // together inside its level.
     for (const level of LEVELS) {
-      const here = samples.filter((s) => levelOf(s) === level.key);
+      const here = left.filter((s) => levelOf(s) === level.key);
       if (!here.length) continue;
       const section = h('section.lib-level', { 'data-level': level.key, 'aria-label': tt(level.books) },
         h('h3.lib-level-title', null, h('span.lib-level-name', null, tt(level.name)), h('span.lib-level-note', null, tt(level.note))));
@@ -630,29 +639,27 @@ export const mount: MountFn = (root, _params, ctx) => {
     }
   }
 
-  function sampleCard(s: Sample, existing: BookMeta | undefined): HTMLElement {
+  function sampleCard(s: Sample): HTMLElement {
     const busy = importer.jobs.some((j) => j.label === `“${s.title}”`);
     const chapters = s.chapters ?? 0;
     const size = [chapters && ttn(chapters, '{n} chapter', '{n} chapters'), s.chars && sizeLabel(s.chars, false)].filter(Boolean).join(' · ');
     // Each button names its book: a list of a dozen "Add and read" says nothing to a screen reader.
     const title = sampleShown(s, 'title');
-    const go = existing
-      ? h('a.btn.btn-sm', { href: readHref(existing.id), 'aria-label': tt('Open “{title}”', { title }) }, tt('Open'))
-      : h('button.btn.btn-sm.lib-add', {
-          type: 'button',
-          disabled: busy,
-          'aria-label': busy ? tt('Adding “{title}”', { title }) : tt('Add and read “{title}”', { title }),
-          onclick: async (e: Event) => {
-            const btn = e.currentTarget as HTMLButtonElement;
-            btn.disabled = true;
-            const meta = await importer.sample(s);
-            if (!alive) return;
-            if (meta) ctx.navigate(readHref(meta.id));
-            else btn.disabled = false;
-          },
-        }, busy ? tt('Adding…') : tt('Add and read'));
+    const go = h('button.btn.btn-sm.lib-add', {
+      type: 'button',
+      disabled: busy,
+      'aria-label': busy ? tt('Adding “{title}”', { title }) : tt('Add and read “{title}”', { title }),
+      onclick: async (e: Event) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        btn.disabled = true;
+        const meta = await importer.sample(s);
+        if (!alive) return;
+        if (meta) ctx.navigate(readHref(meta.id));
+        else btn.disabled = false;
+      },
+    }, busy ? tt('Adding…') : tt('Add and read'));
     return h('article.lib-sample.card', null,
-      h('div.lib-sample-cover', null, existing ? bookCover(existing, store, 'sm', ctx.settings.get().covers, sampleLabel(s)) : sampleCoverEl(s)),
+      h('div.lib-sample-cover', null, sampleCoverEl(s)),
       h('div.lib-sample-info', null,
         h('div.lib-sample-head', null,
           h('div.lib-sample-title.zh', { lang: bookLang() }, title),
@@ -660,7 +667,7 @@ export const mount: MountFn = (root, _params, ctx) => {
         s.author ? h('div.lib-sample-author', { lang: bookLang() }, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-sample-blurb', null, tt(s.blurb)) : null,
         h('div.lib-sample-foot', null,
-          h('span.muted.lib-sample-size', null, existing ? tt('In your library') : size),
+          h('span.muted.lib-sample-size', null, size),
           go)));
   }
 

@@ -1,10 +1,10 @@
 // The day's goal and the streak, at the top of the library: today's minutes against the goal, the days in a row it was met,
-// and the last seven days. Reading in any language, on any device that syncs, counts (core/activity.ts).
+// and the last seven days. Reading in any language, on any device that syncs, counts (core/activity.ts). The goal itself is
+// set in the welcome and in Settings, so the card only shows how today is going.
 import '../styles/goal.css';
 import { h } from './dom';
-import { ACTIVITY_EVENT, ACTIVITY_KEY, GOALS, dayOf, stampToday, streak, type DayTotal } from '../core/activity';
-import { goalInput } from './goalInput';
-import { PLAN_KEY, getPlan, setPlan } from '../core/plan';
+import { ACTIVITY_EVENT, ACTIVITY_KEY, dayOf, stampToday, streak, type DayTotal } from '../core/activity';
+import { PLAN_KEY, getPlan } from '../core/plan';
 import { num, tt, ttn, uiLocale } from '../i18n';
 
 /** The share of today's goal the bar last showed (this page's life), where a card drawn again starts. */
@@ -34,29 +34,10 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
   const fill = h('span.goal-bar-fill');
   const bar = h('div.goal-bar', { role: 'progressbar', 'aria-valuemin': '0' }, fill);
   const week = h('div.goal-week', { role: 'list', 'aria-label': tt('The last seven days') });
-  // The goals offered, a goal of one's own when that is the plan's, and Custom…, which shows a field for any number of minutes.
-  const select = h('select.select.goal-select', { 'aria-label': tt('Daily goal') }) as HTMLSelectElement;
-  const own = goalInput(25, (g) => setPlan({ goal: g }), 'goal-own-card');
-  own.el.hidden = true;
-  const options = (goal: number) => {
-    const list = (GOALS as readonly number[]).includes(goal) ? [...GOALS] : [...GOALS, goal].sort((a, b) => a - b);
-    select.replaceChildren(...list.map((g) => h('option', { value: String(g) }, tt('{min} min a day', { min: num(g) }))),
-      h('option', { value: 'custom' }, tt('Custom…')));
-    select.value = String(goal);
-  };
-  select.addEventListener('change', () => {
-    if (select.value !== 'custom') { own.el.hidden = true; setPlan({ goal: Number(select.value) }); return; }
-    own.show(getPlan().goal);
-    own.el.hidden = false;
-    select.value = String(getPlan().goal);
-    own.input.focus();
-    own.input.select();
-  });
   const el = h('section.goal.card', { 'aria-label': tt('Daily goal and streak') },
     h('div.goal-streak', null, flame, h('div.goal-streak-text', null, h('div', null, lead, count, unit), best)),
     h('div.goal-today', null, today, bar),
-    week,
-    h('div.goal-set', null, h('label.goal-set-pick', null, h('span.goal-set-label', null, tt('Goal')), select), own.el));
+    week);
 
   const dayCell = (d: DayTotal, isToday: boolean) => {
     const part = d.met ? 1 : Math.min(1, d.seconds / (d.goal * 60));
@@ -106,7 +87,6 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
     // The goal this device judges today by, kept for tomorrow (core/activity.ts totals).
     stampToday(plan.goal);
     const s = streak(plan.goal);
-    options(plan.goal);
     el.classList.toggle('met', s.met);
     // The streak's number is drawn big, with the words around it: "5 day streak".
     const current = s.current;

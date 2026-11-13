@@ -3,9 +3,7 @@
 .rd-guide-shade { position: fixed; inset: 0; background: rgb(0 0 0 / 0.55); }
 .rd-guide-shade[hidden], .rd-guide-spot[hidden] { display: none; }
 /* The lit part: a box that paints nothing itself, with the dim around it and a 2px ring on its edge (10px corners inside the
-   ring, 12px outside). Each part follows the box by CSS alone; guide.ts (glideSpot) moves them from the last step's box with
-   transforms, the card's time and curve, so a glide never lays out or paints the page again and keeps step with the card while
-   the page is busy. A single box with a 200vmax shadow could not be scaled without thickening the ring and its corners. */
+   ring, 12px outside). Each part follows the box by CSS alone, so a step moves it at once. */
 .rd-guide-spot { position: fixed; pointer-events: none; }
 .rd-guide-dim, .rd-guide-ring { position: absolute; inset: 0; }
 /* The dim: one box per corner, reaching off screen with that corner rounded and a shadow over the rest of the screen. They
