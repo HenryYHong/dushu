@@ -14,9 +14,13 @@ square. Over its book, each an edit of art/pengu-read.png with one thing changed
 
     art/pengu-blink-half.png  eyes half shut                 (a blink: half, shut, half)
     art/pengu-blink.png       eyes shut
-    art/pengu-wave-1.png      one flipper up, tipped outward (a wave: out, up, in, up, out...)
-    art/pengu-wave-mid.png    the same flipper straight up
-    art/pengu-wave-2.png      the same flipper tipped inward
+    art/pengu-noflip.png      the right flipper gone         (under the waving flipper)
+    art/pengu-wave-mid.png    the right flipper straight up  (the waving flipper is cut out of it)
+
+The wave is a cutout: the flipper from art/pengu-wave-mid.png on a layer of its own, over the picture without it, swung from
+its shoulder (ui/pengu.ts turns it smoothly; swapping drawn wave frames looked stiff). It is found as the closed light gray
+shape where the two pictures differ, with the outline around it; where it turns from is the middle of its base, written to
+src/ui/pengu/arm.json.
 
 An edit redraws the whole picture a hair differently, so swapping to it would make every line shimmer. Only what the edit
 really changed is taken from it (where it differs from the mascot by more than a thin line's worth, grown and softened at the
@@ -56,7 +60,7 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 LOGO = os.path.join(REPO, 'art', 'pengu-logo.png')
 MASCOT = os.path.join(REPO, 'art', 'pengu-read.png')
 # The animation's drawings (see above): edits of the mascot over its book, and the jump.
-FRAMES = ['blink-half', 'blink', 'wave-1', 'wave-mid', 'wave-2']
+FRAMES = ['blink-half', 'blink', 'noflip']
 JUMP = ['stand', 'crouch', 'rise', 'air']
 MASCOT_PX = 384   # three times the largest Pengu on a page (128 px), for a phone's screen
 SOFT = (10, 60)   # distance from the background color (RGB) at which a pixel starts to show, and at which it is solid
@@ -147,6 +151,101 @@ def logo_square(sticker: Image.Image, size: int, top: float = 0.07, bleed: float
     return sq
 
 
+def hull(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """The convex hull of `points` (monotone chain), in order."""
+    pts = sorted(set(points))
+    if len(pts) < 3:
+        return pts
+    cross = lambda o, a, b: (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    lower: list[tuple[int, int]] = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper: list[tuple[int, int]] = []
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def flipper(bare: Image.Image, up: Image.Image) -> tuple[Image.Image, tuple[float, float]]:
+    """The raised flipper in `up` (RGB) as a mask, and the middle of its base, where it turns from.
+
+    The flipper is the same light gray as the body behind it, and its outline is open where it meets the body, so it is taken
+    as the light gray around a point inside it (filled up to dark outlines) and its outline, both only within the outline of what
+    differs from `bare` (the picture without it): the convex hull of those differences, which runs along the flipper's own edge."""
+    # Only the thick differences (the flipper's own outline and its gray over the white); a line both pictures drew a hair apart
+    # is thin, and gone after the opening.
+    diff = ImageChops.difference(bare, up).convert('L').point(lambda v: 255 if v > 40 else 0)
+    diff = diff.filter(ImageFilter.MinFilter(7)).filter(ImageFilter.MaxFilter(7))
+    if not diff.getbbox():
+        raise SystemExit('art/pengu-wave-mid.png: no raised flipper found')
+    dp = diff.load()
+    w, h = diff.size
+    shape = hull([(x, y) for y in range(0, h, 2) for x in range(0, w, 2) if dp[x, y]])
+    within = Image.new('L', diff.size, 0)
+    ImageDraw.Draw(within).polygon(shape, fill=255)
+    # The flipper's gray: of the light gray patches inside the hull (each filled up to dark outlines, then cut to the hull), the
+    # biggest. The gaps between it and the head are small patches of their own.
+    deep = within.filter(ImageFilter.MinFilter(21))
+    seen = Image.new('L', up.size, 0)
+    inside = None
+    best = 0
+    db = deep.getbbox()
+    for y in range(db[1], db[3], 8) if db else ():
+        for x in range(db[0], db[2], 8):
+            r, g, b = up.getpixel((x, y))
+            if not deep.getpixel((x, y)) or seen.getpixel((x, y)) or not (150 < r < 235 and 150 < g < 235 and 160 < b < 240):
+                continue
+            marked = up.copy()
+            ImageDraw.floodfill(marked, (x, y), (255, 0, 255), thresh=40)
+            patch = ImageChops.multiply(ImageChops.difference(marked, up).convert('L').point(lambda v: 255 if v > 0 else 0), within)
+            seen = ImageChops.lighter(seen, patch)
+            area = patch.histogram()[255]
+            if area > best:
+                best, inside = area, patch
+    if inside is None:
+        raise SystemExit('art/pengu-wave-mid.png: no point inside the flipper')
+    # Near its base the flipper's gray runs on into the body's, under the end of its outline: cut along its left edge (a line
+    # through that edge on the middle of the flipper, carried on down), so only the flipper turns.
+    ib = inside.getbbox()
+    ip = inside.load()
+    top, height = ib[1], ib[3] - ib[1]
+    edge = []
+    for y in range(top + int(height * 0.2), top + int(height * 0.6)):
+        # From the flipper's right side, left through its gray to the dark line of its left edge.
+        xs = [x for x in range(ib[0], ib[2]) if ip[x, y]]
+        if not xs:
+            continue
+        x = xs[-1]
+        while x > ib[0] and ip[x - 1, y]:
+            x -= 1
+        edge.append((y, x))
+    n = len(edge)
+    my, mx = sum(y for y, _ in edge) / n, sum(x for _, x in edge) / n
+    slope = sum((y - my) * (x - mx) for y, x in edge) / max(1e-9, sum((y - my) ** 2 for y, _ in edge))
+    left_of = lambda x, y, margin: x < mx + slope * (y - my) - margin
+    for y in range(top + int(height * 0.5), ib[3]):
+        for x in range(ib[0], ib[2]):
+            if ip[x, y] and left_of(x, y, 2):
+                ip[x, y] = 0
+    dark = up.convert('L').point(lambda v: 255 if v < 200 else 0)
+    ring = ImageChops.multiply(ImageChops.multiply(inside.filter(ImageFilter.MaxFilter(31)), dark), within.filter(ImageFilter.MaxFilter(9)))
+    rp = ring.load()
+    for y in range(top + int(height * 0.5), ring.height):
+        for x in range(0, ring.width):
+            if rp[x, y] and left_of(x, y, 18):
+                rp[x, y] = 0
+    mask = ImageChops.lighter(inside, ring)
+    ib = inside.getbbox()
+    base = [x for y in range(ib[3] - max(4, (ib[3] - ib[1]) // 10), ib[3]) for x in range(ib[0], ib[2]) if inside.getpixel((x, y))]
+    # The book's edge under the flipper stays with the book: nothing below the bottom of the flipper's gray turns.
+    ImageDraw.Draw(mask).rectangle((0, ib[3] - 2, mask.width, mask.height), fill=0)
+    return mask, (sum(base) / len(base), float(ib[3]))
+
+
 def on_ground(sticker: Image.Image, size: int, share: float) -> Image.Image:
     """A white square with the sticker taking `share` of its width, a little below the middle."""
     sq = Image.new('RGBA', (size, size), GROUND + (255,))
@@ -200,6 +299,19 @@ def main() -> None:
     save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', 'pengu.webp'), MASCOT_PX, quality=90, method=6)
     for name, cut in frames.items():
         save(trim_square(cut, box=still), os.path.join(REPO, 'src', 'ui', 'pengu', f'pengu-{name}.webp'), MASCOT_PX, quality=90, method=6)
+    # The waving flipper on a layer of its own, the size of the others, and where it turns from (a share of the square).
+    bare = changed_part(read_rgb, Image.open(os.path.join(REPO, 'art', 'pengu-noflip.png')).convert('RGB'))
+    up = changed_part(read_rgb, Image.open(os.path.join(REPO, 'art', 'pengu-wave-mid.png')).convert('RGB'))
+    mask, (px, py) = flipper(bare, up)
+    arm = cutout(up)
+    arm.putalpha(ImageChops.multiply(arm.getchannel('A'), mask))
+    save(trim_square(arm, box=still), os.path.join(REPO, 'src', 'ui', 'pengu', 'pengu-arm.webp'), MASCOT_PX, quality=90, method=6)
+    part_w, part_h = still[2] - still[0], still[3] - still[1]
+    side = int(max(part_w, part_h) * (1 + 2 * 0.04))
+    pivot = {'x': round(100 * (px - still[0] + (side - part_w) // 2) / side, 2), 'y': round(100 * (py - still[1] + (side - part_h) // 2) / side, 2)}
+    with open(os.path.join(REPO, 'src', 'ui', 'pengu', 'arm.json'), 'w') as f:
+        f.write(json.dumps(pivot) + '\n')
+    print(f'wrote src/ui/pengu/arm.json {pivot}')
     jump = {name: cutout(Image.open(os.path.join(REPO, 'art', f'pengu-{name}.png')).convert('RGB')) for name in JUMP}
     # The square holds the whole jump as drawn (the highest drawing's top down to the ground).
     whole = union([cut.getbbox() for cut in jump.values()])

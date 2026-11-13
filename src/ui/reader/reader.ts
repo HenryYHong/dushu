@@ -1195,7 +1195,7 @@ export const mount: MountFn = async (root, params, ctx) => {
   function finishNow(): boolean {
     window.clearTimeout(finishTimer);
     if (!canCelebrate || disposed || !finish.see(atBookEnd())) return false;
-    penguSays(tt('You finished “{title}”!', { title: text(book!.title) }), 6500, { confetti: true });
+    penguSays(tt('You finished “{title}”!', { title: text(book!.title) }), 6500);
     return true;
   }
 

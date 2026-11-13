@@ -2047,11 +2047,14 @@ to the account tells it the time zone and the app's language (`about`), so remin
   Pengu is animated like a cartoon, a drawing at a time (`ui/pengu.ts`, `styles/pengu.css`; Henry found the whole picture
   bobbing and sliding about "really unnatural", 2026-11-12). The drawings were made by editing the mascot in ChatGPT
   (`art/pengu-*.png`, see `scripts/make-pengu.py`). Over its book: half-shut and shut eyes (a blink every few seconds while it is
-  on screen, now and then two), and one flipper up tipped out, straight and tipped in (a wave). Each of those is laid over the
-  mascot only where the edit really changed it, so the rest never shimmers. On its own feet, without the book, for good news:
+  on screen, now and then two), each laid over the mascot only where the edit really changed it, so the rest never shimmers.
+  The wave is a cutout (drawn wave frames swapped in turn looked stiff): the raised flipper cut out of an edit on a layer of its
+  own (`pengu-arm.webp`, its shoulder in `arm.json`) over the picture without that flipper (`pengu-noflip.webp`); it comes up
+  off the book, swings out and in from the shoulder and goes back down, while the resting flipper fades out and back in. On its own feet, without the book, for good news:
   standing, crouched, pushing off and at the top with its flippers in the air. These are set down on one ground line and change
   only the pose, while Pengu goes up and down along a smooth arc (`jumpArc`, transforms, as high as the top drawing was drawn:
-  `ui/pengu/jump.json`); four drawings alone would jump in steps. Every drawing of a set is stacked in one box and only one shows
+  `ui/pengu/jump.json`); four drawings alone would jump in steps. Each jump for good news throws a small burst of paper from
+  behind Pengu as it leaves the ground (`penguConfetti`; not for a tap). Every drawing of a set is stacked in one box and only one shows
   (visibility), so a swap lays nothing out; `preloadPengu` loads and decodes them all at the start and starts the blinking.
   Moves (`animatePengu`): pop (a fade), wave, blink, hop (one jump), cheer (two), boing (a tap: a wave, or a jump). The 'cheer'
   pose is the jumping Pengu, every other pose Pengu over its book. Pengu fades in and waves on the welcome screen and over the
@@ -2061,9 +2064,7 @@ to the account tells it the time zone and the app's language (`about`), so remin
   up, jumps when a session ends (twice, with the confetti, for one that cleared everything due), and comes up from the bottom of
   the screen jumping for joy to say the day's goal is reached (`penguSays`: it waits while a word card, a reader
   menu or a flashcard is up; only Pengu and the bubble take taps; Escape puts it away). The first
-  time a reader gets to the end of a book, it says so with a small burst of paper from behind it as it leaves the ground
-  (`penguSays(…, { confetti })`,
-  `penguConfetti`; the reader's `ui/reader/bookEnd.ts`: once per book on this device, `dushu.books-finished.v1`; never for a book
+  time a reader gets to the end of a book, it says so the same way (the reader's `ui/reader/bookEnd.ts`: once per book on this device, `dushu.books-finished.v1`; never for a book
   that opens at its end, a saved place already "Finished", a chapter still being laid out, or where the browser cannot animate).
   A word saved from its card sends its star along a short curve to Vocabulary in the top bar, which nudges once (`ui/fly.ts`
   `flyTo`; nothing when the bar is hidden, as in the reader, or off screen). Transforms

@@ -5,6 +5,8 @@
 .pengu { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-select: none; user-select: none; pointer-events: none; }
 .pengu-f { position: absolute; inset: 0; visibility: hidden; }
 .pengu-f.on { visibility: visible; }
+/* The waving flipper (over its book): a cutout over the picture without it, turned from its shoulder; unseen until it waves. */
+.pengu-arm { position: absolute; inset: 0; opacity: 0; }
 .pengu-tappable { cursor: pointer; }
 
 /* Pengu peeking over the top edge of a card: behind it, so only its head shows above the edge. */

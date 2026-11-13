@@ -5,8 +5,9 @@
 // Around the app Pengu is animated like a cartoon, a drawing at a time (drawings made by editing the mascot in ChatGPT): a
 // move shows them in turn. A picture is never bent or stretched; the drawings do that. Two sets:
 //
-//   book   Pengu over its book (most places): it blinks now and then (open, half shut, shut, half shut), and waves hello with
-//          one flipper (out, up, in, up)
+//   book   Pengu over its book (most places): it blinks now and then (open, half shut, shut, half shut), and waves hello: its
+//          flipper is a cutout of its own (pengu-arm.webp) that comes up from the book and swings from the shoulder, smoothly
+//          (swapping drawn wave frames looked stiff)
 //   jump   Pengu on its own feet, for good news (a review done, the day's goal, a book finished): it crouches, pushes off, jumps
 //          with its flippers in the air and lands. The drawings stand on one ground line and change only the pose; Pengu goes up
 //          and down along a smooth arc while they change (`jumpArc`), as high as it was drawn at the top (jump.json).
@@ -15,16 +16,18 @@
 //   animatePengu(el, move)    a move on that span: pop (fading in), wave, blink, hop (one jump), cheer (two), boing (a tap)
 //   penguPeek(card)           Pengu peeking over the top edge of a card, hidden behind it below the edge
 //   penguSays(text)           Pengu jumping for joy at the bottom of the screen with a speech bubble (the daily goal reached; a
-//                             book finished, with a small burst of paper from behind it)
+//                             book finished)
+//
+// Every jump for good news throws a small burst of paper from behind Pengu as it leaves the ground (penguConfetti).
 //
 // Everything stops for a reader who asks for reduced motion, and does nothing where the browser cannot animate (tests).
 import '../styles/pengu.css';
 import penguUrl from './pengu/pengu.webp';
 import blinkHalfUrl from './pengu/pengu-blink-half.webp';
 import blinkUrl from './pengu/pengu-blink.webp';
-import wave1Url from './pengu/pengu-wave-1.webp';
-import waveMidUrl from './pengu/pengu-wave-mid.webp';
-import wave2Url from './pengu/pengu-wave-2.webp';
+import noflipUrl from './pengu/pengu-noflip.webp';
+import armUrl from './pengu/pengu-arm.webp';
+import arm from './pengu/arm.json';
 import standUrl from './pengu/pengu-stand.webp';
 import crouchUrl from './pengu/pengu-crouch.webp';
 import riseUrl from './pengu/pengu-rise.webp';
@@ -37,7 +40,7 @@ export type PenguMove = 'pop' | 'wave' | 'blink' | 'hop' | 'cheer' | 'boing';
 
 /** Each set's drawings by name; `rest` is the one shown between moves. */
 const SETS = {
-  book: { rest: penguUrl, 'blink-half': blinkHalfUrl, blink: blinkUrl, 'wave-1': wave1Url, 'wave-mid': waveMidUrl, 'wave-2': wave2Url },
+  book: { rest: penguUrl, 'blink-half': blinkHalfUrl, blink: blinkUrl, noflip: noflipUrl },
   jump: { rest: standUrl, crouch: crouchUrl, rise: riseUrl, air: airUrl },
 } as const;
 type Kind = keyof typeof SETS;
@@ -46,9 +49,46 @@ const kindOf = (pose: PenguPose): Kind => (pose === 'cheer' ? 'jump' : 'book');
 
 /** A move: drawings and how long each shows (ms), then back to `rest`. */
 type Seq = readonly (readonly [string, number])[];
-// A wave: the flipper out, up, in, up, three times over, about a second and a half.
-const WAVE_ONCE: Seq = [['wave-1', 140], ['wave-mid', 90], ['wave-2', 140], ['wave-mid', 90]];
-const WAVE: Seq = [...WAVE_ONCE, ...WAVE_ONCE, ...WAVE_ONCE, ['wave-1', 180]];
+// A wave, 1.7 s: the flipper comes up off the book, swings out and in from the shoulder three times, and goes back down.
+const WAVE_MS = 1700;
+const WAVE_SWING: Keyframe[] = [
+  { transform: 'rotate(38deg)', opacity: 0, offset: 0, easing: 'cubic-bezier(.2,.8,.3,1)' },
+  { transform: 'rotate(-4deg)', opacity: 1, offset: 0.13, easing: 'ease-in-out' },
+  { transform: 'rotate(18deg)', offset: 0.27, easing: 'ease-in-out' },
+  { transform: 'rotate(-10deg)', offset: 0.41, easing: 'ease-in-out' },
+  { transform: 'rotate(18deg)', offset: 0.55, easing: 'ease-in-out' },
+  { transform: 'rotate(-10deg)', offset: 0.69, easing: 'ease-in-out' },
+  { transform: 'rotate(10deg)', offset: 0.81, easing: 'ease-in-out' },
+  { transform: 'rotate(0deg)', opacity: 1, offset: 0.88, easing: 'cubic-bezier(.5,0,.8,.4)' },
+  { transform: 'rotate(38deg)', opacity: 0, offset: 1 },
+];
+/** How long the flipper on the book fades out as the cutout one comes up, and back in as it goes down (ms). */
+const NUB_MS = 200;
+
+/**
+ * Waves with the cutout flipper: the picture without the right flipper shows over the mascot while the mascot's resting flipper
+ * fades out (it shows only through where that one is missing), the cutout swings, and the resting flipper fades back in.
+ */
+function waveArm(stack: HTMLElement, delay: number): void {
+  const flip = stack.querySelector<HTMLElement>('.pengu-arm');
+  const bare = stack.querySelector<HTMLElement>('.pengu-f[data-f="noflip"]');
+  const rest = stack.querySelector<HTMLElement>('.pengu-f[data-f="rest"]');
+  if (!flip || !bare || !rest) return;
+  stop(stack);
+  const timers = [
+    window.setTimeout(() => {
+      bare.classList.add('on');
+      rest.animate([{ opacity: 1 }, { opacity: 0 }], { duration: NUB_MS, fill: 'forwards' });
+    }, delay),
+    window.setTimeout(() => {
+      for (const a of rest.getAnimations()) a.cancel();
+      rest.animate([{ opacity: 0 }, { opacity: 1 }], { duration: NUB_MS });
+    }, delay + WAVE_MS - NUB_MS),
+    window.setTimeout(() => { bare.classList.remove('on'); playing.delete(stack); }, delay + WAVE_MS),
+  ];
+  playing.set(stack, timers);
+  flip.animate(WAVE_SWING, { duration: WAVE_MS, delay });
+}
 // One jump, 780 ms: down into a crouch, up (pushing off), the top with its flippers in the air, down (the push-off drawing
 // again, falling), landing in a crouch. jumpArc moves it along the same times.
 const JUMP: Seq = [['crouch', 150], ['rise', 100], ['air', 310], ['rise', 100], ['crouch', 120]];
@@ -77,7 +117,7 @@ function jumpArc(stack: HTMLElement, jumps: number, delay: number): void {
 const BLINK: Seq = [['blink-half', 50], ['blink', 80], ['blink-half', 50]];
 const DOUBLE_BLINK: Seq = [...BLINK, ['rest', 110], ...BLINK];
 const SEQS: Record<Kind, Partial<Record<PenguMove, Seq>>> = {
-  book: { wave: WAVE, boing: WAVE, hop: WAVE, cheer: WAVE, blink: BLINK },
+  book: { blink: BLINK },
   jump: { wave: JUMP, boing: JUMP, hop: JUMP, cheer: [...JUMP, ...JUMP] },
 };
 /** How many jumps each move is, for jumpArc. */
@@ -92,7 +132,7 @@ const still = (): boolean => typeof matchMedia === 'function' && matchMedia('(pr
  */
 export function preloadPengu(): void {
   if (typeof Image !== 'function') return;
-  for (const url of new Set(Object.values(SETS).flatMap((set) => Object.values(set)))) {
+  for (const url of new Set([...Object.values(SETS).flatMap((set) => Object.values(set)), armUrl])) {
     const img = new Image();
     img.src = url;
     void img.decode?.().catch(() => {});
@@ -111,6 +151,8 @@ export function penguHtml(pose: PenguPose = 'stand', label = ''): string {
     const said = rest && label ? ` alt="${attr(label)}"` : ' alt="" aria-hidden="true"';
     return `<img class="pengu pengu-f${rest ? ' on' : ''}" data-f="${name}" src="${url}"${said} draggable="false" decoding="async">`;
   });
+  // Over its book, the waving flipper on a layer of its own, turning from its shoulder (arm.json), unseen until it waves.
+  if (kind === 'book') imgs.push(`<img class="pengu pengu-arm" src="${armUrl}" alt="" aria-hidden="true" draggable="false" decoding="async" style="transform-origin:${arm.x}% ${arm.y}%">`);
   return `<span class="pengu-stack" data-kind="${kind}">${imgs.join('')}</span>`;
 }
 
@@ -128,7 +170,8 @@ const showFrame = (stack: Element, name: string) => {
 function stop(stack: Element): void {
   for (const t of playing.get(stack) ?? []) window.clearTimeout(t);
   playing.delete(stack);
-  for (const a of (stack as HTMLElement).getAnimations?.() ?? []) a.cancel();
+  for (const a of (stack as HTMLElement).getAnimations?.({ subtree: true }) ?? []) a.cancel();
+  showFrame(stack, 'rest');
 }
 function play(stack: Element, seq: Seq, delay = 0): void {
   stop(stack);
@@ -152,10 +195,20 @@ export function animatePengu(el: Element | null | undefined, move: PenguMove, de
   }
   const stack = stackOf(el);
   const kind = stack?.dataset.kind as Kind | undefined;
-  const seq = kind && SEQS[kind][move];
-  if (!stack || !seq) return;
+  if (!stack || !kind) return;
+  // Over its book, anything but a blink is a wave.
+  if (kind === 'book' && move !== 'blink') { waveArm(stack, delay); return; }
+  const seq = SEQS[kind][move];
+  if (!seq) return;
   play(stack, seq, delay);
-  if (kind === 'jump') jumpArc(stack, JUMPS[move] ?? 1, delay);
+  if (kind !== 'jump') return;
+  const jumps = JUMPS[move] ?? 1;
+  jumpArc(stack, jumps, delay);
+  // Good news: a burst of paper from behind Pengu as it leaves the ground, every jump (not for a tap).
+  if (move === 'boing') return;
+  for (let i = 0; i < jumps; i++) {
+    playing.get(stack)?.push(window.setTimeout(() => { if (stack.isConnected) penguConfetti(stack); }, delay + i * JUMP_MS + LIFT_OFF));
+  }
 }
 
 /** Pengu over its book blinks every few seconds while it is on the screen, now and then twice. */
@@ -270,9 +323,9 @@ export function penguConfetti(from: Element): void {
  * Pengu coming up from the bottom of the screen with `text` in a speech bubble, jumping for joy, for a few seconds. It waits while something is
  * being looked at (a word card or a reader menu open, or a flashcard in Review), so it never covers the thing in hand, and gives
  * up after a few minutes. Only Pengu and the bubble take taps (a tap puts it away), Escape puts it away too, and screen readers
- * hear the text once: the bubble is filled after the live region is on the page. `confetti` adds a light burst (a finished book).
+ * hear the text once: the bubble is filled after the live region is on the page. Its jumps throw the paper.
  */
-export function penguSays(text: string, ms = 6000, opts: { confetti?: boolean } = {}): void {
+export function penguSays(text: string, ms = 6000): void {
   const busy = () => !!document.querySelector('.pp-pop, .rd-pop')
     || (document.body.dataset.route === 'review' && !!document.querySelector('.rev-card'));
   const started = Date.now();
@@ -308,8 +361,6 @@ export function penguSays(text: string, ms = 6000, opts: { confetti?: boolean } 
       box.classList.add('on');
       // Up from below, it jumps for joy twice.
       animatePengu(pengu, 'cheer', 360);
-      // The paper as it leaves the ground.
-      if (opts.confetti) window.setTimeout(() => { if (!gone) penguConfetti(pengu); }, 580);
     }));
     window.setTimeout(away, ms);
   };

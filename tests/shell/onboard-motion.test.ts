@@ -183,19 +183,22 @@ describe('the walkthrough', () => {
     const guide = showGuide(document.body, twoTargets());
     const card = document.querySelector<HTMLElement>('.rd-guide-card')!;
     const spot = document.querySelector<HTMLElement>('.rd-guide-spot')!;
+    // Pengu waves in its corner (ui/pengu.ts); everything else holds still but for the card's fade.
+    const pengu = card.querySelector('.rd-guide-pengu')!;
+    const moving = () => runs.filter((r) => !pengu.contains(r.el));
     // The first step's card and box just appear.
     expect([spot.style.left, spot.style.top, spot.style.width, spot.style.height]).toEqual(['94px', '94px', '62px', '32px']);
-    expect(runs).toHaveLength(0);
+    expect(moving()).toHaveLength(0);
     const was = { left: card.style.left, top: card.style.top };
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
     expect({ left: card.style.left, top: card.style.top }).not.toEqual(was);
     expect([spot.style.left, spot.style.top, spot.style.width, spot.style.height]).toEqual(['194px', '394px', '92px', '42px']);
-    // One fade on the card, and nothing else moves: no slide, no stretch, Pengu still.
-    expect(runs.map((r) => [r.el, r.frames.map((f) => f.opacity)])).toEqual([[card, [0, 1]]]);
-    expect(runs.every((r) => r.frames.every((f) => f.transform === undefined))).toBe(true);
+    // One fade on the card, and nothing else moves: no slide, no stretch.
+    expect(moving().map((r) => [r.el, r.frames.map((f) => f.opacity)])).toEqual([[card, [0, 1]]]);
+    expect(moving().every((r) => r.frames.every((f) => f.transform === undefined))).toBe(true);
     // A new window size puts it in its place at once.
     window.dispatchEvent(new Event('resize'));
-    expect(runs[0].cancelled).toBe(true);
+    expect(moving()[0].cancelled).toBe(true);
     guide.stop();
   });
 
