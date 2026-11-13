@@ -1776,7 +1776,7 @@ export const mount: MountFn = async (root, params, ctx) => {
     };
     // Four steps, only what a first read needs. The bar's plain icons (read aloud, chapters, bookmark, back) explain themselves.
     const steps: GuideStep[] = [
-      { target: firstWord, title: tt('Look up a word'), pose: 'read', body: [touch
+      { target: firstWord, title: tt('Look up a word'), body: [touch
         ? tt('Tap a word to see what it means and save it for review. Tap it twice for the whole sentence and its translation.')
         : tt('Click a word to see what it means and save it for review. Drag across a sentence to translate it.')] },
       { target: () => pinyinBtn, title: aidName(), body: [

@@ -100,11 +100,12 @@ export const mount: MountFn = (root, _params, ctx) => {
       : [h('h2.rev-empty-title', null, tt('Nothing due right now')),
          h('p', null, next ? nextDueLine(next) : tt('You are all caught up.')),
          h('a.btn', { href: '#/vocab' }, icon('list'), tt('See your words'))];
-    // Pengu: waving at someone with no cards yet, cheering someone who is all caught up.
+    // Pengu: waving at someone with no cards yet, jumping for someone who is all caught up.
     cardHost = null;
     const pengu = penguEl(total === 0 ? 'wave' : 'cheer', 'rev-pengu');
     screen.append(head(), h('div.card.rev-empty', null, pengu, ...msg));
     animatePengu(pengu, 'pop', 60);
+    animatePengu(pengu, total === 0 ? 'wave' : 'hop', 380);
   }
 
   // -------------------------------------------------------------- card ---

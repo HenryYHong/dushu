@@ -2039,31 +2039,35 @@ to the account tells it the time zone and the app's language (`about`), so remin
   pictures on white, the same size with Pengu in the same place (2026-11-12): calm, beak closed (`art/pengu-logo.png`) and happy,
   beak open (`art/pengu-read.png`). `scripts/make-pengu.py` cuts each out of its white (the white reachable from the edge, outside
   Pengu's dark outline, each pixel as see-through as it is close to the white) and keeps its colors. The happy one is the mascot
-  (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`). The calm one on a white square with rounded corners is the logo: the brand mark
+  (`ui/pengu/pengu.webp`, `penguHtml`, `penguEl`). The calm one filling a white square with rounded corners is the logo (its head
+  near the top, the book running into the bottom edge, `logo_square`): the brand mark
   in the bar (`ui/pengu/logo.webp`, `penguMark`, with a hairline so it reads on the paper page), the browser tab's icon
   (`public/icon.svg`) and the installed app's PNG icons (the maskable one with Pengu inside the safe zone); the manifest lists
-  only the PNGs. Both are cut to one square, so the mascot and the logo frame Pengu alike.
-  Pengu has three poses: reading (`pengu.webp`), waving (`pengu-wave.webp`: the welcome, the walkthrough's first step, Review with
-  no cards) and cheering (`pengu-cheer.webp`: the walkthrough's last step, a review finished, the daily goal, a book finished).
-  Until waving and cheering are drawn in this style, both are the happy Pengu; a pose drawn later goes in the same square, so one
-  takes another's place without Pengu moving, and
-  `preloadPengu` loads and decodes all three at the start, so a pose that changes (the walkthrough) never blinks.
-  Pengu is a flat sticker and moves like one (`ui/pengu.ts`, `styles/pengu.css`): it never bobs or sways on its own and is never
-  squashed, stretched or tilted (that looked rubbery and odd). Its span takes small one-off moves from the Web Animations API:
-  pop (a fade in as it rises a little), hop, boing, cheer (small hops of the whole picture), duck and nod. It fades in on the
-  welcome screen and the empty screens, sits still in the walkthrough's card, hops a little when tapped, peeks over the top edge of the library's first book (`penguPeek`; never over Review's
-  flashcard, where it got in the way of studying), hops or (for a session that
-  cleared everything due, with the confetti) cheers when a session ends, reads in place of the spinner while the library opens,
-  and pops up from the bottom of the screen to say the day's goal is reached (`penguSays`: it waits while a word card, a reader
+  only the PNGs.
+  Pengu is animated like a cartoon, a drawing at a time (`ui/pengu.ts`, `styles/pengu.css`; Henry found the whole picture
+  bobbing and sliding about "really unnatural", 2026-11-12). The drawings were made by editing the mascot in ChatGPT
+  (`art/pengu-*.png`, see `scripts/make-pengu.py`). Over its book: half-shut and shut eyes (a blink every few seconds while it is
+  on screen, now and then two), and one flipper up tipped out, straight and tipped in (a wave). Each of those is laid over the
+  mascot only where the edit really changed it, so the rest never shimmers. On its own feet, without the book, for good news:
+  standing, crouched, pushing off and at the top with its flippers in the air. These are set down on one ground line and change
+  only the pose, while Pengu goes up and down along a smooth arc (`jumpArc`, transforms, as high as the top drawing was drawn:
+  `ui/pengu/jump.json`); four drawings alone would jump in steps. Every drawing of a set is stacked in one box and only one shows
+  (visibility), so a swap lays nothing out; `preloadPengu` loads and decodes them all at the start and starts the blinking.
+  Moves (`animatePengu`): pop (a fade), wave, blink, hop (one jump), cheer (two), boing (a tap: a wave, or a jump). The 'cheer'
+  pose is the jumping Pengu, every other pose Pengu over its book. Pengu fades in and waves on the welcome screen and over the
+  library's first book (`penguPeek`; never over Review's flashcard, where it got in the way of studying), waves at the
+  walkthrough's first and last steps (the card itself fades between steps and never travels), blinks over empty Vocabulary and
+  About and in place of the spinner while the library opens, waves at an empty Review and jumps once for one that is all caught
+  up, jumps when a session ends (twice, with the confetti, for one that cleared everything due), and comes up from the bottom of
+  the screen jumping for joy to say the day's goal is reached (`penguSays`: it waits while a word card, a reader
   menu or a flashcard is up; only Pengu and the bubble take taps; Escape puts it away). The first
-  time a reader gets to the end of a book, it says so with a small burst of paper from behind it (`penguSays(…, { confetti })`,
+  time a reader gets to the end of a book, it says so with a small burst of paper from behind it as it leaves the ground
+  (`penguSays(…, { confetti })`,
   `penguConfetti`; the reader's `ui/reader/bookEnd.ts`: once per book on this device, `dushu.books-finished.v1`; never for a book
   that opens at its end, a saved place already "Finished", a chapter still being laid out, or where the browser cannot animate).
   A word saved from its card sends its star along a short curve to Vocabulary in the top bar, which nudges once (`ui/fly.ts`
   `flyTo`; nothing when the bar is hidden, as in the reader, or off screen). Transforms
-  and opacity only; nothing moves with reduced motion. `scripts/make-icons.mjs` draws the link picture. One picture serves every pose
-  for now (`PenguPose` names the use, and styles move it). It waves on the welcome screen, stands
-  beside each walkthrough step (`ui/guide.ts`), reads over empty Vocabulary and About, and cheers when a review session ends.
+  and opacity only; nothing moves with reduced motion. `scripts/make-icons.mjs` draws the link picture.
   Fixed colors, not the theme's, so it looks the same in light and dark; its animations stop with reduced motion.
 - Page heads: `ui/pageHead.ts` `pageTitle(screen, title)` builds each screen's one `h1`: the screen's name in the library's language first
   (书架 生词 复习 设置 关于 in the Chinese library, Biblioteca in the Spanish one; `span.page-title-zh[aria-hidden=true]`), then the title in

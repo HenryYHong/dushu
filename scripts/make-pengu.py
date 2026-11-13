@@ -9,14 +9,38 @@ open terracotta book, on white, the same size and in the same place:
     art/pengu-logo.png   Pengu calm, beak closed: the logo (the brand mark in the bar, the browser tab, the app's icons)
     art/pengu-read.png   Pengu happy, beak open: the mascot inside the app
 
-Each is cut out of its white (every pixel outside Pengu's dark outline as see-through as it is close to the white, so it sits
-cleanly on a light or a dark page) and kept in its own colors. The logo is the cutout on a white square with rounded corners
-(a home screen wants a solid square anyway: iOS fills a see-through one with black). Until there are waving and cheering
-poses drawn in this style, those two are the happy Pengu too. It writes:
+Pengu is animated a drawing at a time (ui/pengu.ts swaps them), from drawings made in ChatGPT (2026-11-12), all 1254 px
+square. Over its book, each an edit of art/pengu-read.png with one thing changed:
 
-    src/ui/pengu/pengu.webp        the mascot (peeking over a card, empty screens), 512 px
-    src/ui/pengu/pengu-wave.webp   the waving pose (the welcome, the walkthrough's first step, nothing to review), 512 px
-    src/ui/pengu/pengu-cheer.webp  the cheering pose (a review finished, the daily goal, a book finished), 512 px
+    art/pengu-blink-half.png  eyes half shut                 (a blink: half, shut, half)
+    art/pengu-blink.png       eyes shut
+    art/pengu-wave-1.png      one flipper up, tipped outward (a wave: out, up, in, up, out...)
+    art/pengu-wave-mid.png    the same flipper straight up
+    art/pengu-wave-2.png      the same flipper tipped inward
+
+An edit redraws the whole picture a hair differently, so swapping to it would make every line shimmer. Only what the edit
+really changed is taken from it (where it differs from the mascot by more than a thin line's worth, grown and softened at the
+edge) and laid over the mascot; everything else is the mascot's own pixels, so the frames hold still but for the part that moves.
+
+And on its own feet, without the book, for good news (a jump: stand, crouch, rise, air, and back down):
+
+    art/pengu-stand.png    standing, room above it to jump into
+    art/pengu-crouch.png   crouched to jump, the feet where they were
+    art/pengu-rise.png     on the way up
+    art/pengu-air.png      at the top, flippers in the air
+
+These change all over, so they are used whole. Each is set down on the standing Pengu's ground (moved down by however far
+up it was drawn), so the drawings change Pengu's pose and nothing else, and the app moves Pengu up and down along a smooth
+arc while they change (ui/pengu.ts): drawings alone would jump in steps. How far up each was drawn, a share of the square, is
+written to src/ui/pengu/jump.json for that arc. All four are framed in one square that holds the whole jump.
+
+Each picture is cut out of its white (every pixel outside Pengu's dark outline as see-through as it is close to the white, so it
+sits cleanly on a light or a dark page) and kept in its own colors. The logo is the cutout filling a white square with rounded
+corners, the book running into its bottom edge and Pengu's head near the top (a home screen wants a solid square anyway: iOS
+fills a see-through one with black). It writes:
+
+    src/ui/pengu/pengu.webp        the mascot (peeking over a card, empty screens), 384 px
+    src/ui/pengu/pengu-<frame>.webp  each drawing above, 384 px (the book ones framed exactly like the mascot)
     src/ui/pengu/logo.webp         the logo, the brand mark in the bar, 128 px
     art/pengu-cutout.png           the mascot at full size, for scripts/make-icons.mjs (the link picture)
     public/icon.svg                the logo for the browser tab, a 128 px picture inside an SVG
@@ -24,15 +48,17 @@ poses drawn in this style, those two are the happy Pengu too. It writes:
     public/icons/apple-touch-icon.png (180)        the square, full bleed (iOS rounds the corners)
     public/icons/icon-maskable-512.png             the square with Pengu smaller, inside the central safe zone
 """
-import base64, io, os
+import base64, io, json, os
 from collections import deque
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 LOGO = os.path.join(REPO, 'art', 'pengu-logo.png')
 MASCOT = os.path.join(REPO, 'art', 'pengu-read.png')
-# The poses the app shows, by the mascot image each one writes: the happy Pengu for now (see above).
-POSES = ['pengu-wave', 'pengu-cheer']
+# The animation's drawings (see above): edits of the mascot over its book, and the jump.
+FRAMES = ['blink-half', 'blink', 'wave-1', 'wave-mid', 'wave-2']
+JUMP = ['stand', 'crouch', 'rise', 'air']
+MASCOT_PX = 384   # three times the largest Pengu on a page (128 px), for a phone's screen
 SOFT = (10, 60)   # distance from the background color (RGB) at which a pixel starts to show, and at which it is solid
 GROUND = (255, 255, 255)        # the logo's ground: white
 
@@ -90,6 +116,37 @@ def cutout(im: Image.Image) -> Image.Image:
     return out
 
 
+def changed_part(base: Image.Image, edit: Image.Image) -> Image.Image:
+    """`edit` where it really differs from `base`, and `base` everywhere else (both RGB, the same size).
+
+    A difference only a few pixels wide (a line redrawn a hair to one side) is dropped by an opening; what is left is grown, to
+    take in the new part's own edges and the lines it touches, and softened, so the seam does not show."""
+    if edit.size != base.size:
+        raise SystemExit(f'a frame is {edit.size}, not {base.size} like art/pengu-read.png')
+    diff = ImageChops.difference(base, edit).convert('L').point(lambda v: 255 if v > 24 else 0)
+    mask = diff.filter(ImageFilter.MinFilter(9)).filter(ImageFilter.MaxFilter(9))
+    # Grown well past the change, so every line it touches is the edit's own whole line; the seam lands where the two pictures
+    # agree, and is softened there.
+    for _ in range(3):
+        mask = mask.filter(ImageFilter.MaxFilter(15))
+    mask = mask.filter(ImageFilter.GaussianBlur(6))
+    return Image.composite(edit, base, mask)
+
+
+def logo_square(sticker: Image.Image, size: int, top: float = 0.07, bleed: float = 0.025) -> Image.Image:
+    """A white square filled by the sticker: its top `top` of the side down from the square's top, the book running a little
+    past the bottom edge (`bleed`), so the book sits on the edge with its bottom line cut off, centered left to right."""
+    part = sticker.crop(sticker.getbbox())
+    h = round(size * (1 - top + bleed))
+    w = round(part.width * h / part.height)
+    if w > size * 0.96:
+        raise SystemExit(f'the logo is too wide for its square at this height ({w} of {size} px)')
+    s = part.resize((w, h), Image.LANCZOS)
+    sq = Image.new('RGBA', (size, size), GROUND + (255,))
+    sq.paste(s, ((size - w) // 2, round(size * top)), s)
+    return sq
+
+
 def on_ground(sticker: Image.Image, size: int, share: float) -> Image.Image:
     """A white square with the sticker taking `share` of its width, a little below the middle."""
     sq = Image.new('RGBA', (size, size), GROUND + (255,))
@@ -126,19 +183,40 @@ def save(im: Image.Image, path: str, size: int, **kw) -> None:
 
 def main() -> None:
     logo_cut = cutout(Image.open(LOGO).convert('RGB'))
-    read_cut = cutout(Image.open(MASCOT).convert('RGB'))
+    read_rgb = Image.open(MASCOT).convert('RGB')
+    read_cut = cutout(read_rgb)
     if read_cut.size != logo_cut.size:
         raise SystemExit(f'art/pengu-read.png is {read_cut.size}, not {logo_cut.size} like art/pengu-logo.png')
-    # Both cut to the same box (the two together), so the mascot and the logo frame Pengu alike.
-    box = tuple(f(a, b) for f, a, b in zip((min, min, max, max), logo_cut.getbbox(), read_cut.getbbox()))
-    mascot = trim_square(read_cut, box=box)
+    union = lambda boxes: tuple(f(v) for f, v in zip((min, min, max, max), zip(*boxes)))
+    # The logo and the mascot cut to the same box (the two together), so they frame Pengu alike.
+    box = union([logo_cut.getbbox(), read_cut.getbbox()])
+    frames = {name: cutout(changed_part(read_rgb, Image.open(os.path.join(REPO, 'art', f'pengu-{name}.png')).convert('RGB'))) for name in FRAMES}
+    # The mascot and its frames in one box that holds them all (a raised flipper may reach past the mascot), so swapping one
+    # picture for another moves nothing but the part that changed.
+    still = union([box] + [f.getbbox() for f in frames.values()])
+    mascot = trim_square(read_cut, box=still)
     mascot.save(os.path.join(REPO, 'art', 'pengu-cutout.png'), optimize=True)
     print('wrote art/pengu-cutout.png')
-    save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', 'pengu.webp'), 512, quality=90, method=6)
-    for out in POSES:
-        save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', f'{out}.webp'), 512, quality=90, method=6)
+    save(mascot, os.path.join(REPO, 'src', 'ui', 'pengu', 'pengu.webp'), MASCOT_PX, quality=90, method=6)
+    for name, cut in frames.items():
+        save(trim_square(cut, box=still), os.path.join(REPO, 'src', 'ui', 'pengu', f'pengu-{name}.webp'), MASCOT_PX, quality=90, method=6)
+    jump = {name: cutout(Image.open(os.path.join(REPO, 'art', f'pengu-{name}.png')).convert('RGB')) for name in JUMP}
+    # The square holds the whole jump as drawn (the highest drawing's top down to the ground).
+    whole = union([cut.getbbox() for cut in jump.values()])
+    floor = jump['stand'].getbbox()[3]
+    side = int(max(whole[2] - whole[0], whole[3] - whole[1]) * (1 + 2 * 0.04))
+    lifts = {}
+    for name, cut in jump.items():
+        up = floor - cut.getbbox()[3]
+        lifts[name] = round(100 * up / side, 2)
+        landed = Image.new('RGBA', cut.size, (0, 0, 0, 0))
+        landed.paste(cut, (0, up), cut)
+        save(trim_square(landed, box=whole), os.path.join(REPO, 'src', 'ui', 'pengu', f'pengu-{name}.webp'), MASCOT_PX, quality=90, method=6)
+    with open(os.path.join(REPO, 'src', 'ui', 'pengu', 'jump.json'), 'w') as f:
+        f.write(json.dumps(lifts) + '\n')
+    print(f'wrote src/ui/pengu/jump.json {lifts}')
     mark = trim_square(logo_cut, box=box)
-    square = on_ground(mark, 1024, 0.86)
+    square = logo_square(logo_cut, 1024)
     logo = rounded(square)
     save(logo, os.path.join(REPO, 'src', 'ui', 'pengu', 'logo.webp'), 128, quality=90, method=6)
     save(logo, os.path.join(REPO, 'public', 'icons', 'icon-192.png'), 192, optimize=True)
