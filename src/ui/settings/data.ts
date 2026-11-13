@@ -6,7 +6,8 @@ import { confirmDialog } from '../library/dialogs';
 import { currentSyncer, setSyncEnabled, withoutSync } from '../../core/sync';
 import { group, row } from './controls';
 import { isChinese, lang, langId, LANG_KEY } from '../../lang/active';
-import { LANG_IDS } from '../../lang/registry';
+import { LANG_IDS, LANGS, isLangId } from '../../lang/registry';
+import type { LangId } from '../../lang/types';
 import { LOCAL_ONLY_KEY, TARGET_KEY } from '../../store/settings';
 import { ACTIVITY_KEY, dayOf } from '../../core/activity';
 import { getPlan, PLAN_KEY } from '../../core/plan';
@@ -131,21 +132,37 @@ async function wipe(ctx: AppContext): Promise<void> {
  * saving; a second press goes on from where it stopped.
  */
 function offlineRow(): HTMLElement {
-  const language = langName(lang().id, lang().name);
+  // This library first, then every other language the reader is learning (the welcome's plan): one press for all of them.
+  const here = lang().id;
+  const langs = [here, ...getPlan().langs.filter((l): l is LangId => isLangId(l) && l !== here)];
+  const languages = new Intl.ListFormat(uiLocale(), { type: 'conjunction' }).format(langs.map((l) => langName(l, LANGS[l].name)));
   const btn = h('button.btn.btn-sm', { type: 'button' }, icon('download'), tt('Save for offline use')) as HTMLButtonElement;
   const line = h('div.set-help.set-offline-status', { role: 'status', 'aria-live': 'polite' });
   let files: PackFile[] | null = null;
-  const list = async (): Promise<PackFile[]> => (files ??= await packFiles(lang().id, document.baseURI, { readText: (u) => fetchDataText(u), doc: document }));
+  const list = async (): Promise<PackFile[]> => {
+    if (files) return files;
+    // Chinese and Japanese read with the reading fonts: their stylesheet is linked first (as those libraries do), so its font
+    // files are listed too.
+    if (langs.some((l) => l === 'zh' || l === 'ja')) await import('../../fonts').catch(() => {});
+    const seen = new Set<string>();
+    const all: PackFile[] = [];
+    for (const l of langs) {
+      for (const f of await packFiles(l, document.baseURI, { readText: (u) => fetchDataText(u), doc: document })) {
+        if (!seen.has(f.url)) { seen.add(f.url); all.push(f); }
+      }
+    }
+    return (files = all);
+  };
   const mb = (bytes: number) => num(Math.round(bytes / 1e5) / 10);
   const canKeep = () => typeof caches !== 'undefined' && !!navigator.serviceWorker?.controller;
-  const all = tt('Everything the {language} library uses is saved on this device, so it works with no connection.', { language });
+  const done = tt('Everything for {languages} is saved on this device, so it works with no connection.', { languages });
   // How much is saved already, when Settings opens.
   void (async () => {
     if (!canKeep()) return;
     try {
       const f = await list();
       const n = await storedCount(f);
-      line.textContent = n >= f.length ? all : tt('{n} of {total} files are saved on this device.', { n: num(n), total: num(f.length) });
+      line.textContent = n >= f.length ? done : tt('{n} of {total} files are saved on this device.', { n: num(n), total: num(f.length) });
     } catch { /* said when the button is pressed */ }
   })();
   btn.addEventListener('click', async () => {
@@ -162,18 +179,18 @@ function offlineRow(): HTMLElement {
       });
       line.textContent = r.failed
         ? tt('Saved, but {n} files could not be fetched. Press again with a better connection to finish.', { n: num(r.failed) })
-        : all;
+        : done;
     } catch {
       line.textContent = tt('Could not save for offline use. Check the connection and press again.');
     } finally {
       btn.disabled = false;
     }
   });
-  const what = lang().id === 'zh'
-    ? tt('Saves the {language} dictionary, every classic, the fonts and stroke order on this device, so the library works with no connection.', { language })
-    : lang().id === 'ja'
-      ? tt('Saves the {language} dictionary, every classic and the fonts on this device, so the library works with no connection.', { language })
-      : tt('Saves the {language} dictionary and every classic on this device, so the library works with no connection.', { language });
+  const what = langs.includes('zh')
+    ? tt('Saves the dictionary, every classic, the fonts and stroke order for {languages} on this device, so they work with no connection.', { languages })
+    : langs.includes('ja')
+      ? tt('Saves the dictionary, every classic and the fonts for {languages} on this device, so they work with no connection.', { languages })
+      : tt('Saves the dictionary and every classic for {languages} on this device, so they work with no connection.', { languages });
   return row(tt('Use offline'), `${what} ${tt('Translating whole sentences (except word by word and Chrome’s own translator), finding new books and sync still need the internet.')}`,
     h('div.set-offline', null, btn, line));
 }

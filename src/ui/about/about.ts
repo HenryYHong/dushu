@@ -88,6 +88,7 @@ const NAMES = () => [
 
 const DEVICES = () => [
   tt('Open LinguPengu in Safari, tap Share, then Add to Home Screen, and open it from that icon. It runs full screen and works offline.'),
+  tt('Going somewhere with no connection? Open Settings, then Data, and tap Save for offline use. It saves the whole dictionary, every classic and the fonts on the device, so everything works offline, not only what you opened before. It saves every language you are learning.'),
   tt('To add your own books, tap Import book and pick a file from the Files app.'),
   tt('Safari has no built-in translator. On an iPhone or iPad, sign in and your sentences are translated through your account. Signed out, you get a word-by-word gloss.'),
 ];

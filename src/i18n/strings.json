@@ -2136,7 +2136,7 @@
    "src/ui/vocab/lookups.ts"
   ]
  },
- "Everything the {language} library uses is saved on this device, so it works with no connection.": {
+ "Everything for {languages} is saved on this device, so it works with no connection.": {
   "where": [
    "src/ui/settings/data.ts"
   ]
@@ -2462,6 +2462,11 @@
  "Goal met today": {
   "where": [
    "src/ui/goalCard.ts"
+  ]
+ },
+ "Going somewhere with no connection? Open Settings, then Data, and tap Save for offline use. It saves the whole dictionary, every classic and the fonts on the device, so everything works offline, not only what you opened before. It saves every language you are learning.": {
+  "where": [
+   "src/ui/about/about.ts"
   ]
  },
  "Good": {
@@ -5095,17 +5100,17 @@
    "src/ui/reader/wordsTab.ts"
   ]
  },
- "Saves the {language} dictionary and every classic on this device, so the library works with no connection.": {
+ "Saves the dictionary and every classic for {languages} on this device, so they work with no connection.": {
   "where": [
    "src/ui/settings/data.ts"
   ]
  },
- "Saves the {language} dictionary, every classic and the fonts on this device, so the library works with no connection.": {
+ "Saves the dictionary, every classic and the fonts for {languages} on this device, so they work with no connection.": {
   "where": [
    "src/ui/settings/data.ts"
   ]
  },
- "Saves the {language} dictionary, every classic, the fonts and stroke order on this device, so the library works with no connection.": {
+ "Saves the dictionary, every classic, the fonts and stroke order for {languages} on this device, so they work with no connection.": {
   "where": [
    "src/ui/settings/data.ts"
   ]
