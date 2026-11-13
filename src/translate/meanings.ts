@@ -11,6 +11,7 @@
 import type { Settings } from '../types';
 import type { LangId } from '../lang/types';
 import { langId } from '../lang/active';
+import { glossCode, readerOf, readsOwnLanguage } from '../lang/ownDictionary';
 import { chromePair } from './chrome';
 import { createClaudeTranslator } from './claude';
 import { createAccountTranslator } from './account';
@@ -22,8 +23,11 @@ import { tt } from '../i18n';
 export type MeaningsMode = Settings['translateMeanings'];
 export type MeaningProviderId = 'chrome' | 'account' | 'claude' | 'mymemory';
 
-/** The language a library's dictionary explains words in: Chinese in the English library (ECDICT), else English. */
-export const dictionaryLanguage = (id: LangId = langId()): 'en' | 'zh' => (id === 'en' ? 'zh' : 'en');
+/**
+ * The language a library's dictionary explains words in for this reader (lang/ownDictionary.ts): the book's own language for
+ * someone who speaks it (English books for anyone), ECDICT's Chinese for a Chinese speaker reading English, else English.
+ */
+export const dictionaryLanguage = (id: LangId = langId(), reader?: string): string => glossCode(id, reader);
 
 /**
  * The language a card's meanings go into, or null when they stay as the dictionary has them: the setting says Never, or the
@@ -31,9 +35,10 @@ export const dictionaryLanguage = (id: LangId = langId()): 'en' | 'zh' => (id ==
  * Spanish, Chinese (either script) for a Chinese speaker reading English.
  */
 export function meaningsTarget(settings: Pick<Settings, 'translateTo' | 'translateMeanings'>, id: LangId = langId()): string | null {
-  if (settings.translateMeanings === 'never') return null;
+  const reader = readerOf(settings.translateTo);
+  if (settings.translateMeanings === 'never' || readsOwnLanguage(id, reader)) return null;
   const to = targetFor(settings.translateTo, id);
-  return to.split('-')[0] === dictionaryLanguage(id) ? null : to;
+  return to.split('-')[0] === dictionaryLanguage(id, reader) ? null : to;
 }
 
 export interface MeaningProvider {
@@ -107,7 +112,7 @@ const SPLIT_FAILED = () => new Error(tt('The translation did not keep the meanin
 // -------------------------------------------------------------- providers ---
 
 /** The translator `id` for meanings from `from` into `to`. */
-export function meaningProvider(id: MeaningProviderId, settings: Settings, from: 'en' | 'zh', to: string): MeaningProvider {
+export function meaningProvider(id: MeaningProviderId, settings: Settings, from: string, to: string): MeaningProvider {
   switch (id) {
     case 'chrome': {
       // Chrome names Chinese 'zh' and translates each text on the device: one call per meaning keeps them apart for free.
@@ -145,7 +150,7 @@ export function meaningProvider(id: MeaningProviderId, settings: Settings, from:
     case 'account': {
       // The servers build the prompt; a request names the dictionary's language as a book in it would (lang 'en', or none for
       // Chinese) and the reader's as `to`. One request for the card, the meanings numbered.
-      const translator = id === 'claude' ? createClaudeTranslator(settings, { source: from }) : createAccountTranslator(settings, from);
+      const translator = id === 'claude' ? createClaudeTranslator(settings, { source: from as LangId }) : createAccountTranslator(settings, from as LangId);
       const max = id === 'account' ? ACCOUNT_TEXT - 50 : 3000;
       return {
         id, onDevice: false,
@@ -192,7 +197,7 @@ export function meaningOrder(settings: Pick<Settings, 'translator'>): MeaningPro
  * (Safari with no account and no Mac, or Local only without Chrome), or the setting is Never.
  */
 export async function pickMeaningProvider(
-  settings: Settings, from: 'en' | 'zh', to: string,
+  settings: Settings, from: string, to: string,
   make: typeof meaningProvider = meaningProvider,
 ): Promise<MeaningPick | null> {
   const mode = settings.translateMeanings;

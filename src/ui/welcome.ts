@@ -20,7 +20,7 @@ import { chooseUiLang, isUiLang, langName, num, tt, ttm, uiLang, uiLocale } from
 import type { SettingsStore } from '../types';
 
 /** What each library explains its language in, where that is not English. Shown with tt. */
-const EXPLAINED: Partial<Record<LangId, string>> = { en: ttm('For Chinese speakers') };
+const EXPLAINED: Partial<Record<LangId, string>> = {};
 const GOAL_NAMES: Record<number, string> = { 5: ttm('Casual'), 10: ttm('Regular'), 15: ttm('Serious'), 20: ttm('Intense'), 30: ttm('Devoted') };
 
 /** A translation language named in the app's language: `english` as the list or a sentence has it ("Simplified Chinese"). */
@@ -37,8 +37,8 @@ export function suggestedTarget(learning: readonly LangId[], prefs: readonly str
       : tag.startsWith('tl') ? 'fil' : tag.split('-')[0];
     if (targetLanguage(code) && fits(code)) return code;
   }
-  // Someone learning only English reads it through Chinese (lang/registry.ts); everyone else through English.
-  return learning.length === 1 && learning[0] === 'en' ? 'zh' : fits('en') ? 'en' : 'zh';
+  // English, unless they are learning it: then their own language is likely English too (an English speaker reading English).
+  return fits('en') ? 'en' : learning.length === 1 && learning[0] === 'en' ? 'en' : 'zh';
 }
 
 /**
@@ -167,17 +167,16 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         warn.textContent = tt('{lang} books will be translated into {into} instead.',
           { lang: name, into: into ? targetName(into, into.prompt ?? into.name) : langName('en', 'English') });
       };
-      // Where word meanings come from: an English dictionary, a Chinese one for English books. Said only when that is not the
-      // reader's language, with the card's way to translate them (translate/meanings.ts).
-      const dicts = new Set(langs.map((l) => (l === 'en' ? 'zh' : 'en')));
+      // Where word meanings come from (lang/ownDictionary.ts): the book's own language for someone who speaks it (and English
+      // books for anyone), Chinese for a Chinese speaker reading English, else English. Said only when that is not the reader's
+      // language, with the card's way to translate them (translate/meanings.ts).
       const meanings = h('p.wel-help.wel-small');
       const sayMeanings = () => {
         const mine = target.split('-')[0];
+        const dicts = new Set(langs.map((l) => (l === 'en' ? (mine === 'zh' ? 'zh' : 'en') : l === mine ? l : 'en')));
         const other = [...dicts].some((d) => d !== mine);
         meanings.hidden = !other;
-        meanings.textContent = !other ? '' : dicts.size > 1 ? tt('Word meanings are in English (in Chinese for English books). Word cards can translate them for you.')
-          : dicts.has('zh') ? tt('Word meanings are in Chinese. Word cards can translate them for you.')
-            : tt('Word meanings are in English. Word cards can translate them for you.');
+        meanings.textContent = other ? tt('Word meanings are in English. Word cards can translate them for you.') : '';
       };
       sayMeanings();
       select.addEventListener('change', sayMeanings);

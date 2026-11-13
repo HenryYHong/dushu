@@ -5,6 +5,7 @@ import type { Token } from '../../types';
 import type { KanjiInfo, LangEngine, WordEntry, WordLookup } from '../../lang/types';
 import { lang } from '../../lang/active';
 import { levelLabel } from '../../lang/labels';
+import { glossCode, ownRareLookup } from '../../lang/ownDictionary';
 import { headOf, langVocabItem, safeLookup } from '../../lang/words';
 import { speak, stopSpeaking, canSpeak } from '../../speech/tts';
 import { h, clear } from '../dom';
@@ -279,20 +280,31 @@ export function mountLangWordView(
         ? tt('A name. The dictionary has no entry for it.')
         : tt('Not in the dictionary. Translate the sentence to see it in context.'));
       body.appendChild(missing);
-      // English: a rarer word than the dictionary keeps (cavillers) may be in the rest of ECDICT, fetched now (rareWords.ts).
+      // English: a rarer word than the dictionary keeps (cavillers) may be in the rest of it, fetched now (rareWords.ts): in
+      // simple English from Wiktionary, or ECDICT's Chinese for a Chinese reader (lang/ownDictionary.ts).
       if (L.id === 'en' && !(lu.name || v.token?.name)) {
         const said = missing.textContent;
         missing.textContent = tt('Looking it up…');
+        const base = new URL('data/en/', document.baseURI).href;
+        const english = glossCode('en') === 'en';
         void import('../../lang/spaced/rareWords')
-          .then((r) => r.rareLookup(new URL('data/en/', document.baseURI).href, v.word))
+          .then(async (r) => {
+            if (!english) {
+              const hit = await r.rareLookup(base, v.word);
+              return hit && { key: hit.key, lines: hit.gloss.split(' | '), lang: 'zh-Hans', credit: tt('A rare word, from the full ECDICT dictionary.') };
+            }
+            const hit = await ownRareLookup(base, r.rareCandidates(v.word), r.rareShard);
+            return hit && { key: hit.key, lines: hit.entries.flatMap((e) => e.senses.map((x) => x.glosses.join('; '))).slice(0, SENSE_LIMIT), lang: 'en',
+              credit: tt('A rare word, from Wiktionary.') };
+          })
           .catch(() => null)
           .then((hit) => {
             if (!missing.isConnected) return;
             if (!hit) { missing.textContent = said; return; }
             missing.replaceWith(h('div.pp-rare', null,
               hit.key !== v.word.toLowerCase() ? h('p.pp-note', null, h('span', { lang: L.tag }, hit.key)) : null,
-              h('ol.pp-defs', null, ...hit.gloss.split(' | ').map((g) => h('li', { lang: 'zh-Hans' }, g))),
-              h('p.pp-note', null, tt('A rare word, from the full ECDICT dictionary.'))));
+              h('ol.pp-defs', null, ...hit.lines.map((g) => h('li', { lang: hit.lang }, g))),
+              h('p.pp-note', null, hit.credit)));
             host.reposition();
           });
       }

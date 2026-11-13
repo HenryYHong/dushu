@@ -1,0 +1,134 @@
+// Meanings in the book's own language (src/lang/ownDictionary.ts): who gets them, how an entry's meanings are swapped while the
+// main dictionary still reads the word, the simpler-word hints, English levels by how common a word is, the credit, and rare
+// English words.
+import { afterEach, describe, expect, it } from 'vitest';
+import type { LangEngine, WordEntry, WordLookup } from '../../src/lang/types';
+import {
+  glossCode, loadOwnDictionary, ownDictionary, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
+  setReaderLanguage, withOwnDictionary,
+} from '../../src/lang/ownDictionary';
+import { LANGS } from '../../src/lang/registry';
+
+afterEach(() => resetOwnDictionary());
+
+const SPANISH = [
+  '# LinguPengu Spanish dictionary in Spanish.',
+  '# key\tpos\thint\tsenses...',
+  'casa\tnoun\t\t{Vivienda}Edificación destinada a vivienda.\tDomicilio.',
+  'melancólico\tadjective\ttriste\tQue está afectado de melancolía.',
+  'sin embargo\tphrase\t\tPero, no obstante.',
+].join('\n');
+
+function fakeEngine(id: LangEngine['id'], entries: Record<string, WordEntry[]>, opts: { phrase?: string } = {}): LangEngine {
+  return {
+    id,
+    segment: () => [],
+    lookup: (surface): WordLookup => ({ surface, key: surface, entries: entries[surface] ?? [], ...(opts.phrase ? { phrase: opts.phrase } : {}) }),
+    normalize: (w) => w.toLowerCase(),
+    level: () => 1,
+    levelWords: () => ['exam'],
+    rankLevel: (k) => (k === 'ominous' ? 5 : 2),
+    rankLevelWords: () => ['common'],
+    hint: () => 'english hint',
+    meta: { built: '', counts: {}, sources: [{ name: 'Main', license: 'x', url: 'y' }], ownSources: [{ name: 'Own', license: 'x', url: 'y' }] },
+  };
+}
+const entry = (head: string, pos: string, gloss: string): WordEntry => ({ head, senses: [{ pos, glosses: [gloss] }], source: 'main' });
+
+describe('who gets meanings in the book’s own language', () => {
+  it('a reader of their own language, and English books for anyone but a Chinese reader', () => {
+    setReaderLanguage('es');
+    expect([ownDictionary('es'), readsOwnLanguage('es'), glossCode('es')]).toEqual([true, true, 'es']);
+    expect([ownDictionary('fr'), glossCode('fr')]).toEqual([false, 'en']);
+    expect([ownDictionary('en'), readsOwnLanguage('en'), glossCode('en')]).toEqual([true, false, 'en']);
+    setReaderLanguage('zh-Hant');
+    expect([ownDictionary('en'), glossCode('en')]).toEqual([false, 'zh']);
+    setReaderLanguage('en');
+    expect([readsOwnLanguage('en'), glossCode('es')]).toEqual([true, 'en']);
+    // No own-language dictionary yet for Chinese and Japanese.
+    setReaderLanguage('ja');
+    expect(ownDictionary('ja')).toBe(false);
+  });
+
+  it('English levels: the Chinese exam lists for a Chinese reader, how common a word is for anyone else', () => {
+    setReaderLanguage('zh');
+    expect(LANGS.en.levels.labels[0]).toBe('中考');
+    setReaderLanguage('fr');
+    expect(LANGS.en.levels.labels).toEqual(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
+  });
+});
+
+describe('the table', () => {
+  it('reads labels, several parts of speech, and phrases', () => {
+    const t = parseOwnTable(SPANISH);
+    expect(t.get('casa')).toEqual([{ pos: 'noun', hint: '', senses: [
+      { pos: 'noun', glosses: ['Edificación destinada a vivienda.'], notes: ['Vivienda'] },
+      { pos: 'noun', glosses: ['Domicilio.'] }] }]);
+    expect(t.get('sin embargo')![0].senses[0]).toEqual({ pos: '', glosses: ['Pero, no obstante.'] });
+  });
+});
+
+describe('the wrapped engine', () => {
+  const load = (id: LangEngine['id'], text: string) => loadOwnDictionary(id, 'https://x/data/es/', async () => text);
+
+  it('gives a Spanish reader Spanish meanings, the word read as before, and the English reader the English', async () => {
+    const engine = withOwnDictionary(fakeEngine('es', { casas: [entry('casa', 'noun', 'house')] }));
+    setReaderLanguage('es');
+    await load('es', SPANISH);
+    const lu = engine.lookup('casas');
+    expect(lu.key).toBe('casas');
+    expect(lu.entries[0].senses.map((s) => s.glosses[0])).toEqual(['Edificación destinada a vivienda.', 'Domicilio.']);
+    expect(lu.entries[0].source).toBe('Wiktionary');
+    setReaderLanguage('en');
+    expect(engine.lookup('casas').entries[0].senses[0].glosses).toEqual(['house']);
+  });
+
+  it('keeps an entry the own dictionary has no part of speech for (Spanish), and a fixed phrase under its key', async () => {
+    const engine = withOwnDictionary(fakeEngine('es', { casa: [entry('casa', 'verb', 'he marries')] }));
+    setReaderLanguage('es');
+    await load('es', SPANISH);
+    expect(engine.lookup('casa').entries[0].senses[0].glosses).toEqual(['he marries']);
+    const phrase = withOwnDictionary(fakeEngine('es', { sin: [entry('sin embargo', '', 'however'), entry('sin', 'preposition', 'without')] }, { phrase: 'sin embargo' }));
+    expect(phrase.lookup('sin').entries[0].senses[0].glosses).toEqual(['Pero, no obstante.']);
+  });
+
+  it('hints with a simpler word in the own language, or none (never the other language’s)', async () => {
+    const engine = withOwnDictionary(fakeEngine('es', {}));
+    setReaderLanguage('es');
+    await load('es', SPANISH);
+    expect(engine.hint({ text: 'melancólicos', key: 'melancólico', kind: 'word', start: 0, end: 12 } as never)).toBe('triste');
+    expect(engine.hint({ text: 'casa', key: 'casa', kind: 'word', start: 0, end: 4 } as never)).toBeUndefined();
+    setReaderLanguage('en');
+    expect(engine.hint({ text: 'casa', key: 'casa', kind: 'word', start: 0, end: 4 } as never)).toBe('english hint');
+  });
+
+  it('English: anyone but a Chinese reader gets simple English, levels by how common a word is, and the credit', async () => {
+    const text = 'ominous\tadjective\tthreatening\tIf something is ominous, it gives an indication that something bad is about to happen.';
+    const engine = withOwnDictionary(fakeEngine('en', { ominous: [entry('ominous', 'adjective', '不祥的')], omen: [entry('omen', 'verb', '预示')] }));
+    setReaderLanguage('ko');
+    await loadOwnDictionary('en', 'https://x/data/en/', async () => text);
+    const lu = engine.lookup('ominous');
+    expect(lu.entries[0].senses[0].glosses[0]).toMatch(/^If something is ominous/);
+    expect(lu.entries[0].level).toBe(5);
+    expect(engine.level('ominous')).toBe(5);
+    expect(engine.levelWords(2)).toEqual(['common']);
+    expect(engine.meta.sources.map((s) => s.name)).toEqual(['Main', 'Own']);
+    setReaderLanguage('zh');
+    expect(engine.lookup('ominous').entries[0].senses[0].glosses).toEqual(['不祥的']);
+    expect(engine.level('ominous')).toBe(1);
+    expect(engine.meta.sources.map((s) => s.name)).toEqual(['Main']);
+  });
+});
+
+describe('English rare words', () => {
+  it('are found by their form, in the shard of their first letters', async () => {
+    const asked: string[] = [];
+    const hit = await ownRareLookup('https://x/data/en/', ['cavillers', 'caviller'], (k) => k.slice(0, 2), async (url) => {
+      asked.push(url);
+      return 'caviller\tnoun\t\tSomeone who raises trivial objections.';
+    });
+    expect(hit?.key).toBe('caviller');
+    expect(hit?.entries[0].senses[0].glosses).toEqual(['Someone who raises trivial objections.']);
+    expect(asked).toEqual(['https://x/data/en/native-rare/ca.tsv.gz']);
+  });
+});

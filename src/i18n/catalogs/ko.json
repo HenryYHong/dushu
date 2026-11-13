@@ -1993,13 +1993,10 @@
  "Two hunters walk into a restaurant in the mountains where the rules keep getting stranger.": "사냥하러 온 두 사람이 산속 음식점에 들어서는데, 가게의 요구가 점점 이상해진다.",
  "Two young lovers in 17th-century Lombardy are kept apart by a local tyrant, war and plague. A long novel.": "17세기 롬바르디아, 젊은 연인이 지역의 폭군과 전쟁, 페스트 때문에 서로 떨어지게 된다. 장편소설.",
  "Two young people from feuding families fall in love in Viseu, and it leads to prison, a convent and exile. Portugal’s Romeo and Juliet.": "비제우에서 앙숙인 두 집안의 젊은이가 사랑에 빠지고, 그 사랑은 투옥과 수녀원, 유배로 이어진다. 포르투갈의 『로미오와 줄리엣』.",
- "For Chinese speakers": "중국어 사용자용",
  "Read real books in the language you’re learning. Tap any word to see what it means.": "배우는 언어로 된 진짜 책을 읽어 보세요. 단어를 탭하면 뜻을 볼 수 있어요.",
  "Pick one or more. Each comes with free classic books.": "하나 이상 고르세요. 언어마다 무료 고전 책이 있어요.",
  "The one you know best. Sentences you translate are shown in it, and it will be the default language of your home screen. You can change it any time in Settings.": "가장 잘 아는 언어예요. 번역한 문장이 이 언어로 표시되고, 홈 화면의 기본 언어도 이 언어가 돼요. 설정에서 언제든 바꿀 수 있어요.",
  "{lang} books will be translated into {into} instead.": "{lang} 책은 대신 {into}로 번역돼요.",
- "Word meanings are in English (in Chinese for English books). Word cards can translate them for you.": "단어 뜻은 영어로 나와요(영어 책은 중국어로). 단어 카드에서 번역할 수 있어요.",
- "Word meanings are in Chinese. Word cards can translate them for you.": "단어 뜻은 중국어로 나와요. 단어 카드에서 번역할 수 있어요.",
  "Word meanings are in English. Word cards can translate them for you.": "단어 뜻은 영어로 나와요. 단어 카드에서 번역할 수 있어요.",
  "Minutes of reading or review a day. Hit it every day to build a streak. You can change it later.": "하루에 읽거나 복습하는 시간(분)이에요. 매일 채우면 연속 기록이 쌓여요. 나중에 바꿀 수 있어요.",
  "Books you add are only saved in this browser. Sign in to keep them.": "추가한 책은 이 브라우저에만 저장돼요. 계속 보관하려면 로그인하세요.",
@@ -2085,5 +2082,8 @@
  "Sign in above, and your words, reading places and bookmarks sync.": "위에서 로그인하면 단어, 읽던 위치, 책갈피가 동기화돼요.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "로컬 전용이 켜져 있어서 이 문장은 이 기기에만 머물러요. Claude를 쓰려면 설정에서 끄세요.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "로컬 전용이 켜져 있어서 이 문장은 이 기기에만 머물러요. 이 서비스를 쓰려면 설정에서 끄세요.",
- "More classics": "고전 더 보기"
+ "More classics": "고전 더 보기",
+ "A rare word, from Wiktionary.": "드문 단어예요. 위키낱말사전에서 가져왔어요.",
+ "{lang}, my own language": "{lang}, 내 모국어",
+ "Word cards explain words in {book}.": "단어 카드가 단어를 {book}로 설명해요."
 }

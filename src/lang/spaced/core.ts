@@ -2685,6 +2685,22 @@ export class SpacedEngine implements LangEngine {
     return this.data.levelOf(key);
   }
 
+  /** A key's level by how common it is (A1–C2), whatever list the language has (English's exam lists are for Chinese readers). */
+  rankLevel(key: string): number | undefined {
+    return levelOfRank(this.data.rankOfKey.get(key));
+  }
+
+  /** Keys at levels 1..max by how common they are (rankLevel). */
+  rankLevelWords(max: number): string[] {
+    const cut = LEVEL_CUTOFFS[Math.min(Math.max(max, 1), LEVEL_CUTOFFS.length) - 1];
+    const out: string[] = [];
+    for (const k of this.data.ranked) {
+      if (this.data.rankOfKey.get(k)! > cut) break;
+      out.push(k);
+    }
+    return out;
+  }
+
   levelWords(max: number): string[] {
     if (this.data.levelOfKey.size) {
       // Commonest first, as for the levels by rank; a listed word the dictionary does not rank comes last.
@@ -2860,8 +2876,9 @@ export async function loadSpacedEngine(lang: SpacedLang, baseUrl: string, opts?:
   if (lang.pronunciations) void get('ipa.tsv.gz').then(gunzip).then((t) => data.parseSounds(t), () => {});
   const engine = new SpacedEngine(lang, data);
   try {
-    const m = JSON.parse(await metaP) as Partial<LangEngine['meta']>;
-    engine.meta = { built: m.built ?? '', counts: m.counts ?? {}, sources: m.sources ?? [] };
+    // meta.json's `native`: the own-language dictionary (scripts/lang/native/build.py).
+    const m = JSON.parse(await metaP) as Partial<LangEngine['meta']> & { native?: { sources?: LangEngine['meta']['sources'] } };
+    engine.meta = { built: m.built ?? '', counts: m.counts ?? {}, sources: m.sources ?? [], ownSources: m.native?.sources ?? [] };
   } catch { /* the engine works without its credits */ }
   report(100);
   return engine;

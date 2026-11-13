@@ -9,7 +9,7 @@ import { SHORTCUTS, keyCaps } from '../shortcuts';
 import { connectedMac, isMacOrigin } from '../../core/macBridge';
 import { isAccountOwner } from '../../core/cloud';
 import { activeEngine, isChinese, lang } from '../../lang/active';
-import { aidWord, levelScheme } from '../../lang/labels';
+import { aidWord, glossLanguage, levelScheme } from '../../lang/labels';
 import type { LangId } from '../../lang/types';
 import { fetchSamples } from '../library/samples';
 import { langName, num, tt, ttm, ttn } from '../../i18n';
@@ -209,7 +209,7 @@ function buildOtherPage(meta: DataMeta | null, loading: boolean): HTMLElement {
   const counts = engine?.meta.counts ?? meta?.counts ?? {};
   const sources = engine?.meta.sources ?? meta?.sources ?? [];
   const hints = tt('Turn on Hints to see a short {language} meaning over hard words: every word, words you haven\'t marked as known, or words above your level.',
-    { language: L.id === 'en' ? langName('zh', 'Chinese') : langName('en', 'English') });
+    { language: glossLanguage() });
   const how = [
     tt('Import a book (EPUB, MOBI, AZW3, TXT, PDF, HTML or Markdown), paste some text, or pick a classic in the library.'),
     furigana

@@ -38,5 +38,16 @@
    "license": "CC BY 4.0",
    "url": "https://github.com/UniversalDependencies/UD_Portuguese-Porttinari"
   }
- ]
+ ],
+ "native": {
+  "built": "2026-11-13",
+  "entries": 36362,
+  "sources": [
+   {
+    "name": "Portuguese Wiktionary (via kaikki.org)",
+    "license": "CC BY-SA 4.0",
+    "url": "https://kaikki.org/ptwiktionary/"
+   }
+  ]
+ }
 }

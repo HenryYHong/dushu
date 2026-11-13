@@ -208,12 +208,12 @@ describe('the other libraries', () => {
     expect(q('.pp-def-tl-on .pp-def-src')!.textContent).toMatch(/^bank/);
   });
 
-  it('English: a Korean reader gets the dictionary’s Chinese in Korean', async () => {
+  it('English: a Korean reader gets the simple English meanings in Korean', async () => {
     setLangForTests('en', fakeEngine('en'));
     installChrome();
     await open('casa', { translateTo: 'ko' });
     await vi.waitFor(() => expect(filled()).toHaveLength(1));
-    expect(chrome.create.mock.calls[0][0]).toMatchObject({ sourceLanguage: 'zh', targetLanguage: 'ko' });
+    expect(chrome.create.mock.calls[0][0]).toMatchObject({ sourceLanguage: 'en', targetLanguage: 'ko' });
     expect(q('.pp-def-tl')!.getAttribute('lang')).toBe('ko');
   });
 

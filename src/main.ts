@@ -22,6 +22,7 @@ import { signInButton } from './ui/signIn';
 import { reviewCount } from './ui/review/learning';
 import { scriptView } from './ui/vocab/render';
 import { activeEngine, isChinese, lang, setActiveEngine, storeName } from './lang/active';
+import { loadOwnDictionary, setReaderLanguage, withOwnDictionary } from './lang/ownDictionary';
 import { noChineseDictionary } from './lang/noChinese';
 import { langChip } from './ui/langSwitch';
 import { needsWelcome } from './core/plan';
@@ -158,6 +159,8 @@ async function boot(): Promise<void> {
   const L = lang();
   document.documentElement.dataset.lang = L.id;
   const settings = createSettingsStore(undefined, L.id);
+  // Whose language the word meanings follow (lang/ownDictionary.ts): the one sentences go into.
+  setReaderLanguage(settings.get().translateTo);
   applyTheme(settings.get());
   settings.subscribe((s, changed) => { if (changed.includes('theme')) applyTheme(s); });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(settings.get()));
@@ -185,6 +188,7 @@ async function boot(): Promise<void> {
   const handoff = firstVisitHandoff();
   const keep = handoff.keep;
   // The Chinese dictionary's code is a chunk of its own (about 100 KB), so another language's first screen never waits for it.
+  let ownWatched = false;
   const loadDict = (opts: { keep?: Keep; onBytes?: (loaded: number, total: number) => void }): Promise<Dictionary> => {
     if (isChinese()) return import('./core/dict').then((m) => m.loadDictionary(dictUrl, opts));
     // Each file the engine asks for counts toward the reader's "Downloading the dictionary: x of y MB" and is handed over.
@@ -196,9 +200,20 @@ async function boot(): Promise<void> {
       if (atStart === null) { atStart = true; setTimeout(() => { atStart = false; }, 0); }
       return handoff.track(fetchDataBytes(dictUrl + name, opts.keep, atStart ? meter?.(name) : undefined));
     };
-    return L.load!().then((m) => m.loadEngine(dictUrl, { fetchBytes })).then((engine) => {
-      setActiveEngine(engine);
-      return noChineseDictionary(engine);
+    // Meanings in the book's own language, for a reader who gets them (lang/ownDictionary.ts): fetched alongside the engine, so
+    // the first word card already has them, and again whenever the reader's language changes.
+    const own = () => loadOwnDictionary(L.id, dictUrl, (url) => fetchDataText(url, opts.keep));
+    if (!ownWatched) {
+      ownWatched = true;
+      settings.subscribe((s, changed) => {
+        if (!changed.includes('translateTo')) return;
+        setReaderLanguage(s.translateTo);
+        void own();
+      });
+    }
+    return Promise.all([L.load!().then((m) => m.loadEngine(dictUrl, { fetchBytes })), own()]).then(([engine]) => {
+      setActiveEngine(withOwnDictionary(engine));
+      return noChineseDictionary(activeEngine()!);
     });
   };
   let early: Promise<Dictionary> | null = loadDict({ keep, onBytes: setDictBytes });

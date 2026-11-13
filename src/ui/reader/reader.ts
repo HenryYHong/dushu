@@ -33,6 +33,7 @@ import { isWord } from '../../lang/token';
 import { activeEngine, isChinese, lang } from '../../lang/active';
 import { bookStartText } from './bookStart';
 import { aidName, aidSeal, glossLanguage, levelLabel } from '../../lang/labels';
+import { glossCode } from '../../lang/ownDictionary';
 import { POS_SEL } from './render';
 import { markReaderGuide, readerGuideSeen, showGuide, type GuideStep } from '../guide';
 import { penguSays } from '../pengu';
@@ -199,8 +200,9 @@ export const mount: MountFn = async (root, params, ctx) => {
   // The 拼 seal: solid while pinyin shows, an outline (朱文) when it is off. The mode follows it ("All", "HSK 3"); on a
   // phone the label is set smaller, and on the narrowest only the HSK level stays beside the seal.
   const L = lang();
-  // English books' hints are Chinese: a 中 seal, set like the Chinese one.
-  const pinyinSeal = h(`span.rd-seal${isChinese() || L.id === 'ja' || L.id === 'en' ? '.zh' : '.rd-seal-latin'}`, { 'aria-hidden': 'true', lang: L.id === 'en' ? 'zh-Hans' : L.tag }, aidSeal());
+  // Hints in Chinese (English books for a Chinese reader): a 中 seal, set like the Chinese one.
+  const zhHints = glossCode(L.id) === 'zh' && L.aid === 'hint';
+  const pinyinSeal = h(`span.rd-seal${isChinese() || L.id === 'ja' || zhHints ? '.zh' : '.rd-seal-latin'}`, { 'aria-hidden': 'true', lang: zhHints ? 'zh-Hans' : L.tag }, aidSeal());
   const pinyinBtn = h('button.rd-pill.rd-pinyin-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: `${aidName()} (P)`, onclick: () => togglePinyinMenu() },
     pinyinSeal, pinyinLabel) as HTMLButtonElement;
   const aaBtn = h('button.rd-pill.rd-aa-btn', { type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': tt('Display settings'), title: tt('Display settings'), onclick: () => toggleDisplayMenu() },
@@ -1760,9 +1762,8 @@ export const mount: MountFn = async (root, params, ctx) => {
     const touch = typeof matchMedia === 'function' && matchMedia('(hover: none)').matches;
     const paged = ctx.settings.get().layout === 'pages';
     // The seal as the bar draws it, set inside the sentence about it.
-    const seal = h(`span.rd-seal${isChinese() || L.id === 'ja' || L.id === 'en' ? '.zh' : '.rd-seal-latin'}`, null, aidSeal());
-    const gloss = glossLanguage();
-    const language = langName(gloss === 'Chinese' ? 'zh' : 'en', gloss);
+    const seal = h(`span.rd-seal${isChinese() || L.id === 'ja' || zhHints ? '.zh' : '.rd-seal-latin'}`, null, aidSeal());
+    const language = glossLanguage();
     // A word on screen as it is now, for the first step: in a paragraph when there is one (not the chapter's heading). Pages
     // are laid out in the pager's stage, outside `page`, so the whole reader is searched.
     const firstWord = (): Element | null => {

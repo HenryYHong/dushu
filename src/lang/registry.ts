@@ -2,6 +2,7 @@
 // and keeps its own modules; every other language has an engine in src/lang/<id>/ (types.ts) and data in public/data/<id>/.
 import type { LangId, LangModule } from './types';
 import { langName, tt, ttm } from '../i18n';
+import { glossCode } from './ownDictionary';
 
 export interface LangInfo {
   id: LangId;
@@ -41,6 +42,15 @@ const FREQ_LEVELS = (id: LangId, name: string) => ({
     return tt('{lang} word levels follow how common a word is in everyday {lang}: A1 is about the 500 most common words, A2 the next 700, B1 up to 2,500, B2 up to 5,000, C1 up to 10,000 and C2 up to 20,000. They are a guide, not an exam list.', { lang: langName(id, name) });
   },
 });
+
+/** English word levels for a Chinese reader: the Chinese exam word lists (ECDICT, levels.tsv.gz). */
+const EXAM_LEVELS = {
+  scheme: ttm('Exam'),
+  labels: ['中考', '高考', 'CET-4', 'CET-6', 'IELTS/TOEFL', 'GRE'],
+  get about() {
+    return tt('English word levels follow the Chinese exam word lists in ECDICT: 中考 (middle school), 高考 (high school), CET-4 and CET-6 (college English), IELTS/TOEFL (with 考研) and GRE. A word’s level is the first list it is on.');
+  },
+};
 
 export const LANGS: Record<LangId, LangInfo> = {
   zh: {
@@ -88,15 +98,10 @@ export const LANGS: Record<LangId, LangInfo> = {
     load: () => import('./spaced/ru'),
   },
   en: {
-    // For Chinese speakers: the hints and the word cards are in Chinese (scripts/lang/en/build_en.py).
+    // For anyone: meanings in simple English, or ECDICT's Chinese for a Chinese reader (lang/ownDictionary.ts), whose word
+    // levels are the Chinese exam lists; everyone else's are by how common a word is, as in the other languages.
     id: 'en', name: 'English', native: 'English', brand: 'Read', tag: 'en', voices: ['en'], aid: 'hint',
-    levels: {
-      scheme: ttm('Exam'),
-      labels: ['中考', '高考', 'CET-4', 'CET-6', 'IELTS/TOEFL', 'GRE'],
-      get about() {
-        return tt('English word levels follow the Chinese exam word lists in ECDICT: 中考 (middle school), 高考 (high school), CET-4 and CET-6 (college English), IELTS/TOEFL (with 考研) and GRE. A word’s level is the first list it is on.');
-      },
-    },
+    get levels() { return glossCode('en') === 'zh' ? EXAM_LEVELS : FREQ_LEVELS('en', 'English'); },
     spaced: true, fonts: { serif: LATIN_SERIF, sans: LATIN_SANS },
     load: () => import('./spaced/en'),
   },

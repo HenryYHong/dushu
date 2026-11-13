@@ -1,6 +1,7 @@
 // A translation block: picks a provider, streams the result, and offers Explain, a provider switcher,
 // retry, and the one-time on-device model download. Used by the phrase popup and paragraph translate.
 import { glossLanguage } from '../../lang/labels';
+import { glossCode } from '../../lang/ownDictionary';
 import type { AppContext, Dictionary, Lexicon, Settings, Translator, TranslatorId } from '../../types';
 import { chromeSupported, getTranslator, listTranslators, pickTranslator, type ChromeTranslator } from '../../translate';
 import { chromePairName } from '../../translate/chrome';
@@ -126,7 +127,7 @@ const NOTES: Record<TranslatorId, { no: string; yes: string }> = {
 };
 
 /** The language the dictionaries explain words in (glossLanguage), named in the app's language. */
-const glossName = (): string => langName(langId() === 'en' ? 'zh' : 'en', glossLanguage());
+const glossName = (): string => langName(glossCode(langId()), glossLanguage());
 
 /** Tiny safe formatter for model output: paragraphs, "- " bullets and **bold**. No HTML is ever parsed. */
 export function renderRichText(text: string): HTMLElement {

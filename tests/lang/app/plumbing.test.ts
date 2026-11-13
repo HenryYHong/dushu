@@ -419,7 +419,7 @@ describe('the language translations go into', () => {
     localStorage.clear();
   });
 
-  it('offers every language but the book’s own, and says when a choice of it means English here', async () => {
+  it('offers the book’s own language as the reader’s own, and every other language', async () => {
     const { targetControl } = await import('../../../src/ui/settings/translation');
     setLangForTests('es', fakeEngine('es'));
     const settings = createSettingsStore(memoryStorage(), 'es');
@@ -428,15 +428,15 @@ describe('the language translations go into', () => {
     control.update(settings.get());
     const select = control.el.querySelector('select') as HTMLSelectElement;
     const codes = [...select.options].map((o) => o.value);
-    expect(codes).not.toContain('es');
-    expect(codes[0]).toBe('en');
+    expect(codes.slice(0, 2)).toEqual(['es', 'en']);
+    expect(select.options[0].textContent).toBe('Spanish, my own language');
     expect(codes).toEqual(expect.arrayContaining(['fr', 'zh', 'zh-Hant', 'ar']));
     expect([...select.options].find((o) => o.value === 'fr')?.textContent).toBe('French · Français');
-    // Spanish, chosen while reading Chinese: Spanish books go into English, and Settings says why.
-    expect(select.value).toBe('en');
+    // A Spanish speaker reading Spanish: the cards explain words in Spanish (lang/ownDictionary.ts).
+    expect(select.value).toBe('es');
     const note = control.el.querySelector('.set-help') as HTMLElement;
     expect(note.hidden).toBe(false);
-    expect(note.textContent).toBe('These books are in Spanish, so they are translated into English. Spanish is used for your other books.');
+    expect(note.textContent).toBe('Word cards explain words in Spanish.');
     select.value = 'fr';
     select.dispatchEvent(new Event('change'));
     control.update(settings.get());

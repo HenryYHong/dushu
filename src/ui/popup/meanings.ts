@@ -7,6 +7,8 @@ import type { AppContext } from '../../types';
 import { h, clear } from '../dom';
 import { icon } from '../icons';
 import { glossLanguage } from '../../lang/labels';
+import { langId } from '../../lang/active';
+import { readerOf } from '../../lang/ownDictionary';
 import {
   cachedAny, dictionaryLanguage, meaningOrder, meaningProvider, meaningsTarget, pickMeaningProvider, translateMeanings,
   type MeaningPick, type MeaningProvider, type MeaningProviderId,
@@ -35,7 +37,7 @@ interface Line { text: string; shown: boolean; done: boolean }
 
 export function cardMeanings(ctx: AppContext, changed: () => void): CardMeanings {
   const settings = () => ctx.settings.get();
-  const from = dictionaryLanguage();
+  const from = dictionaryLanguage(langId(), readerOf(settings().translateTo));
   const to = meaningsTarget(settings());
   const target = to ? targetLanguage(to) : undefined;
   if (!to || !target) return NONE;

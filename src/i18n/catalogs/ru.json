@@ -2314,13 +2314,10 @@
  "Two hunters walk into a restaurant in the mountains where the rules keep getting stranger.": "Два охотника заходят в ресторан в горах, где правила становятся всё страннее.",
  "Two young lovers in 17th-century Lombardy are kept apart by a local tyrant, war and plague. A long novel.": "Двух юных влюблённых в Ломбардии XVII века разлучают местный тиран, война и чума. Длинный роман.",
  "Two young people from feuding families fall in love in Viseu, and it leads to prison, a convent and exile. Portugal’s Romeo and Juliet.": "Двое молодых людей из враждующих семей влюбляются друг в друга в Визеу, и это приводит к тюрьме, монастырю и изгнанию. Португальские «Ромео и Джульетта».",
- "For Chinese speakers": "Для тех, кто говорит по-китайски",
  "Read real books in the language you’re learning. Tap any word to see what it means.": "Читайте настоящие книги на языке, который изучаете. Нажмите на слово, чтобы узнать, что оно значит.",
  "Pick one or more. Each comes with free classic books.": "Выберите один или несколько. Для каждого есть бесплатные классические книги.",
  "The one you know best. Sentences you translate are shown in it, and it will be the default language of your home screen. You can change it any time in Settings.": "Тот, который вы знаете лучше всего. Переведённые предложения показываются на нём, и он станет языком главного экрана по умолчанию. Его можно изменить в любой момент в Настройках.",
  "{lang} books will be translated into {into} instead.": "Книги ({lang}) будут переводиться на {into} язык.",
- "Word meanings are in English (in Chinese for English books). Word cards can translate them for you.": "Значения слов даны на английском (для английских книг — на китайском). Карточки слов могут перевести их для вас.",
- "Word meanings are in Chinese. Word cards can translate them for you.": "Значения слов даны на китайском. Карточки слов могут перевести их для вас.",
  "Word meanings are in English. Word cards can translate them for you.": "Значения слов даны на английском. Карточки слов могут перевести их для вас.",
  "Minutes of reading or review a day. Hit it every day to build a streak. You can change it later.": "Минуты чтения или повторения в день. Выполняйте цель каждый день, чтобы собрать серию. Её можно изменить позже.",
  "Books you add are only saved in this browser. Sign in to keep them.": "Добавленные книги хранятся только в этом браузере. Войдите, чтобы сохранить их.",
@@ -2415,5 +2412,8 @@
  "Sign in above, and your words, reading places and bookmarks sync.": "Войдите выше — и слова, места чтения и закладки будут синхронизироваться.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "Включён режим «Только локально», поэтому предложение остаётся на этом устройстве. Выключите его в настройках, чтобы пользоваться Claude.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "Включён режим «Только локально», поэтому предложение остаётся на этом устройстве. Выключите его в настройках, чтобы пользоваться этим сервисом.",
- "More classics": "Ещё классика"
+ "More classics": "Ещё классика",
+ "A rare word, from Wiktionary.": "Редкое слово, из Викисловаря.",
+ "{lang}, my own language": "{lang}, мой родной язык",
+ "Word cards explain words in {book}.": "Карточки слов объясняют слова на языке: {book}."
 }

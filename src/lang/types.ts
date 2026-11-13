@@ -106,6 +106,9 @@ export interface LangEngine {
   level(key: string): number | undefined;
   /** Keys at levels 1..max, for "mark these as known". */
   levelWords(max: number): string[];
+  /** Levels by how common a word is (A1–C2), for a language whose own levels follow another list (English: Chinese exams). */
+  rankLevel?(key: string): number | undefined;
+  rankLevelWords?(max: number): string[];
   /**
    * A short English hint for a word in running text (one to three words, "to eat", "house"), shown over hard words when the
    * reader asks for hints. Undefined when the dictionary has none.
@@ -118,7 +121,13 @@ export interface LangEngine {
    */
   beginBook?(text?: string): void;
   /** Facts about the data that loaded (counts, sources), shown in About. */
-  readonly meta: { built: string; counts: Record<string, number>; sources: { name: string; license: string; url: string }[] };
+  readonly meta: {
+    built: string;
+    counts: Record<string, number>;
+    sources: { name: string; license: string; url: string }[];
+    /** The own-language dictionary's sources (lang/ownDictionary.ts), credited while its meanings are in use. */
+    ownSources?: { name: string; license: string; url: string }[];
+  };
 }
 
 /** What every src/lang/<id>/index.ts exports. */

@@ -1,5 +1,6 @@
-// English, for Chinese speakers: the glosses and hints are Chinese (ECDICT, scripts/lang/en/build_en.py), and word levels
-// follow the Chinese exam lists (levels.tsv.gz: 中考 高考 CET-4 CET-6 IELTS/TOEFL GRE). Contractions are words of their own
+// English, for anyone. The main dictionary is ECDICT's (scripts/lang/en/build_en.py), with Chinese glosses and hints and the
+// Chinese exam lists as levels (levels.tsv.gz: 中考 高考 CET-4 CET-6 IELTS/TOEFL GRE): what a Chinese reader sees. Anyone else
+// gets meanings in simple English and levels by how common a word is (lang/ownDictionary.ts). Contractions are words of their own
 // (don't, I'm, it's: curated.tsv), a noun's 's is its possessive (a form in forms.tsv.gz), and the 'll 're 've 'd of a word the
 // dictionary does not join them to are will, are, have and would.
 import type { LangEngine } from '../types';

@@ -14,6 +14,7 @@ import { CLAUDE_MODELS, fetchClaudeStatus, hasClaudeRoute, resetClaudeStatus, ty
 import { qualityLocalAvailable } from '../../translate/localMeaning';
 import { group, more, nextId, row, toggle } from './controls';
 import { lang, langId } from '../../lang/active';
+import { hasOwnDictionary } from '../../lang/ownDictionary';
 import { langName, num, tt, ttm, ttn, uiLocale } from '../../i18n';
 
 type Avail = 'yes' | 'download' | 'no';
@@ -92,7 +93,12 @@ export function targetControl(settings: AppContext['settings']): { el: HTMLEleme
   // Each by its name in the app's language, then its own name: "Spanish · Español" in English, "Spanisch · Español" in German.
   const named = all.map((t) => ({ ...t, shown: targetName(t.code, t.name) }));
   const choices = [...named.filter((t) => t.code === def), ...named.filter((t) => t.code !== def).sort((a, b) => a.shown.localeCompare(b.shown, uiLocale()))];
-  const select = h('select.select', { id, 'aria-label': tt('Translate into') },
+  // Someone who speaks the book's language picks it here: the word cards then explain words in it (lang/ownDictionary.ts), and
+  // sentences still go into the library's default.
+  const book = lang();
+  const mine = hasOwnDictionary(book.id) && targetLanguage(book.id)
+    ? h('option', { value: book.id }, tt('{lang}, my own language', { lang: targetName(book.id, book.name) })) : null;
+  const select = h('select.select', { id, 'aria-label': tt('Translate into') }, mine,
     ...choices.map((t) => h('option', { value: t.code }, t.native.toLowerCase() === t.shown.toLowerCase() ? t.native : `${t.shown} · ${t.native}`))) as HTMLSelectElement;
   select.addEventListener('change', () => settings.set({ translateTo: select.value }));
   const note = h('div.set-help', { role: 'status' });
@@ -102,7 +108,14 @@ export function targetControl(settings: AppContext['settings']): { el: HTMLEleme
     id,
     update(s) {
       const to = translateTarget(s);
-      if (select.value !== to) select.value = to;
+      const native = !!mine && s.translateTo.split('-')[0] === book.id;
+      const shown = native ? book.id : to;
+      if (select.value !== shown) select.value = shown;
+      if (native) {
+        note.hidden = false;
+        note.textContent = tt('Word cards explain words in {book}.', { book: langName(book.id, book.name) });
+        return;
+      }
       // Only a language the reader chose (the shared choice has a time): the English library's default 'en' was never chosen.
       const own = s.translateTo !== to && settings.chosenAt?.('translateTo') !== undefined ? targetLanguage(s.translateTo) : undefined;
       note.hidden = !own;

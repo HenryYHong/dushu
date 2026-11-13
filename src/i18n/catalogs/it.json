@@ -2206,13 +2206,10 @@
  "Two hunters walk into a restaurant in the mountains where the rules keep getting stranger.": "Due cacciatori entrano in un ristorante in montagna dove le regole diventano sempre più strane.",
  "Two young lovers in 17th-century Lombardy are kept apart by a local tyrant, war and plague. A long novel.": "Nella Lombardia del Seicento due giovani promessi sposi vengono separati da un signorotto prepotente, dalla guerra e dalla peste. Un lungo romanzo.",
  "Two young people from feuding families fall in love in Viseu, and it leads to prison, a convent and exile. Portugal’s Romeo and Juliet.": "A Viseu due giovani di famiglie rivali si innamorano, e il loro amore li porta in carcere, in convento e in esilio. Il Romeo e Giulietta portoghese.",
- "For Chinese speakers": "Per chi parla cinese",
  "Read real books in the language you’re learning. Tap any word to see what it means.": "Leggi libri veri nella lingua che stai imparando. Tocca una parola per vedere cosa significa.",
  "Pick one or more. Each comes with free classic books.": "Scegline una o più. Ognuna ha dei classici gratis.",
  "The one you know best. Sentences you translate are shown in it, and it will be the default language of your home screen. You can change it any time in Settings.": "Quella che conosci meglio. Le frasi che traduci vengono mostrate in questa lingua, e sarà la lingua predefinita della tua schermata iniziale. Puoi cambiarla quando vuoi in Impostazioni.",
  "{lang} books will be translated into {into} instead.": "I libri in {lang} verranno invece tradotti in {into}.",
- "Word meanings are in English (in Chinese for English books). Word cards can translate them for you.": "I significati delle parole sono in inglese (in cinese per i libri in inglese). Le schede delle parole possono tradurli per te.",
- "Word meanings are in Chinese. Word cards can translate them for you.": "I significati delle parole sono in cinese. Le schede delle parole possono tradurli per te.",
  "Word meanings are in English. Word cards can translate them for you.": "I significati delle parole sono in inglese. Le schede delle parole possono tradurli per te.",
  "Minutes of reading or review a day. Hit it every day to build a streak. You can change it later.": "Minuti di lettura o ripasso al giorno. Raggiungilo ogni giorno per costruire una serie. Puoi cambiarlo più tardi.",
  "Books you add are only saved in this browser. Sign in to keep them.": "I libri che aggiungi sono salvati solo in questo browser. Accedi per tenerli.",
@@ -2304,5 +2301,8 @@
  "Sign in above, and your words, reading places and bookmarks sync.": "Accedi qui sopra, e le tue parole, posizioni di lettura e segnalibri si sincronizzeranno.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "Solo locale è attivo, quindi questa frase resta su questo dispositivo. Disattivalo nelle Impostazioni per usare Claude.",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "Solo locale è attivo, quindi questa frase resta su questo dispositivo. Disattivalo nelle Impostazioni per usare questo servizio.",
- "More classics": "Altri classici"
+ "More classics": "Altri classici",
+ "A rare word, from Wiktionary.": "Una parola rara, dal Wikizionario.",
+ "{lang}, my own language": "{lang}, la mia lingua",
+ "Word cards explain words in {book}.": "Le schede delle parole spiegano le parole in {book}."
 }

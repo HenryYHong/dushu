@@ -2,6 +2,9 @@
 // "N4" for Japanese, "Hints" and "B1" for the rest), so the screens written for Chinese can say the right thing. Each is in
 // the app's language (src/i18n); the level labels themselves (HSK 3, N4, B1) are names and stay as they are.
 import { isChinese, lang } from './active';
+import { glossCode } from './ownDictionary';
+import { LANGS } from './registry';
+import type { LangId } from './types';
 import { AUTO_KNOWN_DAYS, AUTO_KNOWN_PAGES } from '../core/autoKnown';
 import { langName, num, tt } from '../i18n';
 
@@ -17,13 +20,20 @@ export function aidWord(): string {
   return a === 'pinyin' ? tt('pinyin') : a === 'furigana' ? tt('furigana') : tt('hints');
 }
 
-/** The language the dictionary's meanings and hints are in: Chinese for English books (read by Chinese speakers), else English. */
-export const glossLanguage = (): string => (lang().id === 'en' ? langName('zh', 'Chinese') : langName('en', 'English'));
+/** The language the dictionary's meanings and hints are in for this reader (lang/ownDictionary.ts), named in the app's language. */
+export function glossLanguage(): string {
+  const code = glossCode(lang().id);
+  return langName(code, LANGS[code as LangId]?.name ?? code);
+}
 
 /** The character on the aid button's seal. */
 export function aidSeal(): string {
   const a = lang().aid;
-  return a === 'pinyin' ? '拼' : a === 'furigana' ? 'ふ' : lang().id === 'en' ? '中' : 'En';
+  if (a === 'pinyin') return '拼';
+  if (a === 'furigana') return 'ふ';
+  // The hints' language: 中 for Chinese, else its code (En, Es, Fr).
+  const code = glossCode(lang().id);
+  return code === 'zh' ? '中' : code[0].toUpperCase() + code.slice(1);
 }
 
 /** The name of a level (1-based): "HSK 3", "N4", "B1". Chinese 7 is HSK 7–9. */

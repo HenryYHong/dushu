@@ -749,7 +749,9 @@ an answer with no echo to a request that sent `to` came from a server older than
 Latin-script language Chinese names are pinyin, except Vietnamese, which reads them the Sino-Vietnamese way (`pinyinNames: false`).
 
 **A word card's meanings in the reader's language** (`translate/meanings.ts`, `ui/popup/meanings.ts`). The dictionaries explain words in
-English (CC-CEDICT, JMdict, Wiktionary), or in Chinese in the English library (ECDICT, `dictionaryLanguage`). When the reader's language
+English (CC-CEDICT, JMdict, Wiktionary); in the book's own language for a reader who speaks it, and in simple English for anyone in the
+English library, but in Chinese (ECDICT) for a Chinese reader of English (`dictionaryLanguage`, `lang/ownDictionary.ts`, below). When
+the reader reads their own language nothing is translated (`readsOwnLanguage`). When the reader's language
 (the sentences' target, `targetFor(settings.translateTo, lang)`) is another one, each sense line the card shows gets a machine
 translation of its glosses on top, `span.pp-def-tl` with the target's `lang` (and `dir` for a right-to-left one), and the dictionary's
 own words stay in the line as `span.pp-def-src`, set small and muted under it, cross-references still links: the original is the
@@ -2248,8 +2250,23 @@ is chosen per page load (`lang/active.ts`: `?lang=ja` in the address, else the l
 reloads at the library. Chinese is the original app and keeps every name it had; nothing about it changes when another language
 exists.
 
-- **English is for Chinese speakers.** Every other library explains its language in English; the English one explains English in
-  Chinese. Its dictionary (`scripts/lang/en/build_en.py`) is ECDICT (MIT): Chinese glosses and hints, the forms of each word
+- **Meanings in a book's own language** (`lang/ownDictionary.ts`, `scripts/lang/native/build.py`, 2026-11-13). The reader's language
+  is the one sentences go into (Settings › Translation, shared by every library; a library's own language is offered there as "Spanish,
+  my own language"). Someone reading their own language gets words explained in it: Spanish, French, German, Italian, Portuguese and
+  Russian from that language's own Wiktionary (via kaikki.org, about 1.5–4 MB each, `data/<id>/native.tsv.gz`), and nothing on the
+  card is translated. English is for anyone: its meanings are in simple English, Simple English Wiktionary first (definitions written
+  for learners: "If something is abundant, then there is a lot of it.") and English Wiktionary for the words and parts of speech it
+  lacks (`data/en/native.tsv.gz`, 3 MB, and `data/en/native-rare/` for the rare words, fetched as `data/en/rare` is); a reader of
+  another language gets them translated on the card as in every other library, and only a Chinese reader keeps ECDICT's Chinese and
+  the exam-list levels (anyone else's English levels are A1–C2 by how common a word is, `rankLevel`). The data is keyed by the main
+  dictionary's keys and parts of speech, so the main dictionary still reads the word (its form, key, level and sound) and only the
+  meanings change: `withOwnDictionary` wraps the engine (main.ts), so the card, saving a word, Vocabulary and the word-by-word gloss
+  all get the same meanings; an entry the own dictionary lacks keeps the main one's. Hints over the text are a simpler word from the
+  own dictionary, only where two sources agree (a synonym of the same part of speech that the word's own definitions use, or a
+  definition of a word or two, all common and much commoner than the word): about 600 of English's 17,700 harder words, as a wrong
+  hint is worse than none. Chinese and Japanese have no own-language dictionary yet. About credits the sources while they are in use.
+- **English for Chinese speakers.** For a Chinese reader the English library explains English in Chinese. Its main dictionary
+  (`scripts/lang/en/build_en.py`) is ECDICT (MIT): Chinese glosses and hints, the forms of each word
   (went is go's past tense; a noun's 's and s' its possessive), COCA/BNC ranks, and the Chinese exam lists, which give its levels
   (`levels.tsv.gz`, read by the spaced engine when a language has one: 中考, 高考, CET-4, CET-6, IELTS/TOEFL with 考研, GRE; a word
   is at the first list it is on). The main dictionary keeps about 68,000 words (ranked, on a list, or met in the starter books); the
@@ -2262,7 +2279,7 @@ exists.
   ECDICT's phonetics, which mix the older British notation Chinese textbooks used ('kʌlә, liv) with the current one, all in the
   current one (`ipa.tsv.gz`, `SpacedLang.pronunciations`, read after the engine is ready since it is 460 KB; not on flashcards,
   whose reading field sorts the word list). A sentence from an English book translates into Chinese unless the reader picks another language
-  (`targetFor`), and the screens keep their Chinese names (书架, 生词 …) for a reader whose translations go into Chinese; anyone else sees
+  (`targetFor`; an English speaker reading English needs none), and the screens keep their Chinese names (书架, 生词 …) for a reader whose translations go into Chinese; anyone else sees
   the English names (once, when the app is in English).
 - **Each language is its own library.** Chinese keeps the `dushu` database and the `dushu.*` keys; another language uses the
   database `dushu-<id>` and the keys `dushu.<id>.*` (`langKey`, `storeName`), so its books, words, places and settings never mix

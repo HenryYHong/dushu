@@ -199,6 +199,11 @@
    "public/samples/it/index.json"
   ]
  },
+ "A rare word, from Wiktionary.": {
+  "where": [
+   "src/ui/popup/langWordView.ts"
+  ]
+ },
  "A rare word, from the full ECDICT dictionary.": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -2316,11 +2321,6 @@
   "where": [
    "src/ui/reader/menus.ts",
    "src/ui/settings/settings.ts"
-  ]
- },
- "For Chinese speakers": {
-  "where": [
-   "src/ui/welcome.ts"
   ]
  },
  "Forgot": {
@@ -7598,6 +7598,11 @@
    "src/ui/popup/translation.ts"
   ]
  },
+ "Word cards explain words in {book}.": {
+  "where": [
+   "src/ui/settings/translation.ts"
+  ]
+ },
  "Word cards translate the dictionary’s {original} into your language and keep the {original} under each meaning. Automatic uses Chrome’s free on-device translator, and an online one (Qwen through your account, Claude or MyMemory) only when you press the button on the card. Always uses any of them without asking.": {
   "where": [
    "src/ui/settings/settings.ts"
@@ -7617,16 +7622,6 @@
  "Word frequencies, which decide how a sentence is split into words.": {
   "where": [
    "src/ui/about/about.ts"
-  ]
- },
- "Word meanings are in Chinese. Word cards can translate them for you.": {
-  "where": [
-   "src/ui/welcome.ts"
-  ]
- },
- "Word meanings are in English (in Chinese for English books). Word cards can translate them for you.": {
-  "where": [
-   "src/ui/welcome.ts"
   ]
  },
  "Word meanings are in English. Word cards can translate them for you.": {
@@ -8921,6 +8916,11 @@
  "{lang} word levels follow how common a word is in everyday {lang}: A1 is about the 500 most common words, A2 the next 700, B1 up to 2,500, B2 up to 5,000, C1 up to 10,000 and C2 up to 20,000. They are a guide, not an exam list.": {
   "where": [
    "src/lang/registry.ts"
+  ]
+ },
+ "{lang}, my own language": {
+  "where": [
+   "src/ui/settings/translation.ts"
   ]
  },
  "{link} has Russian classics as EPUB and plain text.": {

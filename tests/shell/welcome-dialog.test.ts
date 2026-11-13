@@ -84,7 +84,7 @@ describe('the welcome dialog', () => {
     card('English').click();
     primary().click();
     const select = () => dialog()!.querySelector<HTMLSelectElement>('select.wel-select')!;
-    expect(select().value).toBe('zh'); // someone learning English reads it through Chinese
+    expect(select().value).toBe('en'); // an English browser learning English: their own language, meanings in simple English
     button('Back')!.click();
     card('English').click();
     card('Español').click();

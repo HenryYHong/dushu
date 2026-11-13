@@ -1987,13 +1987,10 @@
  "Two hunters walk into a restaurant in the mountains where the rules keep getting stranger.": "狩りに来た二人の紳士が山奥の料理店に入ると、店からの「注文」がどんどん奇妙になっていく。",
  "Two young lovers in 17th-century Lombardy are kept apart by a local tyrant, war and plague. A long novel.": "17世紀のロンバルディア。若い恋人たちが、土地の暴君、戦争、ペストによって引き裂かれる。長編小説。",
  "Two young people from feuding families fall in love in Viseu, and it leads to prison, a convent and exile. Portugal’s Romeo and Juliet.": "ヴィゼウで、反目し合う家の若い二人が恋に落ちる。その恋は投獄、修道院、流刑へとつながっていく。ポルトガルの『ロミオとジュリエット』。",
- "For Chinese speakers": "中国語話者向け",
  "Read real books in the language you’re learning. Tap any word to see what it means.": "学んでいる言語で本物の本を読みましょう。単語をタップすると意味がわかります。",
  "Pick one or more. Each comes with free classic books.": "1つでも、いくつでも選べます。どの言語にも無料の名作があります。",
  "The one you know best. Sentences you translate are shown in it, and it will be the default language of your home screen. You can change it any time in Settings.": "いちばんよくわかる言語です。翻訳した文はこの言語で表示され、ホーム画面の既定の言語にもなります。設定でいつでも変更できます。",
  "{lang} books will be translated into {into} instead.": "{lang}の本は代わりに{into}に翻訳されます。",
- "Word meanings are in English (in Chinese for English books). Word cards can translate them for you.": "単語の意味は英語です（英語の本では中国語）。辞書カードで翻訳できます。",
- "Word meanings are in Chinese. Word cards can translate them for you.": "単語の意味は中国語です。辞書カードで翻訳できます。",
  "Word meanings are in English. Word cards can translate them for you.": "単語の意味は英語です。辞書カードで翻訳できます。",
  "Minutes of reading or review a day. Hit it every day to build a streak. You can change it later.": "1日に読書や復習をする時間です。毎日達成すると連続記録が伸びます。あとで変更できます。",
  "Books you add are only saved in this browser. Sign in to keep them.": "追加した本はこのブラウザにしか保存されていません。残すにはサインインしてください。",
@@ -2079,5 +2076,8 @@
  "Sign in above, and your words, reading places and bookmarks sync.": "上でサインインすると、単語、読書位置、ブックマークが同期されます。",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "「ローカルのみ」がオンのため、この文はこのデバイスの外に送信されません。Claudeを使うには、設定でオフにしてください。",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "「ローカルのみ」がオンのため、この文はこのデバイスの外に送信されません。このサービスを使うには、設定でオフにしてください。",
- "More classics": "ほかの名作"
+ "More classics": "ほかの名作",
+ "A rare word, from Wiktionary.": "まれな語です。Wiktionary より。",
+ "{lang}, my own language": "{lang}（自分の言語）",
+ "Word cards explain words in {book}.": "単語カードは単語を{book}で説明します。"
 }

@@ -1983,13 +1983,10 @@
  "Two hunters walk into a restaurant in the mountains where the rules keep getting stranger.": "两个猎人走进山里的一家餐馆，那里的规矩越来越古怪。",
  "Two young lovers in 17th-century Lombardy are kept apart by a local tyrant, war and plague. A long novel.": "十七世纪伦巴第的一对年轻恋人，被地方恶霸、战争和瘟疫拆散。一部长篇小说。",
  "Two young people from feuding families fall in love in Viseu, and it leads to prison, a convent and exile. Portugal’s Romeo and Juliet.": "两个出身世仇家族的年轻人在维塞乌相爱，结果招来牢狱、修道院和流放。葡萄牙的《罗密欧与朱丽叶》。",
- "For Chinese speakers": "面向中文使用者",
  "Read real books in the language you’re learning. Tap any word to see what it means.": "用你在学的语言读真正的书。点一下任何词，就能看到它的意思。",
  "Pick one or more. Each comes with free classic books.": "可以选一个或多个。每种语言都有免费的经典书。",
  "The one you know best. Sentences you translate are shown in it, and it will be the default language of your home screen. You can change it any time in Settings.": "你最熟悉的语言。你翻译的句子会用它显示，它也会成为主屏幕的默认语言。随时可以在设置里更改。",
  "{lang} books will be translated into {into} instead.": "{lang}书会改为翻译成{into}。",
- "Word meanings are in English (in Chinese for English books). Word cards can translate them for you.": "词义是英文的（英语书则是中文）。词卡可以帮你翻译。",
- "Word meanings are in Chinese. Word cards can translate them for you.": "词义是中文的。词卡可以帮你翻译。",
  "Word meanings are in English. Word cards can translate them for you.": "词义是英文的。词卡可以帮你翻译。",
  "Minutes of reading or review a day. Hit it every day to build a streak. You can change it later.": "每天阅读或复习的分钟数。每天达成，就能累积连续天数。之后可以随时更改。",
  "Books you add are only saved in this browser. Sign in to keep them.": "你添加的书只保存在这个浏览器里。登录就能保留它们。",
@@ -2075,5 +2072,8 @@
  "Sign in above, and your words, reading places and bookmarks sync.": "在上方登录，你的词语、阅读位置和书签就会同步。",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": "已开启“仅限本地”，这句话只留在此设备上。如需使用 Claude，请在设置中关闭它。",
  "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": "已开启“仅限本地”，这句话只留在此设备上。如需使用此服务，请在设置中关闭它。",
- "More classics": "更多经典"
+ "More classics": "更多经典",
+ "A rare word, from Wiktionary.": "一个生僻词，释义来自维基词典。",
+ "{lang}, my own language": "{lang}（我的母语）",
+ "Word cards explain words in {book}.": "单词卡会用{book}解释词语。"
 }

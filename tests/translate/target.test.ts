@@ -342,37 +342,39 @@ describe('the setting', () => {
     expect(SYNCED_SETTINGS).toContain('translateTo');
   });
 
-  it('lists the library’s default first, then the rest by name: Chinese in the English library, English elsewhere', () => {
+  it('lists the book’s own language (when it has a dictionary in it), the library’s default, then the rest by name', () => {
     const first = (id: LangId) => {
       setLangForTests(id);
       const c = targetControl(createSettingsStore(localStorage, id));
       const codes = [...c.el.querySelectorAll('option')].map((o) => o.value);
-      return { first: codes[0], rest: codes.slice(1) };
+      const own = codes[0] === id ? 1 : 0;
+      return { own: !!own, first: codes[own], rest: codes.slice(own + 1) };
     };
-    for (const [id, def] of [['en', 'zh'], ['zh', 'en'], ['es', 'en']] as const) {
-      const { first: head, rest } = first(id);
+    for (const [id, def, own] of [['en', 'zh', true], ['zh', 'en', false], ['es', 'en', true]] as const) {
+      const { first: head, rest, own: mine } = first(id);
+      expect(mine).toBe(own);
       expect(head).toBe(def);
       const names = rest.map((code) => TARGET_LANGUAGES.find((t) => t.code === code)!.name);
       expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'en')));
     }
   });
 
-  it('in the English library, says English is used elsewhere only when the reader chose English', () => {
+  it('in the English library, an English reader has English as their own language: the cards explain words in it', () => {
     setLangForTests('en');
     const settings = createSettingsStore(localStorage, 'en');
     const c = targetControl(settings);
     const note = c.el.querySelector<HTMLElement>('.set-help')!;
     c.update(settings.get());
     expect(settings.get().translateTo).toBe('en');
-    expect((c.el.querySelector('select') as HTMLSelectElement).value).toBe('zh');
+    const select = c.el.querySelector('select') as HTMLSelectElement;
+    expect(select.value).toBe('en');
+    expect(select.options[0].textContent).toBe('English, my own language');
+    expect(note.textContent).toBe('Word cards explain words in English.');
+    // A Chinese reader: Chinese, and no note.
+    select.value = 'zh';
+    select.dispatchEvent(new Event('change'));
+    c.update(settings.get());
     expect(note.hidden).toBe(true);
-    // Chosen in another library: the shared choice has a time.
-    localStorage.setItem(TARGET_KEY, JSON.stringify({ to: 'en', at: 1_700_000_000_000 }));
-    const chose = createSettingsStore(localStorage, 'en');
-    const d = targetControl(chose);
-    d.update(chose.get());
-    expect(d.el.querySelector<HTMLElement>('.set-help')!.hidden).toBe(false);
-    expect(d.el.querySelector('.set-help')?.textContent).toBe('These books are in English, so they are translated into Chinese (Simplified). English is used for your other books.');
   });
 
   it('is kept by the sync server, which still drops names it does not know', async () => {

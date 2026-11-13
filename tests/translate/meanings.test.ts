@@ -37,16 +37,20 @@ describe('the language the meanings go into', () => {
     expect(dictionaryLanguage('es')).toBe('en');
     expect(dictionaryLanguage('zh')).toBe('en');
     expect(dictionaryLanguage('ja')).toBe('en');
-    expect(dictionaryLanguage('en')).toBe('zh');
+    // English books explain words in simple English, but in ECDICT's Chinese for a Chinese reader.
+    expect(dictionaryLanguage('en')).toBe('en');
+    expect(dictionaryLanguage('en', 'zh')).toBe('zh');
+    // A Spanish speaker reading Spanish gets Spanish meanings (lang/ownDictionary.ts).
+    expect(dictionaryLanguage('es', 'es')).toBe('es');
     expect(meaningsTarget(settings({ translateTo: 'fr' }), 'es')).toBe('fr');
     expect(meaningsTarget(settings({ translateTo: 'ko' }), 'ja')).toBe('ko');
     expect(meaningsTarget(settings({ translateTo: 'fr' }), 'zh')).toBe('fr');
     // An English speaker reads the English the dictionaries have.
     expect(meaningsTarget(settings({ translateTo: 'en' }), 'es')).toBeNull();
-    // A Spanish speaker's Spanish books translate into English, and so the meanings stay in English too.
+    // A Spanish speaker reading Spanish has the meanings in Spanish already.
     expect(meaningsTarget(settings({ translateTo: 'es' }), 'es')).toBeNull();
   });
-  it('in the English library, whose dictionary is Chinese: none for a Chinese reader, Korean for a Korean one', () => {
+  it('in the English library: none for an English or a Chinese reader (ECDICT is Chinese), Korean for a Korean one', () => {
     expect(meaningsTarget(settings({ translateTo: 'en' }), 'en')).toBeNull();
     expect(meaningsTarget(settings({ translateTo: 'zh' }), 'en')).toBeNull();
     expect(meaningsTarget(settings({ translateTo: 'zh-Hant' }), 'en')).toBeNull();
