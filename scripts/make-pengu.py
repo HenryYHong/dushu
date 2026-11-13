@@ -6,7 +6,8 @@
 Two pictures by Henry (an AI image generator, 2026-11-12), the same flat Pengu, a round emperor penguin chick peeking over an
 open terracotta book, on white, the same size and in the same place:
 
-    art/pengu-logo.png   Pengu calm, beak closed: the logo (the brand mark in the bar, the browser tab, the app's icons)
+    art/pengu-logo.png   Pengu calm, beak closed, softer eyes (Henry's pick, 2026-11-13): the logo (the brand mark in the
+                         bar, the browser tab, the app's icons)
     art/pengu-read.png   Pengu happy, beak open: the mascot inside the app
 
 Pengu is animated a drawing at a time (ui/pengu.ts swaps them), from drawings made in ChatGPT (2026-11-12), all 1254 px
