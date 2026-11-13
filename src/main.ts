@@ -4,7 +4,7 @@ import { num, startI18n, tt, ttm, ttn } from './i18n';
 import './styles/tokens.css';
 import './styles/base.css';
 import type { AppContext, Dictionary, MountFn, Settings, Store } from './types';
-import { byteMeter, dataSizes, fetchDataBytes, fetchDataText, type Keep } from './core/dataFetch';
+import { byteMeter, dataSizes, fetchDataBytes, fetchDataText, type Count, type Keep } from './core/dataFetch';
 import { setDictBytes } from './core/dictProgress';
 import { openStore } from './store';
 import { createSettingsStore } from './store/settings';
@@ -22,7 +22,7 @@ import { signInButton } from './ui/signIn';
 import { reviewCount } from './ui/review/learning';
 import { scriptView } from './ui/vocab/render';
 import { activeEngine, isChinese, lang, setActiveEngine, storeName } from './lang/active';
-import { loadOwnDictionary, setReaderLanguage, withOwnDictionary } from './lang/ownDictionary';
+import { loadOwnDictionary, ownDictionary, setReaderLanguage, withOwnDictionary } from './lang/ownDictionary';
 import { noChineseDictionary } from './lang/noChinese';
 import { langChip } from './ui/langSwitch';
 import { needsWelcome } from './core/plan';
@@ -192,7 +192,7 @@ async function boot(): Promise<void> {
   const loadDict = (opts: { keep?: Keep; onBytes?: (loaded: number, total: number) => void }): Promise<Dictionary> => {
     // Meanings in the book's own language, for a reader who gets them (lang/ownDictionary.ts): fetched alongside the engine, so
     // the first word card already has them, and again whenever the reader's language changes.
-    const own = () => loadOwnDictionary(L.id, dictUrl, (url) => fetchDataText(url, opts.keep));
+    const own = (count?: Count) => loadOwnDictionary(L.id, dictUrl, (url) => fetchDataText(url, opts.keep, count));
     if (!ownWatched) {
       ownWatched = true;
       settings.subscribe((s, changed) => {
@@ -211,7 +211,9 @@ async function boot(): Promise<void> {
       if (atStart === null) { atStart = true; setTimeout(() => { atStart = false; }, 0); }
       return handoff.track(fetchDataBytes(dictUrl + name, opts.keep, atStart ? meter?.(name) : undefined));
     };
-    return Promise.all([L.load!().then((m) => m.loadEngine(dictUrl, { fetchBytes })), own()]).then(([engine]) => {
+    // Counted in "Downloading the dictionary" when this reader needs it (only then is it fetched).
+    const ownCount = ownDictionary(L.id) ? meter?.('native.tsv.gz') : undefined;
+    return Promise.all([L.load!().then((m) => m.loadEngine(dictUrl, { fetchBytes })), own(ownCount)]).then(([engine]) => {
       setActiveEngine(withOwnDictionary(engine));
       return noChineseDictionary(activeEngine()!);
     });

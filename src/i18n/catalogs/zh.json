@@ -2075,5 +2075,6 @@
  "More classics": "更多经典",
  "A rare word, from Wiktionary.": "一个生僻词，释义来自维基词典。",
  "{lang}, my own language": "{lang}（我的母语）",
- "Word cards explain words in {book}.": "单词卡会用{book}解释词语。"
+ "Word cards explain words in {book}.": "单词卡会用{book}解释词语。",
+ "Word cards for {lang} books explain words in {lang}.": "{lang}书的单词卡会用{lang}解释词语。"
 }

@@ -2075,5 +2075,6 @@
  "More classics": "更多經典",
  "A rare word, from Wiktionary.": "一個罕見的詞，釋義來自維基詞典。",
  "{lang}, my own language": "{lang}（我的母語）",
- "Word cards explain words in {book}.": "單字卡會用{book}解釋詞語。"
+ "Word cards explain words in {book}.": "單字卡會用{book}解釋詞語。",
+ "Word cards for {lang} books explain words in {lang}.": "{lang}書的單字卡會用{lang}解釋詞語。"
 }

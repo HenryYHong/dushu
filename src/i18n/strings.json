@@ -7603,6 +7603,11 @@
    "src/ui/settings/translation.ts"
   ]
  },
+ "Word cards for {lang} books explain words in {lang}.": {
+  "where": [
+   "src/ui/welcome.ts"
+  ]
+ },
  "Word cards translate the dictionary’s {original} into your language and keep the {original} under each meaning. Automatic uses Chrome’s free on-device translator, and an online one (Qwen through your account, Claude or MyMemory) only when you press the button on the card. Always uses any of them without asking.": {
   "where": [
    "src/ui/settings/settings.ts"

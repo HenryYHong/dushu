@@ -2304,5 +2304,6 @@
  "More classics": "Mais clássicos",
  "A rare word, from Wiktionary.": "Uma palavra rara, do Wikcionário.",
  "{lang}, my own language": "{lang}, minha própria língua",
- "Word cards explain words in {book}.": "Os cartões de palavras explicam as palavras em {book}."
+ "Word cards explain words in {book}.": "Os cartões de palavras explicam as palavras em {book}.",
+ "Word cards for {lang} books explain words in {lang}.": "Os cartões de palavras dos livros em {lang} explicam as palavras em {lang}."
 }

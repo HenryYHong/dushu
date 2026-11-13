@@ -162,10 +162,17 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
     if (!table || !lu.entries.length) return lu;
     const seen = new Set<string>();
     const entries: WordEntry[] = [];
-    lu.entries.forEach((e, i) => {
+    const swapped = lu.entries.map((e, i) => {
       // A fixed phrase's entry comes first, under the phrase's key.
       const key = i === 0 && lu.phrase ? lu.phrase : engine.normalize(e.head);
-      const own = swap(table, e, key) ?? e;
+      return swap(table, e, key);
+    });
+    // One language on the card: when the word has meanings in it, the entries without any go (correu: correr, not the English
+    // corréu); a word with none keeps the main dictionary's.
+    const any = swapped.some(Boolean);
+    lu.entries.forEach((e, i) => {
+      const own = swapped[i] ?? (any ? null : e);
+      if (!own) return;
       const id = `${own.head}\u0000${own.senses[0]?.pos ?? ''}\u0000${own.source}`;
       if (own.source === OWN_SOURCE && seen.has(id)) return;
       seen.add(id);

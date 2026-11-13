@@ -10,6 +10,7 @@ import { connectedMac, isMacOrigin } from '../../core/macBridge';
 import { isAccountOwner } from '../../core/cloud';
 import { activeEngine, isChinese, lang } from '../../lang/active';
 import { aidWord, glossLanguage, levelScheme } from '../../lang/labels';
+import { ownDictionary } from '../../lang/ownDictionary';
 import type { LangId } from '../../lang/types';
 import { fetchSamples } from '../library/samples';
 import { langName, num, tt, ttm, ttn } from '../../i18n';
@@ -400,8 +401,10 @@ async function fetchMeta(): Promise<DataMeta | null> {
   try {
     const res = await fetch(new URL(isChinese() ? 'data/meta.json' : `data/${lang().id}/meta.json`, document.baseURI).href);
     if (!res.ok) return null;
-    const j = JSON.parse(await res.text()) as Partial<DataMeta>;
-    return { built: j.built ?? '', unicode: j.unicode ?? '', counts: j.counts ?? {}, sources: j.sources ?? [] };
+    const j = JSON.parse(await res.text()) as Partial<DataMeta> & { native?: { sources?: DataMeta['sources'] } };
+    // The own-language dictionary (lang/ownDictionary.ts) is credited while its meanings are the ones shown.
+    const own = ownDictionary(lang().id) ? j.native?.sources ?? [] : [];
+    return { built: j.built ?? '', unicode: j.unicode ?? '', counts: j.counts ?? {}, sources: [...(j.sources ?? []), ...own] };
   } catch {
     return null;
   }

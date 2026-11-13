@@ -2415,5 +2415,6 @@
  "More classics": "Ещё классика",
  "A rare word, from Wiktionary.": "Редкое слово, из Викисловаря.",
  "{lang}, my own language": "{lang}, мой родной язык",
- "Word cards explain words in {book}.": "Карточки слов объясняют слова на языке: {book}."
+ "Word cards explain words in {book}.": "Карточки слов объясняют слова на языке: {book}.",
+ "Word cards for {lang} books explain words in {lang}.": "Карточки слов в книгах на языке «{lang}» объясняют слова на этом же языке."
 }

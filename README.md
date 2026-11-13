@@ -1,6 +1,6 @@
 # LinguPengu
 
-LinguPengu (first called Dushu, 读书, then Globereader) is a reader for learning a language from real books: Chinese, Japanese, Spanish, French, German, Italian, Portuguese and Russian, and English for Chinese speakers. The code and its data keys still say dushu.
+LinguPengu (first called Dushu, 读书, then Globereader) is a reader for learning a language from real books: Chinese, Japanese, Spanish, French, German, Italian, Portuguese, Russian and English. Someone reading their own language gets words explained in it. The code and its data keys still say dushu.
 
 Its mascot is Pengu, a fluffy emperor penguin chick peeking over an open book in the app's vermilion: on a white square it is the logo and app icon, and as a sticker it is the one who greets you on the welcome screen, shows you around the library and the reader, and cheers when you finish a review. The picture (`art/pengu-logo.png`) was made for this app with an AI image generator, and its waving and cheering poses (`art/pengu-wave.png`, `art/pengu-cheer.png`) from it; `python3 -I scripts/make-pengu.py` (needs Pillow) makes the app's images and icons from it, and `node scripts/make-icons.mjs` the link picture.
 
@@ -148,7 +148,7 @@ The translation panel says which one answered. You can stop a translation, switc
 
 **MyMemory** is a free online service. It is never used unless you choose it, because it sends the selected text to a third party. With **Local only** on, it is off, and every sentence stays on your Mac.
 
-The app itself is shown in your language when it has it: English, Chinese (simplified and traditional), Japanese, Korean, Spanish, French, German, Italian, Portuguese or Russian. It starts in your browser's language; change it under **Settings › Learning › Your language**, which also sets the language translations go into. Sentences can go into any of 94 languages: pick one on its own under **Settings › Translation**, or on the welcome screen. Claude and MyMemory take them all; Chrome's on-device translator takes some and says when it cannot. Word cards keep their short meanings in English (in Chinese for English books).
+The app itself is shown in your language when it has it: English, Chinese (simplified and traditional), Japanese, Korean, Spanish, French, German, Italian, Portuguese or Russian. It starts in your browser's language; change it under **Settings › Learning › Your language**, which also sets the language translations go into. Sentences can go into any of 94 languages: pick one on its own under **Settings › Translation**, or on the welcome screen. Claude and MyMemory take them all; Chrome's on-device translator takes some and says when it cannot. Word cards keep their short meanings in English, and can translate them into your language. English books explain words in simple English (in Chinese for a Chinese reader), and a book in your own language explains words in that language: pick it as yours under **Settings › Translation** ("Spanish, my own language").
 
 Machine translation is a help, not a proof. Names keep their readings, and the dictionary stays the source of truth for pinyin. A real-model evaluation script is in `scripts/evaluate-translations.mjs`.
 
@@ -222,7 +222,9 @@ The other languages (Japanese, Spanish, French, German, Italian, Portuguese, Rus
 | JLPT lists (Jonathan Waller), matched by yomitan-jlpt-vocab | Japanese levels | CC BY 4.0 |
 | English Wiktionary via kaikki.org (wiktextract) | Words, forms and senses of the European languages and Russian | CC BY-SA 4.0 (and GFDL) |
 | FrequencyWords (Hermit Dave, OpenSubtitles 2018) | How common a word is; the plainest English hint | CC BY-SA 4.0 |
-| ECDICT (Linwei, skywind3000/ECDICT) | English words with Chinese definitions, their forms and pronunciations (IPA), how common they are, and the Chinese exam lists (中考 to GRE) for English levels | MIT |
+| ECDICT (Linwei, skywind3000/ECDICT) | English words with Chinese definitions (for Chinese readers), their forms and pronunciations (IPA), how common they are, and the Chinese exam lists (中考 to GRE) for a Chinese reader's English levels | MIT |
+| Simple English Wiktionary, and English Wiktionary via kaikki.org | English words explained in simple English, for anyone reading English (`scripts/lang/native/build.py`) | CC BY-SA 4.0 |
+| The Spanish, French, German, Italian, Portuguese, Russian, Japanese and Chinese Wiktionaries via kaikki.org | Words explained in their own language, for someone reading a book in the language they speak | CC BY-SA 4.0 |
 | Universal Dependencies treebanks | Counts of which lemma and part of speech a spelling usually is (no treebank text is used) | each treebank's license, listed in the app |
 | Aozora Bunko, Project Gutenberg, Wikisource | The bundled classics (public domain in the United States) | public domain |
 | Wikimedia Commons and museum open-access images | The classics' cover paintings (public domain) | public domain |

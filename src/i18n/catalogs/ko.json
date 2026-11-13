@@ -2085,5 +2085,6 @@
  "More classics": "고전 더 보기",
  "A rare word, from Wiktionary.": "드문 단어예요. 위키낱말사전에서 가져왔어요.",
  "{lang}, my own language": "{lang}, 내 모국어",
- "Word cards explain words in {book}.": "단어 카드가 단어를 {book}로 설명해요."
+ "Word cards explain words in {book}.": "단어 카드가 단어를 {book}로 설명해요.",
+ "Word cards for {lang} books explain words in {lang}.": "{lang} 책의 단어 카드는 {lang}로 단어를 설명해요."
 }

@@ -99,7 +99,7 @@ describe('the welcome dialog', () => {
     expect(select().value).toBe('fr');
   });
 
-  it('says the own-language fallback the way the translator does it', () => {
+  it('says that a language the reader speaks is explained in itself', () => {
     void showWelcome(settings, { current: 'zh' });
     card('Español').click();
     card('English').click();
@@ -107,10 +107,10 @@ describe('the welcome dialog', () => {
     const select = dialog()!.querySelector<HTMLSelectElement>('select.wel-select')!;
     select.value = 'es';
     select.dispatchEvent(new Event('change'));
-    expect(dialog()!.querySelector('.wel-warn')!.textContent).toBe('Spanish books will be translated into English instead.');
+    expect(dialog()!.querySelector('.wel-warn')!.textContent).toBe('Word cards for Spanish books explain words in Spanish.');
     select.value = 'en';
     select.dispatchEvent(new Event('change'));
-    expect(dialog()!.querySelector('.wel-warn')!.textContent).toBe('English books will be translated into Simplified Chinese instead.');
+    expect(dialog()!.querySelector('.wel-warn')!.textContent).toBe('Word cards for English books explain words in English.');
   });
 
   it('Esc does nothing on a first visit, and never counts as Skip', async () => {

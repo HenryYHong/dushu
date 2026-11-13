@@ -18,6 +18,7 @@ import { markLangChoice } from './langSwitch';
 import { markSiteGuide } from './guide';
 import { chooseUiLang, isUiLang, langName, num, tt, ttm, uiLang, uiLocale } from '../i18n';
 import type { SettingsStore } from '../types';
+import { hasOwnDictionary } from '../lang/ownDictionary';
 
 /** What each library explains its language in, where that is not English. Shown with tt. */
 const EXPLAINED: Partial<Record<LangId, string>> = {};
@@ -161,8 +162,10 @@ export function showWelcome(settings: SettingsStore, opts: { current: LangId; ag
         const own = langs.filter((l) => isOwnLanguage(target, l));
         warn.hidden = !own.length;
         if (!own.length) { warn.textContent = ''; return; }
-        // What the translator really does with a book in the language picked (translate/targets.ts targetFor).
         const name = langName(own[0], LANGS[own[0]].name);
+        // Someone who speaks the language they are about to read: its word cards explain words in it (lang/ownDictionary.ts).
+        if (hasOwnDictionary(own[0])) { warn.textContent = tt('Word cards for {lang} books explain words in {lang}.', { lang: name }); return; }
+        // What the translator really does with a book in the language picked (translate/targets.ts targetFor).
         const into = targetLanguage(targetFor(target, own[0]));
         warn.textContent = tt('{lang} books will be translated into {into} instead.',
           { lang: name, into: into ? targetName(into, into.prompt ?? into.name) : langName('en', 'English') });

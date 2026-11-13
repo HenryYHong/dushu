@@ -2079,5 +2079,6 @@
  "More classics": "ほかの名作",
  "A rare word, from Wiktionary.": "まれな語です。Wiktionary より。",
  "{lang}, my own language": "{lang}（自分の言語）",
- "Word cards explain words in {book}.": "単語カードは単語を{book}で説明します。"
+ "Word cards explain words in {book}.": "単語カードは単語を{book}で説明します。",
+ "Word cards for {lang} books explain words in {lang}.": "{lang}の本の単語カードは、{lang}で単語を説明します。"
 }
