@@ -2325,7 +2325,10 @@ exists.
   order of every HSK character. The files are fetched through the service worker, a few at a time, skipping what is stored; it
   says how many are stored when Settings opens, and asks the browser to keep the storage. The service worker keeps stroke-order
   data from jsDelivr in a cache no update clears (`dushu-strokes-v1`), and an update carries everything the old caches held into
-  the new ones (each file checked with the server by its ETag), so what was saved stays saved. Offline, translating a sentence
+  the new ones, so what was saved stays saved: the build writes each file's content fingerprint (`content-hashes.json`), and a
+  file whose fingerprint matches the copy the last install kept is copied with no download (GitHub Pages' ETags change with
+  every deploy, so they cannot say this); a changed one is fetched, and one that cannot be fetched keeps its old copy. One press
+  saves every language the reader is learning (the welcome's plan). Offline, translating a sentence
   says so and shows word by word, and Find a book says it needs the internet. `qa-out/offline.mjs` and
   `qa-out/offline-update.mjs` check it on the built app.
 - **Offline.** Each language's data and classics live in a cache of their own (`sw.js`, `dushu-lang-<id>-<version>`), named by their

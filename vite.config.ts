@@ -129,6 +129,17 @@ export function serviceWorker(): Plugin {
       const fontSheets = assets.filter((f) => f.endsWith('.css') && onlyFontFaces(readFileSync(join(dist, 'assets', f), 'utf8'))).map((f) => `assets/${f}`);
       const shell = [...assets.map((f) => `assets/${f}`).filter((p) => !fontSheets.includes(p)), 'icon.svg', 'manifest.webmanifest', ...icons];
       const zhStatic = [...data.map((f) => `data/${f}`), ...samples];
+      // Each stored file's content fingerprint (data/, samples/, fonts/): an update copies the files it did not change from the
+      // old cache instead of downloading them again (GitHub Pages' ETags change with every deploy), sw.js install.
+      const hashes: Record<string, string> = {};
+      for (const dir of ['data', 'samples', 'fonts']) {
+        const root = join(dist, dir);
+        if (!existsSync(root)) continue;
+        for (const f of (readdirSync(root, { recursive: true }) as string[]).map((x) => x.split(sep).join('/')).sort()) {
+          if (statSync(join(root, f)).isFile()) hashes[`${dir}/${f}`] = createHash('sha1').update(readFileSync(join(root, f))).digest('hex').slice(0, 12);
+        }
+      }
+      writeFileSync(join(dist, 'content-hashes.json'), JSON.stringify(hashes));
       writeFileSync(swPath, readFileSync(swPath, 'utf8')
         .replace('__BUILD__', build).replace('__DATA_VERSION__', dataVersion)
         .replace('__SHELL__', JSON.stringify(shell)).replace('__ZH_STATIC__', JSON.stringify(zhStatic)).replace('__FONT_SHEETS__', JSON.stringify(fontSheets))

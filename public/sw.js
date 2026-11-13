@@ -16,7 +16,9 @@
 //   - Stroke-order data (hanzi-writer-data on jsDelivr, the one other site whose files the app keeps): cache first in a cache
 //     of its own that no update clears, so a character opened once (or saved for offline, core/offlinePack.ts) animates offline.
 //   - An update keeps everything the device had stored (a classic, Jigmo, the name list, what "Save for offline use" saved):
-//     each file the old caches hold that is still in the app is checked with the server and carried into the new cache.
+//     each file the old caches hold that is still in the app is carried into the new cache. One whose content did not change
+//     (content-hashes.json, written by the build, against the copy kept from the last install) is copied without a download;
+//     one that changed is fetched, and if that fails the old copy is kept rather than lost, so the app still works offline.
 //   - A new version installs in the background and waits; the page shows "Reload" and sends SKIP_WAITING.
 // The __PLACEHOLDERS__ below are filled in by the build (see vite.config.ts); in dev this file is not used.
 const BUILD = '__BUILD__';
@@ -41,6 +43,8 @@ const FONT_CACHE = 'dushu-fonts-v1';
 const STROKE_CACHE = 'dushu-strokes-v1';
 const STROKE_ORIGIN = 'https://cdn.jsdelivr.net';
 const STROKE_PATH = '/npm/hanzi-writer-data@';
+/** Every stored file's content fingerprint, written by the build; kept in the static cache to compare with the next build's. */
+const HASHES = 'content-hashes.json';
 /** On a first visit the page keeps the dictionary files it downloaded here (main.ts); install takes them over. */
 const FIRST_VISIT_CACHE = 'dushu-first-visit';
 const SCOPE = new URL(self.registration.scope).pathname;
@@ -122,6 +126,24 @@ self.addEventListener('install', (event) => {
       else if (isHashed(p)) await app.put(p, await handed.match(req, MATCH)).catch(() => {});
     }
     const statics = [...new Set([...UI_FONTS, ...ZH_STATIC, ...handedPaths, ...keptPaths.filter(isStatic)])];
+    // What the last install stored, and what this build has: a file whose fingerprint is the same is copied, not downloaded.
+    let oldHashes = {};
+    for (const c of [stat, ...older]) {
+      const m = await c.match(HASHES).catch(() => null);
+      if (m) { oldHashes = await m.json().catch(() => ({})); break; }
+    }
+    let newHashes = {};
+    try {
+      const res = await fetch(new Request(HASHES, { cache: 'no-cache' }));
+      if (res.ok) { await stat.put(HASHES, res.clone()); newHashes = await res.json(); }
+    } catch { /* an old server without the file: every file is checked as before */ }
+    const unchanged = (p) => !!oldHashes[p] && oldHashes[p] === newHashes[p];
+    const fetchInto = async (cache, p) => {
+      try {
+        await cache.add(new Request(p, { cache: 'no-cache' }));
+        return true;
+      } catch { return false; }
+    };
     const priors = await Promise.all(statics.map((p) => priorOf(p).catch(() => undefined)));
     // The Chinese files are precached only on a device that reads Chinese: its page handed the Chinese dictionary over, or
     // the previous offline copy kept it. A first visit in Spanish never downloads the 9 MB Chinese dictionary; if that device
@@ -132,8 +154,13 @@ self.addEventListener('install', (event) => {
       if (!priors[i] && !UI_FONTS.includes(p) && !(readsChinese && zh.has(p))) return;
       const id = langOf(p);
       const cache = id ? await caches.open(langCache(id)) : stat;
+      // The same content as the copy stored before: copied, no download.
+      if (priors[i] && unchanged(p)) { await cache.put(p, priors[i]).catch(() => {}); return; }
       // A copy the server cannot vouch for (no ETag) is asked for again: the browser's cache answers for one the page just got.
-      if (!(await takeOver(cache, p, priors[i]).catch(() => false))) await add(cache, [p]);
+      if (await takeOver(cache, p, priors[i]).catch(() => false)) return;
+      if (await fetchInto(cache, p)) return;
+      // The new copy could not be had (a weak connection): the old one is kept, so the app still works offline.
+      if (priors[i]) await cache.put(p, priors[i]).catch(() => {});
     }));
     await caches.delete(FIRST_VISIT_CACHE).catch(() => {});
     // No skipWaiting here: the page decides when to switch (see the message handler), so an update never changes

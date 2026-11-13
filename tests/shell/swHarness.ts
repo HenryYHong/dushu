@@ -20,6 +20,8 @@ export interface WorkerOptions {
   fontSheets?: string[];
   /** The app's open windows, for a tap on a notification (clients.matchAll). */
   windows?: FakeWindow[];
+  /** cache.add fetches from the fake network and stores what it gets, failing as a browser's does; else it only records. */
+  realAdd?: boolean;
 }
 
 /** An open window of the app, as a worker sees it: where it is, and what was done to it. */
@@ -49,7 +51,13 @@ export function loadWorker(opts: WorkerOptions) {
         return hit?.clone();
       },
       put: async (r: Request | string, res: Response) => { m.set(key(r), res); },
-      add: async (r: Request | string) => { added.push(key(r)); requests.push(key(r)); },
+      add: async (r: Request | string) => {
+        added.push(key(r));
+        if (!opts.realAdd) { requests.push(key(r)); return; }
+        const res = await fakeFetch(r);
+        if (!res.ok) throw new TypeError('Failed to add');
+        m.set(key(r), res);
+      },
       keys: async () => [...m.keys()].map((u) => new Request(u)),
     };
   };
