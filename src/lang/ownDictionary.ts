@@ -13,7 +13,7 @@ import type { LangEngine, LangId, Sense, WordEntry, WordLookup } from './types';
 import { fetchDataText } from '../core/dataFetch';
 
 /** The libraries with a dictionary in their own language. */
-const HAS_OWN: ReadonlySet<LangId> = new Set<LangId>(['en', 'es', 'fr', 'de', 'it', 'pt', 'ru']);
+const HAS_OWN: ReadonlySet<LangId> = new Set<LangId>(['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'zh']);
 
 let reader = 'en';
 const listeners = new Set<() => void>();
@@ -108,6 +108,21 @@ export function loadOwnDictionary(id: LangId, base: string, fetchText: (url: str
 /** The loaded table for `id`, when this reader uses it. */
 const tableFor = (id: LangId): OwnTable | null => (ownDictionary(id) && ready?.id === id ? ready.table : null);
 
+/**
+ * The own-language meanings of a word in the `id` library for this reader, by the first of `spellings` the table has (Chinese:
+ * traditional, then simplified, as Wiktionary files words under the traditional), each meaning once. Null when there are none.
+ */
+export function ownMeanings(id: LangId, spellings: readonly string[]): string[] | null {
+  const table = tableFor(id);
+  if (!table) return null;
+  for (const s of spellings) {
+    const list = s ? table.get(s) : undefined;
+    // A label goes in front, in the brackets Chinese and Japanese use: （用於否定句）完全.
+    if (list?.length) return [...new Set(list.flatMap((e) => e.senses.map((x) => `${x.notes?.length ? `（${x.notes.join('，')}）` : ''}${x.glosses.join('; ')}`)))];
+  }
+  return null;
+}
+
 /** Tests: forget what was loaded. */
 export function resetOwnDictionary(): void {
   loads.clear();
@@ -128,6 +143,13 @@ export const OWN_SOURCE = 'Wiktionary';
  */
 export function withOwnDictionary(engine: LangEngine): LangEngine {
   const swap = (table: OwnTable, e: WordEntry, key: string): WordEntry | null => {
+    if (engine.id === 'ja') {
+      // By any of its spellings (たべる or 食べる): Japanese Wiktionary's parts of speech are not JMdict's.
+      const list = [key, e.head, e.reading, ...(e.alts ?? [])].map((k) => (k ? table.get(k) : undefined)).find((l) => l?.length);
+      if (!list) return null;
+      const senses = [...new Map(list.flatMap((x) => x.senses).map((x) => [x.glosses[0], x])).values()].slice(0, 6);
+      return { ...e, senses, source: OWN_SOURCE };
+    }
     const list = table.get(key) ?? table.get(engine.normalize(e.head));
     if (!list?.length) return null;
     const pos = e.senses[0]?.pos;

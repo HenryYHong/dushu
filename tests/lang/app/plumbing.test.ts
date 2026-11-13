@@ -442,10 +442,12 @@ describe('the language translations go into', () => {
     control.update(settings.get());
     expect(settings.get().translateTo).toBe('fr');
     expect(note.hidden).toBe(true);
-    // In the Chinese library both Chinese scripts are the book's own.
+    // In the Chinese library both Chinese scripts are the book's own: offered once, as the reader's own language.
     setLangForTests('zh');
     const zh = targetControl(createSettingsStore(memoryStorage(), 'zh'));
-    expect([...(zh.el.querySelector('select') as HTMLSelectElement).options].map((o) => o.value).filter((c) => c.startsWith('zh'))).toEqual([]);
+    const zhOptions = [...(zh.el.querySelector('select') as HTMLSelectElement).options];
+    expect(zhOptions.map((o) => o.value).filter((c) => c.startsWith('zh'))).toEqual(['zh']);
+    expect(zhOptions[0].textContent).toBe('Chinese, my own language');
   });
 });
 

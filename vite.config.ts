@@ -50,7 +50,7 @@ export const OTHER_LANGS = ['ja', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'en'];
 const LANG_PATH = new RegExp(`^(?:data|samples)/(?:${OTHER_LANGS.join('|')})/`);
 
 /** Chinese data files that are not precached: each is stored the first time the app fetches it. */
-export const LAZY_DATA = new Set(['names.tsv.gz', 'name-model.tsv.gz']);
+export const LAZY_DATA = new Set(['names.tsv.gz', 'name-model.tsv.gz', 'native.tsv.gz']);
 
 /** The largest classic downloaded ahead on a first visit, in bytes; longer ones are stored when first added. */
 export const SAMPLE_PRECACHE_MAX = 256 * 1024;

@@ -54,7 +54,8 @@ RAW = os.path.join(ROOT, '.cache', 'raw')
 SIMPLE_DUMP = os.path.join(RAW, 'simplewikt', 'simplewiktionary-pages-articles.xml.bz2')
 EN_EXTRACT = os.path.join(RAW, 'kaikki-en-slim.jsonl.gz')
 
-NAMES = {'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian'}
+NAMES = {'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian',
+         'ja': 'Japanese', 'zh': 'Chinese'}
 # kaikki's part-of-speech codes, named as the main dictionaries name them.
 POS = {'noun': 'noun', 'verb': 'verb', 'adj': 'adjective', 'adv': 'adverb', 'name': 'proper noun', 'intj': 'interjection',
        'prep': 'preposition', 'pron': 'pronoun', 'num': 'numeral', 'conj': 'conjunction', 'det': 'determiner',
@@ -498,13 +499,107 @@ def build_edition(code):
 
 
 def update_meta(code, count, sources):
-    path = os.path.join(DATA, code, 'meta.json')
+    path = os.path.join(DATA, 'meta.json') if code == 'zh' else os.path.join(DATA, code, 'meta.json')
     with open(path, encoding='utf-8') as f:
-        meta = json.load(f)
+        text = f.read()
+    meta = json.loads(text)
+    # The file's own indent, kept.
+    m = re.search(r'\n( +)"', text)
     meta['native'] = {'built': datetime.date.today().isoformat(), 'entries': count, 'sources': sources}
     with open(path, 'w', encoding='utf-8') as f:
-        json.dump(meta, f, ensure_ascii=False, indent=1)
+        json.dump(meta, f, ensure_ascii=False, indent=len(m.group(1)) if m else 1)
         f.write('\n')
+
+
+# --------------------------------------------------------------------------------------------- Japanese and Chinese ---
+#
+# Japanese and Chinese have no ranks or parts of speech to match on (JMdict's and CC-CEDICT's are not Wiktionary's), so their
+# rows carry no part of speech or hint, and a word's entries are all its meanings, keyed by every spelling:
+#
+#   ja   jmdict.tsv.gz's kanji and kana forms. Japanese Wiktionary files most words under kana (たべる) and points the kanji
+#        spelling at it ("たべるの漢字表記"); an entry is keyed by its word and the kanji forms it lists. A reading note that
+#        opens a meaning ("（ねこ、ネコ）") is dropped. Writes public/data/ja/native.tsv.gz.
+#   zh   CC-CEDICT's traditional and simplified words (cedict.tsv.gz). Chinese Wiktionary files words under their traditional
+#        spelling with definitions in traditional characters; the app shows them in the reader's script. Writes
+#        public/data/native.tsv.gz (the Chinese library's data is data/ itself).
+
+CJK_SENSES = 8
+READING_NOTE = re.compile(r'^（[\u3040-\u30ff・、ー\s]+）')
+
+
+def cjk_keys(code):
+    keys = set()
+    if code == 'ja':
+        with gzip.open(os.path.join(DATA, 'ja', 'jmdict.tsv.gz'), 'rt', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                c = line.split('\t')
+                for col in c[:2]:
+                    for form in col.split(';'):
+                        form = form.split('#')[0].split('@')[0]
+                        if form:
+                            keys.add(form)
+    else:
+        for name in ('cedict.tsv.gz', 'cedict-extra.tsv.gz'):
+            path = os.path.join(DATA, name)
+            if not os.path.exists(path):
+                continue
+            with gzip.open(path, 'rt', encoding='utf-8') as f:
+                for line in f:
+                    if not line.startswith('#'):
+                        c = line.split('\t')
+                        keys.update(x for x in c[:2] if x)
+    return keys
+
+
+def build_cjk(code):
+    keys = cjk_keys(code)
+    found = collections.defaultdict(list)
+    n = kept = 0
+    url = f'https://kaikki.org/{code}wiktionary/raw-wiktextract-data.jsonl.gz'
+    with kaikki.open_url(url) as res, gzip.open(res, 'rt', encoding='utf-8') as f:
+        for line in f:
+            if not line.startswith('{'):
+                continue
+            try:
+                e = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            n += 1
+            if e.get('lang_code') != code or e.get('pos') in ('character', 'soft-redirect', 'romanization', 'symbol'):
+                continue
+            senses = []
+            for sn in e.get('senses') or []:
+                if sn.get('form_of') or sn.get('alt_of') or 'form-of' in (sn.get('tags') or []) or not sn.get('glosses'):
+                    continue
+                gloss = clean(READING_NOTE.sub('', sn['glosses'][-1]))
+                if gloss and len(gloss) > 1 and gloss not in [g for g, _ in senses] and len(senses) < MAX_SENSES:
+                    senses.append((gloss, edition_labels({'rt': sn.get('raw_tags') or []})))
+            if not senses:
+                continue
+            word = e.get('word') or ''
+            spellings = [word] + [fm.get('form') for fm in e.get('forms') or [] if 'kanji' in (fm.get('tags') or []) and fm.get('form')]
+            for w in dict.fromkeys(spellings):
+                if w in keys:
+                    found[w].append({'pos': '', 'senses': senses, 'syn': []})
+                    kept += 1
+    lines = []
+    for key in sorted(found):
+        # Each entry's first meaning, then each one's second, and so on: a character's entries are its etymologies (了 to
+        # finish, 了 the particle), and the first one alone would fill the list.
+        merged = []
+        entries = found[key]
+        for i in range(max(len(e['senses']) for e in entries)):
+            for e in entries:
+                if i < len(e['senses']) and e['senses'][i] not in merged:
+                    merged.append(e['senses'][i])
+        lines.append(row(key, {'pos': '', 'senses': merged[:CJK_SENSES]}, ''))
+    out = os.path.join(DATA, 'native.tsv.gz') if code == 'zh' else os.path.join(DATA, code, 'native.tsv.gz')
+    write_lines(out, header(code, f'{NAMES[code]} Wiktionary (CC BY-SA 4.0, via kaikki.org)') + lines)
+    print(f'{code}: read {n} entries, kept {kept}; wrote {os.path.relpath(out, ROOT)}: {len(lines)} words of {len(keys)}')
+    update_meta(code, len(lines), [{'name': f'{NAMES[code]} Wiktionary (via kaikki.org)', 'license': 'CC BY-SA 4.0',
+                                    'url': f'https://kaikki.org/{code}wiktionary/'}])
 
 
 if __name__ == '__main__':
@@ -515,6 +610,8 @@ if __name__ == '__main__':
     for code in args:
         if code == 'en':
             build_en()
+        elif code in ('ja', 'zh'):
+            build_cjk(code)
         elif code in NAMES:
             build_edition(code)
         else:

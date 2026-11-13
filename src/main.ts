@@ -190,16 +190,6 @@ async function boot(): Promise<void> {
   // The Chinese dictionary's code is a chunk of its own (about 100 KB), so another language's first screen never waits for it.
   let ownWatched = false;
   const loadDict = (opts: { keep?: Keep; onBytes?: (loaded: number, total: number) => void }): Promise<Dictionary> => {
-    if (isChinese()) return import('./core/dict').then((m) => m.loadDictionary(dictUrl, opts));
-    // Each file the engine asks for counts toward the reader's "Downloading the dictionary: x of y MB" and is handed over.
-    // Only the ones it asks for at the start count: those are what it waits for. One asked for once the engine is ready
-    // (English pronunciations) would take the line back to "Downloading" after it said the dictionary was getting ready.
-    const meter = opts.onBytes ? byteMeter(opts.onBytes, handoff.track(dataSizes(dictUrl, opts.keep))) : null;
-    let atStart: boolean | null = null;
-    const fetchBytes = (name: string) => {
-      if (atStart === null) { atStart = true; setTimeout(() => { atStart = false; }, 0); }
-      return handoff.track(fetchDataBytes(dictUrl + name, opts.keep, atStart ? meter?.(name) : undefined));
-    };
     // Meanings in the book's own language, for a reader who gets them (lang/ownDictionary.ts): fetched alongside the engine, so
     // the first word card already has them, and again whenever the reader's language changes.
     const own = () => loadOwnDictionary(L.id, dictUrl, (url) => fetchDataText(url, opts.keep));
@@ -211,6 +201,16 @@ async function boot(): Promise<void> {
         void own();
       });
     }
+    if (isChinese()) return Promise.all([import('./core/dict').then((m) => m.loadDictionary(dictUrl, opts)), own()]).then(([d]) => d);
+    // Each file the engine asks for counts toward the reader's "Downloading the dictionary: x of y MB" and is handed over.
+    // Only the ones it asks for at the start count: those are what it waits for. One asked for once the engine is ready
+    // (English pronunciations) would take the line back to "Downloading" after it said the dictionary was getting ready.
+    const meter = opts.onBytes ? byteMeter(opts.onBytes, handoff.track(dataSizes(dictUrl, opts.keep))) : null;
+    let atStart: boolean | null = null;
+    const fetchBytes = (name: string) => {
+      if (atStart === null) { atStart = true; setTimeout(() => { atStart = false; }, 0); }
+      return handoff.track(fetchDataBytes(dictUrl + name, opts.keep, atStart ? meter?.(name) : undefined));
+    };
     return Promise.all([L.load!().then((m) => m.loadEngine(dictUrl, { fetchBytes })), own()]).then(([engine]) => {
       setActiveEngine(withOwnDictionary(engine));
       return noChineseDictionary(activeEngine()!);

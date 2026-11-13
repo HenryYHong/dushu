@@ -2264,7 +2264,12 @@ exists.
   all get the same meanings; an entry the own dictionary lacks keeps the main one's. Hints over the text are a simpler word from the
   own dictionary, only where two sources agree (a synonym of the same part of speech that the word's own definitions use, or a
   definition of a word or two, all common and much commoner than the word): about 600 of English's 17,700 harder words, as a wrong
-  hint is worse than none. Chinese and Japanese have no own-language dictionary yet. About credits the sources while they are in use.
+  hint is worse than none. Japanese (`data/ja/native.tsv.gz`, Japanese Wiktionary, keyed by every spelling: it files 食べる under
+  たべる) and Chinese (`data/native.tsv.gz`, Chinese Wiktionary, keyed by CC-CEDICT's traditional and simplified words, about 55–70%
+  of HSK words) carry no parts of speech, as theirs are not their main dictionaries'; a word's meanings take each Wiktionary entry's
+  first one, then each one's second (a character's entries are its etymologies: 了 to finish, 了 the particle). The Chinese card shows
+  them in the reader's script under the word's readings, with CC-CEDICT's measure words, in place of the English (`wordView.ts`
+  `ownBlock`); a word Wiktionary lacks keeps its English. About credits the sources while they are in use.
 - **English for Chinese speakers.** For a Chinese reader the English library explains English in Chinese. Its main dictionary
   (`scripts/lang/en/build_en.py`) is ECDICT (MIT): Chinese glosses and hints, the forms of each word
   (went is go's past tense; a noun's 's and s' its possessive), COCA/BNC ranks, and the Chinese exam lists, which give its levels

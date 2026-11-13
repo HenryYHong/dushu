@@ -350,7 +350,7 @@ describe('the setting', () => {
       const own = codes[0] === id ? 1 : 0;
       return { own: !!own, first: codes[own], rest: codes.slice(own + 1) };
     };
-    for (const [id, def, own] of [['en', 'zh', true], ['zh', 'en', false], ['es', 'en', true]] as const) {
+    for (const [id, def, own] of [['en', 'zh', true], ['zh', 'en', true], ['es', 'en', true]] as const) {
       const { first: head, rest, own: mine } = first(id);
       expect(mine).toBe(own);
       expect(head).toBe(def);

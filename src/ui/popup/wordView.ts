@@ -26,6 +26,7 @@ import { headwordsFor, vocabItemFor } from './saveWord';
 import { flyToVocab } from '../fly';
 import { popIcon } from '../vocab/motion';
 import { cardMeanings, type CardMeanings } from './meanings';
+import { ownMeanings } from '../../lang/ownDictionary';
 import { tt, ttn } from '../../i18n';
 
 interface View {
@@ -201,6 +202,35 @@ export function mountWordView(
         block.appendChild(more);
       }
     }
+    if (classifiers.length) block.appendChild(classifierLine(classifiers));
+    return block;
+  }
+
+  /**
+   * For a Chinese reader reading Chinese (lang/ownDictionary.ts): the word's meanings in Chinese, from Chinese Wiktionary, in the
+   * reader's script, under its readings, with CC-CEDICT's measure words; in place of the English per reading.
+   */
+  function ownBlock(defs: string[], groups: ReadingGroup[], showPinyin: boolean): HTMLElement {
+    const block = h('section.pp-reading.pp-own');
+    if (showPinyin) {
+      const head = h('div.pp-reading-head');
+      groups.forEach((g, i) => {
+        if (i) head.append(' · ');
+        head.appendChild(pinyinSpans(ctx, splitSyllables(g.pinyin)));
+      });
+      block.appendChild(head);
+    }
+    const traditional = ctx.settings.get().script === 'traditional';
+    const items = defs.map((d) => h('li', { lang: traditional ? 'zh-Hant' : 'zh-Hans' }, h('span.pp-def-src', null, traditional ? d : dict.toSimplified(d))));
+    const list = h('ol.pp-defs.zh', null, items.slice(0, DEF_LIMIT));
+    block.appendChild(list);
+    if (items.length > DEF_LIMIT) {
+      const more = h('button.pp-more-btn', { type: 'button', 'aria-expanded': 'false' }, ttn(items.length - DEF_LIMIT, '{n} more', '{n} more')) as HTMLButtonElement;
+      more.addEventListener('click', () => { list.append(...items.slice(DEF_LIMIT)); more.remove(); host.reposition(); });
+      block.appendChild(more);
+    }
+    const seen = new Set<string>();
+    const classifiers = groups.flatMap((g) => splitClassifiers(g.defs).classifiers).filter((c) => !seen.has(c.simp) && seen.add(c.simp));
     if (classifiers.length) block.appendChild(classifierLine(classifiers));
     return block;
   }
@@ -451,7 +481,10 @@ export function mountWordView(
       const hasContext = !!(o.context?.sentence || o.prev || o.next) && stack.length === 1;
       const flag = ordered.matched && hasContext && ordered.groups.some(g => !sameReading(g.pinyin, syllables));
       const ambiguous = ordered.groups.length > 1 || ordered.groups.some((g) => splitClassifiers(g.defs).rest.length > 1);
-      ordered.groups.forEach((g, i) => {
+      // A Chinese reader reading Chinese gets the meanings in Chinese, when Chinese Wiktionary has the word.
+      const inChinese = ownMeanings('zh', [...new Set(entries.flatMap((e) => [e.trad, e.simp])), v.word, dict.toTraditional(v.word)]);
+      if (inChinese) body.appendChild(ownBlock(inChinese, ordered.groups, !(ordered.groups.length === 1 && sameReading(ordered.groups[0].pinyin, syllables))));
+      else ordered.groups.forEach((g, i) => {
         // With one reading, the pinyin under the headword is that reading: do not print it a second time.
         const repeated = ordered.groups.length === 1 && sameReading(g.pinyin, syllables);
         body.appendChild(readingBlock(g, trad, flag && i === 0, !repeated, m));

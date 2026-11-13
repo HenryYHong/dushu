@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { LangEngine, WordEntry, WordLookup } from '../../src/lang/types';
 import {
-  glossCode, loadOwnDictionary, ownDictionary, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
+  glossCode, loadOwnDictionary, ownDictionary, ownMeanings, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
   setReaderLanguage, withOwnDictionary,
 } from '../../src/lang/ownDictionary';
 import { LANGS } from '../../src/lang/registry';
@@ -45,9 +45,11 @@ describe('who gets meanings in the book’s own language', () => {
     expect([ownDictionary('en'), glossCode('en')]).toEqual([false, 'zh']);
     setReaderLanguage('en');
     expect([readsOwnLanguage('en'), glossCode('es')]).toEqual([true, 'en']);
-    // No own-language dictionary yet for Chinese and Japanese.
+    // Japanese and Chinese readers too.
     setReaderLanguage('ja');
-    expect(ownDictionary('ja')).toBe(false);
+    expect([ownDictionary('ja'), readsOwnLanguage('ja')]).toEqual([true, true]);
+    setReaderLanguage('zh-Hant');
+    expect([ownDictionary('zh'), glossCode('zh')]).toEqual([true, 'zh']);
   });
 
   it('English levels: the Chinese exam lists for a Chinese reader, how common a word is for anyone else', () => {
@@ -117,6 +119,24 @@ describe('the wrapped engine', () => {
     expect(engine.lookup('ominous').entries[0].senses[0].glosses).toEqual(['不祥的']);
     expect(engine.level('ominous')).toBe(1);
     expect(engine.meta.sources.map((s) => s.name)).toEqual(['Main']);
+  });
+});
+
+describe('Japanese and Chinese', () => {
+  it('Japanese: found by any spelling (Wiktionary files 食べる under たべる), with no part of speech to match', async () => {
+    const engine = withOwnDictionary(fakeEngine('ja', { 食べた: [{ head: '食べる', reading: 'たべる', senses: [{ pos: 'verb (ichidan)', glosses: ['to eat'] }], source: 'JMdict' }] }));
+    setReaderLanguage('ja');
+    await loadOwnDictionary('ja', 'https://x/data/ja/', async () => 'たべる\t\t\t何かを、口から嚙んで飲み込む。\t生計を立てる。');
+    expect(engine.lookup('食べた').entries[0].senses.map((x) => x.glosses[0])).toEqual(['何かを、口から嚙んで飲み込む。', '生計を立てる。']);
+  });
+
+  it('Chinese: the meanings by the first spelling the table has, labels in brackets, and none for another reader', async () => {
+    setReaderLanguage('zh');
+    await loadOwnDictionary('zh', 'https://x/data/', async () => '了\t\t\t結束，了結\t助詞，用在動詞後，表示完成。\t{用於否定句}完全');
+    expect(ownMeanings('zh', ['了', '了'])).toEqual(['結束，了結', '助詞，用在動詞後，表示完成。', '（用於否定句）完全']);
+    expect(ownMeanings('zh', ['學習', '学习'])).toBeNull();
+    setReaderLanguage('en');
+    expect(ownMeanings('zh', ['了'])).toBeNull();
   });
 });
 
