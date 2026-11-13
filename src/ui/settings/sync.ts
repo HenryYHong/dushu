@@ -1,6 +1,7 @@
 // The Sync row in "Your Mac and iPad": the switch, what the last sync did, and Sync now.
 import { SYNC_EVENT, currentSyncer, hasSyncHub, setSyncEnabled, syncEnabled, type SyncStatus } from '../../core/sync';
 import { CLOUD_EVENT, cloudBase } from '../../core/cloud';
+import { connectedMac, isMacOrigin } from '../../core/macBridge';
 import { isChinese, lang } from '../../lang/active';
 import { h } from '../dom';
 import { icon } from '../icons';
@@ -43,8 +44,11 @@ export function describeSync(st: SyncStatus, enabled = syncEnabled(), now = Date
     const off = isChinese() ? tt('Sync is off on this device.') : tt('Sync is off for {language} on this device.', { language: langName(lang().id, lang().name) });
     return `${off}${st.pending ? ` ${ttn(st.pending, '{n} change here have not been sent.', '{n} changes here have not been sent.')}` : ''}`;
   }
+  // Connecting to a Mac is offered only where there is one (the owner's): everyone else just signs in.
   if (st.state === 'none') return cloudBase()
-    ? tt('Sign in above, or connect this device to your Mac, and your words, reading places and bookmarks sync.')
+    ? isMacOrigin() || connectedMac()
+      ? tt('Sign in above, or connect this device to your Mac, and your words, reading places and bookmarks sync.')
+      : tt('Sign in above, and your words, reading places and bookmarks sync.')
     : tt('Connect this device to your Mac above, and your words and reading places sync through it.');
   if (st.state === 'signedout') return tt('This device was signed out of sync. Sign in again above.');
   if (st.state === 'asleep') return st.hub === 'cloud'

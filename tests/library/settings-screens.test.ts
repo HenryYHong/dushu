@@ -50,20 +50,17 @@ const section = (id: string) => root.querySelector<HTMLElement>(`#${id}`)!;
 const button = (label: string) => [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === label)!;
 
 describe('the Sync section for a visitor', () => {
-  it('is called Sync in the list, and keeps the owner’s Mac setup folded', async () => {
+  it('is called Sync in the list, and has none of the owner’s Mac setup', async () => {
     cleanup = await mountSettings(root, {}, ctx);
     const sync = section('set-ipad');
     expect(sync.querySelector('h2')?.textContent).toBe('Sync');
     expect([...root.querySelectorAll('.set-nav-link')].map((b) => b.textContent)).toContain('Sync');
     expect(sync.textContent).not.toMatch(/Signed in, your books/);
-    const own = sync.querySelector<HTMLDetailsElement>('details.set-own-mac')!;
-    expect(own.querySelector('summary')?.textContent).toBe('Use your own Mac');
-    expect(own.open).toBe(false);
-    // Tailscale and the Mac's address are only inside it.
-    expect(own.querySelector('.set-address')).not.toBeNull();
-    const outside = [...sync.querySelectorAll('.set-row')].filter((r) => !own.contains(r)).map((r) => r.textContent).join(' ');
-    expect(outside).not.toMatch(/Tailscale|Mac address|private link/i);
-    expect(outside).not.toMatch(/that icon/);
+    // Connecting to a Mac that runs LinguPengu is the owner's: a visitor never sees it, folded or not.
+    expect(sync.querySelector('details.set-own-mac')).toBeNull();
+    expect(sync.querySelector('.set-address')).toBeNull();
+    expect(sync.textContent).not.toMatch(/Tailscale|Mac address|private link|your own Mac/i);
+    expect(sync.textContent).not.toMatch(/that icon/);
   });
 
   it('opens Use your own Mac for a link from the Mac, so the question to connect is in view', async () => {

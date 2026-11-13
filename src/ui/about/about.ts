@@ -113,12 +113,15 @@ const otherTranslation = (furigana: boolean): string[] => [
   furigana
     ? tt('Meanings and readings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.')
     : tt('Meanings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.'),
-  tt('On Automatic, LinguPengu tries Claude first if your account has it, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.'),
+  showMac()
+    ? tt('On Automatic, LinguPengu tries Claude first if your account has it, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.')
+    : tt('On Automatic, LinguPengu uses Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.'),
   ...TRANSLATION_REST(),
 ];
 
+// Claude and the Mac are the owner's (showMac), so everyone else reads only about what they can use.
 const TRANSLATION_REST = () => [
-  tt('Claude is made by Anthropic. Only the sentence and a little of the text around it is sent, through your account or your Mac. The key never reaches your browser.'),
+  ...(showMac() ? [tt('Claude is made by Anthropic. Only the sentence and a little of the text around it is sent, through your account or your Mac. The key never reaches your browser.')] : []),
   tt('Qwen is an open model from Alibaba. Signed in, it translates your sentences for free on Cloudflare, up to a daily limit. Again, only the sentence and a little of the text around it is sent.'),
   tt('Turn on Local only in Settings and nothing is sent to an online translator.'),
   tt('MyMemory is an online translator you can pick in Settings. It\'s never used unless you choose it.'),
@@ -127,7 +130,9 @@ const TRANSLATION_REST = () => [
 
 const TRANSLATION = () => [
   tt('Pinyin and meanings come from the dictionaries listed at the bottom. They\'re part of the app and work offline. Machine translation is only used for whole sentences.'),
-  tt('On Automatic, LinguPengu tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.'),
+  showMac()
+    ? tt('On Automatic, LinguPengu tries Claude first if your account has it, then a model on your Mac if one is connected, then Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.')
+    : tt('On Automatic, LinguPengu uses Qwen through your account if you\'re signed in, then the browser\'s own translator (Chrome has one, Safari doesn\'t), and last a word-by-word gloss. The panel says which one answered.'),
   ...TRANSLATION_REST(),
 ];
 
@@ -323,7 +328,7 @@ function buildPage(meta: DataMeta | null, loading: boolean): HTMLElement {
 
     h('section.ab-section.ab-intro', null,
       popped(penguEl('read', 'ab-pengu')),
-      h('p.ab-lead', null, tt('I made LinguPengu to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.')),
+      h('p.ab-lead', null, tt('LinguPengu is for reading real books in {language}. Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.', { language: langName('zh', 'Chinese') })),
       h('p.ab-p', null, tt('It runs in your browser. Your books and words stay on this device, and in your account if you sign in, where only you can see them. The only other things that leave the device are a sentence you ask to translate and a passage you ask to hear.'))),
 
     h('section.ab-section', null,

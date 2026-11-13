@@ -167,7 +167,7 @@ export function createClaudeTranslator(
       return (await fetchClaudeStatus({ fetch: call, hasBridge: bridge })).ready ? 'yes' : 'no';
     },
     async translate(req: TranslateRequest, opts) {
-      if (settings.localOnly) throw new Error(tt('Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use Claude.'));
+      if (settings.localOnly) throw new Error(tt('Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.'));
       if (!bridge()) throw new Error(tt('Sign in, or connect this device to your Mac, in Settings to use Claude.'));
       if (req.text.trim().length > CLAUDE_LIMITS.text) throw new Error(tt('That passage is too long for one request. Select a shorter one.'));
       if (opts?.signal?.aborted) throw new DOMException('Translation canceled', 'AbortError');

@@ -23,7 +23,9 @@ export function ipadGroup(params: Record<string, string>, open = false): { el: H
   const reminders = remindersRow();
   const sync = syncRow();
   if (!isMacOrigin() && !connectedMac() && !isAccountOwner()) {
-    const own = cloudSession() ? null : macRows(params);
+    // Connecting to a Mac that runs LinguPengu is the owner's setup, not something a visitor can use: it shows only when the
+    // Mac's own connect link (?connect) opened Settings.
+    const own = cloudSession() || params.connect === undefined ? null : macRows(params);
     const el = group(tt('Sync'), null,
       account?.el ?? null,
       reminders?.el ?? null,

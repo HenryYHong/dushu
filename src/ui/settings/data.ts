@@ -11,7 +11,7 @@ import { LOCAL_ONLY_KEY, TARGET_KEY } from '../../store/settings';
 import { ACTIVITY_KEY, dayOf } from '../../core/activity';
 import { getPlan, PLAN_KEY } from '../../core/plan';
 import { OWNER_KEY, SESSION_KEY, URL_KEY } from '../../core/cloud';
-import { DECLINED_KEY, STORE_KEY as MAC_BRIDGE_KEY } from '../../core/macBridge';
+import { DECLINED_KEY, STORE_KEY as MAC_BRIDGE_KEY, connectedMac, isMacOrigin } from '../../core/macBridge';
 import { langName, tt, ttn, uiLocale } from '../../i18n';
 
 /**
@@ -162,14 +162,18 @@ export function dataGroup(ctx: AppContext): HTMLElement {
 
   const delBtn = h('button.btn.btn-sm.btn-danger', { type: 'button' }, icon('trash'), tt('Delete all data'));
   const otherLibrary = () => { try { return otherLibraryHere(Object.keys(localStorage)); } catch { return false; } };
+  const mac = () => isMacOrigin() || !!connectedMac();
   delBtn.addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: tt('Delete all data?'),
+      // The Mac's books and copy are named only where there is a Mac: everyone else reads about their account.
       message: isChinese() && otherLibrary()
-        ? tt('This removes every Chinese book, word, review record, reading place and setting from this browser, and it can’t be undone. Your other languages, your streak and your sign-in stay as they are. Books from your Mac come back the next time this device reaches it. Sync is turned off for Chinese here, so what your account or your Mac keeps of it stays there until you turn its sync back on.')
+        ? (mac() ? tt('This removes every Chinese book, word, review record, reading place and setting from this browser, and it can’t be undone. Your other languages, your streak and your sign-in stay as they are. Books from your Mac come back the next time this device reaches it. Sync is turned off for Chinese here, so what your account or your Mac keeps of it stays there until you turn its sync back on.') : tt('This removes every Chinese book, word, review record, reading place and setting from this browser, and it can’t be undone. Your other languages, your streak and your sign-in stay as they are. Sync is turned off for Chinese here, so what your account keeps of it stays there until you turn its sync back on.'))
         : isChinese()
-        ? tt('This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Books from your Mac come back the next time this device reaches it. Sync is turned off here, so the words kept on your Mac stay there until you turn sync back on.')
-        : tt('This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account or your Mac keeps of it stays there until you turn its sync back on.',
+        ? (mac() ? tt('This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Books from your Mac come back the next time this device reaches it. Sync is turned off here, so the words kept on your Mac stay there until you turn sync back on.') : tt('This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Sync is turned off here, so what your account keeps stays there until you turn sync back on.'))
+        : mac() ? tt('This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account or your Mac keeps of it stays there until you turn its sync back on.',
+          { language: langName(lang().id, lang().name) })
+        : tt('This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.',
           { language: langName(lang().id, lang().name) }),
       confirmLabel: tt('Delete everything'),
       danger: true,

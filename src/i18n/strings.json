@@ -2631,11 +2631,6 @@
    "src/ui/reader/wordsTab.ts"
   ]
  },
- "I made LinguPengu to read real books in other languages. It started with Chinese, as Dushu (读书, “reading books”). Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.": {
-  "where": [
-   "src/ui/about/about.ts"
-  ]
- },
  "If you run LinguPengu on your own Mac, the website can use it over Tailscale for Premium voices, a translation model and the books on that Mac. Only the Mac's owner can do this.": {
   "where": [
    "src/ui/about/about.ts"
@@ -3053,6 +3048,11 @@
    "src/ui/about/about.ts"
   ]
  },
+ "LinguPengu is for reading real books in {language}. Tap a word to see its pinyin and meaning, and tap it twice to translate the whole sentence.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
  "LinguPengu is still finding the names in this book. Try again in a moment.": {
   "where": [
    "src/ui/reader/reader.ts"
@@ -3131,12 +3131,12 @@
    "src/translate/account.ts"
   ]
  },
- "Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use Claude.": {
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use Claude.": {
   "where": [
    "src/translate/claude.ts"
   ]
  },
- "Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use this service.": {
+ "Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.": {
   "where": [
    "src/translate/index.ts"
   ]
@@ -4027,6 +4027,11 @@
    "src/ui/about/about.ts"
   ]
  },
+ "On Automatic, LinguPengu uses Qwen through your account if you're signed in, then the browser's own translator (Chrome has one, Safari doesn't), and last a word-by-word gloss. The panel says which one answered.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
  "On a phone or iPad": {
   "where": [
    "src/ui/about/about.ts"
@@ -4688,11 +4693,6 @@
    "src/ui/library/importer.ts"
   ]
  },
- "Read Chinese books with me on LinguPengu": {
-  "where": [
-   "src/ui/settings/invites.ts"
-  ]
- },
  "Read aloud": {
   "where": [
    "src/ui/popup/phraseView.ts"
@@ -4701,6 +4701,11 @@
  "Read aloud (P)": {
   "where": [
    "src/ui/popup/phraseView.ts"
+  ]
+ },
+ "Read books with me on LinguPengu": {
+  "where": [
+   "src/ui/settings/invites.ts"
   ]
  },
  "Read chapter aloud": {
@@ -5388,6 +5393,11 @@
    "src/ui/settings/account.ts",
    "src/ui/signIn.ts",
    "src/ui/siteGuide.ts"
+  ]
+ },
+ "Sign in above, and your words, reading places and bookmarks sync.": {
+  "where": [
+   "src/ui/settings/sync.ts"
   ]
  },
  "Sign in above, or connect this device to your Mac, and your words, reading places and bookmarks sync.": {
@@ -6916,7 +6926,22 @@
    "src/ui/settings/data.ts"
   ]
  },
+ "This removes every Chinese book, word, review record, reading place and setting from this browser, and it can’t be undone. Your other languages, your streak and your sign-in stay as they are. Sync is turned off for Chinese here, so what your account keeps of it stays there until you turn its sync back on.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
  "This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Books from your Mac come back the next time this device reaches it. Sync is turned off here, so the words kept on your Mac stay there until you turn sync back on.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "This removes every book, word, review record, reading place and setting from this browser, and it can’t be undone. Sync is turned off here, so what your account keeps stays there until you turn sync back on.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "This removes every book, word, review record, reading place and setting of your {language} library from this browser, and it can’t be undone. Your other languages stay as they are. Sync is turned off for {language} here, so what your account keeps of it stays there until you turn its sync back on.": {
   "where": [
    "src/ui/settings/data.ts"
   ]
@@ -7528,7 +7553,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Who it’s for, like Mom’s class": {
+ "Who it’s for": {
   "where": [
    "src/ui/settings/invites.ts"
   ]

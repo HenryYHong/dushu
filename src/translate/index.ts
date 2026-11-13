@@ -45,7 +45,7 @@ function withoutThirdParty(translator: Translator): Translator {
     id: translator.id,
     get label() { return translator.label; },
     availability: async () => 'no',
-    translate: async () => { throw new Error(tt('Local only is on, so this sentence stays on your Mac. Turn it off in Settings to use this service.')); },
+    translate: async () => { throw new Error(tt('Local only is on, so this sentence stays on this device. Turn it off in Settings to use this service.')); },
   };
 }
 

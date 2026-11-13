@@ -89,15 +89,13 @@ describe('Settings on the public site', () => {
     expect(localOnly.getAttribute('aria-label')).toBe('Local only: keep every sentence on this device');
     expect(localOnly.closest('.set-claude')).toBeNull();
     expect(statusLines().Mac).toMatch(/not connected to a Mac/);
-    const claude = [...root.querySelectorAll('.set-prov')].find(r => r.querySelector('.set-prov-name')?.textContent?.startsWith('Claude'))!;
-    expect(claude.querySelector('.set-chip')?.textContent).toBe('Sign in or connect your Mac');
-    expect(root.textContent).toMatch(/Not connected\. Without a Mac/);
-    expect(q('.set-link').closest<HTMLElement>('.set-row')!.hidden).toBe(true);
-    expect(button('Disconnect').hidden).toBe(true);
+    // Connecting to a Mac is the owner's setup: a visitor's Settings has none of it (only the Mac's own link brings it).
+    expect(root.querySelector('.set-address')).toBeNull();
+    expect(root.textContent).not.toMatch(/Tailscale|Use your own Mac/);
   });
 
   it('connects once from the address field, checks the Mac without credentials, and shows its status', async () => {
-    cleanup = await mountSettings(root, {}, ctx);
+    cleanup = await mountSettings(root, { connect: MAC }, ctx); // the Mac's connect link: its rows show
     q<HTMLInputElement>('.set-address').value = 'my-mac.tail1234.ts.net:8443';
     button('Connect').click();
     await until(() => connectedMac() === MAC);
@@ -117,7 +115,7 @@ describe('Settings on the public site', () => {
   });
 
   it('refuses an address that is not a Tailscale name, without any request', async () => {
-    cleanup = await mountSettings(root, {}, ctx);
+    cleanup = await mountSettings(root, { connect: MAC }, ctx); // the Mac's connect link: its rows show
     q<HTMLInputElement>('.set-address').value = 'https://evil.example';
     button('Connect').click();
     await flush();
@@ -127,7 +125,7 @@ describe('Settings on the public site', () => {
   });
 
   it('says what is wrong when the Mac is off or refuses this device', async () => {
-    cleanup = await mountSettings(root, {}, ctx);
+    cleanup = await mountSettings(root, { connect: MAC }, ctx); // the Mac's connect link: its rows show
     q<HTMLInputElement>('.set-address').value = MAC;
     mac.down = true;
     button('Connect').click();

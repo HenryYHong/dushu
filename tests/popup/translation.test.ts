@@ -128,9 +128,10 @@ describe('provider menu', () => {
     mount();
     const rows = await open();
     vi.unstubAllGlobals();
-    // Signed in, Claude goes through the account, so its row stays; offline, every online service says so.
-    expect(rows.map((r) => r[0])).toEqual(['Word-by-word (offline)', 'Chrome on-device', 'Claude', 'Qwen (through your account)', 'MyMemory']);
-    expect(rows.filter((r) => ['Claude', 'Qwen (through your account)', 'MyMemory'].includes(r[0] as string)).map((r) => r[1])).toEqual(['You are offline', 'You are offline', 'You are offline']);
+    // Signed in to their own account (not the owner's), Claude is not theirs, so it is not listed; offline, every online
+    // service says so.
+    expect(rows.map((r) => r[0])).toEqual(['Word-by-word (offline)', 'Chrome on-device', 'Qwen (through your account)', 'MyMemory']);
+    expect(rows.filter((r) => ['Qwen (through your account)', 'MyMemory'].includes(r[0] as string)).map((r) => r[1])).toEqual(['You are offline', 'You are offline']);
   });
 
   it('keeps the provider in use even when it cannot run here', async () => {

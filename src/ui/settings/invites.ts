@@ -9,7 +9,7 @@ import { num, tt, ttn } from '../../i18n';
 export function invitesRow(): { el: HTMLElement; dispose(): void } | null {
   if (!cloudBase()) return null;
   const labelId = nextId('invite-label');
-  const label = h('input.input.set-cloud-input', { id: labelId, type: 'text', maxlength: 60, placeholder: tt('Who it’s for, like Mom’s class'), 'aria-label': tt('Who the link is for') }) as HTMLInputElement;
+  const label = h('input.input.set-cloud-input', { id: labelId, type: 'text', maxlength: 60, placeholder: tt('Who it’s for'), 'aria-label': tt('Who the link is for') }) as HTMLInputElement;
   const max = h('input.input.set-invite-max', { type: 'number', min: 1, max: 500, value: '30', 'aria-label': tt('How many people') }) as HTMLInputElement;
   const make = h('button.btn.btn-sm', { type: 'button' }, tt('Make a link')) as HTMLButtonElement;
   const list = h('div.set-invites');
@@ -29,7 +29,7 @@ export function invitesRow(): { el: HTMLElement; dispose(): void } | null {
       try { await navigator.clipboard.writeText(link); say(tt('Copied the link for {name}.', { name: inv.label })); } catch { field.select(); say(tt('Select the link and copy it.')); }
     } }, tt('Copy'));
     const share = typeof navigator.share === 'function'
-      ? h('button.btn.btn-sm', { type: 'button', onclick: () => void navigator.share({ title: 'LinguPengu', text: tt('Read Chinese books with me on LinguPengu'), url: link }).catch(() => {}) }, tt('Share'))
+      ? h('button.btn.btn-sm', { type: 'button', onclick: () => void navigator.share({ title: 'LinguPengu', text: tt('Read books with me on LinguPengu'), url: link }).catch(() => {}) }, tt('Share'))
       : null;
     const stop = h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: async () => {
       try { await revokeInvite(inv.token); say(tt('The link for {name} no longer works. Accounts made with it stay.', { name: inv.label })); void load(); } catch (e) { say(e instanceof Error ? e.message : tt('Could not stop the link.')); }

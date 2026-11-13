@@ -6,8 +6,8 @@ import { chromeSupported, getTranslator, listTranslators, pickTranslator, type C
 import { chromePairName } from '../../translate/chrome';
 import { DEFAULT_TARGET, targetFor, targetLanguage } from '../../translate/targets';
 import { claudeReadySync, fetchClaudeStatus, hasClaudeRoute, type ClaudeStatus } from '../../translate/claude';
-import { cloudBase, cloudSession } from '../../core/cloud';
-import { hasMacBridge } from '../../core/macBridge';
+import { cloudBase, cloudSession, isAccountOwner } from '../../core/cloud';
+import { hasMacBridge, isMacOrigin } from '../../core/macBridge';
 import type { TranslateOptions, TranslationNote } from '../../translate/prompt';
 import { h, clear } from '../dom';
 import { isChinese, langId } from '../../lang/active';
@@ -18,6 +18,9 @@ import { segment } from '../../core/segment';
 import { entriesForReading } from '../../core/reading';
 import { withNodes } from './defs';
 import { langName, num, tt, ttm } from '../../i18n';
+
+/** Claude is the owner's: on the Mac's page, with a Mac connected, or signed in to the owner's account (as in Settings). */
+const claudeIsOwners = (): boolean => isMacOrigin() || hasMacBridge() || (!!cloudSession() && isAccountOwner());
 
 export interface TranslationPanelOptions {
   ctx: AppContext;
@@ -478,7 +481,7 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     const rank = { yes: 0, download: 1, no: 2 } as const;
     const rows = list
       .filter(({ translator: t }) => t.id === current?.id
-        || !((t.id === 'local' && !hasMacBridge()) || (t.id === 'claude' && (!hasClaudeRoute() || claude?.ownerOnly))))
+        || !((t.id === 'local' && !hasMacBridge()) || (t.id === 'claude' && (!claudeIsOwners() || claude?.ownerOnly))))
       .sort((a, b) => rank[a.availability] - rank[b.availability]);
     const menu = h('div.pp-menu', { role: 'menu' });
     for (const { translator, availability } of rows) {
