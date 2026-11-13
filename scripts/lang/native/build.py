@@ -219,6 +219,9 @@ def simple_entries():
                     gloss, labels, syns = simple_line(line.lstrip('#').strip())
                     entry = out[word][-1]
                     entry['syn'].extend(syns)
+                    # The synonyms Simple Wiktionary's editors put on the first meaning itself, chosen for learners.
+                    if not entry['senses'] and syns:
+                        entry['first_syn'] = syns
                     if gloss and len(gloss) > 2 and len(entry['senses']) < MAX_SENSES:
                         entry['senses'].append((gloss, labels))
             el.clear()
@@ -335,7 +338,10 @@ def pick_hint(code, key, entries, rank, poses):
     if own <= 1500 or not entries:
         return ''
     e = entries[0]
-    easy = lambda k: rank.get(k) is not None and rank[k] <= HINT_MAX_RANK and rank[k] <= own * HINT_EASIER
+    stem = key[:max(3, len(key) - 3)]
+    # Easy enough, a word of three letters or more, and not the same word in another form (closer, close).
+    easy = lambda k: (rank.get(k) is not None and rank[k] <= HINT_MAX_RANK and rank[k] <= own * HINT_EASIER and len(k) >= 3
+                      and not k.startswith(stem) and not key.startswith(k[:max(3, len(k) - 2)]))
     defs = ' '.join(g for g, _ in e['senses'][:3])
     used = {fold(code, w) for w in WORD.findall(defs)}
     best = None
@@ -346,11 +352,18 @@ def pick_hint(code, key, entries, rank, poses):
                 best = (rank[k], s.strip())
     if best:
         return best[1]
+    # Simple English Wiktionary's own synonyms for the first meaning, chosen for learners: the commonest that is easy enough.
+    for s in e.get('first_syn') or []:
+        k = fold(code, s)
+        if k != key and easy(k) and e['pos'] in poses.get(k, ()):
+            if best is None or rank[k] < best[0]:
+                best = (rank[k], s.strip())
+    if best:
+        return best[1]
     if e['senses']:
         g = re.sub(r'\s*\(.*?\)', '', e['senses'][0][0]).rstrip('.').split(';')[0].split(',')[0].strip()
         words = [fold(code, w) for w in WORD.findall(g)]
-        stem = key[:max(3, len(key) - 3)]
-        if 0 < len(words) <= 2 and g[:1].islower() and all(easy(w) for w in words) and not any(w.startswith(stem) for w in words):
+        if 0 < len(words) <= 2 and g[:1].islower() and all(easy(w) for w in words):
             return g
     return ''
 
@@ -378,7 +391,7 @@ def order_entries(found, poses):
     for e in found:
         m = merged.get(e['pos'])
         if m is None:
-            merged[e['pos']] = {'pos': e['pos'], 'senses': list(e['senses']), 'syn': list(e['syn'])}
+            merged[e['pos']] = {'pos': e['pos'], 'senses': list(e['senses']), 'syn': list(e['syn']), 'first_syn': list(e.get('first_syn') or [])}
         else:
             m['senses'].extend(x for x in e['senses'] if len(m['senses']) < MAX_SENSES and x not in m['senses'])
             m['syn'].extend(e['syn'])

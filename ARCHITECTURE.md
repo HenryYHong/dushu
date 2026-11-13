@@ -2263,9 +2263,10 @@ exists.
   dictionary's keys and parts of speech, so the main dictionary still reads the word (its form, key, level and sound) and only the
   meanings change: `withOwnDictionary` wraps the engine (main.ts), so the card, saving a word, Vocabulary and the word-by-word gloss
   all get the same meanings; an entry the own dictionary lacks keeps the main one's. Hints over the text are a simpler word from the
-  own dictionary, only where two sources agree (a synonym of the same part of speech that the word's own definitions use, or a
-  definition of a word or two, all common and much commoner than the word): about 600 of English's 17,700 harder words, as a wrong
-  hint is worse than none. Japanese (`data/ja/native.tsv.gz`, Japanese Wiktionary, keyed by every spelling: it files 食べる under
+  own dictionary, only from sources that can be trusted for it (a synonym of the same part of speech that the word's own
+  definitions use; one Simple English Wiktionary's editors put on its first meaning; or a definition of a word or two), all common,
+  much commoner than the word and not the same word in another form: about 1,000 of English's 17,700 harder words, as a wrong hint
+  is worse than none. Japanese (`data/ja/native.tsv.gz`, Japanese Wiktionary, keyed by every spelling: it files 食べる under
   たべる) and Chinese (`data/native.tsv.gz`, Chinese Wiktionary, keyed by CC-CEDICT's traditional and simplified words, about 55–70%
   of HSK words) carry no parts of speech, as theirs are not their main dictionaries'; a word's meanings take each Wiktionary entry's
   first one, then each one's second (a character's entries are its etymologies: 了 to finish, 了 the particle). The Chinese card shows
