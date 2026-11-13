@@ -15,7 +15,7 @@ Open https://henryyhong.com/dushu/ in any current browser. It is a static websit
 - Your books, saved words, progress and settings stay in your own browser. Nothing is uploaded.
 - Add a book with **Import book**, drop a file on the Library page, paste text, or start with a classic (Tang poems, Lu Xun, the Analects, the four classical novels).
 - On an iPad or iPhone, use Share, then Add to Home Screen. Safari can clear the data of a site you only visit, and a Home Screen app is treated much more kindly. Dushu also asks the browser to keep its data once you add a book.
-- It works offline after the first load, including the dictionary and every book you added.
+- It works offline after the first load, including the dictionary and every book you added. Before going somewhere with no connection, open **Settings › Data** and tap **Save for offline use**: it stores everything for every language you are learning (the whole dictionary, every classic, the fonts and stroke order), so all of it works offline, not only what you opened before. An app update keeps it, downloading only the files that changed.
 - Sentence translation uses your browser's own translator where it has one (Chrome does, Safari does not) and otherwise shows the word-by-word gloss from the dictionary. For better translation, connect your own Mac (below).
 
 Books are read in a vertically scrolling reader by default. Use **Aa, then Layout** to switch to turning pages, with a two-page spread on a wide screen.
@@ -81,7 +81,7 @@ If a browser asks, use Install or Add to Dock to keep it as an app. The built ve
 Scroll is the default, with larger text and no horizontal progress bar. Pages uses two pages in landscape and one upright. Use current iPadOS Safari (17.4 or newer).
 
 1. Install Tailscale on the iPad and sign in with the same account as the Mac. Open the Mac's private address in Safari, or open the hosted site and connect it once as described above.
-2. Tap Share, then Add to Home Screen, and use that icon from then on. Books and the dictionary work offline. Mac features need the Mac awake and Tailscale connected.
+2. Tap Share, then Add to Home Screen, and use that icon from then on. Books and the dictionary work offline; tap **Settings › Data › Save for offline use** once to store everything (every classic, the fonts, stroke order) before a trip. Mac features need the Mac awake and Tailscale connected.
 3. Safari and a Home Screen app can have separate storage, so a library made in Safari is not copied into the Home Screen app. Books that live on your Mac are added again by the sync. For your own files, keep a backup.
 
 The Mac's Tailscale device key can expire. Reconnect it when Tailscale asks. To turn the private endpoint off without affecting other services: `tailscale serve --https=8443 off`.

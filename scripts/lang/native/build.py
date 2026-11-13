@@ -361,9 +361,11 @@ def pick_hint(code, key, entries, rank, poses):
     if best:
         return best[1]
     if e['senses']:
-        g = re.sub(r'\s*\(.*?\)', '', e['senses'][0][0]).rstrip('.').split(';')[0].split(',')[0].strip()
+        # Only a definition that is itself a word or two (not the start of a longer one: "связанный, соотносящийся с ..." is
+        # "related to", no hint).
+        g = re.sub(r'\s*\(.*?\)', '', e['senses'][0][0]).strip().rstrip('.').strip()
         words = [fold(code, w) for w in WORD.findall(g)]
-        if 0 < len(words) <= 2 and g[:1].islower() and all(easy(w) for w in words):
+        if 0 < len(words) <= 2 and not re.search(r'[,;:]', g) and g[:1].islower() and all(easy(w) for w in words):
             return g
     return ''
 
