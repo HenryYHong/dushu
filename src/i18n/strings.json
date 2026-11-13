@@ -7448,6 +7448,11 @@
    "src/ui/popup/bookCard.ts"
   ]
  },
+ "Use it from the Home Screen icon? Save it there too. On an iPad or iPhone, the Home Screen app keeps its own copy, apart from Safari.": {
+  "where": [
+   "src/ui/about/about.ts"
+  ]
+ },
  "Use offline": {
   "where": [
    "src/ui/settings/data.ts"

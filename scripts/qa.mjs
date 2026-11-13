@@ -78,6 +78,17 @@ async function session({ width = 1100, height = 860, mobile = false, settings = 
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   if (!SYNC_DIR) await page.evaluateOnNewDocument(SYNC_OFF);
+  // The walkthroughs (ui/guide.ts) would take the clicks the scenarios make: seen, as for a returning reader. (A scenario that
+  // tests them clears these.)
+  await page.evaluateOnNewDocument(() => {
+    try {
+      if (localStorage.getItem('qa.guides') === null) {
+        localStorage.setItem('dushu.reader-hint.v1', '1');
+        localStorage.setItem('dushu.site-guide.v1', 'done');
+        localStorage.setItem('qa.guides', '1');
+      }
+    } catch { /* storage blocked */ }
+  });
   // On the dev server and on 4317 the Mac bridge lists the owner's books and every fresh profile adds them in the background,
   // so the library is never empty and a card can appear while a scenario is importing its own file. Answer the list with
   // "no books" unless the scenario asks for them; the bridge itself is checked in qa-local-books.mjs.
@@ -498,12 +509,18 @@ scenarios.vocab = async () => {
   await page.keyboard.press('Space');
   await sleep(250);
   check(await page.$eval('.rev-back', (e) => !e.hidden), 'Space reveals the answer');
-  const ivs = await page.$$eval('.rev-grade-iv', (e) => e.map((x) => x.textContent));
-  check(ivs.length === 4 && ivs.every(Boolean), `grade buttons show intervals (${ivs.join(', ')})`);
+  // The simple buttons by default (Settings › Review can show all four, with their intervals).
+  const labels = await page.$$eval('.rev-grades:not([hidden]) .rev-grade-label', (e) => e.map((x) => x.textContent));
+  check(labels.join('|') === 'Forgot|Got it', `the grade buttons are Forgot and Got it (${labels.join(', ')})`);
   await s.shot('review-back');
-  await page.keyboard.press('4'); // Easy graduates a new card, so the session ends (Good would requeue it in 10 minutes)
-  await sleep(500);
-  check(await page.waitForSelector('.rev-summary, .rev-empty', { timeout: 5000 }).then(() => true, () => false), 'grading the last card ends the session');
+  // A new card comes back once in the session before it leaves it: "Got it" until the summary shows.
+  let ended = false;
+  for (let i = 0; i < 4 && !ended; i++) {
+    await page.keyboard.press('2');
+    ended = await page.waitForSelector('.rev-summary, .rev-empty', { timeout: 2500 }).then(() => true, () => false);
+    if (!ended) { await page.keyboard.press('Space'); await sleep(250); }
+  }
+  check(ended, 'remembering the last card ends the session');
   await s.goto('#/vocab');
   await page.waitForSelector('.voc-row');
   check(await page.$eval('.app-badge', (b) => b.hidden), 'the badge clears once nothing is due');
@@ -520,7 +537,7 @@ scenarios.rare = async () => {
   await page.waitForSelector('.lib-page');
   await page.evaluate(() => [...document.querySelectorAll('.lib-actions .btn')].find((b) => b.textContent.includes('Paste')).click());
   await page.waitForSelector('dialog.lib-dlg[open]');
-  const rare = ['稀有字测试', '', '扩展B区：𠀀 𠀁 𠀂 𪚥 𫠝', '扩展G区：𰻞 𰀁 𰀂 𱁬', '扩展J区：\u{323B0}\u{323B1}\u{323B2}', '部首与兼容字：⼈ ⽔ 豈 更 說'];
+  const rare = ['稀有字测试', '', '扩展B区：𠀀 𠀁 𠀂 𪚥 𫠝', '扩展G区：𰻞 𰀁 𰀂 𱁬', '扩展J区：\u{323B0}\u{323B1}\u{323B2}', '部首与兼容字：⼈ ⽔ \u{F900} \u{F901} \u{F96F}'] // escapes: an NFC pass over this file would turn the compatibility characters into the unified ones;
   await page.type('.lib-paste-text', rare.join('\n'));
   await page.type('.lib-paste input[aria-label=Title]', '稀有字');
   await page.click('.lib-dlg .btn-primary');
@@ -550,7 +567,7 @@ scenarios.rare = async () => {
     await Promise.all(probes.map((p) => document.fonts.load(`48px ${fam}`, p).catch(() => [])));
     await document.fonts.ready;
     const missing = px('\u{2FFFD}'); // noncharacter: renders as the fallback box or nothing
-    const tests = ['\u{20000}', '\u{2A6A5}', '\u{2B81D}', '\u{30EDE}', '\u{31350}', '\u{323B0}', '\u{323B2}', '⼈', '⽔', '兀', '更', '說'];
+    const tests = ['\u{20000}', '\u{2A6A5}', '\u{2B81D}', '\u{30EDE}', '\u{31350}', '\u{323B0}', '\u{323B2}', '⼈', '⽔', '\u{FA0C}', '\u{F901}', '\u{F96F}'];
     const bad = [];
     for (const ch of tests) {
       const p = px(ch);
@@ -563,7 +580,7 @@ scenarios.rare = async () => {
   check(['Jigmo2', 'Jigmo3'].every((f) => result.faces.includes(f)), `Jigmo2 and Jigmo3 loaded on demand (loaded faces: ${result.faces.join(', ')})`);
 
   // Look each rare char up.
-  const cases = [['\u{20000}', /Extension B/], ['\u{30EDE}', /Extension G|biang|noodle/i], ['\u{323B0}', /Extension J/], ['⼈', /Kangxi|person|man/i], ['豈', /how|qǐ|what/i]];
+  const cases = [['\u{20000}', /Extension B/], ['\u{30EDE}', /Extension G|biang|noodle/i], ['\u{323B0}', /Extension J/], ['⽔', /Kangxi|water/i], ['\u{F900}', /Compatibility|how|qǐ|what/i]];
   for (const [ch, expect] of cases) {
     const r = await s.wordRect(ch);
     if (!check(!!r, `U+${ch.codePointAt(0).toString(16).toUpperCase()} is rendered as its own word`)) continue;
@@ -575,6 +592,9 @@ scenarios.rare = async () => {
     await page.keyboard.press('Escape');
     await sleep(150);
   }
+  // A radical right after Chinese text is the character a Mac PDF font named by it (import/radicals.ts): ：⼈ reads as ：人.
+  check(await page.evaluate(() => { const p = [...document.querySelectorAll('.rd-article .rd-p')].pop()?.textContent ?? ''; return p.includes('人') && !p.includes('\u2F08'); }),
+    'a radical in running text is read as its character (⼈ as 人)');
   // Copying keeps the characters whole (no half surrogates, no pinyin).
   const copied = await page.evaluate(() => {
     const p = document.querySelectorAll('.rd-article .rd-p')[1];

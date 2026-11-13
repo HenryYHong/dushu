@@ -81,7 +81,7 @@ If a browser asks, use Install or Add to Dock to keep it as an app. The built ve
 Scroll is the default, with larger text and no horizontal progress bar. Pages uses two pages in landscape and one upright. Use current iPadOS Safari (17.4 or newer).
 
 1. Install Tailscale on the iPad and sign in with the same account as the Mac. Open the Mac's private address in Safari, or open the hosted site and connect it once as described above.
-2. Tap Share, then Add to Home Screen, and use that icon from then on. Books and the dictionary work offline; tap **Settings › Data › Save for offline use** once to store everything (every classic, the fonts, stroke order) before a trip. Mac features need the Mac awake and Tailscale connected.
+2. Tap Share, then Add to Home Screen, and use that icon from then on. Books and the dictionary work offline; tap **Settings › Data › Save for offline use** once to store everything (every classic, the fonts, stroke order) before a trip. Do it from the Home Screen icon: on iOS that app keeps its own storage, apart from Safari. Mac features need the Mac awake and Tailscale connected.
 3. Safari and a Home Screen app can have separate storage, so a library made in Safari is not copied into the Home Screen app. Books that live on your Mac are added again by the sync. For your own files, keep a backup.
 
 The Mac's Tailscale device key can expire. Reconnect it when Tailscale asks. To turn the private endpoint off without affecting other services: `tailscale serve --https=8443 off`.

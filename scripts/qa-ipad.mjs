@@ -61,6 +61,18 @@ await startServer();
 const browser = await webkit.launch({ headless: true });
 // Every browser context gets SYNC_OFF when the server was not started here.
 if (!SYNC_DIR) { const make = browser.newContext.bind(browser); browser.newContext = async (o) => { const c = await make(o); await c.addInitScript(SYNC_OFF); return c; }; }
+// A fresh profile is someone who has used the app before: past the welcome screen and both walkthroughs (each checked by
+// the unit tests and scripts/qa.mjs; here they would only cover the page). Seeded once, so a check may still clear them.
+const SEEN = () => {
+  try {
+    if (localStorage.getItem('qa.seen') !== null) return;
+    localStorage.setItem('dushu.plan.v1', JSON.stringify({ langs: ['zh'], goal: 10, welcomed: Date.now() }));
+    localStorage.setItem('dushu.site-guide.v1', 'done');
+    localStorage.setItem('dushu.reader-hint.v1', '1');
+    localStorage.setItem('qa.seen', '1');
+  } catch { /* storage blocked */ }
+};
+{ const make = browser.newContext.bind(browser); browser.newContext = async (o) => { const c = await make(o); await c.addInitScript(SEEN); return c; }; }
 
 /** Open a fresh iPad context, seed a book through the app's own modules, open it in Pages. */
 async function openReader(device, settings = {}, chapter = 1, contextOptions = {}) {
@@ -108,6 +120,19 @@ async function openReader(device, settings = {}, chapter = 1, contextOptions = {
     await settle(700);
   }
   await settle(1500);
+  // A new book asks once, in cards at the bottom of the page: 红楼梦 writes 那 for 哪 (askSpellings in reader.ts), and then
+  // which of the words found are names (nameCheck.ts). Answered as a reader would, so the taps below reach the page under them.
+  for (let quiet = 0, i = 0; quiet < 5 && i < 30; i++) {
+    const card = await page.evaluate(() => {
+      const yes = document.querySelector('.rd-spell-ask .btn-primary');
+      if (yes) { yes.click(); return 'spellings'; }
+      const close = document.querySelector('.rd-name-ask .rd-nc-close');
+      if (close) { close.click(); return 'names'; }
+      return null;
+    });
+    quiet = card ? 0 : quiet + 1;
+    await settle(card ? 1200 : 600);
+  }
   return { ctx, page, id };
 }
 

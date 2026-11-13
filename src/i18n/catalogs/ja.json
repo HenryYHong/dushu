@@ -2096,5 +2096,6 @@
  "Saves the dictionary, every classic, the fonts and stroke order for {languages} on this device, so they work with no connection.": "{languages}の辞書、すべての名作、フォント、筆順をこの端末に保存し、接続がなくても使えるようにします。",
  "Saves the dictionary, every classic and the fonts for {languages} on this device, so they work with no connection.": "{languages}の辞書、すべての名作、フォントをこの端末に保存し、接続がなくても使えるようにします。",
  "Saves the dictionary and every classic for {languages} on this device, so they work with no connection.": "{languages}の辞書とすべての名作をこの端末に保存し、接続がなくても使えるようにします。",
- "Going somewhere with no connection? Open Settings, then Data, and tap Save for offline use. It saves the whole dictionary, every classic and the fonts on the device, so everything works offline, not only what you opened before. It saves every language you are learning.": "接続のない場所に行きますか？設定の「データ」を開き、「オフライン用に保存」をタップしてください。辞書全体、すべての名作、フォントを端末に保存するので、これまでに開いたものだけでなく、すべてがオフラインで使えます。学習中のすべての言語が保存されます。"
+ "Going somewhere with no connection? Open Settings, then Data, and tap Save for offline use. It saves the whole dictionary, every classic and the fonts on the device, so everything works offline, not only what you opened before. It saves every language you are learning.": "接続のない場所に行きますか？設定の「データ」を開き、「オフライン用に保存」をタップしてください。辞書全体、すべての名作、フォントを端末に保存するので、これまでに開いたものだけでなく、すべてがオフラインで使えます。学習中のすべての言語が保存されます。",
+ "Use it from the Home Screen icon? Save it there too. On an iPad or iPhone, the Home Screen app keeps its own copy, apart from Safari.": "ホーム画面のアイコンから使う場合は、そちらでも保存してください。iPad や iPhone では、ホーム画面のアプリは Safari とは別に自分のコピーを持ちます。"
 }

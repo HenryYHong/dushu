@@ -2092,5 +2092,6 @@
  "Saves the dictionary, every classic, the fonts and stroke order for {languages} on this device, so they work with no connection.": "把{languages}的词典、所有经典作品、字体和笔顺保存在这台设备上，没有网络也能用。",
  "Saves the dictionary, every classic and the fonts for {languages} on this device, so they work with no connection.": "把{languages}的词典、所有经典作品和字体保存在这台设备上，没有网络也能用。",
  "Saves the dictionary and every classic for {languages} on this device, so they work with no connection.": "把{languages}的词典和所有经典作品保存在这台设备上，没有网络也能用。",
- "Going somewhere with no connection? Open Settings, then Data, and tap Save for offline use. It saves the whole dictionary, every classic and the fonts on the device, so everything works offline, not only what you opened before. It saves every language you are learning.": "要去没有网络的地方？打开“设置”中的“数据”，点“保存以供离线使用”。它会把整部词典、所有经典作品和字体保存在设备上，让所有内容离线都能用，而不只是你打开过的部分。你在学的每种语言都会保存。"
+ "Going somewhere with no connection? Open Settings, then Data, and tap Save for offline use. It saves the whole dictionary, every classic and the fonts on the device, so everything works offline, not only what you opened before. It saves every language you are learning.": "要去没有网络的地方？打开“设置”中的“数据”，点“保存以供离线使用”。它会把整部词典、所有经典作品和字体保存在设备上，让所有内容离线都能用，而不只是你打开过的部分。你在学的每种语言都会保存。",
+ "Use it from the Home Screen icon? Save it there too. On an iPad or iPhone, the Home Screen app keeps its own copy, apart from Safari.": "从主屏幕图标使用吗？也请在那里保存一次。在 iPad 或 iPhone 上，主屏幕上的应用有自己的一份，和 Safari 分开。"
 }
