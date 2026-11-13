@@ -217,7 +217,9 @@ function startBlinking(): void {
   if (blinking || typeof window === 'undefined' || typeof document === 'undefined') return;
   blinking = true;
   const due = new WeakMap<Element, number>();
-  window.setInterval(() => {
+  const timer = window.setInterval(() => {
+    // A page that is gone (a test's environment torn down) stops the clock.
+    if (typeof document === 'undefined') { clearInterval(timer); return; }
     if (document.hidden || still()) return;
     const now = Date.now();
     for (const stack of document.querySelectorAll<HTMLElement>('.pengu-stack[data-kind="book"]')) {
