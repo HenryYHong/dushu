@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { LangEngine, WordEntry, WordLookup } from '../../src/lang/types';
 import {
-  OWN_SOURCE, glossCode, loadOwnDictionary, ownDictionary, ownMeanings, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
+  OWN_SOURCE, glossCode, japaneseOwn, loadOwnDictionary, ownDictionary, ownMeanings, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
   setReaderLanguage, withOwnDictionary,
 } from '../../src/lang/ownDictionary';
 import { LANGS } from '../../src/lang/registry';
@@ -150,5 +150,38 @@ describe('English rare words', () => {
     expect(hit?.key).toBe('caviller');
     expect(hit?.entries[0].senses[0].glosses).toEqual(['Someone who raises trivial objections.']);
     expect(asked).toEqual(['https://x/data/en/native-rare/ca.tsv.gz']);
+  });
+});
+
+describe('a Japanese word by its reading', () => {
+  // いき: 息 and 粋 name their kanji; ころ names none. 行き (いき, "going") is neither 息 nor 粋.
+  const table = parseOwnTable([
+    'いき\t=息\t\t口や鼻で空気を吸ったり吐いたりすること。',
+    'いき\t=粋\t\t身なりや振る舞いがあか抜けているさま。',
+    'ころ\t\t\t鯨の皮を煎った食材。',
+    '受け取る\t=受け取る,受取る\t\t手に取って収める。',
+    'でる\t\t\t中から外へ移動する。',
+  ].join('\n'));
+  const first = (l: ReturnType<typeof japaneseOwn>) => l?.[0]?.senses[0]?.glosses[0];
+
+  it('reads the kanji a kana line names, and no part of speech', () => {
+    const [e] = table.get('受け取る')!;
+    expect(e.kanji).toEqual(['受け取る', '受取る']);
+    expect(e.pos).toBe('');
+  });
+  it('a word in kanji takes, by its reading, only the entries naming its kanji', () => {
+    expect(first(japaneseOwn(table, ['息'], 'いき'))).toMatch(/空気/);
+    expect(first(japaneseOwn(table, ['粋'], 'いき'))).toMatch(/あか抜け/);
+  });
+  it('and none when every entry there names other kanji', () => {
+    expect(japaneseOwn(table, ['行き'], 'いき')).toBeNull();
+  });
+  it('an entry naming no kanji may be the word', () => {
+    expect(first(japaneseOwn(table, ['出る'], 'でる'))).toMatch(/外へ/);
+  });
+  it('its own spelling first, and a kana word by any entry', () => {
+    expect(first(japaneseOwn(table, ['受取る'], 'うけとる'))).toBeUndefined();
+    expect(first(japaneseOwn(table, ['受け取る'], 'うけとる'))).toMatch(/収める/);
+    expect(japaneseOwn(table, ['いき'], 'いき')).toHaveLength(2);
   });
 });

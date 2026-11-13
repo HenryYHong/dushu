@@ -736,8 +736,11 @@ def update_meta(code, count, sources):
 # rows carry no part of speech or hint, and a word's entries are all its meanings, keyed by every spelling:
 #
 #   ja   jmdict.tsv.gz's kanji and kana forms. Japanese Wiktionary files most words under kana (たべる) and points the kanji
-#        spelling at it ("たべるの漢字表記"); an entry is keyed by its word and the kanji forms it lists. A reading note that
-#        opens a meaning ("（ねこ、ネコ）") is dropped. Writes public/data/ja/native.tsv.gz.
+#        spelling at it ("たべるの漢字表記"); an entry is keyed by its word and the kanji forms it lists (受（け）取る: both
+#        受け取る and 受取る). Under its kana word, a line's part-of-speech column names those kanji ("=息" and "=粋" are two
+#        lines under いき), so the app takes a word in kanji by its reading only from the entries that are that word
+#        (ownDictionary.ts japaneseOwn: 行き is neither). A reading note that opens a meaning ("（ねこ、ネコ）") is dropped.
+#        Writes public/data/ja/native.tsv.gz.
 #   zh   CC-CEDICT's traditional and simplified words (cedict.tsv.gz). Chinese Wiktionary files words under their traditional
 #        spelling with definitions in traditional characters; the app shows them in the reader's script. Writes
 #        public/data/native.tsv.gz (the Chinese library's data is data/ itself).
@@ -745,6 +748,14 @@ def update_meta(code, count, sources):
 CJK_SENSES = 8
 # A meaning that only says the word is a form of another (「ふるう」の連用形): the main dictionary reads forms itself.
 FORM_NOTE = re.compile(r'^「[^」]+」の(?:連用形|未然形|連体形|終止形|仮定形|命令形|已然形|語幹)')
+
+
+def optional_kana(form):
+    """A kanji spelling with the kana Japanese Wiktionary marks optional, both ways: 受（け）取る is 受け取る and 受取る."""
+    m = re.search(r'[（(]([^（）()]*)[）)]', form)
+    if not m:
+        return {form}
+    return optional_kana(form[:m.start()] + m.group(1) + form[m.end():]) | optional_kana(form[:m.start()] + form[m.end():])
 
 
 def ja_class(tag):
@@ -889,13 +900,16 @@ def build_cjk(code):
             if not senses:
                 continue
             word = e.get('word') or ''
-            kanji = [fm.get('form') for fm in e.get('forms') or [] if 'kanji' in (fm.get('tags') or []) and fm.get('form')]
+            kanji = sorted({k for fm in e.get('forms') or [] if 'kanji' in (fm.get('tags') or []) and fm.get('form')
+                            for k in optional_kana(fm['form'])})
             if code == 'ja':
                 by_kana[word].append({'pos': e.get('pos') or '', 'kanji': set(kanji), 'senses': senses})
             spellings = [word] + kanji
             for w in dict.fromkeys(spellings):
                 if w in keys:
-                    found[w].append({'pos': '', 'senses': senses, 'syn': []})
+                    # Under its kana word, the kanji it is written with: the app takes a word's meanings by its reading only from
+                    # the entries that are that word (いき 息 and 粋 are not 行き).
+                    found[w].append({'pos': '', 'senses': senses, 'syn': [], 'kanji': kanji if w == word and code == 'ja' else []})
                     kept += 1
     if code == 'ja':
         # A kanji spelling that only points at its reading (古い → ふるい): the reading's entries that can be it, those that
@@ -935,9 +949,17 @@ def build_cjk(code):
         kept += 1
     lines = []
     for key in sorted(set(found) | set(variants)):
-        merged = merge_senses(found.get(key, []))
-        merged += [x for x in variants.get(key, []) if x not in merged]
-        lines.append(row(key, {'pos': '', 'senses': merged[:CJK_SENSES]}, ''))
+        # Japanese: one line for each set of kanji a kana word's entries name ("=息" and "=粋" under いき), in the part-of-speech
+        # column, which Japanese does not use otherwise.
+        groups = collections.OrderedDict()
+        for e in found.get(key, []):
+            groups.setdefault(tuple(e.get('kanji') or ()), []).append(e)
+        for kanji, entries in (groups.items() or [((), [])]):
+            merged = merge_senses(entries)
+            if not kanji:
+                merged += [x for x in variants.get(key, []) if x not in merged]
+            if merged:
+                lines.append(row(key, {'pos': '=' + ','.join(kanji) if kanji else '', 'senses': merged[:CJK_SENSES]}, ''))
     out = os.path.join(DATA, 'native.tsv.gz') if code == 'zh' else os.path.join(DATA, code, 'native.tsv.gz')
     write_lines(out, header(code, f'{NAMES[code]} Wiktionary (CC BY-SA 4.0, via kaikki.org)' + (WRITTEN_NOTE if written else '')) + lines)
     print(f'{code}: read {n} entries, kept {kept}, {len(written)} written; wrote {os.path.relpath(out, ROOT)}: {len(lines)} words of {len(keys)}')

@@ -59,6 +59,8 @@ export interface OwnEntry {
   /** A simpler word, for over the text (empty when there is none). */
   hint: string;
   senses: Sense[];
+  /** Japanese: under a kana word, the kanji its entries are written with ("=息,粋" in the part-of-speech column). */
+  kanji?: string[];
 }
 /** A word's entries by its key. */
 export interface OwnTable {
@@ -76,9 +78,34 @@ function sense(cell: string, pos: string): Sense {
 function entryOf(line: string): OwnEntry | null {
   const cells = line.split('\t');
   if (cells.length < 4) return null;
-  const [, pos, hint] = cells;
+  const [, column, hint] = cells;
+  const kanji = column.startsWith('=') ? column.slice(1).split(',').filter(Boolean) : undefined;
+  const pos = kanji ? '' : column;
   const senses = cells.slice(3).filter(Boolean).map((c) => sense(c, pos === 'phrase' ? '' : pos));
-  return senses.length ? { pos, hint, senses } : null;
+  return senses.length ? { pos, hint, senses, ...(kanji?.length ? { kanji } : {}) } : null;
+}
+
+/**
+ * A Japanese word's own entries by its spellings (its key, the word as written, its other spellings), else by its readings: for
+ * a word written in kanji, only the entries under a kana spelling that name one of its kanji, or failing those the ones that name
+ * none. An entry that names only other kanji is another word read the same (いき is 息 and 粋, not 行き). Null when there are none.
+ */
+export function japaneseOwn(table: OwnTable, spellings: readonly (string | undefined)[], reading: string | undefined): OwnEntry[] | null {
+  const kana = (s: string) => /^[\u3040-\u30ffー]+$/.test(s);
+  const all = [...new Set([...spellings, reading].filter((s): s is string => !!s))];
+  const written = all.filter((s) => !kana(s));
+  for (const k of written.length ? written : all) {
+    const list = table.get(k);
+    if (list?.length) return list;
+  }
+  if (!written.length) return null;
+  for (const k of all.filter(kana)) {
+    const rows = table.get(k) ?? [];
+    const named = rows.filter((x) => x.kanji?.some((w) => written.includes(w)));
+    const open = rows.filter((x) => !x.kanji?.length);
+    if (named.length || open.length) return named.length ? named : open;
+  }
+  return null;
 }
 
 /**
@@ -182,7 +209,7 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
   const swap = (table: OwnTable, e: WordEntry, key: string): WordEntry | null => {
     if (engine.id === 'ja') {
       // By any of its spellings (たべる or 食べる): Japanese Wiktionary's parts of speech are not JMdict's.
-      const list = [key, e.head, e.reading, ...(e.alts ?? [])].map((k) => (k ? table.get(k) : undefined)).find((l) => l?.length);
+      const list = japaneseOwn(table, [key, e.head, ...(e.alts ?? [])], e.reading);
       if (!list) return null;
       const senses = [...new Map(list.flatMap((x) => x.senses).map((x) => [x.glosses[0], x])).values()].slice(0, 6);
       return { ...e, senses, source: OWN_SOURCE };
