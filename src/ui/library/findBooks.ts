@@ -737,8 +737,14 @@ export function findBooksDialog(ctx: AppContext, importer: Importer, opts: { que
     // Opened on a link shared to the app, or a search: it shows that at once.
     if (opts.query) { input.value = opts.query; query = opts.query.trim(); }
     void load(false);
+    // Offline (an iPad on a plane): said first, as finding and adding a book needs the internet; it goes once the connection is back.
+    const offline = h('p.lib-find-offline', { role: 'status' }, tt('You are offline. Finding and adding free books needs the internet; the books in your library and the classics you saved work offline.'));
+    const onLine = () => { offline.hidden = navigator.onLine !== false; if (!offline.isConnected) { window.removeEventListener('online', onLine); window.removeEventListener('offline', onLine); } };
+    onLine();
+    window.addEventListener('online', onLine);
+    window.addEventListener('offline', onLine);
     return {
-      body: h('div.lib-find', null, tabBar, intro, h('div.lib-find-search', null, icon('search'), input), heading, list, more, moreError, said),
+      body: h('div.lib-find', null, offline, tabBar, intro, h('div.lib-find-search', null, icon('search'), input), heading, list, more, moreError, said),
       footer: [credit, h('button.btn', { type: 'button', onclick: () => api.close() }, tt('Done'))],
       focus: input,
     };

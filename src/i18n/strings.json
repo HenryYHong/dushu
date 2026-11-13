@@ -1635,6 +1635,11 @@
    "src/ui/library/library.ts"
   ]
  },
+ "Could not save for offline use. Check the connection and press again.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
  "Could not save that review. Skipping this card.": {
   "where": [
    "src/ui/review/review.ts"
@@ -2131,6 +2136,11 @@
    "src/ui/vocab/lookups.ts"
   ]
  },
+ "Everything the {language} library uses is saved on this device, so it works with no connection.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
  "Everywhere in this book": {
   "where": [
    "src/ui/popup/fixView.ts"
@@ -2427,6 +2437,11 @@
  "Getting the dictionary ready…": {
   "where": [
    "src/ui/reader/reader.ts"
+  ]
+ },
+ "Getting the list of files…": {
+  "where": [
+   "src/ui/settings/data.ts"
   ]
  },
  "Glyphs for rare characters, so nothing shows as an empty box.": {
@@ -5009,6 +5024,11 @@
    "src/ui/popup/bookCard.ts"
   ]
  },
+ "Save for offline use": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
  "Save the word to your flashcards": {
   "where": [
    "src/ui/shortcuts.ts"
@@ -5065,9 +5085,34 @@
    "src/main.ts"
   ]
  },
+ "Saved, but {n} files could not be fetched. Press again with a better connection to finish.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
  "Saved. Tap to remove.": {
   "where": [
    "src/ui/reader/wordsTab.ts"
+  ]
+ },
+ "Saves the {language} dictionary and every classic on this device, so the library works with no connection.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Saves the {language} dictionary, every classic and the fonts on this device, so the library works with no connection.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Saves the {language} dictionary, every classic, the fonts and stroke order on this device, so the library works with no connection.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
+ "Saving {done} of {total} files ({mb} MB so far)…": {
+  "where": [
+   "src/ui/settings/data.ts"
   ]
  },
  "Saving…": {
@@ -6668,6 +6713,11 @@
    "src/ui/settings/speech.ts"
   ]
  },
+ "This browser can’t keep LinguPengu offline yet. On an iPad, add it to the Home Screen from Safari’s Share menu and open it from there; elsewhere, reload the page once.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
  "This browser can’t make passkeys. Open the link in Safari or Chrome, on a phone or computer from the last few years.": {
   "where": [
    "src/ui/join.ts"
@@ -7118,6 +7168,11 @@
    "src/ui/popup/meanings.ts"
   ]
  },
+ "Translating whole sentences (except word by word and Chrome’s own translator), finding new books and sync still need the internet.": {
+  "where": [
+   "src/ui/settings/data.ts"
+  ]
+ },
  "Translating…": {
   "where": [
    "src/ui/popup/translation.ts"
@@ -7386,6 +7441,11 @@
  "Use in": {
   "where": [
    "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Use offline": {
+  "where": [
+   "src/ui/settings/data.ts"
   ]
  },
  "Use the arrow keys, or click the left or right edge of the page.": {
@@ -7774,6 +7834,11 @@
    "src/main.ts"
   ]
  },
+ "You are offline, so whole sentences cannot be translated here. Word by word is below.": {
+  "where": [
+   "src/ui/popup/translation.ts"
+  ]
+ },
  "You are offline. Connect once to add this classic.": {
   "where": [
    "src/ui/library/importer.ts",
@@ -7786,6 +7851,11 @@
   ]
  },
  "You are offline. Connect to the internet to find books.": {
+  "where": [
+   "src/ui/library/findBooks.ts"
+  ]
+ },
+ "You are offline. Finding and adding free books needs the internet; the books in your library and the classics you saved work offline.": {
   "where": [
    "src/ui/library/findBooks.ts"
   ]
@@ -9214,6 +9284,11 @@
  "{n} of {total}": {
   "where": [
    "src/ui/vocab/practice.ts"
+  ]
+ },
+ "{n} of {total} files are saved on this device.": {
+  "where": [
+   "src/ui/settings/data.ts"
   ]
  },
  "{n} pages left in chapter": {

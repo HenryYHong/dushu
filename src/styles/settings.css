@@ -271,3 +271,7 @@
 .set-goal { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 /* Six choices (five goals and Custom) may not fit a phone's row in a longer language: they wrap instead of running off. */
 .set-goal .set-seg { flex-wrap: wrap; max-width: 100%; }
+
+/* Use offline (settings/data.ts): the button, and how much is saved under it. */
+.set-offline { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.set-offline-status:empty { display: none; }

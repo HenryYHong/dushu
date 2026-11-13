@@ -363,7 +363,10 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     // Straight to the translators, which wait folded under Translation's "More settings".
     const settings = h('a.pp-tr-link', { href: '#/settings?open=translation' }, tt('Settings'));
     const noTranslator = typeof (globalThis as { Translator?: unknown }).Translator === 'undefined';
-    if (automatic && cloudBase() && !cloudSession() && !ctx.settings.get().localOnly) {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      // Offline (an iPad on a plane): only the device can translate, and this one cannot. Nothing to sign in to.
+      body.appendChild(h('p', null, tt('You are offline, so whole sentences cannot be translated here. Word by word is below.')));
+    } else if (automatic && cloudBase() && !cloudSession() && !ctx.settings.get().localOnly) {
       // Accounts are by invite: sign-in is offered to someone who has one, never pitched to every visitor as open.
       const signIn = h('button.pp-tr-link', { type: 'button', onclick: () => void import('../signIn').then((m) => m.openSignIn()) }, tt('Sign in'));
       body.appendChild(h('p', null, withNodes(tt('This browser has no sentence translator. Word by word is below. Have an account? {signIn} to translate whole sentences.'), { signIn })));

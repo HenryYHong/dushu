@@ -2076,5 +2076,20 @@
  "A rare word, from Wiktionary.": "一个生僻词，释义来自维基词典。",
  "{lang}, my own language": "{lang}（我的母语）",
  "Word cards explain words in {book}.": "单词卡会用{book}解释词语。",
- "Word cards for {lang} books explain words in {lang}.": "{lang}书的单词卡会用{lang}解释词语。"
+ "Word cards for {lang} books explain words in {lang}.": "{lang}书的单词卡会用{lang}解释词语。",
+ "Could not save for offline use. Check the connection and press again.": "无法保存以供离线使用。请检查网络后再按一次。",
+ "Everything the {language} library uses is saved on this device, so it works with no connection.": "{language}书库用到的所有内容都已保存在这台设备上，没有网络也能用。",
+ "Getting the list of files…": "正在获取文件列表…",
+ "Save for offline use": "保存以供离线使用",
+ "Saved, but {n} files could not be fetched. Press again with a better connection to finish.": "已保存，但有 {n} 个文件没能下载。网络好一些时再按一次即可完成。",
+ "Saves the {language} dictionary, every classic, the fonts and stroke order on this device, so the library works with no connection.": "把{language}词典、所有经典作品、字体和笔顺保存在这台设备上，让书库没有网络也能用。",
+ "Saves the {language} dictionary, every classic and the fonts on this device, so the library works with no connection.": "把{language}词典、所有经典作品和字体保存在这台设备上，让书库没有网络也能用。",
+ "Saves the {language} dictionary and every classic on this device, so the library works with no connection.": "把{language}词典和所有经典作品保存在这台设备上，让书库没有网络也能用。",
+ "Translating whole sentences (except word by word and Chrome’s own translator), finding new books and sync still need the internet.": "翻译整句（逐词释义和 Chrome 自带的翻译除外）、查找新书和同步仍需要联网。",
+ "Saving {done} of {total} files ({mb} MB so far)…": "正在保存第 {done} / {total} 个文件（已下载 {mb} MB）…",
+ "This browser can’t keep LinguPengu offline yet. On an iPad, add it to the Home Screen from Safari’s Share menu and open it from there; elsewhere, reload the page once.": "这个浏览器还不能离线保存 LinguPengu。在 iPad 上，请从 Safari 的分享菜单把它添加到主屏幕，然后从主屏幕打开；在其他设备上，请重新加载一次页面。",
+ "Use offline": "离线使用",
+ "You are offline, so whole sentences cannot be translated here. Word by word is below.": "现在没有网络，这里无法翻译整句。下面是逐词释义。",
+ "You are offline. Finding and adding free books needs the internet; the books in your library and the classics you saved work offline.": "现在没有网络。查找和添加免费图书需要联网；书库里的书和已保存的经典作品离线也能用。",
+ "{n} of {total} files are saved on this device.": "这台设备上已保存 {n} / {total} 个文件。"
 }

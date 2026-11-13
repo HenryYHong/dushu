@@ -1,5 +1,6 @@
-// Stroke-order animation with hanzi-writer. The stroke data comes from jsdelivr on demand and is cached for
-// the session; if it cannot be fetched (offline, or a character the data does not cover) the section stays hidden.
+// Stroke-order animation with hanzi-writer. The stroke data comes from jsdelivr on demand, cached for the session, and by the
+// service worker for good (sw.js, so a character opened once works offline); if it cannot be had (offline and never stored, or a
+// character the data does not cover) the section stays hidden.
 import { h } from '../dom';
 import { icon } from '../icons';
 import { tt } from '../../i18n';
@@ -36,7 +37,8 @@ export function loadStrokes(ch: string): Promise<unknown> {
 export function createStrokeOrder(ch: string, onShown: () => void): HTMLElement {
   const box = h('div.pp-stroke-box');
   const section = h('section.pp-stroke', { hidden: true }, h('span.pp-section', null, tt('Stroke order')), box);
-  if (!strokeDataPossible(ch) || (typeof navigator !== 'undefined' && navigator.onLine === false)) return section;
+  // Offline too: the service worker keeps the strokes of every character opened before, or saved for offline use.
+  if (!strokeDataPossible(ch)) return section;
 
   void (async () => {
     try {

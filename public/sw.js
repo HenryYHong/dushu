@@ -13,6 +13,10 @@
 //     novels in samples/ are not precached either (vite.config.ts): each is stored the first time it is added.
 //   - The bundled font slices (assets/*.woff2): cache first in a third cache that is never cleared by an update. Font slices are not precached (there are hundreds): each one is stored the
 //     first time a book needs it, so a page you have read once reads offline.
+//   - Stroke-order data (hanzi-writer-data on jsDelivr, the one other site whose files the app keeps): cache first in a cache
+//     of its own that no update clears, so a character opened once (or saved for offline, core/offlinePack.ts) animates offline.
+//   - An update keeps everything the device had stored (a classic, Jigmo, the name list, what "Save for offline use" saved):
+//     each file the old caches hold that is still in the app is checked with the server and carried into the new cache.
 //   - A new version installs in the background and waits; the page shows "Reload" and sends SKIP_WAITING.
 // The __PLACEHOLDERS__ below are filled in by the build (see vite.config.ts); in dev this file is not used.
 const BUILD = '__BUILD__';
@@ -33,6 +37,10 @@ const UI_FONTS = ['fonts/newsreader-roman.woff2', 'fonts/newsreader-italic.woff2
 const APP_CACHE = `dushu-app-${BUILD}`;
 const STATIC_CACHE = `dushu-static-${DATA_VERSION}`;
 const FONT_CACHE = 'dushu-fonts-v1';
+/** Stroke-order data from jsDelivr (popup/writer.ts): never cleared by an update. */
+const STROKE_CACHE = 'dushu-strokes-v1';
+const STROKE_ORIGIN = 'https://cdn.jsdelivr.net';
+const STROKE_PATH = '/npm/hanzi-writer-data@';
 /** On a first visit the page keeps the dictionary files it downloaded here (main.ts); install takes them over. */
 const FIRST_VISIT_CACHE = 'dushu-first-visit';
 const SCOPE = new URL(self.registration.scope).pathname;
@@ -74,8 +82,20 @@ self.addEventListener('install', (event) => {
     // other files, such as the list of classics), is checked with the server (a tiny "not modified" when it is current) and
     // kept, instead of downloaded again. A changed file comes back whole and is stored instead.
     const handed = await caches.open(FIRST_VISIT_CACHE);
+    // The caches of the build before: the Chinese data's and each language's. What they hold is carried over (below).
     const older = [];
-    for (const name of await caches.keys()) if (name.startsWith('dushu-static-') && name !== STATIC_CACHE) older.push(await caches.open(name));
+    const keptPaths = [];
+    for (const name of await caches.keys()) {
+      const isOld = (name.startsWith('dushu-static-') && name !== STATIC_CACHE)
+        || (name.startsWith('dushu-lang-') && !Object.keys(LANG_VERSIONS).some((id) => name === langCache(id)));
+      if (!isOld) continue;
+      const c = await caches.open(name);
+      older.push(c);
+      for (const req of await c.keys()) {
+        const url = new URL(req.url);
+        if (url.origin === self.location.origin && url.pathname.startsWith(SCOPE)) keptPaths.push(relPath(url));
+      }
+    }
     const priorOf = async (p) => {
       let prior = await handed.match(p, MATCH);
       for (const c of older) prior = prior || await c.match(p, MATCH);
@@ -101,7 +121,7 @@ self.addEventListener('install', (event) => {
       // A built file the page loaded (the reading fonts' rules): a hashed name always holds the same bytes, so it is kept as is.
       else if (isHashed(p)) await app.put(p, await handed.match(req, MATCH)).catch(() => {});
     }
-    const statics = [...new Set([...UI_FONTS, ...ZH_STATIC, ...handedPaths])];
+    const statics = [...new Set([...UI_FONTS, ...ZH_STATIC, ...handedPaths, ...keptPaths.filter(isStatic)])];
     const priors = await Promise.all(statics.map((p) => priorOf(p).catch(() => undefined)));
     // The Chinese files are precached only on a device that reads Chinese: its page handed the Chinese dictionary over, or
     // the previous offline copy kept it. A first visit in Spanish never downloads the 9 MB Chinese dictionary; if that device
@@ -129,7 +149,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const langs = new Set(Object.keys(LANG_VERSIONS).map(langCache));
     for (const name of await caches.keys()) {
-      if (name.startsWith('dushu-') && name !== APP_CACHE && name !== STATIC_CACHE && name !== FONT_CACHE && name !== SHARED_CACHE && !langs.has(name)) await caches.delete(name);
+      if (name.startsWith('dushu-') && name !== APP_CACHE && name !== STATIC_CACHE && name !== FONT_CACHE && name !== SHARED_CACHE && name !== STROKE_CACHE && !langs.has(name)) await caches.delete(name);
     }
     // A service worker from before the languages filed a language's files with the Chinese data (data/es/, samples/ja/ in
     // the static cache). They are read only from the language's own cache now, so the copies there would only take room.
@@ -202,7 +222,12 @@ self.addEventListener('fetch', (event) => {
   }
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  // Only this app's own files. Translation APIs and stroke-order data on other origins are left alone.
+  // Stroke-order data: kept, so it works offline.
+  if (url.origin === STROKE_ORIGIN && url.pathname.startsWith(STROKE_PATH)) {
+    event.respondWith(cacheFirst(request, STROKE_CACHE).catch(() => Response.error()));
+    return;
+  }
+  // Otherwise only this app's own files. Translation APIs on other origins are left alone.
   if (url.origin !== self.location.origin) return;
   if (request.headers.has('range')) return;
   const path = relPath(url);

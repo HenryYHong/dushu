@@ -430,3 +430,6 @@
 .lib-find-add[aria-disabled='true'] { opacity: 0.7; cursor: progress; }
 .lib-find-more[aria-busy='true'] { opacity: 0.7; cursor: progress; }
 @media (hover: hover) { .lib-find-tab:hover { color: var(--text); } }
+
+/* Find a book offline (findBooks.ts): what needs the internet, said first. */
+.lib-find-offline { margin: 0 0 var(--space-3); padding: 10px 12px; border-radius: 10px; background: var(--wash-2); color: var(--text-2); font-size: 13.5px; line-height: 1.45; }

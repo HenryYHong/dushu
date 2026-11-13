@@ -12,7 +12,9 @@ import { ACTIVITY_KEY, dayOf } from '../../core/activity';
 import { getPlan, PLAN_KEY } from '../../core/plan';
 import { OWNER_KEY, SESSION_KEY, URL_KEY } from '../../core/cloud';
 import { DECLINED_KEY, STORE_KEY as MAC_BRIDGE_KEY, connectedMac, isMacOrigin } from '../../core/macBridge';
-import { langName, tt, ttn, uiLocale } from '../../i18n';
+import { langName, num, tt, ttn, uiLocale } from '../../i18n';
+import { packFiles, savePack, storedCount, type PackFile } from '../../core/offlinePack';
+import { fetchDataText } from '../../core/dataFetch';
 
 /**
  * The backup's file name: the app, the language (a Spanish and a German backup of one day are two files) and the local day,
@@ -123,6 +125,59 @@ async function wipe(ctx: AppContext): Promise<void> {
   location.reload();
 }
 
+/**
+ * "Use offline": saves everything this library can use on the device (core/offlinePack.ts), so it works with no connection
+ * (an iPad on a plane), not only the parts opened before. Says how much is saved when Settings opens, and the progress while
+ * saving; a second press goes on from where it stopped.
+ */
+function offlineRow(): HTMLElement {
+  const language = langName(lang().id, lang().name);
+  const btn = h('button.btn.btn-sm', { type: 'button' }, icon('download'), tt('Save for offline use')) as HTMLButtonElement;
+  const line = h('div.set-help.set-offline-status', { role: 'status', 'aria-live': 'polite' });
+  let files: PackFile[] | null = null;
+  const list = async (): Promise<PackFile[]> => (files ??= await packFiles(lang().id, document.baseURI, { readText: (u) => fetchDataText(u), doc: document }));
+  const mb = (bytes: number) => num(Math.round(bytes / 1e5) / 10);
+  const canKeep = () => typeof caches !== 'undefined' && !!navigator.serviceWorker?.controller;
+  const all = tt('Everything the {language} library uses is saved on this device, so it works with no connection.', { language });
+  // How much is saved already, when Settings opens.
+  void (async () => {
+    if (!canKeep()) return;
+    try {
+      const f = await list();
+      const n = await storedCount(f);
+      line.textContent = n >= f.length ? all : tt('{n} of {total} files are saved on this device.', { n: num(n), total: num(f.length) });
+    } catch { /* said when the button is pressed */ }
+  })();
+  btn.addEventListener('click', async () => {
+    if (!canKeep()) {
+      line.textContent = tt('This browser can’t keep LinguPengu offline yet. On an iPad, add it to the Home Screen from Safari’s Share menu and open it from there; elsewhere, reload the page once.');
+      return;
+    }
+    btn.disabled = true;
+    line.textContent = tt('Getting the list of files…');
+    try {
+      const f = await list();
+      const r = await savePack(f, (p) => {
+        line.textContent = tt('Saving {done} of {total} files ({mb} MB so far)…', { done: num(p.done), total: num(p.total), mb: mb(p.bytes) });
+      });
+      line.textContent = r.failed
+        ? tt('Saved, but {n} files could not be fetched. Press again with a better connection to finish.', { n: num(r.failed) })
+        : all;
+    } catch {
+      line.textContent = tt('Could not save for offline use. Check the connection and press again.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  const what = lang().id === 'zh'
+    ? tt('Saves the {language} dictionary, every classic, the fonts and stroke order on this device, so the library works with no connection.', { language })
+    : lang().id === 'ja'
+      ? tt('Saves the {language} dictionary, every classic and the fonts on this device, so the library works with no connection.', { language })
+      : tt('Saves the {language} dictionary and every classic on this device, so the library works with no connection.', { language });
+  return row(tt('Use offline'), `${what} ${tt('Translating whole sentences (except word by word and Chrome’s own translator), finding new books and sync still need the internet.')}`,
+    h('div.set-offline', null, btn, line));
+}
+
 export function dataGroup(ctx: AppContext): HTMLElement {
   const { store } = ctx;
   const status = h('div.set-test-out', { role: 'status', 'aria-live': 'polite' });
@@ -188,6 +243,7 @@ export function dataGroup(ctx: AppContext): HTMLElement {
 
   return group(tt('Data'), null,
     memoryWarning,
+    offlineRow(),
     row(tt('Backup'), tt('Your words, known words, progress, bookmarks, looked-up words, review history and settings. Books are not included, so on another device import the same book files first.'),
       h('div.set-backup', null, h('div.set-btn-row', null, exportBtn, importBtn, file), status)),
     row(tt('Delete all data'), isChinese() ? tt('Removes books, words and settings from this browser.')

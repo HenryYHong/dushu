@@ -2318,6 +2318,16 @@ exists.
   language's tag. The offline gloss reads the engine. The Mac's local model stays Chinese only on Automatic. The language translated
   into (§4.7, `TranslateRequest.to`) is the reader's in every library; a choice of the book's own language means English there.
 - **Classics.** `public/samples/<id>/index.json` and Markdown texts (`# Title`, `## Chapter`), with public-domain paintings as covers.
+- **Save for offline use** (Settings › Data › Use offline, `core/offlinePack.ts`). One press stores everything a library can use,
+  so it works with no connection at all (an iPad on a plane), not only what was opened before: every dictionary file the build
+  listed (`sizes.json`: the rare words and the own-language meanings too), every classic and its cover, and for Chinese and
+  Japanese the reading fonts (the stylesheet the page linked and each font file it names) and Jigmo; for Chinese also the stroke
+  order of every HSK character. The files are fetched through the service worker, a few at a time, skipping what is stored; it
+  says how many are stored when Settings opens, and asks the browser to keep the storage. The service worker keeps stroke-order
+  data from jsDelivr in a cache no update clears (`dushu-strokes-v1`), and an update carries everything the old caches held into
+  the new ones (each file checked with the server by its ETag), so what was saved stays saved. Offline, translating a sentence
+  says so and shows word by word, and Find a book says it needs the internet. `qa-out/offline.mjs` and
+  `qa-out/offline-update.mjs` check it on the built app.
 - **Offline.** Each language's data and classics live in a cache of their own (`sw.js`, `dushu-lang-<id>-<version>`), named by their
   contents (`vite.config.ts` `__LANG_VERSIONS__`): handed over on the first visit (stored the first time the language opens
   otherwise), kept through Chinese updates.

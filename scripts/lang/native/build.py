@@ -537,6 +537,41 @@ def update_meta(code, count, sources):
 #        public/data/native.tsv.gz (the Chinese library's data is data/ itself).
 
 CJK_SENSES = 8
+# A meaning that only says the word is a form of another (「ふるう」の連用形): the main dictionary reads forms itself.
+FORM_NOTE = re.compile(r'^「[^」]+」の(?:連用形|未然形|連体形|終止形|仮定形|命令形|已然形|語幹)')
+
+
+def ja_class(tag):
+    """A JMdict part of speech as the class Japanese Wiktionary names it, or None."""
+    if tag in ('adj-i', 'adj-ix'):
+        return 'adj'
+    if tag == 'adj-na':
+        return 'adj_noun'
+    if tag in ('adv', 'adv-to'):
+        return 'adv'
+    if tag == 'n':
+        return 'noun'
+    if tag.startswith('v') and tag not in ('vi', 'vt'):
+        return 'verb'
+    return None
+
+
+def ja_classes():
+    """JMdict: each kanji spelling's part-of-speech classes, from every sense: what a kanji page that points at a kana word must be."""
+    out = collections.defaultdict(set)
+    with gzip.open(os.path.join(DATA, 'ja', 'jmdict.tsv.gz'), 'rt', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            c = line.rstrip('\n').split('\t')
+            classes = {k for sense in c[3:] for t in sense.split('\x1f')[0].split(',') for k in [ja_class(t)] if k}
+            for form in c[0].split(';'):
+                form = form.split('#')[0]
+                if form:
+                    out[form] |= classes
+    return out
+
+
 READING_NOTE = re.compile(r'^（[\u3040-\u30ff・、ー\s]+）')
 
 
@@ -569,6 +604,10 @@ def cjk_keys(code):
 def build_cjk(code):
     keys = cjk_keys(code)
     found = collections.defaultdict(list)
+    # Japanese: entries by their kana word (with their part of speech and kanji spellings), and the kanji pages that only point
+    # at a kana word (古い: "ふるいの漢字表記"), to key each kanji spelling under the right one of its reading's words.
+    by_kana = collections.defaultdict(list)
+    points = collections.defaultdict(set)
     n = kept = 0
     url = f'https://kaikki.org/{code}wiktionary/raw-wiktextract-data.jsonl.gz'
     with kaikki.open_url(url) as res, gzip.open(res, 'rt', encoding='utf-8') as f:
@@ -580,23 +619,51 @@ def build_cjk(code):
             except json.JSONDecodeError:
                 continue
             n += 1
-            if e.get('lang_code') != code or e.get('pos') in ('character', 'soft-redirect', 'romanization', 'symbol'):
+            if e.get('lang_code') != code:
+                continue
+            if code == 'ja' and e.get('pos') == 'character':
+                for sn in e.get('senses') or []:
+                    for fo in sn.get('form_of') or []:
+                        if fo.get('word') and e.get('word'):
+                            points[e['word']].add(fo['word'])
+                continue
+            if e.get('pos') in ('character', 'soft-redirect', 'romanization', 'symbol'):
                 continue
             senses = []
             for sn in e.get('senses') or []:
                 if sn.get('form_of') or sn.get('alt_of') or 'form-of' in (sn.get('tags') or []) or not sn.get('glosses'):
                     continue
                 gloss = clean(READING_NOTE.sub('', sn['glosses'][-1]))
+                if FORM_NOTE.match(gloss):
+                    continue
                 if gloss and len(gloss) > 1 and gloss not in [g for g, _ in senses] and len(senses) < MAX_SENSES:
                     senses.append((gloss, edition_labels({'rt': sn.get('raw_tags') or []})))
             if not senses:
                 continue
             word = e.get('word') or ''
-            spellings = [word] + [fm.get('form') for fm in e.get('forms') or [] if 'kanji' in (fm.get('tags') or []) and fm.get('form')]
+            kanji = [fm.get('form') for fm in e.get('forms') or [] if 'kanji' in (fm.get('tags') or []) and fm.get('form')]
+            if code == 'ja':
+                by_kana[word].append({'pos': e.get('pos') or '', 'kanji': set(kanji), 'senses': senses})
+            spellings = [word] + kanji
             for w in dict.fromkeys(spellings):
                 if w in keys:
                     found[w].append({'pos': '', 'senses': senses, 'syn': []})
                     kept += 1
+    if code == 'ja':
+        # A kanji spelling that only points at its reading (古い → ふるい): the reading's entries that can be it, those that
+        # list no other kanji and are the part of speech JMdict gives the spelling (ふるい the adjective, not 篩 the sieve).
+        classes = ja_classes()
+        for kanji, kanas in points.items():
+            if kanji not in keys or kanji in found:
+                continue
+            want = classes.get(kanji, set())
+            for kana in kanas:
+                for e in by_kana.get(kana, []):
+                    if e['kanji'] and kanji not in e['kanji']:
+                        continue
+                    if want and e['pos'] not in want and not (e['pos'] == 'adj_noun' and 'noun' in want):
+                        continue
+                    found[kanji].append({'pos': '', 'senses': e['senses'], 'syn': []})
     lines = []
     for key in sorted(found):
         # Each entry's first meaning, then each one's second, and so on: a character's entries are its etymologies (了 to

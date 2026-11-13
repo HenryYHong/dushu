@@ -2305,5 +2305,20 @@
  "A rare word, from Wiktionary.": "Un mot rare, tiré du Wiktionnaire.",
  "{lang}, my own language": "{lang}, ma propre langue",
  "Word cards explain words in {book}.": "Les fiches de mots expliquent les mots en {book}.",
- "Word cards for {lang} books explain words in {lang}.": "Les fiches de mots des livres en {lang} expliquent les mots en {lang}."
+ "Word cards for {lang} books explain words in {lang}.": "Les fiches de mots des livres en {lang} expliquent les mots en {lang}.",
+ "Could not save for offline use. Check the connection and press again.": "Impossible d’enregistrer pour une utilisation hors ligne. Vérifiez la connexion et appuyez à nouveau.",
+ "Everything the {language} library uses is saved on this device, so it works with no connection.": "Tout ce qu’utilise la bibliothèque {language} est enregistré sur cet appareil : elle fonctionne sans connexion.",
+ "Getting the list of files…": "Récupération de la liste des fichiers…",
+ "Save for offline use": "Enregistrer pour le hors-ligne",
+ "Saved, but {n} files could not be fetched. Press again with a better connection to finish.": "Enregistré, mais {n} fichiers n’ont pas pu être récupérés. Appuyez à nouveau avec une meilleure connexion pour terminer.",
+ "Saves the {language} dictionary, every classic, the fonts and stroke order on this device, so the library works with no connection.": "Enregistre le dictionnaire {language}, chaque classique, les polices et l’ordre des traits sur cet appareil, pour que la bibliothèque fonctionne sans connexion.",
+ "Saves the {language} dictionary, every classic and the fonts on this device, so the library works with no connection.": "Enregistre le dictionnaire {language}, chaque classique et les polices sur cet appareil, pour que la bibliothèque fonctionne sans connexion.",
+ "Saves the {language} dictionary and every classic on this device, so the library works with no connection.": "Enregistre le dictionnaire {language} et chaque classique sur cet appareil, pour que la bibliothèque fonctionne sans connexion.",
+ "Translating whole sentences (except word by word and Chrome’s own translator), finding new books and sync still need the internet.": "Traduire des phrases entières (sauf mot à mot et le traducteur intégré de Chrome), trouver de nouveaux livres et synchroniser demandent toujours internet.",
+ "Saving {done} of {total} files ({mb} MB so far)…": "Enregistrement de {done} sur {total} fichiers ({mb} Mo pour l’instant)…",
+ "This browser can’t keep LinguPengu offline yet. On an iPad, add it to the Home Screen from Safari’s Share menu and open it from there; elsewhere, reload the page once.": "Ce navigateur ne peut pas encore garder LinguPengu hors ligne. Sur iPad, ajoutez-le à l’écran d’accueil depuis le menu Partager de Safari et ouvrez-le depuis là ; ailleurs, rechargez la page une fois.",
+ "Use offline": "Utiliser hors ligne",
+ "You are offline, so whole sentences cannot be translated here. Word by word is below.": "Vous êtes hors ligne : les phrases entières ne peuvent pas être traduites ici. Le mot à mot est en dessous.",
+ "You are offline. Finding and adding free books needs the internet; the books in your library and the classics you saved work offline.": "Vous êtes hors ligne. Trouver et ajouter des livres gratuits demande internet ; les livres de votre bibliothèque et les classiques enregistrés fonctionnent hors ligne.",
+ "{n} of {total} files are saved on this device.": "{n} fichiers sur {total} sont enregistrés sur cet appareil."
 }
