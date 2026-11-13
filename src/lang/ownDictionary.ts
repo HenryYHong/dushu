@@ -60,7 +60,11 @@ export interface OwnEntry {
   hint: string;
   senses: Sense[];
 }
-export type OwnTable = Map<string, OwnEntry[]>;
+/** A word's entries by its key. */
+export interface OwnTable {
+  get(key: string): OwnEntry[] | undefined;
+  readonly size: number;
+}
 
 /** One meaning cell: "{label, label}definition". */
 function sense(cell: string, pos: string): Sense {
@@ -69,22 +73,50 @@ function sense(cell: string, pos: string): Sense {
   return m ? { pos, glosses, notes: m[1].split(', ').filter(Boolean) } : { pos, glosses };
 }
 
-/** native.tsv.gz (or a native-rare shard) as a table: key → its entries, the main dictionary's commonest part of speech first. */
+function entryOf(line: string): OwnEntry | null {
+  const cells = line.split('\t');
+  if (cells.length < 4) return null;
+  const [, pos, hint] = cells;
+  const senses = cells.slice(3).filter(Boolean).map((c) => sense(c, pos === 'phrase' ? '' : pos));
+  return senses.length ? { pos, hint, senses } : null;
+}
+
+/**
+ * native.tsv.gz (or a native-rare shard) as a table: key → its entries, the main dictionary's commonest part of speech first.
+ * Only the lines are indexed up front; a word's meanings are read the first time it is asked for (a phone reads 70,000 words'
+ * worth of lines in a few tens of milliseconds, and the book asks for a few hundred).
+ */
 export function parseOwnTable(text: string): OwnTable {
-  const table: OwnTable = new Map();
-  for (const line of text.split('\n')) {
-    if (!line || line.startsWith('#')) continue;
-    const cells = line.split('\t');
-    if (cells.length < 4) continue;
-    const [key, pos, hint] = cells;
-    const senses = cells.slice(3).filter(Boolean).map((c) => sense(c, pos === 'phrase' ? '' : pos));
-    if (!senses.length) continue;
-    const list = table.get(key);
-    const entry = { pos, hint, senses };
-    if (list) list.push(entry);
-    else table.set(key, [entry]);
+  const lines = new Map<string, string[]>();
+  let at = 0;
+  while (at < text.length) {
+    let end = text.indexOf('\n', at);
+    if (end < 0) end = text.length;
+    if (end > at && text.charCodeAt(at) !== 35 /* # */) {
+      const tab = text.indexOf('\t', at);
+      if (tab > at && tab < end) {
+        const key = text.slice(at, tab);
+        const line = text.slice(at, end);
+        const list = lines.get(key);
+        if (list) list.push(line); else lines.set(key, [line]);
+      }
+    }
+    at = end + 1;
   }
-  return table;
+  const parsed = new Map<string, OwnEntry[] | null>();
+  return {
+    get size() { return lines.size; },
+    get(key: string) {
+      let got = parsed.get(key);
+      if (got === undefined) {
+        const raw = lines.get(key);
+        got = raw ? raw.map(entryOf).filter((e): e is OwnEntry => !!e) : null;
+        if (got && !got.length) got = null;
+        parsed.set(key, got);
+      }
+      return got ?? undefined;
+    },
+  };
 }
 
 const loads = new Map<string, Promise<OwnTable | null>>();
