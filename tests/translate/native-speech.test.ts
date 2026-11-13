@@ -171,6 +171,54 @@ describe('native Premium audio', () => {
     expect(await run).toBe(true);
   });
 
+  const abortError = () => Object.assign(new Error('The play() request was interrupted by a call to pause()'), { name: 'AbortError' });
+
+  it('a Pause that cuts a starting play() short is no failure: Resume plays on and no error shows', async () => {
+    const error = vi.fn();
+    // play() stays pending until the audio is playing; pause() rejects a pending one, as browsers do.
+    let calls = 0;
+    vi.stubGlobal('Audio', class extends FakeAudio {
+      reject: ((e: Error) => void) | null = null;
+      override play = vi.fn(() => new Promise<void>((resolve, reject) => { if (++calls <= 2) this.reject = reject; else { this.onplaying?.(); resolve(); } }));
+      override pause = vi.fn(() => { this.reject?.(abortError()); this.reject = null; });
+    });
+    const run = speech.speakSequence(['你好。'], { onError: error });
+    await vi.waitFor(() => expect(calls).toBe(1));
+    speech.pauseSpeaking(); // as the sentence starts
+    speech.resumeSpeaking();
+    speech.pauseSpeaking(); // as it resumes
+    await new Promise((r) => setTimeout(r, 0));
+    expect(error).not.toHaveBeenCalled();
+    speech.resumeSpeaking();
+    await vi.waitFor(() => expect(calls).toBe(3));
+    audio[0].onended?.();
+    expect(await run).toBe(true);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it('a play() cut short with no Pause is tried once more before it counts as a failure', async () => {
+    const error = vi.fn();
+    let calls = 0;
+    vi.stubGlobal('Audio', class extends FakeAudio {
+      override play = vi.fn(() => (++calls === 1 ? Promise.reject(abortError()) : (this.onplaying?.(), Promise.resolve())));
+    });
+    const run = speech.speakSequence(['你好。'], { onError: error });
+    await vi.waitFor(() => expect(calls).toBe(2));
+    audio[0].onended?.();
+    expect(await run).toBe(true);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it('a play the browser refuses (not an interruption) still says the voice could not play', async () => {
+    const error = vi.fn();
+    vi.stubGlobal('Audio', class extends FakeAudio {
+      override play = vi.fn(() => Promise.reject(Object.assign(new Error('not allowed'), { name: 'NotAllowedError' })));
+    });
+    const run = speech.speakSequence(['你好。'], { onError: error });
+    expect(await run).toBe(false);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('could not play'));
+  });
+
   it('surfaces playback errors and resolves rather than leaving the reader stuck', async () => {
     const error = vi.fn();
     const run = speech.speakSequence(['你好。'], { onError: error });

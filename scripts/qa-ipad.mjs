@@ -307,9 +307,11 @@ try {
     await page.getByRole('button', { name: 'Resume audio', exact: true }).tap();
     await page.waitForFunction(() => document.querySelector('.rd-audio-status')?.textContent === 'Reading aloud');
     await page.getByRole('button', { name: 'Stop audio', exact: true }).tap();
-    check(!await page.locator('.rd-audio').isVisible(), `${device}: audio stops and controls reset`);
+    // The bar leaves with a short exit motion, so it is gone a moment after the tap, not at once.
+    check(await page.locator('.rd-audio').waitFor({ state: 'hidden', timeout: 3000 }).then(() => true, () => false), `${device}: audio stops and controls reset`);
     } catch (e) {
-      failures.push(`${device}: scroll popup or audio: ${String(e && e.message ? e.message : e).split('\n')[0]}`);
+      const state = await page.evaluate(() => ({ status: document.querySelector('.rd-audio-status')?.textContent ?? null, bar: !!document.querySelector('.rd-audio:not([hidden])') })).catch(() => null);
+      failures.push(`${device}: scroll popup or audio: ${String(e && e.message ? e.message : e).split('\n')[0]} (status then: ${JSON.stringify(state)})`);
       console.log('FAIL', failures[failures.length - 1]);
     }
     await ctx.close();

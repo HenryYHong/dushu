@@ -230,9 +230,25 @@ export function pauseSpeaking(): void {
   if (canSpeak()) speechSynthesis.pause();
 }
 
+/**
+ * A play() that a pause or a new sentence cut short rejects with AbortError: nothing failed, and Resume (or the next sentence)
+ * plays on. Any other rejection (the browser refusing to play) is a real failure. (Pausing as a sentence started used to end
+ * the whole reading with "The voice could not play".)
+ */
+const interrupted = (e: unknown) => (e as { name?: string } | null)?.name === 'AbortError';
+
+/** Plays, and calls `fail` only for a real failure: not while paused (Resume plays again), and an interruption is tried once more. */
+function playOrFail(audio: HTMLAudioElement, fail: () => void, retry = true): void {
+  void audio.play().catch((e) => {
+    if (nativePaused) return;
+    if (interrupted(e) && retry) { playOrFail(audio, fail, false); return; }
+    fail();
+  });
+}
+
 export function resumeSpeaking(): void {
   nativePaused = false;
-  if (nativeCtl) { void nativeAudio?.play().catch(() => finishPending?.()); return; }
+  if (nativeCtl) { if (nativeAudio) playOrFail(nativeAudio, () => finishPending?.()); return; }
   if (canSpeak()) speechSynthesis.resume();
 }
 
@@ -394,7 +410,7 @@ function playNative(
     audio.onended = () => finish(true);
     const fail = () => { if (!done) opts?.onError?.(tt('The voice could not play. Tap Read again, or choose an iPad voice in Settings.')); finish(false); };
     audio.onerror = fail;
-    if (!nativePaused) void audio.play().catch(fail);
+    if (!nativePaused) playOrFail(audio, fail);
     follow(); // the sentence's first word, as its audio starts
   });
 }
