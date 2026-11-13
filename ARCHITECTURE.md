@@ -2059,8 +2059,9 @@ to the account tells it the time zone and the app's language (`about`), so remin
   behind Pengu as it leaves the ground (`penguConfetti`; not for a tap). Every drawing of a set is stacked in one box and only one shows
   (visibility), so a swap lays nothing out; `preloadPengu` loads and decodes them all at the start and starts the blinking.
   Moves (`animatePengu`): pop (a fade), wave, blink, hop (one jump), cheer (two), boing (a tap: a wave, or a jump). The 'cheer'
-  pose is the jumping Pengu, every other pose Pengu over its book. Pengu fades in and waves on the welcome screen and over the
-  library's first book (`penguPeek`; never over Review's flashcard, where it got in the way of studying), waves at the
+  pose is the jumping Pengu, every other pose Pengu over its book. Pengu sits in the library's streak card for a returning reader
+  (the flame beside the streak line), blinking, waving hello on the day's first visit (`dushu.pengu-hello.v1`) and when tapped.
+  It fades in and waves on the welcome screen and over the library's first book (`penguPeek`; never over Review's flashcard, where it got in the way of studying), waves at the
   walkthrough's first and last steps (the card itself fades between steps and never travels), blinks over empty Vocabulary and
   About and in place of the spinner while the library opens, waves at an empty Review and jumps once for one that is all caught
   up, jumps when a session ends (twice, with the confetti, for one that cleared everything due), and comes up from the bottom of

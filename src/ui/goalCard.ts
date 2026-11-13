@@ -5,10 +5,14 @@ import '../styles/goal.css';
 import { h } from './dom';
 import { ACTIVITY_EVENT, ACTIVITY_KEY, dayOf, stampToday, streak, type DayTotal } from '../core/activity';
 import { PLAN_KEY, getPlan } from '../core/plan';
+import { animatePengu, penguEl } from './pengu';
 import { num, tt, ttn, uiLocale } from '../i18n';
 
 /** The share of today's goal the bar last showed (this page's life), where a card drawn again starts. */
 let barShown = 0;
+
+/** The day Pengu last waved hello from the card on this device: once a day, not every time the library is opened. */
+export const PENGU_HELLO_KEY = 'dushu.pengu-hello.v1';
 
 const FLAME = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.3c.4 3.2 4.9 5.4 4.9 10.6a5.5 5.5 0 0 1-11 0c0-2.5 1.3-4.4 2.9-5.7.1 1.8.9 3 2.1 3.5-.6-3.4.2-6.2 1.1-8.4z"/></svg>';
 /** Stands for the number in "{n} day streak", so the words before and after it can go around the big number. */
@@ -25,6 +29,8 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
   const dayName = new Intl.DateTimeFormat(uiLocale(), { weekday: 'long' });
   const flame = h('span.goal-flame');
   flame.innerHTML = FLAME;
+  // Pengu keeps the reader company here: blinking, waving hello on the day's first visit, and again when tapped.
+  const pengu = penguEl('read', 'goal-pengu');
   // A language that puts words before the number ("连续 5 天") has them here; English has none.
   const lead = h('span');
   const count = h('span.goal-num');
@@ -35,7 +41,7 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
   const bar = h('div.goal-bar', { role: 'progressbar', 'aria-valuemin': '0' }, fill);
   const week = h('div.goal-week', { role: 'list', 'aria-label': tt('The last seven days') });
   const el = h('section.goal.card', { 'aria-label': tt('Daily goal and streak') },
-    h('div.goal-streak', null, flame, h('div.goal-streak-text', null, h('div', null, lead, count, unit), best)),
+    h('div.goal-streak', null, pengu, h('div.goal-streak-text', null, h('div.goal-streak-line', null, flame, lead, count, unit), best)),
     h('div.goal-today', null, today, bar),
     week);
 
@@ -73,10 +79,21 @@ export function goalCard(): { el: HTMLElement; dispose(): void } {
       io?.disconnect();
       onScreen = true;
       paintBar();
+      hello();
     })
     : null;
   if (io) io.observe(bar);
   else onScreen = true;
+
+  /** Pengu waves the first time the card is on screen each day. */
+  function hello(): void {
+    const today = dayOf();
+    try {
+      if (localStorage.getItem(PENGU_HELLO_KEY) === today) return;
+      localStorage.setItem(PENGU_HELLO_KEY, today);
+    } catch { return; }
+    animatePengu(pengu, 'wave', 300);
+  }
 
   /** The day the card shows as today: past midnight it draws again. */
   let shown = '';
