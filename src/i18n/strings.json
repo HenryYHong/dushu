@@ -229,7 +229,7 @@
    "src/ui/reader/menus.ts"
   ]
  },
- "A short {language} meaning over each word. Unknown skips words you have marked as known; {scheme} also skips words up to your level.": {
+ "A short {language} meaning over each word. New words skips words you have marked as known; {scheme} also skips words up to your level.": {
   "where": [
    "src/ui/settings/settings.ts"
   ]
@@ -289,17 +289,17 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
- "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its furigana in the Unknown and {scheme} modes. Looking it up takes it back off.": {
+ "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its furigana in the New words and {scheme} modes. Looking it up takes it back off.": {
   "where": [
    "src/lang/labels.ts"
   ]
  },
- "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its hint in the Unknown and {scheme} modes. Looking it up takes it back off.": {
+ "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its hint in the New words and {scheme} modes. Looking it up takes it back off.": {
   "where": [
    "src/lang/labels.ts"
   ]
  },
- "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its pinyin in the Unknown and HSK pinyin modes. Looking it up takes it back off.": {
+ "A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its pinyin in the New words and HSK pinyin modes. Looking it up takes it back off.": {
   "where": [
    "src/core/autoKnown.ts",
    "src/lang/labels.ts"
@@ -313,11 +313,6 @@
  "A word-by-word gloss, not a real translation. The first meanings may be wrong here.": {
   "where": [
    "src/ui/popup/translation.ts"
-  ]
- },
- "A word’s card has Save word, for words you want to review, and Mark as known, for words you already know.": {
-  "where": [
-   "src/ui/reader/reader.ts"
   ]
  },
  "A young Brahmin leaves home in India to look for peace and finds it in an unexpected place.": {
@@ -440,11 +435,6 @@
  "Add to library": {
   "where": [
    "src/ui/library/paste.ts"
-  ]
- },
- "Add your own EPUB, Kindle (without DRM), text or PDF files.": {
-  "where": [
-   "src/ui/siteGuide.ts"
   ]
  },
  "Add {n}": {
@@ -864,11 +854,6 @@
    "src/ui/reader/reader.ts"
   ]
  },
- "Bookmark the page you’re on.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
  "Bookmark this page": {
   "where": [
    "src/ui/reader/reader.ts"
@@ -886,7 +871,6 @@
  },
  "Bookmarks": {
   "where": [
-   "src/ui/reader/reader.ts",
    "src/ui/reader/toc.ts"
   ]
  },
@@ -1268,7 +1252,7 @@
    "src/ui/shortcuts.ts"
   ]
  },
- "Click a word to see what it means. Drag across a sentence to translate it.": {
+ "Click a word to see what it means and save it for review. Drag across a sentence to translate it.": {
   "where": [
    "src/ui/reader/reader.ts"
   ]
@@ -2025,11 +2009,6 @@
    "src/ui/library/library.ts"
   ]
  },
- "EPUB, Kindle without DRM, text and PDF files all work.": {
-  "where": [
-   "src/ui/library/library.ts"
-  ]
- },
  "Each language is its own library, with its own books, words and settings, and each syncs with your account on its own. Switch languages in Settings or with the language menu at the top.": {
   "where": [
    "src/ui/about/about.ts"
@@ -2220,6 +2199,11 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
+ "Fewer settings": {
+  "where": [
+   "src/ui/settings/controls.ts"
+  ]
+ },
  "Fifty fables in simple English, among them the fox and the grapes, the lion and the mouse and the shepherd boy who cried wolf. Each is a page or less and ends with a one-line lesson.": {
   "where": [
    "public/samples/en/index.json"
@@ -2262,8 +2246,7 @@
  },
  "Find a book": {
   "where": [
-   "src/ui/library/library.ts",
-   "src/ui/siteGuide.ts"
+   "src/ui/library/library.ts"
   ]
  },
  "Find a free book": {
@@ -2467,16 +2450,6 @@
  "Glyphs for rare characters, so nothing shows as an empty box.": {
   "where": [
    "src/ui/about/about.ts"
-  ]
- },
- "Go back to your books. Words you save wait for you in Vocabulary and Review.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
- "Go over your saved words with flashcards, a few minutes a day.": {
-  "where": [
-   "src/ui/siteGuide.ts"
   ]
  },
  "Go there": {
@@ -2703,8 +2676,7 @@
  },
  "Import book": {
   "where": [
-   "src/ui/library/library.ts",
-   "src/ui/siteGuide.ts"
+   "src/ui/library/library.ts"
   ]
  },
  "Import book, in the library": {
@@ -2818,11 +2790,6 @@
    "src/ui/popup/fixView.ts"
   ]
  },
- "I’ll show you around. Your books live here: start with a free classic, or add your own.": {
-  "where": [
-   "src/ui/siteGuide.ts"
-  ]
- },
  "JLPT (old)": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -2862,11 +2829,6 @@
   "where": [
    "src/ui/popup/fixView.ts",
    "src/ui/reader/toc.ts"
-  ]
- },
- "Jump to a chapter or a bookmark, and see the words in this book.": {
-  "where": [
-   "src/ui/reader/reader.ts"
   ]
  },
  "Kai": {
@@ -2932,12 +2894,12 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
- "Known words get no {aid} in the Unknown and HSK pinyin modes.": {
+ "Known words get no {aid} in the New words and HSK pinyin modes.": {
   "where": [
    "src/ui/vocab/vocab.ts"
   ]
  },
- "Known words get no {aid} in the Unknown and {scheme} modes.": {
+ "Known words get no {aid} in the New words and {scheme} modes.": {
   "where": [
    "src/ui/vocab/vocab.ts"
   ]
@@ -2972,11 +2934,6 @@
  "Language you are reading": {
   "where": [
    "src/ui/langSwitch.ts"
-  ]
- },
- "Languages": {
-  "where": [
-   "src/ui/siteGuide.ts"
   ]
  },
  "Languages you are learning": {
@@ -3124,11 +3081,6 @@
    "src/ui/settings/mac.ts"
   ]
  },
- "Listen to the chapter read aloud.": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
  "Little King Buby loses his first tooth, and Ratón Pérez, the mouse who comes for children's teeth, takes him across Madrid to the home of a poor boy.": {
   "where": [
    "public/samples/es/index.json"
@@ -3269,11 +3221,6 @@
  "Looking it up…": {
   "where": [
    "src/ui/popup/langWordView.ts"
-  ]
- },
- "Lookup": {
-  "where": [
-   "src/ui/settings/settings.ts"
   ]
  },
  "Lower level": {
@@ -3529,6 +3476,11 @@
    "src/ui/langSwitch.ts"
   ]
  },
+ "More settings": {
+  "where": [
+   "src/ui/settings/controls.ts"
+  ]
+ },
  "Most often": {
   "where": [
    "src/ui/reader/wordsTab.ts"
@@ -3621,6 +3573,17 @@
   "where": [
    "src/ui/reader/wordsTab.ts",
    "src/ui/vocab/model.ts"
+  ]
+ },
+ "New words": {
+  "where": [
+   "src/ui/reader/menus.ts",
+   "src/ui/settings/settings.ts"
+  ]
+ },
+ "New words skips words you have marked as known. HSK also skips words up to your level.": {
+  "where": [
+   "src/ui/settings/settings.ts"
   ]
  },
  "Newest first": {
@@ -4191,16 +4154,6 @@
    "src/ui/library/library.ts"
   ]
  },
- "Open a book": {
-  "where": [
-   "src/ui/siteGuide.ts"
-  ]
- },
- "Open any book to start reading. The reader shows you around the first time.": {
-  "where": [
-   "src/ui/siteGuide.ts"
-  ]
- },
  "Open chapter list": {
   "where": [
    "src/ui/reader/reader.ts"
@@ -4298,16 +4251,6 @@
  "Or get a code by email:": {
   "where": [
    "src/ui/settings/account.ts"
-  ]
- },
- "Or {find}, {paste} or {import}.": {
-  "where": [
-   "src/ui/library/library.ts"
-  ]
- },
- "Or {paste} or {import}.": {
-  "where": [
-   "src/ui/library/library.ts"
   ]
  },
  "Order": {
@@ -4413,16 +4356,10 @@
    "src/core/passkey.ts"
   ]
  },
- "Paste any text, like an article or a chapter, and read it like a book.": {
-  "where": [
-   "src/ui/siteGuide.ts"
-  ]
- },
  "Paste text": {
   "where": [
    "src/ui/library/library.ts",
-   "src/ui/library/paste.ts",
-   "src/ui/siteGuide.ts"
+   "src/ui/library/paste.ts"
   ]
  },
  "Paste {lang} text here: a chapter, an article, song lyrics…": {
@@ -4756,8 +4693,7 @@
  },
  "Read aloud": {
   "where": [
-   "src/ui/popup/phraseView.ts",
-   "src/ui/reader/reader.ts"
+   "src/ui/popup/phraseView.ts"
   ]
  },
  "Read aloud (P)": {
@@ -4853,7 +4789,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Readings in kana over words with kanji. Unknown skips words you have marked as known; JLPT also skips words up to your level.": {
+ "Readings in kana over words with kanji. New words skips words you have marked as known; JLPT also skips words up to your level.": {
   "where": [
    "src/ui/settings/settings.ts"
   ]
@@ -5031,7 +4967,6 @@
    "src/main.ts",
    "src/ui/review/review.ts",
    "src/ui/shortcuts.ts",
-   "src/ui/siteGuide.ts",
    "src/ui/vocab/vocab.ts"
   ]
  },
@@ -5111,11 +5046,6 @@
    "src/ui/popup/wordView.ts"
   ]
  },
- "Save words": {
-  "where": [
-   "src/ui/reader/reader.ts"
-  ]
- },
  "Save {word}": {
   "where": [
    "src/ui/reader/wordsTab.ts"
@@ -5182,11 +5112,6 @@
  "Search for a book, or paste a link to one": {
   "where": [
    "src/ui/library/findBooks.ts"
-  ]
- },
- "Search thousands of free books from Project Gutenberg and Wikisource.": {
-  "where": [
-   "src/ui/siteGuide.ts"
   ]
  },
  "Search vocabulary": {
@@ -5330,8 +5255,7 @@
   "where": [
    "src/main.ts",
    "src/ui/popup/translation.ts",
-   "src/ui/settings/settings.ts",
-   "src/ui/siteGuide.ts"
+   "src/ui/settings/settings.ts"
   ]
  },
  "Seven rhyming pranks by two naughty boys, and what finally happens to them.": {
@@ -5870,11 +5794,6 @@
    "src/ui/reader/reader.ts"
   ]
  },
- "Switch to another language’s library.": {
-  "where": [
-   "src/ui/siteGuide.ts"
-  ]
- },
  "Sync": {
   "where": [
    "src/ui/settings/ipad.ts",
@@ -5948,7 +5867,7 @@
    "src/ui/about/about.ts"
   ]
  },
- "Tap a word to see what it means. Tap it twice for the whole sentence and its translation.": {
+ "Tap a word to see what it means and save it for review. Tap it twice for the whole sentence and its translation.": {
   "where": [
    "src/ui/reader/reader.ts"
   ]
@@ -6564,11 +6483,6 @@
  "The words that come up most first": {
   "where": [
    "src/ui/reader/wordsTab.ts"
-  ]
- },
- "The words you save, all in one list.": {
-  "where": [
-   "src/ui/siteGuide.ts"
   ]
  },
  "Theme": {
@@ -7453,17 +7367,6 @@
    "src/ui/vocab/vocab.ts"
   ]
  },
- "Unknown": {
-  "where": [
-   "src/ui/reader/menus.ts",
-   "src/ui/settings/settings.ts"
-  ]
- },
- "Unknown skips words you have marked as known. HSK also skips words up to your level.": {
-  "where": [
-   "src/ui/settings/settings.ts"
-  ]
- },
  "Unverified: {detail}. Check the reference words below.": {
   "where": [
    "src/ui/popup/translation.ts"
@@ -7523,7 +7426,6 @@
  "Vocabulary": {
   "where": [
    "src/main.ts",
-   "src/ui/siteGuide.ts",
    "src/ui/vocab/vocab.ts"
   ]
  },
@@ -7771,12 +7673,12 @@
    "src/ui/reader/wordsTab.ts"
   ]
  },
- "Words you know. They get no {aid} in the Unknown and HSK pinyin modes.": {
+ "Words you know. They get no {aid} in the New words and HSK pinyin modes.": {
   "where": [
    "src/ui/vocab/vocab.ts"
   ]
  },
- "Words you know. They get no {aid} in the Unknown and {scheme} modes.": {
+ "Words you know. They get no {aid} in the New words and {scheme} modes.": {
   "where": [
    "src/ui/vocab/vocab.ts"
   ]
@@ -7799,6 +7701,11 @@
  "Words you read past often lose their pinyin": {
   "where": [
    "src/ui/reader/menus.ts"
+  ]
+ },
+ "Words you save are listed in Vocabulary, and Review brings them back as flashcards, a few minutes a day.": {
+  "where": [
+   "src/ui/siteGuide.ts"
   ]
  },
  "Words {n}": {
@@ -8070,6 +7977,11 @@
    "src/main.ts"
   ]
  },
+ "Your books live here. Start with a free classic, or add your own: find a book, paste some text or import a file.": {
+  "where": [
+   "src/ui/siteGuide.ts"
+  ]
+ },
  "Your books, saved words, lookups, bookmarks, reading places and settings follow you to any device you sign in on. A few things that depend on the screen, like one or two pages, stay with each device.": {
   "where": [
    "src/ui/about/about.ts"
@@ -8113,11 +8025,6 @@
    "src/ui/welcome.ts"
   ]
  },
- "Your language, your daily goal, translators and sync.": {
-  "where": [
-   "src/ui/siteGuide.ts"
-  ]
- },
  "Your languages": {
   "where": [
    "src/ui/welcome.ts"
@@ -8125,8 +8032,7 @@
  },
  "Your library": {
   "where": [
-   "src/ui/library/library.ts",
-   "src/ui/reader/reader.ts"
+   "src/ui/library/library.ts"
   ]
  },
  "Your name": {
@@ -8182,6 +8088,11 @@
  "Your word": {
   "where": [
    "src/ui/popup/bookCard.ts"
+  ]
+ },
+ "Your words": {
+  "where": [
+   "src/ui/siteGuide.ts"
   ]
  },
  "Your words, known words, progress, bookmarks, looked-up words, review history and settings. Books are not included, so on another device import the same book files first.": {
@@ -8407,11 +8318,6 @@
    "src/ui/popup/langWordView.ts"
   ]
  },
- "find a free book in {lang}": {
-  "where": [
-   "src/ui/library/library.ts"
-  ]
- },
  "forms": {
   "where": [
    "src/ui/about/about.ts"
@@ -8430,11 +8336,6 @@
  "hints": {
   "where": [
    "src/lang/labels.ts"
-  ]
- },
- "import a file": {
-  "where": [
-   "src/ui/library/library.ts"
   ]
  },
  "in under a minute": {
@@ -8590,11 +8491,6 @@
   "where": [
    "src/lang/ja/tags.ts",
    "src/lang/spaced/core.ts"
-  ]
- },
- "paste some text": {
-  "where": [
-   "src/ui/library/library.ts"
   ]
  },
  "phrase": {

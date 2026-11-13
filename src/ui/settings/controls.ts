@@ -3,6 +3,7 @@
 import type { Settings } from '../../types';
 import { h } from '../dom';
 import { choiceGlide } from '../choiceGlide';
+import { tt } from '../../i18n';
 
 export interface Control {
   el: HTMLElement;
@@ -113,4 +114,21 @@ export function group(title: string, intro: string | null, ...rows: (Node | null
     h('h2.section-title.set-group-title', null, title),
     intro ? h('p.set-group-intro', null, intro) : null,
     h('div.set-card.card', null, rows.filter((r): r is Node => !!r)));
+}
+
+/**
+ * The rows most readers never change, folded under "More settings" at the foot of a group, so the page shows only the few that
+ * matter. Once opened it stays open on this device; `open` opens it now (a link to that section).
+ */
+export function more(key: string, rows: (Node | null)[], open = false): HTMLDetailsElement {
+  const stored = `dushu.settings.more.${key}`;
+  let kept = false;
+  try { kept = localStorage.getItem(stored) === '1'; } catch { /* storage blocked: it starts folded */ }
+  const el = h('details.set-more', { open: open || kept },
+    h('summary.set-more-title', null, h('span.set-more-show', null, tt('More settings')), h('span.set-more-hide', null, tt('Fewer settings'))),
+    rows.filter((r): r is Node => !!r)) as HTMLDetailsElement;
+  el.addEventListener('toggle', () => {
+    try { if (el.open) localStorage.setItem(stored, '1'); else localStorage.removeItem(stored); } catch { /* storage blocked */ }
+  });
+  return el;
 }

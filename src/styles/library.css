@@ -381,9 +381,6 @@
 .lib-start-how { margin: 10px 0 0; color: var(--text-3); font-size: 13.5px; max-width: 56ch; }
 .lib-start-actions { margin-top: 16px; }
 .lib-start-go { height: 44px; padding: 0 20px; font-size: 15px; }
-.lib-start-other { margin: 14px 0 0; color: var(--text-3); font-size: 13.5px; }
-.lib-start-link { padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; cursor: pointer; }
-@media (hover: hover) { .lib-start-link:hover { text-decoration-color: currentColor; } }
 /* Waiting for the classics on a slow network: soft blocks laid out like the first book's card, where its cover, title, lines and
    button will be, so the card fills in rather than changing shape. They come into view only when the wait is long enough to
    notice (a quick answer shows the plain card, as before), then a soft band passes over them now and then at an even pace. The

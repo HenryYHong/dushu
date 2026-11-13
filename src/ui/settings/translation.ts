@@ -12,7 +12,7 @@ import { chromePairName } from '../../translate/chrome';
 import { DEFAULT_TARGET, targetFor, targetLanguage, targetsFor } from '../../translate/targets';
 import { CLAUDE_MODELS, fetchClaudeStatus, hasClaudeRoute, resetClaudeStatus, type ClaudeStatus } from '../../translate/claude';
 import { qualityLocalAvailable } from '../../translate/localMeaning';
-import { group, nextId, row, toggle } from './controls';
+import { group, more, nextId, row, toggle } from './controls';
 import { lang, langId } from '../../lang/active';
 import { langName, num, tt, ttm, ttn, uiLocale } from '../../i18n';
 
@@ -174,7 +174,7 @@ function autoOrder(claude: boolean, mac: boolean, account: boolean): string {
   return tt('Tries Qwen when you are signed in, then the browser’s translator, and last the word-by-word gloss.');
 }
 
-export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: Settings): void; dispose(): void } {
+export function translationGroup(ctx: AppContext, lookupRows: (Node | null)[] = [], open = false): { el: HTMLElement; update(s: Settings): void; dispose(): void } {
   const { settings } = ctx;
   const ids: TranslatorId[] = ['local', 'chrome', 'claude', 'account', 'mymemory', 'gloss'];
   const avail: Record<TranslatorId, Avail> = { local: 'no', chrome: 'no', claude: 'no', account: 'no', mymemory: 'yes', gloss: 'yes' };
@@ -338,12 +338,17 @@ export function translationGroup(ctx: AppContext): { el: HTMLElement; update(s: 
   }
 
   const into = targetControl(settings);
-  const el = group(tt('Translation'),
-    tt('What translates a sentence when you tap a word twice or drag across it.'),
+  // Only the language shows at first. Which translator, Local only, Claude's model and how words are looked up (`lookupRows`,
+  // from the settings screen) wait under "More settings": Automatic picks well for nearly everyone.
+  const el = group(tt('Translation'), null,
     row(tt('Translate into'), tt('The language translations are written in.'), into, into.id),
-    h('div.set-prov-wrap', null, list),
-    row(tt('Local only'), tt('Never send a sentence to an online translator.'), localOnly),
-    claudeBox);
+    more('translation', [
+      h('p.set-more-intro', null, tt('What translates a sentence when you tap a word twice or drag across it.')),
+      h('div.set-prov-wrap', null, list),
+      row(tt('Local only'), tt('Never send a sentence to an online translator.'), localOnly),
+      claudeBox,
+      ...lookupRows,
+    ], open));
 
   const onBridge = () => { resetClaudeStatus(); paintNames(); void refresh(true); };
   // The chips follow the connection: offline, Qwen and MyMemory say so instead of "Used up for today".

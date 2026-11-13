@@ -764,7 +764,7 @@ the reader's language is the dictionary's (English for an English reader of Span
 - Translators, in order (`meaningOrder`): Chrome on the device (free, private), the reader's chosen online one, Qwen through the
   account, Claude (the owner's, which costs money). MyMemory only when it is the chosen sentence translator, as Automatic never picks it.
   Local only leaves Chrome alone. The Mac's Ollama model and the gloss are not used.
-- When (`settings.translateMeanings`, Settings › Lookup › Meanings in your language; this device's, not synced, since it depends on
+- When (`settings.translateMeanings`, Settings › Translation › More settings › Meanings in your language; this device's, not synced, since it depends on
   what the browser has): `auto` (the default) translates at once only with Chrome when its pair is ready, and offers any other (or
   Chrome's one-time download, which needs a click) on a button, "Meanings in French"; `always` runs the first ready one at once, online
   too; `ask` always waits for the button; `never` shows the dictionary as it is and asks no translator anything. A click on the
@@ -1137,7 +1137,7 @@ characters, each with a misleading gloss. The lexicon fixes that per book. What 
 - Looking a word up: a word card opened by a tap, click, double-click, the keys or a step in the card resets the word's count and takes a learned
   word off the known list (it comes back only by reading past it again). A hover popup (`lookupTrigger: hover`) and a translated phrase only keep
   their words from counting for the text on screen at the time. With the setting off nothing is counted or taken off.
-- UI: a switch in Settings → Pinyin and in the reader's pinyin menu (shown in Unknown mode). The word card's Known button says "Learned from
+- UI: a switch in Settings → Pinyin and in the reader's pinyin menu (shown in New words mode). The word card's Known button says "Learned from
   reading". The known-words panel on the Words screen shows how many reading marked and has **Clear learned words** (removes only those and
   clears the counts). An added word updates the open page in place (the store's `known` change → `refreshMarks`), never re-segmenting.
 
@@ -1695,7 +1695,7 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   it, open the phrase popup. Mobile: tap = click; long-press selection works the same way.
 - Saved words get one continuous vermilion stroke under the whole word (`--saved`, an absolutely placed `::before` on each character
   cell, ends pulled in so neighbors stay apart; never inside the chapter title, which carries its own short red rule). It moves no text.
-  Known words lose their pinyin in Unknown mode. Only headings are balanced (`text-wrap: balance`); short prose paragraphs fill like any other.
+  Known words lose their pinyin in New words mode. Only headings are balanced (`text-wrap: balance`); short prose paragraphs fill like any other.
 - Paragraph translate (settings.paragraphTranslate): a small translate icon appears in the
   margin on hover; click → translation block under the paragraph (toggle). Scroll layout only: Pages hides the margin buttons and has no
   in-flow translation block (select a sentence instead). The Aa menu leaves the switch out on a touch screen: it only shows the hover
@@ -1709,8 +1709,8 @@ and `onBack?: () => void` (shows a Back button). The vocab screen needs none of 
   from a tap on the blank margin in the outer strips of the spread (`edgeWidth`: about 16% of a spread, 20% of one page, 56 px at least). A tap on
   the text never turns: a word opens its card wherever it is, and the rest of a text line (`.rd-b`: punctuation, the gap between lines) shows or hides
   the bar, so reaching for a word near the edge no longer turns the page. A mouse click on a word always looks it up. The first time a book is opened on a device the reader's walkthrough
-  (`ui/guide.ts`, steps in `showReaderHint`) lights up, one step at a time, a word on the page, the 拼 seal, Aa, read aloud, chapters, the
-  bookmark and the way back, and says how pages turn; the rest of the screen is dimmed and takes no taps or keys while it shows. Seen once
+  (`ui/guide.ts`, steps in `showReaderHint`) lights up, in four steps, a word on the page (look it up, save it), the 拼 seal and Aa, and
+  says how pages turn (the bar's plain icons explain themselves); the rest of the screen is dimmed and takes no taps or keys while it shows. Seen once
   it is finished or skipped (`dushu.reader-hint.v1`); leaving the book in the middle shows it again. The Aa menu shows it again.
 - A chapter that cannot be loaded or drawn shows "Could not display this chapter" with Previous, Next, Open chapter list and (the first time) Try
   again; keys still turn chapters; the saved place is not overwritten. Failures are counted per chapter in localStorage (`dushu.chapter-failures`):
@@ -1792,8 +1792,8 @@ and opens it. Empty state explains what the app does in two sentences.
   chosen; a device used before the screen existed is marked welcomed and never interrupted. Settings › Learning changes the
   languages and the goal and shows the screen again. The languages being learned come first in the language switcher.
 - Finishing the welcome makes the library's walkthrough due (`ui/siteGuide.ts`, `dushu.site-guide.v1`): once the library is drawn
-  and nothing is open over it, it lights up the first book, Find a book, Paste text, Import book, then Vocabulary, Review, Settings,
-  the language switch and Sign in, and says the reader shows itself the first time a book opens. Settings › Learning › Walkthrough
+  and nothing is open over it, it lights up, in three steps at most, the first book (and the three ways to add one), Review (where
+  saved words go) and Sign in. Settings › Learning › Walkthrough
   shows both again. The welcome's next step slides in 20 px from the side the reader went to as it fades in (the footer stays
   put); a walkthrough's card glides with the spotlight to the next step (260 ms, its height with it) while the new words fade in.
   The spotlight (`.rd-guide-spot`) is a box that paints nothing, with the dim (four corner boxes with one shadow each, dimmed
@@ -1923,8 +1923,12 @@ and opens it. Empty state explains what the app does in two sentences.
   none (an iPhone) and the app is not a Home Screen app, the row says how to add it to the Home Screen.
 
 ### 5.6 Settings and About
-Settings: every `Settings` field grouped (Reading, Pinyin, Lookup, Translation, Speech, Data),
-live preview sentence rendered with the reader's renderer if exported, otherwise simple ruby. Lookup has "Meanings in your language"
+Settings: every `Settings` field grouped (Learning, Reading, Pinyin, Translation, Speech, Sync, Data),
+live preview sentence rendered with the reader's renderer if exported, otherwise simple ruby. Each group shows only the few rows most
+readers change (your language, reading in, daily goal; theme, text size, characters; show pinyin; translate into); the rest wait folded
+under "More settings" (`more()` in `ui/settings/controls.ts`, a `<details>` that stays open on the device once opened,
+`dushu.settings.more.<group>`). `#/settings?open=<group>` opens a group's fold and scrolls to it (the word card's Settings link opens
+Translation's). Translation's fold holds the translators, Local only, Claude, and how words are looked up: "Meanings in your language"
 (Automatic, Always, When I ask, Never: `translateMeanings`, §4.7), shown only when the reader's language is not the dictionary's.
 Translation: provider select with live availability status per provider, a Claude model select (Sonnet 5.5, Haiku 5.5), a "Local only"
 switch, a live status block (Mac reachable, key configured on the Mac, usage today and the limits) with "Check again" and "Test Claude";
@@ -1992,7 +1996,7 @@ to the account tells it the time zone and the app's language (`about`), so remin
   Tone colors tint the pinyin (`rt.tone-N` is 74% tone color, 26% text color: at least 4.5:1 in all three themes, checked by a test).
   The active word, a selected phrase and the word being read aloud are one band that includes the pinyin row (`::after`), punctuation in
   a phrase included. Characters whose pinyin is
-  hidden (known words in Unknown mode) keep the same cell so the column stays even. With pinyin off,
+  hidden (known words in New words mode) keep the same cell so the column stays even. With pinyin off,
   normal CJK spacing. Selection/offset mapping must not change.
 - Progress in Pages is `{block, offset}` (§4.6). Neighbor chapters are laid out ahead of time. Page numbers restart in each chapter and the
   footer counts pages within the chapter (no book-wide page number). Tap zones: the outer strips turn (touch: only on the blank margin, never over text), a tap in the middle

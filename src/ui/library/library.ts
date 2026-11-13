@@ -590,14 +590,6 @@ export const mount: MountFn = (root, _params, ctx) => {
       if (meta) ctx.navigate(readHref(meta.id));
       else paint(false);
     });
-    const link = (label: string, run: () => void) => h('button.lib-start-link', { type: 'button', onclick: run }, label);
-    // One sentence with the links in it, so each language puts them where its word order wants them.
-    const links = {
-      find: link(tt('find a free book in {lang}', { lang: readingName() }), () => void openFind()),
-      paste: link(tt('paste some text'), () => void openPaste()),
-      import: link(tt('import a file'), () => fileInput.click()),
-    };
-    const others = withParts(canFindBooks() ? tt('Or {find}, {paste} or {import}.') : tt('Or {paste} or {import}.'), links);
     const el = h('section.lib-start.card', { 'aria-label': tt('Your first book') },
       h('div.lib-start-cover', null, sampleCoverEl(s)),
       h('div.lib-start-body', null,
@@ -606,8 +598,8 @@ export const mount: MountFn = (root, _params, ctx) => {
         s.author ? h('div.lib-start-author', { lang: bookLang() }, sampleShown(s, 'author')) : null,
         s.blurb ? h('p.lib-start-blurb', null, tt(s.blurb)) : null,
         h('p.lib-start-how', null, how),
-        h('div.lib-start-actions', null, start),
-        h('p.lib-start-other', null, others, ` ${tt('EPUB, Kindle without DRM, text and PDF files all work.')}`)));
+        // Only the one way in: Find a book, Paste text and Import book are the page's own buttons, just above.
+        h('div.lib-start-actions', null, start)));
     return { el, paint };
   }
 
@@ -748,7 +740,7 @@ export const mount: MountFn = (root, _params, ctx) => {
         h('div.lib-actions', null,
           cloudBase()
             ? h('button.btn.btn-sm', { type: 'button', onclick: () => openSignIn() }, tt('Sign in'))
-            : h('a.btn.btn-sm', { href: '#/settings' }, tt('Open Settings')),
+            : h('a.btn.btn-sm', { href: '#/settings?open=sync' }, tt('Open Settings')),
           h('button.btn.btn-sm', { type: 'button', onclick: () => forget('dushu.public-note.v1', String(own)) }, tt('Dismiss'))));
       return;
     }

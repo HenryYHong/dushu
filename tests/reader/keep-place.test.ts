@@ -142,13 +142,12 @@ describe('keeping the place in Scroll', () => {
     await open(ctx, meta.id);
     const card = () => document.querySelector<HTMLElement>('.rd-guide-card');
     const press = (label: string) => [...card()!.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === label && !b.hidden)!.click();
-    expect(card()!.textContent).toContain('Step 1 of');
-    press('Next');
+    expect(card()!.textContent).toContain('Step 1 of 4');
     press('Next');
     expect(card()!.textContent).toContain('拼');
     expect(card()!.textContent).toContain('HSK');
     press('Back');
-    expect(card()!.textContent).toContain('Save words');
+    expect(card()!.textContent).toContain('Look up a word');
     press('Skip');
     expect(document.querySelector('.rd-guide')).toBeNull();
     await new Promise((r) => setTimeout(r, 0));

@@ -356,7 +356,8 @@ export function createTranslationPanel(o: TranslationPanelOptions): TranslationP
     resultText = '';
     el.classList.add('pp-tr-quiet');
     clear(body);
-    const settings = h('a.pp-tr-link', { href: '#/settings' }, tt('Settings'));
+    // Straight to the translators, which wait folded under Translation's "More settings".
+    const settings = h('a.pp-tr-link', { href: '#/settings?open=translation' }, tt('Settings'));
     const noTranslator = typeof (globalThis as { Translator?: unknown }).Translator === 'undefined';
     if (automatic && cloudBase() && !cloudSession() && !ctx.settings.get().localOnly) {
       // Accounts are by invite: sign-in is offered to someone who has one, never pitched to every visitor as open.

@@ -56,23 +56,15 @@ export function maybeSiteGuide(ctx?: Pick<AppContext, 'dict' | 'dictSync'>): () 
 
 function start(): () => void {
   const there = (sel: string) => { const el = document.querySelector<HTMLElement>(sel); return !!el && !el.hidden && el.getBoundingClientRect().width > 0; };
+  // Three steps at most: where books come from, where words go, and signing in. The buttons and tabs say the rest themselves.
   const steps: GuideStep[] = [
     // The first book's Start reading, the book to continue, or else the page's title: the first of them there is.
     { target: () => document.querySelector('.lib-start-go') ?? document.querySelector('.lib-continue') ?? document.querySelector('.page-head .page-title'),
       title: tt('Hi, I’m Pengu!'),
-      body: [tt('I’ll show you around. Your books live here: start with a free classic, or add your own.')] },
+      body: [tt('Your books live here. Start with a free classic, or add your own: find a book, paste some text or import a file.')] },
+    { target: nav('review'), title: tt('Your words'), body: [tt('Words you save are listed in Vocabulary, and Review brings them back as flashcards, a few minutes a day.')] },
   ];
-  if (there('.page-head .lib-find-btn')) steps.push({ target: q('.page-head .lib-find-btn'), title: tt('Find a book'), body: [tt('Search thousands of free books from Project Gutenberg and Wikisource.')] });
-  if (there('.page-head .lib-paste-btn')) steps.push({ target: q('.page-head .lib-paste-btn'), title: tt('Paste text'), body: [tt('Paste any text, like an article or a chapter, and read it like a book.')] });
-  if (there('.page-head .lib-import-btn')) steps.push({ target: q('.page-head .lib-import-btn'), title: tt('Import book'), body: [tt('Add your own EPUB, Kindle (without DRM), text or PDF files.')] });
-  steps.push(
-    { target: nav('vocab'), title: tt('Vocabulary'), body: [tt('The words you save, all in one list.')] },
-    { target: nav('review'), title: tt('Review'), body: [tt('Go over your saved words with flashcards, a few minutes a day.')] },
-    { target: nav('settings'), title: tt('Settings'), body: [tt('Your language, your daily goal, translators and sync.')] },
-  );
-  if (there('.app-lang')) steps.push({ target: q('.app-lang'), title: tt('Languages'), body: [tt('Switch to another language’s library.')] });
   if (there('.app-signin:not(.app-signin-on)')) steps.push({ target: q('.app-signin'), title: tt('Sign in'), body: [tt('Sign in to keep your books and words on all your devices.')] });
-  steps.push({ title: tt('Open a book'), body: [tt('Open any book to start reading. The reader shows you around the first time.')] });
   const guide = showGuide(document.body, steps);
   void guide.done.then((seen) => { if (seen) markSiteGuide('done'); });
   return guide.stop;

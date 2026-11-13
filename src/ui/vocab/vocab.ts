@@ -309,13 +309,13 @@ export const mount: MountFn = (root, _params, ctx) => {
     const aid = aidWord();
     if (isChinese()) {
       return panel
-        ? tt('Words you know. They get no {aid} in the Unknown and HSK pinyin modes.', { aid })
-        : tt('Known words get no {aid} in the Unknown and HSK pinyin modes.', { aid });
+        ? tt('Words you know. They get no {aid} in the New words and HSK pinyin modes.', { aid })
+        : tt('Known words get no {aid} in the New words and HSK pinyin modes.', { aid });
     }
     const scheme = levelScheme();
     return panel
-      ? tt('Words you know. They get no {aid} in the Unknown and {scheme} modes.', { aid, scheme })
-      : tt('Known words get no {aid} in the Unknown and {scheme} modes.', { aid, scheme });
+      ? tt('Words you know. They get no {aid} in the New words and {scheme} modes.', { aid, scheme })
+      : tt('Known words get no {aid} in the New words and {scheme} modes.', { aid, scheme });
   };
   // Another language marks its own levels (JLPT N5 up, or A1 up); Chinese keeps HSK 1 to 9.
   const levelName = (n: number) => !isChinese() ? (n === 1 ? levelLabel(1) : tt('{from} to {to}', { from: levelLabel(1), to: levelLabel(n) }))

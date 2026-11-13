@@ -3,7 +3,7 @@ import '../../styles/settings.css';
 import type { MountFn, Settings } from '../../types';
 import { readingFontSizeKey } from '../../store/settings';
 import { h } from '../dom';
-import { group, row, segmented, slider, toggle, type Control } from './controls';
+import { group, more, row, segmented, slider, toggle, type Control } from './controls';
 import { dataGroup } from './data';
 import { renderPreview } from './preview';
 import { speechGroup } from './speech';
@@ -53,7 +53,7 @@ export const mount: MountFn = (root, params, ctx) => {
 
   // ---- pinyin ----
   const pinyin = add(segmented('pinyin', tt('Show {aid}', { aid: aidWord() }), [
-    { value: 'off', label: tt('Off') }, { value: 'all', label: tt('All') }, { value: 'unknown', label: tt('Unknown') }, { value: 'hsk', label: levelScheme() },
+    { value: 'off', label: tt('Off') }, { value: 'all', label: tt('All') }, { value: 'unknown', label: tt('New words') }, { value: 'hsk', label: levelScheme() },
   ], set('pinyin')));
   const hsk = add(slider('hskThreshold', tt('Known up to'), zh
     ? { min: 1, max: 7, step: 1, format: (n) => (n === 7 ? 'HSK 7-9' : `HSK ${n}`) }
@@ -81,28 +81,35 @@ export const mount: MountFn = (root, params, ctx) => {
     : `${tt('{aid} are hidden on words up to this level.', { aid: aidName() })} ${tt(L.levels.about)}`, hsk);
   const spreadRow = row(tt('Pages shown'), tt('Auto shows two pages on a wide screen held sideways.'), spread);
   const turnRow = row(tt('Page turn'), null, pageTurn);
+  // Each group shows the few rows most readers change; the rest wait under "More settings" (controls.ts more()). A link here
+  // (?open=translation, from a word card) opens that group's fold and scrolls to it.
+  const opened = (id: string) => params.open === id;
   const reading = group(tt('Reading'), null,
     row(tt('Theme'), tt('Auto follows your device.'), theme),
-    row(tt('Layout'), tt('Scroll puts each chapter in one long column.'), layout),
-    spreadRow,
-    turnRow,
-    row(tt('Font'), null, fontFamily),
     row(tt('Text size'), tt('Pages and Scroll each keep their own.'), fontSize),
-    row(tt('Line spacing'), null, lineHeight),
-    row(tt('Page width'), null, pageWidth),
-    zh ? row(tt('Characters'), tt('Show books in simplified (简体) or traditional (繁體) characters.'), script) : null);
-  const aidHelp = zh ? tt('Unknown skips words you have marked as known. HSK also skips words up to your level.')
-    : L.aid === 'furigana' ? tt('Readings in kana over words with kanji. Unknown skips words you have marked as known; JLPT also skips words up to your level.')
-    : tt('A short {language} meaning over each word. Unknown skips words you have marked as known; {scheme} also skips words up to your level.',
+    zh ? row(tt('Characters'), tt('Show books in simplified (简体) or traditional (繁體) characters.'), script) : null,
+    more('reading', [
+      row(tt('Layout'), tt('Scroll puts each chapter in one long column.'), layout),
+      spreadRow,
+      turnRow,
+      row(tt('Font'), null, fontFamily),
+      row(tt('Line spacing'), null, lineHeight),
+      row(tt('Page width'), null, pageWidth),
+    ], opened('reading')));
+  const aidHelp = zh ? tt('New words skips words you have marked as known. HSK also skips words up to your level.')
+    : L.aid === 'furigana' ? tt('Readings in kana over words with kanji. New words skips words you have marked as known; JLPT also skips words up to your level.')
+    : tt('A short {language} meaning over each word. New words skips words you have marked as known; {scheme} also skips words up to your level.',
       { language: glossLanguage(), scheme: levelScheme() });
   const pinyinGroup = group(aidName(), null,
     row(tt('Show {aid}', { aid: aidWord() }), aidHelp, pinyin),
     hskRow,
-    zh ? row(tt('Style'), null, style) : null,
-    zh ? row(tt('Tone colors'), tt('Red, green, blue, purple and gray for tones 1 to 5.'), tones) : null,
-    zh ? row(tt('Tone changes for yī and bù'), tt('一个 as yí gè, 不是 as bú shì.'), sandhi) : null,
-    L.stress ? row(tt('Stress marks'), tt('A mark over the stressed vowel of each word, as in a learner’s dictionary.'), stress) : null,
-    row(tt('Learn known words as I read'), autoKnownHelp(), autoKnown));
+    more('pinyin', [
+      zh ? row(tt('Style'), null, style) : null,
+      zh ? row(tt('Tone colors'), tt('Red, green, blue, purple and gray for tones 1 to 5.'), tones) : null,
+      zh ? row(tt('Tone changes for yī and bù'), tt('一个 as yí gè, 不是 as bú shì.'), sandhi) : null,
+      L.stress ? row(tt('Stress marks'), tt('A mark over the stressed vowel of each word, as in a learner’s dictionary.'), stress) : null,
+      row(tt('Learn known words as I read'), autoKnownHelp(), autoKnown),
+    ], opened('pinyin')));
   // The language being read. Each one keeps its own books, words and settings; switching opens its library. Then what the
   // reader is learning and the daily goal (core/plan.ts).
   const learning = learningControls(ctx);
@@ -112,22 +119,26 @@ export const mount: MountFn = (root, params, ctx) => {
     row(tt('Your language'), tt('The app is shown in it, and sentences are translated into it.'), learning.own, 'set-ui-lang'),
     row(tt('Reading in'), tt('Each language keeps its own library, words and settings, and syncs them on its own.'),
       { el: langSelect('select'), update: () => {} }),
-    row(tt('Languages you are learning'), tt('These come first when you switch languages.'), learning.langs),
     row(tt('Daily goal'), tt('Minutes of reading or review a day, in any language. Each day you reach it adds to your streak.'), learning.goal),
-    row(tt('Flashcard buttons'), tt('Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.'), reviewButtons),
-    row(tt('Welcome screen'), tt('Choose your languages, translation language and goal again, step by step.'), learning.welcome),
-    row(tt('Walkthrough'), tt('A tour of the library, then of the reader the next time you open a book.'), learning.walkthrough));
+    more('learning', [
+      row(tt('Languages you are learning'), tt('These come first when you switch languages.'), learning.langs),
+      row(tt('Flashcard buttons'), tt('Simple asks if you remembered: Forgot or Got it. Detailed has Anki’s four, Again, Hard, Good and Easy, each with when the card comes back. This device’s choice.'), reviewButtons),
+      row(tt('Welcome screen'), tt('Choose your languages, translation language and goal again, step by step.'), learning.welcome),
+      row(tt('Walkthrough'), tt('A tour of the library, then of the reader the next time you open a book.'), learning.walkthrough),
+    ], opened('learning')));
   // The word cards' meanings in the reader's language (translate/meanings.ts). Shown only when that is not the dictionary's.
   const meaningsRow = row(tt('Meanings in your language'), tt('Word cards translate the dictionary’s {original} into your language and keep the {original} under each meaning. Automatic uses Chrome’s free on-device translator, and an online one (Qwen through your account, Claude or MyMemory) only when you press the button on the card. Always uses any of them without asking.', { original: glossLanguage() }), meanings);
-  const lookup = group(tt('Lookup'), null,
+  // How a word is looked up sits with the translators, under Translation's fold: few readers change either.
+  const lookupRows = [
     row(tt('Look up a word by'), null, trigger),
     meaningsRow,
-    row(tt('Translate paragraphs'), tt('With a mouse, adds a translate button beside each paragraph in Scroll.'), paragraph));
+    row(tt('Translate paragraphs'), tt('With a mouse, adds a translate button beside each paragraph in Scroll.'), paragraph),
+  ];
 
-  const translation = translationGroup(ctx);
+  const translation = translationGroup(ctx, lookupRows, opened('translation'));
   const speech = speechGroup(ctx);
   const data = dataGroup(ctx);
-  const ipad = ipadGroup(params);
+  const ipad = ipadGroup(params, opened('sync'));
 
   // ---- preview ----
   const sample = h(zh ? 'div.set-sample.zh' : 'div.set-sample', { lang: L.tag, 'aria-label': tt('Preview sentence') });
@@ -152,7 +163,6 @@ export const mount: MountFn = (root, params, ctx) => {
     { id: 'set-language', label: tt('Learning'), el: language },
     { id: 'set-reading', label: tt('Reading'), el: reading },
     { id: 'set-pinyin', label: aidName(), el: pinyinGroup },
-    { id: 'set-lookup', label: tt('Lookup'), el: lookup },
     { id: 'set-translation', label: tt('Translation'), el: translation.el },
     { id: 'set-speech', label: tt('Speech'), el: speech.el },
     // Named by the group's own heading: "Sync" for a visitor, "Your Mac and iPad" for the owner.
@@ -206,6 +216,9 @@ export const mount: MountFn = (root, params, ctx) => {
 
   const off = settings.subscribe((s) => sync(s));
   sync(settings.get());
+  const targets: Record<string, HTMLElement> = { learning: language, reading, pinyin: pinyinGroup, translation: translation.el, sync: ipad.el };
+  const target = params.open ? targets[params.open] : undefined;
+  if (target) requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
   let alive = true;
   void ctx.dict().then(() => { if (alive) drawPreview(); }, () => {});
 

@@ -412,7 +412,7 @@ describe('settings screen', () => {
     // The section list marks where you are from the start, before any scrolling.
     expect([...root.querySelectorAll('.set-nav-link')].map((b) => b.getAttribute('aria-current'))[0]).toBe('true');
     expect(root.querySelectorAll('.set-nav-link[aria-current="true"]')).toHaveLength(1);
-    for (const t of ['Reading', 'Pinyin', 'Lookup', 'Translation', 'Speech', 'Data']) {
+    for (const t of ['Reading', 'Pinyin', 'Translation', 'Speech', 'Data']) {
       expect([...root.querySelectorAll('.section-title')].some((e) => e.textContent === t)).toBe(true);
     }
     const rts = () => [...root.querySelectorAll('.set-sample rt')].map((e) => e.textContent).filter(Boolean);

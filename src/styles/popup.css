@@ -92,6 +92,8 @@
 .pp-section::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
 .pp-tr-head .pp-section::after, .pp-book-head .pp-section::after, .pp-stroke .pp-section::after { display: none; }
 .pp-note { margin: 0; padding: 8px 10px; border-radius: var(--radius-s); background: var(--wash); color: var(--text-2); font-size: 13px; }
+/* A footnote to the meanings above it (all of them, not only this sentence's), not a warning: small and plain. */
+.pp-note.pp-note-quiet { padding: 0; background: none; color: var(--text-3); font-size: 12.5px; }
 
 /* readings and definitions: set like a printed dictionary, a book serif (it has every pinyin letter) and old-style numbers */
 .pp-reading { padding-top: 12px; border-top: 1px solid var(--hairline); }

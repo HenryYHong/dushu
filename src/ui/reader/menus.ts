@@ -233,7 +233,7 @@ export function slider(min: number, max: number, step: number, get: () => number
 export const PINYIN_MODES: { value: PinyinMode; label: string; hint: string }[] = [
   { value: 'off', label: ttm('Off'), hint: ttm('No pinyin') },
   { value: 'all', label: ttm('All'), hint: ttm('Pinyin over every word') },
-  { value: 'unknown', label: ttm('Unknown'), hint: ttm('Hide words you marked as known') },
+  { value: 'unknown', label: ttm('New words'), hint: ttm('Hide words you marked as known') },
   { value: 'hsk', label: 'HSK', hint: ttm('Hide words at or below an HSK level') },
 ];
 
@@ -244,7 +244,7 @@ export function aidModes(): { value: PinyinMode; label: string; hint: string }[]
   return [
     { value: 'off', label: tt('Off'), hint: furigana ? tt('No furigana') : tt('No hints') },
     { value: 'all', label: tt('All'), hint: furigana ? tt('Readings over every word with kanji') : tt('A short meaning over every word') },
-    { value: 'unknown', label: tt('Unknown'), hint: tt('Hide words you marked as known') },
+    { value: 'unknown', label: tt('New words'), hint: tt('Hide words you marked as known') },
     { value: 'hsk', label: levelScheme(), hint: levelScheme() === 'JLPT' ? tt('Hide words at or below a JLPT level') : tt('Hide words at or below a level') },
   ];
 }
@@ -296,7 +296,7 @@ export function buildPinyinMenu(ctx: AppContext, coverage?: () => { words: numbe
   const sandhi = add(toggle(() => get().sandhi, (v) => set({ sandhi: v })));
   const learn = add(toggle(() => get().autoKnown, (v) => set({ autoKnown: v })));
   learn.el.title = autoKnownHelp();
-  // Learning from reading changes what Unknown hides, so it sits under the modes while Unknown is the one chosen.
+  // Learning from reading changes what New words hides, so it sits under the modes while New words is the one chosen.
   const aid = lang().aid;
   const learnHint = aid === 'pinyin' ? tt('Words you read past often lose their pinyin')
     : aid === 'furigana' ? tt('Words you read past often lose their furigana') : tt('Words you read past often lose their hints');

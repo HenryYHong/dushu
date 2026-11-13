@@ -273,7 +273,7 @@ export function mountLangWordView(
       const many = lu.entries.length > 1;
       lu.entries.slice(0, 6).forEach((e) => body.appendChild(entryBlock(e, v, many, m, lu.sound)));
       if (m.el) body.appendChild(m.el);
-      if (many && (o.context?.sentence || v.token)) body.appendChild(h('p.pp-note', null, tt('Every word this can be. The first fits best where it is used here.')));
+      if (many && (o.context?.sentence || v.token)) body.appendChild(h('p.pp-note.pp-note-quiet', null, tt('Every word this can be. The first fits best where it is used here.')));
     } else {
       const missing = h('p.pp-note', null, lu.name || v.token?.name
         ? tt('A name. The dictionary has no entry for it.')

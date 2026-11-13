@@ -372,7 +372,7 @@ describe('settings rows that only apply to one layout', () => {
   it('lists its sections in a navigation and gives each a place to jump to', async () => {
     const { root } = await screen();
     const links = [...root.querySelectorAll<HTMLElement>('.set-nav-link')];
-    expect(links.map((l) => l.textContent)).toEqual(['Learning', 'Reading', 'Pinyin', 'Lookup', 'Translation', 'Speech', 'Your Mac and iPad', 'Data']);
+    expect(links.map((l) => l.textContent)).toEqual(['Learning', 'Reading', 'Pinyin', 'Translation', 'Speech', 'Your Mac and iPad', 'Data']);
     for (const l of links) expect(root.querySelector(`#${l.dataset.target}`)).not.toBeNull();
   });
 

@@ -128,7 +128,8 @@ describe('word popup', () => {
     openWordPopup({ ctx, word: '豈', anchor: anchorRect() });
     expect(text('.pp-pyline')).toContain('qǐ');
     expect(text('.pp-pyline')).toContain('Simplified');
-    expect(text('.pp-facts')).toContain('U+8C48');
+    // An everyday character (U+8C48) skips the code point: it is only for rare ones, to search with.
+    expect(text('.pp-facts')).not.toContain('U+');
   });
 
   it('says so when a character has no data at all', async () => {
@@ -286,7 +287,7 @@ describe('phrase popup', () => {
     await vi.waitFor(() => expect(text('.pp-tr-body')).toContain('set to word by word')); // makeCtx sets translator: gloss
     expect(q('.pp-tr-text')).toBeNull();
     expect(q('.pp-tr')!.classList.contains('pp-tr-quiet')).toBe(true);
-    expect(q('.pp-tr-body a')!.getAttribute('href')).toBe('#/settings');
+    expect(q('.pp-tr-body a')!.getAttribute('href')).toBe('#/settings?open=translation');
     expect(q('.pp-tr-body')!.getAttribute('aria-live')).toBe('polite');
   });
 

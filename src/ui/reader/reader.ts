@@ -1774,24 +1774,20 @@ export const mount: MountFn = async (root, params, ctx) => {
       const words = [...rd.querySelectorAll(POS_SEL)];
       return words.find((w) => !w.closest('.rd-h') && fits(w)) ?? words.find(fits) ?? null;
     };
+    // Four steps, only what a first read needs. The bar's plain icons (read aloud, chapters, bookmark, back) explain themselves.
     const steps: GuideStep[] = [
       { target: firstWord, title: tt('Look up a word'), pose: 'read', body: [touch
-        ? tt('Tap a word to see what it means. Tap it twice for the whole sentence and its translation.')
-        : tt('Click a word to see what it means. Drag across a sentence to translate it.')] },
-      { title: tt('Save words'), body: [tt('A word’s card has Save word, for words you want to review, and Mark as known, for words you already know.')] },
+        ? tt('Tap a word to see what it means and save it for review. Tap it twice for the whole sentence and its translation.')
+        : tt('Click a word to see what it means and save it for review. Drag across a sentence to translate it.')] },
       { target: () => pinyinBtn, title: aidName(), body: [
         seal, ' ',
         L.aid === 'pinyin' ? tt('Choose where pinyin shows: on every word, on words you don’t know yet, or on words above your HSK level.')
           : L.aid === 'furigana' ? tt('Choose where furigana show: on every word, on words you don’t know yet, or on words above your JLPT level.')
             : tt('Show short {language} hints over words: on every word, on words you don’t know yet, or on words above your level.', { language })] },
       { target: () => aaBtn, title: tt('Text and page'), body: [tt('Change the text size, font and theme, and choose between turning pages and scrolling.')] },
-      ...(speechBtn.hidden ? [] : [{ target: () => speechBtn, title: tt('Read aloud'), body: [tt('Listen to the chapter read aloud.')] }]),
-      { target: () => tocBtn, title: tt('Chapters'), body: [tt('Jump to a chapter or a bookmark, and see the words in this book.')] },
-      { target: () => markBtn, title: tt('Bookmarks'), body: [tt('Bookmark the page you’re on.')] },
       paged
         ? { title: tt('Turn the page'), body: [touch ? tt('Swipe, or tap the left or right edge of the page.') : tt('Use the arrow keys, or click the left or right edge of the page.')] }
         : { title: tt('Keep reading'), body: [tt('Scroll down to keep reading. Your place is saved as you go.')] },
-      { target: () => rd.querySelector('.rd-back'), title: tt('Your library'), body: [tt('Go back to your books. Words you save wait for you in Vocabulary and Review.')] },
     ];
     closePopover();
     const guide = showGuide(rd, steps, { last: tt('Start reading') });

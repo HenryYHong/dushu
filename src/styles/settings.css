@@ -190,6 +190,24 @@
 .set-cloud-row { justify-content: flex-end; }
 .set-cloud-status { text-align: right; }
 /* "Use your own Mac" in the Sync group of someone who is not the owner (settings/ipad.ts): the Mac rows, folded. */
+/* "More settings": the rows few readers change, folded at the foot of a group (controls.ts more()). A quiet line, not a row. */
+.set-more { border-top: 1px solid var(--hairline); }
+.set-more-title {
+  display: flex; align-items: center; gap: 8px; width: max-content; padding: 13px 0; list-style: none;
+  font-size: 13.5px; font-weight: 560; color: var(--text-2); cursor: pointer; transition: color var(--dur-fast) var(--ease);
+}
+.set-more-title::-webkit-details-marker { display: none; }
+.set-more-title::after {
+  content: ''; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg); transition: transform var(--dur-fast) var(--ease);
+}
+.set-more[open] > .set-more-title::after { transform: translateY(1px) rotate(-135deg); }
+.set-more-title:hover { color: var(--text); }
+.set-more-title:focus-visible { outline-offset: 2px; }
+.set-more-hide, .set-more[open] .set-more-show { display: none; }
+.set-more[open] .set-more-hide { display: inline; }
+.set-more-intro { margin: 2px 0 10px; font-size: 13px; line-height: 1.5; color: var(--text-2); max-width: 64ch; }
+@media (prefers-reduced-motion: reduce) { .set-more-title::after { transition: none; } }
 .set-own-mac { border-top: 1px solid var(--hairline); }
 .set-own-mac-title { padding: 14px 0; font-size: 14px; font-weight: 560; cursor: pointer; }
 .set-own-mac-title:focus-visible { outline-offset: 2px; }

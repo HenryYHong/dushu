@@ -533,8 +533,9 @@ body[data-route='read']:has(.rd-audio-on:not(.rd-paged)) { --rd-coach-b: calc(ma
   .rd-pinyin-btn .rd-pill-label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.01em; }
   .rd-aa-btn { width: 38px; min-width: 0; padding: 0; justify-content: center; }
 }
-/* The narrowest phones: the seal alone says on or off; beside it only what it cannot say, the HSK level or Unknown's dot. */
-@media (max-width: 360px) {
+/* Phones: the seal alone says on or off; beside it only what it cannot say, the HSK level or New words' dot. The book's title
+   keeps the room. */
+@media (max-width: 430px) {
   .rd-pinyin-btn[data-mode='off'] .rd-pill-label, .rd-pinyin-btn[data-mode='all'] .rd-pill-label, .rd-pinyin-btn[data-mode='unknown'] .rd-pill-label,
   .rd-pinyin-btn .rd-pill-pre { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .rd-pinyin-btn[data-mode='unknown']::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-2); margin-left: -1px; }

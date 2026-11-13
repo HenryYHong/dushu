@@ -1,7 +1,7 @@
 import { h } from '../dom';
 import { connectedMac, isMacOrigin } from '../../core/macBridge';
 import { cloudSession, isAccountOwner } from '../../core/cloud';
-import { group, row } from './controls';
+import { group, more, row } from './controls';
 import { macRows } from './mac';
 import { syncRow } from './sync';
 import { accountRow } from './account';
@@ -15,7 +15,9 @@ import { tt } from '../../i18n';
  * Someone signed in to their own account (a friend, a student) never sees them. Signed out, they wait folded under "Use your
  * own Mac", so the owner can connect a new device before signing in; a link from the Mac's page (?connect) opens them.
  */
-export function ipadGroup(params: Record<string, string>): { el: HTMLElement; dispose(): void } {
+export function ipadGroup(params: Record<string, string>, open = false): { el: HTMLElement; dispose(): void } {
+  // How to install, where books go and the owner's Mac setup wait under "More settings"; a link from the Mac (?connect) opens it.
+  const unfold = open || params.connect !== undefined;
   const account = accountRow();
   // Under the account, while signed in: review reminders by email or notification.
   const reminders = remindersRow();
@@ -26,9 +28,11 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
       account?.el ?? null,
       reminders?.el ?? null,
       sync.el,
-      row(tt('Install'), tt('Added to the Home Screen, LinguPengu opens like an app and works offline.'), h('span', null, tt('In Safari: Share, then Add to Home Screen'))),
-      row(tt('Books'), tt('When you are signed in, books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.'), h('span', null, tt('Import book, in the library'))),
-      own ? h('details.set-own-mac', { open: params.connect !== undefined }, h('summary.set-own-mac-title', null, tt('Use your own Mac')), ...own.rows) : null);
+      more('sync', [
+        row(tt('Install'), tt('Added to the Home Screen, LinguPengu opens like an app and works offline.'), h('span', null, tt('In Safari: Share, then Add to Home Screen'))),
+        row(tt('Books'), tt('When you are signed in, books you add are kept in your account, up to 200 MB in all your languages, and show up on every device you sign in on. Deleting one deletes it everywhere.'), h('span', null, tt('Import book, in the library'))),
+        own ? h('details.set-own-mac', { open: params.connect !== undefined }, h('summary.set-own-mac-title', null, tt('Use your own Mac')), ...own.rows) : null,
+      ], unfold));
     return { el, dispose() { sync.dispose(); account?.dispose(); reminders?.dispose(); own?.dispose(); } };
   }
   const mac = macRows(params);
@@ -54,9 +58,15 @@ export function ipadGroup(params: Record<string, string>): { el: HTMLElement; di
     reminders?.el ?? null,
     invites?.el ?? null,
     sync.el,
-    ...mac.rows,
-    row(tt('Connect'), tt('Turn on Tailscale on your iPad with the same account as this Mac, then open the private link in Safari.'), h('div', null, link, status)),
-    row(tt('Install'), tt('Open LinguPengu from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.'), h('span', null, tt('In Safari: Share, then Add to Home Screen'))),
-    row(tt('Books'), tt('Books on your Mac reach every device by themselves. For other books, use Import book.'), h('span', null, tt('Your Mac keeps a daily copy of your synced words for two weeks.'))));
+    // With an account the Mac is extra (its voices and local AI), so its setup folds away; without one it is how devices sync.
+    ...(() => {
+      const setup = [
+        ...mac.rows,
+        row(tt('Connect'), tt('Turn on Tailscale on your iPad with the same account as this Mac, then open the private link in Safari.'), h('div', null, link, status)),
+        row(tt('Install'), tt('Open LinguPengu from that icon. Books and lookups work offline. The Mac’s AI and voices need the connection.'), h('span', null, tt('In Safari: Share, then Add to Home Screen'))),
+        row(tt('Books'), tt('Books on your Mac reach every device by themselves. For other books, use Import book.'), h('span', null, tt('Your Mac keeps a daily copy of your synced words for two weeks.'))),
+      ];
+      return account ? [more('sync', setup, unfold)] : setup;
+    })());
   return { el, dispose() { mac.dispose(); sync.dispose(); account?.dispose(); reminders?.dispose(); invites?.dispose(); } };
 }

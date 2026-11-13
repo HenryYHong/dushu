@@ -52,9 +52,9 @@ function readPages(words: string[], pages: number, from = 0): number {
 const rowOf = async (w: string) => (await store.seen.get([w]))[0];
 
 describe('what the help says', () => {
-  // The pinyin modes are All, Unknown, HSK and Off; known words lose their pinyin in Unknown and HSK (render.ts pinyinVisible).
+  // The pinyin modes are All, New words, HSK and Off; known words lose their pinyin in New words and HSK (render.ts pinyinVisible).
   it('names the pinyin modes that hide a known word\'s pinyin, and no mode that does not exist', () => {
-    expect(AUTO_KNOWN_HELP).toMatch(/in the Unknown and HSK pinyin modes/);
+    expect(AUTO_KNOWN_HELP).toMatch(/in the New words and HSK pinyin modes/);
     // What a screen shows says the same in English.
     expect(autoKnownHelpText()).toBe(AUTO_KNOWN_HELP);
     const vocab = readFileSync(join(__dirname, '..', '..', 'src', 'ui', 'vocab', 'vocab.ts'), 'utf8');
@@ -62,8 +62,8 @@ describe('what the help says', () => {
     // Both lines name the modes through one helper, which says "HSK pinyin modes" for Chinese (and JLPT or Level modes for
     // another language), each line a whole sentence for translation (src/i18n).
     expect(vocab.match(/\bnoAid\((true|false)\)/g)).toHaveLength(2);
-    expect(vocab.match(/in the Unknown and HSK pinyin modes\./g)).toHaveLength(2);
-    expect(vocab.match(/in the Unknown and \{scheme\} modes\./g)).toHaveLength(2);
+    expect(vocab.match(/in the New words and HSK pinyin modes\./g)).toHaveLength(2);
+    expect(vocab.match(/in the New words and \{scheme\} modes\./g)).toHaveLength(2);
   });
 });
 

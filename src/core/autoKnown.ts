@@ -17,10 +17,10 @@ const MAX_TICK_MS = 2000;
 const LOOKUP_GRACE_MS = 2000;
 
 /** What the setting does, in the words Settings and the reader's pinyin menu use. */
-export const AUTO_KNOWN_HELP = `A word you read past on ${AUTO_KNOWN_PAGES} pages over ${AUTO_KNOWN_DAYS} days without looking it up counts as known, and loses its pinyin in the Unknown and HSK pinyin modes. Looking it up takes it back off.`;
+export const AUTO_KNOWN_HELP = `A word you read past on ${AUTO_KNOWN_PAGES} pages over ${AUTO_KNOWN_DAYS} days without looking it up counts as known, and loses its pinyin in the New words and HSK pinyin modes. Looking it up takes it back off.`;
 /** The same in the app's language (src/i18n), for a screen to show: AUTO_KNOWN_HELP word for word in English. */
 export const autoKnownHelpText = (): string =>
-  tt('A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its pinyin in the Unknown and HSK pinyin modes. Looking it up takes it back off.', { pages: num(AUTO_KNOWN_PAGES), days: num(AUTO_KNOWN_DAYS) });
+  tt('A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its pinyin in the New words and HSK pinyin modes. Looking it up takes it back off.', { pages: num(AUTO_KNOWN_PAGES), days: num(AUTO_KNOWN_DAYS) });
 
 /** How long text of this many characters has to stay on screen to count as read. */
 export function readingDwell(chars: number): number {

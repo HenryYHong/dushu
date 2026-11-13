@@ -85,7 +85,7 @@ describe('no translator offline', () => {
     mount({ hasWordList: true });
     await vi.waitFor(() => expect(body().textContent).toContain('Safari and iPadOS have no on-device translator'));
     expect(body().textContent).toContain('No sentence translator is available right now.');
-    expect(body().querySelector('a')!.getAttribute('href')).toBe('#/settings');
+    expect(body().querySelector('a')!.getAttribute('href')).toBe('#/settings?open=translation');
   });
   it('without a word list the gloss is the result, as before', async () => {
     mount();

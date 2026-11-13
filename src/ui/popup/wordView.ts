@@ -235,7 +235,9 @@ export function mountWordView(
     links(tt('Traditional'), info.traditional);
     links(tt('Variants'), info.variants);
     if (info.compatOf) rows.push([tt('Compatibility form of'), glyphLink(info.compatOf)]);
-    rows.push([tt('Code point'), `${codePointLabel(info.char)}, ${info.block}`]);
+    // The code point is for a rare character (outside the everyday block, or one the dictionaries cannot read): something to
+    // search with. An everyday character skips it.
+    if (info.block !== 'CJK Unified Ideographs' || (!info.readings.length && !info.definition)) rows.push([tt('Code point'), `${codePointLabel(info.char)}, ${info.block}`]);
     const dl = h('dl.pp-facts');
     for (const [k, val] of rows) dl.append(h('dt', null, k), h('dd', null, val));
     return dl;
@@ -455,7 +457,7 @@ export function mountWordView(
         body.appendChild(readingBlock(g, trad, flag && i === 0, !repeated, m));
       });
       if (m.el) body.appendChild(m.el);
-      if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note', null, tt('All the dictionary meanings, not just the one used here.')));
+      if (hasContext && !own && ambiguous) body.appendChild(h('p.pp-note.pp-note-quiet', null, tt('All the dictionary meanings, not just the one used here.')));
     } else if (info) {
       const note = sourceNote(info, false);
       if (info.readings.length || info.definition) {

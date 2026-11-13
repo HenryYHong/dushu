@@ -173,7 +173,7 @@ describe('reader screen', () => {
     ctx.settings.set({ pinyin: 'off' });
     expect(state()).toEqual(['off', 'Off', 'Pinyin: Off']);
     ctx.settings.set({ pinyin: 'unknown' });
-    expect(state()).toEqual(['unknown', 'Unknown', 'Pinyin: Unknown']);
+    expect(state()).toEqual(['unknown', 'New words', 'Pinyin: New words']);
     ctx.settings.set({ pinyin: 'hsk', hskThreshold: 3 });
     expect(state()).toEqual(['hsk', 'HSK 3', 'Pinyin: HSK 3']);
     // On the narrowest phones only the level stays beside the seal: "HSK " is its own span the stylesheet can hide.

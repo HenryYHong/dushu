@@ -44,9 +44,9 @@ export const levelScheme = (): string => tt(lang().levels.scheme);
 export function autoKnownHelp(): string {
   const vars = { pages: num(AUTO_KNOWN_PAGES), days: num(AUTO_KNOWN_DAYS) };
   if (isChinese()) {
-    return tt('A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its pinyin in the Unknown and HSK pinyin modes. Looking it up takes it back off.', vars);
+    return tt('A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its pinyin in the New words and HSK pinyin modes. Looking it up takes it back off.', vars);
   }
   return lang().aid === 'furigana'
-    ? tt('A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its furigana in the Unknown and {scheme} modes. Looking it up takes it back off.', { ...vars, scheme: levelScheme() })
-    : tt('A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its hint in the Unknown and {scheme} modes. Looking it up takes it back off.', { ...vars, scheme: levelScheme() });
+    ? tt('A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its furigana in the New words and {scheme} modes. Looking it up takes it back off.', { ...vars, scheme: levelScheme() })
+    : tt('A word you read past on {pages} pages over {days} days without looking it up counts as known, and loses its hint in the New words and {scheme} modes. Looking it up takes it back off.', { ...vars, scheme: levelScheme() });
 }
