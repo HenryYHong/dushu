@@ -1,1 +1,3765 @@
 # Hints over the text set by hand (scripts/lang/native/build.py pick_hint): language, key, hint; an empty hint shows none.
+de	Abbildung	Bild
+de	Abbruch	Ende
+de	Abdankung	Rücktritt
+de	Abfertigung	
+de	Abfuhr	Absage
+de	Ableben	Tod
+de	Abnahme	Rückgang
+de	Absatz	
+de	Abschied	
+de	Abschlag	Rabatt
+de	Ahn	Vorfahr
+de	Akteur	
+de	Alte	
+de	Altgriechisch	
+de	Altpreußisch	
+de	Arbeitsstelle	Job
+de	Asche	
+de	Assertion	Behauptung
+de	Aufforderung	Bitte
+de	Ausbruch	
+de	Ausflucht	Ausrede
+de	Ausspruch	Spruch
+de	Auszahlung	Zahlung
+de	Bahn	
+de	Banalität	
+de	Base	Cousine
+de	Begleiter	
+de	Begräbnis	Beerdigung
+de	Behaarung	Haare
+de	Behinderter	
+de	Bekannte	
+de	Bekannter	
+de	Beobachtung	
+de	Beschluss	Entscheidung
+de	Birne	
+de	Bissen	Stück
+de	Body	
+de	Bogen	
+de	Brevier	Gebetbuch
+de	Brummi	Lastwagen
+de	Bunker	
+de	Busch	
+de	Bönhase	Pfuscher
+de	Causa	Fall
+de	Chapeau	Respekt
+de	Chemiewaffe	
+de	Christtag	Weihnachten
+de	Deckel	
+de	Delikt	Straftat
+de	Dezimeter	
+de	Dirndl	Kleid
+de	Diskriminierung	Benachteiligung
+de	Distrikt	Bezirk
+de	Drecksack	Mistkerl
+de	Driss	Mist
+de	Ebbe	
+de	Eifer	
+de	Einhalt	Halt
+de	Einkunft	Einkommen
+de	Einstand	Beginn
+de	Emergenz	Entstehung
+de	Erbwort	
+de	Erwerb	Kauf
+de	Erzeuger	Hersteller
+de	Erzeugerin	Herstellerin
+de	Esszimmer	
+de	Fabel	Geschichte
+de	Fahne	
+de	Femininum	
+de	Feste	
+de	Flachs	
+de	Fotze	
+de	Freitag	
+de	Funke	
+de	Fußball	
+de	Förderschule	
+de	Fühlung	Kontakt
+de	Fürsprecher	Unterstützer
+de	Galanterie	Höflichkeit
+de	Garbe	Bündel
+de	Gatte	Ehemann
+de	Gegenwind	
+de	Gegenwort	Gegenteil
+de	Gerade	Linie
+de	Gesichtszug	Gesicht
+de	Gewerk	Handwerk
+de	Gewese	Getue
+de	Gleichgewicht	
+de	Gleichnis	
+de	Gros	Mehrheit
+de	Grube	Loch
+de	Gunst	
+de	Hades	Unterwelt
+de	Handlung	Tat
+de	Heim	Zuhause
+de	Herrentag	Vatertag
+de	Hysterie	Panik
+de	Inneres	
+de	Kamel	
+de	Karneval	
+de	Keeper	Torwart
+de	Kehrseite	Rückseite
+de	Keim	
+de	Keimung	
+de	Kino	
+de	Klaue	Kralle
+de	Klausur	Prüfung
+de	Klärung	
+de	Klümpchen	
+de	Kohle	
+de	Kohlrübe	Rübe
+de	Konsens	Einigkeit
+de	Kotter	Gefängnis
+de	Kotze	
+de	Kragen	
+de	Kratzer	
+de	Kreml	
+de	Kriegsbemalung	
+de	Kuriosität	Besonderheit
+de	Kämmerer	
+de	Kür	
+de	Last	Gewicht
+de	Laune	Stimmung
+de	Laut	Geräusch
+de	Lebenswasser	
+de	Leberkäse	
+de	Lemma	Stichwort
+de	Linse	
+de	Lorchel	
+de	Loser	Verlierer
+de	Lunte	Zündschnur
+de	Lümmel	frecher Kerl
+de	Makulatur	Altpapier
+de	Mangel	
+de	Manie	
+de	Manual	Handbuch
+de	Markstein	Meilenstein
+de	Masse	Menge
+de	Maß	
+de	Menschenkind	Mensch
+de	Mieze	Katze
+de	Mumm	Mut
+de	Möhre	
+de	Mühle	
+de	Nationalität	
+de	Nickligkeit	Gemeinheit
+de	Niederlassung	Filiale
+de	Niederschlag	Regen
+de	Okzitanisch	
+de	Omi	
+de	Organ	
+de	Orontes	
+de	Oxidation	
+de	Palisade	Zaun
+de	Patsche	
+de	Pfiff	
+de	Pfote	
+de	Pfusch	schlechte Arbeit
+de	Politologie	
+de	Projektil	Geschoss
+de	Prügel	Schläge
+de	Pumpe	
+de	Recht	
+de	Reich	
+de	Residenz	Wohnsitz
+de	Rezeption	Empfang
+de	Rodel	Schlitten
+de	Rot	
+de	Rutsch	
+de	Rückenwind	
+de	Rückgrat	
+de	Sack	
+de	Schachfigur	Figur
+de	Scheide	
+de	Schein	
+de	Schema	Muster
+de	Schermaus	Wühlmaus
+de	Schlaf	
+de	Schmalz	Fett
+de	Schnabel	
+de	Schnitte	Scheibe
+de	Scholle	
+de	Schwamm	
+de	Schüssel	
+de	Sitz	Platz
+de	Sommermonat	
+de	Spekulation	Vermutung
+de	Spiritus	Alkohol
+de	Sportart	Sport
+de	Sprit	Benzin
+de	Spritzer	Tropfen
+de	Stabsarzt	Militärarzt
+de	Streich	Scherz
+de	Strizzi	Gauner
+de	Strähne	
+de	Stundenkilometer	
+de	Suite	
+de	Säugling	Baby
+de	Söller	Balkon
+de	Tafel	
+de	Tau	
+de	Taube	
+de	Teilung	
+de	Theater	
+de	Tiger	
+de	Totschlag	Tötung
+de	Tropfen	
+de	Tröpfchen	
+de	Ugaritisch	
+de	Verabredung	Treffen
+de	Verabschiedung	Abschied
+de	Verarbeitung	
+de	Verbesserung	
+de	Verbrauch	
+de	Verdeck	Dach
+de	Verzehr	Essen
+de	Vorlage	Vorbild
+de	Vorwitz	Neugier
+de	Waschlappen	
+de	Wetter	
+de	Wichse	
+de	Wintermonat	
+de	Wirtschaft	
+de	Wurf	
+de	Zahltag	
+de	Zauber	Magie
+de	Zensur	
+de	Zucht	
+de	Zusammenhalt	
+de	Zusammenstoß	Unfall
+de	Zuzug	Zuwanderung
+de	aalen	entspannen
+de	abbauen	
+de	abbiegen	
+de	abbringen	abhalten
+de	abbröckeln	abfallen
+de	abdanken	zurücktreten
+de	abdrehen	
+de	abgefahren	
+de	abgeschieden	einsam
+de	abgeschlossen	
+de	abhandeln	behandeln
+de	abhanden	verloren
+de	abkacken	versagen
+de	abkürzen	
+de	abrechnen	
+de	abschauen	nachmachen
+de	abschnüren	abbinden
+de	abservieren	loswerden
+de	abstatten	machen
+de	abstufen	einteilen
+de	abtauschen	tauschen
+de	abtragen	
+de	abtun	abweisen
+de	abwiegen	wiegen
+de	abwürgen	stoppen
+de	achten	aufpassen
+de	adipös	übergewichtig
+de	ahnen	vermuten
+de	akklamieren	zustimmen
+de	akkommodieren	anpassen
+de	alias	auch genannt
+de	allgemein	
+de	anbrennen	verbrennen
+de	angesichts	wegen
+de	anheben	heben
+de	anlangen	ankommen
+de	anrechnen	
+de	anschließen	
+de	anschließend	danach
+de	anschreiben	schreiben
+de	anspeiben	bekotzen
+de	anstellen	
+de	anstreichen	anmalen
+de	antreten	beginnen
+de	arschig	gemein
+de	aufbehalten	
+de	aufführen	
+de	aufhellen	heller machen
+de	aufkommen	entstehen
+de	auflösen	
+de	aufrichten	
+de	aufschließen	öffnen
+de	aufsperren	öffnen
+de	aufstreben	aufsteigen
+de	auftragen	
+de	auftreten	erscheinen
+de	ausatmen	
+de	ausbeuteln	ausschütteln
+de	ausbilden	
+de	ausbrechen	
+de	aushauchen	ausatmen
+de	auskehren	fegen
+de	auskennen	Bescheid wissen
+de	auslassen	weglassen
+de	auspacken	
+de	ausrasten	durchdrehen
+de	ausreizen	ausnutzen
+de	austauschen	tauschen
+de	auswirken	wirken
+de	außerhalb	
+de	beabsichtigt	geplant
+de	bedenken	überlegen
+de	bedrohen	
+de	befallen	packen
+de	befassen	beschäftigen
+de	beflügeln	anspornen
+de	befremdend	seltsam
+de	begatten	paaren
+de	begeben	gehen
+de	begrüßen	grüßen
+de	begünstigen	fördern
+de	behändigen	nehmen
+de	beisetzen	begraben
+de	beitreten	eintreten
+de	bejahen	zustimmen
+de	berechnen	ausrechnen
+de	bescheiden	
+de	beschränken	begrenzen
+de	beuteln	schütteln
+de	beziehen	
+de	bieder	brav
+de	bitterkalt	sehr kalt
+de	blasen	
+de	blicken	schauen
+de	breit	
+de	brüchig	zerbrechlich
+de	bärenstark	sehr stark
+de	dabeihaben	
+de	dannen	weg
+de	darlegen	erklären
+de	darstellen	zeigen
+de	davonmachen	verschwinden
+de	davontragen	bekommen
+de	debil	dumm
+de	dergleichen	so etwas
+de	derzeit	jetzt
+de	dichten	schreiben
+de	diskursiv	
+de	dislozieren	stationieren
+de	distanzieren	
+de	doll	
+de	dressieren	trainieren
+de	dunstig	neblig
+de	durchdringen	
+de	durchlassen	
+de	dünken	scheinen
+de	dürr	dünn
+de	dürsten	
+de	ebenmäßig	gleichmäßig
+de	effektiv	wirksam
+de	ehemals	früher
+de	ehestens	frühestens
+de	eilen	schnell gehen
+de	eingehen	
+de	einholen	erreichen
+de	einkochen	einmachen
+de	einkommen	
+de	einnehmen	nehmen
+de	einrichten	
+de	elementar	grundlegend
+de	empfangen	bekommen
+de	engagieren	einsetzen
+de	entfachen	entzünden
+de	entkeimen	
+de	entkommen	fliehen
+de	entkräften	schwächen
+de	entsetzen	erschrecken
+de	entsprechen	
+de	erbleichen	blass werden
+de	ergießen	strömen
+de	erholen	
+de	erhöhen	
+de	erkenntlich	dankbar
+de	erlassen	
+de	ermuntern	ermutigen
+de	ernten	
+de	erschließen	nutzbar machen
+de	erstrecken	ausdehnen
+de	essbar	
+de	exekutieren	hinrichten
+de	exorbitant	enorm
+de	fechten	kämpfen
+de	festsetzen	festlegen
+de	feuergefährlich	brennbar
+de	feurig	
+de	filzen	durchsuchen
+de	fisseln	nieseln
+de	fladern	stehlen
+de	forschen	untersuchen
+de	fortgehen	weggehen
+de	fortlegen	weglegen
+de	fortpflanzen	vermehren
+de	fortwerfen	wegwerfen
+de	freisetzen	abgeben
+de	freistellen	befreien
+de	fremdgehen	untreu sein
+de	frischen	
+de	förmlich	
+de	gammeln	verderben
+de	garnieren	verzieren
+de	gedenken	erinnern
+de	gediegen	solide
+de	geflissentlich	absichtlich
+de	gellen	
+de	gemein	
+de	genieren	schämen
+de	geradezu	
+de	gerne	
+de	geschafft	
+de	glasklar	klar
+de	gleiten	
+de	glänzend	
+de	grollen	
+de	grundlegend	
+de	gustiös	lecker
+de	gutgehen	
+de	handhaben	
+de	hecheln	keuchen
+de	herausheben	
+de	herauskommen	
+de	herausreißen	
+de	herumlaufen	
+de	hervorbringen	
+de	hinab	hinunter
+de	hinaustragen	
+de	hindern	aufhalten
+de	hindeuten	hinweisen
+de	hinfort	künftig
+de	hinterher	danach
+de	hinwerfen	werfen
+de	hocken	sitzen
+de	hold	
+de	hybrid	gemischt
+de	hänseln	verspotten
+de	immerhin	wenigstens
+de	ineffizient	
+de	inhuman	unmenschlich
+de	innig	herzlich
+de	intendieren	vorhaben
+de	jein	
+de	kategorisch	entschieden
+de	keusch	unschuldig
+de	klagen	jammern
+de	kleinkariert	kleinlich
+de	knapp	
+de	knapsen	sparen
+de	knautschen	zerdrücken
+de	knicken	
+de	knitz	schlau
+de	knülle	betrunken
+de	koksen	Kokain nehmen
+de	kolossal	riesig
+de	kommentieren	
+de	komparieren	
+de	kompromittieren	blamieren
+de	konstruieren	bauen
+de	kontaktieren	erreichen
+de	konzipieren	entwerfen
+de	kreuzen	
+de	labern	reden
+de	lackieren	
+de	listen	aufzählen
+de	losbrechen	ausbrechen
+de	längen	verlängern
+de	maberes	schwanger
+de	meistens	
+de	missen	
+de	missraten	misslungen
+de	mobilisieren	aktivieren
+de	nachahmen	nachmachen
+de	nachgeben	
+de	nachgerade	geradezu
+de	nimmer	nie
+de	nordwärts	nach Norden
+de	ostwärts	nach Osten
+de	paffen	rauchen
+de	panieren	
+de	papieren	
+de	parallel	
+de	pastoral	kirchlich
+de	pathetisch	übertrieben
+de	pauken	lernen
+de	pflanzen	
+de	piefig	spießig
+de	potent	stark
+de	potenziell	möglich
+de	preisen	loben
+de	preußisch	
+de	pulsieren	pochen
+de	pumpen	
+de	putzen	
+de	pünktlich	
+de	qua	durch
+de	quittieren	
+de	randvoll	voll
+de	rasend	
+de	rauslassen	
+de	redlich	ehrlich
+de	reichlich	viel
+de	rekonstruieren	
+de	resignieren	aufgeben
+de	rotieren	drehen
+de	röhren	brüllen
+de	rühren	bewegen
+de	scharren	kratzen
+de	schaurig	gruselig
+de	scheißgut	sehr gut
+de	schiech	hässlich
+de	schielen	
+de	schlechthin	
+de	schliefen	
+de	schmal	
+de	schrotten	zerstören
+de	schupfen	stoßen
+de	schwängern	
+de	schönen	
+de	segeln	
+de	seichen	pinkeln
+de	sekundieren	unterstützen
+de	sengen	brennen
+de	seriös	zuverlässig
+de	sonderlich	besonders
+de	speiben	erbrechen
+de	sperren	schließen
+de	spiegeln	
+de	spitz	
+de	sportlich	
+de	spreiten	ausbreiten
+de	stabilisieren	festigen
+de	steil	
+de	steinig	
+de	stempeln	
+de	steril	keimfrei
+de	stillen	
+de	stranden	
+de	strotzen	voll sein
+de	stupsen	anstoßen
+de	suizidieren	umbringen
+de	syntonisch	ausgeglichen
+de	sägen	
+de	säuberlich	ordentlich
+de	südwärts	nach Süden
+de	tauen	schmelzen
+de	teuflisch	böse
+de	thronen	
+de	torkeln	schwanken
+de	trivial	einfach
+de	trostlos	traurig
+de	umbrechen	
+de	umpolen	umkehren
+de	umspannen	umfassen
+de	unbeabsichtigt	versehentlich
+de	unbekleidet	nackt
+de	ungeachtet	trotz
+de	unhygienisch	schmutzig
+de	unnötig	
+de	unsportlich	
+de	unterminieren	schwächen
+de	unterziehen	
+de	unverschämt	frech
+de	unwichtig	
+de	unwiederbringlich	für immer
+de	urinieren	pinkeln
+de	verarbeiten	
+de	verbindlich	
+de	verdanken	
+de	verdientermaßen	zu Recht
+de	vergehen	vorbeigehen
+de	verheerend	schlimm
+de	verknoten	binden
+de	verladen	laden
+de	verlaufen	
+de	verputzen	
+de	verreißen	kritisieren
+de	verschießen	
+de	verschwiegen	
+de	versüßen	
+de	verzapfen	erzählen
+de	verzehrbar	essbar
+de	vielmals	sehr
+de	volatil	schwankend
+de	vollführen	ausführen
+de	vorgehen	
+de	vorlegen	zeigen
+de	vorsagen	
+de	völkisch	nationalistisch
+de	wegbrechen	abbrechen
+de	wegmachen	entfernen
+de	weiterhin	weiter
+de	westwärts	nach Westen
+de	wichsen	
+de	wiederherstellen	
+de	wienern	polieren
+de	wälzen	rollen
+de	zahnlos	
+de	zart	
+de	zerfallen	
+de	zerlegen	auseinandernehmen
+de	zersplittern	zerbrechen
+de	zufriedenstellen	
+de	zuhauf	massenhaft
+de	zuliefern	liefern
+de	zupacken	zugreifen
+de	zurren	festbinden
+de	zusammensetzen	
+de	zusammenziehen	
+de	zwirnen	drehen
+de	zäumen	
+de	Äußerung	Aussage
+de	Übertragung	
+de	à	je
+de	überfahren	
+de	übergriffig	aufdringlich
+de	überholen	
+de	überkommen	packen
+de	überschreiten	überqueren
+de	übersteigen	
+en	abracadabra	
+en	absorb	take in
+en	abstract	
+en	accurately	correctly
+en	acquirement	
+en	acrimony	bitterness
+en	addict	
+en	admiring	
+en	advantageously	well
+en	advertisement	
+en	afford	pay for
+en	affray	fight
+en	alarm	
+en	albany	
+en	alternative	
+en	anathema	hateful
+en	animosity	hatred
+en	antagonise	annoy
+en	antagonize	annoy
+en	anteriorly	in front
+en	apart	
+en	apoplexy	stroke
+en	appointment	meeting
+en	aqua	blue-green
+en	arran	
+en	arrange	set up
+en	arrant	complete
+en	arrogate	seize
+en	aurora	northern lights
+en	awful	bad
+en	bankbook	
+en	bare	
+en	barrage	flood
+en	beau	boyfriend
+en	beck	nod
+en	bedhead	messy hair
+en	bedizen	dress up
+en	befuddled	confused
+en	believable	
+en	bespeak	show
+en	bet	
+en	biogenic	biological
+en	biowarfare	germ warfare
+en	bombed	
+en	booky	
+en	bored	
+en	bottled	
+en	bouillabaisse	fish stew
+en	brahms	
+en	breastfeed	
+en	brook	stream
+en	broth	soup
+en	burden	load
+en	buried	
+en	calculate	work out
+en	capriccio	
+en	cavity	hole
+en	cdi	
+en	chairperson	head
+en	chairwoman	head
+en	chancel	
+en	chasten	humble
+en	cheapo	
+en	chem	
+en	childish	
+en	circumvention	avoidance
+en	cirque	
+en	coalesce	join
+en	cocaine	
+en	cocked	
+en	coherent	clear
+en	collected	
+en	collision	crash
+en	commodious	roomy
+en	compact	small
+en	complainant	accuser
+en	condole	sympathize
+en	considerate	kind
+en	construct	build
+en	copulation	mating
+en	coworker	
+en	cracked	broken
+en	crackhead	addict
+en	craw	throat
+en	creditable	decent
+en	crescendo	peak
+en	crowbar	
+en	crux	core
+en	dally	linger
+en	darn	
+en	dearest	
+en	declination	
+en	decommission	shut down
+en	def	
+en	defecate	
+en	deliberation	thought
+en	demure	modest
+en	desist	stop
+en	dimple	
+en	dirk	dagger
+en	disassemble	take apart
+en	dismiss	
+en	dissemble	pretend
+en	disseminate	spread
+en	distinctiveness	
+en	diurnal	daytime
+en	divert	turn
+en	divined	guessed
+en	divulge	reveal
+en	divvy	share
+en	donkey	
+en	donna	
+en	dozy	sleepy
+en	dreamy	
+en	dreck	junk
+en	ducks	
+en	ecumenical	
+en	eerie	strange
+en	eff	
+en	effervescent	bubbly
+en	eloquent	well-spoken
+en	elt	
+en	endure	bear
+en	ennui	boredom
+en	entity	thing
+en	equable	calm
+en	equipping	supplying
+en	err	be wrong
+en	ethical	moral
+en	evince	show
+en	exact	
+en	execute	carry out
+en	expire	end
+en	explaining	
+en	exposition	explanation
+en	extant	surviving
+en	extemporize	improvise
+en	extent	degree
+en	extraneous	unrelated
+en	faded	
+en	faeces	
+en	famously	
+en	fatality	death
+en	favorable	good
+en	favourable	positive
+en	favourite	
+en	feces	waste
+en	fellow	
+en	fermented	
+en	ferocious	fierce
+en	flick	
+en	floppy	
+en	fluted	grooved
+en	formality	routine
+en	forswear	give up
+en	frankenstein	
+en	frighten	scare
+en	frisky	playful
+en	frivolous	silly
+en	furlong	
+en	gap	space
+en	garbage	
+en	gash	cut
+en	gillian	
+en	gist	point
+en	globe	world
+en	good-looking	
+en	graft	
+en	graph	
+en	graveyard	
+en	greatly	much
+en	greenery	plants
+en	gross	
+en	gruel	porridge
+en	gruesome	horrible
+en	gt	
+en	happiness	
+en	hardly	barely
+en	heartstring	feelings
+en	heaven	
+en	helper	
+en	helping	
+en	homework	
+en	honest	
+en	honeypot	
+en	humankind	
+en	hummel	
+en	hunker	crouch
+en	hurray	
+en	hurtle	rush
+en	ignoble	shameful
+en	ill	sick
+en	illuminated	lit
+en	illustrious	famous
+en	immediate	
+en	impaired	weakened
+en	imparting	sharing
+en	impetus	push
+en	impudent	rude
+en	impulse	urge
+en	inchoate	half-formed
+en	incompetent	unskilled
+en	inconceivable	unthinkable
+en	inconspicuous	unnoticed
+en	incur	
+en	individualistic	independent
+en	inexperienced	new
+en	inflation	
+en	inglorious	shameful
+en	inhale	breathe in
+en	insensate	senseless
+en	insurrection	revolt
+en	intercourse	
+en	interject	cut in
+en	intimate	close
+en	invalidity	
+en	invective	insults
+en	jakes	toilet
+en	jam	
+en	jewel	
+en	jockstrap	
+en	judgement	
+en	juke	dodge
+en	kaput	broken
+en	kingship	throne
+en	kinky	
+en	knackered	tired
+en	knowing	
+en	kyle	
+en	landlord	owner
+en	lanes	roads
+en	languid	lazy
+en	leaden	heavy
+en	leather	
+en	legit	real
+en	lenient	soft
+en	licit	legal
+en	lifelong	
+en	liquor	alcohol
+en	litter	trash
+en	locked	
+en	lolly	candy
+en	lone	single
+en	loopy	crazy
+en	loosely	
+en	loot	stolen goods
+en	lubricated	oiled
+en	lynch	hang
+en	maculate	spotted
+en	madam	
+en	maggiore	
+en	malodorous	smelly
+en	man-made	
+en	marge	
+en	marginal	small
+en	marrow	
+en	marvellously	wonderfully
+en	materialism	greed
+en	mates	friends
+en	matrix	
+en	mawkish	mushy
+en	meantime	
+en	meticulous	careful
+en	metro	
+en	midst	middle
+en	misery	
+en	misrepresent	twist
+en	mod	
+en	momentarily	briefly
+en	moneymaker	
+en	mooch	
+en	motorcar	car
+en	motorcoach	bus
+en	motorcycle	
+en	mournful	sad
+en	mozzarella	cheese
+en	muck	dirt
+en	mummy	
+en	munificent	generous
+en	muster	gather
+en	mutable	changeable
+en	nabob	bigwig
+en	nadir	low point
+en	naught	nothing
+en	neat	
+en	neighbouring	nearby
+en	neural	
+en	nitty	
+en	nosebag	
+en	noun	
+en	nubian	
+en	numerate	
+en	nun	
+en	obeah	magic
+en	obligatory	required
+en	obliterated	destroyed
+en	obscure	
+en	obtainable	available
+en	occurrence	event
+en	oiled	
+en	oof	
+en	oot	
+en	operative	working
+en	ordure	dung
+en	os	
+en	ossified	rigid
+en	outlawed	banned
+en	outlook	view
+en	oval	
+en	overmuch	too much
+en	pacific	
+en	parliamentarian	lawmaker
+en	partially	partly
+en	pee	
+en	penurious	poor
+en	percy	
+en	peremptory	commanding
+en	perpetration	committing
+en	persuade	
+en	phenomenal	amazing
+en	pickled	
+en	picky	
+en	pigtail	braid
+en	pile	
+en	pixilated	
+en	placer	
+en	plastered	
+en	platitude	cliché
+en	plus	and
+en	points	
+en	poisonous	
+en	poll	survey
+en	ponderous	heavy
+en	portentous	ominous
+en	postern	back door
+en	potted	
+en	pray	
+en	precipitant	hasty
+en	precipitate	cause
+en	premonition	feeling
+en	preponderance	majority
+en	prima	first
+en	proceeding	
+en	proceeds	
+en	proffer	offer
+en	profuse	plentiful
+en	propriety	decency
+en	prow	front
+en	punish	
+en	purely	only
+en	purley	
+en	purposive	deliberate
+en	quiescent	inactive
+en	raab	
+en	rabid	
+en	racy	spicy
+en	ragtop	convertible
+en	rai	
+en	rasp	scrape
+en	ravage	destroy
+en	reckless	careless
+en	reconvert	
+en	regale	entertain
+en	regimen	routine
+en	relief	
+en	remiss	careless
+en	repel	push away
+en	repose	rest
+en	reprehensible	shameful
+en	reproduce	copy
+en	reptilian	
+en	rescue	save
+en	residential	
+en	retaliate	hit back
+en	retrench	cut back
+en	returns	
+en	revise	change
+en	richter	
+en	ridiculous	silly
+en	rightful	true
+en	rigmarole	hassle
+en	roaring	loud
+en	rouse	wake
+en	sad	
+en	sage	
+en	salient	main
+en	sameness	
+en	sanctimonious	preachy
+en	satisfactory	good enough
+en	saturate	soak
+en	scheme	plan
+en	scrupulous	careful
+en	scurvy	
+en	see-through	
+en	senseless	pointless
+en	sharp	
+en	shattered	broken
+en	sheila	
+en	shelve	put off
+en	shithouse	toilet
+en	sickly	weak
+en	sightless	blind
+en	skipper	captain
+en	slaughtered	killed
+en	slay	kill
+en	sleek	smooth
+en	slop	
+en	smooth	
+en	sneaker	
+en	soaked	wet
+en	sod	
+en	sodden	soaked
+en	solicitation	request
+en	solidify	harden
+en	somewhat	a bit
+en	sonography	ultrasound
+en	soppy	mushy
+en	spaceman	
+en	specialty	
+en	spectator	viewer
+en	spellbind	charm
+en	spiff	tidy
+en	splay	spread
+en	spongy	soft
+en	stalin	
+en	steamed	
+en	steep	
+en	stewed	
+en	stout	
+en	straighten	
+en	strand	thread
+en	stubborn	
+en	subside	die down
+en	subtract	take away
+en	suitable	right
+en	suitor	admirer
+en	superannuation	pension
+en	sycamore	
+en	sympathising	
+en	taut	tight
+en	tearoom	café
+en	telling	
+en	tenancy	
+en	tenuous	weak
+en	terminal	
+en	testament	proof
+en	thaw	melt
+en	things	
+en	threadbare	worn
+en	tidy	neat
+en	tile	
+en	tippy	
+en	tips	
+en	toothless	
+en	toothsome	tasty
+en	totally	completely
+en	tract	area
+en	tranquil	calm
+en	transpire	happen
+en	trashed	wrecked
+en	trashy	cheap
+en	treasure	
+en	truculent	aggressive
+en	trusted	
+en	trying	
+en	typing	
+en	underage	
+en	unemotional	calm
+en	unhappy	sad
+en	uninvolved	
+en	unnamed	
+en	unusual	strange
+en	upbraid	scold
+en	uppity	arrogant
+en	urgency	
+en	useless	
+en	usual	normal
+en	vaguely	
+en	valedictory	farewell
+en	venerable	respected
+en	virgil	
+en	virus	
+en	visualise	imagine
+en	visualize	imagine
+en	vitreous	glassy
+en	vituperation	abuse
+en	vulgar	rude
+en	wages	
+en	weft	thread
+en	whacked	hit
+en	whilst	
+en	whit	bit
+en	whop	hit
+en	wicked	evil
+en	wickedly	
+en	wildly	
+en	withal	besides
+en	woofer	speaker
+en	worldview	beliefs
+en	worried	
+en	wort	herb
+en	wretched	miserable
+en	yearly	
+en	yen	
+en	yiddish	
+en	yob	thug
+en	younger	
+en	yucky	
+es	abarcar	incluir
+es	acabada	terminada
+es	acertar	
+es	acomodar	colocar
+es	acostumbrado	
+es	advenimiento	llegada
+es	afincar	establecer
+es	aforismo	dicho
+es	aforrar	cubrir
+es	aguacate	
+es	aguacil	libélula
+es	aguzar	afinar
+es	ahondar	profundizar
+es	aliñar	
+es	alodio	
+es	amatorio	amoroso
+es	anglicano	
+es	apiolar	matar
+es	aplique	lámpara
+es	arado	
+es	arroyo	
+es	artemisa	
+es	asir	agarrar
+es	asta	
+es	atar	
+es	atarantado	atontado
+es	atascadero	
+es	atusar	alisar
+es	autenticar	verificar
+es	baca	portaequipajes
+es	bagaje	experiencia
+es	barómetro	
+es	batallar	luchar
+es	bejel	
+es	bellaco	pícaro
+es	birlibirloque	magia
+es	boceto	borrador
+es	botana	aperitivo
+es	botar	tirar
+es	braga	
+es	brío	energía
+es	cachái	entiendes
+es	calabaza	
+es	caldear	calentar
+es	calibre	tamaño
+es	calzoncillo	
+es	calzón	
+es	camarógrafo	
+es	capar	castrar
+es	carácter	
+es	casaca	chaqueta
+es	cascada	
+es	casino	
+es	casquete	gorro
+es	cava	
+es	ceder	
+es	cesar	parar
+es	chafa	malo
+es	chagüite	pantano
+es	chamagoso	sucio
+es	chapa	
+es	chaquetear	traicionar
+es	charca	
+es	chaveta	cabeza
+es	chusmear	chismear
+es	cláusula	
+es	cocido	cocinado
+es	coihue	
+es	colegir	deducir
+es	comedia	
+es	complacer	agradar
+es	completar	terminar
+es	complicar	
+es	componedor	
+es	componer	
+es	compraventa	comercio
+es	compás	ritmo
+es	concienzudo	cuidadoso
+es	conjunción	unión
+es	conllevar	implicar
+es	constreñir	obligar
+es	cortesana	
+es	crac	
+es	cupo	
+es	cédula	documento
+es	decisorio	
+es	defraudar	
+es	demanda	
+es	depositar	poner
+es	desbordar	
+es	descomponer	
+es	desempeñar	ejercer
+es	desenfado	soltura
+es	desmontar	desarmar
+es	despilfarrar	malgastar
+es	desquitar	vengar
+es	destapar	abrir
+es	destratar	maltratar
+es	dicasterio	
+es	diestro	hábil
+es	disección	
+es	disolver	deshacer
+es	disparate	tontería
+es	dogma	creencia
+es	dramática	
+es	dropear	dejar
+es	déficit	falta
+es	efectivo	
+es	embelesar	encantar
+es	encordar	
+es	enguacalar	empacar
+es	enhilar	
+es	enjundia	sustancia
+es	entidad	
+es	entorchar	
+es	entredicho	duda
+es	enviado	
+es	escaparate	
+es	esculpir	
+es	espía	
+es	estofar	guisar
+es	estrellón	choque
+es	estrepitoso	ruidoso
+es	estruendo	ruido
+es	estruendoso	ruidoso
+es	etiquetar	marcar
+es	exposición	
+es	fachendoso	presumido
+es	fajo	montón
+es	falopa	droga
+es	felpa	
+es	formalidad	
+es	fortaleza	
+es	fregar	lavar
+es	galenso	galés
+es	galeote	esclavo
+es	gamo	ciervo
+es	gaseosa	refresco
+es	gavia	vela
+es	globo	
+es	grandeza	
+es	guiar	llevar
+es	gustoso	contento
+es	habana	
+es	hervido	
+es	hila	
+es	hincar	clavar
+es	homologar	
+es	hospedar	
+es	hucha	
+es	imprimir	
+es	impás	punto muerto
+es	inanición	hambre
+es	individuo	persona
+es	intacto	entero
+es	intensión	
+es	irresistible	
+es	jorobar	molestar
+es	jícara	taza
+es	ladrar	
+es	lardo	grasa
+es	laurel	
+es	laxo	flojo
+es	lema	
+es	levante	
+es	limar	pulir
+es	linde	límite
+es	linfa	
+es	macana	palo
+es	mancebo	joven
+es	mancebía	burdel
+es	mancomunidad	unión
+es	mango	
+es	margarina	
+es	mate	
+es	mediocampista	
+es	mellizo	gemelo
+es	melón	
+es	mico	mono
+es	microclima	
+es	morralla	basura
+es	morrón	
+es	musa	inspiración
+es	nuboso	nublado
+es	nueva	
+es	obedecer	
+es	objeto	cosa
+es	ojete	
+es	pachorra	calma
+es	pantaleta	calzón
+es	percibir	notar
+es	peripecia	aventura
+es	perol	olla
+es	perseverar	insistir
+es	pico	
+es	pienso	
+es	pijotero	pesado
+es	pisco	
+es	pivote	eje
+es	poblado	
+es	postrar	
+es	primordial	principal
+es	privar	quitar
+es	promocionar	anunciar
+es	propinar	dar
+es	pupilo	alumno
+es	quid	clave
+es	quiz	prueba
+es	ratio	proporción
+es	raíz	
+es	recalcar	destacar
+es	recomponer	arreglar
+es	reencuentro	
+es	refinamiento	elegancia
+es	regidor	concejal
+es	regodearse	disfrutar
+es	reguero	rastro
+es	remendar	arreglar
+es	remozar	renovar
+es	resquemor	rencor
+es	restablecer	recuperar
+es	reventón	
+es	revulsivo	estímulo
+es	rima	
+es	rodaje	filmación
+es	ruin	malo
+es	sabroso	rico
+es	sanear	limpiar
+es	satisfactor	
+es	secundar	apoyar
+es	sede	
+es	seguido	
+es	sello	
+es	semejante	parecido
+es	simetría	
+es	simplificar	
+es	siniestro	
+es	slip	calzoncillos
+es	sobrellevar	aguantar
+es	socavar	debilitar
+es	solicitar	pedir
+es	suave	
+es	suciedad	
+es	suplir	
+es	símil	comparación
+es	tacto	
+es	tarugo	tonto
+es	tecla	
+es	terso	liso
+es	tonina	delfín
+es	torque	
+es	torta	
+es	transicionar	cambiar
+es	tributo	impuesto
+es	triunfalismo	
+es	trono	
+es	tártaro	
+es	uniforme	
+es	vacile	broma
+es	valija	maleta
+es	vieja	
+es	vástago	hijo
+es	yaguareté	jaguar
+es	zurdo	
+fr	abaissement	baisse
+fr	abbé	prêtre
+fr	abricot	
+fr	acerbe	dur
+fr	adage	proverbe
+fr	adouber	
+fr	ajour	ouverture
+fr	allergénique	
+fr	ambassadrice	
+fr	animé	
+fr	apparat	
+fr	appétit	faim
+fr	archet	
+fr	association	groupe
+fr	assoir	
+fr	atlantique	
+fr	attorney	avocat
+fr	auricule	oreille
+fr	avaler	
+fr	axiome	principe
+fr	bannière	drapeau
+fr	beige	
+fr	bourgeon	
+fr	branler	
+fr	briquet	
+fr	brumeux	
+fr	bélier	mouton
+fr	bénin	léger
+fr	camus	
+fr	canard	
+fr	capter	saisir
+fr	carafe	
+fr	carnation	teint
+fr	caste	classe
+fr	cavalier	
+fr	cendrée	
+fr	cercueil	
+fr	chalumeau	
+fr	champenoise	
+fr	charisme	charme
+fr	charrette	
+fr	chaussette	
+fr	chiliade	millier
+fr	châtier	punir
+fr	chère	
+fr	cigarettier	
+fr	circulation	
+fr	claie	
+fr	coi	muet
+fr	colin	
+fr	complexion	nature
+fr	constamment	toujours
+fr	coproduit	
+fr	critérium	course
+fr	crouille	Arabe
+fr	croître	grandir
+fr	créateur	
+fr	céder	
+fr	d'avance	
+fr	dam	dommage
+fr	dealeur	trafiquant
+fr	dealeuse	trafiquante
+fr	destination	
+fr	devis	
+fr	diaphane	transparent
+fr	diarrhée	
+fr	discipliné	obéissant
+fr	disculper	innocenter
+fr	doublon	double
+fr	déambulatoire	galerie
+fr	décent	correct
+fr	déchet	ordure
+fr	démobiliser	
+fr	déparer	gâcher
+fr	désobéir	
+fr	détailler	décrire
+fr	empéguer	coller
+fr	enculer	
+fr	enfoirée	
+fr	entrevue	rencontre
+fr	essence	
+fr	excéder	dépasser
+fr	fard	maquillage
+fr	fauve	
+fr	ficelle	corde
+fr	filtrer	
+fr	fixette	obsession
+fr	fondamentalement	au fond
+fr	fonds	argent
+fr	forge	atelier
+fr	formellement	
+fr	forêt	
+fr	foulard	écharpe
+fr	foyer	maison
+fr	francophone	
+fr	frimer	se vanter
+fr	futé	malin
+fr	galette	gâteau
+fr	garce	
+fr	gifle	claque
+fr	girelle	
+fr	giton	prostitué
+fr	gracieusement	avec grâce
+fr	grade	rang
+fr	gratin	
+fr	grattage	
+fr	hydrophobe	
+fr	hymne	chant
+fr	imparfait	
+fr	imperceptiblement	légèrement
+fr	individu	personne
+fr	innovation	nouveauté
+fr	interdire	
+fr	intérieurement	
+fr	jdid	nouveau
+fr	leader	chef
+fr	librairie	
+fr	mahomet	
+fr	manufacture	usine
+fr	maroquin	cuir
+fr	matériau	matière
+fr	matériellement	physiquement
+fr	mesuré	
+fr	miroir	
+fr	moult	beaucoup
+fr	mytho	menteur
+fr	mèche	
+fr	navrer	désoler
+fr	naïf	
+fr	niquer	
+fr	nombril	
+fr	obnubiler	obséder
+fr	obsèques	enterrement
+fr	onze-cents	mille cent
+fr	parer	orner
+fr	patte	
+fr	pavé	pierre
+fr	paysage	
+fr	piger	comprendre
+fr	plate-bande	
+fr	pleuvoir	
+fr	population	
+fr	portugaise	
+fr	poucave	mouchard
+fr	poutrelle	poutre
+fr	printanier	de printemps
+fr	priver	
+fr	professionnelle	
+fr	profondément	
+fr	préconiser	conseiller
+fr	prédicat	
+fr	préfecture	
+fr	prôner	défendre
+fr	puissamment	fortement
+fr	pépin	
+fr	ramure	branches
+fr	rapprochement	
+fr	redoubler	augmenter
+fr	refléter	montrer
+fr	refréner	retenir
+fr	requin-marteau	requin
+fr	robinet	
+fr	ronde	
+fr	rotation	
+fr	rutilant	brillant
+fr	râper	
+fr	régulièrement	souvent
+fr	résignation	
+fr	réviser	revoir
+fr	sacoche	sac
+fr	sagittaire	
+fr	semblable	pareil
+fr	semence	graine
+fr	semi-automatique	
+fr	serpillière	chiffon
+fr	singulièrement	particulièrement
+fr	sociable	
+fr	soi-même	
+fr	sondage	enquête
+fr	style	
+fr	sustenter	nourrir
+fr	sycophante	dénonciateur
+fr	synonyme	
+fr	séjourner	rester
+fr	tanière	abri
+fr	thermos	
+fr	théâtre	
+fr	touer	remorquer
+fr	tracter	tirer
+fr	trier	classer
+fr	télécharger	
+fr	usage	
+fr	vapeur	
+fr	violence	
+fr	voiturette	petite voiture
+fr	volée	
+fr	vraisemblablement	probablement
+fr	zigomar	type
+fr	éculé	usé
+fr	émeute	révolte
+fr	éprouvette	tube
+fr	éveil	réveil
+it	abbacinato	accecato
+it	abbagliare	accecare
+it	abbaiare	
+it	abbaino	finestra
+it	abbassarsi	
+it	abbattimento	
+it	abbracciare	
+it	abisso	
+it	abolire	cancellare
+it	abuso	eccesso
+it	accaldarsi	scaldarsi
+it	accanito	ostinato
+it	accantonare	
+it	accenno	cenno
+it	acceso	
+it	accetta	
+it	accetto	
+it	accipitride	rapace
+it	accogliere	ricevere
+it	acconciatura	pettinatura
+it	accortezza	prudenza
+it	acquistare	comprare
+it	acuto	
+it	adattare	
+it	addentare	mordere
+it	addizionare	sommare
+it	adempiere	compiere
+it	aderire	unirsi
+it	adottivo	
+it	adozione	
+it	adulterio	tradimento
+it	adunanza	riunione
+it	affacciare	
+it	affiancarsi	avvicinarsi
+it	afflato	ispirazione
+it	afflosciarsi	sgonfiarsi
+it	affluenza	
+it	agenda	
+it	aggiunto	
+it	aggiustato	riparato
+it	agguerrito	combattivo
+it	alato	con ali
+it	albergare	ospitare
+it	albo	elenco
+it	all'improvviso	
+it	allacciare	legare
+it	allarmare	preoccupare
+it	alleanza	patto
+it	allegoria	simbolo
+it	alloro	
+it	ambiente	
+it	ambito	campo
+it	amicizia	
+it	ammaestrare	addestrare
+it	ammennicolo	aggeggio
+it	amministrazione	gestione
+it	ammissione	
+it	ammogliarsi	sposarsi
+it	amplesso	rapporto sessuale
+it	analogia	somiglianza
+it	anatomia	
+it	angusto	stretto
+it	annata	anno
+it	annoverare	contare
+it	antivedere	prevedere
+it	apparecchiare	preparare
+it	appartenenza	
+it	appendice	aggiunta
+it	appesantire	caricare
+it	appigliarsi	aggrapparsi
+it	appoggio	sostegno
+it	apprendere	imparare
+it	approdare	arrivare
+it	arca	
+it	arcare	curvare
+it	architettura	
+it	ardire	osare
+it	arena	
+it	argano	
+it	argine	riva
+it	arieggiare	
+it	armatura	
+it	armeggiare	trafficare
+it	arnese	attrezzo
+it	arretrare	ritirarsi
+it	arricchire	
+it	arrovellare	tormentare
+it	artefice	autore
+it	artificiale	
+it	ascendere	salire
+it	ascesa	salita
+it	ascrivere	attribuire
+it	asfalto	
+it	assegno	
+it	assestare	
+it	assidenza	
+it	associare	collegare
+it	astrattezza	
+it	astuto	furbo
+it	atomizzare	frammentare
+it	attentato	attacco
+it	attualità	
+it	attuare	realizzare
+it	auge	
+it	aura	
+it	austero	severo
+it	autorità	
+it	avello	tomba
+it	avvantaggiare	favorire
+it	avvelenare	
+it	avventura	
+it	avversario	rivale
+it	avvertimento	avviso
+it	avvisaglia	segnale
+it	babbano	
+it	bacheca	
+it	bacino	
+it	baionetta	
+it	ballottaggio	secondo turno
+it	bandire	
+it	baratro	abisso
+it	barbagianni	gufo
+it	bardatura	
+it	battitura	
+it	belletto	trucco
+it	belva	bestia
+it	benedire	
+it	benedizione	
+it	bersagliare	colpire
+it	bigoressia	
+it	bigotto	
+it	bilanciare	
+it	bilancio	
+it	bilione	mille miliardi
+it	biotto	nudo
+it	birbante	monello
+it	bizzarro	strano
+it	boccia	palla
+it	bollettino	
+it	bombardare	
+it	bonifico	pagamento
+it	bontà	
+it	bouquet	mazzo
+it	bove	bue
+it	bovina	
+it	bridge	
+it	brillantare	lucidare
+it	brillare	
+it	bucare	
+it	buccia	pelle
+it	buffone	pagliaccio
+it	buscare	prendere
+it	buttarsi	lanciarsi
+it	cachi	
+it	caduto	
+it	caffetteria	bar
+it	cafone	maleducato
+it	calore	caldo
+it	calpestio	passi
+it	camino	
+it	candore	purezza
+it	canone	regola
+it	canto	
+it	cantuccio	angolo
+it	capitombolo	caduta
+it	cappuccio	
+it	carattere	
+it	carica	
+it	carisma	fascino
+it	carrettiere	
+it	cartello	
+it	casalinga	
+it	casarca	anatra
+it	cascata	
+it	casella	
+it	cencio	straccio
+it	censire	contare
+it	centrare	colpire
+it	ceppo	
+it	cera	
+it	certosino	paziente
+it	cessare	finire
+it	chiacchierata	conversazione
+it	chiavare	
+it	chiodo	
+it	ciabatta	
+it	cincischiare	perdere tempo
+it	cinguettare	cantare
+it	cinismo	
+it	ciofeca	schifezza
+it	circolo	
+it	circondurre	ruotare
+it	circospezione	prudenza
+it	classifica	
+it	clausola	condizione
+it	coalizione	alleanza
+it	coccio	pezzo
+it	coccola	carezza
+it	codardia	vigliaccheria
+it	coercizione	forza
+it	colare	
+it	collaboratore	collega
+it	collana	
+it	collezione	raccolta
+it	collocamento	
+it	colmare	riempire
+it	colosso	gigante
+it	coltellata	colpo
+it	combattimento	lotta
+it	commiato	addio
+it	commutare	cambiare
+it	compagine	gruppo
+it	compare	appare
+it	compiacenza	gentilezza
+it	complicare	
+it	comprimere	schiacciare
+it	comunicazione	
+it	comunità	
+it	conca	valle
+it	concerto	
+it	concetto	idea
+it	conclusione	fine
+it	condannare	
+it	condoglianza	
+it	conduzione	gestione
+it	confederazione	unione
+it	confidenza	
+it	configurazione	struttura
+it	confino	esilio
+it	confortare	consolare
+it	congelare	
+it	congettura	ipotesi
+it	connubio	unione
+it	conquistare	prendere
+it	conseguire	ottenere
+it	conserva	
+it	consigliere	
+it	constatare	notare
+it	consultazione	
+it	consumare	usare
+it	contagiare	infettare
+it	contenitore	
+it	contenuto	
+it	contesto	
+it	continuità	
+it	contrariare	infastidire
+it	contrarre	
+it	contrastare	combattere
+it	contrizione	pentimento
+it	conveniente	vantaggioso
+it	convenienza	vantaggio
+it	convenire	
+it	coordinato	organizzato
+it	copulare	accoppiarsi
+it	cornice	
+it	coronare	realizzare
+it	corporeo	fisico
+it	correttezza	
+it	corsia	
+it	coscienza	
+it	costellazione	
+it	costumare	usare
+it	cotone	
+it	cozza	
+it	creazione	
+it	crivellare	bucare
+it	croce	
+it	crosta	
+it	cucito	
+it	cupo	scuro
+it	curiosamente	stranamente
+it	curiosità	
+it	custodia	
+it	decade	
+it	decesso	morte
+it	decomporre	
+it	deconcentrare	distrarre
+it	decurtare	ridurre
+it	degnare	
+it	delegazione	
+it	delirante	folle
+it	denso	spesso
+it	depliant	
+it	depositare	lasciare
+it	deridere	
+it	detergere	pulire
+it	detronizzare	
+it	dettato	
+it	dialetto	
+it	digerire	
+it	dignità	
+it	digressione	parentesi
+it	dilapidare	sprecare
+it	dileguare	sparire
+it	diligenza	cura
+it	diluizione	
+it	dinamico	attivo
+it	diplomazia	
+it	diramazione	ramo
+it	dirittura	
+it	disaffezionato	indifferente
+it	disattivare	spegnere
+it	discendere	scendere
+it	discesa	
+it	disciogliere	sciogliere
+it	disciplina	ordine
+it	discografico	
+it	discriminare	
+it	disdegnare	disprezzare
+it	dispari	
+it	distillazione	
+it	distrarsi	
+it	distribuzione	
+it	districarsi	cavarsela
+it	divinità	dio
+it	divino	
+it	divulgare	diffondere
+it	docente	insegnante
+it	domino	
+it	dorifora	
+it	drogheria	alimentari
+it	eccitazione	agitazione
+it	eco	
+it	ecologico	
+it	edotto	informato
+it	efemeroideo	
+it	efficacia	
+it	effondere	spargere
+it	egoismo	
+it	eloquente	espressivo
+it	emanare	emettere
+it	embè	e allora
+it	emettere	produrre
+it	ennesimo	
+it	entità	
+it	entusiasmare	emozionare
+it	enumerare	elencare
+it	epifania	
+it	equivoco	ambiguo
+it	era	
+it	ermetismo	
+it	esacerbare	peggiorare
+it	esaltare	lodare
+it	esaltato	
+it	esanime	senza vita
+it	esauriente	completo
+it	esaurirsi	finire
+it	esca	
+it	esecuzione	
+it	esenzione	
+it	esistenza	vita
+it	esito	risultato
+it	espellere	cacciare
+it	esplicare	svolgere
+it	esplorare	
+it	esponente	rappresentante
+it	esporre	mostrare
+it	espresso	
+it	essoterico	pubblico
+it	estendere	allargare
+it	estetico	
+it	estinguere	spegnere
+it	estrapolare	ricavare
+it	estrarre	tirare fuori
+it	estroso	fantasioso
+it	età	
+it	evidenza	
+it	evo	epoca
+it	extra	in più
+it	facciata	
+it	facoltà	
+it	fagianella	
+it	falconiforme	rapace
+it	familiarità	confidenza
+it	fantasia	
+it	fantasticare	sognare
+it	fatica	
+it	fatta	
+it	febbre	
+it	fedeltà	
+it	fegato	
+it	ferino	selvaggio
+it	ferocia	crudeltà
+it	fetta	pezzo
+it	fiaccare	stancare
+it	fico	
+it	filigrana	
+it	filone	
+it	finocchio	
+it	fisarmonica	
+it	fischio	
+it	fitta	
+it	folgorare	colpire
+it	fondale	fondo
+it	fondare	creare
+it	forfecchia	forbicina
+it	forficula	forbicina
+it	formicaio	
+it	formula	
+it	foro	buco
+it	fotografare	
+it	franare	crollare
+it	franchigia	esenzione
+it	frecciata	critica
+it	frenare	
+it	frenesia	agitazione
+it	friganea	
+it	frizzante	gassato
+it	frontiera	confine
+it	fu	
+it	fulcro	centro
+it	fulminare	
+it	funzionale	pratico
+it	galassia	
+it	galvani	
+it	gamma	varietà
+it	garanzia	
+it	gareggiare	competere
+it	garza	benda
+it	gelo	freddo
+it	gelosia	
+it	geniale	brillante
+it	gesto	segno
+it	giacenza	
+it	giacere	
+it	giocata	
+it	giogo	
+it	gioiello	
+it	gip	giudice
+it	girata	
+it	gnocca	
+it	goffo	
+it	gola	
+it	gonfiare	
+it	gongolare	gioire
+it	gradino	
+it	graffiare	
+it	grandinata	grandine
+it	granello	
+it	grappolo	
+it	greppia	mangiatoia
+it	grillo	
+it	grondare	colare
+it	groppo	nodo
+it	guancia	
+it	gustoso	buono
+it	ictus	
+it	ieratico	solenne
+it	igiene	pulizia
+it	illazione	ipotesi
+it	illustrazione	immagine
+it	imbarcarsi	salire
+it	imbevere	bagnare
+it	imene	
+it	immaginazione	fantasia
+it	immediatezza	spontaneità
+it	impatto	
+it	impedito	
+it	impiegare	usare
+it	imposta	
+it	impostare	
+it	impostore	truffatore
+it	impresa	
+it	imputabile	dovuto
+it	inaccessibile	
+it	inacidire	
+it	incarcerare	
+it	inceppare	bloccare
+it	incetta	scorta
+it	inciampare	
+it	incisione	taglio
+it	inclinare	piegare
+it	incoraggiamento	sostegno
+it	indi	poi
+it	indigesto	pesante
+it	indirizzare	dirigere
+it	individuo	persona
+it	indizio	segno
+it	indole	carattere
+it	induzione	
+it	inedia	fame
+it	inferire	dedurre
+it	inferocito	furioso
+it	infiammare	accendere
+it	infiammazione	
+it	infilare	mettere
+it	infilzare	
+it	inflazione	
+it	inganno	trucco
+it	ingranaggio	meccanismo
+it	iniquo	ingiusto
+it	innalzare	alzare
+it	innamorarsi	
+it	inoltrare	inviare
+it	inorridire	provare orrore
+it	inquadrare	
+it	inquadratura	
+it	inquinare	sporcare
+it	inquisitore	
+it	inscenare	organizzare
+it	insediare	nominare
+it	insediarsi	stabilirsi
+it	insegna	
+it	insensato	assurdo
+it	insoluto	non risolto
+it	insorto	ribelle
+it	integrarsi	inserirsi
+it	integro	onesto
+it	intercludere	chiudere
+it	interrogazione	
+it	intervista	
+it	intimo	
+it	intonaco	
+it	intrattenere	divertire
+it	inusuale	insolito
+it	invaiatura	maturazione
+it	inveire	gridare
+it	inventare	creare
+it	inventario	elenco
+it	ipotizzare	supporre
+it	ippocampo	cavalluccio marino
+it	isolare	separare
+it	isottero	termite
+it	isterico	agitato
+it	istruzione	
+it	labbro	
+it	laccio	
+it	lacrima	
+it	ladino	
+it	lamina	foglio
+it	languore	debolezza
+it	lasso	periodo
+it	leader	capo
+it	leccare	
+it	lessico	vocabolario
+it	libello	
+it	località	luogo
+it	locare	affittare
+it	lode	
+it	lubrico	scivoloso
+it	lunghezza	
+it	lungimirante	
+it	macchia	
+it	malloppo	bottino
+it	malvasia	
+it	malvisto	sgradito
+it	mancamento	
+it	mancanza	
+it	mancino	
+it	mandria	branco
+it	manica	
+it	mantello	
+it	manto	
+it	marcia	
+it	maritare	sposare
+it	maschio	
+it	massima	
+it	masso	roccia
+it	materasso	
+it	matricola	
+it	maturità	
+it	maturo	
+it	mazza	bastone
+it	mazzo	
+it	meccanismo	sistema
+it	megalopoli	grande città
+it	melenso	sciocco
+it	mendicare	chiedere
+it	menzione	cenno
+it	meraviglia	
+it	merdata	schifezza
+it	meriggio	mezzogiorno
+it	metafora	
+it	metallico	
+it	mezzogiorno	
+it	midollo	
+it	mietere	raccogliere
+it	millantare	vantare
+it	minchia	
+it	minestra	
+it	minimale	
+it	ministero	
+it	mirare	puntare
+it	miscela	
+it	misericordia	pietà
+it	misterioso	
+it	misura	
+it	mitomane	bugiardo
+it	moderno	
+it	mole	massa
+it	mondano	
+it	mondare	pulire
+it	mondazione	pulizia
+it	monito	avviso
+it	monopolio	
+it	moralità	
+it	morbido	
+it	mormorare	sussurrare
+it	moscio	molle
+it	moscone	mosca
+it	mostrarsi	apparire
+it	motivare	
+it	mulo	
+it	murare	
+it	muta	
+it	narrare	raccontare
+it	necrologio	annuncio funebre
+it	neo	
+it	nervatura	
+it	nettezza	pulizia
+it	netto	chiaro
+it	nido	
+it	nobiltà	
+it	nota	
+it	nucleo	centro
+it	numinoso	sacro
+it	nuova	
+it	obbrobrio	vergogna
+it	olezzo	odore
+it	olocausto	sterminio
+it	oltraggio	offesa
+it	omaggio	
+it	ometto	
+it	onda	
+it	opporre	
+it	opprimere	
+it	orbita	
+it	ordinazione	ordine
+it	orecchione	
+it	organico	
+it	organismo	corpo
+it	orinare	fare pipì
+it	orizzonte	
+it	ortottero	
+it	oscuro	buio
+it	ossidano	
+it	ottava	
+it	ove	dove
+it	ozioso	pigro
+it	pacchetto	
+it	padiglione	
+it	paesaggio	panorama
+it	paesano	
+it	pallone	palla
+it	palma	
+it	pampino	foglia
+it	pandemonio	caos
+it	pane	
+it	panza	pancia
+it	papavero	
+it	paragrafo	
+it	parapetto	ringhiera
+it	parata	sfilata
+it	pareggio	parità
+it	parlamento	
+it	parlato	
+it	partecipazione	presenza
+it	parteggiare	schierarsi
+it	parto	
+it	partorire	
+it	parvenza	apparenza
+it	pasticcio	guaio
+it	pasto	
+it	pastoso	morbido
+it	patacca	falso
+it	patente	
+it	patibolo	forca
+it	patrimonio	ricchezza
+it	patrocinare	sostenere
+it	pecca	difetto
+it	peccare	
+it	peculiare	tipico
+it	peltro	
+it	pendant	
+it	pennellare	dipingere
+it	pensata	idea
+it	percepire	sentire
+it	percezione	sensazione
+it	peregrino	strano
+it	peritare	esitare
+it	perizoma	
+it	perla	
+it	perturbazione	
+it	pescare	
+it	petto	
+it	pianificazione	
+it	piazza	
+it	piccola	
+it	pieride	farfalla
+it	pingue	grasso
+it	piombare	
+it	piombo	
+it	piovere	
+it	pirofila	teglia
+it	pizzicare	
+it	pizzo	
+it	plancia	ponte
+it	plotone	gruppo
+it	podere	fattoria
+it	politica	
+it	polittico	
+it	poltrona	
+it	pomodoro	
+it	pontificare	
+it	poppa	
+it	porco	maiale
+it	portarsi	
+it	posare	appoggiare
+it	posata	
+it	possessivo	
+it	possesso	
+it	postulare	supporre
+it	pratico	
+it	precipuo	principale
+it	predicazione	
+it	prediletto	preferito
+it	predire	prevedere
+it	prefisso	
+it	pregiato	prezioso
+it	pregnanza	intensità
+it	prerogativa	diritto
+it	presenza	
+it	pressa	
+it	prestare	
+it	primitivo	
+it	primordiale	primitivo
+it	principiare	cominciare
+it	privilegiare	favorire
+it	probabile	
+it	profondità	
+it	profumato	
+it	progettare	
+it	promessa	
+it	proponimento	proposito
+it	proposizione	frase
+it	propulsione	spinta
+it	prosa	
+it	prospettare	presentare
+it	prostrare	abbattere
+it	protesta	
+it	provocare	causare
+it	prurito	
+it	pubblicazione	
+it	pudore	vergogna
+it	pugilato	boxe
+it	pullulare	abbondare
+it	pupa	bambola
+it	quaderno	
+it	qualità	
+it	quaquaraquà	chiacchierone
+it	quiescenza	riposo
+it	quotare	valutare
+it	raccolta	
+it	radere	
+it	raffica	
+it	raggelare	gelare
+it	raggiungibile	accessibile
+it	ragionare	pensare
+it	rammollito	debole
+it	rassegna	
+it	realizzare	
+it	recensione	critica
+it	recinto	
+it	regione	zona
+it	regno	
+it	religione	fede
+it	remora	dubbio
+it	remunerare	pagare
+it	rendimento	
+it	repentaglio	rischio
+it	requisito	condizione
+it	rescindere	annullare
+it	restaurare	riparare
+it	rete	
+it	rialzare	alzare
+it	riaprire	
+it	riassumere	
+it	ribalta	
+it	ribaltare	rovesciare
+it	ricercatore	studioso
+it	ricondurre	riportare
+it	riecheggiare	risuonare
+it	rifugiarsi	nascondersi
+it	rigo	
+it	rigore	severità
+it	rimediare	riparare
+it	rimordere	tormentare
+it	rimuovere	togliere
+it	rinfacciare	rimproverare
+it	rinnovarsi	
+it	rinsavire	
+it	ripartire	
+it	riporto	
+it	ripresa	
+it	riproduzione	
+it	ripulire	pulire
+it	risaltare	spiccare
+it	riscontrare	trovare
+it	risparmio	
+it	risultare	
+it	ritagliare	tagliare
+it	ritegno	pudore
+it	ritoccare	sistemare
+it	ritrarre	rappresentare
+it	rivendicare	
+it	riversare	versare
+it	rivestire	coprire
+it	roccaforte	fortezza
+it	rossore	
+it	rotondità	
+it	rudimentale	primitivo
+it	sacrificio	rinuncia
+it	salotto	sala
+it	salvezza	
+it	sanioso	infetto
+it	santità	
+it	sanzione	punizione
+it	satana	diavolo
+it	sbasito	stupito
+it	sbrego	strappo
+it	sbrindellare	strappare
+it	scacco	
+it	scampare	sfuggire
+it	scarabocchio	
+it	scarico	
+it	scatenare	provocare
+it	scatto	
+it	scavo	
+it	schiacciare	
+it	schianto	urto
+it	schiera	fila
+it	schiuma	
+it	scimmia	
+it	sciorinare	elencare
+it	scivolare	
+it	scocciare	disturbare
+it	scodella	ciotola
+it	scompenso	squilibrio
+it	scomunica	espulsione
+it	sconcio	volgare
+it	sconnesso	confuso
+it	scontrino	ricevuta
+it	scorcio	vista
+it	scorta	
+it	scorza	buccia
+it	scrittura	
+it	scudetto	
+it	scultore	
+it	sdebitarsi	ricambiare
+it	sdilinquire	intenerire
+it	secolare	antico
+it	segnapunti	
+it	segreta	
+it	semplificare	
+it	seno	petto
+it	sensibilizzare	
+it	sentito	
+it	sentore	sospetto
+it	serrato	stretto
+it	servirsi	usare
+it	servitore	servo
+it	sete	
+it	sfasato	confuso
+it	sfera	
+it	sfilata	
+it	sforzo	
+it	sfuggita	
+it	sgombrare	liberare
+it	sgomentare	spaventare
+it	sgozzare	uccidere
+it	siccità	
+it	siepe	
+it	sigillo	timbro
+it	sincope	svenimento
+it	sistematizzare	organizzare
+it	sistemazione	
+it	smilzo	magro
+it	sobrio	
+it	soccombere	cedere
+it	soffiare	
+it	soffocare	
+it	sofisticare	
+it	sollecitare	chiedere
+it	sollecitudine	premura
+it	sondare	esplorare
+it	sonno	
+it	sopprimere	eliminare
+it	sorprendente	
+it	sorte	destino
+it	sospirare	
+it	sostentamento	sostegno
+it	speaker	presentatore
+it	specifico	particolare
+it	speculazione	
+it	spegnimento	
+it	spessore	
+it	spiegarsi	
+it	spiegazione	
+it	spifferare	rivelare
+it	spina	
+it	spinato	con spine
+it	splendere	brillare
+it	spontaneo	naturale
+it	sposo	marito
+it	spostarsi	muoversi
+it	sproposito	
+it	stampatore	
+it	star	divo
+it	starci	
+it	stelo	gambo
+it	stilema	
+it	stima	
+it	strafatto	
+it	strappo	
+it	straziare	torturare
+it	stridere	
+it	stringa	laccio
+it	sufficiente	abbastanza
+it	suffragio	voto
+it	superbia	orgoglio
+it	suscettibile	sensibile
+it	suspense	tensione
+it	sussiego	superbia
+it	sventolare	agitare
+it	sviluppare	
+it	tabella	
+it	tacitare	zittire
+it	tamponare	
+it	targa	
+it	taroccare	falsificare
+it	tastare	toccare
+it	teatro	
+it	tela	stoffa
+it	telefonare	chiamare
+it	tema	argomento
+it	terrazzo	balcone
+it	ticket	
+it	timbro	
+it	timpano	
+it	tollerare	sopportare
+it	topico	decisivo
+it	toppa	pezza
+it	tossina	veleno
+it	totale	completo
+it	tradotta	
+it	tralasciare	trascurare
+it	tramortire	stordire
+it	trarre	
+it	trascorso	passato
+it	trasfondere	
+it	traslocare	trasferirsi
+it	trastullare	divertire
+it	tregua	pausa
+it	tremito	brivido
+it	tremore	
+it	tribù	
+it	trincea	
+it	tromba	
+it	tronfio	pomposo
+it	trono	
+it	trottola	
+it	trucco	
+it	tuttavia	però
+it	tuttora	ancora
+it	ultimare	finire
+it	umore	
+it	uniformare	adeguare
+it	unità	
+it	untuoso	viscido
+it	uscente	
+it	vacuo	vuoto
+it	vaghezza	imprecisione
+it	vago	incerto
+it	valico	passo
+it	valutazione	giudizio
+it	vandalo	teppista
+it	vanità	
+it	vasca	
+it	vassallo	suddito
+it	vegetare	
+it	velina	
+it	venazione	venatura
+it	vera	
+it	verace	vero
+it	verbo	
+it	verdognolo	verde
+it	versante	lato
+it	versione	
+it	vertenza	disputa
+it	vertice	
+it	veterano	esperto
+it	vezzo	abitudine
+it	vietare	
+it	vincolare	legare
+it	vincolo	legame
+it	violentare	
+it	viperide	vipera
+it	virtù	
+it	visibilio	estasi
+it	visione	
+it	visitare	
+it	vivacità	energia
+it	yogurt	
+it	zatta	melone
+it	zero	
+it	zimbello	
+it	zoccolo	
+it	zucca	
+it	zufolo	flauto
+pt	abcesso	
+pt	abduzir	sequestrar
+pt	aberta	
+pt	abicar	atracar
+pt	acertado	certo
+pt	achacar	
+pt	aconchegar	
+pt	acondicionar	guardar
+pt	acrescentar	
+pt	adotar	
+pt	adquirir	obter
+pt	advir	resultar
+pt	adágio	ditado
+pt	afetar	
+pt	afiliar	associar
+pt	afixar	colar
+pt	afluir	correr
+pt	afofar	
+pt	afundir	
+pt	algaravia	
+pt	altíssimo	
+pt	aluar	enlouquecer
+pt	alá	
+pt	alçapão	
+pt	amestrar	treinar
+pt	amiudar	repetir
+pt	anamórfico	distorcido
+pt	aparição	
+pt	aprontar	preparar
+pt	apófise	saliência
+pt	arranjado	
+pt	arrojar	atirar
+pt	assemelhar	parecer
+pt	atado	amarrado
+pt	atuador	
+pt	auge	topo
+pt	avaliação	
+pt	baita	grande
+pt	balancear	equilibrar
+pt	banhado	
+pt	barganhar	negociar
+pt	bestificar	espantar
+pt	bia	
+pt	bizarria	
+pt	bojo	
+pt	brada	grita
+pt	brilho	
+pt	bufa	
+pt	caaba	
+pt	cacimba	
+pt	calafate	
+pt	calvário	sofrimento
+pt	captor	
+pt	carbono	
+pt	carpir	chorar
+pt	catana	facão
+pt	cativar	encantar
+pt	caçamba	
+pt	caçanje	
+pt	chico	
+pt	cloreto	
+pt	coa	
+pt	coito	sexo
+pt	colagénio	
+pt	colo	
+pt	colocação	posição
+pt	colosso	gigante
+pt	comité	
+pt	comover	emocionar
+pt	comovido	emocionado
+pt	compostura	calma
+pt	conciliar	
+pt	conflito	luta
+pt	confranger	apertar
+pt	conjunto	grupo
+pt	consecutivo	seguido
+pt	consumir	gastar
+pt	consórcio	associação
+pt	continuum	
+pt	convênio	acordo
+pt	coreia	
+pt	coturno	bota
+pt	crispar	contrair
+pt	cronónimo	
+pt	cédula	nota
+pt	debruçar	inclinar
+pt	decidido	
+pt	declínio	queda
+pt	deflexão	desvio
+pt	deixa	
+pt	delação	denúncia
+pt	denotar	mostrar
+pt	deprimir	entristecer
+pt	derrame	
+pt	desabar	cair
+pt	desajustar	
+pt	desconjuntar	separar
+pt	descrito	
+pt	desdobramento	consequência
+pt	desembargo	liberação
+pt	desencadear	provocar
+pt	desentender	brigar
+pt	desunir	separar
+pt	desvanecer	desaparecer
+pt	desvantagem	
+pt	desviado	
+pt	devorar	comer
+pt	dica	
+pt	disrupção	ruptura
+pt	divino	
+pt	donzela	moça
+pt	driver	controlador
+pt	durex	
+pt	edito	decreto
+pt	eludir	evitar
+pt	embravecer	enfurecer
+pt	emolumento	pagamento
+pt	empanar	
+pt	empatado	
+pt	empolgar	animar
+pt	encher	
+pt	engordar	
+pt	enormemente	muito
+pt	enroscar	enrolar
+pt	entediado	
+pt	enxurrada	inundação
+pt	erradicar	eliminar
+pt	escalada	subida
+pt	escamotear	esconder
+pt	escancarado	aberto
+pt	escorrer	correr
+pt	esgueirar	
+pt	estalar	
+pt	estremecer	tremer
+pt	estria	
+pt	evocar	lembrar
+pt	ex-presidente	
+pt	exaltar	elogiar
+pt	expedir	enviar
+pt	fake	falso
+pt	feixe	
+pt	ferroada	picada
+pt	fliperama	
+pt	florão	enfeite
+pt	forçado	
+pt	frame	quadro
+pt	fruir	aproveitar
+pt	fula	furiosa
+pt	full	
+pt	fúnebre	
+pt	gambiarra	improviso
+pt	garo	
+pt	garoa	chuvisco
+pt	garrote	
+pt	gasóleo	diesel
+pt	geleira	
+pt	granel	
+pt	gratificação	recompensa
+pt	grifo	
+pt	guidão	
+pt	hasta	
+pt	hibridez	mistura
+pt	hilário	engraçado
+pt	hóstia	
+pt	idioma	língua
+pt	imperar	reinar
+pt	impositivo	
+pt	imputabilidade	responsabilidade
+pt	inato	natural
+pt	inchaço	
+pt	incinerar	queimar
+pt	incineração	queima
+pt	inculcar	ensinar
+pt	incutir	transmitir
+pt	indagar	perguntar
+pt	infeliz	
+pt	infundir	inspirar
+pt	inquisição	
+pt	internar	
+pt	inutilmente	em vão
+pt	invertido	
+pt	inveterado	habitual
+pt	irado	furioso
+pt	jamanta	
+pt	jiboia	cobra
+pt	judiciário	
+pt	ladainha	reza
+pt	ladear	
+pt	legitimar	
+pt	lene	suave
+pt	lenitivo	alívio
+pt	leo	
+pt	lhano	simples
+pt	liquidar	acabar com
+pt	loop	ciclo
+pt	madre	freira
+pt	madrugar	acordar cedo
+pt	magrela	
+pt	matumbo	ignorante
+pt	mediante	através de
+pt	medicinal	
+pt	meditar	pensar
+pt	meeting	reunião
+pt	mercê	
+pt	messias	salvador
+pt	microchipe	chip
+pt	mister	
+pt	mole	
+pt	morfar	comer
+pt	morrinha	
+pt	mulher-homem	
+pt	muxoxo	
+pt	necessariamente	
+pt	necrófilo	
+pt	newsletter	boletim
+pt	nhanha	
+pt	nim	
+pt	nova	
+pt	obliterar	apagar
+pt	obturação	
+pt	oiça	escute
+pt	optar	escolher
+pt	organizador	
+pt	passarinho	
+pt	patroa	chefe
+pt	pau-brasil	
+pt	pechincha	
+pt	penico	
+pt	persuasão	
+pt	pinta	
+pt	piracanjuba	
+pt	polo	
+pt	positivo	
+pt	predação	caça
+pt	prenhe	grávida
+pt	preocupação	
+pt	presépio	
+pt	printar	
+pt	progenitor	pai
+pt	propriamente	exatamente
+pt	prorrogar	prolongar
+pt	prosear	conversar
+pt	quebra-cabeça	
+pt	rancho	
+pt	recepção	
+pt	reformação	reforma
+pt	refugiar	abrigar
+pt	relutar	resistir
+pt	rente	junto
+pt	repetido	
+pt	reprimir	conter
+pt	responsabilizar	
+pt	ressentir	
+pt	retratar	descrever
+pt	retículo	rede
+pt	revolver	mexer
+pt	rincão	canto
+pt	saara	
+pt	saibo	sabor
+pt	salpicar	
+pt	saltear	
+pt	secundar	apoiar
+pt	serelepe	animado
+pt	simão	
+pt	sonido	som
+pt	sossegar	acalmar
+pt	subtrair	tirar
+pt	suceder	acontecer
+pt	sucessivo	seguido
+pt	supino	
+pt	supérfluo	desnecessário
+pt	suspeitar	desconfiar
+pt	suspender	parar
+pt	são	
+pt	sêmen	esperma
+pt	tento	
+pt	tipa	mulher
+pt	toada	melodia
+pt	toca	
+pt	topar	encontrar
+pt	transladar	levar
+pt	tratado	
+pt	tuneladora	
+pt	urdir	tramar
+pt	volúvel	inconstante
+pt	vulto	figura
+pt	workshop	oficina
+pt	xadrez	
+pt	xodó	querido
+pt	xongas	nada
+pt	zarpar	partir
+pt	zurrar	
+pt	é	
+pt	éolo	
+pt	êxito	sucesso
+ru	абие	сразу
+ru	авоська	сумка
+ru	агитатор	
+ru	агитпункт	
+ru	адекватный	нормальный
+ru	аз	
+ru	аид	
+ru	аккаунт	
+ru	акколада	
+ru	аккуратно	
+ru	аккуратный	
+ru	акт	
+ru	акция	
+ru	алкоголь	спиртное
+ru	аллюр	
+ru	алтарь	
+ru	анатомирование	вскрытие
+ru	анатомировать	вскрывать
+ru	анафема	проклятие
+ru	аннулировать	отменить
+ru	аншлаг	полный зал
+ru	апогей	вершина
+ru	архей	
+ru	аршин	
+ru	атмосфера	
+ru	афера	обман
+ru	баклажан	
+ru	баклан	
+ru	баллон	
+ru	банить	блокировать
+ru	банкир	
+ru	банный	
+ru	баранка	
+ru	беби	малыш
+ru	бегом	быстро
+ru	беднота	бедняки
+ru	бездушный	холодный
+ru	безе	
+ru	безрыбье	
+ru	беспонтовый	бесполезный
+ru	бестолковый	глупый
+ru	бетон	
+ru	блестящий	
+ru	болезненный	нездоровый
+ru	болт	
+ru	бомж	бездомный
+ru	бородатый	
+ru	ботва	листья
+ru	бочок	
+ru	бра	лампа
+ru	бранный	ругательный
+ru	брань	ругань
+ru	бреда	
+ru	бродяжничать	скитаться
+ru	бронебойный	
+ru	брусок	кусок
+ru	брутальный	грубый
+ru	бугор	холм
+ru	будить	
+ru	будущий	
+ru	будущность	будущее
+ru	бывалый	опытный
+ru	быдло	
+ru	бычара	
+ru	вакуум	пустота
+ru	валить	
+ru	варьировать	менять
+ru	вверить	доверить
+ru	вглубь	внутрь
+ru	вдребезги	на куски
+ru	ведомость	список
+ru	ведомый	
+ru	вертеп	
+ru	вершина	верх
+ru	весить	
+ru	веский	серьёзный
+ru	весомый	важный
+ru	весталка	жрица
+ru	вздохнуть	
+ru	вздрогнуть	
+ru	взяться	
+ru	вивисекция	
+ru	видать	видно
+ru	видимый	заметный
+ru	винтить	крутить
+ru	вкусить	попробовать
+ru	влететь	
+ru	вменяемый	нормальный
+ru	вместить	
+ru	вновь	снова
+ru	возбудитель	причина
+ru	воздавать	отдавать
+ru	воздать	отдать
+ru	возмутиться	рассердиться
+ru	возмущение	гнев
+ru	возрастной	
+ru	воображение	фантазия
+ru	восставать	подниматься
+ru	восстать	подняться
+ru	восхищаться	
+ru	вплотную	близко
+ru	вращаться	крутиться
+ru	вредный	
+ru	всполох	вспышка
+ru	всыпать	насыпать
+ru	втулка	
+ru	вхождение	
+ru	выглянуть	посмотреть
+ru	выгнать	
+ru	выдвинуть	
+ru	выделка	обработка
+ru	выдержать	вынести
+ru	выебать	
+ru	вызывающий	дерзкий
+ru	выморочный	бесхозный
+ru	вынести	
+ru	выпаливать	
+ru	выпасть	упасть
+ru	выработать	создать
+ru	вырывать	
+ru	высадить	
+ru	выхаживать	лечить
+ru	вычисление	расчёт
+ru	вычислять	считать
+ru	выявлять	находить
+ru	гарантированный	
+ru	гарантировать	обещать
+ru	гарик	
+ru	гармоника	
+ru	гасить	тушить
+ru	гастрономия	продукты
+ru	генштаб	
+ru	герметический	
+ru	гибкий	
+ru	гладь	поверхность
+ru	глодать	грызть
+ru	гнет	
+ru	говеть	поститься
+ru	говорящий	
+ru	годный	подходящий
+ru	гонор	
+ru	гонять	
+ru	горючее	топливо
+ru	горючий	
+ru	горячка	жар
+ru	грести	
+ru	грех	
+ru	гроб	
+ru	гроза	
+ru	грохнуться	упасть
+ru	грохотать	греметь
+ru	густой	
+ru	гуща	
+ru	дальний	далёкий
+ru	датировка	дата
+ru	двухсотый	
+ru	дебелый	полный
+ru	дегенерат	идиот
+ru	денежный	
+ru	денница	заря
+ru	детище	творение
+ru	деть	положить
+ru	дефолт	
+ru	дирекция	руководство
+ru	дичь	
+ru	добить	убить
+ru	доброта	
+ru	довлеть	давить
+ru	доколе	
+ru	должностной	служебный
+ru	долонь	
+ru	доставлять	приносить
+ru	достаться	
+ru	драгоценный	ценный
+ru	драп	
+ru	дрек	якорь
+ru	дрожать	
+ru	дрочить	
+ru	дружок	
+ru	дурь	глупость
+ru	ебаный	чёртов
+ru	ебать	
+ru	ебнуть	ударить
+ru	едва	еле
+ru	единство	
+ru	ежиться	сжиматься
+ru	екать	
+ru	епархия	
+ru	естественно	конечно
+ru	жадничать	
+ru	жадно	
+ru	жалостный	жалобный
+ru	железный	
+ru	желтый	
+ru	живот	
+ru	жидкий	
+ru	жнивье	поле
+ru	журчать	
+ru	забавлять	смешить
+ru	забросить	бросить
+ru	забубенный	отчаянный
+ru	завернуть	
+ru	завоевание	захват
+ru	заволочь	закрыть
+ru	заворачивать	
+ru	завязать	
+ru	завязывать	
+ru	завять	засохнуть
+ru	загасить	потушить
+ru	загнуть	согнуть
+ru	задаваться	
+ru	задавить	
+ru	задача	
+ru	задержаться	остаться
+ru	зажечь	
+ru	зажить	
+ru	зазноба	любимая
+ru	зазор	щель
+ru	заколачивать	забивать
+ru	закопать	
+ru	закорючка	
+ru	залегать	лежать
+ru	залипать	
+ru	замочить	
+ru	замять	скрыть
+ru	западать	
+ru	западник	
+ru	запалить	зажечь
+ru	запальчивый	вспыльчивый
+ru	записной	
+ru	запятая	
+ru	зарубить	
+ru	зарядить	
+ru	застыть	замереть
+ru	заход	
+ru	зачать	
+ru	зачет	
+ru	зашибать	бить
+ru	звериный	
+ru	зверский	жестокий
+ru	звучание	звук
+ru	знавать	знать
+ru	знамя	флаг
+ru	знатный	благородный
+ru	зов	
+ru	золотой	
+ru	зреть	созревать
+ru	из-под	
+ru	известно	
+ru	извинение	
+ru	извращать	искажать
+ru	изготовлять	делать
+ru	изделие	товар
+ru	излиться	вылиться
+ru	изловить	поймать
+ru	изнутри	
+ru	израильтянин	
+ru	изъян	недостаток
+ru	иллюстрация	рисунок
+ru	имение	
+ru	именитый	известный
+ru	иметься	быть
+ru	импульс	толчок
+ru	индекс	
+ru	интеллектуальный	умственный
+ru	искушать	соблазнять
+ru	исполин	великан
+ru	исправиться	стать лучше
+ru	ита	
+ru	казарменный	армейский
+ru	как-нибудь	
+ru	кака	
+ru	калечить	
+ru	калитка	
+ru	калить	нагревать
+ru	камедь	смола
+ru	карамболь	
+ru	категория	группа
+ru	каюк	конец
+ru	квасить	
+ru	кинуть	бросить
+ru	кладезь	источник
+ru	клоака	
+ru	клок	пучок
+ru	клюка	палка
+ru	клятва	обещание
+ru	кнут	
+ru	князек	правитель
+ru	кобра	
+ru	ковбойка	рубашка
+ru	ковш	
+ru	колебаться	
+ru	колыбель	кроватка
+ru	комбатант	боец
+ru	компот	
+ru	компромат	
+ru	кондиция	состояние
+ru	коник	лошадка
+ru	контрапункт	
+ru	кончаться	
+ru	конченый	безнадёжный
+ru	координата	
+ru	копить	собирать
+ru	коптильня	
+ru	коротко	
+ru	корочка	
+ru	корысть	жадность
+ru	косарь	
+ru	космос	
+ru	косный	
+ru	кости	
+ru	костыль	
+ru	косуля	
+ru	котел	
+ru	кофта	свитер
+ru	край	
+ru	крап	
+ru	краса	красота
+ru	краска	
+ru	краснеть	
+ru	кривая	
+ru	крикнуть	
+ru	кровянка	кровь
+ru	крэк	
+ru	купец	торговец
+ru	купечество	купцы
+ru	куща	заросли
+ru	ладно	хорошо
+ru	лажа	ерунда
+ru	лапа	
+ru	лапка	
+ru	латекс	резина
+ru	лекало	шаблон
+ru	лепта	вклад
+ru	ливануть	хлынуть
+ru	лизать	
+ru	лисий	
+ru	лист	
+ru	лихо	ловко
+ru	лихой	
+ru	лицензия	разрешение
+ru	личико	
+ru	лоб	
+ru	ложно	неверно
+ru	локомобиль	
+ru	лоскут	кусок
+ru	лысый	
+ru	любезный	вежливый
+ru	люлька	кроватка
+ru	лягнуть	пнуть
+ru	ляпис	
+ru	лярва	
+ru	макар	
+ru	маломощный	слабый
+ru	мандавошка	вошь
+ru	манкировать	пренебрегать
+ru	манок	приманка
+ru	маркер	фломастер
+ru	материя	
+ru	махнуть	
+ru	медвяный	медовый
+ru	мелодия	
+ru	мемориал	памятник
+ru	меркантильный	корыстный
+ru	мигалка	
+ru	миновать	пройти
+ru	мираж	
+ru	могущество	сила
+ru	модель	
+ru	может	
+ru	молекула	частица
+ru	мотать	
+ru	мотив	
+ru	мотор	
+ru	мотыль	личинка
+ru	мошонка	
+ru	мчаться	
+ru	мыломойка	моющее средство
+ru	мэтр	мастер
+ru	набрать	
+ru	наводить	
+ru	навязать	
+ru	наговорить	
+ru	нагоняй	выговор
+ru	надел	
+ru	надуть	
+ru	наиграть	сыграть
+ru	найтись	
+ru	наклонность	склонность
+ru	наклонный	
+ru	нанести	
+ru	напалм	
+ru	наперед	заранее
+ru	наперсница	подруга
+ru	напеть	спеть
+ru	нарез	
+ru	наркомания	
+ru	нарочитый	
+ru	наружность	внешность
+ru	наряд	одежда
+ru	нарядный	красивый
+ru	насквозь	
+ru	наставлять	учить
+ru	настольный	
+ru	настроение	
+ru	нация	народ
+ru	невеста	
+ru	невольник	раб
+ru	неволя	плен
+ru	нежно	ласково
+ru	нежный	
+ru	неизбежный	
+ru	некрасивый	
+ru	немота	
+ru	необъятный	огромный
+ru	необычайный	необычный
+ru	неполадка	поломка
+ru	непосредственный	прямой
+ru	неприглядный	некрасивый
+ru	непроглядный	тёмный
+ru	непроходимый	
+ru	несерьезный	
+ru	несказанный	огромный
+ru	несогласие	
+ru	неуязвимый	
+ru	новинка	
+ru	нудить	ныть
+ru	нужно	
+ru	нуль	
+ru	нырок	прыжок
+ru	нюх	
+ru	обиженка	плакса
+ru	обламывать	ломать
+ru	обломать	отломать
+ru	обнаруживать	находить
+ru	обнуление	сброс
+ru	образовать	создать
+ru	обрубить	отрубить
+ru	обрыв	
+ru	общность	единство
+ru	объем	размер
+ru	объявлять	сообщать
+ru	обязанность	долг
+ru	ограда	забор
+ru	огульный	
+ru	одержимость	страсть
+ru	одолжить	
+ru	оказываться	
+ru	оклад	зарплата
+ru	окончить	закончить
+ru	окружность	круг
+ru	окуляр	
+ru	опарыш	личинка
+ru	организм	тело
+ru	осень	
+ru	особо	особенно
+ru	острота	
+ru	осыпать	
+ru	отвергать	
+ru	отвертеться	уклониться
+ru	отвод	
+ru	отвращать	
+ru	отговорить	
+ru	отзыв	мнение
+ru	отзывать	
+ru	откровенный	искренний
+ru	открытие	
+ru	отмести	отвергнуть
+ru	отметать	отвергать
+ru	относительный	
+ru	отправление	
+ru	отпускать	
+ru	отразиться	
+ru	отрубить	отрезать
+ru	отстранить	убрать
+ru	отъебаться	отстать
+ru	отъесть	откусить
+ru	оформить	
+ru	охуенно	
+ru	охуенный	отличный
+ru	оценка	
+ru	очерк	статья
+ru	ошарашивать	поражать
+ru	па	шаг
+ru	пал	
+ru	палестина	
+ru	папка	
+ru	параша	
+ru	паритет	равенство
+ru	пахать	
+ru	пахта	
+ru	педант	
+ru	пекло	жара
+ru	первичный	начальный
+ru	пердеть	
+ru	переболевать	болеть
+ru	перевес	
+ru	передник	фартук
+ru	передохнуть	отдохнуть
+ru	перемещение	движение
+ru	перепадать	доставаться
+ru	пересекаться	встречаться
+ru	персонаж	герой
+ru	песнь	
+ru	песочница	
+ru	пестик	
+ru	печаль	грусть
+ru	пизда	
+ru	пир	праздник
+ru	плав	
+ru	плести	
+ru	плотина	
+ru	площадь	
+ru	повергать	приводить
+ru	поветрие	мода
+ru	повторение	
+ru	поглядывать	смотреть
+ru	подбегать	
+ru	подбежать	
+ru	подкупать	
+ru	подкупить	
+ru	подлаивать	лаять
+ru	подобно	как
+ru	подозревать	
+ru	подорваться	взорваться
+ru	подошва	
+ru	подполье	
+ru	подрезать	обрезать
+ru	подскакивать	подпрыгивать
+ru	подснежник	
+ru	подстраиваться	
+ru	подтяжка	
+ru	подчерпнуть	получить
+ru	подъебывать	дразнить
+ru	подыматься	
+ru	пожелать	
+ru	пожениться	
+ru	пожрать	съесть
+ru	позвоночник	
+ru	познавать	изучать
+ru	позор	стыд
+ru	позорище	стыд
+ru	показатель	
+ru	покойный	умерший
+ru	покрой	фасон
+ru	полено	
+ru	получас	
+ru	помолвить	
+ru	порваться	
+ru	порождать	вызывать
+ru	порождение	плод
+ru	портрет	
+ru	пособие	
+ru	постигать	понимать
+ru	потешаться	смеяться
+ru	потрясающе	удивительно
+ru	похабный	неприличный
+ru	поц	дурак
+ru	почитай	
+ru	почтительный	вежливый
+ru	прах	
+ru	превеликий	огромный
+ru	предавать	
+ru	предвестие	признак
+ru	предвещать	предсказывать
+ru	предок	
+ru	предположение	догадка
+ru	представиться	
+ru	предупреждение	
+ru	преимущественно	в основном
+ru	преступить	нарушить
+ru	претворить	воплотить
+ru	претворять	воплощать
+ru	претворяться	воплощаться
+ru	претить	
+ru	преферанс	
+ru	призвание	
+ru	прикинуть	оценить
+ru	приклад	
+ru	приключение	
+ru	приличный	
+ru	примерный	
+ru	примечательный	интересный
+ru	примоститься	устроиться
+ru	припасть	прижаться
+ru	природа	
+ru	пристраиваться	устраиваться
+ru	причал	
+ru	приятие	принятие
+ru	проблядь	проститутка
+ru	прогрев	
+ru	продуманный	
+ru	прозябать	существовать
+ru	пролить	разлить
+ru	проложить	построить
+ru	промышленность	
+ru	просадить	растратить
+ru	проспект	улица
+ru	простецкий	простой
+ru	простыть	заболеть
+ru	противоядие	
+ru	протянуть	
+ru	прохвост	негодяй
+ru	прочекать	проверить
+ru	прочитывать	читать
+ru	прочить	
+ru	прошмандовка	проститутка
+ru	прямиком	прямо
+ru	прямо-таки	просто
+ru	птенец	
+ru	пугало	чучело
+ru	пурпур	
+ru	пустышка	
+ru	пустяковый	мелкий
+ru	пшено	
+ru	пытать	мучить
+ru	пятерка	
+ru	рада	
+ru	разбег	
+ru	разбивать	
+ru	развал	
+ru	развернуться	повернуться
+ru	разгрузка	
+ru	раздумье	
+ru	разить	
+ru	размытый	нечёткий
+ru	разность	разница
+ru	разрыв	
+ru	ракетка	
+ru	ракурс	угол
+ru	раритет	редкость
+ru	рассеяние	
+ru	рассматривать	изучать
+ru	раствор	
+ru	растеряться	
+ru	растительность	растения
+ru	ратовать	бороться
+ru	рвануться	броситься
+ru	реализовывать	выполнять
+ru	ребячество	баловство
+ru	резко	
+ru	рейсфедер	
+ru	рейтинговый	
+ru	релевантный	уместный
+ru	решающий	главный
+ru	решительный	
+ru	рисование	
+ru	родной	
+ru	рожа	лицо
+ru	рукав	
+ru	рукастый	умелый
+ru	рукоприкладство	побои
+ru	руно	шерсть
+ru	русло	
+ru	ручка	
+ru	салоп	накидка
+ru	самокат	
+ru	сбалансировать	
+ru	сбежаться	собраться
+ru	сберегать	беречь
+ru	свалка	
+ru	свежий	
+ru	свербеть	чесаться
+ru	свернуться	
+ru	светский	
+ru	свысока	
+ru	связывать	
+ru	седой	
+ru	сжатый	
+ru	сжимать	
+ru	сикофант	доносчик
+ru	симметричный	
+ru	синкопа	
+ru	скат	склон
+ru	скидывать	сбрасывать
+ru	склонить	
+ru	скользящий	
+ru	скудельный	глиняный
+ru	скулить	
+ru	скупой	жадный
+ru	слагать	сочинять
+ru	сладкий	
+ru	сласть	сладость
+ru	слезать	спускаться
+ru	слизывать	лизать
+ru	слог	
+ru	слопать	съесть
+ru	слюда	
+ru	смещать	сдвигать
+ru	снизу	
+ru	снискать	заслужить
+ru	снисходить	
+ru	согнуться	наклониться
+ru	сожительствовать	жить вместе
+ru	солитер	глист
+ru	сообразить	понять
+ru	сопка	холм
+ru	сосредотачиваться	
+ru	состоять	
+ru	сохраняться	оставаться
+ru	сперва	сначала
+ru	спертый	душный
+ru	спич	речь
+ru	спокойствие	
+ru	сполох	вспышка
+ru	справедливый	
+ru	срединный	средний
+ru	ссать	
+ru	стан	фигура
+ru	станцевать	
+ru	статус	положение
+ru	статься	случиться
+ru	стенать	стонать
+ru	стирание	удаление
+ru	столп	
+ru	стон	
+ru	стопроцентный	полный
+ru	страшно	
+ru	стрекоза	
+ru	стреляться	
+ru	стрем	
+ru	стриж	
+ru	строгий	
+ru	строго	
+ru	строп	
+ru	струя	поток
+ru	студень	холодец
+ru	стукач	доносчик
+ru	ступить	шагнуть
+ru	стяг	флаг
+ru	стяжание	накопление
+ru	сущность	суть
+ru	схоронить	похоронить
+ru	сцать	мочиться
+ru	съедать	есть
+ru	съедобный	
+ru	съездить	поехать
+ru	сявка	
+ru	табло	экран
+ru	табун	стадо
+ru	такт	
+ru	творение	
+ru	творец	создатель
+ru	телодвижение	движение
+ru	темя	макушка
+ru	термоядерный	
+ru	тешиться	развлекаться
+ru	тише	
+ru	ток	
+ru	толстый	
+ru	торг	
+ru	торговаться	
+ru	торжественно	
+ru	торжество	праздник
+ru	тоска	грусть
+ru	тосковать	скучать
+ru	точеный	
+ru	тощий	худой
+ru	трактовать	объяснять
+ru	трансплантировать	пересаживать
+ru	трахнуться	
+ru	треба	обряд
+ru	тревожить	беспокоить
+ru	трехэтажный	
+ru	трус	
+ru	трухлявый	гнилой
+ru	тулуп	шуба
+ru	туризм	
+ru	тусоваться	проводить время
+ru	туча	облако
+ru	тыльный	задний
+ru	тырить	красть
+ru	тюль	занавеска
+ru	тюфяк	матрас
+ru	тянуться	
+ru	убогость	бедность
+ru	убожество	бедность
+ru	уважительный	
+ru	угода	
+ru	уда	удочка
+ru	удаление	
+ru	удалиться	уйти
+ru	удаляться	уходить
+ru	ударение	
+ru	удачно	хорошо
+ru	удостоверить	подтвердить
+ru	уебать	ударить
+ru	ужасающий	страшный
+ru	узкий	
+ru	улыбнуть	рассмешить
+ru	улыбнуться	
+ru	умалить	принизить
+ru	умерщвлять	убивать
+ru	уместиться	поместиться
+ru	умирание	смерть
+ru	упадок	
+ru	упорствовать	настаивать
+ru	упразднять	отменять
+ru	урожденный	
+ru	усопнуть	умереть
+ru	устойчивый	
+ru	утвердить	одобрить
+ru	утекать	уходить
+ru	утлый	ветхий
+ru	утопать	тонуть
+ru	уход	
+ru	ушлый	хитрый
+ru	фаворит	любимец
+ru	фальсифицировать	подделать
+ru	фамилия	
+ru	фанатизм	
+ru	фанерный	
+ru	физуха	физкультура
+ru	финтифлюшка	безделушка
+ru	флагман	
+ru	флюид	
+ru	фобия	страх
+ru	форменный	
+ru	фугу	
+ru	халатный	небрежный
+ru	хезать	
+ru	хлопнуть	стукнуть
+ru	хныкать	ныть
+ru	хобот	нос
+ru	хождение	ходьба
+ru	холить	беречь
+ru	худой	
+ru	царство	государство
+ru	царь	
+ru	целиком	полностью
+ru	цыпа	цыплёнок
+ru	цыпка	
+ru	чаевничать	пить чай
+ru	чаек	
+ru	чапать	идти
+ru	чаша	
+ru	чванство	высокомерие
+ru	честить	ругать
+ru	чирик	десятка
+ru	чистоплотный	
+ru	чреватый	
+ru	чревовещание	
+ru	чувственный	
+ru	чудить	дурачиться
+ru	чудно	
+ru	чуха	
+ru	чуять	чувствовать
+ru	шаль	платок
+ru	шарада	загадка
+ru	шевельнуться	двинуться
+ru	школяр	ученик
+ru	штиль	
+ru	штопать	зашивать
+ru	шуры-муры	флирт
+ru	щегол	
+ru	щедрый	
+ru	щепетильный	
+ru	щур	
+ru	эбонитовый	
+ru	экспонат	
+ru	эмбарго	запрет
+ru	энергетик	
+ru	юркий	шустрый
+ru	юродивый	
+ru	явиться	появиться
+ru	явь	реальность
+ru	язвить	
+ru	яичко	
