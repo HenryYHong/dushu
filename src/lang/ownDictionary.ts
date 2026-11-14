@@ -198,6 +198,18 @@ export function ownMeanings(id: LangId, spellings: readonly string[]): string[] 
   return null;
 }
 
+/**
+ * A kanji's first meaning in Japanese read one way (中 なか: "物の内側。"), for a reader of Japanese: the chip under a word shows it
+ * beside that reading (KANJIDIC's "つ.ぐ" is つぐ). Null for anyone else, or when the kanji has no line read so.
+ */
+export function kanjiOwnMeaning(char: string, reading: string | undefined): string | null {
+  const table = tableFor('ja');
+  if (!table) return null;
+  const read = reading ? hiragana(reading.replace(/[.\-]/g, '')) : undefined;
+  const s = japaneseOwn(table, [char], read)?.[0]?.senses[0];
+  return s ? `${s.notes?.length ? `（${s.notes.join('，')}）` : ''}${s.glosses[0]}` : null;
+}
+
 /** A CC-CEDICT entry that is only a variant, a pointer, a sound, an archaic word or a name: not the likely spelling of the word. */
 function minorEntry(e: { pinyin: string; defs: readonly string[] }): boolean {
   return /^[A-Z]/.test(e.pinyin) || e.defs.every((d) => /(?:^|\b)(?:old |archaic |Japanese |ancient )?variant of\b|^see |^used in|^surname|\((?:archaic|old|onom\.)\)|^\(onom\.\)/i.test(d));

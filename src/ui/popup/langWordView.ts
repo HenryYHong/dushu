@@ -6,7 +6,7 @@ import type { Token } from '../../types';
 import type { KanjiInfo, LangEngine, WordEntry, WordLookup } from '../../lang/types';
 import { lang } from '../../lang/active';
 import { levelLabel } from '../../lang/labels';
-import { glossCode, ownRareLookup } from '../../lang/ownDictionary';
+import { glossCode, kanjiOwnMeaning, ownRareLookup, readsOwnLanguage } from '../../lang/ownDictionary';
 import { headOf, langVocabItem, safeLookup } from '../../lang/words';
 import { speak, stopSpeaking, canSpeak } from '../../speech/tts';
 import { h, clear } from '../dom';
@@ -175,20 +175,25 @@ export function mountLangWordView(
     return block;
   }
 
-  /** A kanji of a Japanese word as a chip: the character, a reading, a few words of meaning. Opens the kanji. */
+  /**
+   * A kanji of a Japanese word as a chip: the character, a reading, a few words of meaning. Opens the kanji. A reader of
+   * Japanese gets the meaning in Japanese for the reading shown (KANJIDIC's is English), or none.
+   */
   function kanjiCard(k: KanjiInfo): HTMLElement {
     const reading = k.kun[0] ?? k.on[0] ?? '';
+    const gloss = readsOwnLanguage('ja') ? kanjiOwnMeaning(k.char, reading) ?? '' : k.meanings.slice(0, 3).join(', ') || tt('No meaning listed');
     return h('button.pp-card', { type: 'button', onclick: () => push({ word: k.char }), title: tt('Look up {word}', { word: k.char }) },
       h('span.pp-card-glyph', { lang: 'ja' }, k.char),
       reading ? h('span.pp-py', { lang: 'ja' }, reading) : null,
-      h('span.pp-card-gloss', null, k.meanings.slice(0, 3).join(', ') || tt('No meaning listed')));
+      h('span.pp-card-gloss', { lang: readsOwnLanguage('ja') ? 'ja' : null }, gloss));
   }
 
   /** The facts of a single kanji (opened from a word's kanji). */
   function kanjiFacts(k: KanjiInfo): HTMLElement {
     // [label, value, the value is Japanese (the readings)]
     const rows: [string, string, boolean?][] = [];
-    if (k.meanings.length) rows.push([tt('Meanings'), k.meanings.join(', ')]);
+    // KANJIDIC's meanings are English; a reader of Japanese has the kanji's meanings in Japanese above them already.
+    if (k.meanings.length && !readsOwnLanguage('ja')) rows.push([tt('Meanings'), k.meanings.join(', ')]);
     if (k.on.length) rows.push([tt('On readings'), k.on.join('、'), true]);
     if (k.kun.length) rows.push([tt('Kun readings'), k.kun.join('、'), true]);
     if (k.strokes) rows.push([tt('Strokes'), String(k.strokes)]);
