@@ -407,9 +407,57 @@ def en_labels(s):
     return out[:2]
 
 
+# A label is a word or two a Wiktionary puts before a meaning ("coloquial", "Musik", "о человеке"). kaikki also hands on the
+# pieces of a note it split at its commas (Spanish "una": "se anteponer", "sustantivos femeninos"; German "fränkisch,
+# hohenlohisch und sächsisch oft": "und", "oft") and Spanish usage templates it did not expand ("utci": also intransitive).
+# In the Spanish and German extracts (where kaikki splits notes), when a meaning has several pieces, only those used at least
+# three times in the whole Wiktionary are labels ("Jägersprache" of "Jägersprache, als junges Reh"); one piece alone is a
+# whole note ("seguido del infinitivo"). The other Wiktionaries write labels from templates, and a label used once there is
+# still a label ("вопросительное мест."). A word that only joins or qualifies the label next to it (German "auch
+# Jägersprache", "sonst veraltet"), a piece that starts mid-sentence ("veces despectivo", of "a veces despectivo"), a template
+# code, a long note or a number is never a label.
+LABEL_USES = collections.Counter()
+LABEL_CODE = [None]
+MIN_LABEL_USES = {'es': 3, 'de': 3}
+NOT_A_LABEL = {
+    'de': {'und', 'oder', 'auch', 'oft', 'kurz', 'sonst', 'zu', 'in', 'im', 'bei', 'bis', 'für', 'mit', 'nur', 'noch', 'etwas',
+           'als', 'dann', 'sehr', 'erst', 'eher', 'heute', 'zumeist', 'meistens', 'mitunter', 'teils', 'bes.', 'insbesondere',
+           'etc.', 'usw.', 'z. b.', 'vor allem', 'besonders', 'meist', 'jemand', 'jemanden', 'jemandem', 'allgemeine',
+           'wegen x passiert y', 'einst im östlichen'},
+    'es': {'se aplica', 'se aplica especialmente', 'se aplica más', 'se emplea', 'se usa', 'personas', 'aplicado', 'convertirse',
+           'se anteponer', 'referido'},
+}
+ES_USAGE_CODE = re.compile(r'u[mt][a-z]{1,5}\d*')
+MID_SENTENCE = {'es': re.compile(r'(?:o|y|ni|veces)\b'), 'de': re.compile(r'(?:und|oder|bzw\.)\b')}
+
+
+def label_text(t):
+    return re.sub(r'[\s,;:]+$', '', clean(t or ''))
+
+
+def count_labels(code):
+    """How many meanings in the whole of the language's Wiktionary carry each label (edition_labels)."""
+    LABEL_USES.clear()
+    LABEL_CODE[0] = code
+    for e in cjk_entries(code):
+        for s in e.get('senses') or []:
+            LABEL_USES.update(label_text(t) for t in s.get('raw_tags') or [])
+
+
 def edition_labels(s):
-    """In another language's Wiktionary, its own labels (raw_tags: "coloquial", "anticuado"), short ones only."""
-    return [clean(t) for t in (s.get('rt') or []) if 0 < len(t) <= 24][:2]
+    """In another language's Wiktionary, its own labels (raw_tags: "coloquial", "anticuado"); see LABEL_USES."""
+    code, out = LABEL_CODE[0], []
+    tags = [t for t in map(label_text, s.get('rt') or []) if t]
+    for t in tags:
+        if len(t) > 24 or not re.search(r'[^\W\d_]', t) or (code == 'es' and ES_USAGE_CODE.fullmatch(t)):
+            continue
+        if t.lower() in NOT_A_LABEL.get(code, ()) or code in MID_SENTENCE and MID_SENTENCE[code].match(t):
+            continue
+        if len(tags) > 1 and LABEL_USES[t] < MIN_LABEL_USES.get(code, 0):
+            continue
+        if t not in out:
+            out.append(t)
+    return out[:2]
 
 
 # ------------------------------------------------------------------------------------------------------- writing ---
@@ -703,6 +751,7 @@ USED_AS_NOUN = re.compile(r'(?:sustantiv|substantiv|sostantiv)', re.I)
 
 
 def build_edition(code):
+    count_labels(code)
     rank, poses = main_dictionary(code)
     phrases = phrase_keys(code)
     found = collections.defaultdict(list)
@@ -1022,6 +1071,7 @@ def cjk_entries(code):
 
 
 def build_cjk(code):
+    count_labels(code)
     keys = cjk_keys(code)
     found = collections.defaultdict(list)
     # Japanese: entries by their kana word (with their part of speech and kanji spellings), and the kanji pages that only point
