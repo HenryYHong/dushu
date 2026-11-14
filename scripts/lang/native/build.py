@@ -188,6 +188,9 @@ def residue(text):
     # French Wiktionary's notes in the text: "référence nécessaire (résoudre le problème)" (a source is wanted), "(définition
     # tirée du tlfi, consulté le …)" (where it came from).
     text = re.sub(r'\s*référence nécessaire \(résoudre le problème\)\s*', ' ', text)
+    # Chinese Wiktionary's reading and part of speech in front of a meaning (好: "（ㄏㄠˇ，hǎo）【形容詞】優良"): the card gives both.
+    text = re.sub(r'^（[ㄅ-ㄩˊˇˋ˙\s]+[，,][^（）]*）\s*', '', text)
+    text = re.sub(r'^(?:【[^【】]{1,4}詞】)+\s*', '', text)
     text = re.sub(r'\s*(?:— )?\(définition (?:tirée|issue|reprise) d[^()]*\)', '', text)
     # A sense number of the page ("De manera gratis_(1–2)", "palavra … de plural^(1,2)", "… avant un assaut. (1) (2)"): the card
     # does not number senses as the page does. After a word ("Alear_(1, 2, 3)") only: chemistry's "tricyclo[3.1.0.0^(2,6)]",

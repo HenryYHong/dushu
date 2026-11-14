@@ -150,3 +150,20 @@ describe('names come after the common word', () => {
     });
   }
 });
+
+// A character on a Chinese word's card shows one meaning: its first (src/ui/popup/wordView.ts charGloss). For the commonest
+// characters that is never a pointer to another character, a surname or the taxonomic sense (人 was "生物分類法中的一科").
+describe('the commonest characters lead with an everyday meaning', () => {
+  it('300 commonest', () => {
+    const rows = (f: string) => gunzipSync(readFileSync(join(DATA, f))).toString('utf8').split('\n').filter((l) => l && !l.startsWith('#')).map((l) => l.split('\t'));
+    const freq = new Map<string, number>();
+    for (const [w, n] of rows('words.tsv.gz')) if (/^\d+$/.test(n ?? '')) for (const ch of w) freq.set(ch, (freq.get(ch) ?? 0) + Number(n));
+    const s2t = new Map(rows('s2t.tsv.gz').map((c) => [c[0], c[1]]));
+    const first = new Map<string, string>();
+    for (const c of rows('native.tsv.gz')) if (!first.has(c[0]) && c[3]) first.set(c[0], c[3]);
+    const top = [...freq].filter(([ch]) => /^[一-鿿]$/.test(ch)).sort((a, b) => b[1] - a[1]).slice(0, 300).map(([ch]) => ch);
+    const bad = top.map((ch) => [ch, first.get(s2t.get(ch) ?? ch) ?? first.get(ch) ?? ''] as const)
+      .filter(([, m]) => /本字|異體字|簡體字|^\{?姓|^姓氏|^同「|生物分類|^（ㄅ/.test(m)).map(([ch, m]) => `${ch}: ${m}`);
+    expect(bad).toEqual([]);
+  });
+});
