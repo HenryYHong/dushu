@@ -12,6 +12,7 @@ const files = [join(DATA, 'native.tsv.gz'), ...readdirSync(DATA).map((d) => join
 const MARKUP: [string, RegExp][] = [
   ['a magic word', /__[A-Z]+__/],
   ['a template', /\{\{|\}\}/],
+  ['a template\'s name', /(?:Template|Vorlage|模板|Шаблон):\S/],
   ['a link', /\[\[(?!\()/],
   ['a footnote mark', /\^\(\[|^\^?[‡⁜†]/],
   ['a pointer page', /的發音和釋義，請見/],

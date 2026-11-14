@@ -177,6 +177,7 @@ def residue(text):
     if NO_MEANING.search(text):
         return ''
     text = MAGIC_WORD.sub('', text).strip()
+    text = re.sub(r'(?:Template|Vorlage|模板|Шаблон):[^\s，。、;,.]+', '', text)  # a template's name left in the text
     text = re.sub(r'(?:^|\s):+\[\d+\]\s*', ' ', text)  # "Als Hilfsverb: ::[3] zur Futurbildung": a numbered sub-meaning's mark
     text = OLD_MARK.sub('', text)
     # A mark in the text: a reference to other senses ("von ^([1]) abgeleitet": sense 1) or a note (^([來源請求]), citation needed).
