@@ -235,12 +235,28 @@ export function chineseSpellings(word: string, entries: readonly { trad: string;
   opts: { traditional?: string; readsTraditional?: boolean } = {}): string[] {
   const ordered = entries.map((e, i) => ({ e, i, minor: minorEntry(e) }))
     .sort((a, b) => Number(a.minor) - Number(b.minor) || b.e.defs.length - a.e.defs.length || a.i - b.i).map((x) => x.e);
-  return [...new Set([
+  const spellings = [
     ...(opts.readsTraditional ? [word] : []),
     ...ordered.flatMap((e) => [e.trad, e.simp]),
     word,
     opts.traditional,
-  ].filter((s): s is string => !!s))];
+  ].filter((s): s is string => !!s);
+  // Last, the same word in the traditional variant Wiktionary files it under (那裏: 那裡, 甚麼: 什麼, 鎗: 槍).
+  return [...new Set([...spellings, ...spellings.map(standardVariant)])];
+}
+
+/**
+ * Traditional variants of the same character that books print and Chinese Wiktionary files under the other (裏 and 裡, 歎 and
+ * 嘆): only characters that mean the same thing, never a variant of another meaning (閒 is also 間 "between", but in the novels
+ * it is 閑 "idle", and that is the one listed here).
+ */
+const VARIANT: Record<string, string> = {
+  裏: '裡', 歎: '嘆', 鎗: '槍', 爲: '為', 衆: '眾', 綫: '線', 峯: '峰', 羣: '群', 牀: '床', 麪: '麵', 僞: '偽', 脣: '唇',
+  鷄: '雞', 銹: '鏽', 啓: '啟', 敎: '教', 閒: '閑', 竪: '豎', 卻: '却', 纔: '才', 囘: '回', 迴: '回', 讚: '贊', 慙: '慚',
+  牆: '墻', 菴: '庵', 箇: '個', 衞: '衛', 煙: '烟', 鉅: '巨', 姊: '姐',
+};
+function standardVariant(word: string): string {
+  return word === '甚麼' ? '什麼' : [...word].map((c) => VARIANT[c] ?? c).join('');
 }
 
 /**
