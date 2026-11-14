@@ -19,6 +19,9 @@ const MARKUP: [string, RegExp][] = [
   ['a request for a meaning', /需要翻譯|請協助添加|rfdef/],
   ['table markup', /wikitable|class=['"]|displaystyle/],
   ['a stray mark in front', /^[}\],;:]/],
+  ['a request for a source', /référence nécessaire|Exemple d.utilisation manquant/],
+  ['an example quoted with its source', / — \((?=[^()]*(?:\b1[5-9]\d\d\b|\b20[0-2]\d\b|\bpage\b))[^()]*\)\s*$/],
+  ['a sense number of the page', /\p{L}\p{Ll}{2}[_^]\(\d/u],
 ];
 
 /** The meanings of a line (after the word, part of speech and hint), each without its {labels}. */

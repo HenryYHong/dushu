@@ -163,6 +163,9 @@ HALF_LINK = re.compile(r'(?<!\[)\[([^\[\]]*/[^\[\]]*)\]\]')
 # A meaning that is only a request for one ("本詞語需要翻譯為漢語。請協助添加"), says it is not known, or is a table's markup.
 NO_MEANING = re.compile(r'需要翻譯為漢語|請協助添加|\{\{rfdef|rfdef\}\}|此詞的含意不確定|^\*?\s*\[[ST]:|class=[\'"]|wikitable|style=[\'"]|displaystyle'
                         r'|Définition manquante|definizione mancante|vedasi la definizione|Definición faltante|definição em falta'
+                        r'|Exemple d’utilisation manquant|Exemple d\'utilisation manquant'
+                        # An example quoted with its source in place of a meaning ("… — (Joseph Kessel, Les Cavaliers, Gallimard, 1967)").
+                        r'| — \((?=[^()]*(?:\b1[5-9]\d\d\b|\b20[0-2]\d\b|\bpage\b))[^()]*\)\s*$'
                         r'|^(?:(?:in)?transitiv[oe]|pronominale?|riflessivo|reflexivo|intransitivo|разг|предик|перен|прост|устар|книжн|спец)\.?[;:.]*$'
                         r'|^[（(][^（）()]*[）)]$')
 
@@ -173,10 +176,22 @@ def last_part(text):
     return parts[-1].strip() if parts else ''
 
 
+SENSE_NUMBER = re.compile(r'([^\W\d_]+)[_^]\(\d{1,2}[a-z]?(?:\s*(?:[,–-]|y|ó|o|e|и|et|und|,\s*e|,\s*y)\s*\d{1,2}[a-z]?)*\)')
+
+
 def residue(text):
     if NO_MEANING.search(text):
         return ''
     text = MAGIC_WORD.sub('', text).strip()
+    # French Wiktionary's notes in the text: "référence nécessaire (résoudre le problème)" (a source is wanted), "(définition
+    # tirée du tlfi, consulté le …)" (where it came from).
+    text = re.sub(r'\s*référence nécessaire \(résoudre le problème\)\s*', ' ', text)
+    text = re.sub(r'\s*(?:— )?\(définition (?:tirée|issue|reprise) d[^()]*\)', '', text)
+    # A sense number of the page ("De manera gratis_(1–2)", "palavra … de plural^(1,2)", "… avant un assaut. (1) (2)"): the card
+    # does not number senses as the page does. After a word ("Alear_(1, 2, 3)") only: chemistry's "tricyclo[3.1.0.0^(2,6)]",
+    # "Zn_(5.5)" and "CₙH_(2n + 2)" are names and formulas.
+    text = SENSE_NUMBER.sub(lambda m: m.group(1) if m.group(1)[1:].islower() and len(m.group(1)) >= 3 else m.group(0), text)
+    text = re.sub(r'(?<=[.!?])(?:\s*\(\d{1,2}\))+\s*$', '', text)
     text = re.sub(r'(?:Template|Vorlage|模板|Шаблон):[^\s，。、;,.]+', '', text)  # a template's name left in the text
     text = re.sub(r'(?:^|\s):+\[\d+\]\s*', ' ', text)  # "Als Hilfsverb: ::[3] zur Futurbildung": a numbered sub-meaning's mark
     text = OLD_MARK.sub('', text)
