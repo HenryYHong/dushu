@@ -417,7 +417,39 @@ def edition_labels(s):
 WORD = re.compile(r"[^\W\d_]+(?:['’-][^\W\d_]+)*")
 
 
+# Words that say what kind of thing a name is, never a simpler word for it ("сергей": фамилия, "estée": prénom féminin).
+NOT_A_HINT = {
+    'surname', 'name', 'first name', 'given name', 'city', 'town', 'village', 'river', 'country',
+    'фамилия', 'имя', 'мужское имя', 'женское имя', 'отчество', 'город', 'река', 'деревня', 'село',
+    'prénom', 'prénom féminin', 'prénom masculin', 'nom', 'nom de famille', 'ville', 'commune', 'rivière', 'fleuve',
+    'cognome', 'nome', 'nome proprio', 'città', 'comune', 'fiume', 'paese',
+    'apellido', 'nombre', 'nombre propio', 'ciudad', 'pueblo', 'río',
+    'sobrenome', 'apelido', 'nome próprio', 'cidade', 'vila', 'rio',
+    'nachname', 'vorname', 'familienname', 'stadt', 'dorf', 'fluss', 'gemeinde',
+}
+
+
 def pick_hint(code, key, entries, rank, poses):
+    hint = _pick_hint(code, key, entries, rank, poses)
+    if (code, key) in HINT_OVERRIDES:
+        return HINT_OVERRIDES[(code, key)]
+    return '' if hint.lower().strip() in NOT_A_HINT else hint
+
+
+def hint_overrides():
+    """written/hints.tsv: a word's hint over the text set by hand, or none (an empty hint): lang, key, hint."""
+    out = {}
+    path = os.path.join(WRITTEN, 'hints.tsv')
+    if os.path.exists(path):
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                if line.strip() and not line.startswith('#'):
+                    c = line.rstrip('\n').split('\t')
+                    out[(c[0], c[1])] = c[2] if len(c) > 2 else ''
+    return out
+
+
+def _pick_hint(code, key, entries, rank, poses):
     """A simpler word for `key` in its commonest part of speech, only when two sources agree on it: a synonym of the same part
     of speech that its own definitions also use, or a definition that is itself a word or two, all of them common. Either
     way much commoner than `key`. Empty otherwise (most words: a wrong hint over the text is worse than none)."""
@@ -717,15 +749,15 @@ def build_edition(code):
                     e['senses'] = (e['senses'] + [s for s in theirs if s not in e['senses']])[:MAX_SENSES]
                 e['replace'] = True
                 # In the place of Wiktionary's entry of that part of speech, so the word's parts keep their order.
-                kept, placed = [], False
+                rows, placed = [], False
                 for x in found.get(key, []):
                     if x['pos'] == e['pos']:
                         if not placed:
-                            kept.append(e)
+                            rows.append(e)
                             placed = True
                     else:
-                        kept.append(x)
-                found[key] = kept if placed else kept
+                        rows.append(x)
+                found[key] = rows
                 e['placed'] = placed
         by_word[key].extend(entries)
         have = {e['pos'] for e in as_main_pos(found.get(key, []), poses.get(key, set()))}
@@ -774,6 +806,9 @@ WRITTEN = os.path.join(ROOT, 'scripts', 'lang', 'native', 'written')
 WRITTEN_NOTE = ' and meanings written for LinguPengu'
 WRITTEN_SOURCE = {'name': 'Meanings written for LinguPengu where Wiktionary has none', 'license': 'CC BY-SA 4.0',
                   'url': 'https://github.com/HenryYHong/dushu/tree/main/scripts/lang/native/written'}
+
+
+HINT_OVERRIDES = {}
 
 
 def written_entries(code):
@@ -952,14 +987,17 @@ def merge_senses(entries):
 
 def cjk_entries(code):
     """The language's own entries in its Wiktionary, from kaikki.org's extract (a stream of every language's entries there,
-    gigabytes). The first run keeps the fields used here at .cache/raw/kaikki-<code>-slim.jsonl.gz; later runs read that."""
+    gigabytes). The first run keeps the fields used here at .cache/raw/kaikki-<code>-slim.jsonl.gz; later runs read that (an
+    extract made before synonyms were kept has none: delete it to fetch anew)."""
     slim = os.path.join(ROOT, '.cache', 'raw', f'kaikki-{code}-slim.jsonl.gz')
     if os.path.exists(slim):
         with gzip.open(slim, 'rt', encoding='utf-8') as f:
             for line in f:
                 yield json.loads(line)
         return
-    keep_sense = ('glosses', 'tags', 'raw_tags', 'form_of', 'alt_of')
+    # The synonyms too, words only: the simpler-word hints are chosen from them (pick_hint).
+    keep_sense = ('glosses', 'tags', 'raw_tags', 'form_of', 'alt_of', 'synonyms')
+    words_only = lambda xs: [{'word': x['word']} for x in xs or [] if x.get('word')]
     tmp = slim + '.part'
     os.makedirs(os.path.dirname(slim), exist_ok=True)
     url = f'https://kaikki.org/{code}wiktionary/raw-wiktextract-data.jsonl.gz'
@@ -975,7 +1013,9 @@ def cjk_entries(code):
                 continue
             e = {'word': e.get('word'), 'lang_code': code, 'pos': e.get('pos'),
                  'forms': [{'form': fm.get('form'), 'tags': fm.get('tags')} for fm in e.get('forms') or [] if 'kanji' in (fm.get('tags') or [])],
-                 'senses': [{k: sn[k] for k in keep_sense if sn.get(k)} for sn in e.get('senses') or []]}
+                 'senses': [{k: (words_only(sn[k]) if k == 'synonyms' else sn[k]) for k in keep_sense if sn.get(k)}
+                            for sn in e.get('senses') or []],
+                 **({'synonyms': words_only(e['synonyms'])} if e.get('synonyms') else {})}
             out.write(json.dumps(e, ensure_ascii=False) + '\n')
             yield e
     os.replace(tmp, slim)
@@ -1159,6 +1199,7 @@ def build_cjk(code):
 
 
 if __name__ == '__main__':
+    HINT_OVERRIDES.update(hint_overrides())
     args = sys.argv[1:]
     if args == ['--extract-en']:
         extract_en()
