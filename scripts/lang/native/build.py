@@ -1356,12 +1356,17 @@ def build_cjk(code):
         for e in read_as:
             read = e['pos'].lstrip('!+')[1:]
             senses = e['senses']
-            if e['pos'][:1] in '!+':
-                # "!@いき": takes the place of the lines read so, and of those whose reading is not said; "+@いき": goes before them.
-                theirs = merge_senses([x for x in found.get(key, []) if x.get('reading') in (read, '?', '')])
+            if e['pos'][:1] == '!':
+                # "!@いき": takes the place of the lines read so, and of those whose reading is not said.
                 found[key] = [x for x in found.get(key, []) if x.get('reading') not in (read, '?', '')]
-                if e['pos'][0] == '+':
-                    senses = (senses + [x for x in theirs if x not in senses])[:CJK_SENSES]
+            elif e['pos'][:1] == '+':
+                # "+@おおぜい": goes before the lines read so (and those of a reading not known, "?"), first on the card; a line
+                # that names no reading stays, for the word's other readings (大勢 read たいせい).
+                theirs = merge_senses([x for x in found.get(key, []) if x.get('reading') in (read, '?')])
+                found[key] = [x for x in found.get(key, []) if x.get('reading') not in (read, '?')]
+                senses = (senses + [x for x in theirs if x not in senses])[:CJK_SENSES]
+                found[key].insert(0, {'pos': '', 'senses': senses, 'syn': [], 'reading': read})
+                continue
             found[key].append({'pos': '', 'senses': senses, 'syn': [], 'reading': read})
         entries = [e for e in entries if not e['pos'].lstrip('!+').startswith('@')]
         # Chinese "+": the written meanings first, Wiktionary's after.
