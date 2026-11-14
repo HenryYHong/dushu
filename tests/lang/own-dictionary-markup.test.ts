@@ -78,3 +78,24 @@ describe('own-language dictionaries show only real labels', () => {
     });
   }
 });
+
+// kaikki hands most usage labels on as English tags ("coloquial" as colloquial), and the builder puts them back in the
+// language's words (TAG_LABELS in scripts/lang/native/build.py). If that stopped, cards would quietly lose "colloquial",
+// "dated" and "vulgar" (as they did before 2026-11-14): each language's commonest usage label must stay common. The floors
+// are about half the counts then.
+const USAGE_FLOORS: [string, string, number][] = [
+  ['es', 'coloquial', 2000], ['fr', 'Familier', 2000], ['de', 'umgangssprachlich', 1800], ['it', 'figurato', 1800], ['pt', 'figurado', 800],
+];
+
+describe('own-language dictionaries keep their usage labels', () => {
+  for (const [lang, label, floor] of USAGE_FLOORS) {
+    it(`${lang}: ${label}`, () => {
+      let n = 0;
+      for (const line of gunzipSync(readFileSync(join(DATA, lang, 'native.tsv.gz'))).toString('utf8').split('\n')) {
+        if (!line || line.startsWith('#')) continue;
+        for (const m of line.split('\t').slice(3)) if (/^\{([^}]*)\}/.exec(m)?.[1].split(', ').includes(label)) n++;
+      }
+      expect(n).toBeGreaterThanOrEqual(floor);
+    });
+  }
+});

@@ -446,6 +446,85 @@ ES_USAGE_CODE = re.compile(r'u[mt][a-z]{1,5}\d*')
 MID_SENTENCE = {'es': re.compile(r'(?:o|y|ni|veces)\b'), 'de': re.compile(r'(?:und|oder|bzw\.)\b')}
 
 
+# kaikki turns most usage labels of a Wiktionary into English tags ("coloquial", "Chile" → colloquial, Chile), and a label it
+# kept as written is the rest (raw_tags). These put the tags back in the language's own words, as its Wiktionary writes them
+# (wiktextract's extractor/<code>/tags.py says which labels became which tag). Not: tags that only say a spelling (Portuguese
+# "Brazilian" is "grafia brasileira"), grammar, or a tag two different labels share (German "formal" is also the topic
+# "formale Sprachen").
+_PLACES_ES = ['Chile', 'Argentina', 'Venezuela', 'Colombia', 'Uruguay', 'Bolivia', 'Honduras', 'Cuba', 'Ecuador', 'Nicaragua',
+              'Guatemala', 'Paraguay', 'Chiloé', 'Salamanca', 'Asturias', 'León', 'Murcia', 'Cantabria', 'Navarra', 'Álava',
+              'Extremadura', 'Galicia', 'Yucatán', 'Burgos', 'Hidalgo', 'Zamora', 'Palencia', 'La Rioja']
+_PLACES_PT = ['Portugal', 'Angola', 'Rio Grande do Sul', 'Bahia', 'Minas Gerais', 'Rio de Janeiro', 'Ceará', 'Pernambuco',
+              'Amazonas', 'Maranhão', 'Pará', 'Mato Grosso']
+TAG_LABELS = {
+    'es': {**{p: p for p in _PLACES_ES},
+           'colloquial': 'coloquial', 'slang': 'jerga', 'vulgar': 'vulgar', 'derogatory': 'despectivo', 'ironic': 'irónico',
+           'figurative': 'figurado', 'outdated': 'desusado', 'obsolete': 'anticuado', 'rare': 'poco usado',
+           'neologism': 'neologismo', 'literary': 'literario', 'formal': 'formal', 'Lunfardo': 'lunfardo',
+           'Mexico': 'México', 'Spain': 'España', 'Peru': 'Perú', 'Río-de-la-Plata': 'Río de la Plata', 'El-Salvador': 'El Salvador',
+           'America': 'América', 'Puerto-Rico': 'Puerto Rico', 'Costa-Rica': 'Costa Rica', 'Dominican-Republic': 'República Dominicana',
+           'Andalusia': 'Andalucía', 'Panama': 'Panamá', 'Central-America': 'Centroamérica', 'Aragon': 'Aragón',
+           'South-America': 'Sudamérica', 'Canaries': 'Canarias', 'South-Cone': 'Cono Sur', 'Caribbean': 'Caribe',
+           'US': 'Estados Unidos', 'Philippines': 'Filipinas', 'Southern-Chile': 'sur de Chile', 'Castile': 'Castilla',
+           'Basque Country': 'País Vasco', 'Mexico-City': 'Ciudad de México', 'Catalonia': 'Cataluña'},
+    'fr': {'figuratively': 'Figuré', 'familiar': 'Familier', 'dated': 'Vieilli', 'obsolete': 'Désuet', 'broadly': 'Par extension',
+           'rare': 'Rare', 'especially': 'En particulier', 'slang': 'Argot', 'Anglicism': 'Anglicisme', 'pejorative': 'Péjoratif',
+           'colloquial': 'Populaire', 'analogy': 'Par analogie', 'metonymically': 'Par métonymie', 'neologism': 'Néologisme',
+           'archaic': 'Archaïsme', 'vulgar': 'Vulgaire', 'ellipsis': 'Par ellipse', 'ironic': 'Ironique', 'literally': 'Sens propre',
+           'literary': 'Littéraire', 'formal': 'Soutenu', 'offensive': 'Injurieux', 'hyperbole': 'Par hyperbole',
+           'poetic': 'Poétique', 'informal': 'Informel', 'Ancient': 'Antiquité', 'Ancient-Greek': 'Grèce antique',
+           'Ancient-Roman': 'Rome antique', 'Judaism': 'Judaïsme', 'Biblical': 'Bible', 'European-Union': 'Union européenne',
+           'Middle-Ages': 'Moyen Âge', 'Hinduism': 'Hindouisme', 'Nazism': 'Nazisme', 'Marxism': 'Marxisme'},
+    'de': {'colloquial': 'umgangssprachlich', 'casual': 'salopp', 'vulgar': 'vulgär', 'derogatory': 'abwertend',
+           'pejorative': 'abwertend', 'humorous': 'scherzhaft', 'ironic': 'ironisch', 'figurative': 'übertragen',
+           'metonymically': 'metonymisch', 'dated': 'veraltet', 'outdated': 'veraltend', 'historical': 'historisch',
+           'rare': 'selten', 'uncommon': 'ungebräuchlich', 'literary': 'gehoben', 'poetic': 'dichterisch', 'popular': 'volkstümlich',
+           'regional': 'regional', 'dialectal': 'mundartlich', 'Austrian German': 'österreichisch',
+           'Swiss Standard German': 'schweizerisch', 'Germany': 'Deutschland', 'North German': 'norddeutsch', 'Bavarian': 'bairisch',
+           'South-German': 'süddeutsch', 'South German': 'süddeutsch', 'Swabian': 'schwäbisch', 'Erzgebirgisch': 'erzgebirgisch',
+           'Alemannic': 'alemannisch', 'Vienna': 'wienerisch'},
+    'it': {'colloquial': 'colloquiale', 'informal': 'informale', 'slang': 'gergale', 'vulgar': 'volgare', 'pejorative': 'spregiativo',
+           'offensive': 'offensivo', 'figuratively': 'figurato', 'broadly': 'per estensione', 'obsolete': 'obsoleto',
+           'archaic': 'antico', 'rare': 'raro', 'neologism': 'neologismo', 'literary': 'letterario', 'formal': 'formale',
+           'regional': 'regionale'},
+    'pt': {**{p: p for p in _PLACES_PT},
+           'colloquial': 'coloquial', 'informal': 'informal', 'familiar': 'familiar', 'vulgar': 'vulgar', 'derogatory': 'depreciativo',
+           'pejorative': 'pejorativo', 'ironic': 'ironia', 'figuratively': 'figurado', 'obsolete': 'em desuso', 'archaic': 'arcaico',
+           'historical': 'histórico', 'rare': 'raro', 'uncommon': 'pouco comum', 'Anglicism': 'anglicismo', 'poetic': 'poético',
+           'popular': 'popular', 'regional': 'regionalismo', 'Brazil': 'Brasil', 'Galicia': 'Galiza',
+           'Northeast-Brazil': 'Nordeste do Brasil', 'Southern-Brazil': 'Sul do Brasil', 'North-Brazil': 'Norte do Brasil',
+           'Goias': 'Goiás'},
+}
+
+# Places, which kaikki lists in the order of the alphabet: up to three are shown; more, in the Americas only, are "América";
+# more with Spain, or Brazil with Portugal, say the meaning is used widely, and none is shown.
+SPAIN_ES = {'Spain', 'Salamanca', 'Asturias', 'León', 'Murcia', 'Cantabria', 'Navarra', 'Álava', 'Extremadura', 'Galicia',
+            'Burgos', 'Zamora', 'Palencia', 'La Rioja', 'Andalusia', 'Aragon', 'Canaries', 'Castile', 'Basque Country', 'Catalonia'}
+PLACE_TAGS = {
+    'es': set(_PLACES_ES) | SPAIN_ES | {'Mexico', 'Peru', 'Río-de-la-Plata', 'El-Salvador', 'America', 'Puerto-Rico', 'Costa-Rica',
+                                      'Dominican-Republic', 'Panama', 'Central-America', 'South-America', 'South-Cone',
+                                      'Caribbean', 'US', 'Philippines', 'Southern-Chile', 'Mexico-City'},
+    'pt': set(_PLACES_PT) | {'Brazil', 'Galicia', 'Northeast-Brazil', 'Southern-Brazil', 'North-Brazil', 'Goias'},
+    'de': {'Austrian German', 'Swiss Standard German', 'Germany', 'North German', 'Bavarian', 'South-German', 'South German',
+           'Swabian', 'Erzgebirgisch', 'Alemannic', 'Vienna'},
+}
+MAX_PLACES = 3
+
+
+def tag_labels(code, tags):
+    """(places, other labels) of a meaning's kaikki tags, in the language's words (TAG_LABELS)."""
+    words, places = TAG_LABELS.get(code, {}), PLACE_TAGS.get(code, set())
+    mine = [t for t in dict.fromkeys(tags or []) if t in words]
+    where = [t for t in mine if t in places]
+    if len(where) > MAX_PLACES:
+        americas = code == 'es' and not any(t in SPAIN_ES or t == 'Philippines' for t in where)
+        where = ['America'] if americas else []
+    if code == 'pt' and 'Brazil' in where and 'Portugal' in where:
+        where = [t for t in where if t not in ('Brazil', 'Portugal')]
+    return (list(dict.fromkeys(words[t] for t in where)),
+            list(dict.fromkeys(words[t] for t in mine if t not in places)))
+
+
 def label_text(t):
     return re.sub(r'[\s,;:]+$', '', clean(t or ''))
 
@@ -460,8 +539,10 @@ def count_labels(code):
 
 
 def edition_labels(s):
-    """In another language's Wiktionary, its own labels (raw_tags: "coloquial", "anticuado"); see LABEL_USES."""
-    code, out = LABEL_CODE[0], []
+    """In another language's Wiktionary, its own labels: the usage tags kaikki made of them, in its words (TAG_LABELS), then
+    the ones it kept as written (raw_tags: see LABEL_USES)."""
+    code = LABEL_CODE[0]
+    places, out = tag_labels(code, s.get('t'))
     tags = [t for t in map(label_text, s.get('rt') or []) if t]
     for t in tags:
         if len(t) > 24 or not re.search(r'[^\W\d_]', t) or (code == 'es' and ES_USAGE_CODE.fullmatch(t)):
@@ -472,7 +553,7 @@ def edition_labels(s):
             continue
         if t not in out:
             out.append(t)
-    return out[:2]
+    return places + [t for t in out if t not in places][:2]
 
 
 # ------------------------------------------------------------------------------------------------------- writing ---
