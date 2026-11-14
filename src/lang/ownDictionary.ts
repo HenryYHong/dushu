@@ -61,6 +61,8 @@ export interface OwnEntry {
   senses: Sense[];
   /** Japanese: under a kana word, the kanji its entries are written with ("=息,粋" in the part-of-speech column). */
   kanji?: string[];
+  /** Japanese: under a kanji spelling, the readings (hiragana) this line is read as ("@いき"; 息 read そく is another line). */
+  readings?: string[];
 }
 /** A word's entries by its key. */
 export interface OwnTable {
@@ -80,32 +82,45 @@ function entryOf(line: string): OwnEntry | null {
   if (cells.length < 4) return null;
   const [, column, hint] = cells;
   const kanji = column.startsWith('=') ? column.slice(1).split(',').filter(Boolean) : undefined;
-  const pos = kanji ? '' : column;
+  const readings = column.startsWith('@') ? column.slice(1).split(',').filter(Boolean) : undefined;
+  const pos = kanji || readings ? '' : column;
   const senses = cells.slice(3).filter(Boolean).map((c) => sense(c, pos === 'phrase' ? '' : pos));
-  return senses.length ? { pos, hint, senses, ...(kanji?.length ? { kanji } : {}) } : null;
+  return senses.length ? { pos, hint, senses, ...(kanji?.length ? { kanji } : {}), ...(readings?.length ? { readings } : {}) } : null;
 }
 
+/** Katakana as hiragana (ソク: そく), so readings compare whichever way they are written. */
+const hiragana = (s: string) => s.replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+
 /**
- * A Japanese word's own entries by its spellings (its key, the word as written, its other spellings), else by its readings: for
- * a word written in kanji, only the entries under a kana spelling that name one of its kanji, or failing those the ones that name
- * none. An entry that names only other kanji is another word read the same (いき is 息 and 粋, not 行き). Null when there are none.
+ * A Japanese word's own entries by its spellings (its key, the word as written, its other spellings), the lines under a kanji
+ * spelling kept to those read as the word is (息 いき "breath", not 息 そく "son"); else by its readings: for a word written in
+ * kanji, only the entries under a kana spelling that name one of its kanji, or failing those the ones that name none. An entry
+ * that names only other kanji is another word read the same (いき is 息 and 粋, not 行き). Null when there are none.
  */
 export function japaneseOwn(table: OwnTable, spellings: readonly (string | undefined)[], reading: string | undefined): OwnEntry[] | null {
   const kana = (s: string) => /^[\u3040-\u30ffー]+$/.test(s);
   const all = [...new Set([...spellings, reading].filter((s): s is string => !!s))];
   const written = all.filter((s) => !kana(s));
+  const readAs = new Set(all.filter(kana).map(hiragana));
+  /** A line under a kanji spelling that is this word: read as it is, or written for it (no reading named). */
+  const mine = (x: OwnEntry) => !x.readings || !readAs.size || x.readings.some((r) => readAs.has(r));
+  const unsure = (x: OwnEntry) => x.readings?.length === 1 && x.readings[0] === '?';
   for (const k of written.length ? written : all) {
-    const list = table.get(k);
+    const list = table.get(k)?.filter(mine);
     if (list?.length) return list;
   }
   if (!written.length) return null;
+  // By its reading: the entries naming one of its kanji, then lines under its kanji whose reading is not said, then the
+  // entries naming no kanji.
+  let open: OwnEntry[] = [];
   for (const k of all.filter(kana)) {
     const rows = table.get(k) ?? [];
     const named = rows.filter((x) => x.kanji?.some((w) => written.includes(w)));
-    const open = rows.filter((x) => !x.kanji?.length);
-    if (named.length || open.length) return named.length ? named : open;
+    if (named.length) return named;
+    if (!open.length) open = rows.filter((x) => !x.kanji?.length);
   }
-  return null;
+  const unknown = written.flatMap((k) => table.get(k)?.filter(unsure) ?? []);
+  return unknown.length ? unknown : open.length ? open : null;
 }
 
 /**

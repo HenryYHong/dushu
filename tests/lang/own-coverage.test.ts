@@ -85,13 +85,18 @@ describe('every HSK and JLPT word, and the commonest Chinese and Japanese words,
     const table = parseOwnTable(gunzipSync(readFileSync(join(DATA, 'ja', 'native.tsv.gz'))).toString('utf8'));
     const forms = (col: string) => col.split(';').map((f) => f.split('#')[0].split('@')[0]).filter(Boolean);
     const kana = (s: string) => /^[぀-ヿー]+$/.test(s);
+    const hira = (s: string) => s.replace(/[ァ-ヶ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
     const missing = rows(join(DATA, 'ja', 'jmdict.tsv.gz')).filter((c) => {
       if (!c[2] && !/#P/.test(c[0] + c[1])) return false;
       const all = [...forms(c[0]), ...forms(c[1])];
       const found = japaneseOwn(table, all, forms(c[1])[0]);
-      // A word written in kanji: found under one of its own spellings, or under its reading only by entries naming its kanji.
+      // A word written in kanji: a line under one of its spellings read as it is (or written for it), or an entry under its
+      // reading that names its kanji. Not a line whose reading is not said, nor an entry naming no kanji: either may be
+      // another word.
       const written = all.filter((s) => !kana(s));
-      return !found || (written.length > 0 && !written.some((s) => table.get(s)?.length) && !found.some((e) => e.kanji?.length));
+      const readAs = new Set(all.filter(kana).map(hira));
+      const own = written.some((s) => table.get(s)?.some((x) => !x.readings || x.readings.some((r) => readAs.has(r))));
+      return !found || (written.length > 0 && !own && !found.some((e) => e.kanji?.length));
     });
     console.log(`ja: ${missing.length} JLPT and common words lack a meaning in Japanese`, missing.slice(0, 30).map((c) => [...forms(c[0]), ...forms(c[1])][0]).join(' '));
     expect(missing.slice(0, 20).map((c) => c[0] || c[1])).toEqual([]);

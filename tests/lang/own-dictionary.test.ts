@@ -179,6 +179,22 @@ describe('a Japanese word by its reading', () => {
   it('an entry naming no kanji may be the word', () => {
     expect(first(japaneseOwn(table, ['出る'], 'でる'))).toMatch(/外へ/);
   });
+  it('under a kanji spelling, only the lines read as the word is', () => {
+    const t = parseOwnTable(['息\t@そく\t\t息子。', '息\t@いき\t\t呼吸。', '上\t@うえ,かみ\t\t高い方。'].join('\n'));
+    expect(first(japaneseOwn(t, ['息', 'いき'], 'いき'))).toBe('呼吸。');
+    expect(first(japaneseOwn(t, ['息', 'ソク'], 'ソク'))).toBe('息子。');
+    expect(first(japaneseOwn(t, ['上'], 'かみ'))).toBe('高い方。');
+    expect(japaneseOwn(t, ['息', 'いきみ'], 'いきみ')).toBeNull();
+  });
+  it('a line whose reading is not said comes after an entry naming the kanji, and before one naming none', () => {
+    const t = parseOwnTable([
+      '生\t@?\t\tわたし。小生。', '生\t@せい\t\tいのち。', 'なま\t=生\t\t火を通していないこと。',
+      '雨\t@?\t\t空から降る水。', 'あめ\t\t\t甘いお菓子。',
+    ].join('\n'));
+    expect(first(japaneseOwn(t, ['生', 'なま'], 'なま'))).toBe('火を通していないこと。');
+    expect(first(japaneseOwn(t, ['生', 'せい'], 'せい'))).toBe('いのち。');
+    expect(first(japaneseOwn(t, ['雨', 'あめ'], 'あめ'))).toBe('空から降る水。');
+  });
   it('its own spelling first, and a kana word by any entry', () => {
     expect(first(japaneseOwn(table, ['受取る'], 'うけとる'))).toBeUndefined();
     expect(first(japaneseOwn(table, ['受け取る'], 'うけとる'))).toMatch(/収める/);
