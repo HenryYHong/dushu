@@ -751,8 +751,9 @@ def order_entries(found, poses):
         m['senses'] = sorted(m['senses'], key=lambda x: any(t in OLD_LABELS for t in x[1]))[:MAX_SENSES]
     # A meaning written for the app is for the part of speech the card's entry has, which the main dictionary's rows may not
     # name (German "lieben" as an adjective is its participle's).
-    have = [e for e in merged.values() if e['pos'] in poses or e.get('written')]
-    return have or list(merged.values())
+    have = [e for e in merged.values() if e['pos'] in poses or e.get('written')] or list(merged.values())
+    # A name after the word it is also (Spanish "rosa" the flower before Rosa the given name, "tiro" the shot before Tyre).
+    return sorted(have, key=lambda e: e['pos'] == 'proper noun')
 
 
 def build_en():

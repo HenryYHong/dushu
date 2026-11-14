@@ -9,7 +9,7 @@
 import type { Token } from '../../types';
 import type { LangEngine, LangId, Sense, WordEntry, WordLookup } from '../types';
 import { CONTEXT_MARGIN, type ContextChoice, type ContextQuery, type ContextReading, type ContextRule, type ContextWord } from './context';
-import { tt, ttm } from '../../i18n';
+import { posLabel } from '../posLabel';
 
 export type { ContextChoice, ContextQuery, ContextReading, ContextRule, ContextWord } from './context';
 
@@ -184,17 +184,6 @@ export const levelOfRank = (rank: number | undefined): number | undefined => {
 /** Words this common are marked `common` in the popup (B2 and below). */
 const COMMON_RANK = 5000;
 
-/**
- * Wiktionary's parts of speech as a card labels its senses: in the app's language (src/i18n). The engine reads the English
- * ones (Data.pos); only the senses a lookup returns carry the label. One the list lacks shows as the data has it.
- */
-const POS_LABELS: Record<string, string> = {
-  noun: ttm('noun'), 'proper noun': ttm('proper noun'), verb: ttm('verb'), adjective: ttm('adjective'), adverb: ttm('adverb'),
-  pronoun: ttm('pronoun'), determiner: ttm('determiner'), article: ttm('article'), numeral: ttm('numeral'), preposition: ttm('preposition'),
-  postposition: ttm('postposition'), conjunction: ttm('conjunction'), interjection: ttm('interjection'), particle: ttm('particle'),
-  contraction: ttm('contraction'), phrase: ttm('phrase'),
-};
-const posLabel = (pos: string): string => (Object.hasOwn(POS_LABELS, pos) ? tt(POS_LABELS[pos]) : pos);
 
 // ----------------------------------------------------------------------------------------------------- folding ---
 

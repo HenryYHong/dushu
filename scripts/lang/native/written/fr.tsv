@@ -153,7 +153,7 @@ coin	+noun	Endroit où deux murs, deux côtés ou deux rues se rencontrent ; ang
 or	+noun	Métal précieux jaune et brillant.	Conjonction : pourtant, cependant ; introduit une nouvelle étape d'un récit ou d'un raisonnement.
 poste	+noun	Service qui transporte le courrier ; bureau de ce service (la poste).	Emploi, place occupée dans un travail (le poste).	Endroit où quelqu'un est placé pour surveiller ou agir (poste de police).
 blague	+noun	Histoire drôle, plaisanterie.	Farce, mensonge pour rire.	Petit sac où l'on garde le tabac.
-réunion	!proper noun	Rencontre de plusieurs personnes pour parler ou travailler ensemble.	Action de rassembler ce qui était séparé.	La Réunion : île française de l'océan Indien.
+réunion	+noun	Rencontre de plusieurs personnes pour parler ou travailler ensemble.	Action de rassembler ce qui était séparé.	La Réunion : île française de l'océan Indien.
 test	+noun	Épreuve qui sert à vérifier ou à mesurer quelque chose.	Court examen pour évaluer les connaissances ou les capacités de quelqu'un.	Enveloppe dure de certains animaux marins, comme l'oursin.
 membre	+noun	Personne qui fait partie d'un groupe, d'une association, d'une famille.	Bras ou jambe.
 régler	+verb	Trouver une solution à un problème, à une affaire.	Payer ce que l'on doit (régler l'addition).	Ajuster un appareil pour qu'il fonctionne comme on veut.
@@ -162,7 +162,6 @@ prévenir	+verb	Avertir quelqu'un, l'informer d'avance.	Empêcher qu'un mal arri
 officier	+noun	Militaire gradé qui commande des soldats.	Personne qui remplit une fonction officielle (officier de police, d'état civil).
 classe	+noun	Groupe d'élèves qui suivent les mêmes cours ; la salle où ils travaillent.	Groupe de personnes qui ont la même place dans la société (classe sociale).	Catégorie de choses ou d'êtres qui se ressemblent.	Élégance, distinction (avoir de la classe).
 honte	+noun	Sentiment pénible qu'on éprouve après une faute ou devant le jugement des autres.	Ce qui déshonore, ce qui fait perdre l'estime.
-pierre	!proper noun	Matière dure et minérale qui forme les rochers.	Morceau de cette matière ; caillou.	Minéral rare et taillé, utilisé en bijouterie (pierre précieuse).
 rose	+adjective	Fleur du rosier, souvent parfumée, à tige épineuse.	De couleur rouge très pâle, entre le rouge et le blanc.
 quartier	+noun	Partie d'une ville, avec ses rues et ses habitants.	Une des quatre parties d'un tout ; morceau d'un fruit.
 toilette	+noun	Action de se laver, de se coiffer, de s'apprêter.	Au pluriel : petite pièce où se trouvent les W.-C.	Manière dont on est habillé ; tenue.
@@ -183,3 +182,29 @@ vert	+noun	De la couleur de l'herbe et des feuilles.	Qui n'est pas encore mûr (
 crise	+noun	Moment grave et difficile dans une situation (crise économique, politique).	Brusque accès d'un mal ou d'une émotion (crise cardiaque, crise de larmes).
 dépendre	!verb	Être soumis à quelque chose, varier selon lui (cela dépend du temps).	Avoir besoin de quelqu'un ou de quelque chose pour vivre.	Faire partie de, être rattaché à.
 représenter	+verb	Agir ou parler au nom de quelqu'un.	Montrer par une image, un dessin, un signe ; figurer.	Être, constituer (cela représente beaucoup d'argent).
+langue	+noun	Système de mots et de règles qu'un peuple utilise pour parler et écrire, comme le français ou l'anglais.	Organe mobile dans la bouche qui sert à goûter, à avaler et à parler.
+carrière	+noun	Métier que l'on exerce, et le parcours qu'on y fait au fil des années.	Lieu d'où l'on extrait de la pierre, du sable ou du marbre.	Terrain où l'on fait courir et travailler les chevaux.
+confirmer	+verb	Dire ou montrer qu'une chose est bien vraie, qu'elle est certaine.	Rendre plus sûr, plus ferme (une décision, une opinion, un soupçon).	Approuver officiellement ce qui a été décidé.
+entreprise	+noun	Société qui produit des biens ou des services pour les vendre ; firme.	Projet que l'on commence, action souvent difficile ou risquée.
+coupe	+noun	Verre à boire large et peu profond, souvent sur un pied.	Trophée remis au gagnant d'une compétition ; la compétition elle-même.	Action de couper ; manière dont les cheveux ou un vêtement sont coupés.
+malin	+adjective	Rusé, astucieux, qui sait se tirer d'affaire.	Qui aime jouer des tours, espiègle.	(Médecine) Se dit d'une tumeur ou d'une maladie grave, qui peut tuer.
+taille	+noun	Hauteur du corps d'une personne ; grandeur d'une chose ou mesure d'un vêtement.	Partie du corps entre la poitrine et les hanches, plus étroite.	Action de couper, de tailler (un arbre, une pierre).
+menacer	+verb	Faire peur à quelqu'un en annonçant qu'on va lui faire du mal.	Mettre en danger.	Sembler sur le point d'arriver, en parlant d'un danger ou d'un orage.
+direction	+noun	Côté vers lequel on va ou on regarde.	Action de diriger une entreprise, un groupe ou un projet.	Ensemble des personnes qui dirigent.
+lors	!adverb	(Dans « lors de ») Au moment de, pendant.	(Dans « depuis lors ») Depuis ce moment-là.	(Dans « dès lors ») À partir de ce moment ; par conséquent.
+enregistrer	+verb	Garder un son, une image ou des données pour pouvoir les écouter ou les voir plus tard.	Inscrire officiellement dans un registre ; noter.	Confier ses bagages au départ d'un vol ou d'un train.
+ranger	!noun	Mettre des choses à leur place, en ordre.	Placer dans un certain ordre ou dans une catégorie.	Garer un véhicule ; (se ranger) s'écarter pour laisser passer.
+fouiller	+verb	Chercher avec soin dans un lieu ou un sac, en remuant ce qui s'y trouve.	Examiner les poches et les vêtements de quelqu'un pour trouver quelque chose.	Creuser la terre pour trouver ce qui y est enfoui.
+direct	!adjective	Qui va tout droit, sans détour.	Qui se fait sans intermédiaire.	Franc, qui dit les choses sans détour.
+marre	+noun	(Dans « en avoir marre ») En avoir assez, ne plus supporter quelque chose.	Sorte de houe, outil pour travailler la terre.
+talent	+noun	Don naturel ou habileté acquise pour faire quelque chose.	Personne qui a un don.	(Antiquité) Ancienne unité de poids et de monnaie.
+résoudre	+verb	Trouver la solution d'un problème, d'une question.	(Se résoudre à) Se décider à faire quelque chose, souvent à contrecœur.	Régler une difficulté, y mettre fin.
+ministre	+noun	Membre du gouvernement placé à la tête d'un ministère.	Pasteur protestant ; membre du clergé.	Diplomate qui représente son pays à l'étranger.
+condition	+noun	Ce qui doit exister ou être fait pour qu'une autre chose soit possible.	État dans lequel se trouve une personne ou une chose.	Situation sociale d'une personne ; (au pluriel) circonstances.
+génie	+noun	Talent exceptionnel, capacité de créer ou d'inventer hors du commun.	Personne qui a ce talent.	Esprit surnaturel, bon ou mauvais, comme celui d'une lampe magique.
+failli	+adjective	Participe passé de faillir : « j'ai failli tomber », je suis presque tombé.	Qui a fait faillite.
+louer	!verb	Payer pour utiliser un logement, une voiture, etc., pendant un temps.	Donner une chose en location contre un loyer.	Faire l'éloge de quelqu'un, le féliciter.
+plaindre	+verb	(Se plaindre) Dire son mécontentement ou sa douleur ; protester.	Avoir pitié de quelqu'un, partager sa peine.
+propriétaire	+adjective	Personne à qui une chose appartient, en particulier un logement.	Personne qui loue un logement à un locataire.	(Logiciel) Dont le code n'est pas libre et dont l'usage est limité.
+moteur	+adjective	Machine qui produit un mouvement, par exemple celle qui fait avancer une voiture.	Ce qui pousse quelque chose à avancer, à évoluer.	Qui donne le mouvement.
+traitement	+noun	Ensemble des soins et des médicaments donnés à un malade pour le guérir.	Manière d'agir avec quelqu'un.	Façon de transformer une matière ou de traiter des données.	Salaire d'un fonctionnaire.

@@ -134,3 +134,19 @@ describe('cards lead with a current meaning', () => {
     });
   }
 });
+
+// A name comes after the word it is also (Spanish "rosa" the flower before Rosa the given name, "tiro" the shot before Tyre).
+describe('names come after the common word', () => {
+  for (const lang of ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru']) {
+    it(lang, () => {
+      const seen = new Map<string, string[]>();
+      for (const line of gunzipSync(readFileSync(join(DATA, lang, 'native.tsv.gz'))).toString('utf8').split('\n')) {
+        if (!line || line.startsWith('#')) continue;
+        const [key, pos] = line.split('\t');
+        seen.set(key, [...(seen.get(key) ?? []), pos]);
+      }
+      const bad = [...seen].filter(([, poses]) => poses.indexOf('proper noun') >= 0 && poses.slice(poses.indexOf('proper noun') + 1).length > 0).map(([k]) => k);
+      expect(bad.slice(0, 10)).toEqual([]);
+    });
+  }
+});

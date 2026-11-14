@@ -8253,7 +8253,7 @@
  },
  "adjective": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "adjective (archaic kari)": {
@@ -8299,7 +8299,7 @@
  "adverb": {
   "where": [
    "src/lang/ja/tags.ts",
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "adverb (takes と)": {
@@ -8320,7 +8320,7 @@
  },
  "article": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "auxiliary": {
@@ -8346,12 +8346,12 @@
  "conjunction": {
   "where": [
    "src/lang/ja/tags.ts",
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "contraction": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "copula": {
@@ -8371,7 +8371,7 @@
  },
  "determiner": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "dictionary entries": {
@@ -8432,7 +8432,7 @@
  "interjection": {
   "where": [
    "src/lang/ja/tags.ts",
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "intransitive": {
@@ -8520,7 +8520,7 @@
  "noun": {
   "where": [
    "src/lang/ja/tags.ts",
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "noun (takes の)": {
@@ -8555,7 +8555,7 @@
  },
  "numeral": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "on-device": {
@@ -8576,12 +8576,12 @@
  "particle": {
   "where": [
    "src/lang/ja/tags.ts",
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "phrase": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "phrases": {
@@ -8607,7 +8607,7 @@
  },
  "postposition": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "pre-noun adjective": {
@@ -8622,7 +8622,7 @@
  },
  "preposition": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "priors": {
@@ -8633,7 +8633,7 @@
  "pronoun": {
   "where": [
    "src/lang/ja/tags.ts",
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "pronunciations": {
@@ -8643,7 +8643,7 @@
  },
  "proper noun": {
   "where": [
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "ranked": {
@@ -8712,7 +8712,7 @@
  "verb": {
   "where": [
    "src/lang/ja/tags.ts",
-   "src/lang/spaced/core.ts"
+   "src/lang/posLabel.ts"
   ]
  },
  "verb (archaic す)": {

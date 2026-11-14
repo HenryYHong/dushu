@@ -11,6 +11,7 @@
 import type { Token } from '../types';
 import type { LangEngine, LangId, Sense, WordEntry, WordLookup } from './types';
 import { fetchDataText } from '../core/dataFetch';
+import { posLabel } from './posLabel';
 
 /** The libraries with a dictionary in their own language. */
 const HAS_OWN: ReadonlySet<LangId> = new Set<LangId>(['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'zh']);
@@ -272,11 +273,14 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
     if (!list?.length) return null;
     // Every part of speech the entry's meanings have (Spanish "mierda" is "nothing" as a pronoun, then the noun), in the own
     // dictionary's order, which is the word's commonest first (English "good": the adjective, though its main entry says noun).
+    // The engine's senses name it in the interface's language ("sustantivo"), the own dictionary in English ("noun"): both as
+    // the card shows them, or a Spanish reader with a Spanish interface would get the English card.
+    const named = (senses: readonly Sense[]): Sense[] => senses.map((s) => (s.pos ? { ...s, pos: posLabel(s.pos) } : s));
     const poses = new Set(e.senses.map((s) => s.pos ?? ''));
-    const mine = list.filter((x) => poses.has(x.pos));
-    if (mine.length) return { ...e, senses: mine.flatMap((x) => x.senses).slice(0, MAX_SENSES), source: OWN_SOURCE };
+    const mine = list.filter((x) => poses.has(x.pos ? posLabel(x.pos) : ''));
+    if (mine.length) return { ...e, senses: named(mine.flatMap((x) => x.senses)).slice(0, MAX_SENSES), source: OWN_SOURCE };
     const own = engine.id === 'en' || !e.senses[0]?.pos ? list[0] : undefined;
-    return own ? { ...e, senses: own.senses, source: OWN_SOURCE } : null;
+    return own ? { ...e, senses: named(own.senses), source: OWN_SOURCE } : null;
   };
   const lookup = (surface: string, ctx?: { token?: Token; sentence?: string }): WordLookup => {
     const lu = engine.lookup(surface, ctx);
