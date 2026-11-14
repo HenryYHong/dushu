@@ -163,7 +163,8 @@ HALF_LINK = re.compile(r'(?<!\[)\[([^\[\]]*/[^\[\]]*)\]\]')
 # A meaning that is only a request for one ("本詞語需要翻譯為漢語。請協助添加"), says it is not known, or is a table's markup.
 NO_MEANING = re.compile(r'需要翻譯為漢語|請協助添加|\{\{rfdef|rfdef\}\}|此詞的含意不確定|^\*?\s*\[[ST]:|class=[\'"]|wikitable|style=[\'"]|displaystyle'
                         r'|Définition manquante|definizione mancante|vedasi la definizione|Definición faltante|definição em falta'
-                        r'|^(?:(?:in)?transitiv[oe]|pronominale?|riflessivo|reflexivo|intransitivo|разг|предик|перен|прост|устар|книжн|спец)\.?[;:.]*$')
+                        r'|^(?:(?:in)?transitiv[oe]|pronominale?|riflessivo|reflexivo|intransitivo|разг|предик|перен|прост|устар|книжн|спец)\.?[;:.]*$'
+                        r'|^[（(][^（）()]*[）)]$')
 
 
 def last_part(text):
@@ -563,11 +564,22 @@ def build_en():
         replace = [dict(e, pos=e['pos'][1:], mark=e['pos'][0]) for e in written.get(key, []) if e['pos'][:1] in '!+']
         if replace:
             theirs = entries_for(key) or []
+            by_pos = {}
             for r in replace:
                 if r['mark'] == '+':
                     old = [s for x in theirs if x['pos'] == r['pos'] for s in x['senses']]
                     r['senses'] = (r['senses'] + [s for s in old if s not in r['senses']])[:MAX_SENSES]
-            found = [e for e in theirs if e['pos'] not in {r['pos'] for r in replace}] + replace
+                by_pos[r['pos']] = r
+            # In the place of the part of speech it replaces (Simple Wiktionary's order is the word's commonest first).
+            found, done = [], set()
+            for e in theirs:
+                if e['pos'] in by_pos:
+                    if e['pos'] not in done:
+                        found.append(by_pos[e['pos']])
+                        done.add(e['pos'])
+                else:
+                    found.append(e)
+            found += [r for p, r in by_pos.items() if p not in done]
         if not found:
             continue
         ordered = order_entries(found, poses[key])
@@ -700,13 +712,23 @@ def build_edition(code):
             if e['pos'][:1] in '!+':
                 mark, e['pos'] = e['pos'][0], e['pos'][1:]
                 theirs = [s for x in found.get(key, []) if x['pos'] == e['pos'] for s in x['senses']]
-                found[key] = [x for x in found.get(key, []) if x['pos'] != e['pos']]
                 if mark == '+':
                     e['senses'] = (e['senses'] + [s for s in theirs if s not in e['senses']])[:MAX_SENSES]
                 e['replace'] = True
+                # In the place of Wiktionary's entry of that part of speech, so the word's parts keep their order.
+                kept, placed = [], False
+                for x in found.get(key, []):
+                    if x['pos'] == e['pos']:
+                        if not placed:
+                            kept.append(e)
+                            placed = True
+                    else:
+                        kept.append(x)
+                found[key] = kept if placed else kept
+                e['placed'] = placed
         by_word[key].extend(entries)
         have = {e['pos'] for e in as_main_pos(found.get(key, []), poses.get(key, set()))}
-        found[key].extend(e for e in entries if e.get('replace') or e['pos'] not in have)
+        found[key].extend(e for e in entries if (e.get('replace') and not e.get('placed')) or (not e.get('replace') and e['pos'] not in have))
     n_pointed = 0
     for key, ptrs in pointers.items():
         have = {e['pos'] for e in as_main_pos(found.get(key, []), poses[key])}
@@ -811,7 +833,8 @@ def update_meta(code, count, sources):
 
 CJK_SENSES = 8
 # A Japanese meaning that only points at another word: "「つき」を参照。".
-SEE_ALSO = re.compile(r'「([^」]+)」(?:を)?参照。?')
+SEE_ALSO = re.compile(r'(?:詳細は)?(?:「([^」]+)」|([^\s「」。、()（）]{1,12}?))\s*(?:も|を)*参照。?')
+SEE_TAIL = re.compile(r'(?<=。)\s*(?:詳細は)?(?:「[^」]+」|[^\s「」。、]{1,12}?)\s*(?:も|を)*参照。?$')
 KANA = re.compile(r'[\u3040-\u30ffー]+')
 
 
@@ -971,9 +994,12 @@ def build_cjk(code):
                 gloss = clean(READING_NOTE.sub('', sn['glosses'][-1]))
                 if FORM_NOTE.match(gloss):
                     continue
-                see = SEE_ALSO.fullmatch(gloss) if code == 'ja' else None
+                if code == 'ja':
+                    # "青の色。「あお」を参照。": the meaning, without the pointer after it.
+                    gloss = SEE_TAIL.sub('', gloss) or gloss
+                see = SEE_ALSO.fullmatch(re.sub(r'^(?:（[^）]*）|\([^)]*\))\s*', '', gloss)) if code == 'ja' else None
                 if see:
-                    sees.append(see.group(1))
+                    sees.append(see.group(1) or see.group(2))
                     continue
                 if gloss and len(gloss) > 1 and gloss not in [g for g, _ in senses] and len(senses) < MAX_SENSES:
                     senses.append((gloss, edition_labels({'rt': sn.get('raw_tags') or []})))
@@ -1047,8 +1073,8 @@ def build_cjk(code):
             senses = e['senses']
             if e['pos'][:1] in '!+':
                 # "!@いき": takes the place of the lines read so, and of those whose reading is not said; "+@いき": goes before them.
-                theirs = merge_senses([x for x in found.get(key, []) if x.get('reading') in (read, '?')])
-                found[key] = [x for x in found.get(key, []) if x.get('reading') not in (read, '?')]
+                theirs = merge_senses([x for x in found.get(key, []) if x.get('reading') in (read, '?', '')])
+                found[key] = [x for x in found.get(key, []) if x.get('reading') not in (read, '?', '')]
                 if e['pos'][0] == '+':
                     senses = (senses + [x for x in theirs if x not in senses])[:CJK_SENSES]
             found[key].append({'pos': '', 'senses': senses, 'syn': [], 'reading': read})

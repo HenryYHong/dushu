@@ -270,11 +270,12 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
     // Under its own key; only a headword with no line of its own takes its likeliest word's (Portuguese "baixinha": baixo).
     const list = table.get(key) ?? table.get(engine.normalize(e.head));
     if (!list?.length) return null;
-    // Every part of speech the entry's meanings have, in order (Spanish "mierda" is "nothing" as a pronoun, then the noun).
-    const poses = [...new Set(e.senses.map((s) => s.pos ?? ''))];
-    const mine = poses.flatMap((p) => list.filter((x) => x.pos === p));
+    // Every part of speech the entry's meanings have (Spanish "mierda" is "nothing" as a pronoun, then the noun), in the own
+    // dictionary's order, which is the word's commonest first (English "good": the adjective, though its main entry says noun).
+    const poses = new Set(e.senses.map((s) => s.pos ?? ''));
+    const mine = list.filter((x) => poses.has(x.pos));
     if (mine.length) return { ...e, senses: mine.flatMap((x) => x.senses).slice(0, MAX_SENSES), source: OWN_SOURCE };
-    const own = engine.id === 'en' || !poses[0] ? list[0] : undefined;
+    const own = engine.id === 'en' || !e.senses[0]?.pos ? list[0] : undefined;
     return own ? { ...e, senses: own.senses, source: OWN_SOURCE } : null;
   };
   const lookup = (surface: string, ctx?: { token?: Token; sentence?: string }): WordLookup => {

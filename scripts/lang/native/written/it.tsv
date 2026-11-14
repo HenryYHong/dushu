@@ -4,7 +4,6 @@ ehi	interjection	Si usa per attirare l'attenzione di qualcuno.
 casa	noun	Edificio in cui si abita.	Il luogo dove si vive con la propria famiglia.	Famiglia nobile o discendenza di una stirpe.
 invece	adverb	Al contrario; al posto di quanto detto prima.	Si usa per mettere a confronto due cose diverse.
 invece	preposition	Al posto di; in sostituzione di qualcuno o qualcosa.
-andarsene	verb	Allontanarsi da un luogo, partire.	Morire, in modo gentile.
 lungo	adjective	Che ha molta estensione, in lunghezza o nel tempo.	Che dura parecchio tempo.
 incontrare	verb	Trovarsi davanti a qualcuno, di proposito o per caso.	Avere a che fare con un problema o una difficoltà.	Piacere al pubblico; avere successo.
 smetterla	verb	Interrompere ciò che si sta facendo, di solito per qualcosa di fastidioso.
@@ -2166,7 +2165,6 @@ titino	noun	Seguace di Tito, capo della Iugoslavia.
 pitch	noun	Termine inglese che indica il campo da gioco, in particolare quello del cricket.
 si	!noun	pronome riflessivo: se stesso, se stessa (si lava, si veste)	l'un l'altro (si guardano, si amano)	pronome impersonale: la gente, uno (si dice che...)
 signora	!noun	donna adulta, spesso sposata	titolo di rispetto con cui ci si rivolge a una donna	padrona di casa
-anno	!noun	periodo di dodici mesi	età di una persona (ha dieci anni)
 sei	!noun	numero che viene dopo il cinque e prima del sette	voto sufficiente nella scuola italiana
 stato	!noun	condizione in cui si trova qualcuno o qualcosa	paese con un proprio governo, nazione	ciascuna delle forme della materia (solido, liquido, gassoso)
 fatto	!noun	cosa che è accaduta, avvenimento	ciò che è reale e vero (il fatto è che...)	faccenda, questione (sono fatti miei)
@@ -2180,3 +2178,38 @@ come	+adverb	in che modo (nelle domande: come stai?)	nello stesso modo di, simil
 capo	+noun	chi comanda o dirige un gruppo o un ufficio	testa	estremità o inizio di qualcosa (da capo)
 quale	!pronoun	chiede di scegliere tra persone o cose (quale preferisci?)	il quale, la quale: che, cui (pronome relativo)	come, in qualità di
 nell'	!contraction	contrazione di in e l' davanti a vocale (nell'acqua, nell'occhio)
+anno	!noun	periodo di dodici mesi	età di una persona (ha vent'anni)
+potere	+noun	essere in grado di fare qualcosa (posso aiutarti)	avere il permesso di fare qualcosa; essere possibile	(come nome) forza, autorità, controllo
+volere	+verb	desiderare qualcosa, averne voglia	avere l'intenzione di fare qualcosa	essere necessario (ci vuole tempo)
+dovere	+verb	essere obbligati a fare qualcosa (devo partire)	avere un debito con qualcuno (gli devo dei soldi)	(come nome) obbligo, compito da rispettare
+cosa	+pronoun	che cosa? nelle domande e nelle esclamazioni (cosa fai?)	oggetto, fatto o faccenda di qualsiasi tipo
+no	+adverb	risposta negativa, il contrario di sì	a fine frase, chiede conferma (vero?)
+ragazzo	+noun	giovane maschio, tra l'infanzia e l'età adulta	fidanzato	giovane aiutante in una bottega
+via	+noun	strada, percorso	modo, mezzo per ottenere qualcosa	(avverbio) lontano da qui (andare via)
+servire	+verb	essere utile o necessario (mi serve aiuto)	lavorare per qualcuno, essere al suo servizio	portare in tavola cibi e bevande
+modo	+noun	maniera in cui si fa qualcosa	mezzo, possibilità (non c'è modo di uscire)	(grammatica) forma del verbo: indicativo, congiuntivo
+fine	+noun	punto in cui una cosa termina, conclusione	scopo, obiettivo (al fine di)	(aggettivo) sottile; elegante, raffinato
+punto	+noun	piccolo segno rotondo; il segno che chiude una frase	luogo o momento preciso (a quel punto)	unità di punteggio in un gioco
+ragione	+noun	facoltà di pensare e giudicare	motivo, causa (per questa ragione)	avere ragione: essere nel giusto
+sembrare	!verb	dare l'impressione di essere o di fare qualcosa (sembra stanco)	assomigliare a qualcuno o qualcosa	con mi, ti...: credere, avere l'idea che (mi sembra giusto)
+stesso	!determiner	uguale, identico (la stessa casa)	proprio quello, in persona (il re stesso)	rafforza un pronome: me stesso, se stesso
+vostro	!determiner	che appartiene a voi	che è fatto da voi o viene da voi	pronome possessivo della seconda persona plurale
+giro	+noun	breve passeggiata o viaggio per svago (fare un giro)	movimento intorno a un punto o a un oggetto; rotazione	turno, volta in una serie (un giro di carte)
+nemmeno	+adverb	neanche, neppure (non lo so nemmeno io)	perfino ... non (non ha detto nemmeno grazie)
+figlia	!noun	persona di sesso femminile rispetto al padre e alla madre	modo affettuoso di rivolgersi a una ragazza più giovane
+andarsene	+verb	andare via da un luogo	lasciare qualcuno o una situazione	morire (detto in modo delicato)
+nelle	!contraction	preposizione articolata: in + le (nelle case, nelle mani)
+pure	+conjunction	anche, perfino	anche se, sebbene	con un comando, dà il permesso (entra pure)
+roba	+noun	cose, oggetti in genere, senza dire quali	ciò che una persona possiede	vestiti
+versare	+verb	far uscire un liquido da un recipiente inclinandolo	pagare una somma di denaro	trovarsi in una certa condizione (versare in difficoltà)
+ufficio	+noun	locale o edificio dove si svolge un lavoro amministrativo o professionale	reparto di un ente o di un'azienda con un compito preciso	compito, dovere che spetta a qualcuno
+squadra	+noun	gruppo di persone che giocano o lavorano insieme	strumento a forma di triangolo per tracciare angoli retti
+arma	!noun	oggetto usato per ferire, uccidere o difendersi	ciascuno dei corpi delle forze armate (l'Arma dei carabinieri)
+resto	+noun	ciò che rimane di qualcosa	denaro che si riceve indietro quando si paga più del prezzo	numero che avanza in una divisione
+vittima	+noun	persona che subisce un danno, una violenza o muore per un crimine o un incidente	chi soffre per colpa di altri o della sorte	animale o persona offerti in sacrificio
+medico	+adjective	persona laureata in medicina che cura i malati	che riguarda la medicina (visita medica)
+solito	+noun	che succede o si fa di abitudine, consueto	ciò che si fa o si prende sempre (il solito)	di solito: quasi sempre, per abitudine
+interessare	!verb	suscitare l'attenzione o la curiosità di qualcuno	riguardare, coinvolgere	stare a cuore, importare (non mi interessa)
+fondo	!noun	la parte più bassa o più interna di qualcosa	la fine, il punto più lontano (in fondo alla strada)	somma di denaro messa da parte per uno scopo
+colpo	+noun	urto forte dato con la mano o con un oggetto	sparo di un'arma da fuoco	fatto improvviso che sorprende o scuote (un colpo di fortuna)
+piuttosto	+adverb	invece, più volentieri (piuttosto che)	abbastanza, alquanto (piuttosto stanco)
