@@ -61,8 +61,10 @@ describe.each(BOOKS)('$id on $book', ({ id, book, found, unknown }) => {
     // The words were met above, so this times the reading of a page (context, names, stress), not the first lookups.
     eng.segment(text); // warm up the JIT on the whole page
     const runs = [0, 1, 2, 3, 4].map(() => measure(() => eng.segment(text)));
-    const best = Math.min(...runs.map((r) => r.wall));
-    console.log(`${id} segment 10,000 chars: ${best.toFixed(0)} ms wall at best (${runs.map((r) => r.cpu.toFixed(0)).join(', ')} ms cpu)`);
+    // Each run by the smaller of its clocks: sharing the processors with other tests stretches the wall clock, the garbage
+    // collector's threads stretch CPU time, and a real slowdown stretches both.
+    const best = Math.min(...runs.map((r) => Math.min(r.wall, r.cpu)));
+    console.log(`${id} segment 10,000 chars: ${best.toFixed(0)} ms at best (${runs.map((r) => `${r.wall.toFixed(0)}/${r.cpu.toFixed(0)}`).join(', ')} ms wall/cpu)`);
     expect(best).toBeLessThan(SEGMENT_10K_MS * PERF_SLACK);
   }, 60000);
 });

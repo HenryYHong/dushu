@@ -32,9 +32,12 @@ export async function bootApp(): Promise<{ store: Store; meta: BookMeta }> {
   const store = await openStore();
   const meta = await store.books.add({ title: '测试书', author: 'T', format: 'paste', script: 'simplified', chapters: CHAPTERS, assets: new Map() });
   await import('../../src/main');
-  await vi.waitFor(() => { if (!document.querySelector('.app-nav')) throw new Error('no nav yet'); });
+  await vi.waitFor(() => { if (!document.querySelector('.app-nav')) throw new Error('no nav yet'); }, BUSY);
   return { store, meta };
 }
+
+/** How long a wait for the app to draw may take: done as soon as it is drawn, but a busy machine is slow (waitFor gives 1 s). */
+const BUSY = { timeout: 10_000, interval: 20 };
 
 /** Go to a route the way a link does. */
 export async function go(hash: string): Promise<void> {
@@ -47,5 +50,5 @@ export async function readerDrawn(): Promise<void> {
   await vi.waitFor(() => {
     const blocks = [...document.querySelectorAll('.rd-article > [data-b]')];
     if (!blocks.length || blocks.some((b) => !b.childNodes.length)) throw new Error('not drawn yet');
-  });
+  }, BUSY);
 }

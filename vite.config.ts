@@ -162,6 +162,8 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     environment: 'node',
     testTimeout: 30000,
+    // Loading the real dictionaries in a beforeAll takes a few seconds, and far more on a busy machine: not the 10 s default.
+    hookTimeout: 60000,
     setupFiles: ['tests/setup/wait.ts'],
   },
 });

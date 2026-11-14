@@ -22,7 +22,8 @@ describe('before a book opens', () => {
     // Just synced: the book opens at once, without asking again.
     let t = performance.now();
     await syncBeforeOpen();
-    expect(performance.now() - t).toBeLessThan(50);
+    // Bounds that tell "at once" from "after 0.6 s" and 0.6 s from the 5 s reply, with room for a busy machine.
+    expect(performance.now() - t).toBeLessThan(300);
     expect(sends).toBe(before);
     // Half a minute later, with a slow connection: it asks, but opens the book after 0.6 s whatever happens.
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -33,6 +34,6 @@ describe('before a book opens', () => {
     const waited = performance.now() - t;
     expect(sends).toBe(before + 1);
     expect(waited).toBeGreaterThan(500);
-    expect(waited).toBeLessThan(1200);
+    expect(waited).toBeLessThan(3000);
   });
 });

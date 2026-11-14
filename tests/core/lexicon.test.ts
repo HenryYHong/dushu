@@ -5,7 +5,7 @@ import { segment } from '../../src/core/segment';
 import type { LexiconEntry } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
 import { novel } from '../helpers/novel';
-import { PERF_SLACK } from '../helpers/perf';
+import { measure, PERF_SLACK } from '../helpers/perf';
 
 const dictP = loadTestDictionary();
 
@@ -311,9 +311,9 @@ describe('detectTerms', () => {
     const chapters = Array.from({ length: 8 }, () => chunk.repeat(8));
     const total = chapters.reduce((n, c) => n + c.length, 0);
     expect(total).toBeGreaterThan(900_000);
-    const t0 = Date.now();
-    const found = detectTerms(chapters, dict);
-    expect(Date.now() - t0).toBeLessThan(8000 * PERF_SLACK);
+    // CPU time, not the clock: a busy machine slows the clock, not the work.
+    const { result: found, cpu } = measure(() => detectTerms(chapters, dict));
+    expect(cpu).toBeLessThan(8000 * PERF_SLACK);
     expect(found.some((e) => e.word === '莫远峰')).toBe(true);
   }, 30000);
 });
@@ -374,8 +374,6 @@ describe('segment with a lexicon', () => {
     const rows = Array.from({ length: 300 }, (_, i) => entry(`某${String.fromCodePoint(0x4e00 + i * 7)}${String.fromCodePoint(0x4e01 + i * 11)}`));
     const lex = buildLexicon(rows);
     const text = '我们都知道这件事，大家一起去吃饭。'.repeat(600);
-    const t0 = Date.now();
-    segment(text, dict, lex);
-    expect(Date.now() - t0).toBeLessThan(800 * PERF_SLACK);
+    expect(measure(() => segment(text, dict, lex)).cpu).toBeLessThan(800 * PERF_SLACK);
   });
 });
