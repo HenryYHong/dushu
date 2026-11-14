@@ -60,9 +60,10 @@ describe('Japanese form names in the interface language', () => {
 });
 
 // What kind of name a Japanese name is (src/lang/ja/index.ts NAME_GLOSS): 姓, 地名 for a reader of Japanese, not "surname".
-const NAME_KINDS = [...readFileSync(join(__dirname, '..', '..', 'src', 'lang', 'ja', 'index.ts'), 'utf8').matchAll(/ttx\((?:'([^']+)'|"([^"]+)"), 'name kind'\)/g)].map((m) => m[1] ?? m[2]);
+const NAME_KINDS = [...new Set(['ja/index.ts', 'ownDictionary.ts'].flatMap((f) => [...readFileSync(join(__dirname, '..', '..', 'src', 'lang', f), 'utf8')
+  .matchAll(/ttx\((?:'([^']+)'|"([^"]+)"), 'name kind'\)/g)].map((m) => m[1] ?? m[2])))];
 describe('name kinds in the interface language', () => {
-  it('finds them', () => expect(NAME_KINDS.length).toBe(6));
+  it('finds them', () => expect(NAME_KINDS.length).toBe(9));
   for (const ui of UI_LANGS.filter((l) => l !== 'en')) {
     it(ui, () => {
       const catalog = JSON.parse(readFileSync(join(__dirname, '..', '..', 'src', 'i18n', 'catalogs', `${ui}.json`), 'utf8')) as Record<string, string>;

@@ -2393,5 +2393,8 @@
  "person's name [name kind]": "Personenname",
  "place name [name kind]": "Ortsname",
  "organization [name kind]": "Organisation",
- "proper noun [name kind]": "Eigenname"
+ "proper noun [name kind]": "Eigenname",
+ "male given name [name kind]": "männlicher Vorname",
+ "female given name [name kind]": "weiblicher Vorname",
+ "patronymic [name kind]": "Vatersname"
 }

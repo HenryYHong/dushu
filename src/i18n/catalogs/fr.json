@@ -2505,5 +2505,8 @@
  "person's name [name kind]": "nom de personne",
  "place name [name kind]": "nom de lieu",
  "organization [name kind]": "organisation",
- "proper noun [name kind]": "nom propre"
+ "proper noun [name kind]": "nom propre",
+ "male given name [name kind]": "prénom masculin",
+ "female given name [name kind]": "prénom féminin",
+ "patronymic [name kind]": "patronyme"
 }

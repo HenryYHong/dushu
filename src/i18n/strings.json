@@ -8614,6 +8614,11 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "female given name [name kind]": {
+  "where": [
+   "src/lang/ownDictionary.ts"
+  ]
+ },
  "feminine": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -8676,7 +8681,8 @@
  },
  "given name [name kind]": {
   "where": [
-   "src/lang/ja/index.ts"
+   "src/lang/ja/index.ts",
+   "src/lang/ownDictionary.ts"
   ]
  },
  "glosses": {
@@ -8875,6 +8881,11 @@
  "looks like (sou) [ja form]": {
   "where": [
    "src/lang/ja/forms.ts"
+  ]
+ },
+ "male given name [name kind]": {
+  "where": [
+   "src/lang/ownDictionary.ts"
   ]
  },
  "masculine": {
@@ -9154,6 +9165,11 @@
    "src/lang/ja/forms.ts"
   ]
  },
+ "patronymic [name kind]": {
+  "where": [
+   "src/lang/ownDictionary.ts"
+  ]
+ },
  "perfect [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
@@ -9186,7 +9202,8 @@
  },
  "place name [name kind]": {
   "where": [
-   "src/lang/ja/index.ts"
+   "src/lang/ja/index.ts",
+   "src/lang/ownDictionary.ts"
   ]
  },
  "pluperfect [grammar]": {
@@ -9348,7 +9365,8 @@
  },
  "proper noun [name kind]": {
   "where": [
-   "src/lang/ja/index.ts"
+   "src/lang/ja/index.ts",
+   "src/lang/ownDictionary.ts"
   ]
  },
  "proscribed [grammar]": {
@@ -9499,7 +9517,8 @@
  },
  "surname [name kind]": {
   "where": [
-   "src/lang/ja/index.ts"
+   "src/lang/ja/index.ts",
+   "src/lang/ownDictionary.ts"
   ]
  },
  "synonym [grammar]": {

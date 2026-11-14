@@ -12,6 +12,7 @@ import type { Token } from '../types';
 import type { LangEngine, LangId, Sense, WordEntry, WordLookup } from './types';
 import { fetchDataText } from '../core/dataFetch';
 import { posLabel } from './posLabel';
+import { ttx } from '../i18n';
 
 /** The libraries with a dictionary in their own language. */
 const HAS_OWN: ReadonlySet<LangId> = new Set<LangId>(['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'zh']);
@@ -280,7 +281,43 @@ const MAX_SENSES = 8;
  * own-language dictionary lacks keeps its meanings, except in English, where a meaning in another part of speech is still
  * better than Chinese for someone who does not read it.
  */
+/**
+ * What kind of name an English gloss says a name is ("a male given name from Latin...", "a surname", "Lisbon (a municipality
+ * and capital city of Portugal)"), as the catalogs key it '<kind> [name kind]'; null when it does not say.
+ */
+function nameKindOf(gloss: string): string | null {
+  const g = gloss.toLowerCase();
+  if (/\bpatronymic\b/.test(g)) return 'patronymic';
+  if (/\bfemale given name\b/.test(g)) return 'female given name';
+  if (/\bmale given name\b/.test(g)) return 'male given name';
+  if (/\bgiven name\b/.test(g)) return 'given name';
+  if (/\b(?:surname|family name)\b/.test(g)) return 'surname';
+  if (/\b(?:city|town|village|municipality|country|capital|river|region|province|district|island|mountain|county|lake|sea|state of)\b/.test(g)) return 'place name';
+  return null;
+}
+const NAME_KINDS: Record<string, () => string> = {
+  'male given name': () => ttx('male given name', 'name kind'), 'female given name': () => ttx('female given name', 'name kind'),
+  'given name': () => ttx('given name', 'name kind'), patronymic: () => ttx('patronymic', 'name kind'),
+  surname: () => ttx('surname', 'name kind'), 'place name': () => ttx('place name', 'name kind'),
+  'proper noun': () => ttx('proper noun', 'name kind'),
+};
+
+/**
+ * A name the own language has no line for (Portuguese "Carlos", Russian "Петрович"), for a reader of that language: what kind
+ * of name it is, in the interface's language ("nome masculino", "отчество"), not the main dictionary's English. English keeps
+ * its gloss, which is already in the reader's language.
+ */
+function nameEntryFor(id: LangId) {
+  return (e: WordEntry): WordEntry | null => {
+    if (id === 'en' || id === 'ja' || id === 'zh' || !e.senses.length || !e.senses.every((s) => s.pos === posLabel('proper noun'))) return null;
+    const kinds = [...new Set(e.senses.map((s) => nameKindOf(s.glosses.join('; ')) ?? 'proper noun'))];
+    const shown = kinds.length > 1 ? kinds.filter((k) => k !== 'proper noun') : kinds;
+    return { ...e, senses: shown.map((k) => ({ pos: e.senses[0].pos, glosses: [NAME_KINDS[k]()] })), source: OWN_SOURCE };
+  };
+}
+
 export function withOwnDictionary(engine: LangEngine): LangEngine {
+  const nameEntry = nameEntryFor(engine.id);
   const swap = (table: OwnTable, e: WordEntry, key: string): WordEntry | null => {
     if (engine.id === 'ja') {
       // By any of its spellings (たべる or 食べる): Japanese Wiktionary's parts of speech are not JMdict's.
@@ -313,7 +350,7 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
       // A fixed phrase's entry comes first, under the phrase's key.
       // Its own key: never normalize's, which takes a headword that is also a form to another word (sei: essere).
       const key = i === 0 && lu.phrase ? lu.phrase : engine.keyOf ? engine.keyOf(e.head) : engine.normalize(e.head);
-      return swap(table, e, key);
+      return swap(table, e, key) ?? nameEntry(e);
     });
     // One language on the card: when the word has meanings in it, the entries without any go (correu: correr, not the English
     // corréu); a word with none keeps the main dictionary's.

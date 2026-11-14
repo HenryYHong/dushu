@@ -29,3 +29,21 @@ describe('a reader with an interface in their own language gets the card in it',
     }, 300000);
   }
 });
+
+// A name the reader's language has no line for says what kind of name it is, in that language, not the English gloss
+// ("Carlos": nome masculino, "Петрович": отчество).
+describe('a name with no line says what kind of name it is', () => {
+  afterAll(() => setCatalogForTest('en', {}));
+  for (const [id, word, kind] of [['pt', 'Carlos', 'nome masculino'], ['ru', 'Петрович', 'отчество'], ['es', 'Zoraida', 'nombre de mujer']] as const) {
+    it(`${id}: ${word}`, async () => {
+      setCatalogForTest(id, JSON.parse(readFileSync(join(ROOT, 'src', 'i18n', 'catalogs', `${id}.json`), 'utf8')));
+      resetOwnDictionary();
+      const engine = await loadLang(id);
+      setReaderLanguage(id);
+      await loadOwnDictionary(id, `/data/${id}/`, async () => gunzipSync(readFileSync(join(ROOT, 'public', 'data', id, 'native.tsv.gz'))).toString('utf8'));
+      const e = withOwnDictionary(engine).lookup(word).entries[0];
+      expect(e.source).toBe(OWN_SOURCE);
+      expect(e.senses.map((x) => x.glosses[0])).toContain(kind);
+    }, 300000);
+  }
+});

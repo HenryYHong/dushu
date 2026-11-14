@@ -2280,5 +2280,8 @@
  "person's name [name kind]": "人名",
  "place name [name kind]": "地名",
  "organization [name kind]": "組織名",
- "proper noun [name kind]": "固有名詞"
+ "proper noun [name kind]": "固有名詞",
+ "male given name [name kind]": "男性の名",
+ "female given name [name kind]": "女性の名",
+ "patronymic [name kind]": "父称"
 }

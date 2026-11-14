@@ -2616,5 +2616,8 @@
  "person's name [name kind]": "имя человека",
  "place name [name kind]": "топоним",
  "organization [name kind]": "организация",
- "proper noun [name kind]": "имя собственное"
+ "proper noun [name kind]": "имя собственное",
+ "male given name [name kind]": "мужское имя",
+ "female given name [name kind]": "женское имя",
+ "patronymic [name kind]": "отчество"
 }

@@ -2286,5 +2286,8 @@
  "person's name [name kind]": "인명",
  "place name [name kind]": "지명",
  "organization [name kind]": "단체명",
- "proper noun [name kind]": "고유 명사"
+ "proper noun [name kind]": "고유 명사",
+ "male given name [name kind]": "남자 이름",
+ "female given name [name kind]": "여자 이름",
+ "patronymic [name kind]": "부칭"
 }

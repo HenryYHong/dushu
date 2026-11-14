@@ -2497,5 +2497,8 @@
  "person's name [name kind]": "nombre de persona",
  "place name [name kind]": "topónimo",
  "organization [name kind]": "organización",
- "proper noun [name kind]": "nombre propio"
+ "proper noun [name kind]": "nombre propio",
+ "male given name [name kind]": "nombre de varón",
+ "female given name [name kind]": "nombre de mujer",
+ "patronymic [name kind]": "patronímico"
 }
