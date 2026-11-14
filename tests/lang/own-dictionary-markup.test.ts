@@ -85,17 +85,31 @@ describe('own-language dictionaries show only real labels', () => {
 // are about half the counts then.
 const USAGE_FLOORS: [string, string, number][] = [
   ['es', 'coloquial', 2000], ['fr', 'Familier', 2000], ['de', 'umgangssprachlich', 1800], ['it', 'figurato', 1800], ['pt', 'figurado', 800],
+  ['zh', '書面語', 1500], ['zh', '粵語', 250], ['ja', '古風', 700],
 ];
 
 describe('own-language dictionaries keep their usage labels', () => {
   for (const [lang, label, floor] of USAGE_FLOORS) {
     it(`${lang}: ${label}`, () => {
       let n = 0;
-      for (const line of gunzipSync(readFileSync(join(DATA, lang, 'native.tsv.gz'))).toString('utf8').split('\n')) {
+      for (const line of gunzipSync(readFileSync(lang === 'zh' ? join(DATA, 'native.tsv.gz') : join(DATA, lang, 'native.tsv.gz'))).toString('utf8').split('\n')) {
         if (!line || line.startsWith('#')) continue;
         for (const m of line.split('\t').slice(3)) if (/^\{([^}]*)\}/.exec(m)?.[1].split(', ').includes(label)) n++;
       }
       expect(n).toBeGreaterThanOrEqual(floor);
     });
   }
+});
+
+// A reader of standard Chinese gets a character's standard meanings before its obsolete ones (靚 漂亮 before 棄用 召見).
+describe('Chinese cards put obsolete meanings last', () => {
+  it('no obsolete meaning before an unmarked one', () => {
+    const bad: string[] = [];
+    for (const line of gunzipSync(readFileSync(join(DATA, 'native.tsv.gz'))).toString('utf8').split('\n')) {
+      if (!line || line.startsWith('#')) continue;
+      const old = line.split('\t').slice(3).map((m) => /^\{([^}]*)\}/.exec(m)?.[1].split(', ').some((l) => ['棄用', '古語', '過時', '罕用'].includes(l)) ?? false);
+      if (old.some((o, i) => o && old.slice(i + 1).some((later) => !later))) bad.push(line.split('\t')[0]);
+    }
+    expect(bad.slice(0, 10)).toEqual([]);
+  });
 });

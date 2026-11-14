@@ -494,6 +494,20 @@ TAG_LABELS = {
            'popular': 'popular', 'regional': 'regionalismo', 'Brazil': 'Brasil', 'Galicia': 'Galiza',
            'Northeast-Brazil': 'Nordeste do Brasil', 'Southern-Brazil': 'Sul do Brasil', 'North-Brazil': 'Norte do Brasil',
            'Goias': 'Goiás'},
+    # Chinese in traditional characters, as the file is (the app writes simplified for readers who use it). A topolect says the
+    # meaning is that variety's, not Mandarin's: 粵語 食 "eat".
+    'zh': {'literary': '書面語', 'figuratively': '比喻', 'Cantonese': '粵語', 'Min-Nan': '閩南語', 'Hokkien': '閩南語',
+           'Teochew': '潮州話', 'Hakka': '客家話', 'Min-Dong': '閩東語', 'Min-Bei': '閩北語', 'Puxian-Min': '莆仙語', 'Wu': '吳語',
+           'Xiang': '湘語', 'Jin': '晉語', 'Gan': '贛語', 'Shanghainese': '上海話', 'obsolete': '棄用', 'historical': '歷史',
+           'colloquial': '口語', 'slang': '俚語', 'archaic': '古語', 'dialectal': '方言', 'neologism': '新詞', 'Erhua': '兒化',
+           'derogatory': '貶義', 'Internet': '網路用語', 'dated': '過時', 'literally': '字面義', 'vulgar': '粗俗', 'humorous': '幽默',
+           'euphemistic': '委婉', 'formal': '正式', 'broadly': '引申', 'Classical': '文言', 'honorific': '敬語', 'humble': '謙辭',
+           'rare': '罕用', 'offensive': '冒犯', 'Mainland-China': '中國大陸', 'Taiwan': '臺灣', 'Taiwanese': '臺灣',
+           'Hong-Kong': '香港', 'Singapore': '新加坡', 'Malaysia': '馬來西亞', 'Beijing': '北京', 'Mandarin': '官話'},
+    'ja': {'slang': '俗語', 'dated': '古風', 'figuratively': '比喩', 'literary': '文章語', 'Internet': 'インターネット',
+           'offensive': '蔑称', 'informal': '口語', 'historical': '歴史', 'broadly': '転じて', 'dialectal': '方言', 'childish': '幼児語',
+           'obsolete': '廃語', 'archaic': '古語', 'rare': 'まれ', 'vulgar': '卑語', 'humorous': '滑稽', 'euphemistic': '婉曲',
+           'neologism': '造語', 'polite': '丁寧'},
 }
 
 # Places, which kaikki lists in the order of the alphabet: up to three are shown; more, in the Americas only, are "América";
@@ -1166,6 +1180,22 @@ def cjk_entries(code):
     os.replace(tmp, slim)
 
 
+# Chinese: a reader of standard Chinese gets the meanings of standard Chinese first, then those of one variety only (粵語 食
+# "eat") or of Classical Chinese, then the obsolete ones (靚 "召見"). The first ZH_READ_FROM meanings of a page are sorted so,
+# and the first MAX_SENSES kept.
+ZH_READ_FROM = 24
+TOPOLECT = re.compile(r'粵|閩|客家|吳語|湘語|晉語|贛語|潮州|上海話|台山|臺山|莆仙|溫州|四川話|東北話|西南官話|方言|文言')
+OBSOLETE_ZH = {'棄用', '古語', '過時', '罕用'}
+
+
+def zh_sense_rank(labels):
+    if any(t in OBSOLETE_ZH for t in labels):
+        return 2
+    if any(TOPOLECT.search(t) for t in labels) and '官話' not in labels:
+        return 1
+    return 0
+
+
 def build_cjk(code):
     count_labels(code)
     keys = cjk_keys(code)
@@ -1214,8 +1244,8 @@ def build_cjk(code):
                     continue
                 if code == 'ja' and gloss.rstrip('。') in {e.get('word') or ''} | ja_readings.get(e.get('word') or '', set()):
                     continue  # "炎。", "えさ。": the word itself or its reading, which says nothing
-                if gloss and len(gloss) > 1 and gloss not in [g for g, _ in senses] and len(senses) < MAX_SENSES:
-                    senses.append((gloss, edition_labels({'rt': sn.get('raw_tags') or []})))
+                if gloss and len(gloss) > 1 and gloss not in [g for g, _ in senses] and len(senses) < (ZH_READ_FROM if code == 'zh' else MAX_SENSES):
+                    senses.append((gloss, edition_labels({'rt': sn.get('raw_tags') or [], 't': sn.get('tags') or []})))
                     readings.append(','.join(dict.fromkeys(hiragana(r) for r in re.split(r'[（）()【】、・\s]+', note.group(0)) if r))
                                     if note else '')
             if not senses:
@@ -1225,6 +1255,9 @@ def build_cjk(code):
                     see_also[e['word']].extend(x for x in sees if x not in see_also[e['word']])
                     see_notes.setdefault(e['word'], notes[0])
                 continue
+            if code == 'zh':
+                order = sorted(range(len(senses)), key=lambda i: zh_sense_rank(senses[i][1]))[:MAX_SENSES]
+                senses, readings = [senses[i] for i in order], [readings[i] for i in order]
             word = e.get('word') or ''
             # A meaning with no reading in front, on a page titled with one kanji or one that marks the reading of other meanings
             # (生: なま, せい, き...): read some way, but which is not said ("?"). A compound's page with none is that word.
@@ -1334,6 +1367,8 @@ def build_cjk(code):
             merged = merge_senses(entries)
             if not kanji and not read:
                 merged += [x for x in variants.get(key, []) if x not in merged]
+            if code == 'zh':
+                merged.sort(key=lambda x: zh_sense_rank(x[1]))  # across a character's entries too (靚 jìng, 靚 leng3)
             if merged:
                 mark = '=' + ','.join(kanji) if kanji else '@' + read if read else ''
                 lines.append(row(key, {'pos': mark, 'senses': merged[:CJK_SENSES]}, ''))
