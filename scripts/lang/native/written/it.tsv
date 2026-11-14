@@ -2163,7 +2163,6 @@ scavatrice	noun	Macchina che scava il terreno.
 ottantenne	adjective	Che ha ottant'anni.
 titino	noun	Seguace di Tito, capo della Iugoslavia.
 pitch	noun	Termine inglese che indica il campo da gioco, in particolare quello del cricket.
-si	!noun	pronome riflessivo: se stesso, se stessa (si lava, si veste)	l'un l'altro (si guardano, si amano)	pronome impersonale: la gente, uno (si dice che...)
 signora	!noun	donna adulta, spesso sposata	titolo di rispetto con cui ci si rivolge a una donna	padrona di casa
 sei	!noun	numero che viene dopo il cinque e prima del sette	voto sufficiente nella scuola italiana
 stato	!noun	condizione in cui si trova qualcuno o qualcosa	paese con un proprio governo, nazione	ciascuna delle forme della materia (solido, liquido, gassoso)
@@ -2208,7 +2207,7 @@ arma	!noun	oggetto usato per ferire, uccidere o difendersi	ciascuno dei corpi de
 resto	+noun	ciò che rimane di qualcosa	denaro che si riceve indietro quando si paga più del prezzo	numero che avanza in una divisione
 vittima	+noun	persona che subisce un danno, una violenza o muore per un crimine o un incidente	chi soffre per colpa di altri o della sorte	animale o persona offerti in sacrificio
 medico	+adjective	persona laureata in medicina che cura i malati	che riguarda la medicina (visita medica)
-solito	+noun	che succede o si fa di abitudine, consueto	ciò che si fa o si prende sempre (il solito)	di solito: quasi sempre, per abitudine
+solito	+adjective	che succede o si fa di abitudine, consueto	ciò che si fa o si prende sempre (il solito)	di solito: quasi sempre, per abitudine
 interessare	!verb	suscitare l'attenzione o la curiosità di qualcuno	riguardare, coinvolgere	stare a cuore, importare (non mi interessa)
 fondo	!noun	la parte più bassa o più interna di qualcosa	la fine, il punto più lontano (in fondo alla strada)	somma di denaro messa da parte per uno scopo
 colpo	+noun	urto forte dato con la mano o con un oggetto	sparo di un'arma da fuoco	fatto improvviso che sorprende o scuote (un colpo di fortuna)
@@ -2261,3 +2260,15 @@ destro	!noun	che sta dalla parte destra, opposto a sinistro	colpo dato con la ma
 ragazzina	!noun	bambina o ragazza molto giovane	ragazza adolescente
 ordinare	+verb	comandare a qualcuno di fare qualcosa	chiedere qualcosa da comprare o da mangiare, per esempio al ristorante	mettere in ordine
 battuta	+noun	frase spiritosa detta per far ridere	frase che un attore dice in una scena	colpo, il battere
+si	+pronoun	pronome riflessivo: se stesso, se stessa (si lava, si veste).	l'un l'altro (si guardano, si amano).	pronome impersonale: la gente, uno (si dice che...).
+que'	+determiner	{letterario}forma tronca di «quei»: quelli (que' giorni).
+reginotta	+noun	giovane principessa, figlia del re, soprattutto nelle fiabe.
+giovanetta	+noun	{letterario}ragazza, giovane donna.
+orsù	+interjection	{letterario}su, coraggio: invito a fare qualcosa.
+birbone	+adjective	cattivo, malvagio.	{familiare}birichino, monello (detto di un bambino).
+reuccio	+noun	re giovane o di un piccolo regno, soprattutto nelle fiabe.
+quivi	+adverb	{letterario}lì, in quel luogo.	{letterario}allora, in quel momento.
+vossignoria	+noun	{antico}titolo di rispetto per una persona di riguardo: Vostra Signoria.
+coll'	+contraction	{antico}forma di «col» o «con lo» davanti a vocale: con il, con lo.
+slanciare	+verb	gettare con forza, scagliare.	slanciarsi: gettarsi in avanti con impeto.
+voltarsi	+verb	girarsi, rivolgersi da un'altra parte.

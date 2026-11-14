@@ -898,6 +898,26 @@ POINTED_SENSES = 3
 USED_AS_NOUN = re.compile(r'(?:sustantiv|substantiv|sostantiv)', re.I)
 
 
+# A part of speech the main dictionary gives a word that its Wiktionary files under a close one: Portuguese "meu", "este",
+# "muito" and Russian "этот", "весь" are pronouns there, determiners in the main dictionary, and the card matches meanings to the
+# part of speech the reader's word has. The close line is given that part of speech too (after the word's own lines).
+CLOSE_POS = {'determiner': ('pronoun', 'adjective', 'article', 'numeral'), 'pronoun': ('determiner', 'numeral'),
+             'adjective': ('determiner', 'numeral'), 'numeral': ('determiner', 'pronoun', 'adjective'), 'article': ('determiner',)}
+
+
+def with_close_pos(entries, main_poses):
+    have = {e['pos'] for e in entries}
+    out = list(entries)
+    for m in sorted(main_poses or ()):
+        if m in have:
+            continue
+        close = next((e for o in CLOSE_POS.get(m, ()) for e in entries if e['pos'] == o), None)
+        if close:
+            out.append(dict(close, pos=m))
+            have.add(m)
+    return out
+
+
 def build_edition(code):
     count_labels(code)
     rank, poses = main_dictionary(code)
@@ -977,7 +997,7 @@ def build_edition(code):
     for key in rank:
         if key not in found:
             continue
-        ordered = order_entries(found[key], poses[key])
+        ordered = with_close_pos(order_entries(found[key], poses[key]), poses[key])
         hint = pick_hint(code, key, ordered, rank, poses)
         lines.extend(row(key, e, hint) for e in ordered)
     sources = f'{NAMES[code]} Wiktionary (CC BY-SA 4.0, via kaikki.org)' + (WRITTEN_NOTE if written else '')

@@ -455,7 +455,7 @@ function fort(q: ContextQuery): ContextChoice | null {
   if (c && finite(c) && !COPULA.has(c.key) && !nounNext) return decide(q, adverb);
   // Through a degree adverb: the verb before it.
   const verb = q.at >= 2 ? q.words[q.at - 2].chosen : undefined;
-  if (c?.pos === 'adverb' && prev && INTENSIFIER.has(prev.low) && !/\S/.test(q.words[q.at - 2].after) && verb && finite(verb)
+  if (c?.pos === 'adverb' && prev && INTENSIFIER.has(prev.low) && verb && !/\S/.test(q.words[q.at - 2].after) && finite(verb)
     && !COPULA.has(verb.key) && !nounNext) return decide(q, adverb);
   return null;
 }
