@@ -180,7 +180,8 @@ export function mountLangWordView(
    * Japanese gets the meaning in Japanese for the reading shown (KANJIDIC's is English), or none.
    */
   function kanjiCard(k: KanjiInfo): HTMLElement {
-    const reading = k.kun[0] ?? k.on[0] ?? '';
+    // The reading it has in this word when known (釈 in 御釈迦様: しゃく, not its first kun reading とく).
+    const reading = k.readHere ?? k.kun[0] ?? k.on[0] ?? '';
     const gloss = readsOwnLanguage('ja') ? kanjiOwnMeaning(k.char, reading) ?? '' : k.meanings.slice(0, 3).join(', ') || tt('No meaning listed');
     return h('button.pp-card', { type: 'button', onclick: () => push({ word: k.char }), title: tt('Look up {word}', { word: k.char }) },
       h('span.pp-card-glyph', { lang: 'ja' }, k.char),

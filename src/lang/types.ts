@@ -80,6 +80,9 @@ export interface KanjiInfo {
   /** On readings in katakana, kun readings in hiragana (with okurigana after a dot: た.べる). */
   on: string[];
   kun: string[];
+  /** How the kanji is read in the word it was looked up from (釈 in 御釈迦様: しゃく), in hiragana, when the word's reading splits
+   *  over its kanji. */
+  readHere?: string;
   strokes?: number;
   /** Japanese school grade (1–6, 8 = secondary school, 9–10 = names). */
   grade?: number;

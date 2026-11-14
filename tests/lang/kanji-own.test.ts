@@ -16,6 +16,10 @@ it('a reader of Japanese gets the meaning in Japanese for the reading shown', as
   expect(kanjiOwnMeaning('中', 'なか')).toMatch(/内側/);
   expect(kanjiOwnMeaning('中', 'チュウ')).not.toMatch(/内側/); // the on reading, in katakana as KANJIDIC writes it
   expect(kanjiOwnMeaning('中', 'なか')).not.toMatch(/[A-Za-z]/);
+  // A reading cut short in a word (学 in 学校: がっ) finds the kanji's full one (がく).
+  expect(kanjiOwnMeaning('学', 'がっ')).toBe(kanjiOwnMeaning('学', 'がく'));
+  expect(kanjiOwnMeaning('学', 'がく')).not.toBeNull();
+  expect(kanjiOwnMeaning('釈', 'しゃ')).toBe(kanjiOwnMeaning('釈', 'しゃく'));
   // A kana word of the same sound is another word: 釈 read とく is not とく (ておく).
   expect(kanjiOwnMeaning('釈', 'とく') ?? '').not.toMatch(/ておく|て おく/);
 });

@@ -209,8 +209,12 @@ export function kanjiOwnMeaning(char: string, reading: string | undefined): stri
   // Only the kanji's own lines read so, or a kana word that names this kanji: never a kana word of that sound alone (釈 read
   // とく is not とく, "ておく").
   const own = table.get(char) ?? [];
-  const entry = (read ? own.find((x) => x.readings?.some((r) => r === read)) : own[0])
-    ?? (read ? table.get(read)?.find((x) => x.kanji?.includes(char)) : undefined);
+  // In a word a reading can end short (学 in 学校 is がっ, of がく): the full one too.
+  const reads = !read ? [] : read.endsWith('っ') ? [read, ...['く', 'つ', 'ち'].map((k) => read.slice(0, -1) + k)] : [read];
+  const entry = (read ? own.find((x) => x.readings?.some((r) => reads.includes(r))) : own[0])
+    ?? reads.map((r) => table.get(r)?.find((x) => x.kanji?.includes(char))).find(Boolean)
+    // Or cut short another way (釈 in 釈迦 is しゃ, of しゃく): the kanji's own line whose reading begins so.
+    ?? (read && read.length >= 2 ? own.find((x) => x.readings?.some((r) => r.length > read.length && r.startsWith(read))) : undefined);
   const s = entry?.senses[0];
   return s ? `${s.notes?.length ? `（${s.notes.join('，')}）` : ''}${s.glosses[0]}` : null;
 }

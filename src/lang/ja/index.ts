@@ -1864,7 +1864,7 @@ class JaEngine implements LangEngine {
     const viaNoun = w.lemma.endsWith('する') && w.ctype.startsWith('サ変') && entries.length > 0 && !entries[0].head.endsWith('する') && w.lemma !== 'する';
     const form = describeForms(viaNoun ? ['verb with する', ...w.forms] : w.forms);
     if (form) res.form = form;
-    const chars = this.charsOf(surface + (entries[0]?.head ?? ''));
+    const chars = this.charsOf(surface + (entries[0]?.head ?? ''), surface, w.reading);
     if (chars.length) res.chars = chars;
     // A name the dictionary does not read the way the page does (清 きよ, not the Qing dynasty しん): the name, and only the
     // entries read as it is.
@@ -1961,7 +1961,7 @@ class JaEngine implements LangEngine {
     }
     const res: WordLookup = { surface, key, entries };
     if (form) res.form = form;
-    const chars = this.charsOf(text + (entries[0]?.head ?? ''));
+    const chars = this.charsOf(text + (entries[0]?.head ?? ''), text, entries[0]?.reading);
     if (chars.length) res.chars = chars;
     return res;
   }
@@ -2064,15 +2064,23 @@ class JaEngine implements LangEngine {
     return out;
   }
 
-  private charsOf(s: string): KanjiInfo[] {
+  /** The kanji of `s`; those of `word` say how they are read in it (`reading` split over its kanji, as furigana is). */
+  private charsOf(s: string, word?: string, reading?: string): KanjiInfo[] {
     const out: KanjiInfo[] = [];
     const seen = new Set<string>();
+    const readHere = new Map<string, string>();
+    if (word && reading) {
+      for (const p of alignRuby(word, toHiragana(reading), this.kanjiReadings)) {
+        if (p.rt && [...p.text].length === 1 && !readHere.has(p.text)) readHere.set(p.text, p.rt);
+      }
+    }
     for (const ch of s) {
       if (seen.has(ch) || !isKanjiCode(ch.codePointAt(0)!)) continue;
       seen.add(ch);
       const row = this.kd.get(ch);
       if (!row) continue;
       const info: KanjiInfo = { char: ch, meanings: row.meanings, on: row.on, kun: row.kun };
+      if (readHere.has(ch)) info.readHere = readHere.get(ch);
       if (row.strokes) info.strokes = row.strokes;
       if (row.grade) info.grade = row.grade;
       if (row.jlpt) info.jlpt = row.jlpt;
