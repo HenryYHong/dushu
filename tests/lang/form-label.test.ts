@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { formLabel } from '../../src/lang/formLabel';
+import { describeForms } from '../../src/lang/ja/forms';
 import { setCatalogForTest, UI_LANGS } from '../../src/i18n';
 
 const SOURCE = readFileSync(join(__dirname, '..', '..', 'src', 'lang', 'formLabel.ts'), 'utf8');
@@ -29,5 +30,31 @@ describe('form notes in the interface language', () => {
   it('English stays as Wiktionary words it', () => {
     setCatalogForTest('en', {});
     expect(formLabel('first/third-person singular imperfect indicative')).toBe('first/third-person singular imperfect indicative');
+  });
+});
+
+// Japanese verb and adjective forms (src/lang/ja/forms.ts): every label in every interface language, the construction in kana,
+// never romaji ("progressive (te iru)" is 「〜ている」（進行）, "進行（ている）", "progresivo (ている)").
+const JA_SOURCE = readFileSync(join(__dirname, '..', '..', 'src', 'lang', 'ja', 'forms.ts'), 'utf8');
+const JA_LABELS = [...JA_SOURCE.matchAll(/ttx\('([^']+)', 'ja form'\)/g)].map((m) => m[1]);
+const ROMAJI = /\b(?:iru|oru|shimau|aru|oku|nakereba|naranai|ikenai|hoshii|nasai|nasaru|sugiru|yasui|nikui|gatai|zurai|kakaru|naosu|kiru|dasu|garu|beki|nagara|tai|sou|cha|tara)\b/;
+
+describe('Japanese form names in the interface language', () => {
+  afterAll(() => setCatalogForTest('en', {}));
+  it('finds the labels', () => expect(JA_LABELS.length).toBeGreaterThan(50));
+  for (const ui of UI_LANGS.filter((l) => l !== 'en')) {
+    it(ui, () => {
+      const catalog = JSON.parse(readFileSync(join(__dirname, '..', '..', 'src', 'i18n', 'catalogs', `${ui}.json`), 'utf8')) as Record<string, string>;
+      expect(JA_LABELS.filter((l) => !catalog[`${l} [ja form]`])).toEqual([]);
+      expect(JA_LABELS.filter((l) => ROMAJI.test(catalog[`${l} [ja form]`]))).toEqual([]);
+      setCatalogForTest(ui, catalog);
+      expect(describeForms(['causative', 'passive', 'negative', 'past'])).not.toMatch(/causative|passive|negative|past/);
+    });
+  }
+  it('Japanese lists with 、', () => {
+    setCatalogForTest('ja', JSON.parse(readFileSync(join(__dirname, '..', '..', 'src', 'i18n', 'catalogs', 'ja.json'), 'utf8')));
+    expect(describeForms(['progressive (te iru)', 'past'])).toBe('「〜ている」（進行）、過去');
+    setCatalogForTest('en', {});
+    expect(describeForms(['progressive (te iru)', 'past'])).toBe('progressive (te iru), past');
   });
 });

@@ -8226,6 +8226,11 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "about to (kakaru) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "accusative [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
@@ -8327,6 +8332,11 @@
    "src/lang/ja/tags.ts"
   ]
  },
+ "adverbial (ku) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "adverbial noun": {
   "where": [
    "src/lang/ja/tags.ts"
@@ -8335,6 +8345,11 @@
  "adverbial participle [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "again (naosu) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "alternative [grammar]": {
@@ -8413,6 +8428,16 @@
    "src/lang/ja/tags.ts"
   ]
  },
+ "causative [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "causative-passive [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "clipping [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
@@ -8438,9 +8463,39 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "completed (te shimau) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "completely (kiru) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "conditional (ba) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "conditional (tara) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "conditional [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "conditional [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "conditional stem [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "conjunction": {
@@ -8517,6 +8572,11 @@
  "diminutive [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "easy to (yasui) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "endearing [grammar]": {
@@ -8619,6 +8679,21 @@
    "src/ui/about/about.ts"
   ]
  },
+ "hard to (gatai) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "hard to (nikui) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "hard to (zurai) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "hints": {
   "where": [
    "src/lang/labels.ts"
@@ -8629,9 +8704,19 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "honorific (nasaru) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "imperative [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "imperative [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "imperfect [grammar]": {
@@ -8647,6 +8732,11 @@
  "impersonal [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "in advance (te oku) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "in under a minute": {
@@ -8777,6 +8867,11 @@
    "src/ui/vocab/lookups.ts"
   ]
  },
+ "looks like (sou) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "masculine": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -8807,6 +8902,21 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "must (nai to ikenai) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "must (nakereba naranai) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "must not (te wa ikenai) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "name": {
   "where": [
    "src/ui/popup/phraseView.ts"
@@ -8815,6 +8925,26 @@
  "negative [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "negative [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "negative stem [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "negative volitional [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "negative+past [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "neuter": {
@@ -8851,6 +8981,11 @@
   "where": [
    "src/lang/ja/tags.ts",
    "src/lang/posLabel.ts"
+  ]
+ },
+ "noun (-sa) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "noun (takes の)": {
@@ -8954,6 +9089,16 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "passive [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "passive or potential [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "passive participle [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
@@ -8962,6 +9107,11 @@
  "past [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "past [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "past active participle [grammar]": {
@@ -8987,6 +9137,11 @@
  "past tense [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "past tense [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "perfect [grammar]": {
@@ -9045,6 +9200,31 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "polite [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "polite command (nasai) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "polite form [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "polite negative [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "polite past [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "possessive [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
@@ -9053,6 +9233,11 @@
  "postposition": {
   "where": [
    "src/lang/posLabel.ts"
+  ]
+ },
+ "potential [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "pre-noun adjective": {
@@ -9108,6 +9293,16 @@
  "priors": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "progressive (te iru) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "progressive (te oru) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "pronominal [grammar]": {
@@ -9182,6 +9377,11 @@
    "src/ui/settings/data.ts"
   ]
  },
+ "resultative (te aru) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "rules": {
   "where": [
    "src/ui/about/about.ts"
@@ -9212,6 +9412,16 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "should (beki) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "shows signs of (garu) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "singular [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
@@ -9225,6 +9435,21 @@
  "spelling [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "start to (dasu) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "stem (continuative) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "stem [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "strong [grammar]": {
@@ -9252,6 +9477,21 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "tari [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "te wa (cha) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "te-form [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "that text: {reason}": {
   "where": [
    "src/ui/library/importer.ts"
@@ -9265,6 +9505,11 @@
  "third-person [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "too much (sugiru) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "transitive": {
@@ -9430,6 +9675,11 @@
    "src/lang/ja/tags.ts"
   ]
  },
+ "verb with する [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "verbal noun [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
@@ -9440,14 +9690,34 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "volitional [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "vulgar [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
   ]
  },
+ "want someone to (te hoshii) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
+ "want to (tai) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
+  ]
+ },
  "weak [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "while (nagara) [ja form]": {
+  "where": [
+   "src/lang/ja/forms.ts"
   ]
  },
  "with a pinyin reading": {
