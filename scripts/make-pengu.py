@@ -34,6 +34,10 @@ And on its own feet, without the book, for good news (a jump: stand, crouch, ris
     art/pengu-rise.png     on the way up
     art/pengu-air.png      at the top, flippers in the air
 
+The mascot pictures' open eyes were changed to the logo's softer ones (2026-11-13): over the book, the logo's eye pixels in place
+(the pictures share its layout, the logo's slightly grayer white lifted to theirs); on pengu-stand.png, the same eyes scaled to
+its eyes; in the blinks, the shut and half-shut eyes narrowed to the new eyes' width, so a blink holds its size.
+
 These change all over, so they are used whole. Each is set down on the standing Pengu's ground (moved down by however far
 up it was drawn), so the drawings change Pengu's pose and nothing else, and the app moves Pengu up and down along a smooth
 arc while they change (ui/pengu.ts): drawings alone would jump in steps. How far up each was drawn, a share of the square, is
