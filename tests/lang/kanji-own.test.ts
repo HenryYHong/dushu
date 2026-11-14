@@ -16,6 +16,8 @@ it('a reader of Japanese gets the meaning in Japanese for the reading shown', as
   expect(kanjiOwnMeaning('中', 'なか')).toMatch(/内側/);
   expect(kanjiOwnMeaning('中', 'チュウ')).not.toMatch(/内側/); // the on reading, in katakana as KANJIDIC writes it
   expect(kanjiOwnMeaning('中', 'なか')).not.toMatch(/[A-Za-z]/);
+  // A kana word of the same sound is another word: 釈 read とく is not とく (ておく).
+  expect(kanjiOwnMeaning('釈', 'とく') ?? '').not.toMatch(/ておく|て おく/);
 });
 
 it('anyone else gets none (the chip keeps KANJIDIC)', () => {

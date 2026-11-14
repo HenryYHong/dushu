@@ -2499,5 +2499,11 @@
  "want to (tai) [ja form]": "desiderativo (たい)",
  "while (nagara) [ja form]": "mentre (ながら)",
  "noun (-sa) [ja form]": "sostantivo (さ)",
- "verb with する [ja form]": "verbo con する"
+ "verb with する [ja form]": "verbo con する",
+ "surname [name kind]": "cognome",
+ "given name [name kind]": "nome di battesimo",
+ "person's name [name kind]": "nome di persona",
+ "place name [name kind]": "toponimo",
+ "organization [name kind]": "organizzazione",
+ "proper noun [name kind]": "nome proprio"
 }

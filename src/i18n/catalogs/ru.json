@@ -2610,5 +2610,11 @@
  "want to (tai) [ja form]": "желательная форма (たい)",
  "while (nagara) [ja form]": "одновременность (ながら)",
  "noun (-sa) [ja form]": "существительное (さ)",
- "verb with する [ja form]": "глагол с する"
+ "verb with する [ja form]": "глагол с する",
+ "surname [name kind]": "фамилия",
+ "given name [name kind]": "имя",
+ "person's name [name kind]": "имя человека",
+ "place name [name kind]": "топоним",
+ "organization [name kind]": "организация",
+ "proper noun [name kind]": "имя собственное"
 }

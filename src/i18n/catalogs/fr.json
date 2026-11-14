@@ -2499,5 +2499,11 @@
  "want to (tai) [ja form]": "vouloir (たい)",
  "while (nagara) [ja form]": "tout en (ながら)",
  "noun (-sa) [ja form]": "nom (さ)",
- "verb with する [ja form]": "verbe en する"
+ "verb with する [ja form]": "verbe en する",
+ "surname [name kind]": "nom de famille",
+ "given name [name kind]": "prénom",
+ "person's name [name kind]": "nom de personne",
+ "place name [name kind]": "nom de lieu",
+ "organization [name kind]": "organisation",
+ "proper noun [name kind]": "nom propre"
 }

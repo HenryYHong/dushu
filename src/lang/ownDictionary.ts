@@ -206,7 +206,12 @@ export function kanjiOwnMeaning(char: string, reading: string | undefined): stri
   const table = tableFor('ja');
   if (!table) return null;
   const read = reading ? hiragana(reading.replace(/[.\-]/g, '')) : undefined;
-  const s = japaneseOwn(table, [char], read)?.[0]?.senses[0];
+  // Only the kanji's own lines read so, or a kana word that names this kanji: never a kana word of that sound alone (釈 read
+  // とく is not とく, "ておく").
+  const own = table.get(char) ?? [];
+  const entry = (read ? own.find((x) => x.readings?.some((r) => r === read)) : own[0])
+    ?? (read ? table.get(read)?.find((x) => x.kanji?.includes(char)) : undefined);
+  const s = entry?.senses[0];
   return s ? `${s.notes?.length ? `（${s.notes.join('，')}）` : ''}${s.glosses[0]}` : null;
 }
 

@@ -2387,5 +2387,11 @@
  "want to (tai) [ja form]": "Wunschform (たい)",
  "while (nagara) [ja form]": "während (ながら)",
  "noun (-sa) [ja form]": "Nomen (さ)",
- "verb with する [ja form]": "Verb mit する"
+ "verb with する [ja form]": "Verb mit する",
+ "surname [name kind]": "Nachname",
+ "given name [name kind]": "Vorname",
+ "person's name [name kind]": "Personenname",
+ "place name [name kind]": "Ortsname",
+ "organization [name kind]": "Organisation",
+ "proper noun [name kind]": "Eigenname"
 }

@@ -58,3 +58,15 @@ describe('Japanese form names in the interface language', () => {
     expect(describeForms(['progressive (te iru)', 'past'])).toBe('progressive (te iru), past');
   });
 });
+
+// What kind of name a Japanese name is (src/lang/ja/index.ts NAME_GLOSS): 姓, 地名 for a reader of Japanese, not "surname".
+const NAME_KINDS = [...readFileSync(join(__dirname, '..', '..', 'src', 'lang', 'ja', 'index.ts'), 'utf8').matchAll(/ttx\((?:'([^']+)'|"([^"]+)"), 'name kind'\)/g)].map((m) => m[1] ?? m[2]);
+describe('name kinds in the interface language', () => {
+  it('finds them', () => expect(NAME_KINDS.length).toBe(6));
+  for (const ui of UI_LANGS.filter((l) => l !== 'en')) {
+    it(ui, () => {
+      const catalog = JSON.parse(readFileSync(join(__dirname, '..', '..', 'src', 'i18n', 'catalogs', `${ui}.json`), 'utf8')) as Record<string, string>;
+      expect(NAME_KINDS.filter((k) => !catalog[`${k} [name kind]`])).toEqual([]);
+    });
+  }
+});

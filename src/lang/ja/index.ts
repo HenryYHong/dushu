@@ -1,3 +1,4 @@
+import { ttx } from '../../i18n';
 // The Japanese engine: IPADIC morphemes (ipadic.ts) grouped into learner words (words.ts), keyed and defined by JMdict,
 // with furigana (ruby.ts) and KANJIDIC2 for the kanji. Contract: src/lang/types.ts.
 import type { RubyPart, RubySpan, Token } from '../../types';
@@ -1870,7 +1871,7 @@ class JaEngine implements LangEngine {
     if (w.name && !good.some((r) => r.read)) {
       res.name = true;
       const same = entries.filter((e) => w.reading && e.reading && looseReading(e.reading) === looseReading(w.reading));
-      res.entries = [{ head: w.text, reading: w.reading || undefined, senses: [{ glosses: [NAME_GLOSS[w.name]] }], source: 'name' }, ...same];
+      res.entries = [{ head: w.text, reading: w.reading || undefined, senses: [{ glosses: [NAME_GLOSS[w.name]()] }], source: 'name' }, ...same];
     }
     return res;
   }
@@ -2210,8 +2211,10 @@ function particleSense(text: string, pos1: string, pos2: string): RegExp | undef
 
 const FRINGE: ReadonlySet<string> = new Set(['arch', 'obs', 'rare']);
 
-const NAME_GLOSS: Record<NonNullable<Word['name']>, string> = {
-  surname: 'surname', given: 'given name', person: "person's name", place: 'place name', org: 'organization', proper: 'proper noun',
+/** What kind of name a name is, in the interface's language (a reader of Japanese gets 姓, 地名). */
+const NAME_GLOSS: Record<NonNullable<Word['name']>, () => string> = {
+  surname: () => ttx('surname', 'name kind'), given: () => ttx('given name', 'name kind'), person: () => ttx("person's name", 'name kind'),
+  place: () => ttx('place name', 'name kind'), org: () => ttx('organization', 'name kind'), proper: () => ttx('proper noun', 'name kind'),
 };
 
 /** One short gloss: no parentheses, the first of a list, a few words at most ("to eat", "house"). */

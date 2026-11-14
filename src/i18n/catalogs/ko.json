@@ -2280,5 +2280,11 @@
  "want to (tai) [ja form]": "희망 (たい)",
  "while (nagara) [ja form]": "동시 동작 (ながら)",
  "noun (-sa) [ja form]": "명사형 (さ)",
- "verb with する [ja form]": "する동사"
+ "verb with する [ja form]": "する동사",
+ "surname [name kind]": "성",
+ "given name [name kind]": "이름",
+ "person's name [name kind]": "인명",
+ "place name [name kind]": "지명",
+ "organization [name kind]": "단체명",
+ "proper noun [name kind]": "고유 명사"
 }

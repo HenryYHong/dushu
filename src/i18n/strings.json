@@ -8674,6 +8674,11 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "given name [name kind]": {
+  "where": [
+   "src/lang/ja/index.ts"
+  ]
+ },
  "glosses": {
   "where": [
    "src/ui/about/about.ts"
@@ -9063,6 +9068,11 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "organization [name kind]": {
+  "where": [
+   "src/lang/ja/index.ts"
+  ]
+ },
  "paradigms": {
   "where": [
    "src/ui/about/about.ts"
@@ -9154,6 +9164,11 @@
    "src/lang/formLabel.ts"
   ]
  },
+ "person's name [name kind]": {
+  "where": [
+   "src/lang/ja/index.ts"
+  ]
+ },
  "phrase": {
   "where": [
    "src/lang/posLabel.ts"
@@ -9167,6 +9182,11 @@
  "pinyin": {
   "where": [
    "src/lang/labels.ts"
+  ]
+ },
+ "place name [name kind]": {
+  "where": [
+   "src/lang/ja/index.ts"
   ]
  },
  "pluperfect [grammar]": {
@@ -9326,6 +9346,11 @@
    "src/lang/posLabel.ts"
   ]
  },
+ "proper noun [name kind]": {
+  "where": [
+   "src/lang/ja/index.ts"
+  ]
+ },
  "proscribed [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
@@ -9470,6 +9495,11 @@
  "superlative [grammar]": {
   "where": [
    "src/lang/formLabel.ts"
+  ]
+ },
+ "surname [name kind]": {
+  "where": [
+   "src/lang/ja/index.ts"
   ]
  },
  "synonym [grammar]": {

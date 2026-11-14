@@ -2499,5 +2499,11 @@
  "want to (tai) [ja form]": "querer (たい)",
  "while (nagara) [ja form]": "enquanto (ながら)",
  "noun (-sa) [ja form]": "substantivo (さ)",
- "verb with する [ja form]": "verbo com する"
+ "verb with する [ja form]": "verbo com する",
+ "surname [name kind]": "sobrenome",
+ "given name [name kind]": "nome próprio",
+ "person's name [name kind]": "nome de pessoa",
+ "place name [name kind]": "nome de lugar",
+ "organization [name kind]": "organização",
+ "proper noun [name kind]": "nome próprio"
 }

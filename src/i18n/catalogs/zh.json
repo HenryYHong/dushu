@@ -2270,5 +2270,11 @@
  "want to (tai) [ja form]": "愿望（たい）",
  "while (nagara) [ja form]": "一边（ながら）",
  "noun (-sa) [ja form]": "名词化（さ）",
- "verb with する [ja form]": "サ变动词（する）"
+ "verb with する [ja form]": "サ变动词（する）",
+ "surname [name kind]": "姓",
+ "given name [name kind]": "名",
+ "person's name [name kind]": "人名",
+ "place name [name kind]": "地名",
+ "organization [name kind]": "机构名",
+ "proper noun [name kind]": "专有名词"
 }
