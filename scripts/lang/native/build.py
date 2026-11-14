@@ -835,6 +835,8 @@ def update_meta(code, count, sources):
 CJK_SENSES = 8
 # A Japanese meaning that only points at another word: "「つき」を参照。".
 SEE_ALSO = re.compile(r'(?:詳細は)?(?:「([^」]+)」|([^\s「」。、()（）]{1,12}?))\s*(?:も|を)*参照。?')
+# "あかんべえの異表記。", "「タイプライタ」の表記ゆれ。": a spelling of another word, which has the meanings.
+VARIANT_NOTE = re.compile(r'(?:「([^」]+)」|([^\s「」。、()（）]{1,15}?))の(?:表記ゆれ|異表記|別表記|旧表記|旧字体|俗字|誤記)。?')
 SEE_TAIL = re.compile(r'(?<=。)\s*(?:詳細は)?(?:「[^」]+」|[^\s「」。、]{1,12}?)\s*(?:も|を)*参照。?$')
 KANA = re.compile(r'[\u3040-\u30ffー]+')
 
@@ -891,6 +893,24 @@ READING_NOTE = re.compile(r'^(?:（[\u3040-\u30ff・、ー\s]+）|\([\u3040-\u30
 # Chinese Wiktionary's page for a variant only points at the character it is a variant of: "關於「㕑」的發音和釋義，請見「廚」。
 # （此字是「廚」的異體字。）". The variant gets that character's meanings, after a note of what it is to it (「廚」的異體字).
 POINTER = re.compile(r'關於「[^」]+」的發音和釋義，請見「([^」（]+)(?:（.*?）)?」。\s*(?:（此[字詞]是(.+?)。）)?')
+
+
+def jmdict_readings():
+    """JMdict: each spelling's readings in hiragana (餌: えさ, え), to tell a meaning that only gives the reading."""
+    out = collections.defaultdict(set)
+    with gzip.open(os.path.join(DATA, 'ja', 'jmdict.tsv.gz'), 'rt', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            c = line.split('\t')
+            if len(c) < 2:
+                continue
+            kana = {hiragana(x.split('#')[0].split('@')[0]) for x in c[1].split(';') if x}
+            for x in c[0].split(';'):
+                form = x.split('#')[0].split('@')[0]
+                if form:
+                    out[form] |= kana
+    return out
 
 
 def cjk_keys(code):
@@ -969,6 +989,8 @@ def build_cjk(code):
     by_kana = collections.defaultdict(list)
     points = collections.defaultdict(set)
     see_also = collections.defaultdict(list)
+    see_notes = {}
+    ja_readings = jmdict_readings() if code == 'ja' else {}
     variant_of = collections.defaultdict(list)
     n = kept = 0
     for e in cjk_entries(code):
@@ -981,7 +1003,7 @@ def build_cjk(code):
                 continue
             if e.get('pos') in ('character', 'soft-redirect', 'romanization', 'symbol'):
                 continue
-            senses, readings, sees = [], [], []
+            senses, readings, sees, notes = [], [], [], []
             for sn in e.get('senses') or []:
                 if sn.get('form_of') or sn.get('alt_of') or 'form-of' in (sn.get('tags') or []) or not sn.get('glosses'):
                     continue
@@ -998,18 +1020,24 @@ def build_cjk(code):
                 if code == 'ja':
                     # "青の色。「あお」を参照。": the meaning, without the pointer after it.
                     gloss = SEE_TAIL.sub('', gloss) or gloss
-                see = SEE_ALSO.fullmatch(re.sub(r'^(?:（[^）]*）|\([^)]*\))\s*', '', gloss)) if code == 'ja' else None
+                bare = re.sub(r'^(?:（[^）]*）|\([^)]*\))\s*', '', gloss)
+                see = (SEE_ALSO.fullmatch(bare) or VARIANT_NOTE.fullmatch(bare)) if code == 'ja' else None
                 if see:
                     sees.append(see.group(1) or see.group(2))
+                    notes.append(gloss)
                     continue
+                if code == 'ja' and gloss.rstrip('。') in {e.get('word') or ''} | ja_readings.get(e.get('word') or '', set()):
+                    continue  # "炎。", "えさ。": the word itself or its reading, which says nothing
                 if gloss and len(gloss) > 1 and gloss not in [g for g, _ in senses] and len(senses) < MAX_SENSES:
                     senses.append((gloss, edition_labels({'rt': sn.get('raw_tags') or []})))
                     readings.append(','.join(dict.fromkeys(hiragana(r) for r in re.split(r'[（）()【】、・\s]+', note.group(0)) if r))
                                     if note else '')
             if not senses:
-                # Japanese: an entry that only says "see つき" (月) takes つき's meanings, below.
+                # Japanese: an entry that only says "see つき" (月) or "「タイプライタ」の表記ゆれ" takes that word's meanings,
+                # below (or keeps the note, when the word has none here).
                 if sees and e.get('word'):
                     see_also[e['word']].extend(x for x in sees if x not in see_also[e['word']])
+                    see_notes.setdefault(e['word'], notes[0])
                 continue
             word = e.get('word') or ''
             # A meaning with no reading in front, on a page titled with one kanji or one that marks the reading of other meanings
@@ -1059,10 +1087,9 @@ def build_cjk(code):
     # A Japanese entry that only points at another word ("「つき」を参照。"): that word's meanings, when it has any here.
     for word, targets in see_also.items():
         if word in keys and word not in found:
-            meant = merge_senses([e for t in targets for e in found.get(t, [])])
-            if meant:
-                found[word].append({'pos': '', 'senses': meant[:CJK_SENSES], 'syn': [], 'reading': '',
-                                    'titled': not KANA.fullmatch(word)})
+            meant = merge_senses([e for t in targets for e in found.get(t, [])]) or [(see_notes[word], [])]
+            found[word].append({'pos': '', 'senses': meant[:CJK_SENSES], 'syn': [], 'reading': '',
+                                'titled': not KANA.fullmatch(word)})
     # Meanings written for the app (keyed by traditional spelling, and by JMdict spelling), where Wiktionary has none: before the
     # variants, so a simplified spelling that points at its traditional one (国: 國) gets them too.
     written = written_entries(code)
