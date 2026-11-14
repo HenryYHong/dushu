@@ -26,7 +26,7 @@ import { headwordsFor, vocabItemFor } from './saveWord';
 import { flyToVocab } from '../fly';
 import { popIcon } from '../vocab/motion';
 import { cardMeanings, type CardMeanings } from './meanings';
-import { ownMeanings } from '../../lang/ownDictionary';
+import { chineseOwnMeanings, chineseSpellings } from '../../lang/ownDictionary';
 import { tt, ttn } from '../../i18n';
 
 interface View {
@@ -482,7 +482,10 @@ export function mountWordView(
       const flag = ordered.matched && hasContext && ordered.groups.some(g => !sameReading(g.pinyin, syllables));
       const ambiguous = ordered.groups.length > 1 || ordered.groups.some((g) => splitClassifiers(g.defs).rest.length > 1);
       // A Chinese reader reading Chinese gets the meanings in Chinese, when Chinese Wiktionary has the word.
-      const inChinese = ownMeanings('zh', [...new Set(entries.flatMap((e) => [e.trad, e.simp])), v.word, dict.toTraditional(v.word)]);
+      const inChinese = chineseOwnMeanings(chineseSpellings(v.word, entries, {
+        traditional: dict.toTraditional(v.word),
+        readsTraditional: ctx.settings.get().script === 'traditional',
+      }));
       if (inChinese) body.appendChild(ownBlock(inChinese, ordered.groups, !(ordered.groups.length === 1 && sameReading(ordered.groups[0].pinyin, syllables))));
       else ordered.groups.forEach((g, i) => {
         // With one reading, the pinyin under the headword is that reading: do not print it a second time.

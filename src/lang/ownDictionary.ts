@@ -197,6 +197,44 @@ export function ownMeanings(id: LangId, spellings: readonly string[]): string[] 
   return null;
 }
 
+/** A CC-CEDICT entry that is only a variant, a pointer, a sound, an archaic word or a name: not the likely spelling of the word. */
+function minorEntry(e: { pinyin: string; defs: readonly string[] }): boolean {
+  return /^[A-Z]/.test(e.pinyin) || e.defs.every((d) => /(?:^|\b)(?:old |archaic |Japanese |ancient )?variant of\b|^see |^used in|^surname|\((?:archaic|old|onom\.)\)|^\(onom\.\)/i.test(d));
+}
+
+/**
+ * The spellings a Chinese word's meanings in Chinese are looked up under, the likeliest first: the word as written, for a reader
+ * of traditional characters; then CC-CEDICT's spellings, those meaning most first and those only a variant, a pointer, a sound,
+ * an archaic word or a name last (家: 傢 is only "used in 傢俱"; 后: 後 "back, behind, after..." before 后 "empress"; 当: 噹 is a
+ * bell's sound); then the word converted.
+ */
+export function chineseSpellings(word: string, entries: readonly { trad: string; simp: string; pinyin: string; defs: readonly string[] }[],
+  opts: { traditional?: string; readsTraditional?: boolean } = {}): string[] {
+  const ordered = entries.map((e, i) => ({ e, i, minor: minorEntry(e) }))
+    .sort((a, b) => Number(a.minor) - Number(b.minor) || b.e.defs.length - a.e.defs.length || a.i - b.i).map((x) => x.e);
+  return [...new Set([
+    ...(opts.readsTraditional ? [word] : []),
+    ...ordered.flatMap((e) => [e.trad, e.simp]),
+    word,
+    opts.traditional,
+  ].filter((s): s is string => !!s))];
+}
+
+/**
+ * A Chinese word's meanings in Chinese from all its spellings (chineseSpellings), the likeliest spelling's first, each once, at
+ * most `max`; a later spelling's note that it is a variant ("「國」的簡體字") left out. Null when there are none.
+ */
+export function chineseOwnMeanings(spellings: readonly string[], max = 8): string[] | null {
+  const out: string[] = [];
+  spellings.forEach((s, i) => {
+    for (const m of ownMeanings('zh', [s]) ?? []) {
+      if (i > 0 && out.length && /的(?:簡體字|異體字|繁體字|俗字|古字)/.test(m)) continue;
+      if (!out.includes(m) && out.length < max) out.push(m);
+    }
+  });
+  return out.length ? out : null;
+}
+
 /** Tests: forget what was loaded. */
 export function resetOwnDictionary(): void {
   loads.clear();
@@ -229,6 +267,7 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
       const senses = [...new Map(list.flatMap((x) => x.senses).map((x) => [x.glosses[0], x])).values()].slice(0, 6);
       return { ...e, senses, source: OWN_SOURCE };
     }
+    // Under its own key; only a headword with no line of its own takes its likeliest word's (Portuguese "baixinha": baixo).
     const list = table.get(key) ?? table.get(engine.normalize(e.head));
     if (!list?.length) return null;
     // Every part of speech the entry's meanings have, in order (Spanish "mierda" is "nothing" as a pronoun, then the noun).
@@ -246,7 +285,8 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
     const entries: WordEntry[] = [];
     const swapped = lu.entries.map((e, i) => {
       // A fixed phrase's entry comes first, under the phrase's key.
-      const key = i === 0 && lu.phrase ? lu.phrase : engine.normalize(e.head);
+      // Its own key: never normalize's, which takes a headword that is also a form to another word (sei: essere).
+      const key = i === 0 && lu.phrase ? lu.phrase : engine.keyOf ? engine.keyOf(e.head) : engine.normalize(e.head);
       return swap(table, e, key);
     });
     // One language on the card: when the word has meanings in it, the entries without any go (correu: correr, not the English
@@ -274,12 +314,13 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
   const byRank = (): boolean => engine.id === 'en' && glossCode('en') !== 'zh' && !!engine.rankLevel;
   const level = (k: string) => (byRank() ? engine.rankLevel!(k) : engine.level(k));
   const leveled = (lu: WordLookup): WordLookup => (byRank()
-    ? { ...lu, entries: lu.entries.map((e) => ({ ...e, level: engine.rankLevel!(engine.normalize(e.head)) })) } : lu);
+    ? { ...lu, entries: lu.entries.map((e) => ({ ...e, level: engine.rankLevel!(engine.keyOf ? engine.keyOf(e.head) : engine.normalize(e.head)) })) } : lu);
   return {
     id: engine.id,
     segment: (text, opts) => engine.segment(text, opts),
     lookup: (surface, ctx) => leveled(lookup(surface, ctx)),
     normalize: (w) => engine.normalize(w),
+    keyOf: engine.keyOf ? (h) => engine.keyOf!(h) : undefined,
     level,
     levelWords: (max) => (byRank() ? engine.rankLevelWords!(max) : engine.levelWords(max)),
     rankLevel: engine.rankLevel ? (k) => engine.rankLevel!(k) : undefined,

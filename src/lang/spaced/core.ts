@@ -2673,6 +2673,10 @@ export class SpacedEngine implements LangEngine {
     return out.filter((e) => e.senses.length);
   }
 
+  keyOf(head: string): string {
+    return foldKey(this.lang, head);
+  }
+
   normalize(word: string): string {
     const w = word.trim();
     if (!w) return '';

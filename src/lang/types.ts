@@ -102,6 +102,11 @@ export interface LangEngine {
   lookup(surface: string, ctx?: { token?: Token; sentence?: string }): WordLookup;
   /** The key for a word with no context (store.known/vocab use it to match any form of a word): its folded dictionary form. */
   normalize(word: string): string;
+  /**
+   * A headword's own key, only folded (case, accents as the dictionary keys them): normalize also takes a word to its likeliest
+   * entry, which for a headword that is also a form is another word (Italian "sei", six, is also a form of essere).
+   */
+  keyOf?(head: string): string;
   /** The level of a key (1..LangInfo.levels.labels.length), undefined when the word is not on any list. */
   level(key: string): number | undefined;
   /** Keys at levels 1..max, for "mark these as known". */

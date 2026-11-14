@@ -6,7 +6,7 @@ import { langVocabItem, safeLookup } from '../../lang/words';
 import { newSrs } from '../../core/srs';
 import { entriesForReading } from '../../core/reading';
 import { sameReading, shortGloss } from './defs';
-import { ownMeanings } from '../../lang/ownDictionary';
+import { chineseOwnMeanings, chineseSpellings } from '../../lang/ownDictionary';
 
 /**
  * The simplified and traditional spellings of a word, from the entries that have the reading on screen: 了 as the particle
@@ -30,7 +30,7 @@ export function headwordsFor(dict: Dictionary, word: string, entries: DictEntry[
 export function glossFor(dict: Dictionary, word: string, syllables: string[], around?: { prev?: string; next?: string }, entries = dict.lookup(word)): string {
   const info = [...word].length === 1 ? dict.char(word) : null;
   // A Chinese reader reading Chinese saves the meaning in Chinese, as the card showed it (lang/ownDictionary.ts): the first two.
-  const inChinese = ownMeanings('zh', [...new Set(entries.flatMap((e) => [e.trad, e.simp])), word, dict.toTraditional(word)]);
+  const inChinese = chineseOwnMeanings(chineseSpellings(word, entries, { traditional: dict.toTraditional(word) }));
   if (inChinese) return dict.toSimplified(inChinese.slice(0, 2).join('；'));
   return shortGloss(entriesForReading(entries, syllables, word, around).slice(0, 1), 120, true)
     || shortGloss(entries)

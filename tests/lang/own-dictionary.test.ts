@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { LangEngine, WordEntry, WordLookup } from '../../src/lang/types';
 import {
-  OWN_SOURCE, glossCode, japaneseOwn, loadOwnDictionary, ownDictionary, ownMeanings, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
+  OWN_SOURCE, chineseSpellings, glossCode, japaneseOwn, loadOwnDictionary, ownDictionary, ownMeanings, ownRareLookup, parseOwnTable, readsOwnLanguage, resetOwnDictionary,
   setReaderLanguage, withOwnDictionary,
 } from '../../src/lang/ownDictionary';
 import { LANGS } from '../../src/lang/registry';
@@ -199,5 +199,19 @@ describe('a Japanese word by its reading', () => {
     expect(first(japaneseOwn(table, ['受取る'], 'うけとる'))).toBeUndefined();
     expect(first(japaneseOwn(table, ['受け取る'], 'うけとる'))).toMatch(/収める/);
     expect(japaneseOwn(table, ['いき'], 'いき')).toHaveLength(2);
+  });
+});
+
+describe('a Chinese word\'s spellings, the likeliest first', () => {
+  const e = (trad: string, simp: string, pinyin: string, defs: string) => ({ trad, simp, pinyin, defs: defs.split('/') });
+  it('the spelling that means most, before one only used in other words, a sound, an archaic word or a name', () => {
+    expect(chineseSpellings('家', [e('傢', '家', 'jia1', 'used in 傢伙|家伙[jia1 huo5] and 傢俱'), e('家', '家', 'jia1', 'home/family/classifier for families')])[0]).toBe('家');
+    expect(chineseSpellings('后', [e('后', '后', 'Hou4', 'surname Hou'), e('后', '后', 'hou4', 'empress/queen'), e('後', '后', 'hou4', 'back/behind/rear/afterwards/after/later')])[0]).toBe('後');
+    expect(chineseSpellings('当', [e('噹', '当', 'dang1', '(onom.) dong/ding dong (bell)'), e('當', '当', 'dang1', 'to be/to act as/manage')])[0]).toBe('當');
+    expect(chineseSpellings('听', [e('听', '听', 'yin3', 'smile (archaic)'), e('聽', '听', 'ting1', 'to listen to; to hear/to heed')])[0]).toBe('聽');
+    expect(chineseSpellings('最', [e('㝡', '最', 'zui4', 'variant of 最[zui4]'), e('最', '最', 'zui4', 'most/the most')])[0]).toBe('最');
+  });
+  it('the word as written first for a reader of traditional characters', () => {
+    expect(chineseSpellings('后', [e('後', '后', 'hou4', 'back/behind/after'), e('后', '后', 'hou4', 'empress')], { readsTraditional: true })[0]).toBe('后');
   });
 });

@@ -161,7 +161,9 @@ DOUBLE_LINK = re.compile(r'\[\[([^\[\]]*)\]\]')
 HALF_CLOSED = re.compile(r'\[\[([^\[\]\d()]+)\](?!\])')
 HALF_LINK = re.compile(r'(?<!\[)\[([^\[\]]*/[^\[\]]*)\]\]')
 # A meaning that is only a request for one ("本詞語需要翻譯為漢語。請協助添加"), says it is not known, or is a table's markup.
-NO_MEANING = re.compile(r'需要翻譯為漢語|請協助添加|\{\{rfdef|rfdef\}\}|此詞的含意不確定|^\*?\s*\[[ST]:|class=[\'"]|wikitable|style=[\'"]|displaystyle')
+NO_MEANING = re.compile(r'需要翻譯為漢語|請協助添加|\{\{rfdef|rfdef\}\}|此詞的含意不確定|^\*?\s*\[[ST]:|class=[\'"]|wikitable|style=[\'"]|displaystyle'
+                        r'|Définition manquante|definizione mancante|vedasi la definizione|Definición faltante|definição em falta'
+                        r'|^(?:(?:in)?transitiv[oe]|pronominale?|riflessivo|reflexivo|intransitivo|разг|предик|перен|прост|устар|книжн|спец)\.?[;:.]*$')
 
 
 def last_part(text):
@@ -174,6 +176,7 @@ def residue(text):
     if NO_MEANING.search(text):
         return ''
     text = MAGIC_WORD.sub('', text).strip()
+    text = re.sub(r'(?:^|\s):+\[\d+\]\s*', ' ', text)  # "Als Hilfsverb: ::[3] zur Futurbildung": a numbered sub-meaning's mark
     text = OLD_MARK.sub('', text)
     # A mark in the text: a reference to other senses ("von ^([1]) abgeleitet": sense 1) or a note (^([來源請求]), citation needed).
     text = re.sub(r'\^\((\[[^()]*)\)', lambda m: f"({', '.join(re.findall(r'\d+', m.group(1)))})" if re.search(r'\d', m.group(1)) else '', text)
@@ -225,8 +228,10 @@ def simple_line(raw):
             return ''
         if name in ('ant', 'antonyms', 'antonym'):
             return ''
-        if name in ('w', 'l', 'term'):
-            return args[-1] if args else ''
+        if name in ('w', 'l', 'term', 'lc', 'uc', 'lcf', 'ucf', 'link', 'wikipedia'):
+            # "{{lc|Receive}} or obtain": the word itself (lc: its link, lower case first).
+            word = args[-1] if args else ''
+            return word[:1].lower() + word[1:] if name in ('lc', 'lcf') and word else word
         if name == 'r':
             return ''.join(args)
         if name in EN_LABELS:
@@ -246,6 +251,7 @@ def simple_line(raw):
     s = re.sub(r'<[^>]+>', '', s)
     s = re.sub(r'\(\s*\)', '', s)
     s = re.sub(r'\s+([.,;:!?])', r'\1', clean(s))
+    s = s[:1].upper() + s[1:]
     return s, labels, [x for x in syns if x and ' ' not in x.strip()]
 
 
@@ -293,8 +299,24 @@ def simple_entries():
 
 # ------------------------------------------------------------------------------------------------- kaikki extracts ---
 
-def is_form_only(s):
-    return bool(s.get('fo') or s.get('ao') or 'form-of' in (s.get('t') or []) or 'alt-of' in (s.get('t') or []))
+# How a meaning that only says what a word is a form of begins, in the Wiktionaries read here ("femminile di figlio", "Forma del
+# femenino de hijo", "Participio de unir", "plural of house"). kaikki marks some real meanings as forms too (Italian "signora":
+# "donna sposata, divorziata o vedova" as a form of vedova): only a meaning that reads as a form is one.
+FORM_START = re.compile(
+    r'^\W*(?:forma|forme|form|femenin|feminin|femminil|féminin|feminine|masculin|maschil|plural|pluriel|singular|singolar|singulier|'
+    r'participi|particípio|participe|partizip|gerundi|gerúndio|variante?|grafía|graphie|grafia|alternativ|contrac|contraz|contraç|'
+    r'élision|elisione|elisión|abrevia|abrévia|abbrevia|kurzform|diminutiv|aumentativ|superlativ|comparativ|komparativ|primera|segunda|'
+    r'tercera|primeira|terceira|première|deuxième|troisième|prima|seconda|terza|infinitiv|imperativ|impératif|presente|pretérito|'
+    r'passato|imparfait|imperfett|futur|condicional|condizional|conditionnel|subjuntiv|congiuntiv|subjonctif|nominativ|genitiv|'
+    r'dativ|akkusativ|obsolete|archaic|misspelling|past|present|third|first|second|feminine|plural|\d|'
+    r'форма|краткая|деепричастие|причастие|неёфицированная|деёфицированная|(?:устар|разг|прост|обсц|диал)\.\s*форма)', re.I)
+
+
+def is_form_only(s, trust_tags=False):
+    """A meaning that only says what the word is a form of. English Wiktionary's marks are trusted; the other Wiktionaries'
+    only when the meaning also reads as a form (FORM_START)."""
+    tagged = bool(s.get('fo') or s.get('ao') or 'form-of' in (s.get('t') or []) or 'alt-of' in (s.get('t') or []))
+    return tagged and (trust_tags or not s.get('g') or bool(FORM_START.match(s['g'][-1])))
 
 
 def extract_en():
@@ -362,7 +384,7 @@ def kaikki_entry(rec, labels_of):
     senses, syns = [], list(rec.get('sy') or [])
     for s in rec['s']:
         syns.extend(s.get('sy') or [])
-        if is_form_only(s) or not s.get('g'):
+        if is_form_only(s, trust_tags=labels_of is en_labels) or not s.get('g'):
             continue
         raw = s['g'][-1]
         gloss = clean(raw)
@@ -537,6 +559,15 @@ def build_en():
             lines.extend(row(key, dict(e, pos='phrase'), '') for e in order_entries(found, set())[:1])
     for key in rank:
         found = entries_for(key) or written.get(key)
+        # "!noun": a written meaning that takes the place of Wiktionary's for that part of speech.
+        replace = [dict(e, pos=e['pos'][1:], mark=e['pos'][0]) for e in written.get(key, []) if e['pos'][:1] in '!+']
+        if replace:
+            theirs = entries_for(key) or []
+            for r in replace:
+                if r['mark'] == '+':
+                    old = [s for x in theirs if x['pos'] == r['pos'] for s in x['senses']]
+                    r['senses'] = (r['senses'] + [s for s in old if s not in r['senses']])[:MAX_SENSES]
+            found = [e for e in theirs if e['pos'] not in {r['pos'] for r in replace}] + replace
         if not found:
             continue
         ordered = order_entries(found, poses[key])
@@ -581,29 +612,45 @@ PARTICIPLE = re.compile(r"^(?:participio(?: passato| presente)?|particípio(?: p
                         r"(?: (?:masculin|singulier|masculino|singular|maschile|singolare))* (?:de|di|du|d['’]) ?([^\W\d_]+)\.?$", re.I)
 
 
+# Words of grammar a note names that are not the word it is a form of (kaikki links "voyelle" in "Variante de ce devant une
+# voyelle", "article" in "Contraction de la préposition à et de l'article défini le").
+GRAMMAR_TERMS = {
+    'voyelle', 'consonne', 'article', 'préposition', 'conjonction', 'pronom', 'adverbe', 'adjectif', 'verbe', 'nom', 'personne',
+    'nombre', 'pluriel', 'singulier', 'masculin', 'féminin', 'vocale', 'consonante', 'articolo', 'preposizione', 'congiunzione',
+    'pronome', 'avverbio', 'aggettivo', 'verbo', 'nome', 'persona', 'vocal', 'artículo', 'preposición', 'conjunción', 'pronombre',
+    'adverbio', 'adjetivo', 'sustantivo', 'artigo', 'preposição', 'conjunção', 'advérbio', 'adjetivo', 'substantivo', 'vowel',
+    'article', 'preposition', 'pronoun', 'Artikel', 'Präposition', 'Pronomen', 'Vokal', 'гласный', 'согласный',
+}
+
+
 def pointer_of(rec):
     """(note, word) when every meaning of a kaikki entry only says it is a form of one word ("Forma del femenino singular de
-    hijo.", "femminile di figlio", "Participio de unir."): the note, cleaned, and that word."""
+    hijo.", "femminile di figlio", "Participio de unir."): the note, cleaned, and that word; the word is None when the note does
+    not end on it or it is a word of grammar (the note alone is the meaning then: "Variante de ce devant une voyelle.")."""
     note, target = None, None
     for s in rec['s']:
         g = clean(s['g'][-1]) if s.get('g') else ''
         words = s.get('fo') or s.get('ao') or []
         m = PARTICIPLE.match(g) if not words else None
         words = words or ([m.group(1)] if m else [])
-        if not words or not g:
+        if not words or not g or not FORM_START.match(g):
             return None
-        if target is None:
-            note, target = g, words[0]
-        elif words[0] != target:
+        last = re.sub(r'[\W_]+$', '', g).split()[-1:] or ['']
+        word = next((w for w in words if w == last[0] and w not in GRAMMAR_TERMS), None)
+        if note is None:
+            note, target = g, word
+        elif word != target:
             return None
-    return (note, target) if target else None
+    return (note, target) if note else None
 
 
 def pointed(note, base, pos):
-    """A form's entry: the note of what it is, then its word's first meanings in the same part of speech (else its first)."""
-    same = [b for b in base if b['pos'] == pos] or base
+    """A form's entry: the note of what it is, then its word's first meanings in the same part of speech (another part of
+    speech's would be another word: Italian "sei" the verb form is not essere the noun, "being"); the note alone when the word
+    is not known or has none in that part of speech."""
+    same = [b for b in base if b['pos'] == pos]
     meant = [x for x in (same[0]['senses'] if same else []) if x[0] != note][:POINTED_SENSES]
-    return {'pos': pos, 'senses': [(note, [])] + meant, 'syn': []} if meant else None
+    return {'pos': pos, 'senses': [(note, [])] + meant, 'syn': []}
 
 
 POINTED_SENSES = 3
@@ -647,16 +694,26 @@ def build_edition(code):
     # Meanings written for the app, for the common words Wiktionary leaves without one (and for the words forms point at).
     written = written_entries(code)
     for key, entries in written.items():
+        # "!noun": takes the place of Wiktionary's meanings of that part of speech (one found wrong for the word); "+noun": goes
+        # before them (the word's main sense, which Wiktionary lists late or not at all).
+        for e in entries:
+            if e['pos'][:1] in '!+':
+                mark, e['pos'] = e['pos'][0], e['pos'][1:]
+                theirs = [s for x in found.get(key, []) if x['pos'] == e['pos'] for s in x['senses']]
+                found[key] = [x for x in found.get(key, []) if x['pos'] != e['pos']]
+                if mark == '+':
+                    e['senses'] = (e['senses'] + [s for s in theirs if s not in e['senses']])[:MAX_SENSES]
+                e['replace'] = True
         by_word[key].extend(entries)
         have = {e['pos'] for e in as_main_pos(found.get(key, []), poses.get(key, set()))}
-        found[key].extend(e for e in entries if e['pos'] not in have)
+        found[key].extend(e for e in entries if e.get('replace') or e['pos'] not in have)
     n_pointed = 0
     for key, ptrs in pointers.items():
         have = {e['pos'] for e in as_main_pos(found.get(key, []), poses[key])}
         for pos, note, target in ptrs:
             if pos in have:
                 continue
-            e = pointed(note, by_word.get(fold(code, target), []), pos)
+            e = pointed(note, by_word.get(fold(code, target), []) if target else [], pos)
             if e:
                 found[key].append(e)
                 have.add(pos)
@@ -686,7 +743,9 @@ def build_edition(code):
 # word and part of speech, as native.tsv.gz has them without the hint: key, part of speech (empty for Chinese and Japanese,
 # which are keyed by traditional spelling and by JMdict spelling), then the meanings ("{label}meaning"). Wiktionary's meanings
 # win wherever it has the word: these only fill what it leaves, except a Chinese or Japanese line whose part of speech is "!",
-# which takes the place of Wiktionary's entry for the word.
+# which takes the place of Wiktionary's entry for the word; in another language "!noun" takes the place of its meanings of that part
+# of speech, and in Japanese "!@いき" of its lines read so. "+" in place of "!" puts the written meanings before Wiktionary's instead
+# (a word's main sense that Wiktionary gives late or not at all: French "merci", Chinese 是).
 
 WRITTEN = os.path.join(ROOT, 'scripts', 'lang', 'native', 'written')
 WRITTEN_NOTE = ' and meanings written for LinguPengu'
@@ -958,11 +1017,11 @@ def build_cjk(code):
         # A kanji spelling that only points at its reading (古い → ふるい): the reading's entries that can be it, those that
         # list no other kanji and are the part of speech JMdict gives the spelling (ふるい the adjective, not 篩 the sieve).
         classes = ja_classes()
-        for kanji, kanas in points.items():
+        for kanji, kanas in sorted(points.items()):
             if kanji not in keys or kanji in found:
                 continue
             want = classes.get(kanji, set())
-            for kana in kanas:
+            for kana in sorted(kanas):
                 for e in by_kana.get(kana, []):
                     if e['kanji'] and kanji not in e['kanji']:
                         continue
@@ -982,10 +1041,25 @@ def build_cjk(code):
     written = written_entries(code)
     for key, entries in written.items():
         # Japanese "@reading": the meanings of the spelling read so, beside the lines of its other readings (旬 じゅん, 旬 しゅん).
-        read_as = [e for e in entries if e['pos'].startswith('@')]
-        if read_as:
-            found[key].extend({'pos': '', 'senses': e['senses'], 'syn': [], 'reading': e['pos'][1:]} for e in read_as)
-        entries = [e for e in entries if not e['pos'].startswith('@')]
+        read_as = [e for e in entries if e['pos'].lstrip('!+').startswith('@')]
+        for e in read_as:
+            read = e['pos'].lstrip('!+')[1:]
+            senses = e['senses']
+            if e['pos'][:1] in '!+':
+                # "!@いき": takes the place of the lines read so, and of those whose reading is not said; "+@いき": goes before them.
+                theirs = merge_senses([x for x in found.get(key, []) if x.get('reading') in (read, '?')])
+                found[key] = [x for x in found.get(key, []) if x.get('reading') not in (read, '?')]
+                if e['pos'][0] == '+':
+                    senses = (senses + [x for x in theirs if x not in senses])[:CJK_SENSES]
+            found[key].append({'pos': '', 'senses': senses, 'syn': [], 'reading': read})
+        entries = [e for e in entries if not e['pos'].lstrip('!+').startswith('@')]
+        # Chinese "+": the written meanings first, Wiktionary's after.
+        first = [e for e in entries if e['pos'] == '+']
+        if first:
+            theirs = merge_senses(found.get(key, []))
+            senses = [s for e in first for s in e['senses']]
+            found[key] = [{'pos': '', 'senses': (senses + [x for x in theirs if x not in senses])[:CJK_SENSES], 'syn': []}]
+            entries = [e for e in entries if e['pos'] != '+']
         if entries and (key not in found or any(e['pos'] == '!' for e in entries)):
             found[key] = [{'pos': '', 'senses': e['senses'], 'syn': []} for e in entries]
     # A Chinese variant: after any meanings of its own, for each character it points at a note of what it is to it, then that

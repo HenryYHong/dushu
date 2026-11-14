@@ -12,7 +12,8 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { loadLang } from './spaced/load';
 import {
-  OWN_SOURCE, japaneseOwn, loadOwnDictionary, ownMeanings, parseOwnTable, resetOwnDictionary, setReaderLanguage, withOwnDictionary,
+  OWN_SOURCE, chineseOwnMeanings, chineseSpellings, japaneseOwn, loadOwnDictionary, parseOwnTable, resetOwnDictionary, setReaderLanguage,
+  withOwnDictionary,
 } from '../../src/lang/ownDictionary';
 
 const DATA = join(__dirname, '..', '..', 'public', 'data');
@@ -59,12 +60,13 @@ describe('every HSK and JLPT word, and the commonest Chinese and Japanese words,
     setReaderLanguage('zh');
     await loadOwnDictionary('zh', '/data/', async () => gunzipSync(readFileSync(join(DATA, 'native.tsv.gz'))).toString('utf8'));
   };
-  /** A simplified word's meanings in Chinese, by any spelling the card tries (CC-CEDICT's traditional and simplified). */
-  const inChinese = (simp: string, trad = simp) => ownMeanings('zh', [trad, simp, ...(cedict.get(simp) ?? []).flatMap((e) => [e[0], e[1]])]);
+  /** A simplified word's meanings in Chinese, as the card finds them (chineseSpellings: CC-CEDICT's spellings, then the word). */
+  const inChinese = (simp: string) => chineseOwnMeanings(chineseSpellings(simp,
+    (cedict.get(simp) ?? []).map((e) => ({ trad: e[0], simp: e[1], pinyin: e[2], defs: e[3].split('/') }))));
 
   it('Chinese: every HSK word', async () => {
     await zhOwn();
-    const missing = rows(join(DATA, 'hsk.tsv.gz')).filter(([simp, trad]) => !inChinese(simp, trad || simp));
+    const missing = rows(join(DATA, 'hsk.tsv.gz')).filter(([simp]) => !inChinese(simp));
     console.log(`zh: ${missing.length} HSK words lack a meaning in Chinese`, missing.slice(0, 30).map((c) => c[0]).join(' '));
     expect(missing.slice(0, 20).map((c) => c[0])).toEqual([]);
   });
