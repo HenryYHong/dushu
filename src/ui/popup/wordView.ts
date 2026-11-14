@@ -26,7 +26,7 @@ import { headwordsFor, vocabItemFor } from './saveWord';
 import { flyToVocab } from '../fly';
 import { popIcon } from '../vocab/motion';
 import { cardMeanings, type CardMeanings } from './meanings';
-import { chineseOwnMeanings, chineseSpellings } from '../../lang/ownDictionary';
+import { chineseOwnMeanings, chineseSpellings, readsOwnLanguage } from '../../lang/ownDictionary';
 import { tt, ttn } from '../../i18n';
 
 interface View {
@@ -236,12 +236,26 @@ export function mountWordView(
   }
 
   /** One character of a word as a compact chip: glyph, its reading, a few words of meaning. Opens the character. */
+  /**
+   * A character's gloss on its card. A reader of Chinese gets its first meaning in Chinese, as the word's are, when the
+   * character is read here as it mostly is (地 dì in 地上; the Chinese meanings are not told apart by reading, so 觉 jué, whose
+   * first reading is jiào, gets none: a tap opens them all). Anyone else gets the English sense that fits the reading.
+   */
+  function charGloss(ch: string, syl: string): string {
+    if (!readsOwnLanguage('zh')) return firstGloss(ch, syl) || tt('No definition');
+    const toneless = (s: string) => s.toLowerCase().replace(/[0-9]/g, '').replace(/ü|u:/g, 'v');
+    const main = dict.char(ch)?.readings[0];
+    if (syl && main && toneless(syl) !== toneless(markedToNumbered(main))) return '';
+    const traditional = ctx.settings.get().script === 'traditional';
+    const own = chineseOwnMeanings(chineseSpellings(ch, entriesFor(ch), { traditional: dict.toTraditional(ch), readsTraditional: traditional }), 1)?.[0];
+    return own ? (traditional ? own : dict.toSimplified(own)) : '';
+  }
+
   function charCard(ch: string, syl: string, v: View): HTMLElement {
-    const gloss = firstGloss(ch, syl);
     return h('button.pp-card', { onclick: () => push(v), title: tt('Look up {word}', { word: ch }) },
       h('span.pp-card-glyph.zh', null, ch),
       syl ? pinyinSpans(ctx, [syl]) : h('span.pp-py'),
-      h('span.pp-card-gloss', null, gloss || tt('No definition')),
+      h('span.pp-card-gloss', null, charGloss(ch, syl)),
     );
   }
 

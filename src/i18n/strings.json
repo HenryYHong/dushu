@@ -8221,6 +8221,26 @@
    "src/import/index.ts"
   ]
  },
+ "abbreviation [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "accusative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "active [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "active participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "added {n} bookmarks": {
   "one": "added {n} bookmark",
   "where": [
@@ -8312,15 +8332,70 @@
    "src/lang/ja/tags.ts"
   ]
  },
+ "adverbial participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "alternative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "alternative form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "alternative spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "and [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "and {n} more": {
   "one": "and {n} more",
   "where": [
    "src/ui/vocab/vocab.ts"
   ]
  },
+ "apocopic [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "apocopic form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "archaic [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "archaic form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "archaic spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "article": {
   "where": [
    "src/lang/posLabel.ts"
+  ]
+ },
+ "augmentative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "auxiliary": {
@@ -8338,9 +8413,34 @@
    "src/lang/ja/tags.ts"
   ]
  },
+ "clipping [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "colloquial [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "colloquial form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "common entries": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "comparative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "conditional [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "conjunction": {
@@ -8354,6 +8454,11 @@
    "src/lang/posLabel.ts"
   ]
  },
+ "contraction [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "copula": {
   "where": [
    "src/lang/ja/tags.ts"
@@ -8362,6 +8467,31 @@
  "counter": {
   "where": [
    "src/lang/ja/tags.ts"
+  ]
+ },
+ "dated [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "dated form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "dated spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "dative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "declined [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "descriptions": {
@@ -8374,9 +8504,29 @@
    "src/lang/posLabel.ts"
   ]
  },
+ "dialectal [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "dictionary entries": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "diminutive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "endearing [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "endearing form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "entries": {
@@ -8399,9 +8549,39 @@
    "src/lang/ja/tags.ts"
   ]
  },
+ "eye dialect [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "feminine": {
   "where": [
    "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "feminine [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "first [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "first-person [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "formal [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "forms": {
@@ -8414,6 +8594,26 @@
    "src/lang/labels.ts"
   ]
  },
+ "future [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "gender-neutral [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "genitive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "gerund [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "glosses": {
   "where": [
    "src/ui/about/about.ts"
@@ -8424,9 +8624,79 @@
    "src/lang/labels.ts"
   ]
  },
+ "historical [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "imperative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "imperfect [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "imperfective [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "impersonal [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "in under a minute": {
   "where": [
    "src/ui/review/queue.ts"
+  ]
+ },
+ "indicative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "infinitive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "inflected [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "inflected form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "informal [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "informal form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "informal spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "initialism [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "instrumental [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "interjection": {
@@ -8486,6 +8756,21 @@
    "src/ui/about/about.ts"
   ]
  },
+ "literary [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "locative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "long form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "looked up {n} times": {
   "one": "looked up {n} time",
   "where": [
@@ -8495,6 +8780,11 @@
  "masculine": {
   "where": [
    "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "masculine [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "masculine or feminine": {
@@ -8507,14 +8797,54 @@
    "src/ui/goalInput.ts"
   ]
  },
+ "misspelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "mixed [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "name": {
   "where": [
    "src/ui/popup/phraseView.ts"
   ]
  },
+ "negative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "neuter": {
   "where": [
    "src/ui/popup/langWordView.ts"
+  ]
+ },
+ "neuter [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "nominative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "nonstandard [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "nonstandard form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "nonstandard spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "noun": {
@@ -8558,6 +8888,31 @@
    "src/lang/posLabel.ts"
   ]
  },
+ "obsolete [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "obsolete form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "obsolete spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "old [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "old spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "on-device": {
   "where": [
    "src/speech/tts.ts"
@@ -8568,15 +8923,80 @@
    "src/speech/tts.ts"
   ]
  },
+ "or [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "paradigms": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "particle": {
   "where": [
    "src/lang/ja/tags.ts",
    "src/lang/posLabel.ts"
+  ]
+ },
+ "partitive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "passive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "passive participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "past [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "past active participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "past adverbial participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "past participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "past passive participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "past tense [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "perfect [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "perfective [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "phrase": {
@@ -8594,6 +9014,16 @@
    "src/lang/labels.ts"
   ]
  },
+ "pluperfect [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "plural [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "plural only": {
   "where": [
    "src/ui/popup/langWordView.ts"
@@ -8603,6 +9033,21 @@
   "one": "plus {n} more for rare characters",
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "poetic [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "poetic form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "possessive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "postposition": {
@@ -8625,9 +9070,49 @@
    "src/lang/posLabel.ts"
   ]
  },
+ "prepositional [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "present [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "present active participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "present adverbial participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "present participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "present passive participle [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "preterite [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "priors": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "pronominal [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "pronoun": {
@@ -8646,14 +9131,44 @@
    "src/lang/posLabel.ts"
   ]
  },
+ "proscribed [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "ranked": {
   "where": [
    "src/ui/about/about.ts"
   ]
  },
+ "rare [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "rare form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "rare spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "reading in this sentence": {
   "where": [
    "src/ui/popup/wordView.ts"
+  ]
+ },
+ "reflexive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "regional [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "restored progress for {n} books": {
@@ -8672,9 +9187,54 @@
    "src/ui/about/about.ts"
   ]
  },
+ "second [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "second-person [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "senses": {
   "where": [
    "src/ui/about/about.ts"
+  ]
+ },
+ "short [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "short form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "singular [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "slang [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "spelling [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "strong [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "subjunctive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "suffix": {
@@ -8682,14 +9242,44 @@
    "src/lang/ja/tags.ts"
   ]
  },
+ "superlative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "synonym [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "that text: {reason}": {
   "where": [
    "src/ui/library/importer.ts"
   ]
  },
+ "third [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "third-person [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "transitive": {
   "where": [
    "src/lang/ja/tags.ts"
+  ]
+ },
+ "uncommon [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "uncommon form [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "unknown error": {
@@ -8840,6 +9430,26 @@
    "src/lang/ja/tags.ts"
   ]
  },
+ "verbal noun [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "vocative [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "vulgar [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
+ "weak [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
+  ]
+ },
  "with a pinyin reading": {
   "where": [
    "src/ui/about/about.ts"
@@ -8874,6 +9484,11 @@
   "one": "your place in {n} book",
   "where": [
    "src/ui/settings/sync.ts"
+  ]
+ },
+ "zu-infinitive [grammar]": {
+  "where": [
+   "src/lang/formLabel.ts"
   ]
  },
  "{aid} are hidden on words up to this level.": {

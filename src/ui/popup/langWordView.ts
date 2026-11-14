@@ -1,6 +1,7 @@
 // The word card for a language other than Chinese (lang/types.ts): the word as on the page and its reading, how it relates
 // to its dictionary form ("past tense of 食べる"), every entry it can be with its senses, the pieces of a word that is several
 // (dámelo, l'homme, Haustür), the kanji of a Japanese word, and the same Save / Known / Pronounce / Translate controls.
+import { formLabel } from '../../lang/formLabel';
 import type { Token } from '../../types';
 import type { KanjiInfo, LangEngine, WordEntry, WordLookup } from '../../lang/types';
 import { lang } from '../../lang/active';
@@ -257,7 +258,7 @@ export function mountLangWordView(
     // The dictionary form, a tap away; {word} marks where the sentence puts it.
     const toHead = () => h('button.pp-xref', { type: 'button', onclick: () => push({ word: head }) }, h('span', { lang: L.tag }, head));
     if (lu.form) {
-      line.appendChild(h('span.pp-lang-form', null, head !== v.word ? withNodes(tt('{form} of {word}', { form: lu.form }), { word: toHead() }) : lu.form));
+      line.appendChild(h('span.pp-lang-form', null, head !== v.word ? withNodes(tt('{form} of {word}', { form: formLabel(lu.form) }), { word: toHead() }) : formLabel(lu.form)));
     } else if (head !== v.word && lu.entries.length) {
       line.appendChild(h('span.pp-lang-form', null, withNodes(tt('Dictionary form {word}'), { word: toHead() })));
     }
