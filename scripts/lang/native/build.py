@@ -178,6 +178,8 @@ def last_part(text):
 
 SENSE_NUMBER = re.compile(r'([^\W\d_]+)[_^]\(\d{1,2}[a-z]?(?:\s*(?:[,–-]|y|ó|o|e|и|et|und|,\s*e|,\s*y)\s*\d{1,2}[a-z]?)*\)')
 
+SUB_SENSE = re.compile(r'([^\W\d_₀-₉]+)[₀-₉]+')
+
 
 def residue(text):
     if NO_MEANING.search(text):
@@ -191,6 +193,8 @@ def residue(text):
     # does not number senses as the page does. After a word ("Alear_(1, 2, 3)") only: chemistry's "tricyclo[3.1.0.0^(2,6)]",
     # "Zn_(5.5)" and "CₙH_(2n + 2)" are names and formulas.
     text = SENSE_NUMBER.sub(lambda m: m.group(1) if m.group(1)[1:].islower() and len(m.group(1)) >= 3 else m.group(0), text)
+    # Spanish marks it under the word ("abdicar₁", "gobierno₂"); chemistry's H₂O and math's log₁₀ are not words.
+    text = SUB_SENSE.sub(lambda m: m.group(1) if m.group(1)[1:].islower() and len(m.group(1)) >= 3 and m.group(1) != 'log' else m.group(0), text)
     text = re.sub(r'(?<=[.!?])(?:\s*\(\d{1,2}\))+\s*$', '', text)
     text = re.sub(r'(?:Template|Vorlage|模板|Шаблон):[^\s，。、;,.]+', '', text)  # a template's name left in the text
     text = re.sub(r'(?:^|\s):+\[\d+\]\s*', ' ', text)  # "Als Hilfsverb: ::[3] zur Futurbildung": a numbered sub-meaning's mark
@@ -393,6 +397,21 @@ def slim_sense_entry(e):
     return rec
 
 
+# A page's obsolete and dated meanings go after its current ones (French "tout de suite" was "sans interruption" before
+# "immédiatement"; Wiktionaries often list the oldest sense first). Of a page's first READ_FROM meanings, sorted so, the first
+# MAX_SENSES are kept.
+READ_FROM = 24
+OLD_LABELS = {
+    'old', 'old-fashioned',
+    'desusado', 'anticuado', 'obsoleto', 'arcaico', 'arcaísmo', 'desus.', 'antiguo', 'sin uso',
+    'Désuet', 'Vieilli', 'Archaïsme', 'Vieux', 'Archaïque', 'Désuet ou vieilli',
+    'veraltet', 'veraltend', 'früher',
+    'antico', 'antiquato', 'desueto', 'arcaismo', 'obsoleto',
+    'antigo', 'em desuso',
+    'устар.', 'устаревшее', 'устарелое',
+}
+
+
 def kaikki_entry(rec, labels_of):
     """One kaikki entry as {'pos', 'senses', 'syn'}: its meanings (form-of senses left out) with their labels."""
     pos = POS.get(rec.get('p'))
@@ -407,9 +426,10 @@ def kaikki_entry(rec, labels_of):
         gloss = clean(raw)
         # Only template leftovers ("casa ( approfondimento) f sing"): nothing to say.
         empty = TEMPLATE_LEFTOVER.search(raw) and EMPTY_GLOSS.search(gloss) or 'definizione mancante' in gloss
-        if not gloss or empty or len(senses) >= MAX_SENSES or any(gloss == g for g, _ in senses):
+        if not gloss or empty or len(senses) >= READ_FROM or any(gloss == g for g, _ in senses):
             continue
         senses.append((gloss, labels_of(s)))
+    senses = sorted(senses, key=lambda x: any(t in OLD_LABELS for t in x[1]))[:MAX_SENSES]
     return {'pos': pos, 'senses': senses, 'syn': [x for x in syns if x and ' ' not in x.strip()]} if senses else None
 
 
@@ -543,13 +563,24 @@ def label_text(t):
     return re.sub(r'[\s,;:]+$', '', clean(t or ''))
 
 
+def label_pieces(tags):
+    """A meaning's raw labels, one each ("gehoben, veraltend" is two). Not a note whose comma is inside brackets ("通常與普通話
+    (pǔtōnghuà, “…”)相對"): it stays whole, and Chinese and Japanese labels are never split."""
+    out = []
+    for t in map(label_text, tags or []):
+        parts = [label_text(y) for y in t.split(', ')]
+        whole = LABEL_CODE[0] in ('zh', 'ja') or any(x.count('(') != x.count(')') or x.count('（') != x.count('）') for x in parts)
+        out.extend([t] if whole else parts)
+    return [x for x in out if x]
+
+
 def count_labels(code):
     """How many meanings in the whole of the language's Wiktionary carry each label (edition_labels)."""
     LABEL_USES.clear()
     LABEL_CODE[0] = code
     for e in cjk_entries(code):
         for s in e.get('senses') or []:
-            LABEL_USES.update(label_text(t) for t in s.get('raw_tags') or [])
+            LABEL_USES.update(label_pieces(s.get('raw_tags')))
 
 
 def edition_labels(s):
@@ -557,7 +588,7 @@ def edition_labels(s):
     the ones it kept as written (raw_tags: see LABEL_USES)."""
     code = LABEL_CODE[0]
     places, out = tag_labels(code, s.get('t'))
-    tags = [t for t in map(label_text, s.get('rt') or []) if t]
+    tags = label_pieces(s.get('rt'))
     for t in tags:
         if len(t) > 24 or not re.search(r'[^\W\d_]', t) or (code == 'es' and ES_USAGE_CODE.fullmatch(t)):
             continue
@@ -713,8 +744,11 @@ def order_entries(found, poses):
             merged[e['pos']] = {'pos': e['pos'], 'senses': list(e['senses']), 'syn': list(e['syn']),
                                 'first_syn': list(e.get('first_syn') or []), 'written': e.get('written')}
         else:
-            m['senses'].extend(x for x in e['senses'] if len(m['senses']) < MAX_SENSES and x not in m['senses'])
+            m['senses'].extend(x for x in e['senses'] if x not in m['senses'])
             m['syn'].extend(e['syn'])
+    # Current meanings first across the merged entries too (English "low" the verb: "to moo" before the old "to lower").
+    for m in merged.values():
+        m['senses'] = sorted(m['senses'], key=lambda x: any(t in OLD_LABELS for t in x[1]))[:MAX_SENSES]
     # A meaning written for the app is for the part of speech the card's entry has, which the main dictionary's rows may not
     # name (German "lieben" as an adjective is its participle's).
     have = [e for e in merged.values() if e['pos'] in poses or e.get('written')]

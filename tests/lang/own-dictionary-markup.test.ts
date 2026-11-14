@@ -22,6 +22,7 @@ const MARKUP: [string, RegExp][] = [
   ['a request for a source', /référence nécessaire|Exemple d.utilisation manquant/],
   ['an example quoted with its source', / — \((?=[^()]*(?:\b1[5-9]\d\d\b|\b20[0-2]\d\b|\bpage\b))[^()]*\)\s*$/],
   ['a sense number of the page', /\p{L}\p{Ll}{2}[_^]\(\d/u],
+  ['a sense number under a word', /\p{L}\p{Ll}{2}(?<!log)[₀-₉]/u],
 ];
 
 /** The meanings of a line (after the word, part of speech and hint), each without its {labels}. */
@@ -56,11 +57,13 @@ const NOT_LABELS: [string, string, RegExp][] = [
   ['es', 'a piece starting mid-sentence', /^(?:veces|o|y|ni) /],
   ['de', 'a joining word', /^(?:und|oder|auch|oft|sonst|kurz|nur|bes\.|insbesondere)$/],
   ['', 'a trailing comma or colon', /[,;:]$/],
+  ['zh', 'pinyin (a note, not a label)', /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/],
 ];
 
 describe('own-language dictionaries show only real labels', () => {
   for (const file of files) {
-    const lang = file.slice(DATA.length + 1).split('/')[0];
+    const rel = file.slice(DATA.length + 1);
+    const lang = rel.includes('/') ? rel.split('/')[0] : 'zh';
     const checks = NOT_LABELS.filter(([l]) => !l || l === lang);
     it(file.slice(DATA.length + 1), () => {
       const bad: string[] = [];
@@ -112,4 +115,22 @@ describe('Chinese cards put obsolete meanings last', () => {
     }
     expect(bad.slice(0, 10)).toEqual([]);
   });
+});
+
+// Every language's card leads with a current meaning, not one its Wiktionary marks obsolete or dated, when it has one (French
+// "tout de suite" is "sur-le-champ" first, not the old "sans interruption").
+const OLD_LABELS = new Set(['old', 'old-fashioned', 'desusado', 'anticuado', 'sin uso', 'Désuet', 'Vieilli', 'veraltet', 'veraltend', 'früher', 'obsoleto', 'antico', 'arcaico', 'em desuso']);
+
+describe('cards lead with a current meaning', () => {
+  for (const lang of ['en', 'es', 'fr', 'de', 'it', 'pt']) {
+    it(lang, () => {
+      const bad: string[] = [];
+      for (const line of gunzipSync(readFileSync(join(DATA, lang, 'native.tsv.gz'))).toString('utf8').split('\n')) {
+        if (!line || line.startsWith('#')) continue;
+        const old = line.split('\t').slice(3).map((m) => /^\{([^}]*)\}/.exec(m)?.[1].split(', ').some((l) => OLD_LABELS.has(l)) ?? false);
+        if (old[0] && old.some((o) => !o)) bad.push(line.split('\t')[0]);
+      }
+      expect(bad.slice(0, 10)).toEqual([]);
+    });
+  }
 });
