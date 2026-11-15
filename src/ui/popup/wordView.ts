@@ -26,7 +26,7 @@ import { headwordsFor, vocabItemFor } from './saveWord';
 import { flyToVocab } from '../fly';
 import { popIcon } from '../vocab/motion';
 import { cardMeanings, type CardMeanings } from './meanings';
-import { chineseOwnMeanings, chineseSpellings, readsOwnLanguage } from '../../lang/ownDictionary';
+import { chineseNameMeanings, chineseOwnMeanings, chineseSpellings, readsOwnLanguage } from '../../lang/ownDictionary';
 import { tt, ttn } from '../../i18n';
 
 interface View {
@@ -499,7 +499,7 @@ export function mountWordView(
       const inChinese = chineseOwnMeanings(chineseSpellings(v.word, entries, {
         traditional: dict.toTraditional(v.word),
         readsTraditional: ctx.settings.get().script === 'traditional',
-      }));
+      })) ?? chineseNameMeanings(entries); // a name: what it is, in Chinese (宋江: 《水滸傳》中的人物)
       if (inChinese) body.appendChild(ownBlock(inChinese, ordered.groups, !(ordered.groups.length === 1 && sameReading(ordered.groups[0].pinyin, syllables))));
       else ordered.groups.forEach((g, i) => {
         // With one reading, the pinyin under the headword is that reading: do not print it a second time.

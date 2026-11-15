@@ -220,6 +220,39 @@ export function kanjiOwnMeaning(char: string, reading: string | undefined): stri
   return s ? `${s.notes?.length ? `（${s.notes.join('，')}）` : ''}${s.glosses[0]}` : null;
 }
 
+/**
+ * A name's card for a reader of Chinese (宋江, 曹操, 林黛玉): what it is, in Chinese, from CC-CEDICT's English ("a principal hero of the
+ * novel Water Margin": 《水滸傳》中的人物). Null when the word is not only a name, the reader does not read Chinese, or the English
+ * says nothing these know (the card keeps it then). Traditional characters, as the own dictionary; the card converts.
+ */
+export function chineseNameMeanings(entries: readonly { pinyin: string; defs: readonly string[] }[]): string[] | null {
+  if (!tableFor('zh') || !entries.length || !entries.every((e) => /^[A-Z]/.test(e.pinyin))) return null;
+  const out: string[] = [];
+  for (const e of entries) for (const d of e.defs) {
+    const k = nameKindZh(d);
+    if (k && !out.includes(k)) out.push(k);
+  }
+  return out.length ? out.slice(0, 3) : null;
+}
+
+const NOVELS: [RegExp, string][] = [
+  [/Water Margin|Heroes of the Marsh|Liangshan Marsh|水滸/, '《水滸傳》中的人物。'],
+  [/Red Chamber|Red Mansions|紅樓夢/, '《紅樓夢》中的人物。'],
+  [/Journey to the West|Monkey King|西遊記/, '《西遊記》中的人物。'],
+  [/Jin Ping Mei|金瓶梅/, '《金瓶梅》中的人物。'],
+];
+
+function nameKindZh(def: string): string | null {
+  for (const [re, kind] of NOVELS) if (re.test(def)) return kind;
+  if (/\b(?:state|kingdom)\b/i.test(def) && /Three Kingdoms|Warring States|Spring and Autumn/.test(def)) return '古代的國名。';
+  if (/Three Kingdoms/.test(def)) return '三國時期的人物。';
+  if (/^surname\b/i.test(def)) return '姓氏。';
+  if (/\bdynasty\b/i.test(def) && !/\(\d|\breigned\b/.test(def.split(/dynasty/i)[0])) return '朝代名。';
+  if (/\((?:-?\d{1,4}|reigned|c\.)[^)]*\)/.test(def) && /\b(?:general|emperor|warlord|statesman|poet|king|minister|scholar|official|philosopher|writer|painter|strategist|founder|ruler)\b/i.test(def)) return '歷史人物。';
+  if (/\b(?:county|city|province|district|prefecture|town|village|capital|river|lake|mountain|Mt)\b/.test(def)) return '地名。';
+  return null;
+}
+
 /** A CC-CEDICT entry that is only a variant, a pointer, a sound, an archaic word or a name: not the likely spelling of the word. */
 function minorEntry(e: { pinyin: string; defs: readonly string[] }): boolean {
   return /^[A-Z]/.test(e.pinyin) || e.defs.every((d) => /(?:^|\b)(?:old |archaic |Japanese |ancient )?variant of\b|^see |^used in|^surname|\((?:archaic|old|onom\.)\)|^\(onom\.\)/i.test(d));
