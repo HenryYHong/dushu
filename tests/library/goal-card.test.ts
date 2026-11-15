@@ -19,10 +19,10 @@ beforeEach(() => {
 afterEach(() => { card?.dispose(); card = null; vi.useRealTimers(); document.body.innerHTML = ''; });
 
 describe('the goal card', () => {
-  it('has Pengu over its book beside the streak, with the flame by the streak line', () => {
+  it('shows the streak with its flame, and no Pengu beside it', () => {
     card = goalCard();
-    expect(card.el.querySelector('.goal-streak > .goal-pengu .pengu-stack[data-kind="book"]')).not.toBeNull();
     expect(card.el.querySelector('.goal-streak-line > .goal-flame')).not.toBeNull();
+    expect(card.el.querySelector('.goal-streak .pengu-stack, .goal-pengu')).toBeNull();
   });
 
   it('says "Best: 1 day", and "No streak right now" to someone who had one', () => {
