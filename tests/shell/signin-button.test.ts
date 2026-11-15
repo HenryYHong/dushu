@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-// The top bar's account button (ui/signIn.ts) says what sync is doing once signed in, and only "Synced" has the green dot:
-// offline, an unreachable server or a Sync switch turned off no longer read as synced. The account dialog's heading follows a
+// The top bar's account button (ui/signIn.ts) says Sign in or Signed in, and what sync is doing is in its tooltip and
+// screen-reader label; only a finished sync has the green dot: offline, an unreachable server or a Sync switch turned off
+// do not. The account dialog's heading follows a
 // Sign out made inside it. The session is made up and the sync server runs in process.
 import 'fake-indexeddb/auto';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -61,36 +62,37 @@ describe('the account button', () => {
     expect(dot(btn)).toBe(false);
   });
 
-  it('follows the syncer: Offline while the server is out of reach, Sync off, and Synced with the dot only after a sync', async () => {
+  it('says Signed in, and follows the syncer in its tooltip and dot: the dot only after a sync', async () => {
     signIn();
     const hub = server();
     hub.down = true;
     syncer = startSync(await openStore(`signin-${Math.random()}`), { send: (b) => hub.send(b), everyMs: 0 });
     const btn = signInButton();
     await syncer.run();
-    expect(label(btn)).toBe('Offline');
+    expect(label(btn)).toBe('Signed in');
     expect(dot(btn)).toBe(false);
     expect(btn.title).toMatch(/^Signed in as reader@example\.com\. Could not reach the sync server/);
 
     hub.down = false;
     await syncer.run();
-    expect(label(btn)).toBe('Synced');
+    expect(label(btn)).toBe('Signed in');
     expect(dot(btn)).toBe(true);
     expect(btn.getAttribute('aria-label')).toMatch(/^Account, Synced: signed in as reader@example\.com\. Up to date/);
 
     setSyncEnabled(false);
     await syncer.run();
-    expect(label(btn)).toBe('Sync off');
+    expect(label(btn)).toBe('Signed in');
     expect(dot(btn)).toBe(false);
 
     setSyncEnabled(true);
     await syncer.run();
-    expect(label(btn)).toBe('Synced');
+    expect(label(btn)).toBe('Signed in');
+    expect(dot(btn)).toBe(true);
 
     // The browser says it went offline: the button says so at once, before the next sync finds out.
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     window.dispatchEvent(new Event('offline'));
-    expect(label(btn)).toBe('Offline');
+    expect(btn.getAttribute('aria-label')).toMatch(/^Account, Offline:/);
     expect(dot(btn)).toBe(false);
   });
 

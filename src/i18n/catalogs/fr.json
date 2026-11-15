@@ -2508,5 +2508,6 @@
  "proper noun [name kind]": "nom propre",
  "male given name [name kind]": "prénom masculin",
  "female given name [name kind]": "prénom féminin",
- "patronymic [name kind]": "patronyme"
+ "patronymic [name kind]": "patronyme",
+ "Signed in": "Connecté"
 }

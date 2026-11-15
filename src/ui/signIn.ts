@@ -71,7 +71,11 @@ export function syncLabel(st: SyncStatus | null, enabled: boolean, online: boole
   return st.lastOk ? SYNCED : SYNCING;
 }
 
-/** The top bar's account button: "Sign in" while signed out, and what sync is doing once signed in (when the build has a sync server). */
+/**
+ * The top bar's account button: "Sign in" while signed out, "Signed in" once signed in (when the build has a sync server). What
+ * sync is doing is in its tooltip and for a screen reader, and only a finished sync has the dot; the label is about the
+ * account, as a reader thinks of it, not about syncing.
+ */
 export function signInButton(): HTMLElement {
   const label = h('span.app-signin-label');
   const btn = h('button.app-signin', { type: 'button', onclick: () => openSignIn() }, icon('user'), label) as HTMLButtonElement;
@@ -102,7 +106,7 @@ export function signInButton(): HTMLElement {
     const why = text === OFFLINE && now.state !== 'asleep' && enabled ? { ...now, state: 'asleep' as const, hub: 'cloud' as const } : now;
     const reason = text === SYNCING && why.state !== 'syncing' ? tt(SYNCING) : describeSync({ ...why, counts: undefined }, enabled);
     btn.classList.toggle('app-signin-on', text === SYNCED);
-    label.textContent = tt(text);
+    label.textContent = tt('Signed in');
     const name = accountLabel(s);
     btn.title = tt('Signed in as {name}. {reason}', { name, reason });
     btn.setAttribute('aria-label', tt('Account, {status}: signed in as {name}. {reason}', { status: tt(text), name, reason }));

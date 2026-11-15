@@ -2508,5 +2508,6 @@
  "proper noun [name kind]": "nome próprio",
  "male given name [name kind]": "nome masculino",
  "female given name [name kind]": "nome feminino",
- "patronymic [name kind]": "patronímico"
+ "patronymic [name kind]": "patronímico",
+ "Signed in": "Sessão iniciada"
 }

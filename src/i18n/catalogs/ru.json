@@ -2619,5 +2619,6 @@
  "proper noun [name kind]": "имя собственное",
  "male given name [name kind]": "мужское имя",
  "female given name [name kind]": "женское имя",
- "patronymic [name kind]": "отчество"
+ "patronymic [name kind]": "отчество",
+ "Signed in": "Вы вошли"
 }

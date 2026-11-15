@@ -5526,6 +5526,11 @@
    "src/ui/settings/account.ts"
   ]
  },
+ "Signed in": {
+  "where": [
+   "src/ui/signIn.ts"
+  ]
+ },
  "Signed in as {account}.": {
   "where": [
    "src/ui/settings/account.ts"

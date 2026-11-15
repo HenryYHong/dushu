@@ -2396,5 +2396,6 @@
  "proper noun [name kind]": "Eigenname",
  "male given name [name kind]": "männlicher Vorname",
  "female given name [name kind]": "weiblicher Vorname",
- "patronymic [name kind]": "Vatersname"
+ "patronymic [name kind]": "Vatersname",
+ "Signed in": "Angemeldet"
 }

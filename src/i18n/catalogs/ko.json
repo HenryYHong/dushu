@@ -2289,5 +2289,6 @@
  "proper noun [name kind]": "고유 명사",
  "male given name [name kind]": "남자 이름",
  "female given name [name kind]": "여자 이름",
- "patronymic [name kind]": "부칭"
+ "patronymic [name kind]": "부칭",
+ "Signed in": "로그인됨"
 }
