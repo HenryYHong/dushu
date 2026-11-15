@@ -58,6 +58,16 @@ async function offlineStep() {
   const b = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, timeout: 90000, args: ['--no-first-run', '--no-default-browser-check'] });
   const p = await b.newPage();
   await p.setViewport({ width: 1280, height: 860 });
+  // A reader past the welcome: the service worker registers once the library's dictionary is in, which a first visit only
+  // loads after the welcome is answered.
+  await p.evaluateOnNewDocument(() => {
+    if (localStorage.getItem('qa.seeded')) return;
+    localStorage.setItem('dushu.lang.v1', 'zh');
+    localStorage.setItem('dushu.plan.v1', JSON.stringify({ langs: ['zh'], goal: 10, welcomed: Date.now() }));
+    localStorage.setItem('dushu.site-guide.v1', 'done');
+    localStorage.setItem('dushu.sync.off.v1', '1');
+    localStorage.setItem('qa.seeded', '1');
+  });
   const errs = [];
   p.on('pageerror', (e) => errs.push(e.message));
   try {
