@@ -6,7 +6,7 @@
 Two pictures by Henry (an AI image generator, 2026-11-12), the same flat Pengu, a round emperor penguin chick peeking over an
 open terracotta book, on white, the same size and in the same place:
 
-    art/pengu-logo.png   Pengu calm, beak closed, softer eyes (Henry's pick, 2026-11-13): the logo (the brand mark in the
+    art/pengu-logo.png   Pengu calm, beak closed, softer eyes (Henry's pick, 2026-11-13; the larger catchlight since 11-14): the logo (the brand mark in the
                          bar, the browser tab, the app's icons)
     art/pengu-read.png   Pengu happy, beak open: the mascot inside the app
 
@@ -36,7 +36,10 @@ And on its own feet, without the book, for good news (a jump: stand, crouch, ris
 
 The mascot pictures' open eyes were changed to the logo's softer ones (2026-11-13): over the book, the logo's eye pixels in place
 (the pictures share its layout, the logo's slightly grayer white lifted to theirs); on pengu-stand.png, the same eyes scaled to
-its eyes; in the blinks, the shut and half-shut eyes narrowed to the new eyes' width, so a blink holds its size.
+its eyes; in the blinks, the shut and half-shut eyes narrowed to the new eyes' width, so a blink holds its size. Then
+(2026-11-14, Henry) the softer eyes got the larger white catchlight back: on the logo and every open-eyed picture the small
+dot is painted over with the pupil's dark and the earlier catchlight drawn where it was (0.27 of the pupil's radius, up and
+to the right).
 
 These change all over, so they are used whole. Each is set down on the standing Pengu's ground (moved down by however far
 up it was drawn), so the drawings change Pengu's pose and nothing else, and the app moves Pengu up and down along a smooth
