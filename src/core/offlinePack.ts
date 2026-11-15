@@ -125,6 +125,15 @@ export async function savePack(files: readonly PackFile[], onProgress: (p: PackP
   opts: { parallel?: number; signal?: AbortSignal } = {}): Promise<PackProgress> {
   const progress: PackProgress = { done: 0, total: files.length, bytes: 0, failed: 0 };
   let next = 0;
+  // Bytes are counted as they arrive, a few times a second: the large files (Jigmo, 13 MB; the long novels) take minutes on a
+  // slow connection, and a count of whole files alone sat still through them as if the saving had stopped.
+  let shown = 0;
+  const tick = () => {
+    const now = Date.now();
+    if (now - shown < 250) return;
+    shown = now;
+    onProgress({ ...progress });
+  };
   const work = async () => {
     while (next < files.length && !opts.signal?.aborted) {
       const f = files[next++];
@@ -132,9 +141,19 @@ export async function savePack(files: readonly PackFile[], onProgress: (p: PackP
         if (!(await stored(f.url))) {
           const res = await fetch(f.url, { signal: opts.signal });
           // The bytes are read so the service worker's copy is complete before this counts as done.
-          const body = await res.arrayBuffer();
-          if (res.ok) progress.bytes += body.byteLength;
-          else if (res.status !== 404) progress.failed++;
+          const reader = res.ok ? res.body?.getReader() : undefined;
+          if (reader) {
+            for (;;) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              progress.bytes += value.byteLength;
+              tick();
+            }
+          } else {
+            const body = await res.arrayBuffer();
+            if (res.ok) progress.bytes += body.byteLength;
+            else if (res.status !== 404) progress.failed++;
+          }
         }
       } catch {
         if (opts.signal?.aborted) break;

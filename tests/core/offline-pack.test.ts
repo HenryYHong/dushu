@@ -68,6 +68,24 @@ describe('saving', () => {
     const r = await savePack(['a/stored.gz', 'a/new.gz', 'a/missing.json', 'a/broken.gz'].map((url) => ({ url, size: 0 })), (p) => seen.push(p.done), { parallel: 2 });
     expect(asked.sort()).toEqual(['a/broken.gz', 'a/missing.json', 'a/new.gz']);
     expect(r).toEqual({ done: 4, total: 4, bytes: 5, failed: 1 });
-    expect(seen.sort()).toEqual([1, 2, 3, 4]);
+    // Each file finished is said once, and bytes may be said while one downloads (the count of files then stays as it was).
+    expect([...new Set(seen)].sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  it('says the bytes of a large file while it downloads, not only when it is done', async () => {
+    vi.stubGlobal('caches', { match: async () => undefined });
+    // A file that arrives in pieces, 300 ms apart: the progress line moves between them.
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(new ReadableStream<Uint8Array>({
+      async start(c) {
+        for (let i = 0; i < 3; i++) { c.enqueue(new Uint8Array(1000)); await new Promise((r) => setTimeout(r, 300)); }
+        c.close();
+      },
+    }), { status: 200 })));
+    const during: number[] = [];
+    const r = await savePack([{ url: 'fonts/Jigmo2.woff2', size: 0 }], (p) => { if (p.done === 0) during.push(p.bytes); });
+    expect(r).toEqual({ done: 1, total: 1, bytes: 3000, failed: 0 });
+    expect(during.length).toBeGreaterThan(0);
+    expect(during.every((b) => b > 0 && b <= 3000)).toBe(true);
+    expect(during.some((b) => b < 3000)).toBe(true);
   });
 });
