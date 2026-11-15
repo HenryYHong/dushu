@@ -1419,6 +1419,7 @@ class JaEngine implements LangEngine {
     if (!hasKanji(w.text)) return;
     if (w.reading && !w.compound) {
       if (w.cls === 'verb' || w.cls === 'adj') this.entryReading(w);
+      else if (w.morphemes.length > 1) this.preferWholeReading(w);
       else this.preferCommonReading(w);
       return;
     }
@@ -1460,11 +1461,34 @@ class JaEngine implements LangEngine {
   }
 
   /**
+   * A word the analyzer reads piece by piece (一 + 晩 いちばん, 一 + 通り いっとおり, 三 + 毛 さんもう) that the dictionary has
+   * whole and reads otherwise (一晩 ひとばん, 一通り ひととおり, 三毛 みけ): the dictionary's reading, its common one first. A
+   * reading the dictionary gives the whole word stays (一日 いちにち, not ついたち).
+   */
+  private preferWholeReading(w: Word): void {
+    if (w.name || w.forms.length || (w.cls !== 'noun' && w.cls !== 'adjna' && w.cls !== 'counter' && w.cls !== 'number')) return;
+    const mine = foldReading(w.reading);
+    let best: string | undefined;
+    for (const r of this.rank(w.text, undefined, undefined, '')) {
+      if (r.kanji < 0) continue;
+      const kana = r.e.kana.filter((k) => !k.only || k.only.includes(r.kanji));
+      if (kana.some((k) => foldReading(k.text) === mine)) return;
+      if (best || fringeOrName(r.e) || /[SRO]/.test(r.e.kanji[r.kanji].flags)) continue;
+      const k = kana.find((f) => f.common && !/[SRO]/.test(f.flags)) ?? kana.find((f) => !/[SRO]/.test(f.flags));
+      if (k) best = toHiragana(k.text);
+    }
+    if (!best) return;
+    w.reading = best;
+    w.lemmaReading = best;
+    w.pieces = [{ text: w.text, reading: best }];
+  }
+
+  /**
    * IPADIC picks among the readings of a noun by cost alone, so a rare reading can win everywhere: 獣 しし, 白熊 はぐま. When JMdict
    * marks some reading of the word common and IPADIC's is not among them, the common one is used (家 いえ/うち, both common, stay).
    */
   private preferCommonReading(w: Word): void {
-    if (w.morphemes.length !== 1 || w.name || w.forms.length || (w.cls !== 'noun' && w.cls !== 'adjna')) return;
+    if (w.morphemes.length !== 1 || w.name || w.forms.length || (w.cls !== 'noun' && w.cls !== 'adjna' && w.cls !== 'prefix')) return;
     const m = w.morphemes[0];
     if (!m.known || m.surface !== w.text) return;
     const mine = foldReading(w.reading);
