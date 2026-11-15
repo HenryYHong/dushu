@@ -13,6 +13,17 @@ export const SPANISH: SpacedLang = {
   id: 'es',
   script: 'latin',
   enclitics: ['me', 'te', 'se', 'nos', 'os', 'le', 'les', 'lo', 'la', 'los', 'las'],
+  // Spellings of Cervantes's time, for a word no dictionary has as printed: f where we write h (ferido, fecho, fermosa are
+  // herido, hecho, hermosa), the old second person plural in -edes, -ades (habedes, sabedes: habéis, sabéis), estr- where we
+  // write extr- (estrañeza, estranjeros).
+  respell(f) {
+    const out: string[] = [];
+    if (/^f[aeiouáéíóú]/.test(f)) out.push('h' + f.slice(1));
+    const m = /^(.{2,})([aei])des$/.exec(f);
+    if (m) out.push(m[1] + ({ a: 'áis', e: 'éis', i: 'ís' } as Record<string, string>)[m[2]]);
+    if (f.startsWith('estr')) out.push('extr' + f.slice(4));
+    return out;
+  },
   encliticStems(stem, first) {
     // The written accent that keeps the stress (dá-me-lo, diciéndo-le) goes when the pronouns do; sentad + os is
     // sentaos and sentemos + nos is sentémonos.
@@ -22,6 +33,8 @@ export const SPANISH: SpacedLang = {
     // Galdós's "preguntome varias cosas" is preguntó + me. The present pregunto + me is written pregúntome.
     if (plain === stem && /[aeiu][^aeiou]*o$/.test(stem)) out.unshift(stem.slice(0, -1) + 'ó');
     if (first === 'os') out.push(stem + 'd', plain + 'd');
+    // Cervantes writes the infinitive's r as the pronoun's l: dejalle, decille, ponello are dejarle, decirle, ponerlo.
+    if (first.startsWith('l') && /[aei]l$/.test(plain)) out.push(plain.slice(0, -1) + 'r');
     if ((first === 'nos' || first === 'se') && stem.endsWith('mo')) out.push(plain + 's');
     return [...new Set(out)];
   },

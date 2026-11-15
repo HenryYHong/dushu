@@ -35,6 +35,13 @@ export function germanRespell(f: string): string[] {
   const bases = [...new Set([f, lower, f.replace(/ß/g, 'ss'), lower.replace(/ß/g, 'ss')])];
   for (const b of bases) add(b);
   for (const b of bases) {
+    // Verse and speech drop a vowel: gnäd'ge, heil'gen are gnädige, heiligen; geschehn, ruhn, verstehn are geschehen, ruhen,
+    // verstehen; hätt, könnt are hätte, könnte.
+    if (/\p{L}'\p{L}/u.test(b)) { add(b.replace("'", 'i')); add(b.replace("'", 'e')); }
+    if (/[aeiouäöü]hn$/.test(b)) add(b.slice(0, -1) + 'en');
+    if (/[aeiouäöü](?:tt|nt|ll)$/.test(b)) add(b + 'e');
+  }
+  for (const b of bases) {
     const bare = /^(.{4,}?)(?:e|en|er|es|em)$/.exec(b)?.[1];
     for (const s of bare ? [b, bare] : [b]) {
       const p = PARTICLES.find((x) => s.startsWith(x + 'zu') && s.length > x.length + 4);

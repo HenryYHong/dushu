@@ -33,6 +33,8 @@ export const ITALIAN: SpacedLang = {
     return [...new Set(out)];
   },
   respell(f) {
+    // Dante's ’l is il with its i dropped ("che ’l sole", "e ’l duca"): the l stands alone once the apostrophe goes.
+    if (f === 'l') return ['il'];
     const out: string[] = [];
     // Collodi and Verga write j for i between vowels: bujo, gioja, ajutato are buio, gioia, aiutato.
     if (f.includes('j')) out.push(f.replace(/(?<=[aeiouàèéìòù])j(?=[aeiouàèéìòù]|$)/g, 'i'));
@@ -50,13 +52,13 @@ export const ITALIAN: SpacedLang = {
     'sulla', 'sui', 'sugli', 'sulle', 'mio', 'mia', 'miei', 'mie', 'tuo', 'tua', 'tuoi', 'tue', 'suo', 'sua', 'suoi', 'sue',
     'nostro', 'nostra', 'nostri', 'nostre', 'vostro', 'vostra', 'vostri', 'vostre', 'questo', 'questa', 'questi', 'queste',
     'quel', 'quello', 'quella', 'quei', 'quegli', 'quelle', 'ogni', 'qualche', 'alcuni', 'alcune', 'molto', 'molta', 'molti',
-    'molte', 'tanti', 'tante', 'pochi', 'poche', 'tutti', 'tutte', 'i', 'molto', 'più'],
+    'molte', 'tanti', 'tante', 'pochi', 'poche', 'tutti', 'tutte', 'i', 'molto', 'più', 'l'],
   beforeVerb: ['io', 'tu', 'lui', 'lei', 'noi', 'voi', 'mi', 'ti', 'si', 'ci', 'vi', 'ne', 'non', "m'", "t'", "s'", "c'", "v'"],
   // li is "them" before a verb ("E chi te li ha mangiati?", Pinocchio) and the old plural article before a noun.
   articleOrPronoun: ['lo', 'la', 'le', 'gli', 'li', "l'"],
   prepositions: ['di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'senza', 'sopra', 'sotto', 'verso', 'contro', "d'"],
-  // il sole is the sun, not solo's feminine plural; una zia an aunt.
-  genderBefore: { il: 'm', lo: 'm', un: 'm', uno: 'm', del: 'm', dello: 'm', al: 'm', allo: 'm', dal: 'm', nel: 'm', sul: 'm',
+  // il sole is the sun, not solo's feminine plural; una zia an aunt. Dante's ’l is il.
+  genderBefore: { il: 'm', l: 'm', lo: 'm', un: 'm', uno: 'm', del: 'm', dello: 'm', al: 'm', allo: 'm', dal: 'm', nel: 'm', sul: 'm',
     col: 'm', questo: 'm', quel: 'm', quello: 'm', la: 'f', una: 'f', della: 'f', alla: 'f', dalla: 'f', nella: 'f', sulla: 'f',
     questa: 'f', quella: 'f' },
   // "è arrivato un Pesce-cane" (Pinocchio) has arrived, not arrivato "successful"; ha letto, not letto "bed".

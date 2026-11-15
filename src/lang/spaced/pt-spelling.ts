@@ -102,6 +102,14 @@ const ACCENT_ON: Record<string, string> = { a: 'áâ', e: 'éê', i: 'í', o: '�
 
 /** Every spelling Machado's word may stand for: the old spelling made modern, then one or two changes of those that vary. */
 export function respellings(f: string): string[] {
+  // Eça's snr. is senhor; chinez, francez, inglez are chinês, francês, inglês; podesse pudesse.
+  if (f === 'snr') return ['senhor'];
+  const extra = [...(/[^aeiou]ez$/.test(f) ? [f.slice(0, -2) + 'ês'] : []), ...(/^podess/.test(f) ? ['pudess' + f.slice(6)] : [])];
+  if (extra.length) return [...extra, ...respellings2(f)];
+  return respellings2(f);
+}
+
+function respellings2(f: string): string[] {
   const base = oldSpelling(f);
   const once = [...new Set([base, f])].flatMap(variants);
   // A word stressed on its third syllable from the end writes the accent today, and Machado did not: pallio is pálio (not
