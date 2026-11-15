@@ -224,6 +224,24 @@ const OTHER_READINGS: Record<string, string[]> = {
   六: ['ろく', 'む'], 七: ['しち', 'なな'], 八: ['はち', 'や'], 九: ['く', 'きゅう'], 十: ['じゅう', 'じっ', 'とお'], 拾: ['じゅう'],
 };
 
+/**
+ * The kanji a man's given name ends in, read as they are there (末造 すえぞう, 伝吉 でんきち, 金之助 きんのすけ, 太郎 たろう,
+ * 権兵衛 ごんべえ): a short run of kanji the book reads so, and the dictionary does not, is that name, though the dictionary
+ * has the kanji as a word read otherwise (末造 ばつぞう "a degenerate age") or the name starts with a kanji's native reading.
+ */
+const NAME_ENDS: Record<string, readonly string[]> = {
+  造: ['ぞう'], 蔵: ['ぞう'], 助: ['すけ'], 介: ['すけ'], 輔: ['すけ'], 吉: ['きち'], 郎: ['ろう'], 衛: ['え', 'べえ', 'えい'],
+  衞: ['え', 'べえ', 'えい'], 太: ['た'], 平: ['へい', 'べい'], 次: ['じ'], 治: ['じ'], 作: ['さく'], 松: ['まつ'], 彦: ['ひこ'],
+  雄: ['お'], 夫: ['お'], 丞: ['じょう'], 弥: ['や'], 八: ['はち'], 門: ['もん'],
+};
+function givenName(text: string, reading: string): boolean {
+  const chars = [...text];
+  const ends = NAME_ENDS[chars[chars.length - 1]];
+  const r = looseReading(reading);
+  return chars.length >= 2 && chars.length <= 4 && chars.every((c) => /\p{Script=Han}/u.test(c)) && !!ends
+    && ends.some((e) => r.length > e.length && r.endsWith(looseReading(e)));
+}
+
 /** Tags JMdict gives to names and to words only a historian needs. */
 const NAME_TAGS = new Set(['place', 'person', 'surname', 'given', 'fem', 'masc', 'unclass', 'company', 'organization', 'station', 'work', 'char', 'fict', 'dei', 'myth', 'leg', 'group', 'ship', 'product', 'serv', 'ev', 'doc', 'obj', 'creat', 'relig', 'n-pr']);
 
@@ -878,6 +896,14 @@ class JaEngine implements LangEngine {
     const inflected = w.forms.length > 0 || w.cls === 'verb' || w.cls === 'adj';
     if (inflected) {
       if (!this.rankPrinted(w, true).length) this.reinflect(w, parts);
+      return;
+    }
+    // A man's given name the book reads over the whole run, a reading the dictionary does not give the kanji (末造《すえぞう》,
+    // which JMdict has as ばつぞう "a degenerate age"): remembered, so it reads so where it stands again.
+    const whole = spans.length === 1 && spans[0].start === w.start && spans[0].end === w.end;
+    if (whole && w.reading && givenName(w.text, w.reading) && !this.rank(w.text, w.reading, w.cls, w.ctype).some((r) => r.read)) {
+      w.name = was ?? 'person';
+      this.rememberName(w.text, spans[0].rt);
       return;
     }
     const fits = this.rankWord(w);

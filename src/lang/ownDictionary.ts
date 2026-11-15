@@ -367,13 +367,18 @@ function nameEntryFor(id: LangId) {
 
 export function withOwnDictionary(engine: LangEngine): LangEngine {
   const nameEntry = nameEntryFor(engine.id);
-  const swap = (table: OwnTable, e: WordEntry, key: string): WordEntry | null => {
+  const swap = (table: OwnTable, e: WordEntry, key: string, pageReading?: string): WordEntry | null => {
     if (engine.id === 'ja') {
-      // By any of its spellings (たべる or 食べる): Japanese Wiktionary's parts of speech are not JMdict's.
-      const list = japaneseOwn(table, [key, e.head, ...(e.alts ?? [])], e.reading);
+      // By any of its spellings (たべる or 食べる): Japanese Wiktionary's parts of speech are not JMdict's. Read as the page
+      // reads it when the entry's reading has no lines: 真中 printed まんなか takes JMdict's only 真中, read まなか, and
+      // Wiktionary's lines are under まんなか.
+      const spellings = [key, e.head, ...(e.alts ?? [])];
+      const asEntry = japaneseOwn(table, spellings, e.reading);
+      const asPage = asEntry || !pageReading || pageReading === e.reading ? null : japaneseOwn(table, spellings, pageReading);
+      const list = asEntry ?? asPage;
       if (!list) return null;
       const senses = [...new Map(list.flatMap((x) => x.senses).map((x) => [x.glosses[0], x])).values()].slice(0, 6);
-      return { ...e, senses, source: OWN_SOURCE };
+      return { ...e, ...(asPage ? { reading: pageReading } : {}), senses, source: OWN_SOURCE };
     }
     // Under its own key; only a headword with no line of its own takes its likeliest word's (Portuguese "baixinha": baixo).
     const list = table.get(key) ?? table.get(engine.normalize(e.head));
@@ -399,7 +404,8 @@ export function withOwnDictionary(engine: LangEngine): LangEngine {
       // A fixed phrase's entry comes first, under the phrase's key.
       // Its own key: never normalize's, which takes a headword that is also a form to another word (sei: essere).
       const key = i === 0 && lu.phrase ? lu.phrase : engine.keyOf ? engine.keyOf(e.head) : engine.normalize(e.head);
-      return swap(table, e, key) ?? nameEntry(e);
+      // The page's reading is the first entry's (the word as read here), not the other words spelled alike after it.
+      return swap(table, e, key, i === 0 ? ctx?.token?.reading : undefined) ?? nameEntry(e);
     });
     // One language on the card: when the word has meanings in it, the entries without any go (correu: correr, not the English
     // corréu); a word with none keeps the main dictionary's.
