@@ -1340,16 +1340,20 @@ class DictImpl implements Dictionary {
         ...(ctx?.spellings ? { spellings: ctx.spellings } : {}),
         ...(ctx?.named ? { named: ctx.named } : {}),
       });
-      const usual = rule.reading ?? this.defaultSyllable(orig && this.narrows(orig[i], cps[i]) ? orig[i] : cps[i]);
-      // Where no rule's case matched a one-character token, the reading model may speak, among the character's own readings.
+      let usual = rule.reading ?? this.defaultSyllable(orig && this.narrows(orig[i], cps[i]) ? orig[i] : cps[i]);
       const own = orig ? orig[i] : cps[i];
+      // In a paragraph written in traditional characters, a character that simplified text also uses for another one has only its
+      // own readings, unless a rule's case decided (TRAD_OWN): 斗 is dǒu (dòu is 鬥), 划 huá (huà is 劃), 仆 pū (pú is 僕).
+      const tradOwn = rule.usual && TRAD_OWN.has(own) && ctx?.script?.() === 'traditional' ? this.tradOwnReadings(own) : undefined;
+      if (tradOwn && !tradOwn.includes(usual)) usual = tradOwn[0];
+      // Where no rule's case matched a one-character token, the reading model may speak, among the character's own readings.
       const model = tok ? this.readingModel : null;
       const ask = !!model && rule.usual && model.knows?.(key) !== false;
       const site: ReadingSite | undefined = model && (ask || model.observe) ? {
         ch: key, tok: tok!, verb: this.verbStrength, noun: this.nounish, script: ctx?.script,
         pair: (k) => this.pairReading(key, k < 0 ? lastCodePoint(prevS) : firstCodePointOf(nextS), k),
       } : undefined;
-      const learned = ask && site ? model!.choose(site, usual, (r) => this.readsAs(key, r) && this.readsAs(own, r)) : undefined;
+      const learned = ask && site ? model!.choose(site, usual, (r) => this.readsAs(key, r) && this.readsAs(own, r) && (!tradOwn || tradOwn.includes(r))) : undefined;
       if (site && model!.observe) model!.observe(site, usual, !rule.usual);
       out[i] = learned ?? usual;
     }
@@ -1371,6 +1375,24 @@ class DictImpl implements Dictionary {
   }
 
   /** Whether `reading` (numbered) is one of the character's own: a CC-CEDICT row of the character itself, or Unihan's. */
+  private tradOwn = new Map<string, string[] | null>();
+
+  /**
+   * The readings of a character written as itself in traditional text, when they are fewer than those its simplified form
+   * merges (舍: shè, where simplified 舍 is also 捨 shě); undefined when it has no fewer.
+   */
+  private tradOwnReadings(ch: string): string[] | undefined {
+    let r = this.tradOwn.get(ch);
+    if (r === undefined) {
+      const all = this.entries.get(ch) ?? [];
+      const mine = [...new Set(all.filter((e) => e.trad === ch).map((e) => e.pinyin.toLowerCase()))];
+      const every = new Set(all.filter((e) => e.simp === ch || e.trad === ch).map((e) => e.pinyin.toLowerCase()));
+      r = mine.length && mine.length < every.size ? mine : null;
+      this.tradOwn.set(ch, r);
+    }
+    return r ?? undefined;
+  }
+
   private readsAs(ch: string, reading: string): boolean {
     let set = this.ownReadings.get(ch);
     if (!set) {
@@ -1596,6 +1618,15 @@ export interface PinyinContext {
 
 /** Words in 那 that ask which or where in a book that writes 那 for 哪 (pinyinFor, core/bookStyle.ts). */
 const NA_WORDS: ReadonlySet<string> = new Set(['那里', '那裏', '那裡', '那儿', '那兒', '那个', '那個', '那些', '那位', '那种', '那種']);
+
+/**
+ * Characters that traditional text writes only for their own word, so that a paragraph in traditional characters reads them so
+ * (DictImpl.tradOwnReadings): 斗 dǒu (鬥 dòu), 划 huá (劃 huà), 眯 mí (瞇 mī), 仆 pū (僕 pú), 干 gān (乾 幹), 朴 piáo pò (樸 pǔ),
+ * 卜 bǔ (蔔), 扎 zhā zhá (紮 zā), 症 zhèng (癥 zhēng), 麽 me (mó). Not those that digitized traditional books often write for the
+ * other one: 万 for 萬, 几 for 幾, 并 for 並, 么 for 麼, 佣 for 傭, 腊 for 臘, 叶 for 葉, 听 (a can in Hong Kong).
+ */
+const TRAD_OWN: ReadonlySet<string> = new Set([...'斗划眯仆干朴卜扎症麽']);
+
 
 /** The words contextWordReading decides, in both scripts (looked up before any conversion, so other words cost nothing). */
 const CONTEXT_WORDS: ReadonlySet<string> = new Set([

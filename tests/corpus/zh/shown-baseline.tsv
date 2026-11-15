@@ -777,7 +777,7 @@
 #R	数	shu4
 #R	文场	wen2-chang3
 #R	文综	wen2-zong1
-#R	斗	dou4
+#R	斗	dou3
 #R	斯塔布菲尔德	si1-ta3-bu4-fei1-er3-de2
 #R	斯库拉	si1-ku4-la1
 #R	斯托贾科维奇	si1-tuo1-jia3-ke1-wei2-qi2
@@ -2479,7 +2479,7 @@
 3.7	38af1219	26	VvbfB	
 3.8	55485342	3	C	
 3.9	68cc6356	124	67_4d7Vv3tV3qXb_26tbF	
-3.10	aa430a94	803	ub999-2ffb7y1Xu66-9Vdv1b37__7r337l_vddvVvd9vefbsv6b91r23__7rrbdt9v77_Wbt113r222vnW3v9Vtd9e34ttdXvr1-36Xv16uu69_-fv19W7a3ut61-f_f7-vr3P	267:wei4
+3.10	aa430a94	803	ub999-2ffb7y1Xu66-9Vdv1b37__7r337l_vddvVvd9vefbsv6b91r23__7rrbdt9v77_Wbt113r222vnW3v9Vtd9e34ttdXvr1-36Xv16uu69_-fv19W7a3ut61-f_f7-vr3P	267:wei4,377:dou4
 3.11	86e782f7	303	etX_7-t9fa33-v2t3ez96W9uX_21Pe1s7ta1317_9ef3q13O-_C	
 3.12	9a85f893	123	29a_q3Xb7222-vr1fv2vD	23:zhi1
 3.13	66d06f80	452	vtu6779e9-_X3Xv_bbr22_1WX_3bf1-dr3_ed_vf_f8v31v366zXvtvf1drf16-3Vrd73-vt-PdB	31:zhi1
@@ -2856,13 +2856,13 @@
 3.74	78865fbe	17	zfP	
 4.0	9160a883	1		
 4.1	61c6ce23	152	2--1b7d_7t1Gr_-5f32ttrrqVB	
-4.2	82113cf0	237	t9a1129z1y_37jt61NX9usv73-69_7-n9u9vb3_D	48:dou3,124:di4
+4.2	82113cf0	237	t9a1129z1y_37jt61NX9usv73-69_7-n9u9vb3_D	124:di4
 4.3	b11dd45d	114	vr3qt_xr_e9-rtru23X	
 4.4	6463fbfc	6	W	
 4.5	fa7d660f	113	11avl38sSLt6u1M7NbI	
 4.6	90deaf22	4	G	
 4.7	ae27b1f9	33	_rddsC	
-4.8	c1f9d98b	143	ru_9133ud___u-xt0_u3e3WO	29:dei3
+4.8	c1f9d98b	143	ru_9133ud___u-xt0_u3e3WO	29:dei3,64:dou4
 4.9	154d5b90	104	ez2Vrv3n1XX739za-B	
 4.10	19965bec	33	q9f__D	
 4.11	faa1efe2	24	9fVc	7:zhi1
@@ -3010,7 +3010,7 @@
 7.13	6b3272f1	73	U37b__1-63d9	48:di3
 7.14	1f073f5b	115	d7-X8-tb9td3vb1tuUr	
 7.15	d5570240	63	W77b7av3d9D	
-7.16	386a9166	71	urf_vtf97-dL	20:dou3
+7.16	386a9166	71	urf_vtf97-dL	
 7.17	a13d3ae2	53	2XL3ft11K	
 7.18	1206a99b	75	6isUWZ7qcb7bD	
 7.19	ec140322	85	2b77tL73N_e716	
@@ -4314,7 +4314,7 @@
 3.22	4f47d9b9	202	trtzadtt9f3t9--vt_b3_tbf3_bftX32rH	57:ying4,94:zhang3,126:di4,145:pu1
 3.23	3b10edfb	319	v1-fdvbG-eH_2u____X3r-d7_3c5V_3et32r639ut2fX7d6bX_W77	12:dei3
 3.24	340df3e6	167	v97bW7q9-_9t3u_73_163_f9t7WN	
-3.25	ddbaf42f	171	1_9-v_22_abvdtbv9v1nb_79_d_9C	
+3.25	ddbaf42f	171	1_9-v_22_abvdtbv9v1nb_79_d_9C	13:hua2
 3.26	bc11a26a	189	7qt2r9ud_9_Pat1t23_qvtttVtttX7tC	82:na5
 3.27	31c8a9f7	352	bt-aets17t33e_21u_-tt_ePr2ZX9vXrZb1bX7Wt1vuvqvrerd7u39u-3uH	
 3.28	f6aa5980	302	323t32z_t6_tvX_q9STTtxlb7_t32tt_3_ev1ut_Tb__39vv0bB	139:di4,151:wei4,155:wei4,164:wei4
@@ -4943,7 +4943,7 @@
 1.0	55979952	7	u	
 1.1	59248c4a	510	-_v_X3_v_e__b_716-___r_f39__vve9-__uv3f___v-__v3379_3_ff_7__3_fv_7_f___f_fbr7t_7-3_3f	123:wei4,267:juan4,326:ying4
 1.2	2b72ed6c	228	79v_-3_-f9_-f9_f____v____b_-__77_f9_7b	61:huan2,95:de2,190:geng1
-1.3	84fb0666	181	_9v-________v3r33_39d39r913tv-	57:zi3
+1.3	84fb0666	181	_9v-________v3r33_39d39r913tv-	57:zi3,114:mi2
 2.0	0c533735	6	e	
 2.1	9831d83e	164	29v9_q2_7_v99v3ff3vf377d9-fB	
 2.2	5acb3586	179	vf7_v_969_7_____9-___b_fX_1__P	116:fa4
@@ -5723,7 +5723,7 @@
 0.71	59456b1c	2	B	
 0.72	f709dab9	257	pVtZ7_97qqpqr7z7_9vnvXNv17z__9Xrr6tq_n____P	33:wei4
 0.73	6ae9e9da	2	A	
-0.74	00628123	312	pratxmtq_f14q6Vtr_tWX1eK79x7_1d841_7__7909-7Xz659__f	136:huan2
+0.74	00628123	312	pratxmtq_f14q6Vtr_tWX1eK79x7_1d841_7__7909-7Xz659__f	136:huan2,200:dou4
 0.75	73a00124	108	6MzM_8zM_fz7MzmZmZ	
 1.0	4850829c	2	B	
 1.1	b6d645c6	68	p1__77z_37_B	
@@ -6835,7 +6835,7 @@
 7.5	9080b68d	241	OXH7-qlW10u1r4yutv3ua1axN2u6efueX3a12W9p	19:de2,58:dang4
 7.6	0507a1bd	116	6W3tqOXvVX3Xdzr1a7VB	
 7.7	8729ae96	174	q--2q3aqd1_qteb1aqGnb72rWX7OV	
-7.8	f5690994	266	4oq9X111y66rPdZftbb160aVv29W1rVZvqv9mmqV3XfTB	
+7.8	f5690994	266	4oq9X111y66rPdZftbb160aVv29W1rVZvqv9mmqV3XfTB	56:dou4
 7.9	b75ca618	312	41WUTt9W1Sv6r38W9LrWrdbq5626W75dssuter1720L2WfV7V7qW	
 7.10	41811466	223	6KG1xN7Nu6mWtz2bf17fr3-t4VWn69O3yar7t	53:chang2,85:dao3
 8.0	5d55ce9b	7	O	

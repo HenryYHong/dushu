@@ -1586,7 +1586,8 @@ const RULES: Record<string, Rule> = {
   // 斗 is dǒu "a peck, the Dipper" (北斗 一斗米 木斗 斗府 斗然 = 陡然), dòu "to fight" otherwise.
   // 斗一斗, 和他一斗 (to fight once) stay dòu.
   // 与他三斗米, 三斗高粱，二斗小米 (a measure after any number but a lone 一) stay dǒu.
-  斗: (c) => (has('星北南斗觔筋泰木米漏烟熨升', c.prevChar) || (/^[一二三四五六七八九十百半两几]+$/.test(c.prevTok)
+  // 斗媚 斗艳 斗妍 斗殴 (to vie, to fight): dòu, however the book writes it (the 1920s often wrote 斗 for 鬥).
+  斗: (c) => (c.alone !== false && nextIs(c, '媚艳妍殴') ? 'dou4' : has('星北南斗觔筋泰木米漏烟熨升', c.prevChar) || (/^[一二三四五六七八九十百半两几]+$/.test(c.prevTok)
     && !(c.prevTok === '一' && (!isHan(c.nextChar) || nextIs(c, '了')) && c.tok && ([2, 3].some((k) => c.tok!(-k) === '斗') || [3, 4].some((k) => /^(和|跟|与|同)$/.test(c.tok!(-k))))))
     || (c.alone !== false && nextIs(c, '府木然柄室篷笠胆')) ? 'dou3' : undefined),
   帖: (c) => {
