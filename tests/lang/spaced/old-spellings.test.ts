@@ -3,12 +3,11 @@
 // (gnädige), geschehn (geschehen), hätt (hätte); the Russian gerunds увидя (увидеть), обратясь (обратиться); Eça's snr.
 // (senhor), chinez (chinês), podesse (pudesse). Words spelled today's way stay as they are.
 import { expect, it } from 'vitest';
-import type { LangId } from '../../../src/lang/types';
 import { loadLang } from './load';
 
-const heads = async (id: LangId, sentence: string) => {
+const heads = async (id: Parameters<typeof loadLang>[0], sentence: string) => {
   const eng = await loadLang(id);
-  return Object.fromEntries(eng.segment(sentence).filter((t) => !t.punct && /\p{L}/u.test(t.text))
+  return Object.fromEntries(eng.segment(sentence).filter((t) => t.kind === 'word' && /\p{L}/u.test(t.text))
     .map((t) => [t.text, eng.lookup(t.text, { token: t, sentence }).entries[0]?.head]));
 };
 
