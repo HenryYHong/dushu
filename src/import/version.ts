@@ -15,6 +15,8 @@
  * are dropped; contents lists made of links, contents pages in plain lines and a contents label run together are dropped; a
  * letter drawn as a picture joins its word and a caption leaves its heading; Gutenberg's header, footer and their leftovers go;
  * its plain-text Chinese conversions are cut at their 第N回 lines (or by size); a paragraph element of indented lines (its
- * Japanese books) is split at the indents; a chapter's number set before its heading joins it.
+ * Japanese books) is split at the indents; a chapter's number set before its heading joins it. 5: a contents list in plain
+ * lines inside a chapter makes its 目录 line a heading, and the later paragraphs that are exactly its titles the headings of their
+ * stories (contents.ts), so each starts its own page; paragraphs only become headings, so every block keeps its place.
  */
-export const IMPORT_VERSION = 4;
+export const IMPORT_VERSION = 5;

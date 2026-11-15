@@ -616,6 +616,9 @@ html.rd-lock, html.rd-lock body { overflow: hidden; overscroll-behavior: none; }
 .rd-article .rd-clause { white-space: nowrap; }
 .rd-paged .rd-quote { margin: 0.5em 0; }
 .rd-paged .rd-h { break-after: avoid; break-inside: avoid; margin: 1.2em 0 0.6em; }
+/* A heading inside a chapter (a part, a story, the book's own contents, the title after a cover) opens a page of its own, as
+   in a printed book; a run of headings (the book's title, then its first part) stays together on that page. */
+.rd-paged .rd-b:not(.rd-h) + .rd-h { break-before: column; -webkit-column-break-before: always; margin-top: 0; }
 /* No extra air above the chapter title: the first line of a chapter's opening page sits level with the facing page. */
 .rd-paged .rd-h1 { margin: 0 0 1.1em; padding-top: 0; font-size: 1.45em; }
 .rd-paged .rd-fig { break-inside: avoid; margin: 0.6em 0; }
