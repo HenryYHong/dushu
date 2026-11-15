@@ -1,5 +1,5 @@
 // App shell: theme, fonts, nav, hash router, toasts, and the AppContext every screen receives.
-import { penguEl, penguMark, penguSays, preloadPengu } from './ui/pengu';
+import { penguEl, penguMark, preloadPengu } from './ui/pengu';
 import { num, startI18n, tt, ttm, ttn } from './i18n';
 import './styles/tokens.css';
 import './styles/base.css';
@@ -439,8 +439,8 @@ async function boot(): Promise<void> {
 
   // Time in a book or in Review counts toward the day's goal (core/readingClock.ts); reaching it says so once.
   let stopClock: (() => void) | null = null;
-  // The day's goal reached: Pengu pops up from the bottom of the screen to say so (ui/pengu.ts).
-  const onGoal = (days: number, goal: number) => penguSays(goalMessage(days, goal), 6500);
+  // The day's goal reached: a notice says so, as Practice does. Not Pengu jumping up from below, which startled mid-sentence.
+  const onGoal = (days: number, goal: number) => ctx.toast(goalMessage(days, goal), { ms: 6500 });
   const clockFor = (route: string) => {
     stopClock?.();
     stopClock = route === 'read' || route === 'review' ? startReadingClock(L.id, onGoal) : null;

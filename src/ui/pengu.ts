@@ -15,8 +15,8 @@
 //   penguEl(pose, cls)        Pengu in a span (the 'cheer' pose is the jumping one); a tap makes it wave or jump
 //   animatePengu(el, move)    a move on that span: pop (fading in), wave, blink, hop (one jump), cheer (two), boing (a tap)
 //   penguPeek(card)           Pengu peeking over the top edge of a card, hidden behind it below the edge
-//   penguSays(text)           Pengu jumping for joy at the bottom of the screen with a speech bubble (the daily goal reached; a
-//                             book finished)
+//   penguSays(text)           Pengu jumping for joy at the bottom of the screen with a speech bubble (a book finished; the
+//                             daily goal is a plain notice, as Pengu jumping up mid-sentence startled)
 //
 // Every jump for good news throws a small burst of paper from behind Pengu as it leaves the ground (penguConfetti).
 //
