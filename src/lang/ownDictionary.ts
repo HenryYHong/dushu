@@ -115,10 +115,15 @@ export function japaneseOwn(table: OwnTable, spellings: readonly (string | undef
   // By its reading: the entries naming one of its kanji, then lines under its kanji whose reading is not said, then the
   // entries naming no kanji.
   let open: OwnEntry[] = [];
+  // Its kanji the same, spelled with 御 or お and other okurigana (Wiktionary's おしまい names 御仕舞, JMdict お仕舞い).
+  const bare = (s: string) => s.replace(/^[御お]/, '').replace(/[\u3040-\u309f]/g, '');
+  const bares = new Set(written.map(bare).filter(Boolean));
   for (const k of all.filter(kana)) {
     const rows = table.get(k) ?? [];
     const named = rows.filter((x) => x.kanji?.some((w) => written.includes(w)));
     if (named.length) return named;
+    const alike = rows.filter((x) => x.kanji?.some((w) => bares.has(bare(w))));
+    if (alike.length) return alike;
     if (!open.length) open = rows.filter((x) => !x.kanji?.length);
   }
   const unknown = written.flatMap((k) => table.get(k)?.filter(unsure) ?? []);

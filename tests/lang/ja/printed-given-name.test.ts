@@ -1,7 +1,7 @@
 // A man's given name the book prints a reading over (末造《すえぞう》 in Ogai's 雁) is the name, read so wherever it stands
 // again, though JMdict has the kanji as a word read otherwise (末造 ばつぞう "a degenerate age"); a word the book reads as the
 // dictionary does (工作《こうさく》) stays the word. And a reader of Japanese gets the meanings of the word as the page reads it
-// (真中《まんなか》: JMdict's 真中 is read まなか, Wiktionary's lines are under まんなか).
+// (真中《まんなか》: JMdict's 真中 is read まなか, Wiktionary's lines are under まんなか), under any spelling of its kanji.
 import { gunzipSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -47,5 +47,8 @@ it("gives a Japanese reader the meanings of the page's reading", async () => {
   expect(lu.entries[0].source).toBe(OWN_SOURCE);
   expect(lu.entries[0].reading).toBe('まんなか');
   expect(lu.entries[0].senses[0].glosses[0]).toMatch(/中/);
+  // The same kanji spelled with 御 or お and other okurigana: Wiktionary's おしまい names 御仕舞, JMdict お仕舞い.
+  const end = read('これでおしまいだ。', 'おしまい', own);
+  expect(end.lu.entries[0].source).toBe(OWN_SOURCE);
   resetOwnDictionary();
 });
