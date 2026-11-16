@@ -82,7 +82,9 @@ export function problems(book: ImportedBook, e: Expect, encoding?: string): stri
   if (stray - strayWanted - (e.sourceSpaces ?? 0) > 3) out.push(`${stray - strayWanted} stray spaces between Chinese characters`);
   if (e.paras) {
     const have = new Map<string, number>();
-    for (const p of paraTexts) have.set(squash(p), (have.get(squash(p)) ?? 0) + 1);
+    // A section's number alone on its line (一, 二 in 小鸡的悲剧) may be made a small heading (import/leftovers.ts).
+    const numbers = blocks.filter((b) => b.t === 'h' && /^[（(]?[一二三四五六七八九十]{1,3}[)）、．.]?$/.test(b.text.trim())).map(textOf);
+    for (const p of [...paraTexts, ...numbers]) have.set(squash(p), (have.get(squash(p)) ?? 0) + 1);
     let exact = 0;
     for (const p of e.paras) {
       const k = squash(p);

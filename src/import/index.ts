@@ -19,7 +19,7 @@ import { bookFromText, importTxt } from './txt';
 import { IMPORT_VERSION } from './version';
 import { radicalMender } from './radicals';
 import { markContents } from './contents';
-import { letterRowBreaks, nameFileNamedChapters } from './leftovers';
+import { backMatter, letterRowBreaks, nameFileNamedChapters, sectionNumbers } from './leftovers';
 
 export { ImportError } from './errors';
 export { countHan } from './han';
@@ -156,9 +156,10 @@ function languageSamples(text: string): string[] {
 function finish(input: ImportedBook): ImportedBook {
   const book = mendRadicalsIn(input);
   // A contents list in plain lines names the stories its book runs together: the list and each story get a heading and a
-  // chapter (contents.ts). Chapters named after their file are named by their text, and a row of letters standing for a
-  // section break is one (leftovers.ts).
-  let chapters = nameFileNamedChapters(markContents(letterRowBreaks(tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0))))));
+  // chapter (contents.ts). Chapters named after their file are named by their text, a row of letters standing for a section
+  // break is one, a story's section numbers set as plain lines are headings, and back matter run on into the last story is a
+  // chapter of its own (leftovers.ts).
+  let chapters = backMatter(sectionNumbers(nameFileNamedChapters(markContents(letterRowBreaks(tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0))))))));
   chapters = chapters.filter((c) => c.blocks.length > 0);
   // A Japanese text from Aozora Bunko (or written the same way) keeps its publisher's readings beside the text.
   if (langId() === 'ja') chapters = takeAozoraRuby(chapters);

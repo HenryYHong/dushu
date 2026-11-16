@@ -43,7 +43,7 @@ const LABEL_WORD = /^(?:part|book|volume|chapter|chapitre|cap[ií]tulo|capitolo|
  * illustrated editions) gives way to the heading: the caption is a sentence of three words or more before it. A label that
  * numbers the chapter before its name ("Chapter 1. The Beginning") is kept as it is.
  */
-function alignHeading(c: Chapter): Chapter {
+export function alignHeading(c: Chapter): Chapter {
   const first = c.blocks[0];
   // A chapter that opens on its title as a plain line (a Kindle file's "第一章河边" under the label "第一章 河边"): that line is
   // the heading. Left a paragraph, the reader showed the title twice, once as a heading and once as text.

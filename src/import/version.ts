@@ -20,6 +20,9 @@
  * stories (contents.ts), so each starts its own page; paragraphs only become headings, so every block keeps its place. 6: each
  * story a contents names is a chapter of its own, matched spaces aside (小　路); a chapter that opens on its title as a
  * plain line has it as its heading (shown once, not twice); chapters named after their file (Chapter_1) are named by their
- * text; a row of one letter set again and again (BBB) in a Chinese or Japanese book is a section break (leftovers.ts).
+ * text; a row of one letter set again and again (BBB) in a Chinese or Japanese book is a section break (leftovers.ts). 7: a
+ * story's section numbers (一, 二, 三 on lines of their own, in order) are small headings, and a chapter named by its first line
+ * alone has that line as its heading, and back matter whose title is a plain line in the last chapter (大事记, 年表, 后记) is a
+ * chapter of its own (leftovers.ts).
  */
-export const IMPORT_VERSION = 6;
+export const IMPORT_VERSION = 7;
