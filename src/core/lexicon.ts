@@ -20,7 +20,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 12;
+export const DETECTOR_VERSION = 13;
 /** Stored for a book read without the name list (core/gazetteer.ts could not fetch it): it is read again once the list is there. */
 export const WITHOUT_LIST = DETECTOR_VERSION - 0.5;
 /** Stored for a book read with the list but without the name model (core/nameModel.ts): it is read again once the model is there. */
