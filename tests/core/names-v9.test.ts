@@ -277,3 +277,16 @@ describe('a neighbor who never speaks in a first-person book', () => {
     expect(judgeCandidate({ ...c, pprep: 0, prep: 0.05 }, await dictP)).toMatchObject({ kind: 'term' });
   });
 });
+
+describe('a person the corpus knows, read as the dictionary reads him', () => {
+  // Joined by the segmenter already (the corpus counts it), with no entry: the book's name, unless it is a way of calling someone.
+  const c = { word: '上官青', count: 120, bind: 0.9, pmi: 5.9, npmi: 0.85, left: 3, right: 4.5, speech: 0.14, said: 0.14, prep: 0.13, pprep: 0.01,
+    counted: 0, measured: 0.02, open: 0.6, voc: 0, rate: 1, known: 'jieba', kind: 'term', surnameLed: false, tailBound: false, headBound: false } as TermCandidate;
+  it('is a name when spoken of as a person', async () => {
+    expect(judgeCandidate(c, await dictP)).toMatchObject({ kind: 'name', surnameLed: true });
+  });
+  it('is not when the surname comes before a title or a kind of person', async () => {
+    expect(judgeCandidate({ ...c, word: '张师傅' }, await dictP)).toBeNull();
+    expect(judgeCandidate({ ...c, word: '李老师' }, await dictP)).toBeNull();
+  });
+});

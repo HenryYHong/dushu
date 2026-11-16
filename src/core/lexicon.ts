@@ -20,7 +20,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 14;
+export const DETECTOR_VERSION = 15;
 /** Stored for a book read without the name list (core/gazetteer.ts could not fetch it): it is read again once the list is there. */
 export const WITHOUT_LIST = DETECTOR_VERSION - 0.5;
 /** Stored for a book read with the list but without the name model (core/nameModel.ts): it is read again once the model is there. */
@@ -1914,6 +1914,14 @@ export function plausibleName(simp: string[], dict: Dictionary): boolean {
 const TITLE_DEF = /\b(magistrate|judge|monk|abbot|abbess|vanguard|midwife|partner|assistant|apprentice|ancestor|deity|immortal|venerable|mister|miss|mrs?|grandpa|grandma|granny|auntie|gentleman|lady|courtesan|prostitute|concubine|maidservant|novice|professor|warrior|hero|heroine|tutor|marquis|duke|earl|count|baron|consort|eunuch|chancellor|commissioner|inspector|magnate|patriarch|matriarch|fairy|candidate|graduate|licentiate|censor|viceroy|prefect|squire|landlord|matchmaker|bawd|wet nurse|principal|headmaster|president|chairman|manager|mayor|cadre)s?\b/i;
 
 /** Whether a word (simplified) is a dictionary word for a title, an office or a kind of person (驿丞, 大叔, 先生, 沙弥). */
+/** Whether a surname-led string ends in a kind of person, a title or kin (张师傅, 李老师, 王大妈): a way of calling, not a name. */
+function personTail(w: string, dict: Dictionary): boolean {
+  const simp = [...dict.toSimplified(w)];
+  const sur = surnameSplit(w, dict);
+  const given = simp.slice(sur ? [...sur.surname].length : 1).join('');
+  return !given || personWord(given, dict) || PERSON_HEAD.has(simp[simp.length - 1]) || KIN_CHARS.has(simp[simp.length - 1]) || endsWithAny(w, TITLE_SUFFIXES);
+}
+
 function personWord(w: string, dict: Dictionary): boolean {
   if ([...w].length < 2) return false;
   return dict.lookup(w).some((e) => { const d = e.defs.join('; '); return PERSON_DEF.test(d) || ROLE_DEF.test(d) || TITLE_DEF.test(d); });
@@ -2122,8 +2130,12 @@ function endsWithAny(word: string, list: readonly string[]): boolean {
 export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6): { kind: LexiconEntry['kind']; surnameLed: boolean } | null {
   // 梁子安: a person the corpus knows (the segmenter joins him already) whose dictionary reading is wrong (梁子 "grudge"
   // + 翁): the entry carries the name's reading.
+  // A person the corpus knows by name whose reading is right (a famous novel's villain, 上官某): the segmenter joins him, but with
+  // no entry the card had nothing to say ("not in the dictionary as a word"). Spoken of as a person, he is the book's name too;
+  // a kind of person or a title after the surname (张师傅, 李老师) is not.
   if (c.known === 'jieba' && [...c.word].length === 3 && surnameSplit(c.word, dict) && (c.speech >= 0.03 || c.prep >= 0.06) && c.bind >= 0.5
-    && c.count >= 3 * minCount && c.left >= 2 && c.right >= 2.5 && pinyinOf(c.word, 'name', dict) !== dict.pinyinFor(c.word, {}).join(' ')) {
+    && c.count >= 3 * minCount && c.left >= 2 && c.right >= 2.5
+    && (pinyinOf(c.word, 'name', dict) !== dict.pinyinFor(c.word, {}).join(' ') || !personTail(c.word, dict))) {
     return { kind: 'name', surnameLed: true };
   }
   // A common dictionary word that this book uses five hundred times more often than other text does, that speaks and is
