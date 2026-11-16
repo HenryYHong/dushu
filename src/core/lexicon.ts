@@ -20,7 +20,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 13;
+export const DETECTOR_VERSION = 14;
 /** Stored for a book read without the name list (core/gazetteer.ts could not fetch it): it is read again once the list is there. */
 export const WITHOUT_LIST = DETECTOR_VERSION - 0.5;
 /** Stored for a book read with the list but without the name model (core/nameModel.ts): it is read again once the model is there. */
@@ -2316,7 +2316,9 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
     // In a novel, a two-character string this tightly bound and this frequent is almost always a person (福贵, 有庆).
     // Transliterated names (赤老温, 合撒儿) have no surname: they are told apart from techniques and books by being
     // addressed and ordered about, which 华山论剑 and 黑风双煞 never are.
-    return { kind: (len === 2 && c.count >= 50) || (len >= 3 && c.prep + c.speech >= 0.12) ? 'name' : 'term', surnameLed: false };
+    // (A neighbor in a first-person book, 嘎卜, seldom speaks in it, but is asked and called by name now and then: a person.)
+    const asked = (c.pprep ?? 0) >= 0.04 && Math.round((c.pprep ?? 0) * c.count) >= 2 && c.prep >= 0.12;
+    return { kind: (len === 2 && (c.count >= 50 || (c.count >= 20 && asked))) || (len >= 3 && c.prep + c.speech >= 0.12) ? 'name' : 'term', surnameLed: false };
   }
   // 青崖: a pair as tightly bound as a name, used very often, that never speaks: the name of a place or a thing.
   if (len === 2 && c.known === 'none' && c.bind >= 0.6 && c.pmi >= 7 && c.count >= 10 * minCount && c.left >= 2.5 && c.right >= 2.5 && c.speech < 0.02 && !measured && !softStart) {

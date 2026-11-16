@@ -2,7 +2,7 @@
 // Latin letters, anthologies read one story at a time, a dictionary word that is a story's person, and readings inside names.
 // Every sentence here is invented.
 import { describe, expect, it } from 'vitest';
-import { buildLexicon, countedThing, detectTerms, judgeRepeat, pinyinOf } from '../../src/core/lexicon';
+import { buildLexicon, countedThing, detectTerms, judgeCandidate, judgeRepeat, pinyinOf, type TermCandidate } from '../../src/core/lexicon';
 import { segment } from '../../src/core/segment';
 import type { LexiconEntry } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
@@ -263,5 +263,17 @@ describe('a thing counted is no name', () => {
     expect(countedThing({ word: '李三姐', measured: 0.5 }, dict)).toBe(false);
     expect(countedThing({ word: '王大妈', measured: 0.5 }, dict)).toBe(false);
     expect(countedThing({ word: '白云', measured: 0.5 }, dict)).toBe(false);
+  });
+});
+
+describe('a neighbor who never speaks in a first-person book', () => {
+  // Told of, never quoted, 44 times: tightly bound and free on both sides, and now and then asked or called by name (问嘎卜, 叫嘎卜).
+  const c = { word: '嘎卜', count: 44, bind: 0.96, pmi: 5.6, npmi: 0.75, left: 2.5, right: 3.3, speech: 0, said: 0, prep: 7 / 44, pprep: 2 / 44,
+    counted: 0, measured: 0.02, open: 0.59, voc: 0, rate: 0.6, known: 'none', kind: 'term', surnameLed: false, tailBound: false, headBound: false } as TermCandidate;
+  it('is a person when asked and called', async () => {
+    expect(judgeCandidate(c, await dictP)).toMatchObject({ kind: 'name' });
+  });
+  it('stays a term when only told of', async () => {
+    expect(judgeCandidate({ ...c, pprep: 0, prep: 0.05 }, await dictP)).toMatchObject({ kind: 'term' });
   });
 });

@@ -79,3 +79,28 @@ describe('不了', () => {
     expect(await py('今天我去不了。', '不了')).toBe('bu liǎo');
   });
 });
+
+describe('more everyday words', () => {
+  it('得 is de before 令人 and must opening a clause; 得令 is still took the order', async () => {
+    expect(await py('这里的菜贵得令人发愁。', '得')).toBe('de');
+    expect(await py('他的额头烫着呢。“不行，得找大夫啦！”她说。', '得')).toBe('děi');
+    expect(await py('众将得令，各自回营。', '得')).toBe('dé');
+    expect(await py('他们的钱都花着呢。“我家有福，得遇这位先生。”', '得')).toBe('dé');
+    expect(await py('他们的钱都花着呢。“我才敢来，得看先生之面。”', '得')).toBe('dé');
+    expect(await py('他把房间“大扫除”得跟新的一样。', '得')).toBe('de');
+  });
+  it('差 lacking only one thing is chà; sending someone stays chāi', async () => {
+    expect(await py('他打扮好了，只差一双鞋。', '差')).toBe('chà');
+    expect(await py('现在只差等你点头了。', '差')).toBe('chà');
+    expect(await py('知县就差人去请他。', '差')).toBe('chāi');
+  });
+  it('幢 with its 一 left out is zhuàng', async () => {
+    expect(await py('他们想在城里买幢旧楼。', '幢')).toBe('zhuàng');
+  });
+  it('兴 spoiled for someone is xìng', async () => {
+    expect(await py('我不想扫大家的兴。', '兴')).toBe('xìng');
+  });
+  it('数 who counts as the best is shǔ', async () => {
+    expect(await py('一家人里头数她最能干。', '数')).toBe('shǔ');
+  });
+});
