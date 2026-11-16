@@ -1199,6 +1199,10 @@ class DictImpl implements Dictionary {
     if (w === '不了' && ctx?.prev && isHanCodePoint(lastCodePoint(ctx.prev).codePointAt(0) ?? 0) && !/[个個]$/.test(ctx.prev)) {
       return ['bu5', 'liao3'];
     }
+    // 「不了，我还有事。」 (no thanks), a reply of its own: bù le.
+    if (w === '不了' && ctx?.next !== undefined && !isHanCodePoint(lastCodePoint(ctx.prev ?? '').codePointAt(0) ?? 0) && /^[，,。！!…]/.test(ctx.next)) {
+      return ['bu4', 'le5'];
+    }
     // 那裏肯聽, 那裏敢: "how could (he)" is nǎ li; 那裏 elsewhere is nà li "there".
     // 他调到那里当个小组长, 去那里当专员 (there) stay nàli after a word of place or motion. 那里有这样的事 (how could there be) is nǎli.
     // 从好友那里得到 (from his place): a 从 在 向 … a few words back says the same.
@@ -1304,8 +1308,11 @@ class DictImpl implements Dictionary {
     // A one-character token may look further along its paragraph (为 X 所, 以 X 为) when the caller gave the paragraph's tokens.
     const line = ctx?.line;
     const at = ctx?.at;
+    // A neighbor folded for the rules. 著 standing alone is the particle 着 (traditional text, and books that keep the old form:
+    // 藏著, 看著), as the rules' 着 expects; as zhù it only occurs in words CEDICT lists.
+    const fold = (t: string): string => (t === '著' ? '着' : this.t2s.convert(t));
     const tok = n === 1 && line && at !== undefined && line[at] === word
-      ? (k: number): string => { const t = line[at + k]; return t === undefined ? '' : this.t2s.convert(t); }
+      ? (k: number): string => { const t = line[at + k]; return t === undefined ? '' : fold(t); }
       : undefined;
     for (let i = 0; i < n; i++) {
       if (out[i] || !isHanCodePoint(cps[i].codePointAt(0)!)) continue;
@@ -1319,9 +1326,9 @@ class DictImpl implements Dictionary {
       // The rules are written for simplified text; traditional input is folded first (長 -> 长, 還 -> 还).
       // 著 is the traditional form of 着 as a particle; as zhù it only occurs in words CEDICT lists.
       const key = cps[i] === '著' ? '着' : this.t2s.convert(cps[i]);
-      const prevS = this.t2s.convert(prevTok);
-      const nextS = this.t2s.convert(nextTok);
-      const afterS = i < n - 1 ? '' : this.t2s.convert(ctx?.after ?? '');
+      const prevS = fold(prevTok);
+      const nextS = fold(nextTok);
+      const afterS = i < n - 1 ? '' : fold(ctx?.after ?? '');
       const rule = polyphoneRule({
         ch: key,
         orig: orig ? orig[i] : cps[i],

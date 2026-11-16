@@ -2,7 +2,7 @@
 // Latin letters, anthologies read one story at a time, a dictionary word that is a story's person, and readings inside names.
 // Every sentence here is invented.
 import { describe, expect, it } from 'vitest';
-import { buildLexicon, detectTerms, judgeRepeat, pinyinOf } from '../../src/core/lexicon';
+import { buildLexicon, countedThing, detectTerms, judgeRepeat, pinyinOf } from '../../src/core/lexicon';
 import { segment } from '../../src/core/segment';
 import type { LexiconEntry } from '../../src/types';
 import { loadTestDictionary } from '../helpers/data';
@@ -250,5 +250,18 @@ describe('names in Latin letters on a page shown in the other script', () => {
     expect(shown.has('老K')).toBe(true);
     expect(shown.has('陈大爷')).toBe(true);
     expect(segment('大家叫他阿Kuei，也叫老K。', dict, shown).map((t) => t.text)).toEqual(expect.arrayContaining(['阿Kuei', '老K']));
+  });
+});
+
+describe('a thing counted is no name', () => {
+  it('is a "surname" before a dictionary word, counted by a measure word a third of the time, and never a word for a person', async () => {
+    const dict = await dictP;
+    // 一个白口罩, 戴着白口罩: white and a mask, though 白 is a surname.
+    expect(countedThing({ word: '白口罩', measured: 0.5 }, dict)).toBe(true);
+    expect(countedThing({ word: '白口罩', measured: 0.1 }, dict)).toBe(false);
+    // 那个李三姐, 一个王大妈: a surname and a word for a person name someone, however often she is counted.
+    expect(countedThing({ word: '李三姐', measured: 0.5 }, dict)).toBe(false);
+    expect(countedThing({ word: '王大妈', measured: 0.5 }, dict)).toBe(false);
+    expect(countedThing({ word: '白云', measured: 0.5 }, dict)).toBe(false);
   });
 });

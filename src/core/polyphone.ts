@@ -1144,7 +1144,10 @@ const RULES: Record<string, Rule> = {
   },
   // 骑 is jì "a horseman" after a number or a kind of rider (一骑自北而来, 单骑, 铁骑, 轻骑); qí "to ride" before what is ridden.
   // (单骑这匹马: rides this one, qí, before what is ridden.)
-  骑: (c) => (has('一二两三四五六七八九十数单铁轻骁越', c.prevChar) && !has('马乘着了过这那', c.nextChar) ? 'ji4' : undefined),
+  // 一骑 千骑 铁骑 轻骑 (horsemen): jì, after a number or a word for them. Not the verb said twice (骑一骑), nor a name's number
+  // (阿五骑在墙头上).
+  骑: (c) => (has('一二两三四五六七八九十数单铁轻骁越', c.prevChar) && !has('马乘着了过这那', c.nextChar)
+    && [...c.prevTok].every((x) => has('一二两三四五六七八九十百千万数单铁轻骁越', x)) && !(c.tok && /^(骑|阿)$/.test(c.tok(-2))) ? 'ji4' : undefined),
   // 系 as 繫 is jì "to tie" (腰繫金带, 系着, 系鞋带), xì "to connect, to relate" otherwise.
   // 系住菜根, 系一条长绳, 系在树上, 没有系裙 (to tie, whatever the spelling): jì.
   系: (c) => ((c.orig === '繫' && (has('腰足颈臂手身马鞋', c.prevChar) || has('着住上好紧带铃', c.nextChar)))
@@ -1359,8 +1362,12 @@ const RULES: Record<string, Rule> = {
     if ((prevIs(c, '为首') || /^(天神|无敌|下降|军中)$/.test(c.prevTok)) && !has('来要会在', c.nextChar)) return 'jiang4';
     if (c.nextTok === '兵' && /^[一二三四五六七八九十百千万数]/.test(c.afterTok ?? '')) return 'jiang4';
     if (has('明尽近至黑晚亮暮', c.nextChar)) return 'jiang1';
-    // 守将 贼将 魏将 兵将 大将 天将 (a general); 马上将 春天将 are not.
-    if (has('士领校帅官才', c.nextChar) || prevIs(c, '大名上少中良武虎老勇猛主敌副天牙神骁女败降战守贼兵魏蜀吴汉员旧斩宿骑家部爱番川蛮羌辽')) return 'jiang4';
+    // 用牙将绳子咬断, 以手将门推开 (with the teeth, the hand: 把), though 牙将 is an officer: jiāng.
+    if (c.tok && /^(用|以|拿)$/.test(c.tok(-2)) && cpLen(c.prevTok) === 1) return 'jiang1';
+    // 守将 贼将 魏将 兵将 大将 天将 (a general); 马上将 春天将 are not. 将校 将领 (officers), but not where the next word is one of
+    // its own (将校园打扫干净, 将领带系好: 把).
+    const ownWord = cpLen(c.nextTok) > 1 && c.alone !== false && (c.word?.(c.nextTok) ?? true);
+    if ((has('士领校帅官才', c.nextChar) && !ownWord) || prevIs(c, '大名上少中良武虎老勇猛主敌副天牙神骁女败降战守贼兵魏蜀吴汉员旧斩宿骑家部爱番川蛮羌辽')) return 'jiang4';
     // 心腹将李傕, 为主将 (a trusted general, the chief general): jiàng.
     if (/^(心腹|为主)$/.test(c.prevTok)) return 'jiang4';
     // 众神将叹口气, 五军兵将大进, 分调兵将已了, 兵勇将猛, 被天兵将绑缚: the gods' generals, soldiers and generals, where the word
@@ -1540,6 +1547,8 @@ const RULES: Record<string, Rule> = {
   差: (c) => {
     // 明公差矣 (mistaken): chà.
     if (has('不点得远多些太极较矣', c.nextChar) || has('不太尚更还较最很真好', c.prevChar) || /^一[点步些口分毫寸]/.test(c.nextTok)) return 'cha4';
+    // 鸡也差三只。 差两个， (short by so many, the count ending the clause): chà. 差一人去 (sends one) goes on.
+    if (/^[一二两三四五六七八九十几半]+$/.test(c.nextTok) && c.tok && c.tok(2) && !isHan(firstCodePointOf(c.tok(3)))) return 'cha4';
     if (has('别距异错价额池误值', c.nextChar)) return 'cha1';
     // 条件差。 县城差，: poor (chà) at the end of a clause, unless it is an errand (当差, 公差, 听差).
     if (c.nextKnown !== false && !isHan(c.nextChar) && prevIs(c, '有无')) return c.prevTok === '有' ? 'ci1' : 'cha1'; // 赏赐有差 (in due degrees); 赏罚无差 (without fail)
@@ -1582,7 +1591,16 @@ const RULES: Record<string, Rule> = {
   征: (c) => (c.orig === '徵' ? (has('宫商角', c.prevChar) || c.nextChar === '羽' ? 'zhi3' : 'zheng1') : undefined), // 徵 is a note of the scale only there; 魏徵 is Zhēng
   累: (c) => (has('卵次月积世计及赘', c.nextChar) || has('连', c.prevChar) ? 'lei3' : undefined), // 累卵 累次 (lěi); 累了 stays lèi
   // 地藏王, 三藏, 西藏, 宝藏, 道藏, 蒙藏关系: zàng. 藏|宝塔, 藏|宝图 (a treasure stored, where the cut took 宝 into the next word): cáng.
-  藏: (c) => (has('地三西宝道', c.prevChar) || prevIs(c, '蒙汉满回') ? 'zang4' : c.nextChar === '宝' ? 'cang2' : undefined),
+  // 三藏 西藏 宝藏 道藏 (一部大道藏), 蒙藏 汉藏, 地藏 the bodhisattva (Tibet, a treasury, a canon): zàng. After a word that
+  // only ends in 地 西 宝 道, 藏 with where or how it hides is hidden: 悄悄地藏到门后, 东西藏在柜子里, 苏西藏着的刀 (藏著 in a book
+  // that writes 著 for 着), 知道藏在哪里.
+  藏: (c) => {
+    if (prevIs(c, '蒙汉满回') || c.prevChar === '三') return 'zang4';
+    if (has('地西宝道', c.prevChar)) return has('在到起着著了进好住下得于', c.nextChar) ? 'cang2' : 'zang4';
+    return c.nextChar === '宝' ? 'cang2' : undefined;
+  },
+  // 车轮被卡在石缝里, 鱼刺卡在喉咙里 (stuck): qiǎ. A card (一张卡, 我的卡在包里, 饭卡在桌上) is kǎ.
+  卡: (c) => (c.prevChar === '被' || (has('在住', c.nextChar) && !has('张的这那片个卡行用书饭员证', c.prevChar)) ? 'qia3' : undefined),
   // 斗 is dǒu "a peck, the Dipper" (北斗 一斗米 木斗 斗府 斗然 = 陡然), dòu "to fight" otherwise.
   // 斗一斗, 和他一斗 (to fight once) stay dòu.
   // 与他三斗米, 三斗高粱，二斗小米 (a measure after any number but a lone 一) stay dǒu.

@@ -60,6 +60,8 @@ const SOFT_END = new Set([...'道说笑问叫看听想去来到上下里中外�
 const PERSON_PREP = new Set([...'对對向问問叫和与與让讓给給跟见見命令派请請使谢謝扶抱拉救杀殺打骂罵恨爱愛喊唤喚召找随隨同被']);
 /** Of PERSON_PREP, the ones that also take a group or a thing (对社群, 与社群, 被焚毁, 让社群): no sign of a person alone. */
 const GROUP_PREP = new Set([...'对對和与與让讓给給跟见見随隨同被向']);
+/** Measure words for things alone (两朵, 一粒, 两盏): never before a person, so a string after one is counted as a thing. */
+const COUNTS_THINGS = new Set([...'朵粒颗盏间封棵株枚']);
 /** Before a measure word, with the numerals: 这张专辑, 每张, 哪条. */
 const COUNT_BEFORE = new Set([...'这這那哪每某第整满滿']);
 /** A sense for a kind of person that PERSON_DEF leaves out (堂倌 "(old) waiter/attendant"): a role, not a name. */
@@ -99,6 +101,19 @@ const isHanUnit = (c: number): boolean =>
 /** Shared with core/nameCandidates.ts (the reader's name check). */
 export { EDGE_STOP, NOT_IN_NAME, INTERJECTIONS, PERSON_DEF, PERSON_HEAD, NUMERALS, MEASURE_START, SOFT_END, SOFT_START, SPEECH_NEXT, PLACE_SUFFIX, isHanUnit, covered, commonInside, verbPhrase };
 
+/**
+ * 一个白口罩, 戴着白口罩, 两朵白绒花: a "surname" before a word the dictionary has (口罩 a mask, 绒花 velvet flowers), the whole
+ * counted by a measure word a third of the time, is a thing described (white), not a person. (这个阿明, 那个李小康 are counted
+ * far less often.)
+ */
+export function countedThing(c: Pick<TermCandidate, 'word' | 'measured'>, dict: Dictionary): boolean {
+  const simp = [...dict.toSimplified(c.word)];
+  if (simp.length !== 3 || (c.measured ?? 0) < 0.3 || PERSON_HEAD.has(simp[2])) return false;
+  // (李三姐, 王大妈: a surname before a word for a person names someone, however often a measure word counts her.)
+  const senses = dict.lookup(simp.slice(1).join(''));
+  return senses.length > 0 && !PERSON_DEF.test(senses.flatMap((e) => e.defs).join('; '));
+}
+
 /** Everything detection learned about one string. */
 export interface TermCandidate {
   word: string;
@@ -122,6 +137,8 @@ export interface TermCandidate {
   pprep?: number;
   /** Share of occurrences right after a numeral or a demonstrative (一张专辑, 这张专辑): its first character is counting something. */
   counted?: number;
+  /** Share of occurrences right after a measure word or a demonstrative (一个白口罩, 两朵白绒花, 那白口罩): the string is counted. */
+  measured?: number;
   /** Share of occurrences that open a quotation and are followed by a comma or an exclamation (“苇官，回家！”): someone called by name. */
   voc?: number;
   /** The last character is held by the one before it (in 周雍和, 雍 is nearly always 雍和), so a final 和 is not the conjunction. */
@@ -363,15 +380,18 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     let po = 0;
     let op = 0;
     let nb = 0;
+    let mb = 0;
     for (const [k, v] of st.left) {
       const ch = String.fromCharCode(k);
       if (PERSON_PREP.has(ch)) { pp += v; if (!GROUP_PREP.has(ch)) po += v; }
       if (NUMERALS.has(ch) || COUNT_BEFORE.has(ch)) nb += v;
+      if (MEASURE_AFTER.has(ch) || COUNTS_THINGS.has(ch) || COUNT_BEFORE.has(ch)) mb += v;
       if (!isHanUnit(k)) op += v;
     }
     c.prep = pp / c.count;
     c.pprep = po / c.count;
     c.counted = nb / c.count;
+    c.measured = mb / c.count;
     c.open = op / c.count;
     c.voc = (st.voc ?? 0) / c.count;
   }
@@ -390,6 +410,7 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     // 一张专辑, 第二张专辑: a "surname" that is also a measure word and comes after a numeral or 这 half the time counts a thing.
     // (这小猴子 is still the boy: 小 counts nothing.)
     if (verdict.kind === 'name' && (c.counted ?? 0) >= 0.5 && MEASURE_AFTER.has(dict.toSimplified(c.word[0]))) continue;
+    if (verdict.kind === 'name' && countedThing(c, dict)) continue;
     c.kind = verdict.kind;
     c.surnameLed = verdict.surnameLed;
     if (verdict.neutralZi) c.neutralZi = true;
@@ -2022,7 +2043,7 @@ function* modelNames(found: LexiconEntry[], cands: TermCandidate[], text: string
       && st.topLeft < 0.6 && st.topRight < 0.6 && (held.get(c.word) ?? 0) < 0.7 * c.count && (c.counted ?? 0) < 0.25
       && !(simp.length >= 3 && model?.tails.has(simp.slice(-2).join('')) && nameShape(simp) !== 'numhon')
       // (宝二爷, 琏二爷: 二爷 after the given names of two or more people found is how each of them is called.)
-      && !(NUMERALS.has(simp[0]) && st.givenWho >= 2 && st.afterGiven >= 0.1 * free);
+      && !(NUMERALS.has(simp[0]) && st.givenWho >= 2 && st.afterGiven >= 0.1 * free) && !countedThing(c, dict);
     let kind: LexiconEntry['kind'] | null = null;
     if (scores && !p.found && backed) {
       // (龙骧将军王浚, 虎翼将军张苞: a string before an office a third of the time is a rank.)
