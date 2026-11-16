@@ -45,6 +45,11 @@ const LABEL_WORD = /^(?:part|book|volume|chapter|chapitre|cap[ií]tulo|capitolo|
  */
 function alignHeading(c: Chapter): Chapter {
   const first = c.blocks[0];
+  // A chapter that opens on its title as a plain line (a Kindle file's "第一章河边" under the label "第一章 河边"): that line is
+  // the heading. Left a paragraph, the reader showed the title twice, once as a heading and once as text.
+  if (c.title && first?.t === 'p' && squash(first.text) === squash(c.title) && [...squash(first.text)].length <= 40 && !/[。！？，,.!?]/.test(first.text)) {
+    return { ...c, blocks: [{ t: 'h', level: 1, text: c.title }, ...c.blocks.slice(1)] };
+  }
   if (!c.title || !first || first.t !== 'h' || first.text === c.title) return c;
   if (squash(first.text) === squash(c.title)) return { title: c.title, blocks: [{ ...first, text: c.title }, ...c.blocks.slice(1)] };
   const label = squash(c.title).toLocaleLowerCase();

@@ -17,6 +17,9 @@
  * its plain-text Chinese conversions are cut at their 第N回 lines (or by size); a paragraph element of indented lines (its
  * Japanese books) is split at the indents; a chapter's number set before its heading joins it. 5: a contents list in plain
  * lines inside a chapter makes its 目录 line a heading, and the later paragraphs that are exactly its titles the headings of their
- * stories (contents.ts), so each starts its own page; paragraphs only become headings, so every block keeps its place.
+ * stories (contents.ts), so each starts its own page; paragraphs only become headings, so every block keeps its place. 6: each
+ * story a contents names is a chapter of its own, matched spaces aside (小　路); a chapter that opens on its title as a
+ * plain line has it as its heading (shown once, not twice); chapters named after their file (Chapter_1) are named by their
+ * text; a row of one letter set again and again (BBB) in a Chinese or Japanese book is a section break (leftovers.ts).
  */
-export const IMPORT_VERSION = 5;
+export const IMPORT_VERSION = 6;

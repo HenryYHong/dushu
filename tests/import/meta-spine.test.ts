@@ -179,6 +179,14 @@ describe('EPUB title page and heading spelling', () => {
     ]);
   });
 
+  it('makes a chapter’s title a heading when the chapter opens on it as a plain line (a Kindle file), so it shows once', () => {
+    const first = (title: string, line: string) => chaptersFromSpine([{ path: 'a', skipped: false, blocks: [{ t: 'p', text: line }, { t: 'p', text: '他从小就喜欢在河边玩。' }], anchors: new Map() }], [{ doc: 0, frag: '', title }])[0].blocks[0];
+    expect(first('第一章 河边', '第一章河边')).toEqual({ t: 'h', level: 1, text: '第一章 河边' });
+    expect(first('第三章 春天（一）', '第三章 春天（一）')).toEqual({ t: 'h', level: 1, text: '第三章 春天（一）' });
+    // A first line that only looks like the title, a sentence: stays text.
+    expect(first('静夜思', '静夜思。')).toEqual({ t: 'p', text: '静夜思。' });
+  });
+
   it('titles a chapter by its heading when the contents label puts a picture caption before it, and only then', () => {
     const one = (title: string, head: string) => chaptersFromSpine([{ path: 'a', skipped: false, blocks: [{ t: 'h', level: 2, text: head }, { t: 'p', text: 'Text.' }], anchors: new Map() }], [{ doc: 0, frag: '', title }])[0].title;
     expect(one('I hope Mr. Bingley will like it. CHAPTER II.', 'CHAPTER II.')).toBe('CHAPTER II.');

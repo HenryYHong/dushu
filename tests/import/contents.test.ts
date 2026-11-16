@@ -1,6 +1,6 @@
 // A contents list in plain lines inside a chapter (a 目录 line and its entries, page numbers and dot leaders after each title)
-// makes the 目录 line a heading, and the later paragraphs that are exactly its titles the headings of their stories, so each
-// starts its own page. Nothing changes without such a list, or when fewer than three titles are found again.
+// makes the 目录 line a heading, and the later paragraphs that are exactly its titles the headings of their stories, each story
+// a chapter of its own. Nothing changes without such a list, or when fewer than three titles are found again.
 import { describe, expect, it } from 'vitest';
 import { entryTitle, markContents } from '../../src/import/contents';
 import type { Block, Chapter } from '../../src/types';
@@ -18,10 +18,33 @@ describe('entryTitle', () => {
 });
 
 describe('markContents', () => {
-  it('makes the contents line and each story title found later a heading', () => {
+  it('makes the contents line and each story title found later a heading, and each a chapter', () => {
     const chs: Chapter[] = [{ title: '一', blocks: [p('写在前面的话，给读者。'), p('目录'), p('小路⒈……'), p('河边⒐……'), p('春天⒉⒍……'), p('小路'), p(LONG), p('河边'), p(LONG)] },
       { title: '二', blocks: [p('春天'), p(LONG)] }];
-    expect(kinds(markContents(chs))).toEqual(['phppphphp', 'hp']);
+    const out = markContents(chs);
+    expect(kinds(out)).toEqual(['p', 'hppp', 'hp', 'hp', 'hp']);
+    // A chapter that opens on its story keeps its own name.
+    expect(out.map((c) => c.title)).toEqual(['一', '目录', '小路', '河边', '二']);
+  });
+
+  it('finds a title printed spaced out', () => {
+    const chs: Chapter[] = [{ title: '一', blocks: [p('目录'), p('小路⒈'), p('河边⒐'), p('春天⒉⒍'), p('小　路'), p(LONG), p('河边'), p(LONG), p(' 春 天 '), p(LONG)] }];
+    expect(markContents(chs).map((c) => c.title)).toEqual(['一', '小　路', '河边', '春 天']);
+  });
+
+  it('runs a file cut by size on from the story before, the sentence it cut made whole', () => {
+    const chs: Chapter[] = [
+      { title: 'Chapter_1', blocks: [{ t: 'h', level: 2, text: 'Chapter_1' }, p('目录'), p('小路⒈'), p('河边⒐'), p('春天⒉⒍'), p('小路'), p(LONG), p('河边'), p('孩子们在田野里奔跑，')] },
+      { title: 'Chapter_2', blocks: [{ t: 'h', level: 2, text: 'Chapter_2' }, p('老人坐在门'), p('口晒太阳。'), p(LONG), p('春天'), p(LONG)] },
+    ];
+    const out = markContents(chs);
+    expect(out.map((c) => c.title)).toEqual(['Chapter_1', '小路', '河边', '春天']);
+    expect(out[2].blocks).toEqual([{ t: 'h', level: 2, text: '河边' }, p('孩子们在田野里奔跑，老人坐在门口晒太阳。'), p(LONG)]);
+  });
+
+  it('drops a converter’s label set over the book’s own', () => {
+    const chs: Chapter[] = [{ title: '九', blocks: [p(LONG), p('Table of Contents'), p('目录'), p('第一章 小路'), p('第二章 河边'), p('第三章 春天')] }];
+    expect(kinds(markContents(chs))).toEqual(['p', 'hppp']);
   });
 
   it('leaves a book alone with no contents list, or with too few titles found again', () => {

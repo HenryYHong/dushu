@@ -19,6 +19,7 @@ import { bookFromText, importTxt } from './txt';
 import { IMPORT_VERSION } from './version';
 import { radicalMender } from './radicals';
 import { markContents } from './contents';
+import { letterRowBreaks, nameFileNamedChapters } from './leftovers';
 
 export { ImportError } from './errors';
 export { countHan } from './han';
@@ -154,8 +155,11 @@ function languageSamples(text: string): string[] {
 /** Last checks and the fields every importer leaves blank: reject non-Chinese files, detect the script. */
 function finish(input: ImportedBook): ImportedBook {
   const book = mendRadicalsIn(input);
-  // A contents list in plain lines names the stories its book runs together: the list and each story get a heading (contents.ts).
-  let chapters = markContents(tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0))));
+  // A contents list in plain lines names the stories its book runs together: the list and each story get a heading and a
+  // chapter (contents.ts). Chapters named after their file are named by their text, and a row of letters standing for a
+  // section break is one (leftovers.ts).
+  let chapters = nameFileNamedChapters(markContents(letterRowBreaks(tidyChapters(stripBidiChapters(book.chapters.filter((c) => c.blocks.length > 0))))));
+  chapters = chapters.filter((c) => c.blocks.length > 0);
   // A Japanese text from Aozora Bunko (or written the same way) keeps its publisher's readings beside the text.
   if (langId() === 'ja') chapters = takeAozoraRuby(chapters);
   const paragraphs: string[] = [];
