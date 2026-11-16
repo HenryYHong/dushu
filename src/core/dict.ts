@@ -1447,8 +1447,8 @@ class DictImpl implements Dictionary {
         // 满头大汗, 急出一身大汗, 大汗淋漓 are sweat; everywhere else (拜见大汗, 大汗的旨意) the Khan.
         return (p !== '' && '身头脸满浑出冒阵'.includes(p)) || /^(淋|直流|如雨|如注|涔|浃|珠|滴|湿|流)/.test(next) ? ['da4', 'han4'] : ['da4', 'han2'];
       case '教会':
-        // 你教会我, 教会了他: taught someone how to (jiāohuì); the church otherwise.
-        return nx !== '' && (PRONOUN_START.test(next) || nx === '了') ? ['jiao1', 'hui4'] : undefined;
+        // 你教会我, 教会了他, 将剑法教会小明 (a person the book names): taught someone how to (jiāohuì); the church otherwise.
+        return nx !== '' && (PRONOUN_START.test(next) || nx === '了' || ctx.named?.(next) === 'name') ? ['jiao1', 'hui4'] : undefined;
       case '舍下':
         // 到舍下坐坐, 与我舍下相邻: my humble home (shèxià); 舍下他, 舍下了 (to abandon) stay shěxià.
         return PRONOUN_START.test(next) || '了不么吗'.includes(nx) && nx !== '' || /[都全肯能不]$/.test(prev) ? undefined : ['she4', 'xia4'];
@@ -1472,9 +1472,13 @@ class DictImpl implements Dictionary {
       case '利害':
         // 冷得利害, 疼的利害: 利害 for 厉害 (lìhai, terribly); 利害关系 (interests) stays lìhài.
         return (/[得的]$/.test(prev) && !/(顾不得|不顾|权衡|计较|不知|晓得|懂得)$/.test(prev)) || /(太|很|好|真|这么|那么|怎的)$/.test(prev) ? ['li4', 'hai5'] : undefined;
+      case '点中':
+        // 这些点中, 各个点中 (among the points): diǎn zhōng; 点中穴道 (jabbed) is diǎnzhòng.
+        return /(个|每|各|这|那|几|些|某|两)$/.test(prev) ? ['dian3', 'zhong1'] : undefined;
       case '格格':
-        // 格格地笑: the giggle (gēgē), not the Manchu princess.
-        return /^(地|的|笑|作响|直笑)/.test(next) ? ['ge1', 'ge1'] : undefined;
+        // 格格地笑, 牙齿格格作响, 格格直响: the giggle or the creak (gēgē), not the Manchu princess.
+        return /^(地|的|笑|作响|直笑|直响|响|声|数声|几声|之声|而笑|一笑|轻笑|娇笑|大笑|爆响|乱响|连声|作声)/.test(next + after)
+          || /(骨节|关节|牙齿|牙关|听得|只听|咬得|捏得|笑得)$/.test(prev) ? ['ge1', 'ge1'] : undefined;
       case '精神':
         // 一点精神都没有, 来了精神, 打起精神: vigor (jīngshen).
         // The noun follows (精神准备, 精神信念, 精神的富足): jīngshén.
@@ -1494,6 +1498,9 @@ class DictImpl implements Dictionary {
         // (哪想得到, 谁想得到: who would have thought.)
         if (/想$/.test(prev) && this.t2s.convert(w).endsWith('到') && nx !== '' && !clauseEnd && !'吗嗎呢的了吧么麼啊呀'.includes(nx)
           && !/[哪谁誰那怎岂豈没沒不料]想$/.test(prev) && !(ctx.line && ctx.at !== undefined && [2, 3].some((k) => /^[哪谁誰那怎岂豈没沒不料]|[哪谁誰怎岂豈没沒不料]$/.test(ctx.line![ctx.at! - k] ?? '')))) return undefined;
+        // (计算得出结论, 推测得出如下: worked out and reached, dé.)
+        if (this.t2s.convert(w).endsWith('出') && /^(结论|如下|以下)/.test(next)) return undefined;
+        if (this.t2s.convert(w).endsWith('出') && (VERB_BEFORE_DE_CHU.test(prev) || (/猜测$/.test(prev) && clauseEnd))) return ['de5', 'chu1'];
         return VERB_BEFORE_DE.test(prev) ? ['de5', this.t2s.convert(w).endsWith('出') ? 'chu1' : this.t2s.convert(w).endsWith('到') ? 'dao4' : this.t2s.convert(w).endsWith('来') ? 'lai2' : this.t2s.convert(w).endsWith('起') ? 'qi3' : 'zhu4'] : undefined;
       case '引着':
         // 引着十数个打鱼的, 引着唐僧 (leading): yǐn zhe; 引着了 (caught fire) stays yǐnzháo.
@@ -1529,8 +1536,8 @@ class DictImpl implements Dictionary {
         // 仙桃常结果, 开花结果 (to bear fruit): jiēguǒ.
         return /(常|会|开花|能|已|才|未|不会|不能|开始)$/.test(prev) && (clauseEnd || nx === '实') ? ['jie1', 'guo3'] : undefined;
       case '所长':
-        // 各有所长, 取其所长, 发挥所长 (one's strong point): suǒcháng.
-        return /[各其之尽展有挥取用]$/.test(prev) ? ['suo3', 'chang2'] : undefined;
+        // 各有所长, 取其所长, 发挥所长, 下棋并非他所长, 此事非我辈所长 (one's strong point): suǒcháng.
+        return /[各其之尽展有挥取用非]$/.test(prev) || /(吾辈|我辈|我等|吾等|我们|他们|你们|他|她|我|你)$/.test(prev) ? ['suo3', 'chang2'] : undefined;
       case '生意':
         // 毫无生意, 生意盎然 (vitality): shēngyì.
         return /(毫无|了无|一片|充满)$/.test(prev) || /^(盎然|勃勃|葱茏)/.test(next) ? ['sheng1', 'yi4'] : undefined;
@@ -1549,7 +1556,8 @@ class DictImpl implements Dictionary {
         return /(而|又|最|太|很|生性|素来|多|爱)$/.test(prev) && /^(的|之|者)/.test(next) ? ['hao4', 'shi4'] : undefined;
       case '大意':
         // 太大意了, 一时大意, 千万别大意 (careless): dàyi; the gist (dàyì) otherwise.
-        return /(太|很|不可|别|粗心|麻痹|一时|有点|过于|真|可不能|千万|不要|一点|稍|稍一|大大意)$/.test(prev) || nx === '了' ? ['da4', 'yi5'] : undefined;
+        // (千万不敢大意, 稍有大意: careless too.)
+        return /(太|很|不可|别|粗心|麻痹|一时|有点|过于|真|可不能|千万|不要|一点|稍|稍一|大大意|不敢|略有|稍有|毫不|不能|莫要|切莫)$/.test(prev) || nx === '了' ? ['da4', 'yi5'] : undefined;
       case '丁丁':
         // 伐木丁丁 (the sound of chopping): zhēngzhēng.
         return /(伐木|木|斧|斤|棋|漏|声)$/.test(prev) ? ['zheng1', 'zheng1'] : undefined;
@@ -1637,7 +1645,7 @@ const TRAD_OWN: ReadonlySet<string> = new Set([...'斗划眯仆干朴卜扎症�
 
 /** The words contextWordReading decides, in both scripts (looked up before any conversion, so other words cost nothing). */
 const CONTEXT_WORDS: ReadonlySet<string> = new Set([
-  '人家', '大汗', '教会', '教會', '舍下', '捨下', '重重', '分子', '一行', '打折', '好吃', '好喝', '利害', '格格', '精神', '正当', '正當',
+  '人家', '大汗', '教会', '教會', '舍下', '捨下', '重重', '点中', '點中', '分子', '一行', '打折', '好吃', '好喝', '利害', '格格', '精神', '正当', '正當',
   '得出', '得到', '得来', '得來', '得起', '得住', '引着', '引著', '执着', '執著', '执著', '合着', '合著', '点着', '點著', '东西', '東西', '妻子',
   '便宜', '结果', '結果', '所长', '所長', '生意', '历数', '歷數', '曆數', '片子', '巷道', '长毛', '長毛', '卷子', '捲子', '好事', '大意',
   '丁丁', '多少', '地道', '一晃', '和好',
@@ -1648,6 +1656,8 @@ const HOUSEHOLD_BEFORE = /(穷|富|富庶|寻常|平常|普通|有钱|百姓|小
 const PRONOUN_START = /^(我|你|您|他|她|它|咱|人家|大家)/;
 /** Verbs before 得出 得到 …: the particle de, not dé (猜得出, 料得到, 想得到, 办得到, 买得起, 靠得住). */
 const VERB_BEFORE_DE = /(猜|料|想|看|听|办|做|找|买|吃|拿|说|写|认|学|记|赶|追|跑|走|飞|跳|闻|摸|觉|感|受|靠|守|顶|撑|站|坐|靠|挡|管|对|瞧|估|算)$/;
+/** Verbs before 得出 alone that make it can (考得出, 辨得出, 背得出, 解得出, 念得出; 猜测得出。): 实验得到 研究得到了 are got (dé). */
+const VERB_BEFORE_DE_CHU = /(考|辨|背|解|读|念|答|分)$/;
 
 /**
  * Words whose everyday reading in running text is not the one CC-CEDICT lists: 穿着 is almost always the verb

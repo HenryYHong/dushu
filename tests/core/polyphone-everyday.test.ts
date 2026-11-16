@@ -104,3 +104,47 @@ describe('more everyday words', () => {
     expect(await py('一家人里头数她最能干。', '数')).toBe('shǔ');
   });
 });
+
+describe('a martial-arts novel’s readings', () => {
+  it('参 ginseng, 绰 grabbed, 调 regulating, 解 said twice, 率 together', async () => {
+    expect(await py('他在山里采参为生。', '参')).toBe('shēn');
+    expect(await py('那个参客背着筐走了。', '参')).toBe('shēn');
+    expect(await py('他把剑绰在手里。', '绰')).toBe('chāo');
+    expect(await py('她坐下来调气。', '调')).toBe('tiáo');
+    expect(await py('请村长调处这件事。', '调')).toBe('tiáo');
+    expect(await py('喝杯热茶解解乏。', '解')).toBe('jiě');
+    expect(await py('众人相率离去。', '率')).toBe('shuài');
+    expect(await py('他一刀割断了系船的绳子。', '系')).toBe('jì');
+    expect(await py('他用长绳系腰，攀上了崖壁。', '系')).toBe('jì');
+  });
+  it('降 surrendered or fell, 觉 felt, 将 about to', async () => {
+    expect(await py('守军或降或逃。', '降')).toBe('xiáng');
+    expect(await py('气温或升或降。', '降')).toBe('jiàng');
+    expect(await py('他一觉有人，立刻回头。', '觉')).toBe('jué');
+    expect(await py('我想先睡一觉再说。', '觉')).toBe('jiào');
+    expect(await py('天将破晓，鸡叫了。', '将')).toBe('jiāng');
+    expect(await py('天兵天将都来了。', '将')).toBe('jiàng');
+  });
+  it('骑 mounting, 差 short by, 数 several, 了 after what was got', async () => {
+    expect(await py('他一骑上马就跑远了。', '骑')).toBe('qí');
+    expect(await py('一骑快马奔来。', '骑')).toBe('jì');
+    expect(await py('那支箭差了两寸。', '差')).toBe('chà');
+    expect(await py('他差了一个人去打听。', '差')).toBe('chāi');
+    expect(await py('现在只差天时而已。', '差')).toBe('chà');
+    expect(await py('众人差愕。', '差')).toBe('chà');
+    expect(await py('他喊了数声。', '数')).toBe('shù');
+    expect(await py('门口来了数人。', '数')).toBe('shù');
+    expect(await py('他一连放了数箭。', '数')).toBe('shù');
+    expect(await py('他得了《唐诗三百首》。', '得了')).toBe('dé le');
+  });
+  it('words: 格格 the creak, 点中 hit, V得出, 所长 one’s forte, 大意 careless', async () => {
+    expect(await py('小姑娘格格地笑了。', '格格')).toBe('gē gē');
+    expect(await py('冷得他的关节格格直响。', '格格')).toBe('gē gē');
+    expect(await py('她抢上一步，点中他的穴道。', '点中')).toBe('diǎn zhòng');
+    expect(await py('图上这些点中有一个是红的。', '点中')).toBe('diǎn zhōng');
+    expect(await py('这么难的题，他也考得出。', '得出')).toBe('de chū');
+    expect(await py('我背得出这首诗。', '得出')).toBe('de chū');
+    expect(await py('下棋并非他所长。', '所长')).toBe('suǒ cháng');
+    expect(await py('这件事千万不敢大意。', '大意')).toBe('dà yi');
+  });
+});

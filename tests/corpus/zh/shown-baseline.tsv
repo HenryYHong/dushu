@@ -270,7 +270,6 @@
 #R	别	bie2
 #R	刷	shua1
 #R	刹	cha4
-#R	刹那间	cha4-na4-jian1
 #R	刺	ci4
 #R	削	xiao1
 #R	削壁	xue1-bi4
@@ -507,7 +506,7 @@
 #R	大夫	dai4-fu5
 #R	大岛祐哉	da4-dao3-you4-zai1
 #R	大张客运专线	da4-zhang1-ke4-yun4-zhuan1-xian4
-#R	大意	da4-yi4
+#R	大意	da4-yi5
 #R	大散关	da4-san4-guan1
 #R	大方	da4-fang5
 #R	大爷	da4-ye5
@@ -1439,7 +1438,6 @@
 #R	面上	mian4-shang4
 #R	韩子昂	han2-zi3-ang2
 #R	页	ye4
-#R	顷刻之间	qing3-ke4-zhi1-jian1
 #R	顾正秋	gu4-zheng4-qiu1
 #R	颈	jing3
 #R	题为	ti2-wei4
@@ -6610,63 +6608,63 @@
 1.16	e4febd2c	2	A	
 1.17	8bdcb557	76	7q134vtUrY8fF	
 1.18	65b65968	55	_c8u0yqrr	
-1.19	26daf985	3	A	
-1.20	a5c84b89	30	4qsiU	
-1.21	adeadf73	16	4qG	
-1.22	3fe4f8a4	56	4q6xquXvSB	
-1.23	aab1f4a1	121	4iljR1le0lXIadNGVXb3	
-1.24	69190fb4	43	411Aimo	
-1.25	aa08ecd6	57	4KSddtIdiC	
-1.26	e12d4303	25	4dp0	
-1.27	ef31e197	27	Y7-XD	14:zhong4
-1.28	03b6ab7e	71	Y72dbHnpvdtM	20:zhong4
-1.29	39f1cecf	18	YXV	
-1.30	0e7531db	17	4rK	
-1.31	e447c09c	47	4kVXqDwK	
-1.32	c9c2e2bc	52	YdHnN2qVF	
-1.33	354d63ea	38	49atafB	
-1.34	6092080c	27	4SJrC	
-1.35	1440496a	18	4tY	
-1.36	453bd144	42	4SJreLV	
-1.37	13217c90	49	49ub1m11	
-1.38	8e7a1401	71	4v226lqttVrL	
-1.39	cf95dc74	26	Y7qeB	
-1.40	1083d250	26	Y7qeB	
-1.41	7c67e435	32	4vNpWB	
-1.42	88ef7f9c	23	4vVL	
-1.43	480314fb	31	Y7Wtq	
-1.44	88119518	24	4RFR	
-1.45	29c8a111	47	49pd91XK	
-1.46	3d361cb5	50	49J7-15SB	
-1.47	34bf4c78	23	4USJ	
-1.48	f4d0532d	20	4qKB	
-1.49	5ebbb1b0	23	49tK	
-1.50	7504d54e	26	YXVXB	
-1.51	330f9bbd	56	4tt1XY1WQB	
-1.52	065e2b98	45	4vju1t6C	
-1.53	e4a71189	41	4dT9-pI	
-1.54	3713d3bd	92	4QV3a1xzSr2WZqdB	
-1.55	aaed71de	21	4vUC	
-1.56	c30d2036	42	Y7vFtKT	
-1.57	236363c4	28	4vtrC	
-1.58	3a4d6335	42	49gEcFU	
-1.59	7456dbcb	22	4vBF	
-1.60	4bb7a38e	27	4vitD	
-1.61	79203059	25	Y7Ko	
-1.62	29ea3779	4	C	
-1.63	c344a991	172	Wat2W2b9u97WvbPp-t6d77dRXt-uF	68:liang2
-1.64	1416cecf	4	C	
-1.65	432a03f8	234	YjKDaf7-e2vN9a113-GHFG06abreWV7VLtxWmXV	63:wei4,110:wei4,125:wei4
-1.66	090d0cde	4	C	
-1.67	75c65688	258	WXMdqfrrxK2Omv02bXt1KWgZDKTRvtar9ajFL7suIfU	
-1.68	af87c6c4	222	a1myOmsestqN-7Zt3fdb1zymZT1ejhbltqtdT	49:chang2,71:wei4,110:wei4
-1.69	2488d123	4	C	
-1.70	98772ba3	100	4d91ub1qNtrt3WrrE	47:di4
-1.71	82ca5f29	3	A	
-1.72	778fa382	59	eNtxbhxKrL	
-1.73	96024b83	4	G	
-1.74	02a3f703	65	eDjbXtt7rVL	29:jiao1
-1.75	925dd05e	100	v9M2M3z0wADgVvoaF	
+2.0	26daf985	3	A	
+2.1	a5c84b89	30	4qsiU	
+2.2	adeadf73	16	4qG	
+2.3	3fe4f8a4	56	4q6xquXvSB	
+2.4	aab1f4a1	121	4iljR1le0lXIadNGVXb3	
+2.5	69190fb4	43	411Aimo	
+2.6	aa08ecd6	57	4KSddtIdiC	
+2.7	e12d4303	25	4dp0	
+2.8	ef31e197	27	Y7-XD	14:zhong4
+2.9	03b6ab7e	71	Y72dbHnpvdtM	20:zhong4
+2.10	39f1cecf	18	YXV	
+2.11	0e7531db	17	4rK	
+2.12	e447c09c	47	4kVXqDwK	
+2.13	c9c2e2bc	52	YdHnN2qVF	
+2.14	354d63ea	38	49atafB	
+2.15	6092080c	27	4SJrC	
+2.16	1440496a	18	4tY	
+2.17	453bd144	42	4SJreLV	
+2.18	13217c90	49	49ub1m11	
+2.19	8e7a1401	71	4v226lqttVrL	
+2.20	cf95dc74	26	Y7qeB	
+2.21	1083d250	26	Y7qeB	
+2.22	7c67e435	32	4vNpWB	
+2.23	88ef7f9c	23	4vVL	
+2.24	480314fb	31	Y7Wtq	
+2.25	88119518	24	4RFR	
+2.26	29c8a111	47	49pd91XK	
+2.27	3d361cb5	50	49J7-15SB	
+2.28	34bf4c78	23	4USJ	
+2.29	f4d0532d	20	4qKB	
+2.30	5ebbb1b0	23	49tK	
+2.31	7504d54e	26	YXVXB	
+2.32	330f9bbd	56	4tt1XY1WQB	
+2.33	065e2b98	45	4vju1t6C	
+2.34	e4a71189	41	4dT9-pI	
+2.35	3713d3bd	92	4QV3a1xzSr2WZqdB	
+2.36	aaed71de	21	4vUC	
+2.37	c30d2036	42	Y7vFtKT	
+2.38	236363c4	28	4vtrC	
+2.39	3a4d6335	42	49gEcFU	
+2.40	7456dbcb	22	4vBF	
+2.41	4bb7a38e	27	4vitD	
+2.42	79203059	25	Y7Ko	
+2.43	29ea3779	4	C	
+2.44	c344a991	172	Wat2W2b9u97WvbPp-t6d77dRXt-uF	68:liang2
+2.45	1416cecf	4	C	
+2.46	432a03f8	234	YjKDaf7-e2vN9a113-GHFG06abreWV7VLtxWmXV	63:wei4,110:wei4,125:wei4
+2.47	090d0cde	4	C	
+2.48	75c65688	258	WXMdqfrrxK2Omv02bXt1KWgZDKTRvtar9ajFL7suIfU	
+2.49	af87c6c4	222	a1myOmsestqN-7Zt3fdb1zymZT1ejhbltqtdT	49:chang2,71:wei4,110:wei4
+2.50	2488d123	4	C	
+2.51	98772ba3	100	4d91ub1qNtrt3WrrE	47:di4
+2.52	82ca5f29	3	A	
+2.53	778fa382	59	eNtxbhxKrL	
+2.54	96024b83	4	G	
+2.55	02a3f703	65	eDjbXtt7rVL	29:jiao1
+2.56	925dd05e	100	v9M2M3z0wADgVvoaF	
 @wiki-zhenzhu-naicha
 0.0	fd2920d1	247	YDmHYMXMGzNDmH1eXt6uruu1V3WZ13v7XXrquzoXj	62:jiang4
 0.1	40dd92f8	2	A	
