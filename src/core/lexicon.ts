@@ -20,7 +20,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 15;
+export const DETECTOR_VERSION = 16;
 /** Stored for a book read without the name list (core/gazetteer.ts could not fetch it): it is read again once the list is there. */
 export const WITHOUT_LIST = DETECTOR_VERSION - 0.5;
 /** Stored for a book read with the list but without the name model (core/nameModel.ts): it is read again once the model is there. */
@@ -2210,6 +2210,10 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
   // Titles and fragments never start a name, whatever the counts say.
   const bareNumeral = !!sur && len === 2 && NUMERALS.has(last) && (bound || called || numbered); // 龙二, 张三
   if (FRAGMENT_END.has(last) && !bracketed && !bareNumeral) return null;
+  // 那孔旧窑洞, 一孔旧窑洞: a string that nearly always comes after a numeral or 这 那 is a thing counted, not a name; 猪狗般
+  // ("like pigs and dogs") and 常务副 (executive deputy, before 书记) end in a suffix or a rank's prefix no name ends in.
+  if ((c.counted ?? 0) >= 0.6 && len >= 3) return null;
+  if (len >= 3 && '般副'.includes(last)) return null;
   if (last === '人' && NUMERALS.has(simp[len - 2])) return null;
   const titled = endsWithAny(w, TITLE_SUFFIXES);
   const measured = MEASURE_START.has(first) && !titled;
@@ -2256,7 +2260,8 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
   // Places and groups: 桃花岛, 牛家村, 归云庄, 铁掌帮, 大金国, 祝家庄, 张家湾, 白水河.
   // (林如海 ends in 海 but speaks: a person.)
   // (张雪峰 opens most of the clauses of a news story: a person whose name ends in 峰.)
-  if (PLACE_SUFFIX.has(last) && !softEnd && !softStart && !measured && c.speech < 0.05 && c.bind >= 0.4 && len >= 3 && !(sur && len === 3 && (c.speech >= 0.03 || ('海河江湖'.includes(last) && simp[1] !== '家' && simp[1] !== '水') || (last === '峰' && simp[1] !== '家' && (c.open ?? 0) >= 0.5)))) {
+  // (何柳河 never speaks: a river, as a surname-led name in 河 is rare; 高翠阁 is asked and called by name: a person.)
+  if (PLACE_SUFFIX.has(last) && !softEnd && !softStart && !measured && c.speech < 0.05 && c.bind >= 0.4 && len >= 3 && !(sur && len === 3 && (c.speech >= 0.03 || (c.speech >= 0.02 && (c.pprep ?? 0) >= 0.04) || ('海江湖'.includes(last) && simp[1] !== '家' && simp[1] !== '水') || (last === '峰' && simp[1] !== '家' && (c.open ?? 0) >= 0.5)))) {
     return { kind: 'place', surnameLed: false };
   }
   // 砚城: a town named in two characters, never spoken to.
@@ -2289,6 +2294,8 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
     // 戴一顶 (wear a ...), 王父子 (Wang and son): a verb or a family word after a surname-like character.
     if (given.some((g, i) => NUMERALS.has(g) && MEASURE_AFTER.has(given[i + 1] ?? ''))) return null;
     if (given.length === 2 && !titled && KIN_PAIRS.has(given.join(''))) return null;
+    // 全厂人, 全家人 (the whole factory, family): 全 before a place or a group is "the whole", not the surname.
+    if (sur.surname === '全' && '村家国國县縣镇鎮厂廠队隊班校场場体體连連营營寨庄莊屯乡鄉城省市'.includes(given[0])) return null;
     // A surname plus three or more more characters is a name only with a title (程大小姐, 赵大奶奶) or a compound surname.
     const kinTitled = given.length === 3 && '大二三四五六七八九老小'.includes(given[0]) && KIN_CHARS.has(given[1]) && KIN_CHARS.has(given[2]);
     if (given.length > 2 && !titled && !kinTitled) return null;
@@ -2302,6 +2309,9 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
       if (!(strongSpeech && c.bind >= 0.4) && !bound && !tight && !addressed && !ordered && !called && !rare && !(numbered && NUMERALS.has(last))) return null;
     } else if (c.bind < 0.45 && !strongSpeech && !ordered) {
       return null;
+    } else if (len === 3 && c.count >= 15 * minCount && c.speech < 0.01 && (c.pprep ?? 0) < 0.01 && !ordered && !titled) {
+      // 石圪坨 (a novel's market town, three hundred times): a person so often named would speak or be called now and then.
+      return { kind: 'place', surnameLed: false };
     }
     if (len >= 5 && !titled && !COMPOUND_SURNAMES.has(first + simp[1])) return null;
     return { kind: 'name', surnameLed: true };

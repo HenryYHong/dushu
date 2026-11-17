@@ -113,8 +113,10 @@ describe('水滸傳', () => {
   });
   it('keeps the heroes whose last character makes a word with 道 (燕順道, 阮小二道, 宋太公道), and the 沒 nicknames', async () => {
     const m = by(await found);
-    const names = ['燕順', '阮小二', '李小二', '宋太公', '蕭讓', '周通', '葉清', '張橫', '盧俊義', '梁山泊'];
+    const names = ['燕順', '阮小二', '李小二', '宋太公', '蕭讓', '周通', '葉清', '張橫', '盧俊義'];
     expect(kinds(m, names)).toEqual(names.map((w) => `${w}:name`));
+    // (梁山泊, the marsh, never speaks: a place.)
+    expect(m.get('梁山泊')?.kind).toBe('place');
     expect(kinds(m, ['沒羽箭', '沒遮攔'])).toEqual(['沒羽箭:term', '沒遮攔:term']);
   });
   it('makes a title that follows several surnames a term, and the officers names (魯提轄, 孫提轄, 陸虞候)', async () => {

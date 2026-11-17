@@ -290,3 +290,24 @@ describe('a person the corpus knows, read as the dictionary reads him', () => {
     expect(judgeCandidate({ ...c, word: '李老师' }, await dictP)).toBeNull();
   });
 });
+
+describe('a village novel’s places and phrases', () => {
+  const base = { bind: 0.8, pmi: 7, npmi: 0.7, left: 2.2, right: 2, speech: 0, said: 0, prep: 0.2, pprep: 0, counted: 0, measured: 0, open: 0, voc: 0,
+    rate: 0.02, known: 'none', kind: 'term', surnameLed: false, tailBound: false, headBound: false };
+  const cand = (word: string, more: Partial<TermCandidate> = {}) => ({ ...base, word, count: 10, head: 10, ...more }) as TermCandidate;
+  it('a river that never speaks is a place, a town named three hundred times without a word is one too', async () => {
+    const dict = await dictP;
+    expect(judgeCandidate(cand('何柳河'), dict)).toMatchObject({ kind: 'place' });
+    expect(judgeCandidate(cand('石圪坨', { count: 333, head: 333, bind: 1, left: 3, right: 3.7, speech: 0.003, prep: 0.08, pprep: 0.003, open: 0.12 }), dict)).toMatchObject({ kind: 'place' });
+  });
+  it('a person asked and called by name is a person, whatever her name ends in', async () => {
+    expect(judgeCandidate(cand('高翠阁', { count: 35, head: 35, left: 2.5, right: 3.1, speech: 0.029, prep: 0.11, pprep: 0.057, open: 0.37 }), await dictP)).toMatchObject({ kind: 'name' });
+  });
+  it('a thing counted, a likeness, a rank’s prefix and the whole of a group are no names', async () => {
+    const dict = await dictP;
+    expect(judgeCandidate(cand('孔旧窑洞', { counted: 1, measured: 0.7, prep: 0 }), dict)).toBeNull();
+    expect(judgeCandidate(cand('猪狗般', { prep: 0, measured: 0.2 }), dict)).toBeNull();
+    expect(judgeCandidate(cand('常务副', { count: 22, head: 24, prep: 0.05 }), dict)).toBeNull();
+    expect(judgeCandidate(cand('全厂人', { bind: 0.54, prep: 0.12, count: 41, head: 73, left: 2.7, right: 3 }), dict)).toBeNull();
+  });
+});
