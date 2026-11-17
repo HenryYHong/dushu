@@ -185,3 +185,34 @@ describe('a village novel’s readings', () => {
     expect(await py('路上有重重关卡。', '重重')).toBe('chóng chóng');
   });
 });
+
+describe('a science-fiction novel’s readings', () => {
+  it('得 must; 了 after a word in 得; 差 a difference, short, to the hour', async () => {
+    expect(await py('我们的电脑坏了。“能修，得费劲儿。”', '得')).toBe('děi');
+    expect(await py('这不是坏事。得承认，他们做得很好。', '得')).toBe('děi');
+    expect(await py('房子没了，可日子还得过。', '得')).toBe('děi');
+    expect(await py('这下了不得了。', '了。')).toBe('le');
+    expect(await py('两个星球的引力差很明显。', '差')).toBe('chā');
+    expect(await py('现在差十分钟三点。', '差')).toBe('chà');
+    expect(await py('他所差的只是经验。', '差')).toBe('chà');
+  });
+  it('数 counting, 幢 a building, 将 will, 还 again, 觉 a sleep', async () => {
+    expect(await py('老师数到三，大家一起跑。', '数')).toBe('shǔ');
+    expect(await py('我住在某幢旧楼里。', '幢')).toBe('zhuàng');
+    expect(await py('岛上将剩下一百人。', '将')).toBe('jiāng');
+    expect(await py('她告诉我明天还回来。', '还')).toBe('hái');
+    expect(await py('今晚你好好睡个好觉。', '觉')).toBe('jiào');
+  });
+  it('调 adjusting or transferring, 长 long after 得, 系 a belt', async () => {
+    expect(await py('把灯光调到很暗。', '调')).toBe('tiáo');
+    expect(await py('颜色调得太深了。', '调')).toBe('tiáo');
+    expect(await py('他被调到一个新部门。', '调')).toBe('diào');
+    expect(await py('他把头发留得长了些。', '长')).toBe('cháng');
+    expect(await py('司机让我们都系上安全带。', '系')).toBe('jì');
+  });
+  it('words: 地道 opening a sentence, 一行 of a message, 重重 layers of trees', async () => {
+    expect(await py('“地道的北京烤鸭！”他说。', '地道')).toBe('dì dao');
+    expect(await py('屏幕下方有一行提示。', '一行')).toBe('yì háng');
+    expect(await py('阳光透过重重树木照下来。', '重重')).toBe('chóng chóng');
+  });
+});

@@ -1456,7 +1456,7 @@ class DictImpl implements Dictionary {
         // 困难重重, 危机重重。: layer upon layer (chóngchóng); 重重地打 (heavily) stays zhòngzhòng.
         // (重重的阻力, 闯过重重关卡: so many layers of: chóngchóng too.)
         return /(困难|危机|疑虑|心事|顾虑|矛盾|障碍|关卡|险阻|疑团|阻碍|艰难|疑云)$/.test(prev) || (clauseEnd && p !== '')
-          || /^的?(困难|危难|艰难|矛盾|障碍|阻力|阻碍|考验|危机|险阻|关卡|包围|难关|顾虑|疑虑|心事|疑团|山峦|叠叠|门|关口|封锁)/.test(next === '的' ? next + after : next) ? ['chong2', 'chong2'] : undefined;
+          || /^的?(困难|危难|艰难|矛盾|障碍|阻力|阻碍|考验|危机|险阻|关卡|包围|难关|顾虑|疑虑|心事|疑团|山峦|叠叠|门|关口|封锁|林木|树木|森林|树林|云|雾|迷雾|烟|帷幕|宫|围墙|关隘)/.test(next === '的' ? next + after : next) ? ['chong2', 'chong2'] : undefined;
       case '分子':
         // 反动分子 捣乱分子 知识分子: a member (fènzǐ); 分子 alone is the molecule.
         // (黑五类分子, “帮派”分子: of a group or a class.)
@@ -1465,7 +1465,8 @@ class DictImpl implements Dictionary {
       case '一行':
         // 一行字 一行楷书, 上一行: a line of writing (yì háng); 一行人 (a party) stays yìxíng.
         // 芝麻一行，茄子一行 (a row of plants).
-        return /^(字|楷书|大字|小字|诗|文字|一句|泪|树|白|醒目|编号|数字|小楷|红字|黑字|蓝字|英文|代码|符号|公式|歪歪)/.test(next) || /[上下另]$/.test(prev)
+        // (屏幕上有一行提示, 一行行小字: a line of it too.)
+        return /^(字|楷书|大字|小字|诗|文字|一句|泪|树|白|醒目|编号|数字|小楷|红字|黑字|蓝字|英文|代码|符号|公式|歪歪|提示|字幕|标题|注释|说明|行)/.test(next) || /[上下另]$/.test(prev)
           || (clauseEnd && /(芝麻|茄子|豆|麦|玉米|菜|葱|蒜|瓜|庄稼|花|树|稻|谷|白杨|柳)$/.test(prev)) ? ['yi1', 'hang2'] : undefined;
       case '打折':
         // 打折了腿, 打折胳膊: to break by beating (dǎshé), not "to give a discount".
@@ -1585,7 +1586,7 @@ class DictImpl implements Dictionary {
         // 玩得很地道, 他的口音真地道 (authentic, the real thing): dìdao; the tunnel is dìdào.
         // (一个地道的北京人, 一口地道的上海话, 是地道的土产: the real thing too; 这条地道的入口, 沿着地道的墙壁 stay the tunnel.)
         return /(很|挺|真|得|不|特别|相当|非常|十分|够|最|多么|那么|这么|太)$/.test(prev)
-          || (next === '的' && /(个|首|种|位|名|口|是|为|成|成为|成了)$/.test(prev) && !/^(入口|出口|口|里|中|尽头|墙|顶|深处|两|壁|那头|这头|一头)/.test(after)) ? ['di4', 'dao5'] : undefined;
+          || (next === '的' && (/(个|首|种|位|名|口|是|为|成|成为|成了)$/.test(prev) || !isHanCodePoint(p.codePointAt(0) ?? 0)) && !/^(入口|出口|口|里|中|尽头|墙|顶|深处|两|壁|那头|这头|一头)/.test(after)) ? ['di4', 'dao5'] : undefined;
       case '一晃':
         // 身体 一晃 就跌倒, 他一晃 (the body swayed): yī huàng; 一晃就是十年 (in a flash) and 身子一晃，已 + a leap (flashed across:
         // a leap or a dodge follows) stay yī huǎng.
