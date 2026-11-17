@@ -311,3 +311,21 @@ describe('a village novel’s places and phrases', () => {
     expect(judgeCandidate(cand('全厂人', { bind: 0.54, prep: 0.12, count: 41, head: 73, left: 2.7, right: 3 }), dict)).toBeNull();
   });
 });
+
+describe('a science-fiction novel’s names', () => {
+  const base = { bind: 0.9, pmi: 7, npmi: 0.7, left: 2.2, right: 2, speech: 0, said: 0, prep: 0.1, pprep: 0, counted: 0, measured: 0, open: 0, voc: 0,
+    rate: 0.02, known: 'none', kind: 'term', surnameLed: false, tailBound: false, headBound: false };
+  const cand = (word: string, more: Partial<TermCandidate> = {}) => ({ ...base, word, count: 12, head: 12, ...more }) as TermCandidate;
+  it('a Japanese woman’s name ends in zǐ, a nickname in the neutral zi', async () => {
+    const dict = await dictP;
+    expect(pinyinOf('井上洋子', 'name', dict).split(' ').pop()).toBe('zi3');
+    expect(pinyinOf('小安子', 'name', dict).split(' ').pop()).toBe('zi5');
+  });
+  it('a station that never speaks is a place; a negation, a door gone out of and a prefab shed are no names', async () => {
+    const dict = await dictP;
+    expect(judgeCandidate(cand('黄沙站'), dict)).toMatchObject({ kind: 'place' });
+    expect(judgeCandidate(cand('没有理睬', { count: 17, head: 17 }), dict)).toBeNull();
+    expect(judgeCandidate(cand('出家门', { count: 6, head: 6 }), dict)).toBeNull();
+    expect(judgeCandidate(cand('简易棚', { count: 7, head: 7 }), dict)).toBeNull();
+  });
+});

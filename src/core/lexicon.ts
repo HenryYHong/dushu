@@ -20,7 +20,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 16;
+export const DETECTOR_VERSION = 17;
 /** Stored for a book read without the name list (core/gazetteer.ts could not fetch it): it is read again once the list is there. */
 export const WITHOUT_LIST = DETECTOR_VERSION - 0.5;
 /** Stored for a book read with the list but without the name model (core/nameModel.ts): it is read again once the model is there. */
@@ -2213,6 +2213,11 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
   // 那孔旧窑洞, 一孔旧窑洞: a string that nearly always comes after a numeral or 这 那 is a thing counted, not a name; 猪狗般
   // ("like pigs and dogs") and 常务副 (executive deputy, before 书记) end in a suffix or a rank's prefix no name ends in.
   if ((c.counted ?? 0) >= 0.6 && len >= 3) return null;
+  // 没有理睬 (paid no heed): a negation before a word opens a phrase.
+  if (/^(没有|没能|没法|不能|不会|不再|未曾|不曾)/.test(simp.join(''))) return null;
+  // 进家门 (in at the door), 简易棚 (a prefab shed): a verb or a common word before a word of its own, not a place or a name.
+  if (len === 3 && '出进入回'.includes(first) && dict.hasWord(simp[1] + simp[2]) && (PLACE_SUFFIX.has(last) || GROUP_SUFFIX.has(last))) return null;
+  if (len === 3 && '房楼车机船窗桌椅床屋棚'.includes(last) && dict.freq(simp[0] + simp[1]) >= 200 && c.speech < 0.03) return null;
   if (len >= 3 && '般副'.includes(last)) return null;
   if (last === '人' && NUMERALS.has(simp[len - 2])) return null;
   const titled = endsWithAny(w, TITLE_SUFFIXES);
@@ -2281,6 +2286,8 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
   if (softStart && !(bound || (c.bind >= 0.7 && strongSpeech))) return null;
   if (len === 2 && BARE_TITLE_END.has(last)) return null;
   if (sur) {
+    // 黄沙站 (a station named after the sand) never speaks: a place, though 黄 is a surname.
+    if (len === 3 && last === '站' && c.speech < 0.03) return { kind: 'place', surnameLed: false };
     // 白玉珪: a word the book uses on its own far more often, plus one character, is not a surname and a given name.
     if (len === 3 && (c.head ?? 0) >= 3 * c.count && sur.surname.length === 1 && dict.freq(simp.slice(0, 2).join('')) > 0 && c.speech < 0.03) return null;
     const given = [...dict.toSimplified(sur.given)];
@@ -2548,6 +2555,9 @@ export function pinyinOf(word: string, kind: LexiconEntry['kind'], dict: Diction
  * Readings the shape of a name decides, over what its characters read (pinyinOf, wordsPinyin): `out` holds one numbered syllable
  * per character of `simp` and is changed in place.
  */
+/** The first characters of Japanese women's names in 子 (惠子, 洋子, 良子, 美智子). */
+const JAPANESE_KO_HEADS = new Set([...'惠美洋和雅幸智由纪良京真秀直贞春夏秋冬花爱绫枝明久光淑静文节节敏惠玲铃奈理沙千百典顺弘洁']);
+
 function shapeReadings(simp: string[], out: string[], kind: LexiconEntry['kind'], dict: Dictionary): void {
   const n = simp.length;
   if (out.length !== n) return;
@@ -2570,6 +2580,8 @@ function shapeReadings(simp: string[], out: string[], kind: LexiconEntry['kind']
   for (let i = 1; i < n; i++) if (simp[i] === '发' && HAIR_COLORS.has(simp[i - 1])) out[i] = 'fa4';
   // 小安子, 老桂子: 小 or 老 and a nickname in 子, which is neutral (老夫子 holds a word: zǐ).
   if (n === 3 && (simp[0] === '小' || simp[0] === '老') && simp[2] === '子' && !dict.hasWord(simp[1] + '子')) out[2] = 'zi5';
+  // 山田惠子, 井上洋子: a Japanese woman's name in 子 is zǐ, not the neutral 子 of a nickname (柱子, 栓子).
+  else if (kind === 'name' && n >= 3 && simp[n - 1] === '子' && JAPANESE_KO_HEADS.has(simp[n - 2])) out[n - 1] = 'zi3';
   // 郦食其, 金日磾, 司马相如: a given name that reads as a whole.
   for (let i = 1; i + 1 < n; i++) {
     const read = NAME_PIECE_READINGS[simp[i] + simp[i + 1]];
