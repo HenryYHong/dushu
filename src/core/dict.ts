@@ -1454,10 +1454,14 @@ class DictImpl implements Dictionary {
         return PRONOUN_START.test(next) || '了不么吗'.includes(nx) && nx !== '' || /[都全肯能不]$/.test(prev) ? undefined : ['she4', 'xia4'];
       case '重重':
         // 困难重重, 危机重重。: layer upon layer (chóngchóng); 重重地打 (heavily) stays zhòngzhòng.
-        return /(困难|危机|疑虑|心事|顾虑|矛盾|障碍|关卡|险阻|疑团|阻碍|艰难|疑云)$/.test(prev) || (clauseEnd && p !== '') ? ['chong2', 'chong2'] : undefined;
+        // (重重的阻力, 闯过重重关卡: so many layers of: chóngchóng too.)
+        return /(困难|危机|疑虑|心事|顾虑|矛盾|障碍|关卡|险阻|疑团|阻碍|艰难|疑云)$/.test(prev) || (clauseEnd && p !== '')
+          || /^的?(困难|危难|艰难|矛盾|障碍|阻力|阻碍|考验|危机|险阻|关卡|包围|难关|顾虑|疑虑|心事|疑团|山峦|叠叠|门|关口|封锁)/.test(next === '的' ? next + after : next) ? ['chong2', 'chong2'] : undefined;
       case '分子':
         // 反动分子 捣乱分子 知识分子: a member (fènzǐ); 分子 alone is the molecule.
-        return /(反动|坏|捣乱|知识|积极|犯罪|恐怖|危险|顽固|右派|左派|落后|激进|不法|异己|投机|动摇)$/.test(prev) ? ['fen4', 'zi3'] : undefined;
+        // (黑五类分子, “帮派”分子: of a group or a class.)
+        const before = /^[”’」』]$/.test(prev) && ctx.line && ctx.at !== undefined ? this.t2s.convert(ctx.line[ctx.at - 2] ?? '') : prev;
+        return /(反动|坏|捣乱|知识|积极|犯罪|恐怖|危险|顽固|右派|左派|落后|激进|不法|异己|投机|动摇|类|帮|派|集团)$/.test(before) ? ['fen4', 'zi3'] : undefined;
       case '一行':
         // 一行字 一行楷书, 上一行: a line of writing (yì háng); 一行人 (a party) stays yìxíng.
         // 芝麻一行，茄子一行 (a row of plants).
@@ -1501,6 +1505,12 @@ class DictImpl implements Dictionary {
         // (计算得出结论, 推测得出如下: worked out and reached, dé.)
         if (this.t2s.convert(w).endsWith('出') && /^(结论|如下|以下)/.test(next)) return undefined;
         if (this.t2s.convert(w).endsWith('出') && (VERB_BEFORE_DE_CHU.test(prev) || (/猜测$/.test(prev) && clauseEnd))) return ['de5', 'chu1'];
+        // 懒得出了名, 吓得出声叫了 (so lazy he was famous for it, scared into crying out): de + 出名 出声.
+        if (this.t2s.convert(w).endsWith('出') && isHanCodePoint(p.codePointAt(0) ?? 0) && ((nx === '了' && /^名/.test(after)) || /^声/.test(next))) return ['de5', 'chu1'];
+        // 你得出五十块 (you must pay): děi.
+        if (this.t2s.convert(w).endsWith('出') && /^(你|我|他|她|咱|您|你们|我们|他们|咱们)$/.test(prev) && /^[一二两三四五六七八九十几百千万0-9]/.test(next)) return ['dei3', 'chu1'];
+        // 明天你也得来, 还得来求我 (must come, must do): děi; 从哪儿得来的 (got) stays dé.
+        if (this.t2s.convert(w).endsWith('来') && /(也|还|就|都|又|总|必须|一定|非)$/.test(prev) && !/^[的之了]/.test(next)) return ['dei3', 'lai2'];
         return VERB_BEFORE_DE.test(prev) ? ['de5', this.t2s.convert(w).endsWith('出') ? 'chu1' : this.t2s.convert(w).endsWith('到') ? 'dao4' : this.t2s.convert(w).endsWith('来') ? 'lai2' : this.t2s.convert(w).endsWith('起') ? 'qi3' : 'zhu4'] : undefined;
       case '引着':
         // 引着十数个打鱼的, 引着唐僧 (leading): yǐn zhe; 引着了 (caught fire) stays yǐnzháo.
@@ -1566,13 +1576,16 @@ class DictImpl implements Dictionary {
         return prev === '知' && clauseEnd && !/[不谁誰]$/.test(this.t2s.convert(ctx.line?.[(ctx.at ?? 0) - 2] ?? '')) ? ['duo1', 'shao3'] : undefined;
       case '巷道':
         // In a paragraph about a mine (井 煤 矿 掘进), 巷道 is the tunnel (hàngdào); elsewhere a lane (xiàngdào).
-        return ctx.line?.some((t) => /[井煤矿礦掘坑岩]|工作面|采煤|採煤/.test(t)) ? ['hang4', 'dao4'] : undefined;
+        // (走进大巷道, 巷道顶板, 沿着铁轨: a mine's too.)
+        return /大$/.test(prev) || ctx.line?.some((t) => /[井煤矿礦掘坑岩]|工作面|采煤|採煤|铁轨|鐵軌|矿灯|礦燈|冒顶|冒頂|塌方|瓦斯|顶板|頂板|支架|掌子面|透水|风门|風門|灌满|灌滿/.test(t)) ? ['hang4', 'dao4'] : undefined;
       case '长毛':
         // 长毛了 (grew mold) is zhǎng máo; the Taiping 长毛 and long hair are cháng máo.
         return nx === '了' ? ['zhang3', 'mao2'] : ['chang2', 'mao2'];
       case '地道':
         // 玩得很地道, 他的口音真地道 (authentic, the real thing): dìdao; the tunnel is dìdào.
-        return /(很|挺|真|得|不|特别|相当|非常|十分|够|最|多么|那么|这么|太)$/.test(prev) ? ['di4', 'dao5'] : undefined;
+        // (一个地道的北京人, 一口地道的上海话, 是地道的土产: the real thing too; 这条地道的入口, 沿着地道的墙壁 stay the tunnel.)
+        return /(很|挺|真|得|不|特别|相当|非常|十分|够|最|多么|那么|这么|太)$/.test(prev)
+          || (next === '的' && /(个|首|种|位|名|口|是|为|成|成为|成了)$/.test(prev) && !/^(入口|出口|口|里|中|尽头|墙|顶|深处|两|壁|那头|这头|一头)/.test(after)) ? ['di4', 'dao5'] : undefined;
       case '一晃':
         // 身体 一晃 就跌倒, 他一晃 (the body swayed): yī huàng; 一晃就是十年 (in a flash) and 身子一晃，已 + a leap (flashed across:
         // a leap or a dodge follows) stay yī huǎng.
@@ -1655,7 +1668,7 @@ const CONTEXT_WORDS: ReadonlySet<string> = new Set([
 const HOUSEHOLD_BEFORE = /(穷|富|富庶|寻常|平常|普通|有钱|百姓|小康|官宦|读书|贫寒|贫贱|本分|规矩|体面|中等|殷实|豪富|大户|小户|猎户|庄户|这样|那样|这种|那种|这等|那等|一般|好|不少|其他|许多|村里|庄上|城里|山里|那家|一家|有些|所有|有没有|几户|每户|哪家|这些|那些)$/;
 const PRONOUN_START = /^(我|你|您|他|她|它|咱|人家|大家)/;
 /** Verbs before 得出 得到 …: the particle de, not dé (猜得出, 料得到, 想得到, 办得到, 买得起, 靠得住). */
-const VERB_BEFORE_DE = /(猜|料|想|看|听|办|做|找|买|吃|拿|说|写|认|学|记|赶|追|跑|走|飞|跳|闻|摸|觉|感|受|靠|守|顶|撑|站|坐|靠|挡|管|对|瞧|估|算)$/;
+const VERB_BEFORE_DE = /(猜|料|想|看|听|办|做|找|买|吃|拿|说|写|认|学|记|赶|追|跑|走|飞|跳|闻|摸|觉|感|受|靠|守|顶|撑|站|坐|靠|挡|管|对|瞧|估|算|想象|想像)$/;
 /** Verbs before 得出 alone that make it can (考得出, 辨得出, 背得出, 解得出, 念得出; 猜测得出。): 实验得到 研究得到了 are got (dé). */
 const VERB_BEFORE_DE_CHU = /(考|辨|背|解|读|念|答|分)$/;
 

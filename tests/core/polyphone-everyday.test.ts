@@ -148,3 +148,40 @@ describe('a martial-arts novel’s readings', () => {
     expect(await py('这件事千万不敢大意。', '大意')).toBe('dà yi');
   });
 });
+
+describe('a village novel’s readings', () => {
+  it('得 must, opening a clause: a deed or a length of time', async () => {
+    expect(await py('他们的车坏了，得用拖拉机拉回去。', '得')).toBe('děi');
+    expect(await py('这病没有什么大事，得三四天才能好。', '得')).toBe('děi');
+    expect(await py('这件衣服被他“改造”得不成样子了。', '得')).toBe('de');
+    expect(await py('你得出五十块。', '得出')).toBe('děi chū');
+    expect(await py('这孩子懒得出了名。', '得出')).toBe('de chū');
+    expect(await py('明天你也得来。', '得来')).toBe('děi lái');
+    expect(await py('这钱是从哪儿得来的？', '得来')).toBe('dé lái');
+  });
+  it('盛 ladling, 数 counting or a count, 系 tying, 省 provinces', async () => {
+    expect(await py('汤太多，碗里盛不下。', '盛')).toBe('chéng');
+    expect(await py('每次都是她自己盛。', '盛')).toBe('chéng');
+    expect(await py('天上的星星数也数不清。', '数')).toBe('shǔ');
+    expect(await py('他低着头认真地数。', '数')).toBe('shǔ');
+    expect(await py('她在腰上系两条红绳。', '系')).toBe('jì');
+    expect(await py('东北三省的冬天很冷。', '省')).toBe('shěng');
+    expect(await py('吾日三省吾身。', '省')).toBe('xǐng');
+  });
+  it('差 poor or all but, 将 about to, 会 good at, 了 after 不见得, 还 still', async () => {
+    expect(await py('这家店的服务特别差。', '差')).toBe('chà');
+    expect(await py('他就差没跳起来了。', '差')).toBe('chà');
+    expect(await py('天将黄昏，鸟都回巢了。', '将')).toBe('jiāng');
+    expect(await py('她很会计算成本。', '会')).toBe('huì');
+    expect(await py('他是不是好人，那可不见得了。', '了')).toBe('le');
+    expect(await py('她还愿意等他。', '还')).toBe('hái');
+    expect(await py('使者都还本国去了。', '还')).toBe('huán');
+  });
+  it('words: 地道 the real thing, 巷道 a mine’s, 分子 of a class, 重重 layers of', async () => {
+    expect(await py('他是个地道的北京人。', '地道')).toBe('dì dao');
+    expect(await py('这条地道的入口很小。', '地道')).toBe('dì dào');
+    expect(await py('矿工们走进大巷道。', '巷道')).toBe('hàng dào');
+    expect(await py('他是五类分子。', '分子')).toBe('fèn zǐ');
+    expect(await py('路上有重重关卡。', '重重')).toBe('chóng chóng');
+  });
+});
