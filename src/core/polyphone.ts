@@ -398,7 +398,7 @@ type Rule = (c: CharContext) => string | Usual | undefined;
 /** Units a thing falls short by (差了两寸, 差着一辈, 差了数倍): not the people an errand sends (差了两个统制官). */
 const SHORT_BY = /^(寸|尺|丈|里|步|分|厘|毫|点|截|辈|级|岁|天|日|年|月|个月|时辰|个时辰|刻|倍|成|筹|招|着|层|段|码|米|公里|秒|分钟|小时)/;
 /** Everyday deeds that 得 "must" opens a clause with in the vernacular (得找大夫, 得赶回去, 得想办法). */
-const MUST_DEED = /^(看|想|赶|找|等|留|带|买|学|吃|换|送|搬|问|写|打|交|付|赔|准备|小心|注意|早|好好|跑|离开|上班|上学|起床|睡觉|洗|穿|收拾|商量|告诉|通知|用|把|要|靠|依靠|干|绕|开口|象|像|多少|花|借|还钱|请|跟着|费|想办法|承认|拔)/;
+const MUST_DEED = /^(看|想|赶|找|等|留|带|买|学|吃|换|送|搬|问|写|打|交|付|赔|准备|小心|注意|早|好好|跑|离开|上班|上学|起床|睡觉|洗|穿|收拾|商量|告诉|通知|用|把|要|靠|依靠|干|绕|开口|象|像|多少|花|借|还钱|请|跟着|费|想办法|承认|拔|进城|回家|出门|动身|在)/;
 const MODAL_BEFORE_DEI: readonly string[] = ['还', '也', '就', '都', '须', '总', '必', '非', '一定', '准', '也就', '还是', '到底'];
 /** Words before 得了 + something got (dé): 又得了银子, 忽然得了急病. */
 const DE2_AFTER: readonly string[] = ['又', '竟', '却', '便', '刚', '已', '已经', '曾', '曾经', '忽然', '突然', '终于', '后来', '因此', '从此', '偶然', '偶而', '新', '先后'];
@@ -458,6 +458,8 @@ const isNumberTok = (t: string): boolean => /^[零〇一二三四五六七八九
 /** A measure or a unit after a number (为二十秒, 约为八十平方米). */
 const UNIT = /^(个|位|公里|千米|米|年|秒|分|分钟|小时|天|日|月|岁|度|次|倍|层|段|截|块|元|斤|尺|寸|里|丈|平方|公斤|吨|级|等|份|部分|万|亿|千|百|十|光年|摄氏度|%)/;
 /** A time or a length before 长 (cháng): 时间长得很, 日子长了, 路长. */
+/** What is shelled or peeled (剥豆子, 剥橘子): bāo. */
+const PEELED = /^(豌豆|蚕豆|毛豆|豆子|豆荚|花生|花生米|粽子|橘子|桔子|橙子|柚子|香蕉|鸡蛋|蛋|蒜|大蒜|葱|洋葱|玉米|苞谷|栗子|核桃|瓜子|笋|竹笋|莲子|莲蓬|菱角|虾|螃蟹|蟹|壳|蛋壳|树皮|糖|糖纸|土豆|荔枝|桂圆|龙眼|松子|毛栗|芋头)$/;
 const LENGTHS = /(时间|日子|夜|路|道路|沙漠|队伍|岁月|距离|寿命|时光|白昼|黑夜|过程|彗尾|尾巴|绳子|线|句子|话|一生|夏天|冬天|等待|战线|时刻|时辰|工夫)$/;
 /** What grows after 长 (zhǎng): 长庄稼, 长肉, 长记性, 长起来, 长这么大. */
 const GROWN = /^(庄稼|麦子|粮食|艾|肉|眼睛|记性|脑子|身体|个子|牙|疮|苔|藓|芽|翅膀|起来|这么|那么)/;
@@ -790,7 +792,10 @@ const RULES: Record<string, Rule> = {
     if (!isHan(c.prevChar)) return has('叫让给去', c.nextChar) || /^(今天|明天|马上|赶快|赶紧|立刻|自己|先|再|快|好好|早点|早些)$/.test(c.nextTok)
       || ((/^有/.test(c.nextTok) && inVernacular(c)) || (MUST_DEED.test(c.nextTok) && (cpLen(c.nextTok) === 1 || /^(多少|想法|费劲儿?)$/.test(c.nextTok) || (c.verb?.(c.nextTok) ?? 1) >= 1)
         && !ahead(c, 5).some((t) => /^(之|其|乎|矣|焉)$/.test(t)) && (inVernacular(c, MODERN) || ahead(c, 5).some((t) => /^(啦|吧|呀|嘛|喽|咯)$/.test(t))))) ? 'dei3' : 'de2';
-    if (c.prevChar === '事' && has('叫让给', c.nextChar)) return 'dei3'; // 这事得叫他去
+    // 这事得叫他去, 这件事得问你爸 (it needs someone to do something): děi.
+    if (c.prevChar === '事' && (has('叫让给', c.nextChar) || (cpLen(c.nextTok) === 1 && MUST_DEED.test(c.nextTok) && inVernacular(c, MODERN)))) return 'dei3';
+    // 买东西时得先付钱 (one must first): děi after a time and before an adverb of order or haste.
+    if (/^(时|时候|以后|之后|那时|这时)$/.test(c.prevTok) && /^(先|再|马上|赶紧|立刻|赶快|早点|早些)$/.test(c.nextTok) && inVernacular(c, MODERN)) return 'dei3';
     // 若得绵竹 幸得 安得不败 岂得 未得 让以得之: the verb "to get, to manage to" of the classics (dé).
     // (多幸得, 且休得: the same after a word that ends in 幸 or 休.)
     // 暂得保存, 始得, 遂得, 何遽得考, 并得依法任命 (and may): "to get to, may" after an adverb (dé).
@@ -824,7 +829,9 @@ const RULES: Record<string, Rule> = {
     if (c.nextChar === '令' && isHan(c.prevChar) && (/^令(人|爱|尊|郎|堂|兄|弟|妹|妻|正|亲)$/.test(c.nextTok) || (c.nextTok === '令' && (has(PRONOUNS, c.afterChar ?? '') || c.afterTok === '人')))) return 'de5';
     if (!has(PRONOUNS, c.prevChar) && (has('令胜罪知意', c.nextChar) || c.nextTok === '蒙' || /^蒙(恩|允|赐|救|收)/.test(c.nextTok)) && isHan(c.prevChar)) return 'de2'; // 得令 得胜 得罪 得知 得蒙: dé
     // 他应当得匹好马, 也想得个好名: "to get" a counted thing after a word of wanting or ought.
-    if (/^(应当|应该|理应|可以|能|能够|想|想要|要|便|才|方)$/.test(c.prevTok) && has('个座块匹间头只张些', c.nextChar)) return 'de2';
+    // (想得那座房子, 不想得这份产业: 这 那 一 and a measure word.)
+    if (/^(应当|应该|理应|可以|能|能够|想|想要|不想|一心想|要|便|才|方)$/.test(c.prevTok) && (has('个座块匹间头只张些', c.nextChar)
+      || /^(这|那|一)(个|座|块|匹|间|头|只|张|份|笔|所)$/.test(c.nextTok) || (/^(这|那|一)$/.test(c.nextTok) && has('个座块匹间头只张份笔所', c.afterChar ?? '')))) return 'de2';
     // 我得去 你得马上走 我们得承认 (must) after a pronoun; 我得何罪 他得病 你得手 我得重病那年 他得个好名 (got) before what is got.
     if (has(PRONOUNS, c.prevChar) && isHan(c.nextChar) && !has('很不太多更最', c.nextChar)) {
       return has('何罪病道手空闲奖胜意知的势宠逞益利钱见遇个便新脱命异', c.nextChar) || GOT_NOUN.test(c.nextTok) ? 'de2' : 'dei3';
@@ -857,8 +864,8 @@ const RULES: Record<string, Rule> = {
     // 微笑地|点|了点头, 哗哗地|下|着: 点 下 上 before 了 着 起 are the verb, so 地 is the particle (not after 在 到 从: 在地|上|了).
     const verbAfter = ((nextIs(c, '点下上') && /^(了|着|起|来|去|头)/.test(c.afterTok ?? '')) || /^(点|下|上)(了|着|起)$/.test(c.nextTok)) && !has('在到从往于满遍落', c.prevChar);
     const notNoun = verbAfter || (!nextIs(c, '上下里中外内面边方区图理球震形板点址界亩土煞仙狱府位势陷畔埂垄') && !/^[上下里中外内面边方底][上下里面边间头前后]$/.test(c.nextTok));
-    // 高粱地 玉米地 (a field) is the noun even before a verb.
-    if (/(高粱|玉米|棉花|庄稼|麦|稻|谷|菜|瓜|豆|荒|田)$/.test(c.prevTok) && !doubledBefore(c)) return 'di4';
+    // 高粱地 玉米地 菜园地 (a field, a garden plot) is the noun even before a verb.
+    if (/(高粱|玉米|棉花|庄稼|麦|稻|谷|菜|瓜|豆|荒|田|园)$/.test(c.prevTok) && !doubledBefore(c)) return 'di4';
     // 移居地, 栖息地, 出生地 (the place where it is done) when the dictionary lacks the word.
     if (PLACE_OF.test(c.prevTok)) return 'di4';
     // 钻进地下去, 埋进地里: going into the ground (深入地了解 is the particle).
@@ -933,7 +940,11 @@ const RULES: Record<string, Rule> = {
   },
   // 都 is dū "capital" in 首都 京都 古都 许都 东都 (the whole word before it: 尸首都推 is "all") and in the titles 都头 都监 都统 都尉.
   都: (c) => (prevIs(c, '首京古故旧陪帝许') || ['东', '西', '中'].includes(c.prevTok) && !isHan(c.nextChar) || nextIs(c, '头监统尉') || c.nextChar === '亭' ? 'du1' : usual('dou1')),
-  行: (c) => (has('银同排各商内外米数两几', c.prevChar) || has('业列当家话情字', c.nextChar) ? 'hang2' : usual('xing2')),
+  // 在行 closing its clause (expert at it), 油行 木行 盐行 (a shop that deals in oil, timber, salt): háng.
+  行: (c) => (has('银同排各商内外米数两几', c.prevChar) || has('业列当家话情字', c.nextChar)
+    // (自在行, 逍遥自在 and on its way: xíng.)
+    || (prevIs(c, '在') && c.nextKnown !== false && !isHan(c.nextChar) && !(c.tok !== undefined && c.word?.(c.tok(-2) + '在')))
+    || (prevIs(c, '油木盐茶粮鱼肉柴炭丝牙布货') && !/^(于|走|至|到|进|驶|动|在|过|去|来|使|事|为|善|路|止|人|者|之|其|而|以|则|乎)/.test(c.nextTok)) ? 'hang2' : usual('xing2')),
   长: (c) => {
     // 越长越大, 越长越像他 (grows): zhǎng; 日子越长越难熬 (the longer) stays cháng.
     if (prevIs(c, '越') && c.nextTok === '越' && /^(大|高|壮|胖|粗|多|快|漂亮|好看|像|象|美|俊|结实|茂盛|旺|肥|长|俊俏|水灵|标致)/.test(c.afterTok ?? '')
@@ -944,6 +955,10 @@ const RULES: Record<string, Rule> = {
     // 长时间 长期 长达: long, whatever comes before (造成|长时间 is not 成长).
     if (['时间', '期', '久', '达', '远', '度', '途', '篇', '短', '长'].includes(c.nextTok)) return 'chang2';
     if (has('道夫', c.prevChar) && !has('老', c.nextChar)) return 'zhang3'; // 道长 (a Daoist master) 万夫长 (a commander of ten thousand)
+    // 年龄稍长的 (the older ones), 长养万物 (to nurture): zhǎng.
+    if ((prevIs(c, '较稍最') && c.tok !== undefined && /(年纪|年龄|年岁|岁数)$/.test(c.tok(-2))) || (c.alone !== false && nextIs(c, '养'))) return 'zhang3';
+    // 那个故事长得很 (a long story): cháng.
+    if (nextIs(c, '得') && /^(事|故事|梦|信|文章|戏)$/.test(c.prevTok)) return 'chang2';
     if (prevIs(c, '生成增涨助滋')) return 'zhang3';
     // 里长 矿长 什长 舰长 仙长: the head of something; 长史 长嫂 长兄 长女: the eldest, the senior.
     if (prevIs(c, '矿什舰船队连排营团师军省市县乡村镇局处科校院厂社站组班族酋仙侍') || /[舰矿]$/.test(c.prevTok) || nextIs(c, '史嫂兄女孙房吏男')) return 'zhang3';
@@ -1145,6 +1160,11 @@ const RULES: Record<string, Rule> = {
         const rest = next.slice(1);
         const tail = rest.length && (UNIT.test(rest[0]) || cpLen(rest[0]) === 1) && !isNumberTok(rest[0]) ? rest.slice(1) : rest;
         if (tail.length === 0 || /^(的|左右|以上|以下|之间|之多|多|余|上下|了|也|矣)$/.test(tail[0])) return 'wei2';
+        // 他的伙伴为一头牛与一条狗。 (counted things joined by 与 和 to the end of the clause, nothing done): wéi, "were".
+        const { units, end } = clauseAfter(c, 12);
+        const and = units.findIndex((u) => /^(与|和|同|及)$/.test(u));
+        if (end !== undefined && /^(。|！|；|，|$)/.test(end) && and >= 2 && isNumberTok(units[and + 1] ?? '') && and + 2 < units.length
+          && !units.some((u, k) => k >= 1 && (FOR_DEED.test(u) || verbAt(c, units, k)))) return 'wei2';
       } else if (!isHan(c.afterChar ?? '') || (UNIT.test(c.afterTok ?? '') && c.nextKnown !== false)) return 'wei2';
     }
     // Nothing says which: in the classics and the old novels 為 is the verb "to be, to become, as" (举火为号, 号为玉音, 深为不便,
@@ -1162,7 +1182,8 @@ const RULES: Record<string, Rule> = {
   // 把觉睡足 (the sleep): jiào.
   // (一觉有人, 一觉不对: "as soon as he felt", jué, unless it is a sleep.)
   // (睡个好觉吧: a good sleep, jiào.)
-  觉: (c) => (prevIs(c, '好') && !isHan(c.nextChar) && c.nextKnown !== false ? 'jiao4' : has('忽顿自只便即方始渐已又才甚颇深', c.prevChar)
+  // (中觉睡得很沉: a midday nap, jiào.)
+  觉: (c) => ((prevIs(c, '好') && !isHan(c.nextChar) && c.nextKnown !== false) || (prevIs(c, '中') && nextIs(c, '睡')) ? 'jiao4' : has('忽顿自只便即方始渐已又才甚颇深', c.prevChar)
     || (c.prevTok === '一' && ((has('有得不', c.nextChar) && !/^不醒/.test(c.nextTok + (c.afterTok ?? ''))) || has(PRONOUNS, c.nextChar) || c.named?.(c.nextTok) === 'name') && !behind(c, 4).some((t) => t.includes('睡'))) ? 'jue2' : (prevIs(c, '把') && nextIs(c, '睡')) || has('睡午懒补回一', c.prevChar) || (c.alone !== false && behind(c, 3).some((t) => t.includes('睡'))) ? 'jiao4' : usual('jue2')),
   // 好 is hào "to be fond of" before what one likes (好学 好色 好读书 好结交, 好谋无断 好作乱) and after 专 素 一心 不甚 (专好结交);
   // 好机会 is a good chance (hǎo).
@@ -1259,6 +1280,8 @@ const RULES: Record<string, Rule> = {
     if (/^(不足|不多|不少|甚多|众多|极多|过多|较多|极少|甚少|不超过|不低于|不少于)/.test(c.nextTok)) return 'shu4';
     // 数到三, 开始数, 继续数, 数出来, 数下去 (counting): shǔ; 人数到了一万 (the number) stays shù.
     if (c.alone !== false && ((/^(到|出来|出|下去)$/.test(c.nextTok) && !/[人次总岁分页字位倍层组项件]$/.test(c.prevTok)) || /^(开始|继续|接着|从头|重新|默默|悄悄)$/.test(c.prevTok))) return 'shu3';
+    // 叫他再数, 再数一遍 (count it again): shǔ.
+    if (c.alone !== false && prevIs(c, '再') && ((c.nextKnown !== false && !isHan(c.nextChar)) || /^(一遍|一次|一下|一回|两遍|几遍)$/.test(c.nextTok))) return 'shu3';
     if ((nextIs(c, '也') && c.tok && c.tok(2).startsWith('数')) || (c.alone !== false && prevIs(c, '地')) || (prevIs(c, '过') && c.tok && c.tok(-2) === '往')) return 'shu3';
     if (has('一数不得遍着起清了去来钱道', c.nextChar) || has('一数胜了', c.prevChar) || prevIs(c, '要就该算不会')) return 'shu3'; // 数去更无君傲世, 数来数去, 数钱, 要数除夕
     return usual('shu4');
@@ -1775,7 +1798,9 @@ const RULES: Record<string, Rule> = {
   // 转 is zhuàn "to spin, to stroll" (转着 转圈 转了一圈 到处转 转了转), zhuǎn "to turn, to shift" otherwise.
   // 转一圈, 转了一圈 cut 转|了|一|圈 (a turn around): zhuàn.
   转: (c) => (nextIs(c, '着圈悠') || /^(圈|几圈)/.test(c.nextTok) || (nextIs(c, '了') && /^(一圈|几圈|圈|转)/.test(c.afterTok ?? '')) || ['到处', '乱', '团团', '四处'].includes(c.prevTok)
-    || /^了?[一两几三四五六七八九十]+(个)?圈/.test(ahead(c, 4).join('')) ? 'zhuan4' : undefined),
+    || /^了?[一两几三四五六七八九十]+(个)?圈/.test(ahead(c, 4).join(''))
+    // 风车转得飞快 (a wheel spinning): zhuàn.
+    || (nextIs(c, '得') && /(车|轮|轮子|陀螺|磨|扇|风扇|盘|轴|齿轮|螺旋桨|风车|水车)$/.test(c.prevTok)) ? 'zhuan4' : undefined),
   // 冲 is chòng "facing, at" (冲他笑, 冲着我, 门冲南), chōng "to rush" otherwise.
   // 水流冲着南瓜, 冲他大营 (rushing at, charging): chōng.
   冲: (c) => (has('水流浪风洪潮', c.prevChar) || behind(c, 4).some((t) => /^(水|水流|河水|海水|浪|风|洪水|潮水|激流|急流|浪头)$/.test(t)) || (has('他她', c.nextChar) && ahead(c, 3).slice(1).some((t) => /[营队阵军寨城]$/.test(t))) ? undefined : has('我你他她它您咱', c.nextChar) || (nextIs(c, '南北东西') && !has('东西南北', c.prevChar)) || (nextIs(c, '着') && /^(我|你|他|她|它|您|咱|这|那|人)/.test(c.afterTok ?? ''))
@@ -1821,14 +1846,14 @@ const RULES: Record<string, Rule> = {
   // 驴圈 马圈: juàn, a pen.
   圈: (c) => (has('驴马牛猪羊鸡', c.prevChar) && c.alone !== false ? 'juan4' : undefined),
   // 泊 is bó "to moor" (湾泊 泊入轨道); pō in 梁山泊 (a lake).
-  泊: (c) => (nextIs(c, '入在着了于') || has('停湾', c.prevChar) ? 'bo2' : undefined),
+  泊: (c) => (nextIs(c, '入在着了于到岸') || has('停湾', c.prevChar) ? 'bo2' : undefined),
   // 绷着脸 脸绷了: běng.
   绷: (c) => (has('脸嘴', c.prevChar) || /^(脸|着脸)/.test(c.nextTok) || (nextIs(c, '着') && /^脸/.test(c.afterTok ?? '')) ? 'beng3' : undefined),
   // 弄里 弄堂 弄口: lòng, a lane.
   // 先去弄口锅来 (get a pot) is nòng.
   弄: (c) => ((nextIs(c, '里堂') || (nextIs(c, '口') && (!isHan(c.afterChar ?? '') || /^(的|处|站|外|边|上|里|前|有|停|旁)/.test(c.afterTok ?? '')))) && c.alone !== false ? 'long4' : undefined),
-  // 背纤 拉纤: qiàn, a tow rope.
-  纤: (c) => (has('背拉', c.prevChar) ? 'qian4' : undefined),
+  // 背纤 拉纤, 拉二纤 (the second tow rope): qiàn, a tow rope.
+  纤: (c) => (has('背拉', c.prevChar) || prevIs(c, '头二') ? 'qian4' : undefined),
   // 一杆抬秤: gǎn, the measure word.
   杆: (c) => (/^[一二三四五六七八九十两几]+$/.test(c.prevTok) ? 'gan3' : undefined),
   // 笼上 笼着 (to cover): lǒng.
@@ -1970,7 +1995,9 @@ const RULES: Record<string, Rule> = {
     || (c.nextKnown !== false && !isHan(c.nextChar) && prevIs(c, '做作干说要怕看问叫闹笑哭等想慌急')) ? 'shen2' : undefined),
   // 和面 和泥 (to knead, to mix): huó.
   // 和好的面团, 和匀了面 (kneading the dough): huó.
-  和: (c) => (c.alone !== false && (nextIs(c, '泥面') || (nextIs(c, '好匀成') && ahead(c, 4).slice(1).some((t) => /^(面|面团|面粉|的面|泥)$/.test(t)))) ? 'huo2' : undefined),
+  // 有人应和, (answered in song or in kind, closing its clause): hè.
+  和: (c) => (c.alone !== false && (nextIs(c, '泥面') || (nextIs(c, '好匀成') && ahead(c, 4).slice(1).some((t) => /^(面|面团|面粉|的面|泥)$/.test(t)))) ? 'huo2'
+    : c.alone !== false && prevIs(c, '应') && c.nextKnown !== false && !isHan(c.nextChar) ? 'he4' : undefined),
   // 闷着头, 闷头 (silently): mēn.
   // 闷得慌, 闷得发慌 (stuffy): mēn.
   闷: (c) => (nextIs(c, '头') || (nextIs(c, '着') && /^(头|声)/.test(c.afterTok ?? '')) || (nextIs(c, '得') && /^(慌|发慌)/.test(c.afterTok ?? '')) ? 'men1' : undefined),
@@ -2041,7 +2068,9 @@ const RULES: Record<string, Rule> = {
   // 露着两条腿 (left showing, the everyday word): lòu.
   露: (c) => (nextIs(c, '着') && c.alone !== false ? 'lou4' : undefined),
   // 剥下来, 剥了皮 (to peel, to strip off: the everyday word): bāo.
-  剥: (c) => (nextIs(c, '下开了掉皮着') || /^(下来|下去|开来)$/.test(c.nextTok) ? 'bao1' : undefined),
+  // 剥豆子, 剥她的橘子 (shelling or peeling a food): bāo; 剥剥 剥啄 (a knocking) stay bō.
+  剥: (c) => (nextIs(c, '下开了掉皮着') || /^(下来|下去|开来)$/.test(c.nextTok)
+    || (c.alone !== false && !prevIs(c, '剥') && !nextIs(c, '剥啄') && ahead(c, 3).some((t) => PEELED.test(t))) ? 'bao1' : undefined),
 };
 
 /** Rule-based reading for `ctx.ch`, or undefined when no rule applies (use the dictionary default). */

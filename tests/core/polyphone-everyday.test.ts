@@ -216,3 +216,36 @@ describe('a science-fiction novel’s readings', () => {
     expect(await py('阳光透过重重树木照下来。', '重重')).toBe('chóng chóng');
   });
 });
+
+describe('a country novella’s readings', () => {
+  it('得 must after a clause, a matter or a time, and dé before what is got', async () => {
+    expect(await py('外婆的病重了，得进城去请医生。', '得')).toBe('děi');
+    expect(await py('明天的会，得在八点前到，我们别迟了。', '得')).toBe('děi');
+    expect(await py('这事得问你爸，我们都不知道。', '得')).toBe('děi');
+    expect(await py('买东西的时候得先付钱，这是规矩。', '得')).toBe('děi');
+    expect(await py('他一心想得那座房子。', '得')).toBe('dé');
+  });
+  it('剥 peeling food, 纤 a tow rope, 泊 moored, 行 a shop or a trade, 觉 a nap, 转 spinning, 和 answering', async () => {
+    expect(await py('奶奶低着头剥橘子，', '剥')).toBe('bāo');
+    expect(await py('那年他在江上拉二纤。', '纤')).toBe('qiàn');
+    expect(await py('渔船已经泊到岸边。', '泊')).toBe('bó');
+    expect(await py('他父亲开了一家油行。', '行')).toBe('háng');
+    expect(await py('修车这种事他很在行。', '行')).toBe('háng');
+    expect(await py('他中觉睡得很沉。', '觉')).toBe('jiào');
+    expect(await py('风车转得飞快。', '转')).toBe('zhuàn');
+    expect(await py('山那边有人应和，', '和')).toBe('hè');
+  });
+  it('长 older or nurturing or a long story, 数 counting again, 地 a garden plot', async () => {
+    expect(await py('年龄稍长的孩子去放牛。', '长')).toBe('zhǎng');
+    expect(await py('雨露长养万物。', '长')).toBe('zhǎng');
+    expect(await py('那个故事长得很，以后再说。', '长')).toBe('cháng');
+    expect(await py('他让店主再数，', '数')).toBe('shǔ');
+    expect(await py('请你再数一遍。', '数')).toBe('shǔ');
+    expect(await py('她在菜园地的篱笆边摘豆角。', '地')).toBe('dì');
+  });
+  it('words: 参将 an officer, 团总 a militia head, 一忽儿 a moment', async () => {
+    expect(await py('那位参将骑马进了城。', '参将')).toBe('cān jiàng');
+    expect(await py('团总派人来了。', '团总')).toBe('tuán zǒng');
+    expect(await py('一忽儿又下起雨来。', '一忽儿')).toBe('yì hū r');
+  });
+});
