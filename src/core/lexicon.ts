@@ -20,7 +20,7 @@ const SLICE_WORK_MS = 8;
 const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Bump when detection changes enough that stored results should be recomputed. */
-export const DETECTOR_VERSION = 17;
+export const DETECTOR_VERSION = 18;
 /** Stored for a book read without the name list (core/gazetteer.ts could not fetch it): it is read again once the list is there. */
 export const WITHOUT_LIST = DETECTOR_VERSION - 0.5;
 /** Stored for a book read with the list but without the name model (core/nameModel.ts): it is read again once the model is there. */
@@ -411,6 +411,7 @@ export function* detectGen(chapterTexts: string[], dict: Dictionary, opts: Detec
     // (这小猴子 is still the boy: 小 counts nothing.)
     if (verdict.kind === 'name' && (c.counted ?? 0) >= 0.5 && MEASURE_AFTER.has(dict.toSimplified(c.word[0]))) continue;
     if (verdict.kind === 'name' && countedThing(c, dict)) continue;
+    if (verdict.kind === 'name' && c.speech < 0.03 && beast([...dict.toSimplified(c.word)])) continue;
     c.kind = verdict.kind;
     c.surnameLed = verdict.surnameLed;
     if (verdict.neutralZi) c.neutralZi = true;
@@ -606,6 +607,11 @@ function opensWord(text: string, s: string, dict: Dictionary): boolean {
 function commonWord(w: string, dict: Dictionary): boolean {
   const senses = dict.lookup(w);
   return senses.length > 0 && senses.every((e) => /^[a-zü]/.test(e.pinyin));
+}
+
+/** 黄猫, 白马, 花狗: a color and an animal, a beast described rather than a person named, when it never speaks (白鹊 who speaks is a girl). */
+function beast(simp: readonly string[]): boolean {
+  return simp.length === 2 && '黄白黑红青灰花紫'.includes(simp[0]) && '狗猫马牛羊猪鸡鸭鹅鱼虎狼熊鹿兔蛇鸟雀狐鼠驴骡猴'.includes(simp[1]);
 }
 
 /** A dictionary entry made only of proper nouns (关云长, 猪悟能). */
@@ -1286,7 +1292,8 @@ function* cued(found: LexiconEntry[], text: string, dict: Dictionary, hanCount: 
     const called = CALLED.includes(fold(m[1]));
     // (第二个唤做曾密: 个 counts a person, unless 这个 那个 point at a thing.)
     // (一种人叫做蛊师: a kind of person, not a person.)
-    const personCtx = !m[2] && !/[种種类類]人$/.test(before) && (/(位|人|儿子|女儿|女子|孩子|妻子|丫头|姑娘|兄弟|姐妹)$/.test(before) || (/[个個]$/.test(before) && !/[这那這]/.test(before.slice(-2, -1))));
+    // (长子取名石生, 次子取名水生: a son or a daughter named.)
+    const personCtx = !m[2] && !/[种種类類]人$/.test(before) && (/(位|人|儿子|女儿|女子|孩子|妻子|丫头|姑娘|兄弟|姐妹|[长次幼三四五]子|[长次幼]女)$/.test(before) || (/[个個]$/.test(before) && !/[这那這]/.test(before.slice(-2, -1))));
     const placeEnd = PLACE_SUFFIX.has(last) || SHORT_PLACE_SUFFIX.has(last) || '店口坳集铺'.includes(last);
     // (唤做焦山, 毛颖山: a hill or a pass is a place before it is a person; 叫做陈观 is a man.)
     const hill = '山岭关峰洞岛'.includes(last);
@@ -1959,7 +1966,7 @@ function* modelNames(found: LexiconEntry[], cands: TermCandidate[], text: string
       if (opts.nameSites && (had === 'name' || had === 'place')) pool.set(c.word, { c, simp, found: had });
       continue;
     }
-    if (c.known === 'entry' || !plausibleName(simp, dict)) continue;
+    if (c.known === 'entry' || !plausibleName(simp, dict) || (beast(simp) && c.speech < 0.03)) continue;
     const shape = nameShape(simp);
     if (c.known === 'jieba' && !JIEBA_SHAPES.has(shape)) continue;
     // (老尼, 小军, 老屋, 小舅: 老 小 and a thing, an animal, a kind of person or kin; 阿 before kin is that kin, 阿母.)
@@ -2146,7 +2153,8 @@ export function judgeCandidate(c: TermCandidate, dict: Dictionary, minCount = 6)
   }
   const verdict = judgeInner(c, dict, minCount);
   // A word the dictionary lists is only ever replaced by a person (悟空); a term or place would hide a real definition.
-  if (verdict && c.known === 'entry' && verdict.kind !== 'name') return null;
+  // (柳街: a street of the book that the dictionary lists only as a community elsewhere is the book's place.)
+  if (verdict && c.known === 'entry' && verdict.kind !== 'name' && !(verdict.kind === 'place' && properNoun(c.word, dict))) return null;
   // A word the dictionary lists but the corpus never saw, used hundreds of times and free on both sides, is the book's own
   // term (a science-fiction novel's world named after a medical word); 一片, 恁地 and 钉钯 are commoner than that, but
   // never once in a thousand characters. The dictionary senses still follow the card.
@@ -2273,6 +2281,8 @@ function judgeInner(c: TermCandidate, dict: Dictionary, minCount: number): { kin
   if (len === 2 && !sur && '城村镇岛寨'.includes(last) && c.bind >= 0.7 && c.pmi >= 6 && c.count >= 5 * minCount && c.left >= 2.5 && c.right >= 2.5 && c.speech < 0.02 && !measured) {
     return { kind: 'place', surnameLed: false };
   }
+  // 柳街, 槐巷 (a street the book names again and again, never speaking): a place.
+  if (len === 2 && '街巷'.includes(last) && c.bind >= 0.6 && c.count >= 3 * minCount && c.speech < 0.02 && !measured && !softStart) return { kind: 'place', surnameLed: false };
   // 守塔人, 摆渡者: a role the book names again and again, as tightly bound as a name.
   if (len === 3 && !sur && '者人'.includes(last) && c.known === 'none' && c.bind >= 0.6 && c.count >= 5 * minCount && c.left >= 2.5 && c.right >= 2.5 && !measured && !softStart) {
     return { kind: 'term', surnameLed: false };

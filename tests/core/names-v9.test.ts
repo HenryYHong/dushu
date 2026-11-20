@@ -329,3 +329,21 @@ describe('a science-fiction novel’s names', () => {
     expect(judgeCandidate(cand('简易棚', { count: 7, head: 7 }), dict)).toBeNull();
   });
 });
+
+describe('a country novella’s names', () => {
+  it('finds the sons a 取名 names after 长子 次子', async () => {
+    const m = await detect([`${novel(4, 300)}\n他把长子取名木远，次子取名禾青。\n那年木远十二岁，禾青才八岁。`]);
+    expect(m.get('木远')).toMatchObject({ kind: 'name', pinyin: 'mu4 yuan3' });
+    expect(m.get('禾青')).toMatchObject({ kind: 'name', pinyin: 'he2 qing1' });
+  });
+  it('a street the book names often is a place; a cat described by its color is no one, a girl with that shape of name who speaks is', async () => {
+    const dict = await dictP;
+    const street = { word: '柳街', count: 40, head: 40, bind: 0.95, pmi: 5.5, npmi: 0.8, left: 2.7, right: 2.4, speech: 0, said: 0, prep: 0.02, pprep: 0,
+      counted: 0, measured: 0.04, open: 0.16, voc: 0, rate: 1, known: 'none', kind: 'term', surnameLed: false, tailBound: false, headBound: false } as TermCandidate;
+    expect(judgeCandidate(street, dict)).toMatchObject({ kind: 'place' });
+    const cat = story({}, (pick) => Array.from({ length: 60 }, () => `${pick(['', '那只', '他带着', '孩子和'])}黄猫${pick(['跑了过来', '趴在门口', '跳上了桌子', '跟着他走', '在院子里'])}。`));
+    expect((await detect([cat])).has('黄猫')).toBe(false);
+    const girl = story({ 白鹊: 50 }, (pick) => Array.from({ length: 12 }, () => `白鹊${pick(['说', '笑着说', '问'])}：“${pick(['走吧', '你来了', '天黑了'])}。”`));
+    expect((await detect([girl])).get('白鹊')?.kind).toBe('name');
+  });
+});
